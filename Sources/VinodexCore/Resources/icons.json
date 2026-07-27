@@ -1,0 +1,260 @@
+{
+  "byEntry": {
+    "G001": "lucide:droplet",
+    "G002": "lucide:droplet",
+    "G003": "lucide:sun",
+    "G007": "lucide:triangle",
+    "G009": "lucide:droplet",
+    "G027": "lucide:droplet",
+    "G035": "lucide:mountain",
+    "G038": "lucide:flame",
+    "G050": "lucide:flame",
+    "G051": "lucide:shield",
+    "R001": "lucide:mountain",
+    "R013": "lucide:mountain",
+    "R021": "lucide:sun",
+    "R033": "lucide:droplet",
+    "R036": "lucide:mountain",
+    "R043": "lucide:leaf",
+    "R045": "lucide:mountain",
+    "R047": "lucide:mountain",
+    "R048": "lucide:mountain",
+    "R052": "lucide:sun",
+    "S001": "lucide:flame",
+    "S005": "lucide:droplet",
+    "S006": "lucide:sparkles",
+    "S008": "lucide:sparkles",
+    "S009": "lucide:sparkles",
+    "S012": "lucide:flame",
+    "S020": "lucide:circle",
+    "S021": "lucide:shield",
+    "S026": "lucide:sun",
+    "S029": "lucide:sparkles",
+    "FLAVOR-blackcurrant1": "game-icons:blackcurrant",
+    "FLAVOR-cedar1": "game-icons:pine-tree",
+    "FLAVOR-spice1": "game-icons:hot-spices",
+    "FLAVOR-cherry1": "game-icons:cherry",
+    "FLAVOR-earth1": "game-icons:mushrooms",
+    "FLAVOR-floral1": "game-icons:lotus-flower",
+    "FLAVOR-apple1": "game-icons:shiny-apple",
+    "FLAVOR-butter1": "game-icons:butter",
+    "FLAVOR-vanilla1": "game-icons:vanilla-flower",
+    "FLAVOR-lime1": "game-icons:cut-lemon",
+    "FLAVOR-peach1": "game-icons:peach",
+    "FLAVOR-petrol1": "game-icons:gas-pump",
+    "FLAVOR-tomato1": "game-icons:tomato",
+    "FLAVOR-espresso1": "game-icons:coffee-cup",
+    "FLAVOR-apricot1": "game-icons:peach",
+    "FLAVOR-sea salt1": "game-icons:salt-shaker",
+    "FLAVOR-citrus1": "game-icons:cut-lemon",
+    "FLAVOR-lemon1": "game-icons:cut-lemon",
+    "FLAVOR-saline1": "game-icons:salt-shaker",
+    "FLAVOR-mineral1": "game-icons:rock",
+    "FLAVOR-violet1": "game-icons:lotus-flower",
+    "FLAVOR-black fruit1": "game-icons:elderberry",
+    "FLAVOR-herb1": "game-icons:herbs-bundle",
+    "FLAVOR-blackberry1": "game-icons:elderberry",
+    "FLAVOR-smoke1": "game-icons:smoking-pipe",
+    "FLAVOR-dark chocolate1": "game-icons:chocolate-bar",
+    "FLAVOR-black plum1": "game-icons:plum",
+    "FLAVOR-dried herbs1": "game-icons:herbs-bundle",
+    "FLAVOR-cocoa1": "game-icons:chocolate-bar"
+  },
+  "unique": [
+    "game-icons:atlas",
+    "game-icons:big-wave",
+    "game-icons:blackcurrant",
+    "game-icons:butter",
+    "game-icons:cellar-barrels",
+    "game-icons:cherry",
+    "game-icons:chocolate-bar",
+    "game-icons:coffee-cup",
+    "game-icons:cut-lemon",
+    "game-icons:elderberry",
+    "game-icons:feather",
+    "game-icons:fluffy-cloud",
+    "game-icons:france",
+    "game-icons:gas-pump",
+    "game-icons:herbs-bundle",
+    "game-icons:holy-grail",
+    "game-icons:hot-spices",
+    "game-icons:italia",
+    "game-icons:japan",
+    "game-icons:lotus-flower",
+    "game-icons:mountains",
+    "game-icons:mushrooms",
+    "game-icons:olive",
+    "game-icons:peach",
+    "game-icons:pine-tree",
+    "game-icons:plum",
+    "game-icons:portugal",
+    "game-icons:pouring-chalice",
+    "game-icons:rock",
+    "game-icons:rose",
+    "game-icons:salt-shaker",
+    "game-icons:scales",
+    "game-icons:shiny-apple",
+    "game-icons:smoking-pipe",
+    "game-icons:snowflake-2",
+    "game-icons:south-africa",
+    "game-icons:spain",
+    "game-icons:sun",
+    "game-icons:tomato",
+    "game-icons:two-shadows",
+    "game-icons:vanilla-flower",
+    "game-icons:weight",
+    "game-icons:weight-lifting-up",
+    "game-icons:weight-scale",
+    "game-icons:wine-bottle",
+    "game-icons:wine-glass",
+    "lucide:circle",
+    "lucide:cloud",
+    "lucide:droplet",
+    "lucide:flame",
+    "lucide:leaf",
+    "lucide:mountain",
+    "lucide:shield",
+    "lucide:sparkles",
+    "lucide:sun",
+    "lucide:triangle",
+    "mdi:help-circle-outline"
+  ],
+  "fallback": "mdi:help-circle-outline",
+  "bodyIcons": {
+    "Light": "game-icons:feather",
+    "Light-Medium": "game-icons:weight-scale",
+    "Medium": "game-icons:scales",
+    "Medium-Full": "game-icons:weight-lifting-up",
+    "Full": "game-icons:weight"
+  },
+  "climateIcons": {
+    "maritime": "game-icons:big-wave",
+    "continental": "game-icons:mountains",
+    "cool": "game-icons:snowflake-2",
+    "warm": "game-icons:sun",
+    "mediterranean": "game-icons:olive"
+  },
+  "colorIcons": {
+    "RED": "game-icons:wine-bottle",
+    "WHITE": "game-icons:wine-glass",
+    "ROSE": "game-icons:rose",
+    "ORANGE": "game-icons:sun",
+    "DUAL": "game-icons:two-shadows"
+  },
+  "styleClassIcons": {
+    "TYPE": "game-icons:holy-grail",
+    "BLEND": "game-icons:pouring-chalice",
+    "ORIGIN": "game-icons:atlas",
+    "METHOD": "game-icons:cellar-barrels",
+    "STYLE": "game-icons:wine-glass"
+  },
+  "countryShapeIcons": {
+    "france": "game-icons:france",
+    "italy": "game-icons:italia",
+    "japan": "game-icons:japan",
+    "portugal": "game-icons:portugal",
+    "south africa": "game-icons:south-africa",
+    "spain": "game-icons:spain"
+  },
+  "styleClassBg": {
+    "METHOD": "#312e81",
+    "ORIGIN": "#7c2d12",
+    "TYPE": "#0f172a",
+    "STYLE": "#064e3b",
+    "BLEND": "#1d1b47"
+  },
+  "styleColorTypeColors": {
+    "RED": "#dc2626",
+    "WHITE": "#ffffff",
+    "ROSE": "#ec4899",
+    "ORANGE": "#f97316",
+    "DUAL": "#3b82f6"
+  },
+  "soilIcons": {
+    "volcanic": {
+      "icon": "lucide:flame",
+      "color": "#FF4500"
+    },
+    "clay": {
+      "icon": "lucide:circle",
+      "color": "#8B4513"
+    },
+    "sand": {
+      "icon": "lucide:cloud",
+      "color": "#F4A460"
+    },
+    "limestone": {
+      "icon": "lucide:mountain",
+      "color": "#E0E0E0"
+    },
+    "chalk": {
+      "icon": "lucide:mountain",
+      "color": "#E0E0E0"
+    },
+    "slate": {
+      "icon": "lucide:mountain",
+      "color": "#708090"
+    },
+    "schist": {
+      "icon": "lucide:mountain",
+      "color": "#708090"
+    },
+    "granite": {
+      "icon": "lucide:mountain",
+      "color": "#A9A9A9"
+    },
+    "gravel": {
+      "icon": "lucide:circle",
+      "color": "#696969"
+    },
+    "default": {
+      "icon": "lucide:mountain",
+      "color": "#8B4513"
+    }
+  },
+  "climateSoilFallback": {
+    "maritime": [
+      "Alluvial",
+      "Clay",
+      "Sand"
+    ],
+    "continental": [
+      "Limestone",
+      "Loess",
+      "Gravel"
+    ],
+    "cool": [
+      "Limestone",
+      "Slate",
+      "Alluvial"
+    ],
+    "warm": [
+      "Alluvial",
+      "Sand",
+      "Clay"
+    ],
+    "mediterranean": [
+      "Limestone",
+      "Clay",
+      "Gravel"
+    ]
+  },
+  "defaultSoils": [
+    "Alluvial",
+    "Clay",
+    "Limestone"
+  ],
+  "flags": {
+    "France": "Europe/france/france.png",
+    "Germany": "Europe/germany/germany.png",
+    "Italy": "Europe/italy/italy.png",
+    "Greece": "Europe/greece/greece.png",
+    "Portugal": "Europe/portugal/portugal.png",
+    "Spain": "Europe/spain/spain.png",
+    "South Africa": "Africa/south_africa/south_africa.png",
+    "USA": "North America/united_states/united_states.png",
+    "Argentina": "South America/argentina/argentina.png",
+    "New Zealand": "Oceania/new_zealand/new_zealand.png",
+    "Japan": "Asia/japan/japan.png"
+  }
+}

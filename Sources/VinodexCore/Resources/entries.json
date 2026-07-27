@@ -1,0 +1,2694 @@
+[
+  {
+    "id": "G001",
+    "name": "Cabernet Sauvignon",
+    "description": "The undisputed king of red wines, producing full-bodied wines with blackcurrant, cedar, and spice notes. It thrives in warm climates and forms the backbone of Bordeaux's legendary blends.",
+    "category": "GRAPES",
+    "tags": [
+      "Blackcurrant",
+      "Cedar",
+      "Spice"
+    ],
+    "color": "#722F37",
+    "icon": "droplet",
+    "wineType": "Full-Body Red",
+    "grapeType": "red",
+    "grapeStyle": "Full-Body Red",
+    "grapeBodyClass": "Full",
+    "grapeCharacteristics": {
+      "tannin": 4,
+      "acid": 4,
+      "colorIntensity": 4,
+      "aromatics": 5,
+      "body": 5
+    },
+    "grapeAlternateNames": [
+      "Vidure",
+      "Petit-Cabernet"
+    ],
+    "grapeNotableRegions": [
+      "Bordeaux",
+      "Napa Valley"
+    ],
+    "grapeCountryOfOrigin": "France",
+    "grapeRarityTier": "noble",
+    "tastingProfile": [
+      {
+        "note": "Blackcurrant",
+        "icon": "circle",
+        "color": "#4B0082"
+      },
+      {
+        "note": "Cedar",
+        "icon": "mountain",
+        "color": "#8B4513"
+      },
+      {
+        "note": "Spice",
+        "icon": "triangle",
+        "color": "#D2691E"
+      }
+    ],
+    "grapeCard": {
+      "id": "G001",
+      "name": "Cabernet Sauvignon",
+      "type": "red",
+      "style": "Full-Body Red",
+      "styleId": "noble-grapes",
+      "countryOfOrigin": "France",
+      "alternateNames": [
+        "Vidure",
+        "Petit-Cabernet"
+      ],
+      "rarityTier": "noble",
+      "characteristics": {
+        "tannin": 4,
+        "acid": 4,
+        "colorIntensity": 4,
+        "aromatics": 5,
+        "body": 5
+      },
+      "tastingProfile": [
+        "Blackcurrant",
+        "Cedar",
+        "Spice"
+      ],
+      "notableRegions": [
+        "Bordeaux",
+        "Napa Valley"
+      ],
+      "info": "The undisputed king of red wines, producing full-bodied wines with blackcurrant, cedar, and spice notes. It thrives in warm climates and forms the backbone of Bordeaux's legendary blends."
+    },
+    "rarity": "NOBLE",
+    "details": {
+      "origin": "France",
+      "synonyms": [
+        "Vidure",
+        "Petit-Cabernet"
+      ],
+      "keyRegions": [
+        "Bordeaux",
+        "Napa Valley"
+      ],
+      "body": "Full"
+    },
+    "iconCallback": "grape",
+    "tileCallback": "grape"
+  },
+  {
+    "id": "G002",
+    "name": "Pinot Noir",
+    "description": "Known as the heartbreak grape for its difficulty to grow, it produces elegant wines with cherry and earthy notes. This thin-skinned variety expresses terroir like no other grape.",
+    "category": "GRAPES",
+    "tags": [
+      "Cherry",
+      "Earth",
+      "Floral"
+    ],
+    "color": "#C48B8B",
+    "icon": "droplet",
+    "wineType": "Light-Body Red",
+    "grapeType": "red",
+    "grapeStyle": "Light-Body Red",
+    "grapeBodyClass": "Light",
+    "grapeCharacteristics": {
+      "tannin": 3,
+      "acid": 4,
+      "colorIntensity": 4,
+      "aromatics": 5,
+      "body": 3
+    },
+    "grapeAlternateNames": [
+      "Spätburgunder",
+      "Pinot Nero",
+      "Blauburgunder"
+    ],
+    "grapeNotableRegions": [
+      "Burgundy",
+      "Willamette Valley"
+    ],
+    "grapeCountryOfOrigin": "France",
+    "grapeRarityTier": "noble",
+    "tastingProfile": [
+      {
+        "note": "Cherry",
+        "icon": "circle",
+        "color": "#DC143C"
+      },
+      {
+        "note": "Earth",
+        "icon": "leaf",
+        "color": "#556B2F"
+      },
+      {
+        "note": "Floral",
+        "icon": "sun",
+        "color": "#FF69B4"
+      }
+    ],
+    "grapeCard": {
+      "id": "G002",
+      "name": "Pinot Noir",
+      "type": "red",
+      "style": "Light-Body Red",
+      "styleId": "noble-grapes",
+      "countryOfOrigin": "France",
+      "alternateNames": [
+        "Spätburgunder",
+        "Pinot Nero",
+        "Blauburgunder"
+      ],
+      "rarityTier": "noble",
+      "characteristics": {
+        "tannin": 3,
+        "acid": 4,
+        "colorIntensity": 4,
+        "aromatics": 5,
+        "body": 3
+      },
+      "tastingProfile": [
+        "Cherry",
+        "Earth",
+        "Floral"
+      ],
+      "notableRegions": [
+        "Burgundy",
+        "Willamette Valley"
+      ],
+      "info": "Known as the heartbreak grape for its difficulty to grow, it produces elegant wines with cherry and earthy notes. This thin-skinned variety expresses terroir like no other grape."
+    },
+    "rarity": "NOBLE",
+    "details": {
+      "origin": "France",
+      "synonyms": [
+        "Spätburgunder",
+        "Pinot Nero",
+        "Blauburgunder"
+      ],
+      "keyRegions": [
+        "Burgundy",
+        "Willamette Valley"
+      ],
+      "body": "Light"
+    },
+    "iconCallback": "grape",
+    "tileCallback": "grape"
+  },
+  {
+    "id": "G003",
+    "name": "Chardonnay",
+    "description": "The world's most versatile white grape, acting as a canvas for winemakers to craft everything from crisp to buttery styles. It responds beautifully to oak aging and malolactic fermentation.",
+    "category": "GRAPES",
+    "tags": [
+      "Apple",
+      "Butter",
+      "Vanilla"
+    ],
+    "color": "#C9A227",
+    "icon": "sun",
+    "wineType": "Full-Body White",
+    "grapeType": "white",
+    "grapeStyle": "Full-Body White",
+    "grapeBodyClass": "Full",
+    "grapeCharacteristics": {
+      "tannin": 3,
+      "acid": 3,
+      "colorIntensity": 2,
+      "aromatics": 5,
+      "body": 5
+    },
+    "grapeAlternateNames": [
+      "Morillon",
+      "Beaunois"
+    ],
+    "grapeNotableRegions": [
+      "Burgundy",
+      "Napa Valley"
+    ],
+    "grapeCountryOfOrigin": "France",
+    "grapeRarityTier": "noble",
+    "tastingProfile": [
+      {
+        "note": "Apple",
+        "icon": "circle",
+        "color": "#FACC15"
+      },
+      {
+        "note": "Butter",
+        "icon": "cloud",
+        "color": "#F0E68C"
+      },
+      {
+        "note": "Vanilla",
+        "icon": "sparkles",
+        "color": "#DEB887"
+      }
+    ],
+    "grapeCard": {
+      "id": "G003",
+      "name": "Chardonnay",
+      "type": "white",
+      "style": "Full-Body White",
+      "styleId": "noble-grapes",
+      "countryOfOrigin": "France",
+      "alternateNames": [
+        "Morillon",
+        "Beaunois"
+      ],
+      "rarityTier": "noble",
+      "characteristics": {
+        "tannin": 3,
+        "acid": 3,
+        "colorIntensity": 2,
+        "aromatics": 5,
+        "body": 5
+      },
+      "tastingProfile": [
+        "Apple",
+        "Butter",
+        "Vanilla"
+      ],
+      "notableRegions": [
+        "Burgundy",
+        "Napa Valley"
+      ],
+      "info": "The world's most versatile white grape, acting as a canvas for winemakers to craft everything from crisp to buttery styles. It responds beautifully to oak aging and malolactic fermentation."
+    },
+    "rarity": "NOBLE",
+    "details": {
+      "origin": "France",
+      "synonyms": [
+        "Morillon",
+        "Beaunois"
+      ],
+      "keyRegions": [
+        "Burgundy",
+        "Napa Valley"
+      ],
+      "body": "Full"
+    },
+    "iconCallback": "grape",
+    "tileCallback": "grape"
+  },
+  {
+    "id": "G007",
+    "name": "Riesling",
+    "description": "An aromatic white grape with exceptional purity and high acidity that ages remarkably well. It ranges from bone-dry to lusciously sweet, developing complex petrol notes with age.",
+    "category": "GRAPES",
+    "tags": [
+      "Lime",
+      "Peach",
+      "Petrol"
+    ],
+    "color": "#C9A227",
+    "icon": "triangle",
+    "wineType": "Aromatic White",
+    "grapeType": "white",
+    "grapeStyle": "Aromatic White",
+    "grapeBodyClass": "Light",
+    "grapeCharacteristics": {
+      "tannin": 3,
+      "acid": 5,
+      "colorIntensity": 2,
+      "aromatics": 5,
+      "body": 2
+    },
+    "grapeAlternateNames": [
+      "Johannisberg"
+    ],
+    "grapeNotableRegions": [
+      "Mosel",
+      "Alsace"
+    ],
+    "grapeCountryOfOrigin": "Germany",
+    "grapeRarityTier": "noble",
+    "tastingProfile": [
+      {
+        "note": "Lime",
+        "icon": "droplet",
+        "color": "#ADFF2F"
+      },
+      {
+        "note": "Peach",
+        "icon": "circle",
+        "color": "#FFE4B5"
+      },
+      {
+        "note": "Petrol",
+        "icon": "mountain",
+        "color": "#708090"
+      }
+    ],
+    "grapeCard": {
+      "id": "G007",
+      "name": "Riesling",
+      "type": "white",
+      "style": "Aromatic White",
+      "styleId": "noble-grapes",
+      "countryOfOrigin": "Germany",
+      "alternateNames": [
+        "Johannisberg"
+      ],
+      "rarityTier": "noble",
+      "characteristics": {
+        "tannin": 3,
+        "acid": 5,
+        "colorIntensity": 2,
+        "aromatics": 5,
+        "body": 2
+      },
+      "tastingProfile": [
+        "Lime",
+        "Peach",
+        "Petrol"
+      ],
+      "notableRegions": [
+        "Mosel",
+        "Alsace"
+      ],
+      "info": "An aromatic white grape with exceptional purity and high acidity that ages remarkably well. It ranges from bone-dry to lusciously sweet, developing complex petrol notes with age."
+    },
+    "rarity": "NOBLE",
+    "details": {
+      "origin": "Germany",
+      "synonyms": [
+        "Johannisberg"
+      ],
+      "keyRegions": [
+        "Mosel",
+        "Alsace"
+      ],
+      "body": "Light"
+    },
+    "iconCallback": "grape",
+    "tileCallback": "grape"
+  },
+  {
+    "id": "G009",
+    "name": "Sangiovese",
+    "description": "Italy's most planted red grape, producing savory wines with vibrant cherry and tomato leaf characters. It is the backbone of Chianti, Brunello di Montalcino, and countless Tuscan wines.",
+    "category": "GRAPES",
+    "tags": [
+      "Cherry",
+      "Tomato",
+      "Espresso"
+    ],
+    "color": "#9B2335",
+    "icon": "droplet",
+    "wineType": "Medium-Body Red",
+    "grapeType": "red",
+    "grapeStyle": "Medium-Body Red",
+    "grapeBodyClass": "Medium",
+    "grapeCharacteristics": {
+      "tannin": 4,
+      "acid": 4,
+      "colorIntensity": 4,
+      "aromatics": 5,
+      "body": 5
+    },
+    "grapeAlternateNames": [
+      "Brunello",
+      "Prugnolo Gentile"
+    ],
+    "grapeNotableRegions": [
+      "Tuscany"
+    ],
+    "grapeCountryOfOrigin": "Italy",
+    "grapeRarityTier": "common",
+    "tastingProfile": [
+      {
+        "note": "Cherry",
+        "icon": "circle",
+        "color": "#FF0000"
+      },
+      {
+        "note": "Tomato",
+        "icon": "leaf",
+        "color": "#556B2F"
+      },
+      {
+        "note": "Espresso",
+        "icon": "cloud",
+        "color": "#3E2723"
+      }
+    ],
+    "grapeCard": {
+      "id": "G009",
+      "name": "Sangiovese",
+      "type": "red",
+      "style": "Medium-Body Red",
+      "styleId": "medium-body-red",
+      "countryOfOrigin": "Italy",
+      "alternateNames": [
+        "Brunello",
+        "Prugnolo Gentile"
+      ],
+      "rarityTier": "common",
+      "characteristics": {
+        "tannin": 4,
+        "acid": 4,
+        "colorIntensity": 4,
+        "aromatics": 5,
+        "body": 5
+      },
+      "tastingProfile": [
+        "Cherry",
+        "Tomato",
+        "Espresso"
+      ],
+      "notableRegions": [
+        "Tuscany"
+      ],
+      "info": "Italy's most planted red grape, producing savory wines with vibrant cherry and tomato leaf characters. It is the backbone of Chianti, Brunello di Montalcino, and countless Tuscan wines."
+    },
+    "rarity": "COMMON",
+    "details": {
+      "origin": "Italy",
+      "synonyms": [
+        "Brunello",
+        "Prugnolo Gentile"
+      ],
+      "keyRegions": [
+        "Tuscany"
+      ],
+      "body": "Medium"
+    },
+    "iconCallback": "grape",
+    "tileCallback": "grape"
+  },
+  {
+    "id": "G027",
+    "name": "Albariño",
+    "description": "Spain's coastal Atlantic white grape that produces crisp, refreshing wines with apricot and sea salt notes. It thrives in Rías Baixas where ocean influence creates distinctive saline character.",
+    "category": "GRAPES",
+    "tags": [
+      "Apricot",
+      "Sea Salt",
+      "Citrus"
+    ],
+    "color": "#D4B896",
+    "icon": "droplet",
+    "wineType": "Light-Body White",
+    "grapeType": "white",
+    "grapeStyle": "Light-Body White",
+    "grapeBodyClass": "Light",
+    "grapeCharacteristics": {
+      "tannin": 3,
+      "acid": 4,
+      "colorIntensity": 2,
+      "aromatics": 5,
+      "body": 3
+    },
+    "grapeAlternateNames": [
+      "Alvarinho"
+    ],
+    "grapeNotableRegions": [
+      "Rías Baixas"
+    ],
+    "grapeCountryOfOrigin": "Spain",
+    "grapeRarityTier": "uncommon",
+    "tastingProfile": [
+      {
+        "note": "Apricot",
+        "icon": "circle",
+        "color": "#FBCEB1"
+      },
+      {
+        "note": "Sea Salt",
+        "icon": "mountain",
+        "color": "#E0E0E0"
+      },
+      {
+        "note": "Citrus",
+        "icon": "sun",
+        "color": "#FFF44F"
+      }
+    ],
+    "grapeCard": {
+      "id": "G027",
+      "name": "Albariño",
+      "type": "white",
+      "style": "Light-Body White",
+      "styleId": "light-body-white",
+      "countryOfOrigin": "Spain",
+      "alternateNames": [
+        "Alvarinho"
+      ],
+      "rarityTier": "uncommon",
+      "characteristics": {
+        "tannin": 3,
+        "acid": 4,
+        "colorIntensity": 2,
+        "aromatics": 5,
+        "body": 3
+      },
+      "tastingProfile": [
+        "Apricot",
+        "Sea Salt",
+        "Citrus"
+      ],
+      "notableRegions": [
+        "Rías Baixas"
+      ],
+      "info": "Spain's coastal Atlantic white grape that produces crisp, refreshing wines with apricot and sea salt notes. It thrives in Rías Baixas where ocean influence creates distinctive saline character."
+    },
+    "rarity": "UNCOMMON",
+    "details": {
+      "origin": "Spain",
+      "synonyms": [
+        "Alvarinho"
+      ],
+      "keyRegions": [
+        "Rías Baixas"
+      ],
+      "body": "Light"
+    },
+    "iconCallback": "grape",
+    "tileCallback": "grape"
+  },
+  {
+    "id": "G035",
+    "name": "Assyrtiko",
+    "description": "A Greek grape from Santorini with intense mineral character and very high acidity. It thrives on volcanic soils and produces wines with remarkable saline and citrus notes.",
+    "category": "GRAPES",
+    "tags": [
+      "Lemon",
+      "Saline",
+      "Mineral"
+    ],
+    "color": "#D4B896",
+    "icon": "mountain",
+    "wineType": "Medium-Body White",
+    "grapeType": "white",
+    "grapeStyle": "Medium-Body White",
+    "grapeBodyClass": "Medium",
+    "grapeCharacteristics": {
+      "tannin": 3,
+      "acid": 5,
+      "colorIntensity": 2,
+      "aromatics": 5,
+      "body": 3
+    },
+    "grapeAlternateNames": [],
+    "grapeNotableRegions": [
+      "Santorini"
+    ],
+    "grapeCountryOfOrigin": "Greece",
+    "grapeRarityTier": "rare",
+    "tastingProfile": [
+      {
+        "note": "Lemon",
+        "icon": "circle",
+        "color": "#FFF44F"
+      },
+      {
+        "note": "Saline",
+        "icon": "droplet",
+        "color": "#E0E0E0"
+      },
+      {
+        "note": "Mineral",
+        "icon": "mountain",
+        "color": "#708090"
+      }
+    ],
+    "grapeCard": {
+      "id": "G035",
+      "name": "Assyrtiko",
+      "type": "white",
+      "style": "Medium-Body White",
+      "styleId": "medium-body-white",
+      "countryOfOrigin": "Greece",
+      "alternateNames": [],
+      "rarityTier": "rare",
+      "characteristics": {
+        "tannin": 3,
+        "acid": 5,
+        "colorIntensity": 2,
+        "aromatics": 5,
+        "body": 3
+      },
+      "tastingProfile": [
+        "Lemon",
+        "Saline",
+        "Mineral"
+      ],
+      "notableRegions": [
+        "Santorini"
+      ],
+      "info": "A Greek grape from Santorini with intense mineral character and very high acidity. It thrives on volcanic soils and produces wines with remarkable saline and citrus notes."
+    },
+    "rarity": "RARE",
+    "details": {
+      "origin": "Greece",
+      "synonyms": [],
+      "keyRegions": [
+        "Santorini"
+      ],
+      "body": "Medium"
+    },
+    "iconCallback": "grape",
+    "tileCallback": "grape"
+  },
+  {
+    "id": "G038",
+    "name": "Touriga Nacional",
+    "description": "Portugal's noblest grape and the backbone of Port wine, producing intensely colored wines with violet and dark fruit notes. It excels in both fortified and dry table wines.",
+    "category": "GRAPES",
+    "tags": [
+      "Violet",
+      "Black Fruit",
+      "Herb"
+    ],
+    "color": "#722F37",
+    "icon": "flame",
+    "wineType": "Full-Body Red",
+    "grapeType": "red",
+    "grapeStyle": "Full-Body Red",
+    "grapeBodyClass": "Full",
+    "grapeCharacteristics": {
+      "tannin": 4,
+      "acid": 4,
+      "colorIntensity": 4,
+      "aromatics": 5,
+      "body": 5
+    },
+    "grapeAlternateNames": [],
+    "grapeNotableRegions": [
+      "Douro"
+    ],
+    "grapeCountryOfOrigin": "Portugal",
+    "grapeRarityTier": "rare",
+    "tastingProfile": [
+      {
+        "note": "Violet",
+        "icon": "sun",
+        "color": "#9370DB"
+      },
+      {
+        "note": "Black Fruit",
+        "icon": "circle",
+        "color": "#2F0F1E"
+      },
+      {
+        "note": "Herb",
+        "icon": "leaf",
+        "color": "#556B2F"
+      }
+    ],
+    "grapeCard": {
+      "id": "G038",
+      "name": "Touriga Nacional",
+      "type": "red",
+      "style": "Full-Body Red",
+      "styleId": "full-body-red",
+      "countryOfOrigin": "Portugal",
+      "alternateNames": [],
+      "rarityTier": "rare",
+      "characteristics": {
+        "tannin": 4,
+        "acid": 4,
+        "colorIntensity": 4,
+        "aromatics": 5,
+        "body": 5
+      },
+      "tastingProfile": [
+        "Violet",
+        "Black Fruit",
+        "Herb"
+      ],
+      "notableRegions": [
+        "Douro"
+      ],
+      "info": "Portugal's noblest grape and the backbone of Port wine, producing intensely colored wines with violet and dark fruit notes. It excels in both fortified and dry table wines."
+    },
+    "rarity": "RARE",
+    "details": {
+      "origin": "Portugal",
+      "synonyms": [],
+      "keyRegions": [
+        "Douro"
+      ],
+      "body": "Full"
+    },
+    "iconCallback": "grape",
+    "tileCallback": "grape"
+  },
+  {
+    "id": "G050",
+    "name": "Pinotage",
+    "description": "South Africa's signature crossing of Pinot Noir and Cinsault, producing deeply colored wines with dark berry fruit, smoke, and earthy spice. Styles range from fresh and fruit-driven to concentrated, oak-aged bottlings.",
+    "category": "GRAPES",
+    "tags": [
+      "Blackberry",
+      "Smoke",
+      "Dark Chocolate"
+    ],
+    "color": "#5D3A1A",
+    "icon": "flame",
+    "wineType": "Full-Body Red",
+    "grapeType": "red",
+    "grapeStyle": "Full-Body Red",
+    "grapeBodyClass": "Full",
+    "grapeCharacteristics": {
+      "tannin": 4,
+      "acid": 3,
+      "colorIntensity": 4,
+      "aromatics": 5,
+      "body": 5
+    },
+    "grapeAlternateNames": [],
+    "grapeNotableRegions": [
+      "Stellenbosch",
+      "Swartland"
+    ],
+    "grapeCountryOfOrigin": "South Africa",
+    "grapeRarityTier": "uncommon",
+    "tastingProfile": [
+      {
+        "note": "Blackberry",
+        "icon": "fruit",
+        "color": "#312E81"
+      },
+      {
+        "note": "Smoke",
+        "icon": "smoke",
+        "color": "#6B7280"
+      },
+      {
+        "note": "Dark Chocolate",
+        "icon": "cloud",
+        "color": "#4B2E2B"
+      }
+    ],
+    "grapeCard": {
+      "id": "G050",
+      "name": "Pinotage",
+      "type": "red",
+      "style": "Full-Body Red",
+      "styleId": "full-body-red",
+      "countryOfOrigin": "South Africa",
+      "alternateNames": [],
+      "rarityTier": "uncommon",
+      "characteristics": {
+        "tannin": 4,
+        "acid": 3,
+        "colorIntensity": 4,
+        "aromatics": 5,
+        "body": 5
+      },
+      "tastingProfile": [
+        "Blackberry",
+        "Smoke",
+        "Dark Chocolate"
+      ],
+      "notableRegions": [
+        "Stellenbosch",
+        "Swartland"
+      ],
+      "info": "South Africa's signature crossing of Pinot Noir and Cinsault, producing deeply colored wines with dark berry fruit, smoke, and earthy spice. Styles range from fresh and fruit-driven to concentrated, oak-aged bottlings."
+    },
+    "rarity": "UNCOMMON",
+    "details": {
+      "origin": "South Africa",
+      "synonyms": [],
+      "keyRegions": [
+        "Stellenbosch",
+        "Swartland"
+      ],
+      "body": "Full"
+    },
+    "iconCallback": "grape",
+    "tileCallback": "grape"
+  },
+  {
+    "id": "G051",
+    "name": "Montepulciano",
+    "description": "A widely planted central Italian red grape that gives plush, fruit-forward wines with moderate tannin and herbal depth. It is the backbone of Montepulciano d'Abruzzo and responds well to both youthful and oak-aged styles.",
+    "category": "GRAPES",
+    "tags": [
+      "Black Plum",
+      "Dried Herbs",
+      "Cocoa"
+    ],
+    "color": "#722F37",
+    "icon": "shield",
+    "wineType": "Medium-Full Red",
+    "grapeType": "red",
+    "grapeStyle": "Medium-Full Red",
+    "grapeBodyClass": "Full",
+    "grapeCharacteristics": {
+      "tannin": 3,
+      "acid": 3,
+      "colorIntensity": 4,
+      "aromatics": 5,
+      "body": 5
+    },
+    "grapeAlternateNames": [
+      "Montepulciano d'Abruzzo (grape)"
+    ],
+    "grapeNotableRegions": [
+      "Abruzzo",
+      "Marche"
+    ],
+    "grapeCountryOfOrigin": "Italy",
+    "grapeRarityTier": "common",
+    "tastingProfile": [
+      {
+        "note": "Black Plum",
+        "icon": "fruit",
+        "color": "#581C87"
+      },
+      {
+        "note": "Dried Herbs",
+        "icon": "leaf",
+        "color": "#4D7C0F"
+      },
+      {
+        "note": "Cocoa",
+        "icon": "honey",
+        "color": "#5B3A29"
+      }
+    ],
+    "grapeCard": {
+      "id": "G051",
+      "name": "Montepulciano",
+      "type": "red",
+      "style": "Medium-Full Red",
+      "styleId": "medium-full-red",
+      "countryOfOrigin": "Italy",
+      "alternateNames": [
+        "Montepulciano d'Abruzzo (grape)"
+      ],
+      "rarityTier": "common",
+      "characteristics": {
+        "tannin": 3,
+        "acid": 3,
+        "colorIntensity": 4,
+        "aromatics": 5,
+        "body": 5
+      },
+      "tastingProfile": [
+        "Black Plum",
+        "Dried Herbs",
+        "Cocoa"
+      ],
+      "notableRegions": [
+        "Abruzzo",
+        "Marche"
+      ],
+      "info": "A widely planted central Italian red grape that gives plush, fruit-forward wines with moderate tannin and herbal depth. It is the backbone of Montepulciano d'Abruzzo and responds well to both youthful and oak-aged styles."
+    },
+    "rarity": "COMMON",
+    "details": {
+      "origin": "Italy",
+      "synonyms": [
+        "Montepulciano d'Abruzzo (grape)"
+      ],
+      "keyRegions": [
+        "Abruzzo",
+        "Marche"
+      ],
+      "body": "Full"
+    },
+    "iconCallback": "grape",
+    "tileCallback": "grape"
+  },
+  {
+    "id": "R001",
+    "name": "Bordeaux",
+    "description": "The world's most famous wine region, renowned for its prestigious blends of Cabernet Sauvignon and Merlot. Its classification system and château culture have set the standard for fine wine globally.",
+    "category": "REGIONS",
+    "color": "#722F37",
+    "icon": "mountain",
+    "tags": [
+      "France",
+      "Blends"
+    ],
+    "details": {
+      "origin": "France",
+      "notableGrapes": [
+        "Cabernet Sauvignon",
+        "Merlot",
+        "Cabernet Franc"
+      ],
+      "classification": "AOC",
+      "appellations": [
+        "Pauillac",
+        "Margaux",
+        "Saint-Julien",
+        "Saint-Émilion",
+        "Pomerol",
+        "Pessac-Léognan",
+        "Sauternes"
+      ]
+    },
+    "climate": "maritime",
+    "climateDescription": "Atlantic influence moderates growing seasons.",
+    "iconCallback": "region",
+    "tileCallback": "region"
+  },
+  {
+    "id": "R013",
+    "name": "Napa Valley",
+    "description": "America's most prestigious wine region, known for powerful Cabernet Sauvignon that rivals Bordeaux. Its combination of climate, terroir, and investment has created world-class wines.",
+    "category": "REGIONS",
+    "color": "#722F37",
+    "icon": "mountain",
+    "tags": [
+      "USA",
+      "Cabernet"
+    ],
+    "details": {
+      "origin": "USA",
+      "state": "California",
+      "synonyms": [
+        "Napa"
+      ],
+      "notableGrapes": [
+        "Cabernet Sauvignon",
+        "Chardonnay",
+        "Merlot"
+      ],
+      "classification": "AVA",
+      "appellations": [
+        "Oakville",
+        "Rutherford",
+        "Stags Leap District",
+        "Howell Mountain",
+        "St. Helena"
+      ]
+    },
+    "climate": "warm",
+    "iconCallback": "region",
+    "tileCallback": "region"
+  },
+  {
+    "id": "R021",
+    "name": "Tuscany",
+    "description": "Italy's most beloved wine region, where Sangiovese reigns supreme across varied terroirs. From Chianti to Brunello to Super Tuscans, it offers incredible diversity.",
+    "category": "REGIONS",
+    "color": "#9B2335",
+    "icon": "sun",
+    "tags": [
+      "Italy",
+      "Sangiovese"
+    ],
+    "details": {
+      "origin": "Italy",
+      "notableGrapes": [
+        "Sangiovese",
+        "Cabernet Sauvignon"
+      ],
+      "classification": "DOCG",
+      "appellations": [
+        "Chianti Classico",
+        "Brunello di Montalcino",
+        "Vino Nobile di Montepulciano",
+        "Bolgheri"
+      ]
+    },
+    "climate": "mediterranean",
+    "iconCallback": "region",
+    "tileCallback": "region"
+  },
+  {
+    "id": "R033",
+    "name": "Rías Baixas",
+    "description": "Spain's premier white wine region on the Atlantic coast of Galicia. Its Albariño wines show distinctive salinity and freshness from the maritime influence.",
+    "category": "REGIONS",
+    "color": "#D4B896",
+    "icon": "droplet",
+    "tags": [
+      "Spain",
+      "Albariño"
+    ],
+    "details": {
+      "origin": "Spain",
+      "notableGrapes": [
+        "Albariño"
+      ],
+      "classification": "DO"
+    },
+    "climate": "maritime",
+    "iconCallback": "region",
+    "tileCallback": "region"
+  },
+  {
+    "id": "R036",
+    "name": "Douro",
+    "description": "Portugal's great river valley, home to Port wine and increasingly impressive dry reds. Its terraced schist hillsides are a UNESCO World Heritage site.",
+    "category": "REGIONS",
+    "color": "#722F37",
+    "icon": "mountain",
+    "tags": [
+      "Portugal",
+      "Port"
+    ],
+    "details": {
+      "origin": "Portugal",
+      "notableGrapes": [
+        "Touriga Nacional",
+        "Touriga Franca",
+        "Tinta Roriz"
+      ],
+      "classification": "DOC"
+    },
+    "climate": "warm",
+    "iconCallback": "region",
+    "tileCallback": "region"
+  },
+  {
+    "id": "R043",
+    "name": "Marlborough",
+    "description": "New Zealand's largest and most famous region, producing intensely aromatic Sauvignon Blanc. Its wines have redefined the grape worldwide with their pungent tropical character.",
+    "category": "REGIONS",
+    "color": "#D4B896",
+    "icon": "leaf",
+    "tags": [
+      "New Zealand",
+      "Sauv Blanc"
+    ],
+    "details": {
+      "origin": "New Zealand",
+      "notableGrapes": [
+        "Sauvignon Blanc",
+        "Pinot Noir"
+      ],
+      "classification": "GI"
+    },
+    "climate": "cool",
+    "iconCallback": "region",
+    "tileCallback": "region"
+  },
+  {
+    "id": "R045",
+    "name": "Mendoza",
+    "description": "Argentina's wine heartland at the foot of the Andes, where high-altitude vineyards produce world-class Malbec. Its sunny days and cool nights create wines of intense color and flavor.",
+    "category": "REGIONS",
+    "color": "#800020",
+    "icon": "mountain",
+    "tags": [
+      "Argentina",
+      "Malbec"
+    ],
+    "details": {
+      "origin": "Argentina",
+      "notableGrapes": [
+        "Malbec",
+        "Cabernet Sauvignon"
+      ],
+      "classification": "DOC",
+      "appellations": [
+        "Uco Valley",
+        "Luján de Cuyo",
+        "Maipú"
+      ]
+    },
+    "climate": "continental",
+    "iconCallback": "region",
+    "tileCallback": "region"
+  },
+  {
+    "id": "R047",
+    "name": "Stellenbosch",
+    "description": "South Africa's premier wine region, producing world-class Cabernet Sauvignon and unique Pinotage. Its mountain slopes and varied soils create wines of great diversity.",
+    "category": "REGIONS",
+    "color": "#722F37",
+    "icon": "mountain",
+    "tags": [
+      "South Africa",
+      "Cabernet"
+    ],
+    "details": {
+      "origin": "South Africa",
+      "notableGrapes": [
+        "Cabernet Sauvignon",
+        "Pinotage",
+        "Chenin Blanc"
+      ],
+      "classification": "WO"
+    },
+    "climate": "warm",
+    "iconCallback": "region",
+    "tileCallback": "region"
+  },
+  {
+    "id": "R048",
+    "name": "Santorini",
+    "description": "A Greek island of volcanic vineyards producing intensely mineral Assyrtiko. Its ancient vines are trained in basket shapes to protect against fierce winds.",
+    "category": "REGIONS",
+    "color": "#D4B896",
+    "icon": "mountain",
+    "tags": [
+      "Greece",
+      "Volcanic"
+    ],
+    "details": {
+      "origin": "Greece",
+      "notableGrapes": [
+        "Assyrtiko"
+      ],
+      "classification": "PDO"
+    },
+    "climate": "mediterranean",
+    "iconCallback": "region",
+    "tileCallback": "region"
+  },
+  {
+    "id": "R052",
+    "name": "Yamanashi",
+    "description": "Japan's Kōshu Valley beneath Mount Fuji, home to delicate Koshu whites and experimental sparkling wines with pristine acidity.",
+    "category": "REGIONS",
+    "color": "#D4B896",
+    "icon": "sun",
+    "tags": [
+      "Japan",
+      "Koshu"
+    ],
+    "details": {
+      "origin": "Japan",
+      "notableGrapes": [
+        "Koshu",
+        "Muscat Bailey A"
+      ],
+      "classification": "GI",
+      "soilType": "Volcanic ash, clay"
+    },
+    "climate": "cool",
+    "iconCallback": "region",
+    "tileCallback": "region"
+  },
+  {
+    "id": "S001",
+    "name": "Full-Body Red",
+    "description": "Rich, tannic wines with intense dark fruit flavors that command attention on the palate. These powerful wines typically benefit from aging and pair beautifully with hearty red meats.",
+    "category": "STYLES",
+    "color": "#722F37",
+    "icon": "flame",
+    "tags": [
+      "Bold",
+      "Tannic"
+    ],
+    "details": {
+      "origin": "Various",
+      "body": "Full",
+      "tannin": "High",
+      "keyRegions": [
+        "Bordeaux",
+        "California",
+        "Napa Valley",
+        "Barossa Valley",
+        "Lodi",
+        "Mendoza",
+        "Helan Mountain",
+        "Nashik",
+        "Ribera del Duero"
+      ],
+      "notableGrapes": [
+        "Cabernet Sauvignon",
+        "Syrah",
+        "Malbec",
+        "Nebbiolo"
+      ],
+      "classification": "STYLE"
+    },
+    "iconCallback": "style",
+    "tileCallback": "style"
+  },
+  {
+    "id": "S005",
+    "name": "Light-Body White",
+    "description": "Crisp, refreshing whites with high acidity and clean, mineral-driven flavors. These thirst-quenching wines are perfect aperitifs or paired with light seafood.",
+    "category": "STYLES",
+    "color": "#D4B896",
+    "icon": "droplet",
+    "tags": [
+      "Crisp",
+      "Refreshing"
+    ],
+    "details": {
+      "origin": "Various",
+      "body": "Light",
+      "acidity": "High",
+      "keyRegions": [
+        "Loire Valley",
+        "Marlborough",
+        "Alto Adige",
+        "Finger Lakes",
+        "Santorini"
+      ],
+      "notableGrapes": [
+        "Sauvignon Blanc",
+        "Pinot Grigio",
+        "Muscadet",
+        "Albariño"
+      ],
+      "classification": "STYLE"
+    },
+    "iconCallback": "style",
+    "tileCallback": "style"
+  },
+  {
+    "id": "S006",
+    "name": "Aromatic White",
+    "description": "Intensely fragrant white wines with floral, fruity, and spicy aromas that leap from the glass. These expressive wines often have a touch of residual sugar to balance their bold aromatics.",
+    "category": "STYLES",
+    "color": "#C9A227",
+    "icon": "sparkles",
+    "tags": [
+      "Aromatic",
+      "Floral"
+    ],
+    "details": {
+      "origin": "Various",
+      "body": "Light-Medium",
+      "acidity": "Medium",
+      "keyRegions": [
+        "Alsace",
+        "Mosel",
+        "Wachau",
+        "Yamanashi"
+      ],
+      "notableGrapes": [
+        "Riesling",
+        "Gewürztraminer",
+        "Torrontés",
+        "Moscato"
+      ],
+      "classification": "STYLE"
+    },
+    "iconCallback": "style",
+    "tileCallback": "style"
+  },
+  {
+    "id": "S008",
+    "name": "Sparkling Wine",
+    "description": "Effervescent wines with elegant bubbles created through secondary fermentation. From simple Prosecco to prestigious Champagne, bubbles add celebration to any occasion.",
+    "category": "STYLES",
+    "color": "#D4B896",
+    "icon": "sparkles",
+    "tags": [
+      "Bubbles",
+      "Celebration"
+    ],
+    "details": {
+      "origin": "Various",
+      "body": "Light",
+      "acidity": "High",
+      "keyRegions": [
+        "Champagne",
+        "Veneto"
+      ],
+      "notableGrapes": [
+        "Chardonnay",
+        "Pinot Noir",
+        "Glera",
+        "Pinot Meunier"
+      ],
+      "classification": "STYLE"
+    },
+    "iconCallback": "style",
+    "tileCallback": "style"
+  },
+  {
+    "id": "S009",
+    "name": "Champagne",
+    "description": "The original and most prestigious sparkling wine, made only in the Champagne region of France. Its traditional method production creates unmatched finesse and complexity.",
+    "category": "STYLES",
+    "color": "#D4B896",
+    "icon": "sparkles",
+    "tags": [
+      "Prestige",
+      "Traditional"
+    ],
+    "details": {
+      "origin": "France",
+      "body": "Light-Medium",
+      "acidity": "High",
+      "keyRegions": [
+        "Champagne"
+      ],
+      "notableGrapes": [
+        "Chardonnay",
+        "Pinot Noir",
+        "Pinot Meunier"
+      ],
+      "classification": "STYLE"
+    },
+    "iconCallback": "style",
+    "tileCallback": "style"
+  },
+  {
+    "id": "S012",
+    "name": "Port",
+    "description": "Portugal's famous sweet fortified wine from the Douro Valley, made by adding brandy during fermentation. Its rich, concentrated flavors range from fruity Ruby to aged Tawny styles.",
+    "category": "STYLES",
+    "color": "#5D3A1A",
+    "icon": "flame",
+    "tags": [
+      "Sweet",
+      "Fortified"
+    ],
+    "details": {
+      "origin": "Portugal",
+      "body": "Full",
+      "tannin": "High",
+      "keyRegions": [
+        "Douro"
+      ],
+      "notableGrapes": [
+        "Touriga Nacional",
+        "Touriga Franca",
+        "Tinta Roriz"
+      ],
+      "classification": "STYLE"
+    },
+    "iconCallback": "style",
+    "tileCallback": "style"
+  },
+  {
+    "id": "S020",
+    "name": "GSM Blend",
+    "description": "Classic Rhône-style blend of Grenache, Syrah, and Mourvèdre creating complex, balanced reds. Each grape contributes fruit, structure, and aromatics to the final wine.",
+    "category": "STYLES",
+    "color": "#800020",
+    "icon": "circle",
+    "tags": [
+      "Blend",
+      "Rhône"
+    ],
+    "details": {
+      "origin": "France",
+      "body": "Medium-Full",
+      "tannin": "Medium",
+      "keyRegions": [
+        "Rhône Valley",
+        "Barossa Valley",
+        "Paso Robles",
+        "Shangri-La"
+      ],
+      "notableGrapes": [
+        "Grenache",
+        "Syrah",
+        "Mourvèdre"
+      ],
+      "classification": "BLEND"
+    },
+    "iconCallback": "style",
+    "tileCallback": "style"
+  },
+  {
+    "id": "S021",
+    "name": "Bordeaux Blend",
+    "description": "Classic blend dominated by Cabernet Sauvignon and Merlot with supporting varieties. This noble style has been replicated worldwide for its structure and aging potential.",
+    "category": "STYLES",
+    "color": "#722F37",
+    "icon": "shield",
+    "tags": [
+      "Classic",
+      "Blend"
+    ],
+    "details": {
+      "origin": "France",
+      "body": "Full",
+      "tannin": "High",
+      "keyRegions": [
+        "Bordeaux",
+        "California",
+        "Napa Valley",
+        "Margaret River",
+        "Mendoza",
+        "Maipo Valley",
+        "Paarl & Franschhoek"
+      ],
+      "notableGrapes": [
+        "Cabernet Sauvignon",
+        "Merlot",
+        "Cabernet Franc",
+        "Petit Verdot"
+      ],
+      "classification": "BLEND"
+    },
+    "iconCallback": "style",
+    "tileCallback": "style"
+  },
+  {
+    "id": "S026",
+    "name": "Qvevri Amber",
+    "description": "Skin-contact whites fermented in buried clay qvevri, yielding tea-like tannin, dried orchard fruit, and honeyed spice.",
+    "category": "STYLES",
+    "color": "#C67530",
+    "icon": "sun",
+    "tags": [
+      "Amber",
+      "Georgia"
+    ],
+    "details": {
+      "origin": "Georgia",
+      "body": "Medium-Full",
+      "tannin": "Low-Medium",
+      "keyRegions": [
+        "Kakheti",
+        "Imereti"
+      ],
+      "notableGrapes": [
+        "Rkatsiteli",
+        "Kisi",
+        "Mtsvane"
+      ],
+      "classification": "METHOD"
+    },
+    "iconCallback": "style",
+    "tileCallback": "style"
+  },
+  {
+    "id": "S029",
+    "name": "Noble Grapes",
+    "description": "A curated grouping of the NOBLE-tier varieties whose pedigree, structure, and complexity define the most prestigious styles.",
+    "category": "STYLES",
+    "tags": [
+      "Noble",
+      "Prestige"
+    ],
+    "color": "#6d28d9",
+    "icon": "sparkles",
+    "details": {
+      "origin": "Various",
+      "body": "Varies",
+      "tannin": "Varies",
+      "keyRegions": [
+        "Bordeaux",
+        "Piedmont",
+        "Rheingau"
+      ],
+      "notableGrapes": [
+        "Cabernet Sauvignon",
+        "Pinot Noir",
+        "Chardonnay",
+        "Merlot",
+        "Syrah",
+        "Sauvignon Blanc",
+        "Riesling",
+        "Nebbiolo"
+      ],
+      "classification": "TYPE"
+    },
+    "rarity": "NOBLE",
+    "iconCallback": "style",
+    "tileCallback": "style"
+  },
+  {
+    "id": "FLAVOR-blackcurrant1",
+    "name": "Blackcurrant",
+    "description": "Blackcurrant is a berry nuance with a sweet lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "SWEET",
+      "BERRY"
+    ],
+    "color": "#f59e0b",
+    "icon": "circle",
+    "tastingProfile": [
+      {
+        "note": "Blackcurrant",
+        "icon": "circle",
+        "color": "#4B0082"
+      },
+      {
+        "note": "Cherry",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Apple",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Butter",
+        "icon": "default",
+        "color": "#b45309"
+      }
+    ],
+    "details": {
+      "classification": "SWEET",
+      "subclass": "BERRY",
+      "notableGrapes": [
+        "Cabernet Sauvignon"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-cedar1",
+    "name": "Cedar",
+    "description": "Cedar is a wood nuance with a umami lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "UMAMI",
+      "WOOD"
+    ],
+    "color": "#14b8a6",
+    "icon": "mountain",
+    "tastingProfile": [
+      {
+        "note": "Cedar",
+        "icon": "mountain",
+        "color": "#8B4513"
+      },
+      {
+        "note": "Earth",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Floral",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Petrol",
+        "icon": "default",
+        "color": "#0d9488"
+      }
+    ],
+    "details": {
+      "classification": "UMAMI",
+      "subclass": "WOOD",
+      "notableGrapes": [
+        "Cabernet Sauvignon"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-spice1",
+    "name": "Spice",
+    "description": "Spice is a spice nuance with a bitter lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "BITTER",
+      "SPICE"
+    ],
+    "color": "#8b5cf6",
+    "icon": "triangle",
+    "tastingProfile": [
+      {
+        "note": "Spice",
+        "icon": "triangle",
+        "color": "#D2691E"
+      },
+      {
+        "note": "Smoke",
+        "icon": "default",
+        "color": "#6d28d9"
+      }
+    ],
+    "details": {
+      "classification": "BITTER",
+      "subclass": "SPICE",
+      "notableGrapes": [
+        "Cabernet Sauvignon"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-cherry1",
+    "name": "Cherry",
+    "description": "Cherry is a red fruit nuance with a sweet lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "SWEET",
+      "RED_FRUIT"
+    ],
+    "color": "#f59e0b",
+    "icon": "circle",
+    "tastingProfile": [
+      {
+        "note": "Cherry",
+        "icon": "circle",
+        "color": "#DC143C"
+      },
+      {
+        "note": "Blackcurrant",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Apple",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Butter",
+        "icon": "default",
+        "color": "#b45309"
+      }
+    ],
+    "details": {
+      "classification": "SWEET",
+      "subclass": "RED_FRUIT",
+      "notableGrapes": [
+        "Pinot Noir",
+        "Sangiovese"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-earth1",
+    "name": "Earth",
+    "description": "Earth is a earth nuance with a umami lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "UMAMI",
+      "EARTH"
+    ],
+    "color": "#14b8a6",
+    "icon": "leaf",
+    "tastingProfile": [
+      {
+        "note": "Earth",
+        "icon": "leaf",
+        "color": "#556B2F"
+      },
+      {
+        "note": "Cedar",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Floral",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Petrol",
+        "icon": "default",
+        "color": "#0d9488"
+      }
+    ],
+    "details": {
+      "classification": "UMAMI",
+      "subclass": "EARTH",
+      "notableGrapes": [
+        "Pinot Noir"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-floral1",
+    "name": "Floral",
+    "description": "Floral is a floral nuance with a umami lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "UMAMI",
+      "FLORAL"
+    ],
+    "color": "#14b8a6",
+    "icon": "sun",
+    "tastingProfile": [
+      {
+        "note": "Floral",
+        "icon": "sun",
+        "color": "#FF69B4"
+      },
+      {
+        "note": "Cedar",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Earth",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Petrol",
+        "icon": "default",
+        "color": "#0d9488"
+      }
+    ],
+    "details": {
+      "classification": "UMAMI",
+      "subclass": "FLORAL",
+      "notableGrapes": [
+        "Pinot Noir"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-apple1",
+    "name": "Apple",
+    "description": "Apple is a orchard fruit nuance with a sweet lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "SWEET",
+      "ORCHARD_FRUIT"
+    ],
+    "color": "#f59e0b",
+    "icon": "circle",
+    "tastingProfile": [
+      {
+        "note": "Apple",
+        "icon": "circle",
+        "color": "#FACC15"
+      },
+      {
+        "note": "Blackcurrant",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Cherry",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Butter",
+        "icon": "default",
+        "color": "#b45309"
+      }
+    ],
+    "details": {
+      "classification": "SWEET",
+      "subclass": "ORCHARD_FRUIT",
+      "notableGrapes": [
+        "Chardonnay"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-butter1",
+    "name": "Butter",
+    "description": "Butter is a baking nuance with a sweet lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "SWEET",
+      "BAKING"
+    ],
+    "color": "#f59e0b",
+    "icon": "cloud",
+    "tastingProfile": [
+      {
+        "note": "Butter",
+        "icon": "cloud",
+        "color": "#F0E68C"
+      },
+      {
+        "note": "Blackcurrant",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Cherry",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Apple",
+        "icon": "default",
+        "color": "#b45309"
+      }
+    ],
+    "details": {
+      "classification": "SWEET",
+      "subclass": "BAKING",
+      "notableGrapes": [
+        "Chardonnay"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-vanilla1",
+    "name": "Vanilla",
+    "description": "Vanilla is a baking nuance with a sweet lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "SWEET",
+      "BAKING"
+    ],
+    "color": "#f59e0b",
+    "icon": "sparkles",
+    "tastingProfile": [
+      {
+        "note": "Vanilla",
+        "icon": "sparkles",
+        "color": "#DEB887"
+      },
+      {
+        "note": "Blackcurrant",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Cherry",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Apple",
+        "icon": "default",
+        "color": "#b45309"
+      }
+    ],
+    "details": {
+      "classification": "SWEET",
+      "subclass": "BAKING",
+      "notableGrapes": [
+        "Chardonnay"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-lime1",
+    "name": "Lime",
+    "description": "Lime is a citrus nuance with a sour lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "SOUR",
+      "CITRUS"
+    ],
+    "color": "#22c55e",
+    "icon": "droplet",
+    "tastingProfile": [
+      {
+        "note": "Lime",
+        "icon": "droplet",
+        "color": "#ADFF2F"
+      },
+      {
+        "note": "Citrus",
+        "icon": "default",
+        "color": "#15803d"
+      },
+      {
+        "note": "Lemon",
+        "icon": "default",
+        "color": "#15803d"
+      }
+    ],
+    "details": {
+      "classification": "SOUR",
+      "subclass": "CITRUS",
+      "notableGrapes": [
+        "Riesling"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-peach1",
+    "name": "Peach",
+    "description": "Peach is a stone fruit nuance with a sweet lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "SWEET",
+      "STONE_FRUIT"
+    ],
+    "color": "#f59e0b",
+    "icon": "circle",
+    "tastingProfile": [
+      {
+        "note": "Peach",
+        "icon": "circle",
+        "color": "#FFE4B5"
+      },
+      {
+        "note": "Blackcurrant",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Cherry",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Apple",
+        "icon": "default",
+        "color": "#b45309"
+      }
+    ],
+    "details": {
+      "classification": "SWEET",
+      "subclass": "STONE_FRUIT",
+      "notableGrapes": [
+        "Riesling"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-petrol1",
+    "name": "Petrol",
+    "description": "Petrol is a earth nuance with a umami lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "UMAMI",
+      "EARTH"
+    ],
+    "color": "#14b8a6",
+    "icon": "mountain",
+    "tastingProfile": [
+      {
+        "note": "Petrol",
+        "icon": "mountain",
+        "color": "#708090"
+      },
+      {
+        "note": "Cedar",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Earth",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Floral",
+        "icon": "default",
+        "color": "#0d9488"
+      }
+    ],
+    "details": {
+      "classification": "UMAMI",
+      "subclass": "EARTH",
+      "notableGrapes": [
+        "Riesling"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-tomato1",
+    "name": "Tomato",
+    "description": "Tomato is a vegetal nuance with a umami lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "UMAMI",
+      "VEGETAL"
+    ],
+    "color": "#14b8a6",
+    "icon": "leaf",
+    "tastingProfile": [
+      {
+        "note": "Tomato",
+        "icon": "leaf",
+        "color": "#556B2F"
+      },
+      {
+        "note": "Cedar",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Earth",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Floral",
+        "icon": "default",
+        "color": "#0d9488"
+      }
+    ],
+    "details": {
+      "classification": "UMAMI",
+      "subclass": "VEGETAL",
+      "notableGrapes": [
+        "Sangiovese"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-espresso1",
+    "name": "Espresso",
+    "description": "Espresso is a baking nuance with a sweet lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "SWEET",
+      "BAKING"
+    ],
+    "color": "#f59e0b",
+    "icon": "cloud",
+    "tastingProfile": [
+      {
+        "note": "Espresso",
+        "icon": "cloud",
+        "color": "#3E2723"
+      },
+      {
+        "note": "Blackcurrant",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Cherry",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Apple",
+        "icon": "default",
+        "color": "#b45309"
+      }
+    ],
+    "details": {
+      "classification": "SWEET",
+      "subclass": "BAKING",
+      "notableGrapes": [
+        "Sangiovese"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-apricot1",
+    "name": "Apricot",
+    "description": "Apricot is a stone fruit nuance with a sweet lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "SWEET",
+      "STONE_FRUIT"
+    ],
+    "color": "#f59e0b",
+    "icon": "circle",
+    "tastingProfile": [
+      {
+        "note": "Apricot",
+        "icon": "circle",
+        "color": "#FBCEB1"
+      },
+      {
+        "note": "Blackcurrant",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Cherry",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Apple",
+        "icon": "default",
+        "color": "#b45309"
+      }
+    ],
+    "details": {
+      "classification": "SWEET",
+      "subclass": "STONE_FRUIT",
+      "notableGrapes": [
+        "Albariño"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-sea salt1",
+    "name": "Sea Salt",
+    "description": "Sea Salt is a salty nuance with a salty lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "SALTY",
+      "SALTY"
+    ],
+    "color": "#38bdf8",
+    "icon": "mountain",
+    "tastingProfile": [
+      {
+        "note": "Sea Salt",
+        "icon": "mountain",
+        "color": "#E0E0E0"
+      },
+      {
+        "note": "Saline",
+        "icon": "default",
+        "color": "#0ea5e9"
+      }
+    ],
+    "details": {
+      "classification": "SALTY",
+      "subclass": "SALTY",
+      "notableGrapes": [
+        "Albariño"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-citrus1",
+    "name": "Citrus",
+    "description": "Citrus is a citrus nuance with a sour lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "SOUR",
+      "CITRUS"
+    ],
+    "color": "#22c55e",
+    "icon": "sun",
+    "tastingProfile": [
+      {
+        "note": "Citrus",
+        "icon": "sun",
+        "color": "#FFF44F"
+      },
+      {
+        "note": "Lime",
+        "icon": "default",
+        "color": "#15803d"
+      },
+      {
+        "note": "Lemon",
+        "icon": "default",
+        "color": "#15803d"
+      }
+    ],
+    "details": {
+      "classification": "SOUR",
+      "subclass": "CITRUS",
+      "notableGrapes": [
+        "Albariño"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-lemon1",
+    "name": "Lemon",
+    "description": "Lemon is a citrus nuance with a sour lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "SOUR",
+      "CITRUS"
+    ],
+    "color": "#22c55e",
+    "icon": "circle",
+    "tastingProfile": [
+      {
+        "note": "Lemon",
+        "icon": "circle",
+        "color": "#FFF44F"
+      },
+      {
+        "note": "Lime",
+        "icon": "default",
+        "color": "#15803d"
+      },
+      {
+        "note": "Citrus",
+        "icon": "default",
+        "color": "#15803d"
+      }
+    ],
+    "details": {
+      "classification": "SOUR",
+      "subclass": "CITRUS",
+      "notableGrapes": [
+        "Assyrtiko"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-saline1",
+    "name": "Saline",
+    "description": "Saline is a salty nuance with a salty lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "SALTY",
+      "SALTY"
+    ],
+    "color": "#38bdf8",
+    "icon": "droplet",
+    "tastingProfile": [
+      {
+        "note": "Saline",
+        "icon": "droplet",
+        "color": "#E0E0E0"
+      },
+      {
+        "note": "Sea Salt",
+        "icon": "default",
+        "color": "#0ea5e9"
+      }
+    ],
+    "details": {
+      "classification": "SALTY",
+      "subclass": "SALTY",
+      "notableGrapes": [
+        "Assyrtiko"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-mineral1",
+    "name": "Mineral",
+    "description": "Mineral is a earth nuance with a umami lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "UMAMI",
+      "EARTH"
+    ],
+    "color": "#14b8a6",
+    "icon": "mountain",
+    "tastingProfile": [
+      {
+        "note": "Mineral",
+        "icon": "mountain",
+        "color": "#708090"
+      },
+      {
+        "note": "Cedar",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Earth",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Floral",
+        "icon": "default",
+        "color": "#0d9488"
+      }
+    ],
+    "details": {
+      "classification": "UMAMI",
+      "subclass": "EARTH",
+      "notableGrapes": [
+        "Assyrtiko"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-violet1",
+    "name": "Violet",
+    "description": "Violet is a floral nuance with a umami lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "UMAMI",
+      "FLORAL"
+    ],
+    "color": "#14b8a6",
+    "icon": "sun",
+    "tastingProfile": [
+      {
+        "note": "Violet",
+        "icon": "sun",
+        "color": "#9370DB"
+      },
+      {
+        "note": "Cedar",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Earth",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Floral",
+        "icon": "default",
+        "color": "#0d9488"
+      }
+    ],
+    "details": {
+      "classification": "UMAMI",
+      "subclass": "FLORAL",
+      "notableGrapes": [
+        "Touriga Nacional"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-black fruit1",
+    "name": "Black Fruit",
+    "description": "Black Fruit is a berry nuance with a sweet lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "SWEET",
+      "BERRY"
+    ],
+    "color": "#f59e0b",
+    "icon": "circle",
+    "tastingProfile": [
+      {
+        "note": "Black Fruit",
+        "icon": "circle",
+        "color": "#2F0F1E"
+      },
+      {
+        "note": "Blackcurrant",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Cherry",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Apple",
+        "icon": "default",
+        "color": "#b45309"
+      }
+    ],
+    "details": {
+      "classification": "SWEET",
+      "subclass": "BERRY",
+      "notableGrapes": [
+        "Touriga Nacional"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-herb1",
+    "name": "Herb",
+    "description": "Herb is a herbal nuance with a umami lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "UMAMI",
+      "HERBAL"
+    ],
+    "color": "#14b8a6",
+    "icon": "leaf",
+    "tastingProfile": [
+      {
+        "note": "Herb",
+        "icon": "leaf",
+        "color": "#556B2F"
+      },
+      {
+        "note": "Cedar",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Earth",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Floral",
+        "icon": "default",
+        "color": "#0d9488"
+      }
+    ],
+    "details": {
+      "classification": "UMAMI",
+      "subclass": "HERBAL",
+      "notableGrapes": [
+        "Touriga Nacional"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-blackberry1",
+    "name": "Blackberry",
+    "description": "Blackberry is a berry nuance with a sweet lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "SWEET",
+      "BERRY"
+    ],
+    "color": "#f59e0b",
+    "icon": "fruit",
+    "tastingProfile": [
+      {
+        "note": "Blackberry",
+        "icon": "fruit",
+        "color": "#312E81"
+      },
+      {
+        "note": "Blackcurrant",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Cherry",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Apple",
+        "icon": "default",
+        "color": "#b45309"
+      }
+    ],
+    "details": {
+      "classification": "SWEET",
+      "subclass": "BERRY",
+      "notableGrapes": [
+        "Pinotage"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-smoke1",
+    "name": "Smoke",
+    "description": "Smoke is a smoky nuance with a bitter lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "BITTER",
+      "SMOKY"
+    ],
+    "color": "#8b5cf6",
+    "icon": "smoke",
+    "tastingProfile": [
+      {
+        "note": "Smoke",
+        "icon": "smoke",
+        "color": "#6B7280"
+      },
+      {
+        "note": "Spice",
+        "icon": "default",
+        "color": "#6d28d9"
+      }
+    ],
+    "details": {
+      "classification": "BITTER",
+      "subclass": "SMOKY",
+      "notableGrapes": [
+        "Pinotage"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-dark chocolate1",
+    "name": "Dark Chocolate",
+    "description": "Dark Chocolate is a baking nuance with a sweet lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "SWEET",
+      "BAKING"
+    ],
+    "color": "#f59e0b",
+    "icon": "cloud",
+    "tastingProfile": [
+      {
+        "note": "Dark Chocolate",
+        "icon": "cloud",
+        "color": "#4B2E2B"
+      },
+      {
+        "note": "Blackcurrant",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Cherry",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Apple",
+        "icon": "default",
+        "color": "#b45309"
+      }
+    ],
+    "details": {
+      "classification": "SWEET",
+      "subclass": "BAKING",
+      "notableGrapes": [
+        "Pinotage"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-black plum1",
+    "name": "Black Plum",
+    "description": "Black Plum is a dark fruit nuance with a sweet lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "SWEET",
+      "DARK_FRUIT"
+    ],
+    "color": "#f59e0b",
+    "icon": "fruit",
+    "tastingProfile": [
+      {
+        "note": "Black Plum",
+        "icon": "fruit",
+        "color": "#581C87"
+      },
+      {
+        "note": "Blackcurrant",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Cherry",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Apple",
+        "icon": "default",
+        "color": "#b45309"
+      }
+    ],
+    "details": {
+      "classification": "SWEET",
+      "subclass": "DARK_FRUIT",
+      "notableGrapes": [
+        "Montepulciano"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-dried herbs1",
+    "name": "Dried Herbs",
+    "description": "Dried Herbs is a herbal nuance with a umami lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "UMAMI",
+      "HERBAL"
+    ],
+    "color": "#14b8a6",
+    "icon": "leaf",
+    "tastingProfile": [
+      {
+        "note": "Dried Herbs",
+        "icon": "leaf",
+        "color": "#4D7C0F"
+      },
+      {
+        "note": "Cedar",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Earth",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Floral",
+        "icon": "default",
+        "color": "#0d9488"
+      }
+    ],
+    "details": {
+      "classification": "UMAMI",
+      "subclass": "HERBAL",
+      "notableGrapes": [
+        "Montepulciano"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-cocoa1",
+    "name": "Cocoa",
+    "description": "Cocoa is a baking nuance with a sweet lean often found in wines.",
+    "category": "FLAVORS",
+    "tags": [
+      "SWEET",
+      "BAKING"
+    ],
+    "color": "#f59e0b",
+    "icon": "honey",
+    "tastingProfile": [
+      {
+        "note": "Cocoa",
+        "icon": "honey",
+        "color": "#5B3A29"
+      },
+      {
+        "note": "Blackcurrant",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Cherry",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Apple",
+        "icon": "default",
+        "color": "#b45309"
+      }
+    ],
+    "details": {
+      "classification": "SWEET",
+      "subclass": "BAKING",
+      "notableGrapes": [
+        "Montepulciano"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  }
+]

@@ -1,0 +1,2235 @@
+{
+  "countryChips": {
+    "Argentina": {
+      "bg": "#0c4a6e",
+      "border": "#38bdf8",
+      "text": "#e0f2fe"
+    },
+    "Australia": {
+      "bg": "#7c2d12",
+      "border": "#f97316",
+      "text": "#ffedd5"
+    },
+    "Austria": {
+      "bg": "#831843",
+      "border": "#f472b6",
+      "text": "#ffe4e6"
+    },
+    "Canada": {
+      "bg": "#7f1d1d",
+      "border": "#ef4444",
+      "text": "#fee2e2"
+    },
+    "Chile": {
+      "bg": "#7f1d1d",
+      "border": "#f97316",
+      "text": "#fee2e2"
+    },
+    "China": {
+      "bg": "#854d0e",
+      "border": "#f59e0b",
+      "text": "#fffbeb"
+    },
+    "Croatia": {
+      "bg": "#1e293b",
+      "border": "#3b82f6",
+      "text": "#e0f2fe"
+    },
+    "France": {
+      "bg": "#0f172a",
+      "border": "#1d4ed8",
+      "text": "#dbeafe"
+    },
+    "Georgia": {
+      "bg": "#422006",
+      "border": "#f59e0b",
+      "text": "#fef3c7"
+    },
+    "Germany": {
+      "bg": "#422006",
+      "border": "#d97706",
+      "text": "#fde68a"
+    },
+    "Greece": {
+      "bg": "#0e7490",
+      "border": "#22d3ee",
+      "text": "#e0f2fe"
+    },
+    "Hungary": {
+      "bg": "#365314",
+      "border": "#84cc16",
+      "text": "#f7fee7"
+    },
+    "India": {
+      "bg": "#713f12",
+      "border": "#f59e0b",
+      "text": "#fef3c7"
+    },
+    "Italy": {
+      "bg": "#052e16",
+      "border": "#16a34a",
+      "text": "#bbf7d0"
+    },
+    "Japan": {
+      "bg": "#9f1239",
+      "border": "#f472b6",
+      "text": "#fff1f2"
+    },
+    "Morocco": {
+      "bg": "#0b0f19",
+      "border": "#374151",
+      "text": "#e5e7eb"
+    },
+    "New Zealand": {
+      "bg": "#0f172a",
+      "border": "#14b8a6",
+      "text": "#99f6e4"
+    },
+    "Portugal": {
+      "bg": "#064e3b",
+      "border": "#10b981",
+      "text": "#d1fae5"
+    },
+    "Romania": {
+      "bg": "#0b0f19",
+      "border": "#374151",
+      "text": "#e5e7eb"
+    },
+    "South Africa": {
+      "bg": "#312e81",
+      "border": "#a21caf",
+      "text": "#e0e7ff"
+    },
+    "Spain": {
+      "bg": "#450a0a",
+      "border": "#dc2626",
+      "text": "#fecdd3"
+    },
+    "Switzerland": {
+      "bg": "#0b0f19",
+      "border": "#374151",
+      "text": "#e5e7eb"
+    },
+    "USA": {
+      "bg": "#1e1b4b",
+      "border": "#4338ca",
+      "text": "#c7d2fe"
+    },
+    "Uruguay": {
+      "bg": "#312e81",
+      "border": "#8b5cf6",
+      "text": "#ede9fe"
+    },
+    "Various": {
+      "bg": "#0b0f19",
+      "border": "#374151",
+      "text": "#e5e7eb"
+    }
+  },
+  "classificationChips": {
+    "AOC": {
+      "bg": "#3f1d2e",
+      "border": "#f43f5e",
+      "text": "#ffe4e6"
+    },
+    "AOP (Appellation d’Origine Protégée)": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "AVA": {
+      "bg": "#1e1b4b",
+      "border": "#6366f1",
+      "text": "#e0e7ff"
+    },
+    "Albariño": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Almond": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Alpine": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Alpine Herbs": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Amber": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Apple": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Apricot": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Argentina": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Aromatic": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Australia": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Austria": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "BAKING": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "BERRY": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "BITTER": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "BLEND": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "BREAD": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "BRINY": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Balanced": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Banana": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Beeswax": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Bell Pepper": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Black Cherry": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Black Fruit": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Black Pepper": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Black Plum": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Blackberry": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Blackberry Jam": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Blackcurrant": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Blend": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Blends": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Blueberry": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Bold": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Brioche": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Bubbles": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Butter": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "CITRUS": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "COUNTRY": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Cabernet": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Cap Classique": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Cedar": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Celebration": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Chalk": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Chamomile": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Chenin": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Cherry": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Chile": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Chillable": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "China": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Chocolate": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Cinnamon": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Citrus": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Classic": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Clove": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Cocoa": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Continent": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Cool Climate": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Crisp": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Cru": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "DAC": {
+      "bg": "#831843",
+      "border": "#f472b6",
+      "text": "#ffe4e6"
+    },
+    "DARK_FRUIT": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "DHC": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "DO": {
+      "bg": "#450a0a",
+      "border": "#dc2626",
+      "text": "#fecdd3"
+    },
+    "DOC": {
+      "bg": "#451a03",
+      "border": "#ea580c",
+      "text": "#ffedd5"
+    },
+    "DOCG": {
+      "bg": "#422006",
+      "border": "#f59e0b",
+      "text": "#fef3c7"
+    },
+    "DOCa": {
+      "bg": "#713f12",
+      "border": "#fcd34d",
+      "text": "#fef3c7"
+    },
+    "Dark Chocolate": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Dessert": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Dill": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Diverse": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Dried Fig": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Dried Herbs": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "EARTH": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Earth": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Espresso": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "FLORAL": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Fennel": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Fig": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Fizzy": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Floral": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Fortified": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "France": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Fresh": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Fresh Herbs": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "GAME": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "GG": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "GI": {
+      "bg": "#064e3b",
+      "border": "#22c55e",
+      "text": "#d1fae5"
+    },
+    "Gamay": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Game": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Georgia": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Germany": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Ginger": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Gooseberry": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Grapefruit": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Graphite": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Grass": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Greece": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Green Apple": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Green Pea": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Green Pepper": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Green Peppercorn": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Grüner": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "HERBAL": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Hazelnut": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Herb": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Herbal Tea": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Herbs": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "High Altitude": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Highland": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Honey": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Honeysuckle": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Hungary": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "IGP (Indication Géographique Protégée)": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "IGT": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "India": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Intense": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Island": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Italian": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Italy": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Jammy Berry": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Japan": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Jasmine": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Juicy": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Koshu": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Lanolin": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Leather": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Lemon": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Lemon Curd": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Lemon Zest": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Licorice": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Light": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Lilac": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Lime": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Liquorice": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Luxury": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Lychee": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "METHOD": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Malbec": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Mango": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Marzipan": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Mineral": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Modern": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "NUT": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Natural": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Nebbiolo": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "New Zealand": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Noble": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Noble Rot": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Nutmeg": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Nutty": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "ORCHARD_FRUIT": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Oaked": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Olive": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Orange Blossom": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Organic": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Oxidative": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "PDO": {
+      "bg": "#312e81",
+      "border": "#a855f7",
+      "text": "#ede9fe"
+    },
+    "PGI": {
+      "bg": "#0f172a",
+      "border": "#14b8a6",
+      "text": "#ccfbf1"
+    },
+    "Peach": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Pear": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Pepper": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Petrol": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Pineapple": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Pink": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Pinot": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Pinot Noir": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Plum": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Pomegranate": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Port": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Portugal": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Prestige": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Prädikatswein": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "QbA": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Quince": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Qvevri": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "RED_FRUIT": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Rare": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Raspberry": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Red": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Red Apple": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Red Cherry": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Refreshing": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Rhône": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Rich": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Riesling": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Ripe": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Rose": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Rose Petal": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Rosé": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "SALTY": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "SAVORY": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "SMOKY": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "SOUR": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "SPICE": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "STATE": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "STONE_FRUIT": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "STYLE": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "SWEET": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Sage": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Saline": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Sangiovese": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Sauv Blanc": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Sea Breeze": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Sea Salt": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Sea Spray": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Sherry": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Shiraz": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Skin Contact": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Smoke": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Smoky Spice": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Sour Cherry": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "South Africa": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Southern": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Spain": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Sparkling": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Spice": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Stone": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Strawberry": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Strawberry Candy": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Strong": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Summer": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Sweet": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Syrah": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "TROPICAL": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "TYPE": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Tangerine": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Tannic": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Tar": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Tea Leaf": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Tempranillo": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Terroir": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Textural": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Tobacco": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Tomato": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Tomato Leaf": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Traditional": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Tropical": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "UMAMI": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "USA": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Unique": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "VDF (Vin de France)": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "VEGETAL": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "VQA": {
+      "bg": "#7f1d1d",
+      "border": "#ef4444",
+      "text": "#fee2e2"
+    },
+    "VR": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Value": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Vanilla": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Versatile": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Violet": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Volcanic": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Volcanic Ash": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "WAX": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "WO": {
+      "bg": "#1a1a2e",
+      "border": "#f97316",
+      "text": "#ffedd5"
+    },
+    "WOOD": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "White": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "White Blossom": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "White Flower": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "White Peach": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "White Pepper": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Yuzu Citrus": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    },
+    "Zinfandel": {
+      "bg": "#1f2937",
+      "border": "#4b5563",
+      "text": "#e5e7eb"
+    }
+  },
+  "wineTypeChips": {
+    "Aromatic White": {
+      "bg": "#92400e",
+      "border": "#d97706",
+      "text": "#fde68a"
+    },
+    "Full-Body Red": {
+      "bg": "#7f1d1d",
+      "border": "#b91c1c",
+      "text": "#fca5a5"
+    },
+    "Full-Body White": {
+      "bg": "#92400e",
+      "border": "#d97706",
+      "text": "#fde68a"
+    },
+    "Light-Body Red": {
+      "bg": "#7f1d1d",
+      "border": "#b91c1c",
+      "text": "#fca5a5"
+    },
+    "Light-Body White": {
+      "bg": "#92400e",
+      "border": "#d97706",
+      "text": "#fde68a"
+    },
+    "Medium-Body Red": {
+      "bg": "#7f1d1d",
+      "border": "#b91c1c",
+      "text": "#fca5a5"
+    },
+    "Medium-Body White": {
+      "bg": "#92400e",
+      "border": "#d97706",
+      "text": "#fde68a"
+    },
+    "Medium-Full Red": {
+      "bg": "#7f1d1d",
+      "border": "#b91c1c",
+      "text": "#fca5a5"
+    },
+    "Sweet White": {
+      "bg": "#92400e",
+      "border": "#d97706",
+      "text": "#fde68a"
+    }
+  },
+  "rarityChips": {
+    "COMMON": {
+      "bg": "#3f3f46",
+      "border": "#52525b",
+      "text": "#e4e4e7"
+    },
+    "UNCOMMON": {
+      "bg": "#064e3b",
+      "border": "#16a34a",
+      "text": "#d1fae5"
+    },
+    "RARE": {
+      "bg": "#111827",
+      "border": "#2563eb",
+      "text": "#dbeafe"
+    },
+    "NOBLE": {
+      "bg": "#3b0764",
+      "border": "#9333ea",
+      "text": "#f3e8ff"
+    }
+  },
+  "colorTypeChips": {
+    "RED": {
+      "bg": "#3b0f0f",
+      "border": "#8b0000",
+      "text": "#fecdd3"
+    },
+    "WHITE": {
+      "bg": "#3b2f00",
+      "border": "#b8860b",
+      "text": "#fef3c7"
+    },
+    "ROSÉ": {
+      "bg": "#4a0e2a",
+      "border": "#db2777",
+      "text": "#fbcfe8"
+    },
+    "ORANGE": {
+      "bg": "#451a03",
+      "border": "#ea580c",
+      "text": "#ffedd5"
+    },
+    "DUAL": {
+      "bg": "#2d0a1e",
+      "border": "#be185d",
+      "text": "#fce7f3"
+    }
+  },
+  "styleClassChips": {
+    "STYLE": {
+      "bg": "#0a0f0a",
+      "border": "#16a34a",
+      "text": "#bbf7d0"
+    },
+    "METHOD": {
+      "bg": "#1e1b4b",
+      "border": "#7c3aed",
+      "text": "#ede9fe"
+    },
+    "ORIGIN": {
+      "bg": "#422006",
+      "border": "#d97706",
+      "text": "#fde68a"
+    },
+    "TYPE": {
+      "bg": "#0f172a",
+      "border": "#0891b2",
+      "text": "#cffafe"
+    },
+    "BLEND": {
+      "bg": "#2e1065",
+      "border": "#f97316",
+      "text": "#ffedd5"
+    }
+  },
+  "flavorClassChips": {
+    "SWEET": {
+      "bg": "#451a03",
+      "border": "#d97706",
+      "text": "#fde68a"
+    },
+    "SOUR": {
+      "bg": "#1a2e05",
+      "border": "#65a30d",
+      "text": "#d9f99d"
+    },
+    "SALTY": {
+      "bg": "#0c2340",
+      "border": "#0284c7",
+      "text": "#bae6fd"
+    },
+    "BITTER": {
+      "bg": "#2e1065",
+      "border": "#7c3aed",
+      "text": "#ede9fe"
+    },
+    "UMAMI": {
+      "bg": "#022c22",
+      "border": "#0d9488",
+      "text": "#ccfbf1"
+    }
+  },
+  "flavorSubclassChips": {
+    "CITRUS": {
+      "bg": "#431407",
+      "border": "#ea580c",
+      "text": "#ffedd5"
+    },
+    "BERRY": {
+      "bg": "#4c0519",
+      "border": "#e11d48",
+      "text": "#fecdd3"
+    },
+    "TROPICAL": {
+      "bg": "#422006",
+      "border": "#d97706",
+      "text": "#fef3c7"
+    },
+    "ORCHARD_FRUIT": {
+      "bg": "#1a2e05",
+      "border": "#65a30d",
+      "text": "#d9f99d"
+    },
+    "STONE_FRUIT": {
+      "bg": "#451a03",
+      "border": "#f97316",
+      "text": "#ffedd5"
+    },
+    "RED_FRUIT": {
+      "bg": "#450a0a",
+      "border": "#dc2626",
+      "text": "#fecdd3"
+    },
+    "DARK_FRUIT": {
+      "bg": "#2e1065",
+      "border": "#7c3aed",
+      "text": "#ede9fe"
+    },
+    "HERBAL": {
+      "bg": "#022c22",
+      "border": "#0d9488",
+      "text": "#ccfbf1"
+    },
+    "VEGETAL": {
+      "bg": "#052e16",
+      "border": "#16a34a",
+      "text": "#bbf7d0"
+    },
+    "GAME": {
+      "bg": "#1c1917",
+      "border": "#57534e",
+      "text": "#e7e5e4"
+    },
+    "SAVORY": {
+      "bg": "#1c1917",
+      "border": "#57534e",
+      "text": "#e7e5e4"
+    },
+    "SPICE": {
+      "bg": "#451a03",
+      "border": "#d97706",
+      "text": "#fde68a"
+    },
+    "BREAD": {
+      "bg": "#1c1917",
+      "border": "#57534e",
+      "text": "#e7e5e4"
+    },
+    "BAKING": {
+      "bg": "#3b1f0a",
+      "border": "#b45309",
+      "text": "#fde68a"
+    },
+    "FLORAL": {
+      "bg": "#4a0e2a",
+      "border": "#db2777",
+      "text": "#fbcfe8"
+    },
+    "EARTH": {
+      "bg": "#1c1917",
+      "border": "#78716c",
+      "text": "#e7e5e4"
+    },
+    "SMOKY": {
+      "bg": "#1c1917",
+      "border": "#57534e",
+      "text": "#e7e5e4"
+    },
+    "WOOD": {
+      "bg": "#292524",
+      "border": "#92400e",
+      "text": "#fde68a"
+    },
+    "SALTY": {
+      "bg": "#1c1917",
+      "border": "#57534e",
+      "text": "#e7e5e4"
+    },
+    "BRINY": {
+      "bg": "#1c1917",
+      "border": "#57534e",
+      "text": "#e7e5e4"
+    },
+    "WAX": {
+      "bg": "#422006",
+      "border": "#b45309",
+      "text": "#fef3c7"
+    },
+    "NUT": {
+      "bg": "#3b2f00",
+      "border": "#a16207",
+      "text": "#fef9c3"
+    }
+  },
+  "namedChips": {
+    "SYSTEM": {
+      "bg": "rgba(127,29,29,0.7)",
+      "border": "#ef4444",
+      "text": "#fca5a5"
+    },
+    "CLIMATE": {
+      "bg": "rgba(20,83,45,0.7)",
+      "border": "#22c55e",
+      "text": "#86efac"
+    },
+    "BLUE": {
+      "bg": "rgba(30,58,138,0.7)",
+      "border": "#3b82f6",
+      "text": "#93c5fd"
+    }
+  },
+  "appellationChips": [
+    {
+      "bg": "rgba(127,29,29,0.7)",
+      "border": "#ef4444",
+      "text": "#fca5a5"
+    },
+    {
+      "bg": "rgba(20,83,45,0.7)",
+      "border": "#22c55e",
+      "text": "#86efac"
+    },
+    {
+      "bg": "rgba(30,58,138,0.7)",
+      "border": "#3b82f6",
+      "text": "#93c5fd"
+    }
+  ],
+  "styleTones": {
+    "full-bodied red": {
+      "primary": "#5a0f18",
+      "secondary": "#2b0a0e"
+    },
+    "bright red": {
+      "primary": "#dc143c",
+      "secondary": "#5b0f1f"
+    },
+    "light-bodied red": {
+      "primary": "#8b3f4c",
+      "secondary": "#4f1f28"
+    },
+    "dark red": {
+      "primary": "#70193d",
+      "secondary": "#3f1024"
+    },
+    "medium-bodied red": {
+      "primary": "#e96b6b",
+      "secondary": "#5e2b30"
+    },
+    "rosé": {
+      "primary": "#f6b6c0",
+      "secondary": "#5b2c36"
+    },
+    "pink": {
+      "primary": "#f6b6c0",
+      "secondary": "#5b2c36"
+    },
+    "light-bodied white": {
+      "primary": "#ffffff",
+      "secondary": "#334155"
+    },
+    "aromatic white": {
+      "primary": "#daa520",
+      "secondary": "#3f2e1a"
+    },
+    "high-acid white": {
+      "primary": "#e5e7eb",
+      "secondary": "#1f2937"
+    },
+    "full-bodied white": {
+      "primary": "#f4a261",
+      "secondary": "#3b2315"
+    },
+    "sweet white": {
+      "primary": "#b5651d",
+      "secondary": "#3a2412"
+    },
+    "medium-bodied white": {
+      "primary": "#d6bfa3",
+      "secondary": "#2f261b"
+    }
+  },
+  "climates": {
+    "maritime": {
+      "id": "maritime",
+      "name": "Maritime",
+      "description": "Moderate temperatures and ocean influence with smaller seasonal swings.",
+      "colors": {
+        "bg": "#0b1f2a",
+        "border": "#3b82f6",
+        "text": "#dbeafe"
+      }
+    },
+    "continental": {
+      "id": "continental",
+      "name": "Continental",
+      "description": "Cold winters, warm summers, and large seasonal and diurnal shifts.",
+      "colors": {
+        "bg": "#1f0f2a",
+        "border": "#a855f7",
+        "text": "#f3e8ff"
+      }
+    },
+    "cool": {
+      "id": "cool",
+      "name": "Cool",
+      "description": "Lower average temperatures, slower ripening, high-acid wine styles.",
+      "colors": {
+        "bg": "#0b1f3a",
+        "border": "#3b82f6",
+        "text": "#dbeafe"
+      }
+    },
+    "warm": {
+      "id": "warm",
+      "name": "Warm",
+      "description": "Consistently warmer conditions producing riper, fuller-bodied wines.",
+      "colors": {
+        "bg": "#3b1a0a",
+        "border": "#f59e0b",
+        "text": "#fffbeb"
+      }
+    },
+    "mediterranean": {
+      "id": "mediterranean",
+      "name": "Mediterranean",
+      "description": "Sunny, dry summers and mild winters with coastal influence and tempered extremes.",
+      "colors": {
+        "bg": "#2a2110",
+        "border": "#f97316",
+        "text": "#ffedd5"
+      }
+    }
+  },
+  "flavorClassMeta": {
+    "SWEET": {
+      "color": "#f59e0b",
+      "icon": "sparkles",
+      "border": "#b45309",
+      "text": "#fffbeb"
+    },
+    "SOUR": {
+      "color": "#22c55e",
+      "icon": "citrus",
+      "border": "#15803d",
+      "text": "#ecfdf3"
+    },
+    "SALTY": {
+      "color": "#38bdf8",
+      "icon": "droplet",
+      "border": "#0ea5e9",
+      "text": "#e0f2fe"
+    },
+    "BITTER": {
+      "color": "#8b5cf6",
+      "icon": "triangle",
+      "border": "#6d28d9",
+      "text": "#f3e8ff"
+    },
+    "UMAMI": {
+      "color": "#14b8a6",
+      "icon": "leaf",
+      "border": "#0d9488",
+      "text": "#e0f2f1"
+    }
+  },
+  "regionClassificationIconColors": {
+    "AOC": "#f43f5e",
+    "AOP (Appellation d’Origine Protégée)": "#e5e7eb",
+    "AVA": "#6366f1",
+    "Albariño": "#e5e7eb",
+    "Almond": "#e5e7eb",
+    "Alpine": "#e5e7eb",
+    "Alpine Herbs": "#e5e7eb",
+    "Amber": "#e5e7eb",
+    "Apple": "#e5e7eb",
+    "Apricot": "#e5e7eb",
+    "Argentina": "#e5e7eb",
+    "Aromatic": "#e5e7eb",
+    "Australia": "#e5e7eb",
+    "Austria": "#e5e7eb",
+    "BAKING": "#e5e7eb",
+    "BERRY": "#e5e7eb",
+    "BITTER": "#e5e7eb",
+    "BLEND": "#e5e7eb",
+    "BREAD": "#e5e7eb",
+    "BRINY": "#e5e7eb",
+    "Balanced": "#e5e7eb",
+    "Banana": "#e5e7eb",
+    "Beeswax": "#e5e7eb",
+    "Bell Pepper": "#e5e7eb",
+    "Black Cherry": "#e5e7eb",
+    "Black Fruit": "#e5e7eb",
+    "Black Pepper": "#e5e7eb",
+    "Black Plum": "#e5e7eb",
+    "Blackberry": "#e5e7eb",
+    "Blackberry Jam": "#e5e7eb",
+    "Blackcurrant": "#e5e7eb",
+    "Blend": "#e5e7eb",
+    "Blends": "#e5e7eb",
+    "Blueberry": "#e5e7eb",
+    "Bold": "#e5e7eb",
+    "Brioche": "#e5e7eb",
+    "Bubbles": "#e5e7eb",
+    "Butter": "#e5e7eb",
+    "CITRUS": "#e5e7eb",
+    "COUNTRY": "#e5e7eb",
+    "Cabernet": "#e5e7eb",
+    "Cap Classique": "#e5e7eb",
+    "Cedar": "#e5e7eb",
+    "Celebration": "#e5e7eb",
+    "Chalk": "#e5e7eb",
+    "Chamomile": "#e5e7eb",
+    "Chenin": "#e5e7eb",
+    "Cherry": "#e5e7eb",
+    "Chile": "#e5e7eb",
+    "Chillable": "#e5e7eb",
+    "China": "#e5e7eb",
+    "Chocolate": "#e5e7eb",
+    "Cinnamon": "#e5e7eb",
+    "Citrus": "#e5e7eb",
+    "Classic": "#e5e7eb",
+    "Clove": "#e5e7eb",
+    "Cocoa": "#e5e7eb",
+    "Continent": "#e5e7eb",
+    "Cool Climate": "#e5e7eb",
+    "Crisp": "#e5e7eb",
+    "Cru": "#e5e7eb",
+    "DAC": "#e5e7eb",
+    "DARK_FRUIT": "#e5e7eb",
+    "DHC": "#e5e7eb",
+    "DO": "#e5e7eb",
+    "DOC": "#ea580c",
+    "DOCG": "#f59e0b",
+    "DOCa": "#fcd34d",
+    "Dark Chocolate": "#e5e7eb",
+    "Dessert": "#e5e7eb",
+    "Dill": "#e5e7eb",
+    "Diverse": "#e5e7eb",
+    "Dried Fig": "#e5e7eb",
+    "Dried Herbs": "#e5e7eb",
+    "EARTH": "#e5e7eb",
+    "Earth": "#e5e7eb",
+    "Espresso": "#e5e7eb",
+    "FLORAL": "#e5e7eb",
+    "Fennel": "#e5e7eb",
+    "Fig": "#e5e7eb",
+    "Fizzy": "#e5e7eb",
+    "Floral": "#e5e7eb",
+    "Fortified": "#e5e7eb",
+    "France": "#e5e7eb",
+    "Fresh": "#e5e7eb",
+    "Fresh Herbs": "#e5e7eb",
+    "GAME": "#e5e7eb",
+    "GG": "#e5e7eb",
+    "GI": "#22c55e",
+    "Gamay": "#e5e7eb",
+    "Game": "#e5e7eb",
+    "Georgia": "#e5e7eb",
+    "Germany": "#e5e7eb",
+    "Ginger": "#e5e7eb",
+    "Gooseberry": "#e5e7eb",
+    "Grapefruit": "#e5e7eb",
+    "Graphite": "#e5e7eb",
+    "Grass": "#e5e7eb",
+    "Greece": "#e5e7eb",
+    "Green Apple": "#e5e7eb",
+    "Green Pea": "#e5e7eb",
+    "Green Pepper": "#e5e7eb",
+    "Green Peppercorn": "#e5e7eb",
+    "Grüner": "#e5e7eb",
+    "HERBAL": "#e5e7eb",
+    "Hazelnut": "#e5e7eb",
+    "Herb": "#e5e7eb",
+    "Herbal Tea": "#e5e7eb",
+    "Herbs": "#e5e7eb",
+    "High Altitude": "#e5e7eb",
+    "Highland": "#e5e7eb",
+    "Honey": "#e5e7eb",
+    "Honeysuckle": "#e5e7eb",
+    "Hungary": "#e5e7eb",
+    "IGP (Indication Géographique Protégée)": "#e5e7eb",
+    "IGT": "#e5e7eb",
+    "India": "#e5e7eb",
+    "Intense": "#e5e7eb",
+    "Island": "#e5e7eb",
+    "Italian": "#e5e7eb",
+    "Italy": "#e5e7eb",
+    "Jammy Berry": "#e5e7eb",
+    "Japan": "#e5e7eb",
+    "Jasmine": "#e5e7eb",
+    "Juicy": "#e5e7eb",
+    "Koshu": "#e5e7eb",
+    "Lanolin": "#e5e7eb",
+    "Leather": "#e5e7eb",
+    "Lemon": "#e5e7eb",
+    "Lemon Curd": "#e5e7eb",
+    "Lemon Zest": "#e5e7eb",
+    "Licorice": "#e5e7eb",
+    "Light": "#e5e7eb",
+    "Lilac": "#e5e7eb",
+    "Lime": "#e5e7eb",
+    "Liquorice": "#e5e7eb",
+    "Luxury": "#e5e7eb",
+    "Lychee": "#e5e7eb",
+    "METHOD": "#e5e7eb",
+    "Malbec": "#e5e7eb",
+    "Mango": "#e5e7eb",
+    "Marzipan": "#e5e7eb",
+    "Mineral": "#e5e7eb",
+    "Modern": "#e5e7eb",
+    "NUT": "#e5e7eb",
+    "Natural": "#e5e7eb",
+    "Nebbiolo": "#e5e7eb",
+    "New Zealand": "#e5e7eb",
+    "Noble": "#e5e7eb",
+    "Noble Rot": "#e5e7eb",
+    "Nutmeg": "#e5e7eb",
+    "Nutty": "#e5e7eb",
+    "ORCHARD_FRUIT": "#e5e7eb",
+    "Oaked": "#e5e7eb",
+    "Olive": "#e5e7eb",
+    "Orange Blossom": "#e5e7eb",
+    "Organic": "#e5e7eb",
+    "Oxidative": "#e5e7eb",
+    "PDO": "#a855f7",
+    "PGI": "#14b8a6",
+    "Peach": "#e5e7eb",
+    "Pear": "#e5e7eb",
+    "Pepper": "#e5e7eb",
+    "Petrol": "#e5e7eb",
+    "Pineapple": "#e5e7eb",
+    "Pink": "#e5e7eb",
+    "Pinot": "#e5e7eb",
+    "Pinot Noir": "#e5e7eb",
+    "Plum": "#e5e7eb",
+    "Pomegranate": "#e5e7eb",
+    "Port": "#e5e7eb",
+    "Portugal": "#e5e7eb",
+    "Prestige": "#e5e7eb",
+    "Prädikatswein": "#e5e7eb",
+    "QbA": "#e5e7eb",
+    "Quince": "#e5e7eb",
+    "Qvevri": "#e5e7eb",
+    "RED_FRUIT": "#e5e7eb",
+    "Rare": "#e5e7eb",
+    "Raspberry": "#e5e7eb",
+    "Red": "#e5e7eb",
+    "Red Apple": "#e5e7eb",
+    "Red Cherry": "#e5e7eb",
+    "Refreshing": "#e5e7eb",
+    "Rhône": "#e5e7eb",
+    "Rich": "#e5e7eb",
+    "Riesling": "#e5e7eb",
+    "Ripe": "#e5e7eb",
+    "Rose": "#e5e7eb",
+    "Rose Petal": "#e5e7eb",
+    "Rosé": "#e5e7eb",
+    "SALTY": "#e5e7eb",
+    "SAVORY": "#e5e7eb",
+    "SMOKY": "#e5e7eb",
+    "SOUR": "#e5e7eb",
+    "SPICE": "#e5e7eb",
+    "STATE": "#e5e7eb",
+    "STONE_FRUIT": "#e5e7eb",
+    "STYLE": "#e5e7eb",
+    "SWEET": "#e5e7eb",
+    "Sage": "#e5e7eb",
+    "Saline": "#e5e7eb",
+    "Sangiovese": "#e5e7eb",
+    "Sauv Blanc": "#e5e7eb",
+    "Sea Breeze": "#e5e7eb",
+    "Sea Salt": "#e5e7eb",
+    "Sea Spray": "#e5e7eb",
+    "Sherry": "#e5e7eb",
+    "Shiraz": "#e5e7eb",
+    "Skin Contact": "#e5e7eb",
+    "Smoke": "#e5e7eb",
+    "Smoky Spice": "#e5e7eb",
+    "Sour Cherry": "#e5e7eb",
+    "South Africa": "#e5e7eb",
+    "Southern": "#e5e7eb",
+    "Spain": "#e5e7eb",
+    "Sparkling": "#e5e7eb",
+    "Spice": "#e5e7eb",
+    "Stone": "#e5e7eb",
+    "Strawberry": "#e5e7eb",
+    "Strawberry Candy": "#e5e7eb",
+    "Strong": "#e5e7eb",
+    "Summer": "#e5e7eb",
+    "Sweet": "#e5e7eb",
+    "Syrah": "#e5e7eb",
+    "TROPICAL": "#e5e7eb",
+    "TYPE": "#e5e7eb",
+    "Tangerine": "#e5e7eb",
+    "Tannic": "#e5e7eb",
+    "Tar": "#e5e7eb",
+    "Tea Leaf": "#e5e7eb",
+    "Tempranillo": "#e5e7eb",
+    "Terroir": "#e5e7eb",
+    "Textural": "#e5e7eb",
+    "Tobacco": "#e5e7eb",
+    "Tomato": "#e5e7eb",
+    "Tomato Leaf": "#e5e7eb",
+    "Traditional": "#e5e7eb",
+    "Tropical": "#e5e7eb",
+    "UMAMI": "#e5e7eb",
+    "USA": "#e5e7eb",
+    "Unique": "#e5e7eb",
+    "VDF (Vin de France)": "#e5e7eb",
+    "VEGETAL": "#e5e7eb",
+    "VQA": "#e5e7eb",
+    "VR": "#e5e7eb",
+    "Value": "#e5e7eb",
+    "Vanilla": "#e5e7eb",
+    "Versatile": "#e5e7eb",
+    "Violet": "#e5e7eb",
+    "Volcanic": "#e5e7eb",
+    "Volcanic Ash": "#e5e7eb",
+    "WAX": "#e5e7eb",
+    "WO": "#e5e7eb",
+    "WOOD": "#e5e7eb",
+    "White": "#e5e7eb",
+    "White Blossom": "#e5e7eb",
+    "White Flower": "#e5e7eb",
+    "White Peach": "#e5e7eb",
+    "White Pepper": "#e5e7eb",
+    "Yuzu Citrus": "#e5e7eb",
+    "Zinfandel": "#e5e7eb"
+  },
+  "flavorSubclassIconColors": {
+    "CITRUS": "#f97316",
+    "BERRY": "#e11d48",
+    "TROPICAL": "#eab308",
+    "ORCHARD_FRUIT": "#84cc16",
+    "STONE_FRUIT": "#fb923c",
+    "RED_FRUIT": "#ef4444",
+    "DARK_FRUIT": "#8b5cf6",
+    "HERBAL": "#34d399",
+    "VEGETAL": "#22c55e",
+    "GAME": "#e5e7eb",
+    "SAVORY": "#e5e7eb",
+    "SPICE": "#d97706",
+    "BREAD": "#e5e7eb",
+    "BAKING": "#c08457",
+    "FLORAL": "#ec4899",
+    "EARTH": "#78716c",
+    "SMOKY": "#e5e7eb",
+    "WOOD": "#8b5a2b",
+    "SALTY": "#e5e7eb",
+    "BRINY": "#e5e7eb",
+    "WAX": "#f59e0b",
+    "NUT": "#eab308"
+  },
+  "flagGradients": {
+    "Argentina": "linear-gradient(90deg,#38bdf8 33%,#e5e7eb 33% 66%,#38bdf8 66%)",
+    "Australia": "linear-gradient(135deg,#00205b 44%,#fff 44% 46%,#00205b 46% 54%,#c8102e 54%)",
+    "Austria": "linear-gradient(90deg,#c53030 33%,#ffffff 33% 66%,#c53030 66%)",
+    "Canada": "linear-gradient(90deg,#c53030 25%,#ffffff 25% 75%,#c53030 75%)",
+    "Chile": "linear-gradient(90deg,#1d4ed8 33%,#ffffff 33% 66%,#c53030 66%)",
+    "China": "linear-gradient(90deg,#b91c1c 70%,#f59e0b 70%)",
+    "Croatia": "linear-gradient(#374151,#111827)",
+    "France": "linear-gradient(90deg,#1f3f99 33%,#ffffff 33%,#ffffff 66%,#c53030 66%)",
+    "Georgia": "linear-gradient(5deg,#de2910 30%,#ffffff 30% 70%,#de2910 70%)",
+    "Germany": "linear-gradient(90deg,#0f172a 33%,#b91c1c 33% 66%,#f59e0b 66%)",
+    "Greece": "linear-gradient(90deg,#2563eb 33%,#e2e8f0 33% 66%,#2563eb 66%)",
+    "Hungary": "linear-gradient(90deg,#b91c1c 33%,#ffffff 33% 66%,#16a34a 66%)",
+    "India": "linear-gradient(90deg,#f97316 33%,#ffffff 33% 66%,#16a34a 66%)",
+    "Italy": "linear-gradient(90deg,#1b9b4c 33%,#ffffff 33%,#ffffff 66%,#c53030 66%)",
+    "Japan": "radial-gradient(circle at 50% 50%,#b91c1c 0 40%,#f8fafc 40%)",
+    "Morocco": "linear-gradient(#374151,#111827)",
+    "New Zealand": "linear-gradient(135deg,#00205b 70%,#101820 70%), radial-gradient(circle at 20% 30%,#c8102e 0 18%,transparent 18% 21%), radial-gradient(circle at 33% 50%,#c8102e 0 12%,transparent 12% 15%), radial-gradient(circle at 20% 70%,#c8102e 0 12%,transparent 12% 15%), radial-gradient(circle at 35% 80%,#c8102e 0 12%,transparent 12% 15%)",
+    "Portugal": "linear-gradient(90deg,#046c4e 45%,#7f1d1d 45%)",
+    "Romania": "linear-gradient(90deg,#1d4ed8 33%,#facc15 33% 66%,#dc2626 66%)",
+    "South Africa": "linear-gradient(90deg,#065f46 20%,#111827 20% 40%,#eab308 40% 50%,#e11d48 50% 70%,#1d4ed8 70%)",
+    "Spain": "linear-gradient(90deg,#c53030 0 20%,#f6ad55 20% 80%,#c53030 80% 100%)",
+    "Switzerland": "linear-gradient(90deg,#dc2626 0 100%)",
+    "USA": "linear-gradient(90deg,#1d4ed8 0 40%,#e11d48 40% 100%)",
+    "Uruguay": "linear-gradient(#374151,#111827)",
+    "Various": "linear-gradient(90deg,#0f766e 0 25%,#1d4ed8 25% 50%,#7c3aed 50% 75%,#f59e0b 75% 100%)"
+  },
+  "continentColors": {
+    "NORTH_AMERICA": "#722F37",
+    "EUROPE": "#9B2335",
+    "ASIA": "#C9A227",
+    "SOUTH_AMERICA": "#73343A",
+    "AFRICA": "#C48B8B",
+    "OCEANIA": "#D4A5A5"
+  },
+  "continentCountries": {
+    "NORTH_AMERICA": [
+      "USA",
+      "Canada"
+    ],
+    "EUROPE": [
+      "France",
+      "Italy",
+      "Spain",
+      "Germany",
+      "Portugal",
+      "Hungary",
+      "Austria",
+      "Greece",
+      "Georgia",
+      "Switzerland",
+      "Romania"
+    ],
+    "ASIA": [
+      "China",
+      "Japan",
+      "India"
+    ],
+    "SOUTH_AMERICA": [
+      "Argentina",
+      "Chile",
+      "Uruguay"
+    ],
+    "AFRICA": [
+      "South Africa",
+      "Morocco"
+    ],
+    "OCEANIA": [
+      "Australia",
+      "New Zealand"
+    ]
+  }
+}
