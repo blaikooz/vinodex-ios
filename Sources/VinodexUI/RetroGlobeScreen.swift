@@ -183,7 +183,7 @@ final class GlobeModel {
     private static let autoSpin: Double = -0.0032
     /// Camera pull-back. The web app sits at 3.6; further out shrinks the globe
     /// so the markers have room to breathe on a phone.
-    private static let cameraDistance: Double = 4.25
+    private static let cameraDistance: Double = 3.95
     /// Markers hide well before the limb so they never straddle the edge.
     private static let frontFacingThreshold: Double = 0.55
 

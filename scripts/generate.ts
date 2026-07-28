@@ -401,12 +401,27 @@ const FLAG_PATHS: Record<string, string> = {
   India: 'Asia/india/india.png',
 };
 
+/// Continents all carried `icon: 'globe'`, so all six resolved to the same
+/// `lucide:globe` — a generic mark that told you nothing and made the globe
+/// search look like six copies of one row. Outline glyphs where game-icons has
+/// the landmass; a recognisable stand-in where it does not.
+const CONTINENT_ICONS: Record<string, string> = {
+  CONT_AFRICA: 'game-icons:africa',
+  CONT_SOUTH_AMERICA: 'game-icons:south-america',
+  CONT_OCEANIA: 'game-icons:australia',
+  CONT_NORTH_AMERICA: 'game-icons:earth-america',
+  CONT_EUROPE: 'game-icons:coliseum',
+  CONT_ASIA: 'game-icons:pagoda',
+};
+
 function buildIconManifest(entries: readonly WineEntry[]) {
   const byEntry: Record<string, string> = {};
 
   for (const entry of entries) {
     if (entry.category === 'FLAVORS') {
       byEntry[entry.id] = resolveFlavorIcon(entry.name, entry.details.subclass) as string;
+    } else if (CONTINENT_ICONS[entry.id]) {
+      byEntry[entry.id] = CONTINENT_ICONS[entry.id]!;
     } else {
       byEntry[entry.id] = LUCIDE_ICONIFY[entry.icon ?? 'default'] ?? LUCIDE_ICONIFY.default!;
     }

@@ -17,6 +17,8 @@ public enum DexRoute: Hashable, Sendable {
     /// country and state names too. Its own screen rather than an overlay on
     /// the globe — results floating over a spinning sphere read as a glitch.
     case globeSearch
+    /// Saved entries — see `BookmarkStore`.
+    case bookmarks
     /// The continent info screen — INFO blurb plus a COUNTRIES list, each
     /// linking to that country's regions. Reached from the globe markers.
     case continent(entryID: String)
@@ -33,6 +35,8 @@ public enum DexRoute: Hashable, Sendable {
             "GLOBE SCAN"
         case .globeSearch:
             "WORLD SEARCH"
+        case .bookmarks:
+            "SAVED"
         case .continent:
             "CONTINENT SCAN"
         }

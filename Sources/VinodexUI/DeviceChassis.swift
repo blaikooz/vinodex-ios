@@ -13,6 +13,9 @@ public struct DeviceChassis<Content: View>: View {
     var showsBack: Bool = false
     var onBack: (() -> Void)?
     var onHome: (() -> Void)?
+    /// Opens saved entries. On the main screen this takes the Back button's
+    /// slot, which would otherwise be a permanently greyed-out control.
+    var onBookmarks: (() -> Void)?
     @ViewBuilder var content: () -> Content
 
     /// The system panel lives here rather than in the app module so it can be
@@ -31,12 +34,14 @@ public struct DeviceChassis<Content: View>: View {
         showsBack: Bool = false,
         onBack: (() -> Void)? = nil,
         onHome: (() -> Void)? = nil,
+        onBookmarks: (() -> Void)? = nil,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.title = title
         self.showsBack = showsBack
         self.onBack = onBack
         self.onHome = onHome
+        self.onBookmarks = onBookmarks
         self.content = content
     }
 
@@ -52,13 +57,12 @@ public struct DeviceChassis<Content: View>: View {
         // used rather than wasted. Insets are then reserved explicitly.
         GeometryReader { geo in
             let topStrip = max(geo.safeAreaInsets.top, DexMetrics.islandStripMinHeight)
-            let bottomInset = geo.safeAreaInsets.bottom
 
             ZStack {
                 // Front and back are both mounted, each hidden when facing
                 // away, and the pair is rotated together — the same structure
                 // as the web app's preserve-3d flip container.
-                frontFace(topStrip: topStrip, bottomInset: bottomInset)
+                frontFace(topStrip: topStrip)
                     .opacity(isFlipped ? 0 : 1)
                     .accessibilityHidden(isFlipped)
 
@@ -81,17 +85,16 @@ public struct DeviceChassis<Content: View>: View {
         .background(skin.body.ignoresSafeArea())
     }
 
-    private func frontFace(topStrip: CGFloat, bottomInset: CGFloat) -> some View {
+    private func frontFace(topStrip: CGFloat) -> some View {
         ZStack(alignment: .top) {
             skin.body
 
             VStack(spacing: 0) {
                 Color.clear.frame(height: topStrip)
                 screenHousing
-                // The footer band absorbs the home-indicator inset rather
-                // than sitting above it, which drops the marquee and the
-                // control buttons toward the bottom edge.
-                footer(extraBottom: bottomInset)
+                    // Minimal, equal gap to both bands.
+                    .padding(.vertical, DexMetrics.housingGap)
+                footer()
             }
 
             islandFlank(height: topStrip)
@@ -314,7 +317,9 @@ public struct DeviceChassis<Content: View>: View {
                     }
                 }
                 .opacity(0.5)
-                .padding(.trailing, DexMetrics.headerPaddingH)
+                // Pulled in off the panel's rounded corner, which the slats
+                // were running into at their right end.
+                .padding(.trailing, DexMetrics.headerPaddingH + DexMetrics.screenPanelCorner * 0.5)
             }
         }
         .frame(height: DexMetrics.ventStripHeight)
@@ -322,21 +327,26 @@ public struct DeviceChassis<Content: View>: View {
 
     // MARK: Footer
 
-    private func footer(extraBottom: CGFloat) -> some View {
+    private func footer() -> some View {
         HStack(spacing: 8) {
             // Back and Home act on whatever is in front of you. With the panel
             // open (or the device flipped) they dismiss that first, rather than
             // navigating underneath it and appearing to do nothing.
-            ChassisButton(
-                kind: .back,
-                enabled: isFlipped || showsPanel || (showsBack && onBack != nil)
-            ) {
-                if isFlipped {
-                    isFlipped = false
-                } else if showsPanel {
-                    showsPanel = false
-                } else {
-                    onBack?()
+            // Back where there is somewhere to go; otherwise the slot earns
+            // its keep as the way into saved entries.
+            if showsBack || isFlipped || showsPanel {
+                ChassisButton(kind: .back, enabled: true) {
+                    if isFlipped {
+                        isFlipped = false
+                    } else if showsPanel {
+                        showsPanel = false
+                    } else {
+                        onBack?()
+                    }
+                }
+            } else {
+                ChassisButton(kind: .bookmarks, enabled: onBookmarks != nil) {
+                    onBookmarks?()
                 }
             }
 
@@ -354,13 +364,10 @@ public struct DeviceChassis<Content: View>: View {
             }
         }
         .padding(.horizontal, DexMetrics.footerPaddingH)
-        // Bottom-aligned rather than top-padded, so the row sits as low as the
-        // corner clearance allows instead of floating in the middle of the band.
-        .frame(
-            height: DexMetrics.footerHeight + DexMetrics.footerTopNudge,
-            alignment: .bottom
-        )
-        .padding(.bottom, DexMetrics.footerBottomInset + extraBottom)
+        // Centred in a band that is exactly one control plus `chassisEdgeInset`
+        // top and bottom — the same construction as the header strip, so the
+        // two are symmetric without any per-side tuning.
+        .frame(height: DexMetrics.footerHeight)
         .background(skin.footerWash)
     }
 }
@@ -372,7 +379,9 @@ public struct DeviceChassis<Content: View>: View {
 /// Haptics fire here rather than at call sites so every chassis button feels the
 /// same — the main thing a native build can offer that the web app cannot.
 public struct ChassisButton: View {
-    public enum Kind { case back, home }
+    /// `bookmarks` replaces Back on the main screen, where there is nowhere
+    /// to go back to and the button was just a greyed-out slot.
+    public enum Kind { case back, home, bookmarks }
 
     let kind: Kind
     let enabled: Bool
@@ -408,11 +417,16 @@ public struct ChassisButton: View {
             LinearGradient(colors: [Dex.stone700, Dex.stone950], startPoint: .top, endPoint: .bottom)
         case .home:
             LinearGradient(colors: [Dex.amber200, Dex.amber500], startPoint: .top, endPoint: .bottom)
+        case .bookmarks:
+            LinearGradient(colors: [Dex.stone700, Dex.stone950], startPoint: .top, endPoint: .bottom)
         }
     }
 
     private var borderColor: Color {
-        kind == .back ? Dex.stone900 : Dex.amber700
+        switch kind {
+        case .back, .bookmarks: Dex.stone900
+        case .home: Dex.amber700
+        }
     }
 
     @ViewBuilder
@@ -421,6 +435,10 @@ public struct ChassisButton: View {
         case .back:
             Image(systemName: "chevron.left")
                 .font(.system(size: 30, weight: .heavy))
+                .foregroundStyle(.white)
+        case .bookmarks:
+            Image(systemName: "person.crop.circle")
+                .font(.system(size: 28, weight: .semibold))
                 .foregroundStyle(.white)
         case .home:
             Circle()

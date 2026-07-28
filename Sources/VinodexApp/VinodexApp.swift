@@ -30,7 +30,8 @@ struct RootView: View {
             title: currentTitle,
             showsBack: !path.isEmpty,
             onBack: path.isEmpty ? nil : { goBack() },
-            onHome: { goHome() }
+            onHome: { goHome() },
+            onBookmarks: { push(.bookmarks) }
         ) {
             screen
                 // Content swaps instantly; no push transition.
@@ -85,6 +86,9 @@ struct RootView: View {
                 },
                 onWorldSearch: { push(.globeSearch) }
             )
+
+        case .bookmarks:
+            BookmarksScreen { push($0.destination) }
 
         case .globeSearch:
             // Continents and regions between them carry country and state

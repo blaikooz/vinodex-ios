@@ -76,6 +76,10 @@ public extension Palette {
         case .flavorSubclass: return flavorSubclassChips[chip.key] ?? fallback
         case .rarity: return rarityChips[chip.key] ?? fallback
         case .named: return namedChips[chip.key] ?? fallback
+        case .classification:
+            return classificationChips[chip.key]
+                ?? namedChips["SYSTEM"]
+                ?? fallback
         }
     }
 }

@@ -14,6 +14,7 @@ public struct EntryDetailScreen: View {
     let onSelectRelated: (WineEntry) -> Void
 
     private let db = WineDatabase.shared
+    @State private var bookmarks = BookmarkStore.shared
 
     /// The web app caps linked lists at 8 rows.
     private static let linkedRowLimit = 8
@@ -61,6 +62,8 @@ public struct EntryDetailScreen: View {
                 .shadow(color: Color(dexHex: "#006400").opacity(0.8), radius: 0, x: 4, y: 4)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
+
+            bookmarkButton
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 18)
@@ -75,6 +78,30 @@ public struct EntryDetailScreen: View {
         }
         .padding(.horizontal, -14)
         .padding(.bottom, 16)
+    }
+
+    /// Saved state lives on the entry screen rather than the list, so it is one
+    /// tap from what you are reading and cannot be triggered by a mis-scroll.
+    private var bookmarkButton: some View {
+        let saved = bookmarks.contains(entry.id)
+        return Button {
+            Haptics.select()
+            bookmarks.toggle(entry.id)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: saved ? "bookmark.fill" : "bookmark")
+                    .font(.system(size: 14, weight: .bold))
+                Text(saved ? "SAVED" : "SAVE")
+                    .font(DexFont.retro(10))
+                    .tracking(2)
+            }
+            .foregroundStyle(saved ? .black : Dex.green)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(Capsule().fill(saved ? Dex.green : .black.opacity(0.35)))
+            .overlay(Capsule().strokeBorder(Dex.green, lineWidth: 2))
+        }
+        .buttonStyle(DexPressStyle(scale: 0.94))
     }
 
     private var infoSection: some View {
@@ -413,14 +440,16 @@ public struct EntryDetailScreen: View {
             HStack(alignment: .top) {
                 // Spelled out here, but still keyed by the abbreviation: the
                 // palette tables are indexed by `classification`.
+                // Resolved through the same `.classification` table the list
+                // tile uses, so an appellation is one colour everywhere.
                 ChipView(
                     label: EntryDisplay.appellationName(
                         classification: r.details.classification,
                         country: r.details.origin
                     ),
-                    chip: db.palette.classificationChips[r.details.classification]
-                        ?? db.palette.namedChips["SYSTEM"]
-                        ?? Palette.Chip(bg: "#1f2937", border: "#4b5563", text: "#e5e7eb")
+                    chip: db.palette.resolve(
+                        chip(r.details.classification, .classification, key: r.details.classification)
+                    )
                 )
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)

@@ -64,6 +64,23 @@ struct ContinentTests {
         )
     }
 
+    /// All six continents used to resolve to the same `lucide:globe`, which
+    /// told a reader nothing and made the world search look like six copies of
+    /// one row. They also reach a tile listing now, so they need chips.
+    @Test("each continent has its own glyph and tile chips")
+    func continentPresentation() throws {
+        let db = WineDatabase.shared
+        var glyphs: Set<String> = []
+
+        for entry in db.entries(in: .continents) {
+            let icon = db.iconID(for: entry)
+            #expect(icon != db.icons.fallback, "\(entry.name) falls back to the placeholder glyph")
+            #expect(glyphs.insert(icon).inserted, "\(entry.name) reuses glyph \(icon)")
+            #expect(!entry.tileChips.isEmpty, "\(entry.name) would render as a bare row in search")
+        }
+        #expect(glyphs.count == 6)
+    }
+
     @Test("hasRegions is true for a country with regions in the selection")
     func hasRegionsTrue() {
         #expect(db.hasRegions(inCountry: "France"))

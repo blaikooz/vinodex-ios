@@ -129,7 +129,11 @@ public extension WineEntry {
         case .region(let r):
             var chips = [
                 TileChip(label: r.details.origin.uppercased(), key: r.details.origin, table: .country),
-                TileChip(label: r.details.classification.uppercased(), key: "SYSTEM", table: .named),
+                TileChip(
+                    label: r.details.classification.uppercased(),
+                    key: r.details.classification,
+                    table: .classification
+                ),
             ]
             if let climate = r.climate {
                 chips.append(TileChip(label: climate.rawValue.uppercased(), key: climate.rawValue, table: .climate))
@@ -151,11 +155,21 @@ public extension WineEntry {
                 TileChip(label: f.details.classification, key: f.details.classification, table: .flavorClass),
                 TileChip(label: EntryDisplay.humanize(f.details.subclass).uppercased(), key: f.details.subclass, table: .flavorSubclass),
             ]
-        case .continent:
-            // Continents aren't shown in a generic tile listing — they're
-            // reached only via the globe, straight to ContinentScreen — so
-            // this case is unexercised in practice.
-            return []
+        case .continent(let c):
+            // Continents do reach a tile listing now: the world search covers
+            // them alongside regions. Without chips they rendered as a bare
+            // name on an otherwise chip-dense list.
+            var chips = [TileChip(label: "CONTINENT", key: "Continent", table: .named)]
+            let countries = c.details.keyRegions
+            if let first = countries.first {
+                chips.append(TileChip(label: first.uppercased(), key: first, table: .country))
+            }
+            if countries.count > 1 {
+                chips.append(
+                    TileChip(label: "+\(countries.count - 1) MORE", key: "COUNTRY", table: .named)
+                )
+            }
+            return chips
         }
     }
 }
@@ -163,6 +177,12 @@ public extension WineEntry {
 public struct TileChip: Sendable, Hashable, Identifiable {
     public enum Table: Sendable, Hashable {
         case country, wineType, climate, styleClass, colorType, flavorClass, flavorSubclass, rarity, named
+        /// Appellation systems. Its own table so a region's list tile and its
+        /// detail section resolve the same colour — the tile used to key the
+        /// literal "SYSTEM" against `namedChips` (a generic grey) while the
+        /// detail keyed "AOC" against `classificationChips` (rose), so the same
+        /// appellation appeared in two colours depending on where you saw it.
+        case classification
     }
 
     public let label: String

@@ -119,10 +119,22 @@ public enum DexMetrics {
     /// Floor for the island strip. `.statusBarHidden()` can collapse
     /// `safeAreaInsets.top` to zero on cutout devices, so this must independently
     /// be tall enough to contain the island (~11pt from the top, ~37pt tall).
-    /// Tall enough to seat a full-size `controlButton` beside the cutout, so
-    /// the orb and the cog match the footer buttons instead of being shrunk to
-    /// fit. Costs a little LCD height at the top, which is the trade.
-    public static let islandStripMinHeight: CGFloat = 70
+    /// Equal breathing room above the header row and below the footer row.
+    /// This is the only thing holding either row off the display's rounded
+    /// corners, and using one value for both is what makes the chassis read as
+    /// symmetric top to bottom.
+    public static let chassisEdgeInset: CGFloat = 10
+    /// Both control bands are one control tall plus that inset on each side, so
+    /// the header and footer bands are identical by construction rather than by
+    /// two numbers that have to be kept in step.
+    public static let controlBandHeight: CGFloat = controlButton + 2 * chassisEdgeInset
+    /// Gap between the screen housing and the bands. Minimal on purpose — every
+    /// point here comes off the LCD — but non-zero so the housing does not butt
+    /// straight into the controls.
+    public static let housingGap: CGFloat = 6
+    /// Floor for the island strip: the band height, so the orb and cog are
+    /// inset from the top edge by exactly what the footer row is from the bottom.
+    public static let islandStripMinHeight: CGFloat = controlBandHeight
     public static let islandClearance: CGFloat = 138
     /// Matches `footerPaddingH` so the orb sits directly above the Back button
     /// and the cog above Home — the four chassis controls share two columns.
@@ -146,7 +158,10 @@ public enum DexMetrics {
 
     /// Screen housing
     public static let screenPanelCorner: CGFloat = 2 * rem
-    public static let screenPanelBorder: CGFloat = 6          // l/r/b only, no top
+    /// Thinner grey edge, so more of the panel reads as the white/graphite
+    /// moulding rather than outline. The stroke is inset, so what it gives up
+    /// the panel colour takes.
+    public static let screenPanelBorder: CGFloat = 4
     public static let screenPanelInset: CGFloat = 0.5 * rem   // m-2
     public static let bezelCorner: CGFloat = 1.75 * rem
     public static let bezelInsetH: CGFloat = 0.75 * rem       // mx-3
@@ -163,17 +178,13 @@ public enum DexMetrics {
     ///
     /// Trimmed from the web app's 6.5rem band: the marquee was tall enough to
     /// crowd the LCD on a phone, and its height is what drives the footer's.
-    /// Tightened again so the white housing above it reaches as far down the
-    /// chassis as the control row allows. `controlButton` (3.5rem) is the hard
-    /// floor — the band cannot go below that plus the nudge.
-    public static let footerHeight: CGFloat = 4.25 * rem
+    /// The footer band is the same height as the header band — see
+    /// `controlBandHeight`. It deliberately does **not** add the home-indicator
+    /// safe-area inset: that inset alone was 34pt and made the bottom chrome
+    /// nearly twice the top. The row is centred in the band, so the indicator
+    /// falls in the 10pt of bare chassis below it rather than over a control.
+    public static let footerHeight: CGFloat = controlBandHeight
     public static let footerPaddingH: CGFloat = 0.75 * rem
-    /// Reserve above the footer row. The row is bottom-aligned within the band,
-    /// so this sets the band's height rather than the row's position.
-    public static let footerTopNudge: CGFloat = 22
-    /// The only thing holding the row off the bottom edge. Just enough to clear
-    /// the chassis' rounded corners — matching the clearance at the top.
-    public static let footerBottomInset: CGFloat = 6
     public static let controlButton: CGFloat = 3.5 * rem
     public static let marqueeMaxWidth: CGFloat = 16.5 * rem
     public static let marqueeCorner: CGFloat = 0.8 * rem
