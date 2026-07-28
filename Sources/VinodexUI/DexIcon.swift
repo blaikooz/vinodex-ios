@@ -76,21 +76,28 @@ public struct DexIcon: View {
 /// filters. SwiftUI's `.shadow(radius: 0, x:, y:)` is the direct analogue and
 /// composes the same way, so the eight offsets port across literally — no need
 /// to bake the outline into the PNGs, which would have blocked runtime tinting.
+/// The eight offsets are applied literally rather than folded in a loop. The
+/// loop needed an `AnyView` per step to keep one return type, and eight nested
+/// `AnyView`s per glyph — thousands across a list — defeat SwiftUI's structural
+/// diffing entirely. Spelled out, the whole chain is one static type.
 struct PixelOutline: ViewModifier {
     let enabled: Bool
 
-    private static let offsets: [(CGFloat, CGFloat)] = [
-        (0.5, 0), (-0.5, 0), (0, 0.5), (0, -0.5),
-        (0.5, 0.5), (-0.5, 0.5), (0.5, -0.5), (-0.5, -0.5),
-    ]
-
+    @ViewBuilder
     func body(content: Content) -> some View {
-        guard enabled else { return AnyView(content) }
-        var view = AnyView(content)
-        for (x, y) in Self.offsets {
-            view = AnyView(view.shadow(color: .black, radius: 0, x: x, y: y))
+        if enabled {
+            content
+                .shadow(color: .black, radius: 0, x: 0.5, y: 0)
+                .shadow(color: .black, radius: 0, x: -0.5, y: 0)
+                .shadow(color: .black, radius: 0, x: 0, y: 0.5)
+                .shadow(color: .black, radius: 0, x: 0, y: -0.5)
+                .shadow(color: .black, radius: 0, x: 0.5, y: 0.5)
+                .shadow(color: .black, radius: 0, x: -0.5, y: 0.5)
+                .shadow(color: .black, radius: 0, x: 0.5, y: -0.5)
+                .shadow(color: .black, radius: 0, x: -0.5, y: -0.5)
+        } else {
+            content
         }
-        return view
     }
 }
 

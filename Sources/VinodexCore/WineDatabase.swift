@@ -219,6 +219,26 @@ public final class WineDatabase: Sendable {
     /// rather than swallowed so a schema drift is visible instead of silent.
     public let decodeErrors: [String]
 
+    /// id -> entry, so `entry(id:)` is a hash lookup rather than a scan of all
+    /// 284 entries. Every navigation used to pay that scan.
+    private let byID: [String: WineEntry]
+
+    /// (category, normalised name-or-synonym) -> entry.
+    ///
+    /// `entry(named:)` is the hottest call in the app: resolving one region row's
+    /// visual alone called it three times, and each call used to `filter` the
+    /// whole entry array into a fresh array and then `TextNormalize.key` every
+    /// candidate name until it hit. Across a full list that was tens of thousands
+    /// of diacritic foldings per render. Folding once per entry at load time and
+    /// hashing thereafter is what makes master search open instantly.
+    ///
+    /// Names are inserted before synonyms and never overwritten, preserving the
+    /// old lookup's precedence: an exact name match beat any synonym match.
+    private let byName: [EntryCategory: [String: WineEntry]]
+    /// The same table with no category constraint, for `entry(named:)` calls
+    /// that pass `category: nil`.
+    private let byNameAnyCategory: [String: WineEntry]
+
     public init(
         entries: [WineEntry],
         palette: Palette,
@@ -231,6 +251,35 @@ public final class WineDatabase: Sendable {
         self.icons = icons
         self.freeIDs = freeIDs
         self.decodeErrors = decodeErrors
+
+        var ids: [String: WineEntry] = [:]
+        ids.reserveCapacity(entries.count)
+        var names: [EntryCategory: [String: WineEntry]] = [:]
+        var anyName: [String: WineEntry] = [:]
+        anyName.reserveCapacity(entries.count * 2)
+
+        // Two passes so names win over synonyms globally, not just within one
+        // entry — otherwise an earlier entry's synonym could shadow a later
+        // entry's real name, which the old first-exact-then-synonym scan never did.
+        for entry in entries {
+            ids[entry.id] = entry
+            let key = TextNormalize.key(entry.name)
+            guard !key.isEmpty else { continue }
+            if names[entry.category]?[key] == nil { names[entry.category, default: [:]][key] = entry }
+            if anyName[key] == nil { anyName[key] = entry }
+        }
+        for entry in entries {
+            for synonym in entry.synonyms {
+                let key = TextNormalize.key(synonym)
+                guard !key.isEmpty else { continue }
+                if names[entry.category]?[key] == nil { names[entry.category, default: [:]][key] = entry }
+                if anyName[key] == nil { anyName[key] = entry }
+            }
+        }
+
+        self.byID = ids
+        self.byName = names
+        self.byNameAnyCategory = anyName
     }
 
     /// Whether an entry is in the free tier.
@@ -315,7 +364,7 @@ public final class WineDatabase: Sendable {
     }
 
     public func entry(id: String) -> WineEntry? {
-        entries.first { $0.id == id }
+        byID[id]
     }
 
     /// Resolves a free-text name (or synonym) to an entry, for detail cross-links.
@@ -324,15 +373,13 @@ public final class WineDatabase: Sendable {
     /// names point outside the 30-entry selection. Callers must render those as
     /// non-tappable labels rather than dead buttons — matching `isLinkable` in
     /// `EntryDetail.tsx`.
+    /// Resolved through `byName`, built once at load — see its declaration for
+    /// why this matters.
     public func entry(named name: String, category: EntryCategory? = nil) -> WineEntry? {
         let target = TextNormalize.key(name)
         guard !target.isEmpty else { return nil }
-        let pool = category.map { c in entries.filter { $0.category == c } } ?? entries
-
-        if let exact = pool.first(where: { TextNormalize.key($0.name) == target }) { return exact }
-        return pool.first { entry in
-            entry.synonyms.contains { TextNormalize.key($0) == target }
-        }
+        guard let category else { return byNameAnyCategory[target] }
+        return byName[category]?[target]
     }
 
     /// The countries the globe attributes to a continent. Sourced from

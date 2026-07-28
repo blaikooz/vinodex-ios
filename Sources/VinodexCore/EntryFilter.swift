@@ -7,9 +7,14 @@ import Foundation
 // mark strip.
 
 public enum TextNormalize {
+    /// Hoisted out of `label`. This is called tens of thousands of times per
+    /// render of a full list, and constructing a `Locale` per call was a
+    /// measurable slice of that on its own.
+    private static let foldingLocale = Locale(identifier: "en_US_POSIX")
+
     /// `normalizeLabel` — lowercase, diacritics removed.
     public static func label(_ value: String) -> String {
-        value.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .init(identifier: "en_US_POSIX"))
+        value.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: foldingLocale)
     }
 
     /// `normalizeKey` — lowercase, diacritics removed, non-alphanumerics collapsed to spaces.

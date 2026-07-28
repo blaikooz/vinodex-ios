@@ -41,10 +41,13 @@ public struct EncyclopediaListScreen: View {
         )
     }
 
+    /// `task(id:)` alone covers first appearance. The `onAppear` that used to sit
+    /// alongside it made the screen build its entire row tree twice on entry —
+    /// `onAppear` filled `results`, then the initial `task` reassigned it, and a
+    /// `@State` assignment invalidates whether or not the value changed.
     public var body: some View {
         content
             .task(id: search) { recompute() }
-            .onAppear { if results.isEmpty { recompute() } }
     }
 
     private var content: some View {
@@ -57,7 +60,13 @@ public struct EncyclopediaListScreen: View {
                 DexScreenBackground()
 
                 ScrollView {
-                    VStack(spacing: 8) {
+                    // Lazy, not a plain VStack. Master search selects every
+                    // category, so a plain stack built and measured all 284 rows
+                    // — each resolving an icon well and its chips — before the
+                    // first frame could be shown. That was most of the delay
+                    // between tapping SEARCH and the list appearing. Only the
+                    // visible handful is built now.
+                    LazyVStack(spacing: 8) {
                         if showsSearch {
                             searchBar
                         }

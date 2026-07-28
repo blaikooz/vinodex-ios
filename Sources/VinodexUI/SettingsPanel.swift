@@ -2,27 +2,125 @@
 import SwiftUI
 import VinodexCore
 
-/// The device's own menu, hinged on the right edge of the LCD.
+/// The device's own menu: a grid of square feature tiles.
 ///
-/// It slides in from the right and covers most — not all — of the screen, so
-/// the app stays visible behind it and the panel reads as a flap swung out of
-/// the side of the device rather than a page you navigated to. That is also the
-/// shape a folding screen wants: the same view can occupy the second panel
-/// unchanged when there is one.
+/// This was one scrolling column of every toggle in the app, plus a DEV tab.
+/// That worked while there were two settings; by five it had grown past a
+/// screenful, so the screen mode and text size a user actually reaches for sat
+/// below developer tooling and a paywall switch. Each group now gets a tile and
+/// its own panel, which also gives every group room to explain itself rather
+/// than being squeezed into a single row.
+///
+/// Tiles push real routes (`DexRoute.settingsSection`), so the chassis Back
+/// button steps back to this grid. Local state would have made Back exit
+/// settings altogether from one level down.
 public struct SettingsPanel: View {
-    public enum Tab: String, CaseIterable, Identifiable {
-        case settings = "SETTINGS"
-        /// Diagnostics and the component catalog — both developer tools, and
-        /// they were competing for tab space with the one tab a user opens.
-        case dev = "DEV"
+    let onClose: () -> Void
+    let onSection: (SettingsSection) -> Void
+    let onMinigames: () -> Void
 
-        public var id: String { rawValue }
+    @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
+    private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
+
+    public init(
+        onClose: @escaping () -> Void,
+        onSection: @escaping (SettingsSection) -> Void = { _ in },
+        onMinigames: @escaping () -> Void = {}
+    ) {
+        self.onClose = onClose
+        self.onSection = onSection
+        self.onMinigames = onMinigames
     }
 
-    let onClose: () -> Void
-    let onDailyGrape: () -> Void
+    private let columns = [
+        GridItem(.flexible(), spacing: 10),
+        GridItem(.flexible(), spacing: 10),
+    ]
 
-    @State private var tab: Tab = .settings
+    public var body: some View {
+        ScrollView {
+            LazyVGrid(columns: columns, spacing: 10) {
+                // Games first: it is the only tile here anyone opens for fun,
+                // and burying it under the toggles is what it was already
+                // suffering from as a row in the old list.
+                featureTile(
+                    title: "MINIGAMES",
+                    symbol: "gamecontroller.fill",
+                    tint: Dex.yellow,
+                    action: onMinigames
+                )
+
+                ForEach(SettingsSection.allCases) { section in
+                    featureTile(
+                        title: section.rawValue,
+                        symbol: section.symbol,
+                        tint: tint(for: section)
+                    ) {
+                        onSection(section)
+                    }
+                }
+            }
+            .padding(12)
+        }
+        .background(lcd.isLight ? lcd.page : Dex.screen)
+    }
+
+    private func tint(for section: SettingsSection) -> Color {
+        switch section {
+        case .screen: Dex.green
+        case .text: Dex.blue
+        case .skin: Dex.red500
+        case .access: Dex.yellow
+        case .dev: Dex.stone400
+        }
+    }
+
+    /// Square by construction — `aspectRatio(1, contentMode: .fit)` inside a
+    /// flexible grid column — so the grid stays square whatever the device width.
+    private func featureTile(
+        title: String,
+        symbol: String,
+        tint: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            Haptics.tap()
+            action()
+        } label: {
+            VStack(spacing: 10) {
+                Image(systemName: symbol)
+                    .font(.system(size: 30, weight: .semibold))
+                    .foregroundStyle(tint)
+                    .shadow(color: .black.opacity(0.3), radius: 0, x: 1, y: 2)
+                Text(title)
+                    .font(DexFont.retro(10))
+                    .tracking(1)
+                    .foregroundStyle(lcd.text)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .aspectRatio(1, contentMode: .fit)
+            .background(RoundedRectangle(cornerRadius: 10).fill(lcd.surface))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(tint.opacity(0.5), lineWidth: 2)
+            )
+        }
+        .buttonStyle(DexPressStyle(scale: 0.97))
+    }
+}
+
+// MARK: - Section panels
+
+/// The toggles for one `SettingsSection`.
+///
+/// Every group that was a section of the old single-column panel is now one of
+/// these, reached from the grid. The controls themselves are unchanged — this is
+/// a re-parenting, not a redesign of the switches.
+public struct SettingsSectionPanel: View {
+    let section: SettingsSection
+
     @State private var access = AccessStore.shared
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
     @AppStorage(TextScale.storageKey) private var scaleRaw = TextScale.small.rawValue
@@ -36,120 +134,26 @@ public struct SettingsPanel: View {
     private var totalCount: Int { db.entries.count }
     private var freeCount: Int { db.entries.filter { db.isFree($0.id) }.count }
 
-    public init(onClose: @escaping () -> Void, onDailyGrape: @escaping () -> Void = {}) {
-        self.onClose = onClose
-        self.onDailyGrape = onDailyGrape
+    public init(section: SettingsSection) {
+        self.section = section
     }
 
     public var body: some View {
-        VStack(spacing: 0) {
-            tabBar
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    switch tab {
-                    case .settings: settings
-                    case .dev: dev
-                    }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                switch section {
+                case .screen: screenMode
+                case .text: textSize
+                case .skin: skinTesting
+                case .access: paywallTesting
+                case .dev: dev
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12)
             }
-            .scrollDismissesKeyboard(.interactively)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
         }
+        .scrollDismissesKeyboard(.interactively)
         .background(lcd.isLight ? lcd.page : Dex.screen)
-    }
-
-    private var header: some View {
-        HStack {
-            Text("SYSTEM")
-                .font(DexFont.retro(13))
-                .tracking(2)
-                .foregroundStyle(Dex.green)
-            Spacer()
-            Button {
-                Haptics.tap()
-                onClose()
-            } label: {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(lcd.text)
-                    .frame(width: 34, height: 34)
-                    .background(Circle().fill(lcd.surface))
-            }
-            .buttonStyle(DexPressStyle(scale: 0.9))
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Dex.stone900)
-        .overlay(alignment: .bottom) { Dex.green.opacity(0.4).frame(height: 2) }
-    }
-
-    private var tabBar: some View {
-        HStack(spacing: 0) {
-            ForEach(Tab.allCases) { item in
-                Button {
-                    Haptics.select()
-                    tab = item
-                } label: {
-                    Text(item.rawValue)
-                        .font(DexFont.retro(9))
-                        .tracking(1)
-                        .foregroundStyle(tab == item ? .white : lcd.subtext)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 9)
-                        .background(tab == item ? lcd.accent : lcd.surface)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .overlay(alignment: .bottom) { Dex.stone700.frame(height: 1) }
-    }
-
-    // MARK: Settings
-
-    private var settings: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            dailyGrapeButton
-            paywallTesting
-            skinTesting
-            screenMode
-            textSize
-        }
-    }
-
-    private var dailyGrapeButton: some View {
-        Button {
-            Haptics.tap()
-            onDailyGrape()
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(Dex.yellow)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("GRAPE OF THE DAY")
-                        .font(DexFont.retro(11))
-                        .tracking(1)
-                        .foregroundStyle(lcd.text)
-                    Text("A new one every day")
-                        .font(DexFont.mono(16))
-                        .foregroundStyle(lcd.subtext)
-                }
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(lcd.subtext)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 14)
-            .frame(maxWidth: .infinity)
-            .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
-            .overlay(
-                RoundedRectangle(cornerRadius: 6).strokeBorder(Dex.yellow.opacity(0.5), lineWidth: 2)
-            )
-        }
-        .buttonStyle(DexPressStyle(scale: 0.98))
     }
 
     private var paywallTesting: some View {

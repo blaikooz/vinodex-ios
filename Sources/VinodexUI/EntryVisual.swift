@@ -253,13 +253,65 @@ public struct EntryVisual {
     }
 }
 
+/// Memoises `EntryVisual.resolve` per entry id.
+///
+/// Resolving is not cheap — a region walks its key grape, that grape's primary
+/// tasting note, and the flavour subclass palette — and it was being redone on
+/// every render of every row, including rows that had not changed. The result
+/// depends only on the entry and the immutable database, so it is safe to
+/// compute once and keep. `@MainActor` for the same reason as `IconLoader`:
+/// Swift 6 strict concurrency rejects a mutable static cache.
+@MainActor
+public final class EntryVisualCache {
+    public static let shared = EntryVisualCache()
+
+    private var cache: [String: EntryVisual] = [:]
+
+    private init() {}
+
+    public func visual(for entry: WineEntry) -> EntryVisual {
+        if let hit = cache[entry.id] { return hit }
+        let resolved = EntryVisual.resolve(entry)
+        cache[entry.id] = resolved
+        return resolved
+    }
+}
+
+/// Loads bundled flag PNGs, cached.
+///
+/// Mirrors `IconLoader`. Uncached, this re-read and re-decoded the same PNG from
+/// the bundle on every render — and the masked-flag path builds two `FlagImage`s
+/// for the same country, so a list of regions was doing hundreds of redundant
+/// filesystem lookups per frame.
+@MainActor
+public final class FlagLoader {
+    public static let shared = FlagLoader()
+
+    /// Keyed by country, with `nil` recorded for countries that have no flag so
+    /// a miss is not retried on every render.
+    private var cache: [String: UIImage?] = [:]
+
+    private init() {}
+
+    public func image(for country: String) -> UIImage? {
+        if let hit = cache[country] { return hit }
+
+        let loaded: UIImage? = WineDatabase.shared.icons.flagSlug(for: country)
+            .flatMap { DexResources.url(named: $0, ext: "png", subdirectory: "Resources/Flags") }
+            .flatMap { UIImage(contentsOfFile: $0.path) }
+
+        cache[country] = loaded
+        return loaded
+    }
+}
+
 /// Renders an `EntryVisual` at a given size.
 public struct EntryIconWell: View {
     let entry: WineEntry
     var size: CGFloat
     var cornerRadius: CGFloat
 
-    private var visual: EntryVisual { EntryVisual.resolve(entry) }
+    private var visual: EntryVisual { EntryVisualCache.shared.visual(for: entry) }
 
     public init(entry: WineEntry, size: CGFloat = 48, cornerRadius: CGFloat = 8) {
         self.entry = entry
@@ -291,12 +343,14 @@ public struct EntryIconWell: View {
         case .flag(let country, let shapeIcon):
             if let shapeIcon {
                 // Flag masked into the country's outline, over a blurred copy —
-                // the shaped-flag treatment from the web app.
-                ZStack {
-                    FlagImage(country: country).opacity(0.25).blur(radius: 2)
-                    FlagImage(country: country)
-                        .mask(DexIcon(iconID: shapeIcon, size: size * 0.86, color: .white, outlined: false))
-                }
+                // the shaped-flag treatment from the web app. One `FlagImage`
+                // reused via `background`, not two: the same flag was previously
+                // constructed twice here.
+                FlagImage(country: country)
+                    .mask(DexIcon(iconID: shapeIcon, size: size * 0.86, color: .white, outlined: false))
+                    .background {
+                        FlagImage(country: country).opacity(0.25).blur(radius: 2)
+                    }
             } else {
                 FlagImage(country: country)
             }
@@ -311,9 +365,7 @@ public struct FlagImage: View {
     public init(country: String) { self.country = country }
 
     public var body: some View {
-        if let slug = WineDatabase.shared.icons.flagSlug(for: country),
-           let url = DexResources.url(named: slug, ext: "png", subdirectory: "Resources/Flags"),
-           let image = UIImage(contentsOfFile: url.path) {
+        if let image = FlagLoader.shared.image(for: country) {
             Image(uiImage: image)
                 .resizable()
                 .interpolation(.none)

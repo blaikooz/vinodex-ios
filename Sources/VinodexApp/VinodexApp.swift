@@ -63,7 +63,6 @@ struct RootView: View {
             onBack: path.isEmpty ? nil : { goBack() },
             onHome: { goHome() },
             onBookmarks: { push(.bookmarks) },
-            onDailyGrape: { push(.dailyGrape) },
             onSettings: { push(.settings) }
         ) {
             screen
@@ -170,8 +169,15 @@ struct RootView: View {
         case .settings:
             SettingsPanel(
                 onClose: { goBack() },
-                onDailyGrape: { push(.dailyGrape) }
+                onSection: { push(.settingsSection($0)) },
+                onMinigames: { push(.minigames) }
             )
+
+        case .settingsSection(let section):
+            SettingsSectionPanel(section: section)
+
+        case .minigames:
+            MinigamesScreen { push(.dailyGrape) }
 
         case .continent(let id):
             if let entry = db.entry(id: id), case .continent(let c) = entry {

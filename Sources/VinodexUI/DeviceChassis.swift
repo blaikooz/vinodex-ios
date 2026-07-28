@@ -17,8 +17,6 @@ public struct DeviceChassis<Content: View>: View {
     /// Opens saved entries. On the main screen this takes the Back button's
     /// slot, which would otherwise be a permanently greyed-out control.
     var onBookmarks: (() -> Void)?
-    /// Opens the grape of the day, launched from the settings panel.
-    var onDailyGrape: (() -> Void)?
     /// Opens the settings screen.
     var onSettings: (() -> Void)?
     @ViewBuilder var content: () -> Content
@@ -41,7 +39,6 @@ public struct DeviceChassis<Content: View>: View {
         onBack: (() -> Void)? = nil,
         onHome: (() -> Void)? = nil,
         onBookmarks: (() -> Void)? = nil,
-        onDailyGrape: (() -> Void)? = nil,
         onSettings: (() -> Void)? = nil,
         @ViewBuilder content: @escaping () -> Content
     ) {
@@ -50,7 +47,6 @@ public struct DeviceChassis<Content: View>: View {
         self.onBack = onBack
         self.onHome = onHome
         self.onBookmarks = onBookmarks
-        self.onDailyGrape = onDailyGrape
         self.onSettings = onSettings
         self.content = content
     }
@@ -136,11 +132,32 @@ public struct DeviceChassis<Content: View>: View {
         let dot = max(control * 0.2, 8)
 
         return HStack(alignment: .center, spacing: 0) {
-            // Orb pinned left, directly above the Back button.
+            // Orb pinned left, directly above the Back button, wearing the
+            // status lights on its upper-right shoulder.
+            //
+            // The lights used to be a layout sibling here, absorbing the row's
+            // slack width. As an overlay they cost no width at all, which is why
+            // the two `Spacer`s below now carry the clearance instead.
+            //
+            // Rendering *in* the cutout is not an option, for the record: the
+            // island is hardware, the OS masks anything drawn under it, and
+            // putting content there means a Live Activity — ActivityKit plus a
+            // widget-extension target, which a SwiftPM/xtool project has no way
+            // to add.
             lcdOrb(size: control)
                 .scaleEffect(orbHeld ? 0.88 : 1)
                 .brightness(orbHeld ? -0.18 : 0)
                 .animation(.easeOut(duration: 0.12), value: orbHeld)
+                .overlay(alignment: .topTrailing) {
+                    statusDots(size: dot)
+                        // Nudged out along the top-right diagonal so the cluster
+                        // sits on the orb's shoulder rather than across its face,
+                        // where it would cover the specular highlight.
+                        .offset(x: dot * 0.9, y: -dot * 0.5)
+                        // Decoration only — the orb's long-press must still get
+                        // the whole orb, including the part under the lights.
+                        .allowsHitTesting(false)
+                }
                 // Hold to flip. A hidden gesture on a decorative-looking part
                 // is a poor primary affordance, but this one is a deliberate
                 // easter egg: the orb depresses under the finger so the
@@ -155,34 +172,16 @@ public struct DeviceChassis<Content: View>: View {
                 }
                 .fixedSize()
 
-            // Lights pushed hard against the cutout's left edge, so they read
-            // as belonging to the island rather than floating in the flank.
-            //
-            // As close to "inside" as an app can get: the island is a hardware
-            // cutout and the OS masks anything drawn under it. Rendering *in*
-            // it means a Live Activity — ActivityKit plus a widget-extension
-            // target, which a SwiftPM/xtool project has no way to add — and
-            // even then the island shows Live Activities for background work,
-            // not for the app you are currently looking at.
-            statusDots(size: dot)
-                .fixedSize()
-                // Top-aligned to the cutout, not centred in the strip: the
-                // island starts ~11pt down, so a vertically centred cluster
-                // sat noticeably below its top edge.
-                // Leading, not trailing: hugging the cutout put the rightmost
-                // light under its edge on narrower devices. They now sit beside
-                // the orb, wholly clear of the island.
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .padding(.top, DexMetrics.islandTopInset)
-                .padding(.leading, DexMetrics.statusDotSpacing * 3)
-
-            // Clearance held open for the cutout itself.
+            // Clearance held open for the cutout itself, centred between the two
+            // controls by the flanking spacers — the island is centred, so the
+            // reserved band should be too.
+            Spacer(minLength: 0)
             Color.clear.frame(width: DexMetrics.islandClearance)
+            Spacer(minLength: 0)
 
             // Cog pinned right, directly above Home.
             settingsButton(size: control)
                 .fixedSize()
-                .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(.horizontal, DexMetrics.islandFlankPaddingH)
         .frame(height: height)
@@ -396,10 +395,13 @@ public struct DeviceChassis<Content: View>: View {
             }
         }
         .padding(.horizontal, DexMetrics.footerPaddingH)
-        // Centred in a band that is exactly one control plus `chassisEdgeInset`
-        // top and bottom — the same construction as the header strip, so the
-        // two are symmetric without any per-side tuning.
-        .frame(height: DexMetrics.footerHeight)
+        // Asymmetric on purpose, and built from the two insets rather than
+        // centred in a fixed height: tight to the screen housing above, full
+        // `chassisEdgeInset` below so the home indicator has bare chassis to
+        // land on. See `DexMetrics.footerHeight`.
+        .padding(.top, DexMetrics.footerTopInset)
+        .padding(.bottom, DexMetrics.chassisEdgeInset)
+        .frame(maxWidth: .infinity)
         .background(skin.footerWash)
     }
 }
@@ -435,7 +437,7 @@ public struct ChassisButton: View {
                 Circle().strokeBorder(borderColor, lineWidth: 3)
                 icon
             }
-            .frame(width: DexMetrics.controlButton, height: DexMetrics.controlButton)
+            .frame(width: DexMetrics.footerControl, height: DexMetrics.footerControl)
             .shadow(color: .black.opacity(0.6), radius: 6, y: 8)
         }
         .buttonStyle(DexPressStyle())
@@ -463,16 +465,19 @@ public struct ChassisButton: View {
         }
     }
 
+    // Glyphs scale with `footerControl` rather than carrying fixed points, so
+    // enlarging the buttons does not leave the same small icon floating in a
+    // bigger circle.
     @ViewBuilder
     private var icon: some View {
         switch kind {
         case .back:
             Image(systemName: "chevron.left")
-                .font(.system(size: 30, weight: .heavy))
+                .font(.system(size: DexMetrics.footerControl * 0.47, weight: .heavy))
                 .foregroundStyle(.white)
         case .bookmarks:
             Image(systemName: "person.crop.circle")
-                .font(.system(size: 28, weight: .semibold))
+                .font(.system(size: DexMetrics.footerControl * 0.44, weight: .semibold))
                 .foregroundStyle(.white)
         case .home:
             Circle()
@@ -481,7 +486,7 @@ public struct ChassisButton: View {
                 .padding(2)
                 .overlay {
                     Image(systemName: "house.fill")
-                        .font(.system(size: 26, weight: .bold))
+                        .font(.system(size: DexMetrics.footerControl * 0.41, weight: .bold))
                         .foregroundStyle(Dex.amber900)
                 }
         }

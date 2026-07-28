@@ -138,14 +138,17 @@ public enum DexMetrics {
     /// corners, and using one value for both is what makes the chassis read as
     /// symmetric top to bottom.
     public static let chassisEdgeInset: CGFloat = 16
-    /// Both control bands are one control tall plus that inset on each side, so
-    /// the header and footer bands are identical by construction rather than by
-    /// two numbers that have to be kept in step.
+    /// The *island* band: one control tall plus that inset on each side.
+    ///
+    /// The footer no longer shares this. It used to, which made the two bands
+    /// identical by construction — but the footer is the band you actually
+    /// touch, and it wanted bigger controls sitting closer to the screen than a
+    /// single shared number could give both ends. See `footerHeight`.
     public static let controlBandHeight: CGFloat = controlButton + 2 * chassisEdgeInset
     /// Gap between the screen housing and the bands. Minimal on purpose — every
     /// point here comes off the LCD — but non-zero so the housing does not butt
     /// straight into the controls.
-    public static let housingGap: CGFloat = 6
+    public static let housingGap: CGFloat = 4
     /// Floor for the island strip: the band height, so the orb and cog are
     /// inset from the top edge by exactly what the footer row is from the bottom.
     public static let islandStripMinHeight: CGFloat = controlBandHeight
@@ -196,22 +199,38 @@ public enum DexMetrics {
     ///
     /// Trimmed from the web app's 6.5rem band: the marquee was tall enough to
     /// crowd the LCD on a phone, and its height is what drives the footer's.
-    /// The footer band is the same height as the header band — see
-    /// `controlBandHeight`. It deliberately does **not** add the home-indicator
-    /// safe-area inset: that inset alone was 34pt and made the bottom chrome
-    /// nearly twice the top. The row is centred in the band, so the indicator
-    /// falls in the 10pt of bare chassis below it rather than over a control.
-    public static let footerHeight: CGFloat = controlBandHeight
+    ///
+    /// The band is **deliberately asymmetric** — `footerTopInset` above the row,
+    /// `chassisEdgeInset` below. It was centred in a band shared with the island
+    /// strip, which put an equal 16pt on both sides; but the two sides are not
+    /// equivalent. Below the row is home-indicator territory and has to stay
+    /// clear, while above it is just a gap to the screen housing, and closing
+    /// that gap is what brings the controls up under the screen where the thumb
+    /// already is.
+    ///
+    /// It still deliberately does **not** add the home-indicator safe-area
+    /// inset: that inset alone is 34pt and made the bottom chrome nearly twice
+    /// the top. The indicator falls in the `chassisEdgeInset` of bare chassis
+    /// below the row rather than over a control.
+    public static let footerHeight: CGFloat = footerTopInset + footerControl + chassisEdgeInset
+    /// Gap between the screen housing and the footer row. Much tighter than the
+    /// inset below the row — see `footerHeight`.
+    public static let footerTopInset: CGFloat = 6
     public static let footerPaddingH: CGFloat = cornerGuardH
+    /// Every control on the island strip: orb and cog.
     public static let controlButton: CGFloat = 3.5 * rem
+    /// The footer's own controls, larger than the island's. These are the
+    /// buttons in constant use — Back, Home, saved — and at `controlButton`
+    /// they were the same size as two pieces of chassis decoration.
+    public static let footerControl: CGFloat = 4 * rem
     public static let marqueeMaxWidth: CGFloat = 16.5 * rem
     public static let marqueeCorner: CGFloat = 0.8 * rem
     public static let marqueeInnerCorner: CGFloat = 0.6 * rem
     /// The banner matches the control buttons so the footer reads as one row.
-    public static let marqueeHeight: CGFloat = controlButton
+    public static let marqueeHeight: CGFloat = footerControl
     /// One size for every screen: the main screen's longer banner scrolls,
-    /// so it does not need to shrink to fit.
-    public static let marqueeTextSize: CGFloat = 1.3 * rem
+    /// so it does not need to shrink to fit. Scaled with `footerControl`.
+    public static let marqueeTextSize: CGFloat = 1.45 * rem
 
     /// Scanline overlay
     public static let scanlineSpacing: CGFloat = 4
