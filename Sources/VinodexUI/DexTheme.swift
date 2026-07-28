@@ -119,7 +119,9 @@ public enum DexMetrics {
     public static let islandClearance: CGFloat = 138
     public static let islandFlankPaddingH: CGFloat = 0.5 * rem
     /// Pulls flank content in toward the cutout rather than the screen edges.
-    public static let islandFlankInnerGap: CGFloat = 0.5 * rem
+    /// Small on purpose: the orb and status lights sit closer to the island,
+    /// which reads as deliberate rather than stranded at the corner.
+    public static let islandFlankInnerGap: CGFloat = 0.125 * rem
     public static let bezelTopMargin: CGFloat = 0.5 * rem
     public static let lcdOrb: CGFloat = 1.75 * rem
     public static let statusDot: CGFloat = 0.5 * rem
@@ -134,17 +136,23 @@ public enum DexMetrics {
     /// Thickness of the stone frame around the LCD. Kept small on purpose:
     /// every point here is a point of screen height.
     public static let bezelFrame: CGFloat = 4
-    public static let ventStripHeight: CGFloat = 1.5 * rem    // h-6
+    /// The white panel's skirt below the LCD, carrying the red dot and the
+    /// speaker grill. Taller than the web's h-6 so the two are framed by white
+    /// rather than crowded against the panel's bottom edge.
+    public static let ventStripHeight: CGFloat = 2.25 * rem
     public static let ventDot: CGFloat = 0.5 * rem            // w-2
 
     /// Footer
     ///
     /// Trimmed from the web app's 6.5rem band: the marquee was tall enough to
     /// crowd the LCD on a phone, and its height is what drives the footer's.
-    public static let footerHeight: CGFloat = 4.75 * rem
+    /// Tightened again so the white housing above it reaches as far down the
+    /// chassis as the control row allows. `controlButton` (3.5rem) is the hard
+    /// floor — the band cannot go below that plus the nudge.
+    public static let footerHeight: CGFloat = 4.25 * rem
     public static let footerPaddingH: CGFloat = 0.75 * rem
     /// Pushes the footer row down toward the bottom edge.
-    public static let footerTopNudge: CGFloat = 10
+    public static let footerTopNudge: CGFloat = 22
     public static let controlButton: CGFloat = 3.5 * rem
     public static let marqueeMaxWidth: CGFloat = 16.5 * rem
     public static let marqueeCorner: CGFloat = 0.8 * rem

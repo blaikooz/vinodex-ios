@@ -97,13 +97,13 @@ public struct EntryDetailScreen: View {
             switch entry {
             case .grape(let g):
                 HStack(alignment: .top, spacing: 8) {
-                    tile(label: "COLOR", chip: chip(g.grapeType.rawValue.uppercased(), .colorType)) {
-                        DexIcon(iconID: db.icons.colorIcon(g.grapeType.rawValue.uppercased()), size: 32, color: Dex.stone200)
+                    tile(label: "COLOR", chip: chip(g.grapeType.rawValue.uppercased(), .colorType)) { tint in
+                        DexIcon(iconID: db.icons.colorIcon(g.grapeType.rawValue.uppercased()), size: 32, color: tint)
                     }
-                    tile(label: "TYPE", chip: chip(EntryDisplay.grapeBodyLabel(g), .wineType, key: g.grapeStyle)) {
-                        DexIcon(iconID: db.icons.bodyIcon(g.grapeBodyClass), size: 32, color: Dex.stone200)
+                    tile(label: "TYPE", chip: chip(EntryDisplay.grapeBodyLabel(g), .wineType, key: g.grapeStyle)) { tint in
+                        DexIcon(iconID: db.icons.bodyIcon(g.grapeBodyClass), size: 32, color: tint)
                     }
-                    tile(label: "ORIGIN", chip: chip(g.details.origin.uppercased(), .country, key: g.details.origin)) {
+                    tile(label: "ORIGIN", chip: chip(g.details.origin.uppercased(), .country, key: g.details.origin)) { _ in
                         FlagSwatch(country: g.details.origin)
                     }
                 }
@@ -111,13 +111,13 @@ public struct EntryDetailScreen: View {
             case .region(let r):
                 HStack(alignment: .top, spacing: 8) {
                     let keyGrape = r.details.notableGrapes.first
-                    tile(label: "KEY GRAPE", chip: chip((keyGrape ?? "N/A").uppercased(), .wineType, key: keyGrape ?? "")) {
+                    tile(label: "KEY GRAPE", chip: chip((keyGrape ?? "N/A").uppercased(), .wineType, key: keyGrape ?? "")) { _ in
                         keyGrapeIcon(keyGrape)
                     }
-                    tile(label: "CLIMATE", chip: chip((r.climate?.rawValue ?? "N/A").uppercased(), .climate, key: r.climate?.rawValue ?? "")) {
-                        DexIcon(iconID: db.icons.climateIcon(r.climate), size: 32, color: Dex.stone200)
+                    tile(label: "CLIMATE", chip: chip((r.climate?.rawValue ?? "N/A").uppercased(), .climate, key: r.climate?.rawValue ?? "")) { tint in
+                        DexIcon(iconID: db.icons.climateIcon(r.climate), size: 32, color: tint)
                     }
-                    tile(label: "COUNTRY", chip: chip(r.details.origin.uppercased(), .country, key: r.details.origin)) {
+                    tile(label: "COUNTRY", chip: chip(r.details.origin.uppercased(), .country, key: r.details.origin)) { _ in
                         FlagSwatch(country: r.details.origin)
                     }
                 }
@@ -126,14 +126,14 @@ public struct EntryDetailScreen: View {
                 let cls = EntryDisplay.styleClass(name: s.common.name, classification: s.details.classification)
                 let color = EntryDisplay.colorType(name: s.common.name)
                 HStack(alignment: .top, spacing: 8) {
-                    tile(label: "COLOR", chip: chip(color.rawValue, .colorType, key: color.rawValue)) {
-                        DexIcon(iconID: db.icons.colorIcon(color.rawValue), size: 32, color: Dex.stone200)
+                    tile(label: "COLOR", chip: chip(color.rawValue, .colorType, key: color.rawValue)) { tint in
+                        DexIcon(iconID: db.icons.colorIcon(color.rawValue), size: 32, color: tint)
                     }
-                    tile(label: "CLASS", chip: chip(cls.rawValue, .styleClass, key: cls.rawValue)) {
-                        DexIcon(iconID: db.iconID(for: entry), size: 32, color: Dex.stone200)
+                    tile(label: "CLASS", chip: chip(cls.rawValue, .styleClass, key: cls.rawValue)) { tint in
+                        DexIcon(iconID: db.iconID(for: entry), size: 32, color: tint)
                     }
                     if s.details.origin.lowercased() != "various" {
-                        tile(label: "ORIGIN", chip: chip(s.details.origin.uppercased(), .country, key: s.details.origin)) {
+                        tile(label: "ORIGIN", chip: chip(s.details.origin.uppercased(), .country, key: s.details.origin)) { _ in
                             FlagSwatch(country: s.details.origin)
                         }
                     }
@@ -141,14 +141,14 @@ public struct EntryDetailScreen: View {
 
             case .flavor(let f):
                 HStack(alignment: .top, spacing: 8) {
-                    tile(label: "CLASS", chip: chip(f.details.classification, .flavorClass, key: f.details.classification)) {
+                    tile(label: "CLASS", chip: chip(f.details.classification, .flavorClass, key: f.details.classification)) { _ in
                         DexIcon(iconID: db.iconID(for: entry), size: 32, color: Color(dexHex: entry.color))
                     }
                     tile(
                         label: "SUBCLASS",
                         chip: chip(EntryDisplay.humanize(f.details.subclass).uppercased(), .flavorSubclass, key: f.details.subclass)
-                    ) {
-                        DexIcon(iconID: db.iconID(for: entry), size: 32, color: Dex.stone200)
+                    ) { tint in
+                        DexIcon(iconID: db.iconID(for: entry), size: 32, color: tint)
                     }
                 }
 
@@ -185,12 +185,20 @@ public struct EntryDetailScreen: View {
         TileChip(label: label, key: key ?? label, table: table)
     }
 
-    private func tile<C: View>(label: String, chip: TileChip, @ViewBuilder icon: () -> C) -> some View {
-        VStack(spacing: 5) {
+    /// The icon builder is handed the resolved chip's colour so the glyph and
+    /// its chip read as one unit. They were all flat `stone200`, which made the
+    /// row look inert next to the coloured chips directly beneath it.
+    private func tile<C: View>(
+        label: String,
+        chip: TileChip,
+        @ViewBuilder icon: (Color) -> C
+    ) -> some View {
+        let tint = Color(dexHex: db.palette.resolve(chip).text)
+        return VStack(spacing: 5) {
             Text(label)
                 .font(DexFont.retro(8))
                 .foregroundStyle(Dex.green)
-            icon()
+            icon(tint)
                 .frame(height: 34)
             // Two lines before shrinking: at a third of the screen, names like
             // CABERNET SAUVIGNON and GRÜNER VELTLINER were being scaled to

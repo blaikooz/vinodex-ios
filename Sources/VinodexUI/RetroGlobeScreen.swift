@@ -34,6 +34,11 @@ public struct RetroGlobeScreen: View {
                 .opacity(0.3)
 
             VStack(spacing: 12) {
+                // Search sits above the globe: it is the way out of this screen,
+                // and below the sphere it competed with the drag hint for the
+                // same corner of the eye.
+                worldSearchButton
+
                 ZStack {
                     GlobeSceneView(model: model)
                         .gesture(dragGesture)
@@ -46,8 +51,6 @@ public struct RetroGlobeScreen: View {
                     .font(DexFont.retro(11))
                     .tracking(3)
                     .foregroundStyle(Color(dexHex: "#86efac"))
-
-                worldSearchButton
             }
             .padding(.vertical, 12)
         }
@@ -169,9 +172,13 @@ final class GlobeModel {
     private static let autoSpin: Double = -0.0032
     /// Camera pull-back. The web app sits at 3.6; further out shrinks the globe
     /// so the markers have room to breathe on a phone.
-    private static let cameraDistance: Double = 4.7
+    private static let cameraDistance: Double = 4.25
     /// Markers hide well before the limb so they never straddle the edge.
     private static let frontFacingThreshold: Double = 0.55
+    /// Markers read as sitting right of the point they mark, because the label
+    /// box is centred on the projection while the eye tracks its left edge.
+    /// Two characters of the retro face at marker size pulls them back over it.
+    private static let markerNudgeX: CGFloat = 14
 
     /// Continent marker colours, overriding the continent palette entries.
     private static let markerColors: [Continent: String] = [
@@ -372,7 +379,10 @@ final class GlobeModel {
             let world = globeNode.convertPosition(local, to: nil)
             let projected = view.projectPoint(world)
 
-            let point = CGPoint(x: CGFloat(projected.x), y: CGFloat(projected.y))
+            let point = CGPoint(
+                x: CGFloat(projected.x) - Self.markerNudgeX,
+                y: CGFloat(projected.y)
+            )
             let inBounds = point.x - hw >= 0
                 && point.x + hw <= viewportSize.width
                 && point.y - hh >= 0
