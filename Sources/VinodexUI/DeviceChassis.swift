@@ -1,4 +1,4 @@
-#if canImport(SwiftUI)
+#if canImport(SwiftUI) && canImport(UIKit)
 import SwiftUI
 import VinodexCore
 
@@ -8,21 +8,6 @@ import VinodexCore
 /// 522x850 box: bezel, vent and footer thicknesses stay fixed and the LCD
 /// absorbs the remaining height. That matches what the CSS already does below
 /// the `md:` breakpoint, so a phone sees the same layout the web app gives it.
-/// Opens the debug catalog. Injected so the chassis can host the trigger
-/// without the app module reaching into it.
-public struct ShowCatalogKey: EnvironmentKey {
-    // `@MainActor @Sendable` because Swift 6 rejects a bare closure as a static
-    // default — a plain `() -> Void` is not Sendable.
-    public static let defaultValue: @MainActor @Sendable () -> Void = {}
-}
-
-public extension EnvironmentValues {
-    var showCatalog: @MainActor @Sendable () -> Void {
-        get { self[ShowCatalogKey.self] }
-        set { self[ShowCatalogKey.self] = newValue }
-    }
-}
-
 public struct DeviceChassis<Content: View>: View {
     let title: String
     var showsBack: Bool = false
@@ -30,7 +15,9 @@ public struct DeviceChassis<Content: View>: View {
     var onHome: (() -> Void)?
     @ViewBuilder var content: () -> Content
 
-    @Environment(\.showCatalog) private var showCatalog
+    /// The system panel lives here rather than in the app module so it can be
+    /// confined to the LCD — see `SettingsPanel`.
+    @State private var showsPanel = false
 
     public init(
         title: String,
@@ -114,21 +101,32 @@ public struct DeviceChassis<Content: View>: View {
         .frame(height: height)
     }
 
-    /// The pixel-V mark. Tapping it opens the debug catalog — a deliberate,
+    /// The pixel-V mark. Tapping it opens the system panel — a deliberate,
     /// discoverable-once affordance rather than a gesture that fights scrolling.
+    ///
+    /// Styled as a physical key on the chassis: a raised well and a lit ring
+    /// while open, so it reads as a button rather than decoration.
     private func logoButton(height: CGFloat) -> some View {
         Button {
             Haptics.tap()
-            showCatalog()
+            showsPanel.toggle()
         } label: {
             LogoMark()
                 .frame(width: height * 0.52, height: height * 0.52)
-                .padding(height * 0.11)
+                .padding(height * 0.13)
+                .background(Circle().fill(Dex.darkRed.opacity(showsPanel ? 0.55 : 0.28)))
                 .overlay(
-                    Circle().strokeBorder(Dex.darkRed, lineWidth: 2)
+                    Circle().strokeBorder(
+                        showsPanel ? Dex.yellow : Dex.darkRed,
+                        lineWidth: showsPanel ? 3 : 2
+                    )
                 )
+                .shadow(color: .black.opacity(0.45), radius: 2, y: 1)
+                // Comfortably past the 44pt minimum even on a short strip.
+                .contentShape(Circle())
         }
-        .buttonStyle(DexPressStyle(scale: 0.9))
+        .buttonStyle(DexPressStyle(scale: 0.86))
+        .accessibilityLabel("System panel")
     }
 
     private func lcdOrb(size: CGFloat) -> some View {
@@ -209,10 +207,20 @@ public struct DeviceChassis<Content: View>: View {
         ZStack {
             Dex.screen
             content()
+
+            // Confined to the LCD, so the bezel, footer and island stay put and
+            // the panel reads as the device's own menu rather than an iOS modal.
+            if showsPanel {
+                SettingsPanel { showsPanel = false }
+                    .padding(6)
+                    .transition(.opacity)
+            }
+
             ScanlineOverlay()
                 .opacity(DexMetrics.scanlineOpacity)
                 .allowsHitTesting(false)
         }
+        .animation(.easeOut(duration: 0.16), value: showsPanel)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipShape(RoundedRectangle(cornerRadius: DexMetrics.bezelCorner))
         // A thin stone frame, equal on every side so the LCD sits centred.

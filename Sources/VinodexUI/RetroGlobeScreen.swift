@@ -13,16 +13,28 @@ import VinodexCore
 /// three.js's `Vector3.project`.
 public struct RetroGlobeScreen: View {
     let onSelectContinent: (Continent) -> Void
-    let onWorldSearch: () -> Void
+    let onSelectEntry: (WineEntry) -> Void
 
     @State private var model = GlobeModel()
+    @State private var search = ""
+
+    private let db = WineDatabase.shared
 
     public init(
         onSelectContinent: @escaping (Continent) -> Void,
-        onWorldSearch: @escaping () -> Void
+        onSelectEntry: @escaping (WineEntry) -> Void
     ) {
         self.onSelectContinent = onSelectContinent
-        self.onWorldSearch = onWorldSearch
+        self.onSelectEntry = onSelectEntry
+    }
+
+    /// Regions and continents only — the globe's own domain. Grapes and styles
+    /// have their own screens and would swamp a place-name search.
+    private var results: [WineEntry] {
+        guard !search.trimmingCharacters(in: .whitespaces).isEmpty else { return [] }
+        return db.entries.apply(
+            EntryQuery(categories: [.regions, .continents], filter: nil, search: search)
+        )
     }
 
     public var body: some View {
@@ -34,20 +46,26 @@ public struct RetroGlobeScreen: View {
                 .opacity(0.3)
 
             VStack(spacing: 12) {
-                // Search sits above the globe: it is the way out of this screen,
-                // and below the sphere it competed with the drag hint for the
-                // same corner of the eye.
-                worldSearchButton
+                // Search sits above the globe, matching the other screens, and
+                // below the sphere it competed with the drag hint for the same
+                // corner of the eye.
+                searchBar
 
                 ZStack {
                     GlobeSceneView(model: model)
                         .gesture(dragGesture)
 
                     markerLayer
+
+                    // Results sit over the sphere rather than pushing to another
+                    // screen, so the globe stays put behind them.
+                    if !results.isEmpty {
+                        resultsOverlay
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                Text("DRAG TO SPIN GLOBE")
+                Text(results.isEmpty ? "DRAG TO SPIN GLOBE" : "\(results.count) MATCH\(results.count == 1 ? "" : "ES")")
                     .font(DexFont.retro(11))
                     .tracking(3)
                     .foregroundStyle(Color(dexHex: "#86efac"))
@@ -90,26 +108,55 @@ public struct RetroGlobeScreen: View {
         }
     }
 
-    private var worldSearchButton: some View {
-        Button {
-            Haptics.tap()
-            onWorldSearch()
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 16, weight: .bold))
-                Text("WORLD SEARCH")
-                    .font(DexFont.retro(12))
-                    .tracking(2)
+    /// Same treatment as `EncyclopediaListScreen.searchBar`, so the globe reads
+    /// as one of the search screens rather than a special case.
+    private var searchBar: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(Dex.green500)
+
+            DexSearchField(text: $search, placeholder: "SEARCH WORLD...")
+                .frame(height: 34)
+
+            if !search.isEmpty {
+                Button {
+                    Haptics.tap()
+                    search = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(Dex.stone600)
+                }
             }
-            .foregroundStyle(.black)
-            .padding(.horizontal, 26)
-            .padding(.vertical, 11)
-            .background(Capsule().fill(Dex.green))
-            .overlay(Capsule().strokeBorder(Color(dexHex: "#bbf7d0"), lineWidth: 1))
-            .shadow(color: Dex.green.opacity(0.4), radius: 10)
         }
-        .buttonStyle(DexPressStyle(scale: 0.96))
+        .padding(.horizontal, 12)
+        .frame(height: 46)
+        .background(Capsule().fill(.black))
+        .overlay(Capsule().strokeBorder(Dex.stone600, lineWidth: 2))
+        .padding(.horizontal, 12)
+    }
+
+    private var resultsOverlay: some View {
+        ScrollView {
+            VStack(spacing: 8) {
+                ForEach(results) { entry in
+                    EntryTileView(entry: entry, palette: db.palette) {
+                        search = ""
+                        onSelectEntry(entry)
+                    }
+                }
+            }
+            .padding(10)
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .background(.black.opacity(0.82))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(Dex.green.opacity(0.5), lineWidth: 2)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .padding(10)
     }
 
     // MARK: Drag
@@ -175,10 +222,6 @@ final class GlobeModel {
     private static let cameraDistance: Double = 4.25
     /// Markers hide well before the limb so they never straddle the edge.
     private static let frontFacingThreshold: Double = 0.55
-    /// Markers read as sitting right of the point they mark, because the label
-    /// box is centred on the projection while the eye tracks its left edge.
-    /// Two characters of the retro face at marker size pulls them back over it.
-    private static let markerNudgeX: CGFloat = 14
 
     /// Continent marker colours, overriding the continent palette entries.
     private static let markerColors: [Continent: String] = [
@@ -379,10 +422,7 @@ final class GlobeModel {
             let world = globeNode.convertPosition(local, to: nil)
             let projected = view.projectPoint(world)
 
-            let point = CGPoint(
-                x: CGFloat(projected.x) - Self.markerNudgeX,
-                y: CGFloat(projected.y)
-            )
+            let point = CGPoint(x: CGFloat(projected.x), y: CGFloat(projected.y))
             let inBounds = point.x - hw >= 0
                 && point.x + hw <= viewportSize.width
                 && point.y - hh >= 0

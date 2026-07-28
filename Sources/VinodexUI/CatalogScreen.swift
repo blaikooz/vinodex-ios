@@ -1,4 +1,4 @@
-#if canImport(SwiftUI)
+#if canImport(SwiftUI) && canImport(UIKit)
 import SwiftUI
 import VinodexCore
 
@@ -34,22 +34,11 @@ public struct CatalogScreen: View {
     // MARK: Diagnostics
 
     private var diagnostics: some View {
-        section("DIAGNOSTICS") {
-            VStack(alignment: .leading, spacing: 4) {
-                ForEach(DexFont.statusReport, id: \.self) { line in
-                    label(line, ok: !line.contains("FALLBACK") && !line.hasPrefix("FAILED"))
-                }
-                label("entries \(db.entries.count)", ok: db.entries.count > 0)
-                label("palette chips \(db.palette.countryChips.count)", ok: !db.palette.countryChips.isEmpty)
-                if db.decodeErrors.isEmpty {
-                    label("decode clean", ok: true)
-                } else {
-                    ForEach(db.decodeErrors, id: \.self) { label($0, ok: false) }
-                }
-            }
-        }
+        // Shared with the settings panel — see `DiagnosticsReport`.
+        section("DIAGNOSTICS") { DiagnosticsReport(db: db) }
     }
 
+    /// Still used by `entrySummary`; the diagnostics rows moved out.
     private func label(_ text: String, ok: Bool) -> some View {
         HStack(spacing: 6) {
             Text(ok ? "OK" : "!!")

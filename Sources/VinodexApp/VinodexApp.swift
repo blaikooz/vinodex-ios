@@ -18,7 +18,6 @@ struct VinodexApp: App {
 
 struct RootView: View {
     @State private var path: [DexRoute] = []
-    @State private var showsCatalog = false
 
     private let db = WineDatabase.shared
 
@@ -41,11 +40,9 @@ struct RootView: View {
         .statusBarHidden()
         .onAppear { ScreenWake.keepAwake(true) }
         .onDisappear { ScreenWake.keepAwake(false) }
-        // The catalog trigger used to be a long-press on the whole chassis,
-        // which competed with every ScrollView pan and made lists feel sticky.
-        // It now lives on the wordmark only — a small, non-scrolling target.
-        .environment(\.showCatalog, { showsCatalog = true })
-        .sheet(isPresented: $showsCatalog) { CatalogScreen() }
+        // The system panel (settings, diagnostics, catalog) is owned by
+        // DeviceChassis so it can be confined to the LCD; the app module no
+        // longer presents it.
     }
 
     private var currentTitle: String {
@@ -86,10 +83,11 @@ struct RootView: View {
                     // info screen rather than jumping straight to its regions.
                     push(.continent(entryID: "CONT_\(continent.rawValue)"))
                 },
-                onWorldSearch: {
-                    // The web app's WORLD_SEARCH spans regions, countries and
-                    // continents; only regions are in scope here.
-                    push(.list(category: .regions, filter: nil))
+                onSelectEntry: { entry in
+                    // Search results are regions and continents, and
+                    // `destination` already routes a continent to its own
+                    // screen rather than the generic detail one.
+                    push(entry.destination)
                 }
             )
 

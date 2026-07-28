@@ -1,4 +1,4 @@
-#if canImport(SwiftUI)
+#if canImport(SwiftUI) && canImport(UIKit)
 import SwiftUI
 import VinodexCore
 
@@ -28,9 +28,10 @@ public struct EntryDetailScreen: View {
             VStack(alignment: .leading, spacing: 0) {
                 hero
                 headerTiles
-                // Flavours carry a generated one-line blurb the reference does
-                // not show; INFO is skipped for them.
-                if entry.category != .flavors, !entry.entryDescription.isEmpty {
+                // Flavours were skipped while their blurb was a bare template
+                // sentence. It now names the grapes the flavour derives from,
+                // which is worth showing.
+                if !entry.entryDescription.isEmpty {
                     infoSection
                 }
                 categorySections
