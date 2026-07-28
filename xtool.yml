@@ -1,3 +1,9 @@
 version: 1
-bundleID: com.blaikooz.vinodex
+# NOTE: reverted from com.blaikooz.vinodex on 2026-07-28. A free Apple
+# profile caps App IDs at three, and this account already holds
+# com.example.{Vinodex,Hello,VinodexSpike} -- uninstalling the apps does not
+# release them. Reusing this existing App ID is the only way to deploy.
+# Change to a real reverse-DNS ID before any signing that matters, once the
+# quota frees up or on a paid account.
+bundleID: com.example.Vinodex
 iconPath: AppIcon.png
