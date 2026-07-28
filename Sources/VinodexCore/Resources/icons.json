@@ -171,6 +171,7 @@
     "game-icons:cut-lemon",
     "game-icons:elderberry",
     "game-icons:feather",
+    "game-icons:flame",
     "game-icons:fluffy-cloud",
     "game-icons:france",
     "game-icons:gas-pump",
@@ -283,35 +284,35 @@
   },
   "soilIcons": {
     "volcanic": {
-      "icon": "lucide:flame",
+      "icon": "game-icons:flame",
       "color": "#FF4500"
     },
     "clay": {
-      "icon": "lucide:circle",
-      "color": "#8B4513"
+      "icon": "lucide:droplet",
+      "color": "#B5651D"
     },
     "sand": {
-      "icon": "lucide:cloud",
+      "icon": "game-icons:salt-shaker",
       "color": "#F4A460"
     },
     "limestone": {
-      "icon": "lucide:mountain",
+      "icon": "game-icons:mountains",
       "color": "#E0E0E0"
     },
     "chalk": {
-      "icon": "lucide:mountain",
-      "color": "#E0E0E0"
+      "icon": "lucide:triangle",
+      "color": "#EDEDED"
     },
     "slate": {
-      "icon": "lucide:mountain",
+      "icon": "game-icons:rock",
       "color": "#708090"
     },
     "schist": {
       "icon": "lucide:mountain",
-      "color": "#708090"
+      "color": "#5F7A8A"
     },
     "granite": {
-      "icon": "lucide:mountain",
+      "icon": "game-icons:mountains",
       "color": "#A9A9A9"
     },
     "gravel": {
@@ -364,6 +365,7 @@
     "Spain": "Europe/spain/spain.png",
     "Hungary": "Europe/hungary/hungary.png",
     "Austria": "Europe/austria/austria.png",
+    "Croatia": "Europe/croatia/croatia.png",
     "Georgia": "Europe/georgia_country/georgia_country_flag.png",
     "Switzerland": "Europe/switzerland/switzerland.png",
     "Romania": "Europe/romania/romania.png",

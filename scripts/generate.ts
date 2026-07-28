@@ -322,15 +322,18 @@ const STYLE_COLOR_TYPE_COLORS: Record<string, string> = {
 
 /// Soil chips on the region screen. Keyword-matched (`soilDisplay.tsx`), so the
 /// matching rule lives in Swift and only the table is generated.
+// Six of the ten soils used to share `lucide:mountain`, which made the section
+// read as one repeated glyph. These are drawn from icons already rasterised
+// into Resources/Icons, so the set needs no new Iconify fetch.
 const SOIL_ICONS: Record<string, { icon: string; color: string }> = {
-  volcanic: { icon: 'lucide:flame', color: '#FF4500' },
-  clay: { icon: 'lucide:circle', color: '#8B4513' },
-  sand: { icon: 'lucide:cloud', color: '#F4A460' },
-  limestone: { icon: 'lucide:mountain', color: '#E0E0E0' },
-  chalk: { icon: 'lucide:mountain', color: '#E0E0E0' },
-  slate: { icon: 'lucide:mountain', color: '#708090' },
-  schist: { icon: 'lucide:mountain', color: '#708090' },
-  granite: { icon: 'lucide:mountain', color: '#A9A9A9' },
+  volcanic: { icon: 'game-icons:flame', color: '#FF4500' },
+  clay: { icon: 'lucide:droplet', color: '#B5651D' },
+  sand: { icon: 'game-icons:salt-shaker', color: '#F4A460' },
+  limestone: { icon: 'game-icons:mountains', color: '#E0E0E0' },
+  chalk: { icon: 'lucide:triangle', color: '#EDEDED' },
+  slate: { icon: 'game-icons:rock', color: '#708090' },
+  schist: { icon: 'lucide:mountain', color: '#5F7A8A' },
+  granite: { icon: 'game-icons:mountains', color: '#A9A9A9' },
   gravel: { icon: 'lucide:circle', color: '#696969' },
   default: { icon: 'lucide:mountain', color: '#8B4513' },
 };
@@ -364,6 +367,7 @@ const FLAG_PATHS: Record<string, string> = {
   Spain: 'Europe/spain/spain.png',
   Hungary: 'Europe/hungary/hungary.png',
   Austria: 'Europe/austria/austria.png',
+  Croatia: 'Europe/croatia/croatia.png',
   Georgia: 'Europe/georgia_country/georgia_country_flag.png',
   Switzerland: 'Europe/switzerland/switzerland.png',
   Romania: 'Europe/romania/romania.png',
