@@ -27,7 +27,11 @@ public struct SettingsPanel: View {
     /// Same key `DeviceChassis` reads, so the chassis repaints as this changes.
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
 
+    @State private var access = AccessStore.shared
+
     private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
+    private var totalCount: Int { db.entries.count }
+    private var freeCount: Int { db.entries.filter { db.isFree($0.id) }.count }
 
     private let db = WineDatabase.shared
 
@@ -110,6 +114,53 @@ public struct SettingsPanel: View {
 
     private var settings: some View {
         VStack(alignment: .leading, spacing: 8) {
+            Text("STARTER TIER")
+                .font(DexFont.retro(9))
+                .foregroundStyle(Dex.green)
+
+            Button {
+                Haptics.select()
+                access.starterOnly.toggle()
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: access.starterOnly ? "lock.fill" : "lock.open.fill")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(access.starterOnly ? Dex.yellow : Dex.green)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(access.starterOnly ? "STARTER — 25 GRAPES" : "EVERYTHING UNLOCKED")
+                            .font(DexFont.retro(10))
+                            .tracking(1)
+                            .foregroundStyle(Dex.stone200)
+                        Text(access.starterOnly
+                            ? "\(freeCount) of \(totalCount) entries browsable"
+                            : "All \(totalCount) entries browsable")
+                            .font(DexFont.mono(15))
+                            .foregroundStyle(Dex.stone600)
+                    }
+                    Spacer(minLength: 0)
+                    // A switch-like track, drawn rather than a UISwitch so it
+                    // matches the rest of the panel.
+                    Capsule()
+                        .fill(access.starterOnly ? Dex.yellow : Dex.stone700)
+                        .frame(width: 42, height: 24)
+                        .overlay(alignment: access.starterOnly ? .trailing : .leading) {
+                            Circle()
+                                .fill(.white)
+                                .frame(width: 18, height: 18)
+                                .padding(3)
+                        }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(RoundedRectangle(cornerRadius: 6).fill(Dex.stone800))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .strokeBorder(Dex.stone700, lineWidth: 1)
+                )
+            }
+            .buttonStyle(DexPressStyle(scale: 0.98))
+            .padding(.bottom, 10)
+
             Text("CHASSIS SKIN")
                 .font(DexFont.retro(9))
                 .foregroundStyle(Dex.green)

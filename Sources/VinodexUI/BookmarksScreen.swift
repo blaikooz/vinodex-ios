@@ -46,20 +46,23 @@ public struct BookmarksScreen: View {
         }
         // Clearing every bookmark is one tap from a scroll view and cannot be
         // undone, so it asks first. Removing a single entry does not — that one
-        // is cheap to redo.
-        .confirmationDialog(
-            "Clear all saved entries?",
-            isPresented: $confirmingClear,
-            titleVisibility: .visible
-        ) {
-            Button("Clear \(entries.count) saved", role: .destructive) {
-                Haptics.select()
-                bookmarks.removeAll()
+        // is cheap to redo. Rendered in-screen rather than as a system dialog,
+        // which would slide up from the device and break the chassis metaphor.
+        .overlay {
+            if confirmingClear {
+                DexAlert(
+                    title: "CLEAR ALL SAVED?",
+                    message: "\(entries.count) saved \(entries.count == 1 ? "entry" : "entries") will be removed. This cannot be undone.",
+                    confirmLabel: "CLEAR",
+                    onConfirm: {
+                        bookmarks.removeAll()
+                        confirmingClear = false
+                    },
+                    onCancel: { confirmingClear = false }
+                )
             }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This cannot be undone.")
         }
+        .animation(.easeOut(duration: 0.15), value: confirmingClear)
     }
 
     private var header: some View {

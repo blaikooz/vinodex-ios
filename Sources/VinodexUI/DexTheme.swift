@@ -130,7 +130,7 @@ public enum DexMetrics {
     /// This is the only thing holding either row off the display's rounded
     /// corners, and using one value for both is what makes the chassis read as
     /// symmetric top to bottom.
-    public static let chassisEdgeInset: CGFloat = 10
+    public static let chassisEdgeInset: CGFloat = 16
     /// Both control bands are one control tall plus that inset on each side, so
     /// the header and footer bands are identical by construction rather than by
     /// two numbers that have to be kept in step.
@@ -175,10 +175,11 @@ public enum DexMetrics {
     /// Thickness of the stone frame around the LCD. Kept small on purpose:
     /// every point here is a point of screen height.
     public static let bezelFrame: CGFloat = 4
-    /// The white panel's skirt below the LCD, carrying the red dot and the
-    /// speaker grill. Matched to `bezelTopMargin`; 1rem still clears the three
-    /// 2pt grill slats and the vent dot comfortably.
-    public static let ventStripHeight: CGFloat = rem
+    /// The white panel's skirt below the LCD. Deliberately taller than
+    /// `bezelTopMargin` rather than matched to it: this one has to seat the vent
+    /// dot and the three grill slats, and at 1rem they were crowding its edges.
+    /// The top margin holds nothing, so it stays thin.
+    public static let ventStripHeight: CGFloat = 1.75 * rem
     public static let ventDot: CGFloat = 0.5 * rem            // w-2
 
     /// Footer

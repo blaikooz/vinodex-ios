@@ -125,11 +125,13 @@ public struct DeviceChassis<Content: View>: View {
                 .overlay(alignment: .topTrailing) {
                     statusDots(size: dot)
                         .fixedSize()
-                        .offset(x: dot * 1.9, y: -dot * 0.25)
+                        // Clear of the orb's edge entirely — at 1.9x the
+                        // cluster still overlapped its top-right curve.
+                        .offset(x: dot * 3.4, y: -dot * 0.4)
                 }
                 // The lights sit outside the orb's bounds, so the row must not
                 // clip them.
-                .padding(.trailing, dot * 4.5)
+                .padding(.trailing, dot * 6)
 
             Spacer(minLength: DexMetrics.islandFlankInnerGap)
 

@@ -195,7 +195,13 @@ public struct ChipView: View {
     }
 
     public var body: some View {
-        Text(label.replacingOccurrences(of: "_", with: " ").uppercased())
+        // Soft-hyphenated so a long single word (MEDITERRANEAN) can break
+        // across two lines in a narrow tile instead of shrinking to fit.
+        Text(
+            EntryDisplay.hyphenated(
+                label.replacingOccurrences(of: "_", with: " ").uppercased()
+            )
+        )
             .font(DexFont.retro(11))
             .foregroundStyle(Color(dexHex: chip.text))
             .padding(.horizontal, 8)

@@ -68,7 +68,17 @@ public struct DexSearchField: UIViewRepresentable {
         }
 
         @objc func editingChanged(_ field: UITextField) {
-            text.wrappedValue = field.text ?? ""
+            // `.allCharacters` only shifts the keyboard — it does not touch
+            // pasted text or an autocorrect substitution, so those arrived
+            // lower-case in a field where everything else is caps.
+            let upper = (field.text ?? "").uppercased()
+            if field.text != upper {
+                // Preserve the caret: reassigning `text` sends it to the end.
+                let selection = field.selectedTextRange
+                field.text = upper
+                field.selectedTextRange = selection
+            }
+            text.wrappedValue = upper
             (field as? BlockCaretTextField)?.refreshCaret()
         }
 

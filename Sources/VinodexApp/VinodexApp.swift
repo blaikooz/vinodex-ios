@@ -18,8 +18,23 @@ struct VinodexApp: App {
 
 struct RootView: View {
     @State private var path: [DexRoute] = []
+    /// Set when a locked entry is tapped; drives the upgrade prompt.
+    @State private var lockedAttempt: WineEntry?
+    @State private var access = AccessStore.shared
 
     private let db = WineDatabase.shared
+
+    /// Single gate for every navigation into an entry, wherever it came from —
+    /// a list row, a cross-link, a search result or a bookmark. Putting it here
+    /// rather than in each screen means a new screen cannot forget it.
+    private func open(_ entry: WineEntry) {
+        if access.isLocked(entry, in: db) {
+            Haptics.select()
+            lockedAttempt = entry
+        } else {
+            push(entry.destination)
+        }
+    }
 
     /// No `NavigationStack`: the chassis is physical furniture and should not
     /// slide off-screen when you press a button on it. Only the LCD content
@@ -37,6 +52,23 @@ struct RootView: View {
                 // Content swaps instantly; no push transition.
                 .transaction { $0.animation = nil }
         }
+        .overlay {
+            if let entry = lockedAttempt {
+                DexAlert(
+                    title: "VINODEX PRO",
+                    message: "\(entry.name.uppercased()) is part of the full collection. Unlock every grape, region, style and flavour.",
+                    confirmLabel: "UNLOCK",
+                    onConfirm: {
+                        // No storefront yet — this is where the purchase flow
+                        // will go. Dismissing keeps the placeholder honest
+                        // rather than silently unlocking.
+                        lockedAttempt = nil
+                    },
+                    onCancel: { lockedAttempt = nil }
+                )
+            }
+        }
+        .animation(.easeOut(duration: 0.15), value: lockedAttempt?.id)
         .preferredColorScheme(.dark)
         .statusBarHidden()
         .onAppear { ScreenWake.keepAwake(true) }
@@ -65,14 +97,14 @@ struct RootView: View {
                 categories: [category],
                 filter: filter,
                 showsSearch: category != .regions
-            ) { push($0.destination) }
+            ) { open($0) }
 
         case .masterSearch:
-            EncyclopediaListScreen(categories: Set(EntryCategory.allCases)) { push($0.destination) }
+            EncyclopediaListScreen(categories: Set(EntryCategory.allCases)) { open($0) }
 
         case .detail(let id):
             if let entry = db.entry(id: id) {
-                EntryDetailScreen(entry: entry) { push($0.destination) }
+                EntryDetailScreen(entry: entry) { open($0) }
             } else {
                 notFound
             }
@@ -88,12 +120,12 @@ struct RootView: View {
             )
 
         case .bookmarks:
-            BookmarksScreen { push($0.destination) }
+            BookmarksScreen { open($0) }
 
         case .globeSearch:
             // Continents and regions between them carry country and state
             // names, and `matchesSearch` already looks at origin and state.
-            EncyclopediaListScreen(categories: [.continents, .regions]) { push($0.destination) }
+            EncyclopediaListScreen(categories: [.continents, .regions]) { open($0) }
 
         case .continent(let id):
             if let entry = db.entry(id: id), case .continent(let c) = entry {

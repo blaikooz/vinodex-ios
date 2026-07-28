@@ -10,6 +10,7 @@ public struct EncyclopediaListScreen: View {
     let onSelect: (WineEntry) -> Void
 
     @State private var search = ""
+    @State private var access = AccessStore.shared
     private let db = WineDatabase.shared
 
     public init(
@@ -47,7 +48,11 @@ public struct EncyclopediaListScreen: View {
                             emptyState
                         } else {
                             ForEach(results) { entry in
-                                EntryTileView(entry: entry, palette: db.palette) {
+                                EntryTileView(
+                                    entry: entry,
+                                    palette: db.palette,
+                                    locked: access.isLocked(entry, in: db)
+                                ) {
                                     onSelect(entry)
                                 }
                             }

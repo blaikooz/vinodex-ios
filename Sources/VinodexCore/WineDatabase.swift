@@ -211,16 +211,37 @@ public final class WineDatabase: Sendable {
     public let entries: [WineEntry]
     public let palette: Palette
     public let icons: IconManifest
+    /// Entry ids the free tier unlocks. Empty means *everything* is free — a
+    /// missing or unreadable manifest must not lock the app down.
+    public let freeIDs: Set<String>
 
     /// Entries that failed to decode, if any. Empty in a healthy build; surfaced
     /// rather than swallowed so a schema drift is visible instead of silent.
     public let decodeErrors: [String]
 
-    public init(entries: [WineEntry], palette: Palette, icons: IconManifest, decodeErrors: [String] = []) {
+    public init(
+        entries: [WineEntry],
+        palette: Palette,
+        icons: IconManifest,
+        freeIDs: Set<String> = [],
+        decodeErrors: [String] = []
+    ) {
         self.entries = entries
         self.palette = palette
         self.icons = icons
+        self.freeIDs = freeIDs
         self.decodeErrors = decodeErrors
+    }
+
+    /// Whether an entry is in the free tier.
+    ///
+    /// An id absent from the manifest is **not** free — that is the paywall
+    /// doing its job, and there is no way to tell "paid entry" from "entry we
+    /// forgot to regenerate" at this level. The only safety valve is the whole
+    /// manifest being missing, which unlocks everything rather than locking a
+    /// build out of its own data.
+    public func isFree(_ id: String) -> Bool {
+        freeIDs.isEmpty || freeIDs.contains(id)
     }
 
     private convenience init() {
@@ -228,7 +249,14 @@ public final class WineDatabase: Sendable {
             let entries: [WineEntry] = try Self.decode("entries")
             let palette: Palette = try Self.decode("palette")
             let icons: IconManifest = try Self.decode("icons")
-            self.init(entries: entries, palette: palette, icons: icons)
+            // Optional on purpose: a build without it is fully unlocked.
+            let tiers: EntryTiers? = try? Self.decode("tiers")
+            self.init(
+                entries: entries,
+                palette: palette,
+                icons: icons,
+                freeIDs: Set(tiers?.free ?? [])
+            )
         } catch {
             // A failed load is a build problem, not a runtime condition to paper
             // over — but crashing the app on launch makes it undiagnosable on a
@@ -337,4 +365,9 @@ public final class WineDatabase: Sendable {
         if case .continent(let c)? = entry(id: "CONT_\(continent.rawValue)") { return c }
         return nil
     }
+}
+
+/// The free-tier manifest, generated alongside the dataset.
+public struct EntryTiers: Codable, Sendable {
+    public let free: [String]
 }

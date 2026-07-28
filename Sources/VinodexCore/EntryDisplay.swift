@@ -72,6 +72,44 @@ public enum EntryDisplay {
         grape.grapeBodyClass.uppercased()
     }
 
+    /// U+00AD SOFT HYPHEN. Invisible unless the layout breaks there, in which
+    /// case it renders as a hyphen.
+    public static let softHyphen = "\u{00AD}"
+
+    /// Inserts soft hyphens into long words so a narrow chip can break them.
+    ///
+    /// SwiftUI's `Text` exposes no hyphenation setting, so a single long word
+    /// like MEDITERRANEAN cannot wrap at all — it just shrinks via
+    /// `minimumScaleFactor` until it is barely legible in a third-width tile.
+    /// Soft hyphens give the layout somewhere to break; they cost nothing when
+    /// there is room, and they do not affect search, which runs on the raw data
+    /// rather than on display strings.
+    ///
+    /// Naive fixed-width chunking rather than real syllabification: this is a
+    /// break *opportunity*, not a typographic claim, and a dictionary for it
+    /// would be far more machinery than a chip label warrants.
+    public static func hyphenated(
+        _ text: String,
+        minWordLength: Int = 10,
+        chunk: Int = 4
+    ) -> String {
+        text.split(separator: " ", omittingEmptySubsequences: false)
+            .map { word -> String in
+                guard word.count >= minWordLength else { return String(word) }
+                var out = ""
+                for (index, character) in word.enumerated() {
+                    // Never break within `chunk` of either end: a one- or
+                    // two-letter orphan on its own line looks like a typo.
+                    if index > 0, index % chunk == 0, word.count - index >= chunk {
+                        out += softHyphen
+                    }
+                    out.append(character)
+                }
+                return out
+            }
+            .joined(separator: " ")
+    }
+
     /// Title-cases an underscored key for display, e.g. `ORCHARD_FRUIT` -> `Orchard Fruit`.
     public static func humanize(_ raw: String) -> String {
         raw.split(separator: "_")

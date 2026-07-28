@@ -107,7 +107,7 @@ public struct EntryDetailScreen: View {
     private var infoSection: some View {
         section("INFO", symbol: "book") {
             Text(entry.entryDescription)
-                .font(DexFont.mono(21))
+                .font(DexFont.mono(18))
                 .foregroundStyle(Color(dexHex: "#bbf7d0"))
                 .lineSpacing(2)
                 .fixedSize(horizontal: false, vertical: true)
@@ -411,15 +411,20 @@ public struct EntryDetailScreen: View {
                 )
                 Spacer()
                 HStack(spacing: 4) {
-                    let filled = rarityRank(g.rarity)
-                    ForEach(0..<4, id: \.self) { index in
-                        // The top tier takes a crown rather than a fourth
-                        // star, so NOBLE reads as its own thing at a glance
-                        // instead of "one more star than RARE".
-                        let isCrown = g.rarity == .noble && index == 3
-                        Image(systemName: isCrown ? "crown.fill" : (index < filled ? "star.fill" : "star"))
-                            .font(.system(size: 11))
-                            .foregroundStyle(index < filled ? Dex.yellow : Dex.stone700)
+                    // NOBLE is a crown on its own, not a crown capping three
+                    // stars — the stars implied it was simply one rank above
+                    // RARE rather than a different kind of thing.
+                    if g.rarity == .noble {
+                        Image(systemName: "crown.fill")
+                            .font(.system(size: 15))
+                            .foregroundStyle(Dex.yellow)
+                    } else {
+                        let filled = rarityRank(g.rarity)
+                        ForEach(0..<3, id: \.self) { index in
+                            Image(systemName: index < filled ? "star.fill" : "star")
+                                .font(.system(size: 11))
+                                .foregroundStyle(index < filled ? Dex.yellow : Dex.stone700)
+                        }
                     }
                 }
             }

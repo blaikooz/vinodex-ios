@@ -10,11 +10,21 @@ import VinodexCore
 public struct EntryTileView: View {
     let entry: WineEntry
     let palette: Palette
+    /// Free-tier gating. A locked row still renders and is still tappable —
+    /// tapping it is how the upgrade prompt is reached — it just reads as
+    /// unavailable.
+    var locked: Bool = false
     let action: () -> Void
 
-    public init(entry: WineEntry, palette: Palette, action: @escaping () -> Void) {
+    public init(
+        entry: WineEntry,
+        palette: Palette,
+        locked: Bool = false,
+        action: @escaping () -> Void
+    ) {
         self.entry = entry
         self.palette = palette
+        self.locked = locked
         self.action = action
     }
 
@@ -41,16 +51,21 @@ public struct EntryTileView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                Image(systemName: "chevron.right")
+                Image(systemName: locked ? "lock.fill" : "chevron.right")
                     .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(Dex.stone600)
+                    .foregroundStyle(locked ? Dex.yellow : Dex.stone600)
             }
             .padding(8)
             .frame(minHeight: 72)
+            // Desaturated rather than dimmed to near-invisible: a locked row
+            // still has to be readable, because seeing what is behind the
+            // paywall is the entire point of showing it.
+            .saturation(locked ? 0.15 : 1)
+            .opacity(locked ? 0.55 : 1)
             .background(Dex.stone900)
             .overlay(
                 RoundedRectangle(cornerRadius: 4)
-                    .strokeBorder(Dex.stone700, lineWidth: 2)
+                    .strokeBorder(locked ? Dex.stone800 : Dex.stone700, lineWidth: 2)
             )
         }
         .buttonStyle(DexPressStyle(scale: 0.98))

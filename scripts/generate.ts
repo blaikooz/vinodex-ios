@@ -587,7 +587,26 @@ function main() {
   const icons = buildIconManifest(entries);
 
   mkdirSync(OUT_DIR, { recursive: true });
+
+  // Which entries the free tier unlocks. The first 25 grapes are the Phase 1+2
+  // selection; regions, styles and flavours follow from *their* cross-links, so
+  // the free tier stays internally consistent — you never meet a region whose
+  // key grape is locked. Continents are always free: the globe is navigation,
+  // and locking it would strand the user on the map screen.
+  const freeGrapeIDs = new Set(STARTER_GRAPES.slice(0, 25));
+  const freeGrapeNames = new Set(
+    GRAPE_CARDS.filter((card) => freeGrapeIDs.has(card.id)).map((card) => card.name),
+  );
+  const isFree = (entry: WineEntry): boolean => {
+    if (entry.category === 'CONTINENTS') return true;
+    if (entry.category === 'GRAPES') return freeGrapeIDs.has(entry.id);
+    const linked = (entry.details as { notableGrapes?: string[] }).notableGrapes ?? [];
+    return linked.some((name) => freeGrapeNames.has(name));
+  };
+  const tiers = { free: entries.filter(isFree).map((entry) => entry.id) };
+
   writeFileSync(resolve(OUT_DIR, 'entries.json'), JSON.stringify(entries, null, 2) + '\n');
+  writeFileSync(resolve(OUT_DIR, 'tiers.json'), JSON.stringify(tiers, null, 2) + '\n');
   writeFileSync(resolve(OUT_DIR, 'palette.json'), JSON.stringify(palette, null, 2) + '\n');
   writeFileSync(resolve(OUT_DIR, 'icons.json'), JSON.stringify(icons, null, 2) + '\n');
 
@@ -601,6 +620,8 @@ function main() {
   console.log(`  total    ${entries.length}   (full database would be ${full.length})`);
   console.log('palette.json');
   console.log(`  unique hex values ${hexes.size}`);
+  console.log('tiers.json');
+  console.log(`  free tier      ${tiers.free.length} of ${entries.length}`);
   console.log('icons.json');
   console.log(`  distinct icons ${icons.unique.length}`);
   const missing = Object.entries(icons.byEntry)
