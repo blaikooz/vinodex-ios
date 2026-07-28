@@ -540,12 +540,22 @@ public struct ScanlineOverlay: View {
 /// drift from the list and detail screens — they looked different because each
 /// had its own colour and grid settings.
 public struct DexScreenBackground: View {
+    /// Read here rather than passed down: every screen uses this one view for
+    /// its ground, so honouring the setting in one place covers all of them.
+    @AppStorage(LcdMode.storageKey) private var modeRaw = LcdMode.dark.rawValue
+
+    private var mode: LcdMode { LcdMode(rawValue: modeRaw) ?? .dark }
+
     public init() {}
 
     public var body: some View {
         ZStack {
-            Dex.stone950
-            DexGridBackground(spacing: 10, color: Dex.stone700, opacity: 0.35)
+            mode.isLight ? mode.screen : Dex.stone950
+            DexGridBackground(
+                spacing: 10,
+                color: mode.isLight ? Dex.stone400 : Dex.stone700,
+                opacity: 0.35
+            )
         }
         .ignoresSafeArea()
     }
@@ -613,73 +623,57 @@ public struct MarqueeBanner: View {
     let fontSize: CGFloat
     var pointsPerSecond: Double = 34
 
-    /// A space and a half of the retro face, so the loop has a beat at the
-    /// seam without reading as a pause.
-    private var gap: CGFloat { fontSize * 1.5 }
-
-    /// Measured directly from the font rather than through a background
-    /// `GeometryReader`. The reader only reports after a layout pass, so on a
-    /// cold render `labelWidth` was 0 for a frame or more — the banner would
-    /// sit blank and then pop in. Press Start 2P is monospaced, so measuring
-    /// the string is exact and available on the very first frame.
-    private var labelWidth: CGFloat {
-        let font = UIFont(name: DexFont.names.retro, size: fontSize)
-            ?? .monospacedSystemFont(ofSize: fontSize, weight: .regular)
-        return (text as NSString).size(withAttributes: [.font: font]).width
-    }
-
     public init(text: String, fontSize: CGFloat, pointsPerSecond: Double = 34) {
         self.text = text
         self.fontSize = fontSize
         self.pointsPerSecond = pointsPerSecond
     }
 
+    /// Press Start 2P is monospaced, so the run width is simply the character
+    /// count times one cell. No layout pass, no attributed-string measuring, no
+    /// state — which is what kept getting this wrong: a measured width that
+    /// disagreed with the rendered width by a few points made the seam jump
+    /// every cycle, and a width that arrived a frame late made it pop in.
+    private var cell: CGFloat {
+        let font = UIFont(name: DexFont.names.retro, size: fontSize)
+            ?? .monospacedSystemFont(ofSize: fontSize, weight: .regular)
+        return ("0" as NSString).size(withAttributes: [.font: font]).width
+    }
+
+    /// One copy plus the gap. The second copy starts exactly here, so shifting
+    /// by this amount lands back where it began.
+    private var cycle: CGFloat {
+        max(CGFloat(text.count) * cell + fontSize * 1.5, 1)
+    }
+
     public var body: some View {
-        // A GeometryReader gives the scrolling strip a *definite* width to clip
-        // against. Without one the `.fixedSize()` label pair — ~1500pt for the
-        // main-menu text — ignores any `maxWidth` and renders full-bleed across
-        // the footer, covering the Back button.
-        GeometryReader { geo in
-            ZStack {
-                RoundedRectangle(cornerRadius: DexMetrics.marqueeCorner)
-                    .fill(.black)
-                    // Same scan grid the LCD carries, so the banner reads as a
-                    // small second screen rather than a plain black strip.
-                    .overlay(
-                        DexGridBackground(spacing: 12, color: Dex.green, opacity: 0.18)
-                            .clipShape(RoundedRectangle(cornerRadius: DexMetrics.marqueeCorner))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: DexMetrics.marqueeCorner)
-                            .strokeBorder(.white.opacity(0.75), lineWidth: 1)
-                    )
+        ZStack {
+            RoundedRectangle(cornerRadius: DexMetrics.marqueeCorner)
+                .fill(.black)
+                .overlay(
+                    DexGridBackground(spacing: 12, color: Dex.green, opacity: 0.18)
+                        .clipShape(RoundedRectangle(cornerRadius: DexMetrics.marqueeCorner))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: DexMetrics.marqueeCorner)
+                        .strokeBorder(.white.opacity(0.75), lineWidth: 1)
+                )
 
-                // Offset is derived from elapsed time rather than driven by a
-                // `withAnimation` loop. A repeatForever animation gets torn down
-                // and restarted whenever the view re-renders — which is what made
-                // the text skip and change speed — while a TimelineView is a pure
-                // function of the clock and cannot drift.
-                TimelineView(.animation) { context in
-                    let cycle = labelWidth + gap
-                    let elapsed = context.date.timeIntervalSinceReferenceDate
-                    let travelled = cycle > 0
-                        ? CGFloat((elapsed * pointsPerSecond)
-                            .truncatingRemainder(dividingBy: Double(cycle)))
-                        : 0
+            // Offset is a pure function of the clock, so it cannot drift and
+            // cannot be restarted mid-run by a re-render.
+            TimelineView(.animation) { context in
+                let elapsed = context.date.timeIntervalSinceReferenceDate
+                let shift = CGFloat((elapsed * pointsPerSecond)
+                    .truncatingRemainder(dividingBy: Double(cycle)))
 
-                    HStack(spacing: gap) {
-                        label
-                        label
-                    }
-                    .fixedSize()
-                    .offset(x: -travelled)
-                    .frame(
-                        width: max(geo.size.width - 8, 0),
-                        height: max(geo.size.height - 8, 0),
-                        alignment: .leading
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: DexMetrics.marqueeInnerCorner))
+                HStack(spacing: fontSize * 1.5) {
+                    label
+                    label
                 }
+                .offset(x: -shift)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .clipShape(RoundedRectangle(cornerRadius: DexMetrics.marqueeInnerCorner))
+                .padding(4)
             }
         }
         .frame(height: DexMetrics.marqueeHeight)
@@ -688,13 +682,11 @@ public struct MarqueeBanner: View {
     private var label: some View {
         Text(text)
             .font(DexFont.retro(fontSize))
-            .italic()
             .foregroundStyle(Dex.green500)
             .lineLimit(1)
             .fixedSize()
             .shadow(color: Color(dexHex: "#082010").opacity(0.65), radius: 0, x: 1, y: 1)
     }
-
 }
 
 /// The pixel-V wordmark, bundled from the web app's logo.

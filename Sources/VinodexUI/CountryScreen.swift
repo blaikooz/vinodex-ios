@@ -17,6 +17,8 @@ public struct CountryScreen: View {
     @State private var access = AccessStore.shared
     @State private var bookmarks = BookmarkStore.shared
     @State private var showsAllStates = false
+    @State private var showsAllGrapes = false
+    @State private var showsAllRegions = false
     private let db = WineDatabase.shared
 
     /// Countries have no entry, so the bookmark key is synthesised. Prefixed so
@@ -155,18 +157,63 @@ public struct CountryScreen: View {
         return counts.sorted { ($0.value, $1.key) > ($1.value, $0.key) }.map(\.key)
     }
 
+    /// Resolved to real entries so the section is a list you can open, not a
+    /// row of chips that look tappable and are not.
+    private var grapeEntries: [WineEntry] {
+        notableGrapes.compactMap { db.entry(named: $0, category: .grapes) }
+    }
+
     private var grapesSection: some View {
-        section("NOTABLE GRAPES", symbol: "list.bullet") {
-            FlowLayout(spacing: 6) {
-                ForEach(notableGrapes.prefix(12), id: \.self) { name in
-                    ChipView(
-                        label: name,
-                        chip: db.palette.wineTypeChips[name]
-                            ?? Palette.Chip(bg: "#1c1917", border: "#57534e", text: "#e7e5e4")
-                    )
+        let all = grapeEntries
+        let shown = showsAllGrapes ? all : Array(all.prefix(3))
+        return section("NOTABLE GRAPES", symbol: "list.bullet") {
+            VStack(spacing: 8) {
+                ForEach(shown) { entry in
+                    EntryTileView(
+                        entry: entry,
+                        palette: db.palette,
+                        locked: access.isLocked(entry, in: db)
+                    ) {
+                        onSelectRegion(entry)
+                    }
+                }
+                if all.count > 3 {
+                    expander(expanded: showsAllGrapes, total: all.count) {
+                        showsAllGrapes.toggle()
+                    }
                 }
             }
         }
+    }
+
+    /// Shared show-all control. Every long section here shows three and hides
+    /// the rest — with the full database a country can carry a dozen grapes and
+    /// as many regions, which buried everything below it.
+    private func expander(
+        expanded: Bool,
+        total: Int,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            Haptics.select()
+            withAnimation(.easeOut(duration: 0.2)) { action() }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 13, weight: .bold))
+                Text(expanded ? "SHOW FEWER" : "SHOW ALL (\(total))")
+                    .font(DexFont.retro(10))
+                    .tracking(1)
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(Dex.green)
+            .padding(.horizontal, 12)
+            .frame(height: 42)
+            .frame(maxWidth: .infinity)
+            .background(Capsule().fill(.black))
+            .overlay(Capsule().strokeBorder(Dex.stone600, lineWidth: 2))
+        }
+        .buttonStyle(DexPressStyle(scale: 0.98))
     }
 
     /// Every appellation system in use here.
@@ -246,28 +293,9 @@ public struct CountryScreen: View {
                 }
 
                 if states.count > 3 {
-                    Button {
-                        Haptics.select()
-                        withAnimation(.easeOut(duration: 0.2)) { showsAllStates.toggle() }
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: showsAllStates ? "chevron.up" : "magnifyingglass")
-                                .font(.system(size: 13, weight: .bold))
-                            Text(showsAllStates
-                                ? "SHOW FEWER"
-                                : "SEARCH STATES (\(states.count))")
-                                .font(DexFont.retro(10))
-                                .tracking(1)
-                            Spacer(minLength: 0)
-                        }
-                        .foregroundStyle(Dex.green)
-                        .padding(.horizontal, 12)
-                        .frame(height: 42)
-                        .frame(maxWidth: .infinity)
-                        .background(Capsule().fill(.black))
-                        .overlay(Capsule().strokeBorder(Dex.stone600, lineWidth: 2))
+                    expander(expanded: showsAllStates, total: states.count) {
+                        showsAllStates.toggle()
                     }
-                    .buttonStyle(DexPressStyle(scale: 0.98))
                 }
             }
         }
@@ -281,15 +309,22 @@ public struct CountryScreen: View {
     }
 
     private var regionsSection: some View {
-        section("REGIONS", symbol: "mappin.and.ellipse") {
+        let all = regions
+        let shown = showsAllRegions ? all : Array(all.prefix(3))
+        return section("REGIONS", symbol: "mappin.and.ellipse") {
             VStack(spacing: 8) {
-                ForEach(regions) { entry in
+                ForEach(shown) { entry in
                     EntryTileView(
                         entry: entry,
                         palette: db.palette,
                         locked: access.isLocked(entry, in: db)
                     ) {
                         onSelectRegion(entry)
+                    }
+                }
+                if all.count > 3 {
+                    expander(expanded: showsAllRegions, total: all.count) {
+                        showsAllRegions.toggle()
                     }
                 }
             }

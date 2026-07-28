@@ -263,6 +263,7 @@ public enum DexFont {
     /// Pixel display face — titles, category labels, chips.
     public static func retro(_ size: CGFloat) -> Font {
         _ = registration
+        let size = size * TextScale.current.factor
         return isAvailable(names.retro)
             ? .custom(names.retro, size: size)
             : .system(size: size, weight: .bold, design: .monospaced)
@@ -271,6 +272,7 @@ public enum DexFont {
     /// CRT terminal face — body copy and readouts.
     public static func mono(_ size: CGFloat) -> Font {
         _ = registration
+        let size = size * TextScale.current.factor
         return isAvailable(names.mono)
             ? .custom(names.mono, size: size)
             : .system(size: size, design: .monospaced)
@@ -318,16 +320,65 @@ public enum TextScale: String, CaseIterable, Identifiable, Sendable {
     case small = "SMALL"
     case large = "LARGE"
 
-    public static let storageKey = "mainScreenTextScale"
+    public static let storageKey = "textScale"
 
     public var id: String { rawValue }
 
-    /// Multiplier on the main menu's tile label.
     public var factor: CGFloat {
         switch self {
         case .small: 1.0
-        case .large: 1.25
+        case .large: 1.2
         }
+    }
+
+    /// Read straight from defaults so `DexFont` can apply it without every
+    /// call site threading it through. Views re-render because `RootView`
+    /// keys its content on the setting — see `VinodexApp`.
+    public static var current: TextScale {
+        TextScale(rawValue: UserDefaults.standard.string(forKey: storageKey) ?? "") ?? .small
+    }
+}
+
+/// Whether the LCD renders dark-on-black or the original handheld's dark-on-
+/// light-grey. Independent of `ChassisSkin`: the shell and the screen are
+/// separate choices, and pairing a light screen with the red shell is a
+/// perfectly good combination.
+public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
+    case dark = "DARK"
+    case light = "LIGHT"
+
+    public static let storageKey = "lcdMode"
+
+    public var id: String { rawValue }
+
+    public var isLight: Bool { self == .light }
+
+    /// LCD ground.
+    public var screen: Color {
+        switch self {
+        case .dark: Dex.screen
+        case .light: Color(dexHex: "#E8E8E2")
+        }
+    }
+
+    /// Primary text on that ground.
+    public var text: Color {
+        switch self {
+        case .dark: .white
+        case .light: Color(dexHex: "#1F1F1C")
+        }
+    }
+
+    /// The grid and rules.
+    public var accent: Color {
+        switch self {
+        case .dark: Dex.green
+        case .light: Color(dexHex: "#5A7A5A")
+        }
+    }
+
+    public static var current: LcdMode {
+        LcdMode(rawValue: UserDefaults.standard.string(forKey: storageKey) ?? "") ?? .dark
     }
 }
 

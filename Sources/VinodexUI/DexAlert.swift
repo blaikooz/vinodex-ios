@@ -11,6 +11,9 @@ public struct DexAlert: View {
     let title: String
     let message: String
     let confirmLabel: String
+    /// Nil for an acknowledgement — a one-button notice does not need a
+    /// "cancel" for something that is not a choice.
+    var cancelLabel: String? = "CANCEL"
     let onConfirm: () -> Void
     let onCancel: () -> Void
 
@@ -18,12 +21,14 @@ public struct DexAlert: View {
         title: String,
         message: String,
         confirmLabel: String,
+        cancelLabel: String? = "CANCEL",
         onConfirm: @escaping () -> Void,
         onCancel: @escaping () -> Void
     ) {
         self.title = title
         self.message = message
         self.confirmLabel = confirmLabel
+        self.cancelLabel = cancelLabel
         self.onConfirm = onConfirm
         self.onCancel = onCancel
     }
@@ -50,18 +55,20 @@ public struct DexAlert: View {
                     .fixedSize(horizontal: false, vertical: true)
 
                 HStack(spacing: 10) {
-                    button(
-                        "CANCEL",
-                        fill: Dex.stone800,
-                        border: Dex.stone600,
-                        text: Dex.stone200,
-                        action: onCancel
-                    )
+                    if let cancelLabel {
+                        button(
+                            cancelLabel,
+                            fill: Dex.stone800,
+                            border: Dex.stone600,
+                            text: Dex.stone200,
+                            action: onCancel
+                        )
+                    }
                     button(
                         confirmLabel,
-                        fill: Dex.red600,
-                        border: Dex.red800,
-                        text: .white,
+                        fill: cancelLabel == nil ? Dex.green : Dex.red600,
+                        border: cancelLabel == nil ? Dex.green700 : Dex.red800,
+                        text: cancelLabel == nil ? .black : .white,
                         action: onConfirm
                     )
                 }

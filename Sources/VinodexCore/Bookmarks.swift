@@ -58,11 +58,67 @@ public final class BookmarkStore {
     }
 
     /// Bookmarked entries in save order, skipping ids the dataset no longer has.
+    ///
+    /// Entry-backed bookmarks only — countries and states are not entries. Use
+    /// `saved(in:)` for the whole list.
     public func entries(in db: WineDatabase) -> [WineEntry] {
         ids.compactMap { db.entry(id: $0) }
     }
 
+    /// Everything saved, in save order.
+    ///
+    /// Countries and states have no entry to resolve against, so they were
+    /// being silently dropped by `entries(in:)` — saving one and then opening
+    /// the saved list showed nothing. They round-trip through their prefixed
+    /// ids instead.
+    public func saved(in db: WineDatabase) -> [SavedItem] {
+        ids.compactMap { id in
+            if let entry = db.entry(id: id) { return .entry(entry) }
+            if let name = id.dropPrefix(SavedItem.countryPrefix) { return .country(name) }
+            if let name = id.dropPrefix(SavedItem.statePrefix) { return .state(name) }
+            // Neither an entry nor a place: a stale id from an older build.
+            return nil
+        }
+    }
+
     private func persist() {
         defaults.set(ids, forKey: Self.storageKey)
+    }
+}
+
+/// One row in the saved list. Countries and states are places rather than
+/// entries — there is no COUNTRY_GATE data in this port — so they carry only a
+/// name, and the UI renders them as flag rows.
+public enum SavedItem: Identifiable, Sendable {
+    case entry(WineEntry)
+    case country(String)
+    case state(String)
+
+    public static let countryPrefix = "COUNTRY_"
+    public static let statePrefix = "STATE_"
+
+    /// The id this item is stored under.
+    public var storageID: String {
+        switch self {
+        case .entry(let e): e.id
+        case .country(let name): Self.countryPrefix + name
+        case .state(let name): Self.statePrefix + name
+        }
+    }
+
+    public var id: String { storageID }
+
+    public var displayName: String {
+        switch self {
+        case .entry(let e): e.name
+        case .country(let name), .state(let name): name
+        }
+    }
+}
+
+private extension String {
+    /// The remainder after `prefix`, or nil when it does not match.
+    func dropPrefix(_ prefix: String) -> String? {
+        hasPrefix(prefix) ? String(dropFirst(prefix.count)) : nil
     }
 }

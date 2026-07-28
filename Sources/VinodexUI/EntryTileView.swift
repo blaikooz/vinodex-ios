@@ -14,17 +14,22 @@ public struct EntryTileView: View {
     /// tapping it is how the upgrade prompt is reached — it just reads as
     /// unavailable.
     var locked: Bool = false
+    /// Off in the saved list, where the row's top-right corner belongs to the
+    /// remove button.
+    var showsChevron: Bool = true
     let action: () -> Void
 
     public init(
         entry: WineEntry,
         palette: Palette,
         locked: Bool = false,
+        showsChevron: Bool = true,
         action: @escaping () -> Void
     ) {
         self.entry = entry
         self.palette = palette
         self.locked = locked
+        self.showsChevron = showsChevron
         self.action = action
     }
 
@@ -51,9 +56,17 @@ public struct EntryTileView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                Image(systemName: locked ? "lock.fill" : "chevron.right")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(locked ? Dex.yellow : Dex.stone600)
+                if locked {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(Dex.yellow)
+                } else if showsChevron {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(Dex.stone600)
+                } else {
+                    Color.clear.frame(width: 34)
+                }
             }
             .padding(8)
             .frame(minHeight: 72)

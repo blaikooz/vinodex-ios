@@ -21,6 +21,10 @@ struct RootView: View {
     /// Set when a locked entry is tapped; drives the upgrade prompt.
     @State private var lockedAttempt: WineEntry?
     @State private var access = AccessStore.shared
+    /// DexFont reads the scale from defaults, which SwiftUI cannot observe.
+    /// Keying the chassis on it forces a rebuild so a change takes effect
+    /// immediately rather than on the next navigation.
+    @AppStorage(TextScale.storageKey) private var scaleRaw = TextScale.small.rawValue
 
     private let db = WineDatabase.shared
 
@@ -82,6 +86,7 @@ struct RootView: View {
             }
         }
         .animation(.easeOut(duration: 0.15), value: lockedAttempt?.id)
+        .id(scaleRaw)
         .preferredColorScheme(.dark)
         .statusBarHidden()
         .onAppear { ScreenWake.keepAwake(true) }
@@ -137,7 +142,11 @@ struct RootView: View {
             )
 
         case .bookmarks:
-            BookmarksScreen { open($0) }
+            BookmarksScreen(
+                onSelect: { open($0) },
+                onSelectCountry: { push(.country(name: $0)) },
+                onSelectState: { push(.state(name: $0)) }
+            )
 
         case .globeSearch:
             // Continents and regions between them carry country and state

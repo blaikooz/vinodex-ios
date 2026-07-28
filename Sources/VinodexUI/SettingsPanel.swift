@@ -26,11 +26,13 @@ public struct SettingsPanel: View {
     @State private var access = AccessStore.shared
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
     @AppStorage(TextScale.storageKey) private var scaleRaw = TextScale.small.rawValue
+    @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
 
     private let db = WineDatabase.shared
 
     private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
     private var scale: TextScale { TextScale(rawValue: scaleRaw) ?? .small }
+    private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
     private var totalCount: Int { db.entries.count }
     private var freeCount: Int { db.entries.filter { db.isFree($0.id) }.count }
 
@@ -122,6 +124,7 @@ public struct SettingsPanel: View {
             dailyGrapeButton
             paywallTesting
             skinTesting
+            screenMode
             textSize
         }
     }
@@ -244,6 +247,43 @@ public struct SettingsPanel: View {
         }
     }
 
+    /// Separate from the chassis skin on purpose: the shell and the screen are
+    /// independent choices, and a light screen in the red shell is a perfectly
+    /// good combination.
+    private var screenMode: some View {
+        settingsSection("SCREEN MODE") {
+            HStack(spacing: 8) {
+                ForEach(LcdMode.allCases) { option in
+                    Button {
+                        Haptics.select()
+                        lcdRaw = option.rawValue
+                    } label: {
+                        HStack(spacing: 8) {
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(option.screen)
+                                .frame(width: 16, height: 16)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .strokeBorder(option.accent, lineWidth: 1)
+                                )
+                            Text(option.rawValue)
+                                .font(DexFont.retro(11))
+                                .tracking(1)
+                        }
+                        .foregroundStyle(lcd == option ? .black : Dex.stone400)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(lcd == option ? Dex.green : Dex.stone800)
+                        )
+                    }
+                    .buttonStyle(DexPressStyle(scale: 0.97))
+                }
+            }
+        }
+    }
+
     private var textSize: some View {
         settingsSection("TEXT SIZE") {
             VStack(alignment: .leading, spacing: 8) {
@@ -267,7 +307,7 @@ public struct SettingsPanel: View {
                         .buttonStyle(DexPressStyle(scale: 0.97))
                     }
                 }
-                Text("Main screen only. Entry text already wraps and is left as it is.")
+                Text("Applies everywhere. Capped so the retro face still fits its tiles.")
                     .font(DexFont.mono(15))
                     .foregroundStyle(Dex.stone600)
                     .fixedSize(horizontal: false, vertical: true)

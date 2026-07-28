@@ -19,6 +19,45 @@ public enum DailyPick {
         return days
     }
 
+    /// Categories the daily pick rotates through. Regions and styles are as
+    /// guessable from a silhouette as grapes are, and rotating keeps the
+    /// feature from being a grape-only habit.
+    public static let categories: [EntryCategory] = [.grapes, .regions, .styles]
+
+    /// The category for a given day — rotates one step per day, so the same
+    /// kind never lands twice running.
+    public static func category(
+        for date: Date = Date(),
+        calendar: Calendar = .current
+    ) -> EntryCategory {
+        let i = dayIndex(for: date, calendar: calendar)
+        let n = categories.count
+        return categories[((i % n) + n) % n]
+    }
+
+    /// The entry for a given day, from that day's category.
+    ///
+    /// Falls back through the other categories if the chosen one has nothing
+    /// free — better a grape than an empty screen.
+    public static func entry(
+        for date: Date = Date(),
+        in db: WineDatabase,
+        calendar: Calendar = .current
+    ) -> WineEntry? {
+        let wanted = category(for: date, calendar: calendar)
+        let ordered = [wanted] + categories.filter { $0 != wanted }
+
+        for category in ordered {
+            let pool = db.entries(in: category)
+                .filter { db.isFree($0.id) }
+                .sorted { $0.id < $1.id }
+            guard !pool.isEmpty else { continue }
+            let i = dayIndex(for: date, calendar: calendar)
+            return pool[((i % pool.count) + pool.count) % pool.count]
+        }
+        return nil
+    }
+
     /// The grape for a given day.
     ///
     /// Picks from the free tier only. A locked pick would be a daily

@@ -65,6 +65,62 @@ struct BookmarkTests {
         #expect(resolved.first?.id == real.id)
     }
 
+    /// Countries and states are saved under prefixed ids because they have no
+    /// entry to resolve against. `entries(in:)` compactMaps, so it dropped them
+    /// silently — saving a country and opening the saved list showed nothing.
+    @Test("countries and states survive the round trip")
+    func placesResolve() {
+        let db = WineDatabase.shared
+        let store = makeStore()
+        let grape = db.entries(in: .grapes).first!
+
+        store.toggle(grape.id)
+        store.toggle(SavedItem.countryPrefix + "France")
+        store.toggle(SavedItem.statePrefix + "Oregon")
+
+        let saved = store.saved(in: db)
+        #expect(saved.count == 3, "got \(saved.map(\.displayName))")
+
+        // Newest first.
+        guard case .state(let state) = saved[0] else {
+            Issue.record("expected a state first, got \(saved[0])")
+            return
+        }
+        #expect(state == "Oregon")
+
+        guard case .country(let country) = saved[1] else {
+            Issue.record("expected a country second, got \(saved[1])")
+            return
+        }
+        #expect(country == "France")
+
+        guard case .entry(let entry) = saved[2] else {
+            Issue.record("expected an entry third, got \(saved[2])")
+            return
+        }
+        #expect(entry.id == grape.id)
+
+        // `entries(in:)` still returns only the entry-backed ones.
+        #expect(store.entries(in: db).count == 1)
+    }
+
+    /// The id a place round-trips under has to match what the screens toggle.
+    @Test("storageID round-trips")
+    func storageIDs() {
+        #expect(SavedItem.country("France").storageID == "COUNTRY_France")
+        #expect(SavedItem.state("Oregon").storageID == "STATE_Oregon")
+    }
+
+    /// An id that is neither an entry nor a place is dropped rather than
+    /// rendering as a blank row.
+    @Test("stale ids are skipped")
+    func staleIDs() {
+        let db = WineDatabase.shared
+        let store = makeStore()
+        store.toggle("NOT_REAL")
+        #expect(store.saved(in: db).isEmpty)
+    }
+
     @Test("clear empties the store")
     func clearAll() {
         let store = makeStore()

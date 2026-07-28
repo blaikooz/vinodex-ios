@@ -9,9 +9,12 @@ import VinodexCore
 public struct MainMenuScreen: View {
     let onSelect: (DexRoute) -> Void
 
-    /// Main-screen-only text scale — see `TextScale`.
+    /// `DexFont` applies the text scale globally; this is here only so the
+    /// view re-renders when it changes.
     @AppStorage(TextScale.storageKey) private var scaleRaw = TextScale.small.rawValue
-    private var scale: TextScale { TextScale(rawValue: scaleRaw) ?? .small }
+    @AppStorage(LcdMode.storageKey) private var modeRaw = LcdMode.dark.rawValue
+
+    private var mode: LcdMode { LcdMode(rawValue: modeRaw) ?? .dark }
 
     public init(onSelect: @escaping (DexRoute) -> Void) {
         self.onSelect = onSelect
@@ -66,11 +69,11 @@ public struct MainMenuScreen: View {
         } label: {
             VStack(spacing: 12) {
                 Image(systemName: symbol)
-                    .font(.system(size: 46 * scale.factor, weight: .semibold))
+                    .font(.system(size: 46, weight: .semibold))
                     .foregroundStyle(.white)
                     .shadow(color: .black.opacity(0.3), radius: 0, x: 1, y: 2)
                 Text(title)
-                    .font(DexFont.retro(16 * scale.factor))
+                    .font(DexFont.retro(16))
                     .foregroundStyle(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)

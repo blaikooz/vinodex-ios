@@ -48,6 +48,7 @@ public struct ContinentScreen: View {
                     title: "COMING SOON",
                     message: "\(comingSoon.uppercased()) has no regions in the database yet. It is on the list.",
                     confirmLabel: "OK",
+                    cancelLabel: nil,
                     onConfirm: { self.comingSoon = nil },
                     onCancel: { self.comingSoon = nil }
                 )

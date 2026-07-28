@@ -157,9 +157,23 @@ public struct EntryVisual {
 
         let ring = r.climate.flatMap { db.palette.climates[$0.rawValue]?.colors.border }
 
+        // Regions had no glyph at all — a flag well and nothing on it, the only
+        // category rendering bare. The key grape's own glyph is the most
+        // telling thing available (Bordeaux reads as blackcurrant, Burgundy as
+        // cherry) and needs no new assets; climate is the fallback when the
+        // grape does not resolve, which is the other thing a region *is*.
+        var iconID: String?
+        if let keyGrape = r.details.notableGrapes.first,
+           let grape = db.entry(named: keyGrape, category: .grapes) {
+            iconID = db.iconID(for: grape)
+        }
+        if iconID == nil || iconID == db.icons.fallback {
+            iconID = db.icons.climateIcon(r.climate)
+        }
+
         return EntryVisual(
             well: .flag(country: origin, shapeIcon: shape),
-            iconID: nil,
+            iconID: iconID,
             iconColor: tint,
             ringColor: ring.map { Color(dexHex: $0) }
         )

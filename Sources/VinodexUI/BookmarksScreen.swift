@@ -8,20 +8,31 @@ import VinodexCore
 /// the same entry in any list — it is a pointer, not a different kind of thing.
 public struct BookmarksScreen: View {
     let onSelect: (WineEntry) -> Void
+    let onSelectCountry: (String) -> Void
+    let onSelectState: (String) -> Void
 
     @State private var bookmarks = BookmarkStore.shared
     @State private var confirmingClear = false
+    @State private var pendingDelete: SavedItem?
     @State private var access = AccessStore.shared
     /// Local only, and deliberately so — there is no account, and inventing a
     /// backend for a display name would be the tail wagging the dog.
     @AppStorage("userDisplayName") private var displayName = ""
     private let db = WineDatabase.shared
 
-    public init(onSelect: @escaping (WineEntry) -> Void) {
+    public init(
+        onSelect: @escaping (WineEntry) -> Void,
+        onSelectCountry: @escaping (String) -> Void = { _ in },
+        onSelectState: @escaping (String) -> Void = { _ in }
+    ) {
         self.onSelect = onSelect
+        self.onSelectCountry = onSelectCountry
+        self.onSelectState = onSelectState
     }
 
-    private var entries: [WineEntry] { bookmarks.entries(in: db) }
+    /// Everything saved, including countries and states — those have no entry
+    /// to resolve against and were being dropped entirely.
+    private var items: [SavedItem] { bookmarks.saved(in: db) }
 
     public var body: some View {
         ZStack {
@@ -33,24 +44,16 @@ public struct BookmarksScreen: View {
 
                     savedHeader
 
-                    if entries.isEmpty {
+                    if items.isEmpty {
                         emptyState
                     } else {
-                        ForEach(entries) { entry in
-                            EntryTileView(
-                                entry: entry,
-                                palette: db.palette,
-                                locked: access.isLocked(entry, in: db)
-                            ) {
-                                onSelect(entry)
-                            }
-                            // Swipe is not discoverable on a custom row, so
-                            // removal is an explicit control on each tile.
-                            // Bottom-trailing, not top: at the top it sat on
-                            // the tile's own chevron and clipped it.
-                            .overlay(alignment: .bottomTrailing) {
-                                removeButton(entry)
-                            }
+                        ForEach(items) { item in
+                            row(item)
+                                // Back at top-trailing: the tile no longer
+                                // draws a chevron there, so nothing collides.
+                                .overlay(alignment: .topTrailing) {
+                                    removeButton(item)
+                                }
                         }
                     }
                 }
@@ -66,7 +69,7 @@ public struct BookmarksScreen: View {
             if confirmingClear {
                 DexAlert(
                     title: "CLEAR ALL SAVED?",
-                    message: "\(entries.count) saved \(entries.count == 1 ? "entry" : "entries") will be removed. This cannot be undone.",
+                    message: "\(items.count) saved \(items.count == 1 ? "item" : "items") will be removed. This cannot be undone.",
                     confirmLabel: "CLEAR",
                     onConfirm: {
                         bookmarks.removeAll()
@@ -76,17 +79,32 @@ public struct BookmarksScreen: View {
                 )
             }
         }
+        .overlay {
+            if let pendingDelete {
+                DexAlert(
+                    title: "REMOVE FROM SAVED?",
+                    message: pendingDelete.displayName.uppercased(),
+                    confirmLabel: "REMOVE",
+                    onConfirm: {
+                        bookmarks.remove(pendingDelete.storageID)
+                        self.pendingDelete = nil
+                    },
+                    onCancel: { self.pendingDelete = nil }
+                )
+            }
+        }
         .animation(.easeOut(duration: 0.15), value: confirmingClear)
+        .animation(.easeOut(duration: 0.15), value: pendingDelete?.id)
     }
 
     private var savedHeader: some View {
         HStack {
-            Text("\(entries.count) SAVED")
+            Text("\(items.count) SAVED")
                 .font(DexFont.retro(10))
                 .tracking(2)
                 .foregroundStyle(Dex.green)
             Spacer()
-            if !entries.isEmpty {
+            if !items.isEmpty {
                 Button {
                     Haptics.tap()
                     confirmingClear = true
@@ -129,7 +147,7 @@ public struct BookmarksScreen: View {
                         .foregroundStyle(.white)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
-                    Text("\(bookmarks.count) SAVED")
+                    Text("\(items.count) SAVED")
                         .font(DexFont.mono(16))
                         .foregroundStyle(Dex.stone600)
                 }
@@ -162,10 +180,72 @@ public struct BookmarksScreen: View {
         .padding(.bottom, 6)
     }
 
-    private func removeButton(_ entry: WineEntry) -> some View {
+    /// Rows are entries or places. Places carry a flag and route to their own
+    /// screen; entries reuse the standard tile minus its chevron — a saved row
+    /// is already a destination, and the arrow only fought the delete button.
+    @ViewBuilder
+    private func row(_ item: SavedItem) -> some View {
+        switch item {
+        case .entry(let entry):
+            EntryTileView(
+                entry: entry,
+                palette: db.palette,
+                locked: access.isLocked(entry, in: db),
+                showsChevron: false
+            ) {
+                onSelect(entry)
+            }
+        case .country(let name):
+            placeRow(name: name, kind: "COUNTRY") { onSelectCountry(name) }
+        case .state(let name):
+            placeRow(name: name, kind: "STATE") { onSelectState(name) }
+        }
+    }
+
+    private func placeRow(
+        name: String,
+        kind: String,
+        action: @escaping () -> Void
+    ) -> some View {
         Button {
             Haptics.select()
-            bookmarks.remove(entry.id)
+            action()
+        } label: {
+            HStack(spacing: 12) {
+                FlagSwatch(country: name)
+                    .frame(width: 48, height: 32)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 3)
+                            .strokeBorder(.black.opacity(0.3), lineWidth: 1)
+                    )
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(name.uppercased())
+                        .font(DexFont.retro(13))
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                    ChipView(
+                        label: kind,
+                        chip: Palette.Chip(bg: "#1c1917", border: "#57534e", text: "#e7e5e4")
+                    )
+                }
+                Spacer(minLength: 34)
+            }
+            .padding(8)
+            .frame(minHeight: 72)
+            .background(Dex.stone900)
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .strokeBorder(Dex.stone700, lineWidth: 2)
+            )
+        }
+        .buttonStyle(DexPressStyle(scale: 0.98))
+    }
+
+    private func removeButton(_ item: SavedItem) -> some View {
+        Button {
+            Haptics.select()
+            pendingDelete = item
         } label: {
             Image(systemName: "xmark")
                 .font(.system(size: 11, weight: .bold))
@@ -176,7 +256,7 @@ public struct BookmarksScreen: View {
         }
         .buttonStyle(DexPressStyle(scale: 0.9))
         .padding(6)
-        .accessibilityLabel("Remove \(entry.name) from saved")
+        .accessibilityLabel("Remove \(item.displayName) from saved")
     }
 
     private var emptyState: some View {

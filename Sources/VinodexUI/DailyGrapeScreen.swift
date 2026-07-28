@@ -20,16 +20,25 @@ public struct DailyGrapeScreen: View {
         self.onOpen = onOpen
     }
 
-    private var grape: WineEntry? { DailyPick.grape(in: db) }
+    private var pick: WineEntry? { DailyPick.entry(in: db) }
+
+    /// "WHAT'S THAT GRAPE / REGION / STYLE" — named for whatever today is.
+    private var kindWord: String {
+        switch pick?.category {
+        case .regions: "REGION"
+        case .styles: "STYLE"
+        default: "GRAPE"
+        }
+    }
 
     public var body: some View {
         ZStack {
             DexScreenBackground()
 
-            if let grape {
-                content(grape)
+            if let pick {
+                content(pick)
             } else {
-                Text("NO GRAPE TODAY")
+                Text("NOTHING TODAY")
                     .font(DexFont.retro(12))
                     .foregroundStyle(Dex.stone400)
             }
@@ -40,7 +49,7 @@ public struct DailyGrapeScreen: View {
         VStack(spacing: 18) {
             Spacer(minLength: 0)
 
-            Text(revealed ? "TODAY'S GRAPE" : "WHO'S THAT GRAPE?")
+            Text(revealed ? "TODAY'S \(kindWord)" : "WHAT'S THAT \(kindWord)?")
                 .font(DexFont.retro(13))
                 .tracking(2)
                 .foregroundStyle(Dex.yellow)
