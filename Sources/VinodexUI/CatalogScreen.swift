@@ -10,6 +10,9 @@ import VinodexCore
 /// one. Every later phase should add its components here rather than checking
 /// them one at a time.
 public struct CatalogScreen: View {
+    @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
+    private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
+
     let db: WineDatabase
     /// The settings panel renders the icon sheet separately, at the very
     /// bottom — it is the longest block here and buried everything after it.
@@ -32,6 +35,9 @@ public struct CatalogScreen: View {
 
     /// Every rasterised glyph on one sheet. Split out so it can be placed last.
     public struct IconSheet: View {
+        @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
+        private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
+
         let db: WineDatabase
 
         public init(db: WineDatabase = .shared) { self.db = db }
@@ -40,14 +46,14 @@ public struct CatalogScreen: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("ICONS (\(db.icons.unique.count))")
                     .font(DexFont.retro(11))
-                    .foregroundStyle(Dex.green)
+                    .foregroundStyle(lcd.accent)
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6), spacing: 10) {
                     ForEach(db.icons.unique, id: \.self) { iconID in
                         VStack(spacing: 3) {
-                            DexIcon(iconID: iconID, size: 28, color: .white)
+                            DexIcon(iconID: iconID, size: 28, color: lcd.text)
                             Text(iconID.split(separator: ":").last.map(String.init) ?? iconID)
                                 .font(.system(size: 7))
-                                .foregroundStyle(Dex.stone600)
+                                .foregroundStyle(lcd.subtext)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.6)
                         }
@@ -56,10 +62,10 @@ public struct CatalogScreen: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(10)
-            .background(Dex.stone900)
+            .background(lcd.surface)
             .overlay(
                 RoundedRectangle(cornerRadius: 4)
-                    .strokeBorder(Dex.stone700, lineWidth: 2)
+                    .strokeBorder(lcd.surfaceEdge, lineWidth: 2)
             )
         }
     }
@@ -72,7 +78,7 @@ public struct CatalogScreen: View {
                 .foregroundStyle(ok ? Dex.green : Dex.red500)
             Text(text)
                 .font(DexFont.mono(18))
-                .foregroundStyle(Dex.stone200)
+                .foregroundStyle(lcd.text)
         }
     }
 
@@ -83,10 +89,10 @@ public struct CatalogScreen: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("PRESS START 2P 12")
                     .font(DexFont.retro(12))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(lcd.text)
                 Text("VT323 22 — 0123456789 the quick brown fox")
                     .font(DexFont.mono(22))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(lcd.text)
                 // A real Press Start 2P glyph is unmistakably blocky; if this row
                 // looks like ordinary bold monospace, registration silently failed.
                 Text("ABCDEFGHIJ")
@@ -144,17 +150,17 @@ public struct CatalogScreen: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("\(category.listTitle) — \(items.count)")
                             .font(DexFont.retro(10))
-                            .foregroundStyle(Dex.green)
+                            .foregroundStyle(lcd.accent)
                         Text(items.prefix(6).map(\.name).joined(separator: ", "))
                             .font(DexFont.mono(17))
-                            .foregroundStyle(Dex.stone200)
+                            .foregroundStyle(lcd.text)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
 
                 Text("GLOBE MARKERS")
                     .font(DexFont.retro(10))
-                    .foregroundStyle(Dex.green)
+                    .foregroundStyle(lcd.accent)
                 ForEach(Continent.allCases) { continent in
                     let regions = db.regions(in: continent)
                     label(
@@ -172,15 +178,15 @@ public struct CatalogScreen: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(DexFont.retro(11))
-                .foregroundStyle(Dex.green)
+                .foregroundStyle(lcd.accent)
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
-        .background(Dex.stone900)
+        .background(lcd.surface)
         .overlay(
             RoundedRectangle(cornerRadius: 4)
-                .strokeBorder(Dex.stone700, lineWidth: 2)
+                .strokeBorder(lcd.surfaceEdge, lineWidth: 2)
         )
     }
 }
@@ -225,6 +231,9 @@ public struct ChipView: View {
 /// unfilled ones are empty rather than greyed, each stat carrying its own
 /// colour (body green, acid yellow, tannin red, aromatics purple, colour amber).
 public struct StatBar: View {
+    @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
+    private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
+
     let label: String
     let value: Double
     var maximum: Double = 5
@@ -241,7 +250,7 @@ public struct StatBar: View {
         HStack(spacing: 12) {
             Text(label)
                 .font(DexFont.mono(19))
-                .foregroundStyle(.white)
+                .foregroundStyle(lcd.text)
                 .tracking(1.5)
                 .frame(width: 96, alignment: .leading)
 

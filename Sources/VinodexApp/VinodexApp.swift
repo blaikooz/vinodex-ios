@@ -63,7 +63,8 @@ struct RootView: View {
             onBack: path.isEmpty ? nil : { goBack() },
             onHome: { goHome() },
             onBookmarks: { push(.bookmarks) },
-            onDailyGrape: { push(.dailyGrape) }
+            onDailyGrape: { push(.dailyGrape) },
+            onSettings: { push(.settings) }
         ) {
             screen
                 // Content swaps instantly; no push transition.
@@ -165,6 +166,12 @@ struct RootView: View {
 
         case .dailyGrape:
             DailyGrapeScreen { open($0) }
+
+        case .settings:
+            SettingsPanel(
+                onClose: { goBack() },
+                onDailyGrape: { push(.dailyGrape) }
+            )
 
         case .continent(let id):
             if let entry = db.entry(id: id), case .continent(let c) = entry {

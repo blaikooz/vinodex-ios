@@ -19,11 +19,12 @@ public struct DeviceChassis<Content: View>: View {
     var onBookmarks: (() -> Void)?
     /// Opens the grape of the day, launched from the settings panel.
     var onDailyGrape: (() -> Void)?
+    /// Opens the settings screen.
+    var onSettings: (() -> Void)?
     @ViewBuilder var content: () -> Content
 
     /// The system panel lives here rather than in the app module so it can be
     /// confined to the LCD — see `SettingsPanel`.
-    @State private var showsPanel = false
     /// Whether the device is showing its underside — see `DeviceBackPlate`.
     @State private var isFlipped = false
     /// Drives the orb's depress animation while the flip gesture is held.
@@ -41,6 +42,7 @@ public struct DeviceChassis<Content: View>: View {
         onHome: (() -> Void)? = nil,
         onBookmarks: (() -> Void)? = nil,
         onDailyGrape: (() -> Void)? = nil,
+        onSettings: (() -> Void)? = nil,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.title = title
@@ -49,6 +51,7 @@ public struct DeviceChassis<Content: View>: View {
         self.onHome = onHome
         self.onBookmarks = onBookmarks
         self.onDailyGrape = onDailyGrape
+        self.onSettings = onSettings
         self.content = content
     }
 
@@ -166,9 +169,12 @@ public struct DeviceChassis<Content: View>: View {
                 // Top-aligned to the cutout, not centred in the strip: the
                 // island starts ~11pt down, so a vertically centred cluster
                 // sat noticeably below its top edge.
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                // Leading, not trailing: hugging the cutout put the rightmost
+                // light under its edge on narrower devices. They now sit beside
+                // the orb, wholly clear of the island.
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .padding(.top, DexMetrics.islandTopInset)
-                .padding(.trailing, DexMetrics.islandFlankInnerGap)
+                .padding(.leading, DexMetrics.statusDotSpacing * 3)
 
             // Clearance held open for the cutout itself.
             Color.clear.frame(width: DexMetrics.islandClearance)
@@ -191,7 +197,7 @@ public struct DeviceChassis<Content: View>: View {
     private func settingsButton(size: CGFloat) -> some View {
         Button {
             Haptics.tap()
-            showsPanel.toggle()
+            onSettings?()
         } label: {
             Image(systemName: "gearshape.fill")
                 .font(.system(size: size * 0.52, weight: .semibold))
@@ -219,8 +225,8 @@ public struct DeviceChassis<Content: View>: View {
                 )
                 .overlay(
                     Circle().strokeBorder(
-                        showsPanel ? Dex.yellow : Dex.stone400,
-                        lineWidth: showsPanel ? 3 : 2
+                        Dex.stone400,
+                        lineWidth: 2
                     )
                 )
                 .shadow(color: .black.opacity(0.45), radius: 2, y: 1)
@@ -311,25 +317,10 @@ public struct DeviceChassis<Content: View>: View {
 
             // Confined to the LCD, so the bezel, footer and island stay put and
             // the panel reads as the device's own menu rather than an iOS modal.
-            if showsPanel {
-                // Hinged on the right edge rather than filling the screen —
-                // see `SettingsPanel`. Flipping moved to a long-press on the
-                // orb, so the panel no longer needs a flip callback.
-                SettingsPanel(
-                    onClose: { showsPanel = false },
-                    onDailyGrape: {
-                        showsPanel = false
-                        onDailyGrape?()
-                    }
-                )
-                .transition(.move(edge: .trailing))
-            }
-
             ScanlineOverlay()
                 .opacity(DexMetrics.scanlineOpacity)
                 .allowsHitTesting(false)
         }
-        .animation(.easeOut(duration: 0.16), value: showsPanel)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipShape(RoundedRectangle(cornerRadius: DexMetrics.bezelCorner))
         // A thin stone frame, equal on every side so the LCD sits centred.
@@ -378,12 +369,10 @@ public struct DeviceChassis<Content: View>: View {
             // navigating underneath it and appearing to do nothing.
             // Back where there is somewhere to go; otherwise the slot earns
             // its keep as the way into saved entries.
-            if showsBack || isFlipped || showsPanel {
+            if showsBack || isFlipped {
                 ChassisButton(kind: .back, enabled: true) {
                     if isFlipped {
                         isFlipped = false
-                    } else if showsPanel {
-                        showsPanel = false
                     } else {
                         onBack?()
                     }
@@ -403,8 +392,7 @@ public struct DeviceChassis<Content: View>: View {
 
             ChassisButton(kind: .home, enabled: onHome != nil) {
                 isFlipped = false
-                showsPanel = false
-                onHome?()
+                        onHome?()
             }
         }
         .padding(.horizontal, DexMetrics.footerPaddingH)

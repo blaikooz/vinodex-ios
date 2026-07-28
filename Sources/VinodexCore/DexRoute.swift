@@ -27,6 +27,9 @@ public enum DexRoute: Hashable, Sendable {
     case state(name: String)
     /// The daily grape reveal — see `DailyPick`.
     case dailyGrape
+    /// System settings. A pushed screen rather than a side flap: the flap
+    /// could never be more than a strip wide, and the toggles want room.
+    case settings
     /// The continent info screen — INFO blurb plus a COUNTRIES list, each
     /// linking to that country's regions. Reached from the globe markers.
     case continent(entryID: String)
@@ -51,6 +54,8 @@ public enum DexRoute: Hashable, Sendable {
             name.uppercased()
         case .dailyGrape:
             "GRAPE OF THE DAY"
+        case .settings:
+            "SYSTEM"
         case .continent:
             "CONTINENT SCAN"
         }

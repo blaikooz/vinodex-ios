@@ -42,33 +42,22 @@ public struct SettingsPanel: View {
     }
 
     public var body: some View {
-        HStack(spacing: 0) {
-            // Dead strip on the left: tapping it closes, and it keeps a sliver
-            // of the app visible so the panel reads as an overlay.
-            Color.black.opacity(0.55)
-                .frame(width: 26)
-                .contentShape(Rectangle())
-                .onTapGesture { onClose() }
+        VStack(spacing: 0) {
+            tabBar
 
-            VStack(spacing: 0) {
-                header
-                tabBar
-
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 18) {
-                        switch tab {
-                        case .settings: settings
-                        case .dev: dev
-                        }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    switch tab {
+                    case .settings: settings
+                    case .dev: dev
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(12)
                 }
-                .scrollDismissesKeyboard(.interactively)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
             }
-            .background(Dex.screen)
-            .overlay(alignment: .leading) { Dex.green.opacity(0.55).frame(width: 2) }
+            .scrollDismissesKeyboard(.interactively)
         }
+        .background(lcd.isLight ? lcd.page : Dex.screen)
     }
 
     private var header: some View {
@@ -84,9 +73,9 @@ public struct SettingsPanel: View {
             } label: {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(Dex.stone200)
+                    .foregroundStyle(lcd.text)
                     .frame(width: 34, height: 34)
-                    .background(Circle().fill(Dex.stone800))
+                    .background(Circle().fill(lcd.surface))
             }
             .buttonStyle(DexPressStyle(scale: 0.9))
         }
@@ -106,10 +95,10 @@ public struct SettingsPanel: View {
                     Text(item.rawValue)
                         .font(DexFont.retro(9))
                         .tracking(1)
-                        .foregroundStyle(tab == item ? .black : Dex.stone400)
+                        .foregroundStyle(tab == item ? .white : lcd.subtext)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 9)
-                        .background(tab == item ? Dex.green : Dex.stone800)
+                        .background(tab == item ? lcd.accent : lcd.surface)
                 }
                 .buttonStyle(.plain)
             }
@@ -142,20 +131,20 @@ public struct SettingsPanel: View {
                     Text("GRAPE OF THE DAY")
                         .font(DexFont.retro(11))
                         .tracking(1)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(lcd.text)
                     Text("A new one every day")
                         .font(DexFont.mono(16))
-                        .foregroundStyle(Dex.stone600)
+                        .foregroundStyle(lcd.subtext)
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(Dex.stone600)
+                    .foregroundStyle(lcd.subtext)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 14)
             .frame(maxWidth: .infinity)
-            .background(RoundedRectangle(cornerRadius: 6).fill(Dex.stone800))
+            .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
             .overlay(
                 RoundedRectangle(cornerRadius: 6).strokeBorder(Dex.yellow.opacity(0.5), lineWidth: 2)
             )
@@ -177,12 +166,12 @@ public struct SettingsPanel: View {
                         Text(access.starterOnly ? "FREE TIER" : "EVERYTHING UNLOCKED")
                             .font(DexFont.retro(11))
                             .tracking(1)
-                            .foregroundStyle(Dex.stone200)
+                            .foregroundStyle(lcd.text)
                         Text(access.starterOnly
                             ? "\(freeCount) of \(totalCount) entries browsable"
                             : "All \(totalCount) entries browsable")
                             .font(DexFont.mono(16))
-                            .foregroundStyle(Dex.stone600)
+                            .foregroundStyle(lcd.subtext)
                     }
                     Spacer(minLength: 0)
                     toggleTrack(on: access.starterOnly)
@@ -190,9 +179,9 @@ public struct SettingsPanel: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 14)
                 .frame(maxWidth: .infinity)
-                .background(RoundedRectangle(cornerRadius: 6).fill(Dex.stone800))
+                .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 6).strokeBorder(Dex.stone700, lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 6).strokeBorder(lcd.surfaceEdge, lineWidth: 1)
                 )
             }
             .buttonStyle(DexPressStyle(scale: 0.98))
@@ -232,13 +221,13 @@ public struct SettingsPanel: View {
                                     .font(.system(size: 14, weight: .bold))
                             }
                         }
-                        .foregroundStyle(skin == option ? .black : Dex.stone400)
+                        .foregroundStyle(skin == option ? .white : lcd.subtext)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 13)
                         .frame(maxWidth: .infinity)
                         .background(
                             RoundedRectangle(cornerRadius: 6)
-                                .fill(skin == option ? Dex.green : Dex.stone800)
+                                .fill(skin == option ? lcd.accent : lcd.surface)
                         )
                     }
                     .buttonStyle(DexPressStyle(scale: 0.98))
@@ -270,12 +259,12 @@ public struct SettingsPanel: View {
                                 .font(DexFont.retro(11))
                                 .tracking(1)
                         }
-                        .foregroundStyle(lcd == option ? .black : Dex.stone400)
+                        .foregroundStyle(lcd == option ? .white : lcd.subtext)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                         .background(
                             RoundedRectangle(cornerRadius: 6)
-                                .fill(lcd == option ? Dex.green : Dex.stone800)
+                                .fill(lcd == option ? lcd.accent : lcd.surface)
                         )
                     }
                     .buttonStyle(DexPressStyle(scale: 0.97))
@@ -296,12 +285,12 @@ public struct SettingsPanel: View {
                             Text(option.rawValue)
                                 .font(DexFont.retro(11))
                                 .tracking(1)
-                                .foregroundStyle(scale == option ? .black : Dex.stone400)
+                                .foregroundStyle(scale == option ? .white : lcd.subtext)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
                                 .background(
                                     RoundedRectangle(cornerRadius: 6)
-                                        .fill(scale == option ? Dex.green : Dex.stone800)
+                                        .fill(scale == option ? lcd.accent : lcd.surface)
                                 )
                         }
                         .buttonStyle(DexPressStyle(scale: 0.97))
@@ -309,7 +298,7 @@ public struct SettingsPanel: View {
                 }
                 Text("Applies everywhere. Capped so the retro face still fits its tiles.")
                     .font(DexFont.mono(15))
-                    .foregroundStyle(Dex.stone600)
+                    .foregroundStyle(lcd.subtext)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -332,9 +321,9 @@ public struct SettingsPanel: View {
             Text(title)
                 .font(DexFont.retro(10))
                 .tracking(1)
-                .foregroundStyle(Dex.green)
+                .foregroundStyle(lcd.accent)
                 .padding(.bottom, 2)
-                .overlay(alignment: .bottom) { Dex.green.opacity(0.35).frame(height: 1) }
+                .overlay(alignment: .bottom) { lcd.accent.opacity(0.35).frame(height: 1) }
             content()
         }
     }

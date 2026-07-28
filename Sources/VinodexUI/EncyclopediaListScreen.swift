@@ -27,11 +27,27 @@ public struct EncyclopediaListScreen: View {
         self.onSelect = onSelect
     }
 
-    private var results: [WineEntry] {
-        db.entries.apply(EntryQuery(categories: categories, filter: filter, search: search))
+    /// Recomputed only when the query actually changes.
+    ///
+    /// This was a computed property, so every keystroke *and* every unrelated
+    /// re-render re-filtered and re-sorted all 284 entries — which is why
+    /// master search, the one screen with every category selected, was slow to
+    /// appear. `task(id:)` runs it once per query instead.
+    @State private var results: [WineEntry] = []
+
+    private func recompute() {
+        results = db.entries.apply(
+            EntryQuery(categories: categories, filter: filter, search: search)
+        )
     }
 
     public var body: some View {
+        content
+            .task(id: search) { recompute() }
+            .onAppear { if results.isEmpty { recompute() } }
+    }
+
+    private var content: some View {
         VStack(spacing: 0) {
             if let filter {
                 filterBanner(filter)

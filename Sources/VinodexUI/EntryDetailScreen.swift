@@ -22,14 +22,16 @@ private struct TileLink: ViewModifier {
                 Haptics.select()
                 onOpen(destination)
             } label: {
+                // A rounded outline around the whole tile rather than a
+                // floating arrow in its corner. The arrow read as a separate
+                // control sitting on the tile; an outline says the tile itself
+                // is the target, which is what it is.
                 content
-                    .overlay(alignment: .topTrailing) {
-                        // Quiet affordance: enough to read as tappable without
-                        // competing with the chip it sits beside.
-                        Image(systemName: "arrow.up.right")
-                            .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(Dex.green.opacity(0.7))
-                    }
+                    .padding(6)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .strokeBorder(LcdMode.current.accent.opacity(0.55), lineWidth: 2)
+                    )
             }
             .buttonStyle(DexPressStyle(scale: 0.95))
         } else {
@@ -182,7 +184,7 @@ public struct EntryDetailScreen: View {
                     }
                     tile(label: "ORIGIN",
                          chip: chip(g.details.origin.uppercased(), .country, key: g.details.origin),
-                         destination: .list(category: .regions, filter: .origin(g.details.origin))) { _ in
+                         destination: .country(name: g.details.origin)) { _ in
                         FlagSwatch(country: g.details.origin)
                     }
                 }
@@ -203,7 +205,7 @@ public struct EntryDetailScreen: View {
                     }
                     tile(label: "COUNTRY",
                          chip: chip(r.details.origin.uppercased(), .country, key: r.details.origin),
-                         destination: .list(category: .regions, filter: .origin(r.details.origin))) { _ in
+                         destination: .country(name: r.details.origin)) { _ in
                         FlagSwatch(country: r.details.origin)
                     }
                 }
@@ -225,7 +227,7 @@ public struct EntryDetailScreen: View {
                     if s.details.origin.lowercased() != "various" {
                         tile(label: "ORIGIN",
                              chip: chip(s.details.origin.uppercased(), .country, key: s.details.origin),
-                             destination: .list(category: .regions, filter: .origin(s.details.origin))) { _ in
+                             destination: .country(name: s.details.origin)) { _ in
                             FlagSwatch(country: s.details.origin)
                         }
                     }
@@ -425,7 +427,7 @@ public struct EntryDetailScreen: View {
                             )
                         Text(soil.uppercased())
                             .font(DexFont.retro(9))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(lcd.text)
                             .multilineTextAlignment(.center)
                             .lineLimit(2)
                             .minimumScaleFactor(0.7)
@@ -529,7 +531,7 @@ public struct EntryDetailScreen: View {
                 if let state = r.details.state {
                     Text(state.uppercased())
                         .font(DexFont.mono(19))
-                        .foregroundStyle(Dex.stone400)
+                        .foregroundStyle(lcd.subtext)
                 }
             }
         }
