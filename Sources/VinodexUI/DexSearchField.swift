@@ -29,13 +29,15 @@ public struct DexSearchField: UIViewRepresentable {
         field.returnKeyType = .search
         field.clearButtonMode = .never
         field.backgroundColor = .clear
-        field.tintColor = UIColor(Dex.green500)
-        field.textColor = UIColor(Dex.green500)
+        // Typed text has to contrast with the well it sits in, which is
+        // white in light mode — the mint green vanished on it.
+        field.tintColor = UIColor(LcdMode.current.accent)
+        field.textColor = UIColor(LcdMode.current.accent)
         field.font = uiFont
         field.attributedPlaceholder = NSAttributedString(
             string: placeholder,
             attributes: [
-                .foregroundColor: UIColor(Dex.green500).withAlphaComponent(0.35),
+                .foregroundColor: UIColor(LcdMode.current.accent).withAlphaComponent(0.45),
                 .font: uiFont,
             ]
         )

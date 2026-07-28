@@ -16,6 +16,9 @@ public struct RetroGlobeScreen: View {
     let onWorldSearch: () -> Void
 
     @State private var model = GlobeModel()
+    @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
+    private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
+
 
     public init(
         onSelectContinent: @escaping (Continent) -> Void,
@@ -50,7 +53,7 @@ public struct RetroGlobeScreen: View {
                 Text("DRAG TO SPIN GLOBE")
                     .font(DexFont.retro(11))
                     .tracking(3)
-                    .foregroundStyle(Color(dexHex: "#86efac"))
+                    .foregroundStyle(lcd.accent)
             }
             .padding(.vertical, 12)
         }
@@ -101,14 +104,14 @@ public struct RetroGlobeScreen: View {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(Dex.green500)
+                    .foregroundStyle(lcd.accent)
 
                 // Same face, size and colour as DexSearchField's placeholder,
                 // so this reads as the identical control — it just happens to
                 // open the search screen rather than accept typing in place.
                 Text("SEARCH WORLD...")
                     .font(DexFont.mono(26))
-                    .foregroundStyle(Dex.green500.opacity(0.35))
+                    .foregroundStyle(lcd.accent.opacity(0.45))
 
                 Spacer(minLength: 0)
 
@@ -118,8 +121,8 @@ public struct RetroGlobeScreen: View {
             }
             .padding(.horizontal, 14)
             .frame(height: 46)
-            .background(Capsule().fill(.black))
-            .overlay(Capsule().strokeBorder(Dex.stone600, lineWidth: 2))
+            .background(Capsule().fill(lcd.well))
+            .overlay(Capsule().strokeBorder(lcd.surfaceEdge, lineWidth: 2))
         }
         .buttonStyle(DexPressStyle(scale: 0.97))
         .padding(.horizontal, 12)

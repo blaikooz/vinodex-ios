@@ -20,6 +20,8 @@ public struct CountryScreen: View {
     @State private var showsAllGrapes = false
     @State private var showsAllRegions = false
     private let db = WineDatabase.shared
+    @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
+    private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
     /// Countries have no entry, so the bookmark key is synthesised. Prefixed so
     /// it can never collide with a real entry id.
@@ -63,7 +65,7 @@ public struct CountryScreen: View {
             .padding(.horizontal, 14)
             .padding(.bottom, 72)
         }
-        .background(Color.black)
+        .background(lcd.page)
         .id(country)
     }
 
@@ -78,8 +80,8 @@ public struct CountryScreen: View {
 
             Text(country.uppercased())
                 .font(DexFont.retro(21))
-                .foregroundStyle(.white)
-                .shadow(color: Color(dexHex: "#006400").opacity(0.8), radius: 0, x: 4, y: 4)
+                .foregroundStyle(lcd.text)
+                .shadow(color: lcd.accent.opacity(0.55), radius: 0, x: 4, y: 4)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -89,11 +91,11 @@ public struct CountryScreen: View {
         .padding(.vertical, 18)
         .background(
             ZStack {
-                Color(dexHex: "#14532d").opacity(0.1)
+                lcd.heroWash
                 DexGridBackground(spacing: 34, color: Color(dexHex: "#14532d"), opacity: 0.5)
             }
         )
-        .overlay(alignment: .bottom) { Color(dexHex: "#166534").frame(height: 4) }
+        .overlay(alignment: .bottom) { lcd.accent.frame(height: 4) }
         .padding(.horizontal, -14)
         .padding(.bottom, 16)
     }
@@ -113,11 +115,11 @@ public struct CountryScreen: View {
                     .font(DexFont.retro(10))
                     .tracking(2)
             }
-            .foregroundStyle(saved ? .black : Dex.green)
+            .foregroundStyle(saved ? .white : lcd.accent)
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-            .background(Capsule().fill(saved ? Dex.green : .black.opacity(0.35)))
-            .overlay(Capsule().strokeBorder(Dex.green, lineWidth: 2))
+            .background(Capsule().fill(saved ? lcd.accent : lcd.buttonWell))
+            .overlay(Capsule().strokeBorder(lcd.accent, lineWidth: 2))
         }
         .buttonStyle(DexPressStyle(scale: 0.94))
     }
@@ -134,16 +136,16 @@ public struct CountryScreen: View {
         return section("INFO", symbol: "book") {
             Text(text)
                 .font(DexFont.mono(18))
-                .foregroundStyle(Color(dexHex: "#bbf7d0"))
+                .foregroundStyle(lcd.bodyText)
                 .lineSpacing(2)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.leading, 14)
                 .padding(.vertical, 10)
                 .background(alignment: .leading) {
-                    Color(dexHex: "#15803d").frame(width: 4)
+                    lcd.accent.frame(width: 4)
                 }
-                .background(Color(dexHex: "#14532d").opacity(0.08))
+                .background(lcd.accent.opacity(0.06))
         }
     }
 
@@ -206,12 +208,12 @@ public struct CountryScreen: View {
                     .tracking(1)
                 Spacer(minLength: 0)
             }
-            .foregroundStyle(Dex.green)
+            .foregroundStyle(lcd.accent)
             .padding(.horizontal, 12)
             .frame(height: 42)
             .frame(maxWidth: .infinity)
-            .background(Capsule().fill(.black))
-            .overlay(Capsule().strokeBorder(Dex.stone600, lineWidth: 2))
+            .background(Capsule().fill(lcd.well))
+            .overlay(Capsule().strokeBorder(lcd.surfaceEdge, lineWidth: 2))
         }
         .buttonStyle(DexPressStyle(scale: 0.98))
     }
@@ -283,10 +285,10 @@ public struct CountryScreen: View {
                                 .foregroundStyle(Dex.stone600)
                         }
                         .padding(10)
-                        .background(Dex.stone900)
+                        .background(lcd.surface)
                         .overlay(
                             RoundedRectangle(cornerRadius: 4)
-                                .strokeBorder(Dex.stone700, lineWidth: 2)
+                                .strokeBorder(lcd.surfaceEdge, lineWidth: 2)
                         )
                     }
                     .buttonStyle(DexPressStyle(scale: 0.98))
@@ -340,14 +342,14 @@ public struct CountryScreen: View {
             HStack(spacing: 8) {
                 Image(systemName: symbol)
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Dex.green)
+                    .foregroundStyle(lcd.accent)
                 Text(title)
                     .font(DexFont.retro(12))
                     .tracking(1)
-                    .foregroundStyle(Dex.green)
+                    .foregroundStyle(lcd.accent)
             }
             .padding(.bottom, 2)
-            .overlay(alignment: .bottom) { Dex.green.opacity(0.4).frame(height: 2) }
+            .overlay(alignment: .bottom) { lcd.accent.opacity(0.4).frame(height: 2) }
 
             content()
         }

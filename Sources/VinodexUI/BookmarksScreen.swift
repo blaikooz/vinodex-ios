@@ -19,6 +19,8 @@ public struct BookmarksScreen: View {
     /// backend for a display name would be the tail wagging the dog.
     @AppStorage("userDisplayName") private var displayName = ""
     private let db = WineDatabase.shared
+    @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
+    private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
     public init(
         onSelect: @escaping (WineEntry) -> Void,
@@ -102,7 +104,7 @@ public struct BookmarksScreen: View {
             Text("\(items.count) SAVED")
                 .font(DexFont.retro(10))
                 .tracking(2)
-                .foregroundStyle(Dex.green)
+                .foregroundStyle(lcd.accent)
             Spacer()
             if !items.isEmpty {
                 Button {
@@ -117,7 +119,7 @@ public struct BookmarksScreen: View {
                     .padding(.vertical, 6)
                         .overlay(
                             RoundedRectangle(cornerRadius: 4)
-                                .strokeBorder(Dex.stone700, lineWidth: 1)
+                                .strokeBorder(lcd.surfaceEdge, lineWidth: 1)
                         )
                 }
                 .buttonStyle(DexPressStyle(scale: 0.95))
@@ -156,26 +158,26 @@ public struct BookmarksScreen: View {
 
             Text("NAME")
                 .font(DexFont.retro(9))
-                .foregroundStyle(Dex.green)
+                .foregroundStyle(lcd.accent)
 
             HStack(spacing: 8) {
                 Image(systemName: "pencil")
                     .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(Dex.green500)
+                    .foregroundStyle(lcd.accent)
                 DexSearchField(text: $displayName, placeholder: "ENTER NAME...", fontSize: 22)
                     .frame(height: 30)
             }
             .padding(.horizontal, 12)
             .frame(height: 44)
-            .background(Capsule().fill(.black))
-            .overlay(Capsule().strokeBorder(Dex.stone600, lineWidth: 2))
+            .background(Capsule().fill(lcd.well))
+            .overlay(Capsule().strokeBorder(lcd.surfaceEdge, lineWidth: 2))
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Dex.stone900)
+        .background(lcd.surface)
         .overlay(
             RoundedRectangle(cornerRadius: 4)
-                .strokeBorder(Dex.stone700, lineWidth: 2)
+                .strokeBorder(lcd.surfaceEdge, lineWidth: 2)
         )
         .padding(.bottom, 6)
     }
@@ -233,10 +235,10 @@ public struct BookmarksScreen: View {
             }
             .padding(8)
             .frame(minHeight: 72)
-            .background(Dex.stone900)
+            .background(lcd.surface)
             .overlay(
                 RoundedRectangle(cornerRadius: 4)
-                    .strokeBorder(Dex.stone700, lineWidth: 2)
+                    .strokeBorder(lcd.surfaceEdge, lineWidth: 2)
             )
         }
         .buttonStyle(DexPressStyle(scale: 0.98))
@@ -252,7 +254,7 @@ public struct BookmarksScreen: View {
                 .foregroundStyle(Dex.stone400)
                 .frame(width: 26, height: 26)
                 .background(Circle().fill(Dex.stone900))
-                .overlay(Circle().strokeBorder(Dex.stone700, lineWidth: 1))
+                .overlay(Circle().strokeBorder(lcd.surfaceEdge, lineWidth: 1))
         }
         .buttonStyle(DexPressStyle(scale: 0.9))
         .padding(6)

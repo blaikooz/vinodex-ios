@@ -15,6 +15,8 @@ public struct DailyGrapeScreen: View {
 
     @State private var revealed = false
     private let db = WineDatabase.shared
+    @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
+    private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
     public init(onOpen: @escaping (WineEntry) -> Void) {
         self.onOpen = onOpen
@@ -70,8 +72,8 @@ public struct DailyGrapeScreen: View {
 
             Text(revealed ? grape.name.uppercased() : "? ? ?")
                 .font(DexFont.retro(20))
-                .foregroundStyle(.white)
-                .shadow(color: Color(dexHex: "#006400").opacity(0.8), radius: 0, x: 3, y: 3)
+                .foregroundStyle(lcd.text)
+                .shadow(color: lcd.accent.opacity(0.55), radius: 0, x: 3, y: 3)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 20)
@@ -79,7 +81,7 @@ public struct DailyGrapeScreen: View {
             if revealed {
                 Text(grape.entryDescription)
                     .font(DexFont.mono(18))
-                    .foregroundStyle(Color(dexHex: "#bbf7d0"))
+                    .foregroundStyle(lcd.bodyText)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 24)

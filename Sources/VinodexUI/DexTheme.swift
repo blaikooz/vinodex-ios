@@ -369,11 +369,37 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// The grid and rules.
+    /// Section rules, headers and glyph tints. The dark theme's #4ADE80 is
+    /// invisible on white, so light mode drops to a deep bottle green that
+    /// still reads as "the green" without disappearing.
     public var accent: Color {
         switch self {
         case .dark: Dex.green
-        case .light: Color(dexHex: "#5A7A5A")
+        case .light: Color(dexHex: "#1B6B3A")
+        }
+    }
+
+    /// Body copy inside INFO blocks — mint on black, near-black on paper.
+    public var bodyText: Color {
+        switch self {
+        case .dark: Color(dexHex: "#bbf7d0")
+        case .light: Color(dexHex: "#23342A")
+        }
+    }
+
+    /// Hero panel wash behind an entry title.
+    public var heroWash: Color {
+        switch self {
+        case .dark: Color(dexHex: "#14532d").opacity(0.1)
+        case .light: Color(dexHex: "#1B6B3A").opacity(0.07)
+        }
+    }
+
+    /// Filled-button ground (SAVE and friends) when *not* active.
+    public var buttonWell: Color {
+        switch self {
+        case .dark: .black.opacity(0.35)
+        case .light: .white
         }
     }
 

@@ -109,12 +109,12 @@ public struct EntryDetailScreen: View {
         .padding(.vertical, 18)
         .background(
             ZStack {
-                Color(dexHex: "#14532d").opacity(0.1)
+                lcd.heroWash
                 DexGridBackground(spacing: 34, color: Color(dexHex: "#14532d"), opacity: 0.5)
             }
         )
         .overlay(alignment: .bottom) {
-            Color(dexHex: "#166534").frame(height: 4)
+            lcd.accent.frame(height: 4)
         }
         .padding(.horizontal, -14)
         .padding(.bottom, 16)
@@ -135,11 +135,11 @@ public struct EntryDetailScreen: View {
                     .font(DexFont.retro(10))
                     .tracking(2)
             }
-            .foregroundStyle(saved ? .black : Dex.green)
+            .foregroundStyle(saved ? .white : lcd.accent)
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-            .background(Capsule().fill(saved ? Dex.green : .black.opacity(0.35)))
-            .overlay(Capsule().strokeBorder(Dex.green, lineWidth: 2))
+            .background(Capsule().fill(saved ? lcd.accent : lcd.buttonWell))
+            .overlay(Capsule().strokeBorder(lcd.accent, lineWidth: 2))
         }
         .buttonStyle(DexPressStyle(scale: 0.94))
     }
@@ -148,7 +148,7 @@ public struct EntryDetailScreen: View {
         section("INFO", symbol: "book") {
             Text(entry.entryDescription)
                 .font(DexFont.mono(18))
-                .foregroundStyle(Color(dexHex: "#bbf7d0"))
+                .foregroundStyle(lcd.bodyText)
                 .lineSpacing(2)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -156,9 +156,9 @@ public struct EntryDetailScreen: View {
                 .padding(.vertical, 10)
                 .background(alignment: .leading) {
                     // The reference marks body copy with a left accent rule.
-                    Color(dexHex: "#15803d").frame(width: 4)
+                    lcd.accent.frame(width: 4)
                 }
-                .background(Color(dexHex: "#14532d").opacity(0.08))
+                .background(lcd.accent.opacity(0.06))
         }
     }
 
@@ -255,7 +255,7 @@ public struct EntryDetailScreen: View {
         }
         .padding(.bottom, 14)
         .overlay(alignment: .bottom) {
-            Color(dexHex: "#166534").frame(height: 4)
+            lcd.accent.frame(height: 4)
         }
         .padding(.bottom, 16)
     }
@@ -294,7 +294,7 @@ public struct EntryDetailScreen: View {
         return VStack(spacing: 5) {
             Text(label)
                 .font(DexFont.retro(8))
-                .foregroundStyle(Dex.green)
+                .foregroundStyle(lcd.accent)
             icon(tint)
                 .frame(height: 34)
             // Wrap rather than shrink. `minimumScaleFactor` let each tile pick
@@ -432,7 +432,7 @@ public struct EntryDetailScreen: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
-                    .background(Dex.stone900)
+                    .background(lcd.surface)
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
                             .strokeBorder(Dex.stone800, lineWidth: 2)
@@ -463,7 +463,7 @@ public struct EntryDetailScreen: View {
                 }
             }
             .padding(12)
-            .background(Dex.stone900)
+            .background(lcd.surface)
             .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Dex.stone800, lineWidth: 1))
         }
     }
@@ -568,15 +568,15 @@ public struct EntryDetailScreen: View {
         section(title, symbol: symbol) {
             Text(body)
                 .font(DexFont.mono(20))
-                .foregroundStyle(Color(dexHex: "#bbf7d0"))
+                .foregroundStyle(lcd.bodyText)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.leading, 14)
                 .padding(.vertical, 8)
                 .background(alignment: .leading) {
-                    Color(dexHex: "#15803d").frame(width: 4)
+                    lcd.accent.frame(width: 4)
                 }
-                .background(Color(dexHex: "#14532d").opacity(0.08))
+                .background(lcd.accent.opacity(0.06))
         }
     }
 
@@ -643,11 +643,11 @@ public struct EntryDetailScreen: View {
             HStack(spacing: 8) {
                 Image(systemName: symbol)
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Dex.green500)
+                    .foregroundStyle(lcd.accent)
                 Text(title)
                     .font(DexFont.retro(10))
                     .tracking(1.5)
-                    .foregroundStyle(Dex.green500)
+                    .foregroundStyle(lcd.accent)
                 Spacer()
             }
             .padding(.bottom, 5)
@@ -671,6 +671,9 @@ struct LinkedRow: View {
     let fallbackColor: Color
     let resolved: Bool
     let action: () -> Void
+
+    @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
+    private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
     var body: some View {
         Button(action: action) {
@@ -712,7 +715,7 @@ struct LinkedRow: View {
             }
             .padding(7)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Dex.stone900)
+            .background(lcd.surface)
             .overlay(
                 RoundedRectangle(cornerRadius: 4)
                     .strokeBorder(resolved ? Dex.stone700 : Dex.stone800, lineWidth: 1)
