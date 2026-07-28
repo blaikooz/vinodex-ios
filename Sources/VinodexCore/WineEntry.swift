@@ -2,14 +2,18 @@ import Foundation
 
 /// The category discriminator carried by every entry in `entries.json`.
 ///
-/// The starter dataset emits four categories. `CONTINENTS` and `COUNTRY_GATE`
-/// exist in the web app but are out of scope here — the globe filters regions
-/// directly rather than drilling through continent and country screens.
+/// The starter dataset originally emitted four categories, with `CONTINENTS`
+/// and `COUNTRY_GATE` left out — the globe filtered regions directly rather
+/// than drilling through continent and country screens. `CONTINENTS` is back
+/// in scope as of the continent info screen; `COUNTRY_GATE` (full per-country
+/// screens, USA state drill-down, etc.) remains out of scope. Continent
+/// "country" rows instead link straight to that country's regions.
 public enum EntryCategory: String, Codable, Sendable, CaseIterable {
     case grapes = "GRAPES"
     case regions = "REGIONS"
     case styles = "STYLES"
     case flavors = "FLAVORS"
+    case continents = "CONTINENTS"
 
     /// Uppercase title shown in the LCD header for a category listing.
     public var listTitle: String {
@@ -18,6 +22,7 @@ public enum EntryCategory: String, Codable, Sendable, CaseIterable {
         case .regions: "REGIONS"
         case .styles: "STYLES"
         case .flavors: "FLAVORS"
+        case .continents: "CONTINENTS"
         }
     }
 }
@@ -263,6 +268,35 @@ public struct FlavorEntry: Codable, Sendable, Hashable, Identifiable {
     }
 }
 
+/// `keyRegions` holds **country** names for a continent, despite the name —
+/// carried over verbatim from `data/continents.ts`.
+public struct ContinentDetails: Codable, Sendable, Hashable {
+    public let keyRegions: [String]
+}
+
+public struct ContinentEntry: Codable, Sendable, Hashable, Identifiable {
+    public let common: EntryCommon
+    public let details: ContinentDetails
+
+    public var id: String { common.id }
+
+    private enum CodingKeys: String, CodingKey {
+        case details
+    }
+
+    public init(from decoder: any Decoder) throws {
+        common = try EntryCommon(from: decoder)
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        details = try c.decode(ContinentDetails.self, forKey: .details)
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        try common.encode(to: encoder)
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(details, forKey: .details)
+    }
+}
+
 // MARK: - The union
 
 /// Swift equivalent of the web app's discriminated `WineEntry` union.
@@ -276,6 +310,7 @@ public enum WineEntry: Sendable, Hashable, Identifiable {
     case region(RegionEntry)
     case style(StyleEntry)
     case flavor(FlavorEntry)
+    case continent(ContinentEntry)
 
     public var common: EntryCommon {
         switch self {
@@ -283,6 +318,7 @@ public enum WineEntry: Sendable, Hashable, Identifiable {
         case .region(let e): e.common
         case .style(let e): e.common
         case .flavor(let e): e.common
+        case .continent(let e): e.common
         }
     }
 
@@ -292,6 +328,7 @@ public enum WineEntry: Sendable, Hashable, Identifiable {
         case .region: .regions
         case .style: .styles
         case .flavor: .flavors
+        case .continent: .continents
         }
     }
 
@@ -308,7 +345,7 @@ public enum WineEntry: Sendable, Hashable, Identifiable {
         case .grape(let e): e.details.origin
         case .region(let e): e.details.origin
         case .style(let e): e.details.origin
-        case .flavor: nil
+        case .flavor, .continent: nil
         }
     }
 
@@ -318,6 +355,7 @@ public enum WineEntry: Sendable, Hashable, Identifiable {
         case .region(let e): e.details.classification
         case .style(let e): e.details.classification
         case .flavor(let e): e.details.classification
+        case .continent: nil
         }
     }
 
@@ -325,14 +363,17 @@ public enum WineEntry: Sendable, Hashable, Identifiable {
         switch self {
         case .grape(let e): e.details.synonyms
         case .region(let e): e.details.synonyms ?? []
-        case .style, .flavor: []
+        case .style, .flavor, .continent: []
         }
     }
 
+    /// For continents this is (per the web app) actually a list of **country**
+    /// names, not regions — see `ContinentDetails`.
     public var keyRegions: [String] {
         switch self {
         case .grape(let e): e.details.keyRegions
         case .style(let e): e.details.keyRegions
+        case .continent(let e): e.details.keyRegions
         case .region, .flavor: []
         }
     }
@@ -342,7 +383,7 @@ public enum WineEntry: Sendable, Hashable, Identifiable {
         case .region(let e): e.details.notableGrapes
         case .style(let e): e.details.notableGrapes
         case .flavor(let e): e.details.notableGrapes
-        case .grape: []
+        case .grape, .continent: []
         }
     }
 
@@ -351,7 +392,7 @@ public enum WineEntry: Sendable, Hashable, Identifiable {
         case .grape(let e): e.tastingProfile ?? []
         case .style(let e): e.tastingProfile ?? []
         case .flavor(let e): e.tastingProfile
-        case .region: []
+        case .region, .continent: []
         }
     }
 
@@ -359,7 +400,7 @@ public enum WineEntry: Sendable, Hashable, Identifiable {
         switch self {
         case .grape(let e): e.rarity
         case .style(let e): e.rarity
-        case .region, .flavor: nil
+        case .region, .flavor, .continent: nil
         }
     }
 
@@ -384,6 +425,7 @@ extension WineEntry: Codable {
         case .regions: self = .region(try RegionEntry(from: decoder))
         case .styles: self = .style(try StyleEntry(from: decoder))
         case .flavors: self = .flavor(try FlavorEntry(from: decoder))
+        case .continents: self = .continent(try ContinentEntry(from: decoder))
         }
     }
 
@@ -393,6 +435,7 @@ extension WineEntry: Codable {
         case .region(let e): try e.encode(to: encoder)
         case .style(let e): try e.encode(to: encoder)
         case .flavor(let e): try e.encode(to: encoder)
+        case .continent(let e): try e.encode(to: encoder)
         }
         var c = encoder.container(keyedBy: DiscriminatorKey.self)
         try c.encode(category, forKey: .category)

@@ -9,7 +9,7 @@
  * Both are committed so a Swift build never needs Node. Scaling the starter to
  * the full database is a matter of setting STARTER_SELECTION to `undefined`.
  */
-import { resolveFlavorIcon } from '../../components/FlavorIcon.jsx';
+import { resolveFlavorIcon } from '../../src/services/flavorIcon.ts';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,6 +19,9 @@ import type { WineEntry } from '../../types.ts';
 import { CONTINENTS } from '../../data/continents.ts';
 import { CLIMATE_CLASS_MAP } from '../../data/climateClasses.ts';
 import { getFlagGradient } from '../../data/flagGradients.ts';
+import { GRAPE_CARDS } from '../../data/grapeCards.ts';
+import { REGIONS } from '../../data/regions.ts';
+import { STYLES } from '../../data/styles.ts';
 import { STYLE_TONE_PALETTE } from '../../stylePalette.ts';
 import {
   FLAVOR_SUBCLASS_KEYWORDS,
@@ -52,19 +55,49 @@ const OUT_DIR = resolve(HERE, '..', 'Sources', 'VinodexCore', 'Resources');
 // ---------------------------------------------------------------------------
 // Starter selection. Chosen for UI-state coverage, not familiarity — see the
 // plan. Set to `undefined` to emit the full database.
+//
+// Grapes are the only independently hand-picked list. Regions and styles are
+// *derived* from the selected grapes' real cross-links — each REGION/STYLE
+// entry's `details.notableGrapes` — rather than an independently hand-picked
+// parallel list that can silently drift out of sync with the grape selection.
+// Flavors are already derived this way upstream, in `buildFlavorEntries`.
 // ---------------------------------------------------------------------------
 
+const STARTER_GRAPES = [
+  // Original 10 (Phase 1 starter, kept as-is): Cab Sauv, Pinot Noir,
+  // Chardonnay, Riesling, Sangiovese, Montepulciano, Assyrtiko,
+  // Touriga Nacional, Albariño, Pinotage.
+  'G001', 'G002', 'G003', 'G007', 'G009', 'G051', 'G035', 'G038', 'G027', 'G050',
+  // Phase 2 expansion (+15): the rest of the noble six (Merlot, Syrah,
+  // Sauvignon Blanc, Nebbiolo), classic Old World reds/whites (Grenache,
+  // Tempranillo, Malbec, Zinfandel, Gewürztraminer), and broader country
+  // coverage — Argentina (Torrontés), Hungary (Furmint), Georgia (Saperavi),
+  // Japan (Koshu), Greece (Xinomavro), Italy (Primitivo).
+  'G004', 'G005', 'G006', 'G008', 'G010', 'G011', 'G012', 'G017', 'G024',
+  'G026', 'G040', 'G043', 'G046', 'G063', 'G078',
+];
+
+const selectedGrapeNames = new Set(
+  GRAPE_CARDS.filter((card) => STARTER_GRAPES.includes(card.id)).map((card) => card.name),
+);
+
+/** Every REGION/STYLE that lists at least one of the selected grapes as notable. */
+const linkedIds = <T extends { id: string; details: { notableGrapes?: string[] } }>(
+  all: readonly T[],
+): string[] =>
+  all
+    .filter((entry) => entry.details.notableGrapes?.some((name) => selectedGrapeNames.has(name)))
+    .map((entry) => entry.id);
+
 const STARTER_SELECTION: EntrySelection | undefined = {
-  // Cab Sauv, Pinot Noir, Chardonnay, Riesling, Sangiovese,
-  // Montepulciano, Assyrtiko, Touriga Nacional, Albariño, Pinotage
-  grapes: ['G001', 'G002', 'G003', 'G007', 'G009', 'G051', 'G035', 'G038', 'G027', 'G050'],
-  // Bordeaux, Napa, Tuscany, Rías Baixas, Douro, Marlborough,
-  // Mendoza, Stellenbosch, Santorini, Yamanashi
-  regions: ['R001', 'R013', 'R021', 'R033', 'R036', 'R043', 'R045', 'R047', 'R048', 'R052'],
-  // Full-Body Red, Light-Body White, Aromatic White, Sparkling Wine, Champagne,
-  // Port, GSM Blend, Bordeaux Blend, Qvevri Amber, Noble Grapes
-  styles: ['S001', 'S005', 'S006', 'S008', 'S009', 'S012', 'S020', 'S021', 'S026', 'S029'],
-  includeContinents: false,
+  grapes: STARTER_GRAPES,
+  regions: linkedIds(REGIONS),
+  styles: linkedIds(STYLES),
+  // Continents power the native continent info screen (globe marker ->
+  // INFO + COUNTRIES). Countries remain out of scope — full COUNTRY_GATE
+  // screens (states, appellation systems) aren't ported; a continent's
+  // country rows link straight to that country's regions instead.
+  includeContinents: true,
   includeCountries: false,
 };
 
@@ -314,6 +347,14 @@ const CLIMATE_SOIL_FALLBACK: Record<string, string[]> = {
 const DEFAULT_SOILS = ['Alluvial', 'Clay', 'Limestone'];
 
 /// Pixel flags live in `pixelflags/<Continent>/<slug>/<slug>.png`.
+///
+/// Originally just the countries that appeared as a grape/region `origin` in
+/// the starter selection. Now also covers every country the continent info
+/// screen lists (`data/continents.ts`' `keyRegions`), even where no grape or
+/// region in the curated selection happens to originate there — the
+/// continent screen shows every country in its list, not just the linked
+/// ones, and `FlagImage` only falls back to a plain swatch when a country is
+/// missing here entirely.
 const FLAG_PATHS: Record<string, string> = {
   France: 'Europe/france/france.png',
   Germany: 'Europe/germany/germany.png',
@@ -321,11 +362,23 @@ const FLAG_PATHS: Record<string, string> = {
   Greece: 'Europe/greece/greece.png',
   Portugal: 'Europe/portugal/portugal.png',
   Spain: 'Europe/spain/spain.png',
+  Hungary: 'Europe/hungary/hungary.png',
+  Austria: 'Europe/austria/austria.png',
+  Georgia: 'Europe/georgia_country/georgia_country_flag.png',
+  Switzerland: 'Europe/switzerland/switzerland.png',
+  Romania: 'Europe/romania/romania.png',
   'South Africa': 'Africa/south_africa/south_africa.png',
+  Morocco: 'Africa/morocco/morocco.png',
   USA: 'North America/united_states/united_states.png',
+  Canada: 'North America/canada/canada.png',
   Argentina: 'South America/argentina/argentina.png',
+  Chile: 'South America/chile/chile.png',
+  Uruguay: 'South America/uruguay/uruguay.png',
   'New Zealand': 'Oceania/new_zealand/new_zealand.png',
+  Australia: 'Oceania/australia/australia.png',
   Japan: 'Asia/japan/japan.png',
+  China: 'Asia/china/china.png',
+  India: 'Asia/india/india.png',
 };
 
 function buildIconManifest(entries: readonly WineEntry[]) {
@@ -339,12 +392,17 @@ function buildIconManifest(entries: readonly WineEntry[]) {
     }
   }
 
-  // Only ship flags for countries that actually appear in the selection.
-  const origins = new Set(
-    entries
+  // Only ship flags for countries that actually appear in the selection —
+  // either as a grape/region/style origin, or listed by a continent's
+  // COUNTRIES section (`keyRegions`, despite the name).
+  const origins = new Set([
+    ...entries
       .map((e) => (e.details as { origin?: string }).origin)
       .filter((o): o is string => typeof o === 'string'),
-  );
+    ...entries
+      .filter((e) => e.category === 'CONTINENTS')
+      .flatMap((e) => (e.details as { keyRegions?: string[] }).keyRegions ?? []),
+  ]);
   const flags = Object.fromEntries(
     Object.entries(FLAG_PATHS).filter(([country]) => origins.has(country)),
   );
@@ -452,12 +510,14 @@ function assertCoverage(entries: readonly WineEntry[], palette: ReturnType<typeo
   }
 
   // Flavours must be derived from the selected grapes, not filtered afterwards.
-  // 10 grapes x 3 notes = 30 instances collapsing to ~20-28; 109 means the
-  // selection was applied after buildFlavorEntries instead of before.
+  // 25 grapes x up to 3 notes = 75 instances collapsing to ~45-65 once shared
+  // notes (e.g. "cherry") merge across grapes. A count near the full
+  // database's total would mean the selection was applied after
+  // buildFlavorEntries instead of before.
   if (STARTER_SELECTION) {
     check(
-      `flavor count ${flavors.length} outside expected 15-30`,
-      flavors.length >= 15 && flavors.length <= 30,
+      `flavor count ${flavors.length} outside expected 40-75`,
+      flavors.length >= 40 && flavors.length <= 75,
       'selection may have been applied after flavour derivation',
     );
   }

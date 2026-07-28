@@ -116,6 +116,11 @@ public extension WineEntry {
                 TileChip(label: f.details.classification, key: f.details.classification, table: .flavorClass),
                 TileChip(label: EntryDisplay.humanize(f.details.subclass).uppercased(), key: f.details.subclass, table: .flavorSubclass),
             ]
+        case .continent:
+            // Continents aren't shown in a generic tile listing — they're
+            // reached only via the globe, straight to ContinentScreen — so
+            // this case is unexercised in practice.
+            return []
         }
     }
 }

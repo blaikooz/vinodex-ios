@@ -19,18 +19,25 @@ struct CoverageTests {
 
     @Test("per-category counts match the selection")
     func counts() {
-        #expect(db.entries(in: .grapes).count == 10)
-        #expect(db.entries(in: .regions).count == 10)
-        #expect(db.entries(in: .styles).count == 10)
+        // Phase 2: 25 hand-picked grapes, with regions/styles *derived* from
+        // those grapes' real cross-links (each REGION/STYLE's
+        // `notableGrapes`) rather than independently curated — so these
+        // counts are a consequence of the grape selection, not a separate
+        // choice. See native/scripts/generate.ts.
+        #expect(db.entries(in: .grapes).count == 25)
+        #expect(db.entries(in: .regions).count == 49)
+        #expect(db.entries(in: .styles).count == 20)
     }
 
-    /// 10 grapes x 3 notes = 30 instances collapsing to ~29 distinct. A result
-    /// near 109 means the selection was applied *after* `buildFlavorEntries`
-    /// rather than to the source grapes — the pipeline bug the plan calls out.
+    /// 25 grapes x up to 3 notes = 75 instances collapsing to ~40-75 distinct
+    /// once shared notes (e.g. "cherry") merge across grapes. A count near
+    /// the full database's total would mean the selection was applied
+    /// *after* `buildFlavorEntries` rather than to the source grapes — the
+    /// pipeline bug the plan calls out.
     @Test("flavors are derived from the selected grapes only")
     func flavorsDerived() {
         let flavors = db.entries(in: .flavors)
-        #expect(flavors.count >= 15 && flavors.count <= 30, "got \(flavors.count)")
+        #expect(flavors.count >= 40 && flavors.count <= 75, "got \(flavors.count)")
 
         let grapeNames = Set(db.entries(in: .grapes).map(\.name))
         for flavor in flavors {

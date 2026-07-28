@@ -151,6 +151,12 @@ public struct EntryDetailScreen: View {
                         DexIcon(iconID: db.iconID(for: entry), size: 32, color: Dex.stone200)
                     }
                 }
+
+            case .continent:
+                // Continents never reach this screen — they open
+                // ContinentScreen instead (see WineEntry.destination) — but
+                // the switch must stay exhaustive.
+                EmptyView()
             }
         }
         .padding(.bottom, 14)
@@ -228,6 +234,10 @@ public struct EntryDetailScreen: View {
             // Flavours deliberately have no INFO block in the reference; their
             // grape list is titled NOTABLE GRAPES.
             linkedSection("NOTABLE GRAPES", symbol: "list.bullet", names: entry.notableGrapes, limit: 8)
+
+        case .continent:
+            // Continents never reach this screen — see WineEntry.destination.
+            EmptyView()
         }
     }
 

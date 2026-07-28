@@ -31,6 +31,7 @@ public struct EntryVisual {
         case .region(let r): regionVisual(r, db: db)
         case .style(let s): styleVisual(s, db: db)
         case .flavor(let f): flavorVisual(f, db: db)
+        case .continent(let c): continentVisual(c, db: db)
         }
     }
 
@@ -197,6 +198,19 @@ public struct EntryVisual {
             iconColor: tint,
             ringColor: .white
         )
+    }
+
+    // MARK: - Continents
+    //
+    // Well is the continent's own authored colour. No glyph: the generated
+    // icon for continents (`lucide:globe`) isn't guaranteed to be rasterised
+    // (see ContinentScreen, which uses an SF Symbol for its own hero instead
+    // of going through this path) — showing nothing here is preferable to a
+    // visible "missing icon" box wherever a continent's generic icon well is
+    // drawn (e.g. the debug catalog).
+
+    private static func continentVisual(_ c: ContinentEntry, db: WineDatabase) -> EntryVisual {
+        EntryVisual(well: .color(Color(dexHex: c.common.color)), iconID: nil, iconColor: .white, ringColor: nil)
     }
 
     // MARK: - Flavors

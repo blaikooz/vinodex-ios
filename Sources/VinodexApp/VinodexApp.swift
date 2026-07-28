@@ -82,7 +82,9 @@ struct RootView: View {
         case .globe:
             RetroGlobeScreen(
                 onSelectContinent: { continent in
-                    push(.list(category: .regions, filter: db.filter(for: continent)))
+                    // Matches the web app: a globe marker opens the continent
+                    // info screen rather than jumping straight to its regions.
+                    push(.continent(entryID: "CONT_\(continent.rawValue)"))
                 },
                 onWorldSearch: {
                     // The web app's WORLD_SEARCH spans regions, countries and
@@ -90,6 +92,15 @@ struct RootView: View {
                     push(.list(category: .regions, filter: nil))
                 }
             )
+
+        case .continent(let id):
+            if let entry = db.entry(id: id), case .continent(let c) = entry {
+                ContinentScreen(continent: c) { country in
+                    push(.list(category: .regions, filter: .origin(country)))
+                }
+            } else {
+                notFound
+            }
         }
     }
 

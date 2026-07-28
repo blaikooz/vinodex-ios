@@ -28,7 +28,7 @@ struct FilterTests {
 
     @Test("empty search returns the whole category")
     func emptySearch() {
-        #expect(db.entries.apply(.category(.grapes, search: "")).count == 10)
+        #expect(db.entries.apply(.category(.grapes, search: "")).count == 25)
     }
 
     @Test("results are sorted by name")
@@ -59,17 +59,27 @@ struct FilterTests {
     }
 
     /// The continent filter is the array form of `.region`, and is what the globe
-    /// markers apply. Europe should pull several; Asia exactly Yamanashi.
+    /// markers apply. Europe should pull several; Asia and Africa now resolve to
+    /// more than one region each since the Phase 2 grape expansion (Koshu,
+    /// Saperavi, Marselan/Cabernet Gernischt-adjacent origins, Pinotage, Syrah,
+    /// Grenache) pulled in more region cross-links than the original 10-grape
+    /// starter did. Results come back name-sorted (`apply`'s `.sorted`).
     @Test("continent filter drives globe navigation")
     func continentFilter() {
         let europe = db.regions(in: .europe)
         #expect(europe.count >= 4, "expected several European regions, got \(europe.count)")
 
         let asia = db.regions(in: .asia)
-        #expect(asia.map(\.name) == ["Yamanashi"], "got \(asia.map(\.name))")
+        #expect(
+            asia.map(\.name) == ["Helan Mountain", "Nandi Hills", "Nashik", "Shangri-La", "Yamanashi"],
+            "got \(asia.map(\.name))"
+        )
 
         let africa = db.regions(in: .africa)
-        #expect(africa.map(\.name) == ["Stellenbosch"])
+        #expect(
+            africa.map(\.name) == ["Paarl & Franschhoek", "Stellenbosch", "Swartland", "Walker Bay"],
+            "got \(africa.map(\.name))"
+        )
     }
 
     @Test("filters compose with search")
@@ -81,7 +91,7 @@ struct FilterTests {
 
     @Test("no filter matches everything in the category")
     func noFilter() {
-        #expect(db.entries.apply(.category(.styles)).count == 10)
+        #expect(db.entries.apply(.category(.styles)).count == 20)
     }
 }
 
@@ -98,10 +108,14 @@ struct CrossLinkTests {
     /// At starter scale most linked names point outside the selection. Returning
     /// nil is the expected, common path — the UI must render those as
     /// non-tappable labels rather than dead buttons.
+    ///
+    /// Merlot and Nebbiolo were the examples here pre-Phase 2, but both are now
+    /// part of the 25-grape selection (see generate.ts) and resolve — swapped
+    /// for Cabernet Franc and Gamay, which are still outside it.
     @Test("returns nil for names outside the selection")
     func unresolved() {
-        #expect(db.entry(named: "Merlot") == nil)
-        #expect(db.entry(named: "Nebbiolo") == nil)
+        #expect(db.entry(named: "Cabernet Franc") == nil)
+        #expect(db.entry(named: "Gamay") == nil)
     }
 
     @Test("Bordeaux lists grapes both inside and outside the selection")
@@ -111,8 +125,10 @@ struct CrossLinkTests {
         let resolved = linked.filter { db.entry(named: $0) != nil }
         let unresolved = linked.filter { db.entry(named: $0) == nil }
 
+        // Cabernet Sauvignon and (since Phase 2) Merlot now resolve; Cabernet
+        // Franc remains outside the selection.
         #expect(!resolved.isEmpty, "expected at least Cabernet Sauvignon to resolve")
-        #expect(!unresolved.isEmpty, "expected Merlot / Cabernet Franc to be unresolved")
+        #expect(!unresolved.isEmpty, "expected Cabernet Franc to be unresolved")
     }
 
     @Test("category-scoped lookup does not cross categories")

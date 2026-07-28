@@ -292,4 +292,20 @@ public final class WineDatabase: Sendable {
     public func regions(in continent: Continent) -> [WineEntry] {
         entries.apply(.category(.regions, filter: filter(for: continent)))
     }
+
+    /// Whether at least one region in the current selection has this country
+    /// as its origin — what makes a continent's country row tappable.
+    /// Case-insensitive: region origins and continent country names are
+    /// both authored strings and don't always agree on case.
+    public func hasRegions(inCountry country: String) -> Bool {
+        let target = TextNormalize.label(country)
+        return entries(in: .regions).contains { TextNormalize.label($0.origin ?? "") == target }
+    }
+
+    /// The continent entry for a globe marker, by the `CONT_<RAWVALUE>` id
+    /// scheme shared with the web app and `data/continents.ts`.
+    public func continentEntry(_ continent: Continent) -> ContinentEntry? {
+        if case .continent(let c)? = entry(id: "CONT_\(continent.rawValue)") { return c }
+        return nil
+    }
 }
