@@ -377,6 +377,46 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// Ground behind entry screens, which paint their own black rather than
+    /// using `DexScreenBackground`.
+    public var page: Color {
+        switch self {
+        case .dark: .black
+        case .light: Color(dexHex: "#F2F2EC")
+        }
+    }
+
+    /// Row and card fill.
+    public var surface: Color {
+        switch self {
+        case .dark: Dex.stone900
+        case .light: Color(dexHex: "#FFFFFF")
+        }
+    }
+
+    public var surfaceEdge: Color {
+        switch self {
+        case .dark: Dex.stone700
+        case .light: Color(dexHex: "#C9C9C1")
+        }
+    }
+
+    /// Secondary text â€” captions, counts, placeholders.
+    public var subtext: Color {
+        switch self {
+        case .dark: Dex.stone400
+        case .light: Color(dexHex: "#5A5A54")
+        }
+    }
+
+    /// Fill behind search fields, which are black wells on the dark theme.
+    public var well: Color {
+        switch self {
+        case .dark: .black
+        case .light: Color(dexHex: "#FFFFFF")
+        }
+    }
+
     public static var current: LcdMode {
         LcdMode(rawValue: UserDefaults.standard.string(forKey: storageKey) ?? "") ?? .dark
     }

@@ -19,6 +19,9 @@ public struct EntryTileView: View {
     var showsChevron: Bool = true
     let action: () -> Void
 
+    @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
+    private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
+
     public init(
         entry: WineEntry,
         palette: Palette,
@@ -44,7 +47,7 @@ public struct EntryTileView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(entry.name.uppercased())
                         .font(DexFont.retro(13))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(lcd.text)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
 
@@ -75,10 +78,10 @@ public struct EntryTileView: View {
             // paywall is the entire point of showing it.
             .saturation(locked ? 0.15 : 1)
             .opacity(locked ? 0.55 : 1)
-            .background(Dex.stone900)
+            .background(lcd.surface)
             .overlay(
                 RoundedRectangle(cornerRadius: 4)
-                    .strokeBorder(locked ? Dex.stone800 : Dex.stone700, lineWidth: 2)
+                    .strokeBorder(locked ? lcd.surfaceEdge.opacity(0.6) : lcd.surfaceEdge, lineWidth: 2)
             )
         }
         .buttonStyle(DexPressStyle(scale: 0.98))

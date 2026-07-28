@@ -11,6 +11,8 @@ public struct EncyclopediaListScreen: View {
 
     @State private var search = ""
     @State private var access = AccessStore.shared
+    @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
+    private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
     private let db = WineDatabase.shared
 
     public init(
@@ -93,12 +95,8 @@ public struct EncyclopediaListScreen: View {
         }
         .padding(.horizontal, 12)
         .frame(height: 46)
-        .background(
-            Capsule().fill(.black)
-        )
-        .overlay(
-            Capsule().strokeBorder(Dex.stone600, lineWidth: 2)
-        )
+        .background(Capsule().fill(lcd.well))
+        .overlay(Capsule().strokeBorder(lcd.surfaceEdge, lineWidth: 2))
     }
 
     private var emptyState: some View {

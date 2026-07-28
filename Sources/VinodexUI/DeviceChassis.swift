@@ -666,13 +666,24 @@ public struct MarqueeBanner: View {
                 let shift = CGFloat((elapsed * pointsPerSecond)
                     .truncatingRemainder(dividingBy: Double(cycle)))
 
-                HStack(spacing: fontSize * 1.5) {
-                    label
-                    label
+                // The GeometryReader is load-bearing, not decoration: the
+                // `.fixedSize()` label pair is ~1500pt wide for the main-menu
+                // text, and without a *definite* width to clip against it
+                // ignores `maxWidth` entirely, renders full-bleed across the
+                // footer and squeezes the Back/user button out of the row.
+                GeometryReader { strip in
+                    HStack(spacing: fontSize * 1.5) {
+                        label
+                        label
+                    }
+                    .offset(x: -shift)
+                    .frame(
+                        width: max(strip.size.width, 0),
+                        height: max(strip.size.height, 0),
+                        alignment: .leading
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: DexMetrics.marqueeInnerCorner))
                 }
-                .offset(x: -shift)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .clipShape(RoundedRectangle(cornerRadius: DexMetrics.marqueeInnerCorner))
                 .padding(4)
             }
         }

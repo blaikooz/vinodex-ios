@@ -47,6 +47,9 @@ public struct EntryDetailScreen: View {
 
     private let db = WineDatabase.shared
     @State private var bookmarks = BookmarkStore.shared
+    @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
+
+    private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
     /// The web app caps linked lists at 8 rows.
     private static let linkedRowLimit = 8
@@ -78,7 +81,7 @@ public struct EntryDetailScreen: View {
             // Generous tail so the last section clears the footer, matching pb-20.
             .padding(.bottom, 72)
         }
-        .background(Color.black)
+        .background(lcd.page)
         // Following a cross-link swaps the entry but keeps the same ScrollView,
         // so the new entry opened at the previous one's scroll offset — halfway
         // down a screen you had never seen. Keying on the id gives each entry a
@@ -95,7 +98,7 @@ public struct EntryDetailScreen: View {
 
             Text(entry.name.uppercased())
                 .font(DexFont.retro(21))
-                .foregroundStyle(.white)
+                .foregroundStyle(lcd.text)
                 .shadow(color: Color(dexHex: "#006400").opacity(0.8), radius: 0, x: 4, y: 4)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
