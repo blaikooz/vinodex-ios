@@ -96,7 +96,7 @@ public struct EntryDetailScreen: View {
         Group {
             switch entry {
             case .grape(let g):
-                HStack(spacing: 8) {
+                HStack(alignment: .top, spacing: 8) {
                     tile(label: "COLOR", chip: chip(g.grapeType.rawValue.uppercased(), .colorType)) {
                         DexIcon(iconID: db.icons.colorIcon(g.grapeType.rawValue.uppercased()), size: 32, color: Dex.stone200)
                     }
@@ -109,7 +109,7 @@ public struct EntryDetailScreen: View {
                 }
 
             case .region(let r):
-                HStack(spacing: 8) {
+                HStack(alignment: .top, spacing: 8) {
                     let keyGrape = r.details.notableGrapes.first
                     tile(label: "KEY GRAPE", chip: chip((keyGrape ?? "N/A").uppercased(), .wineType, key: keyGrape ?? "")) {
                         keyGrapeIcon(keyGrape)
@@ -125,7 +125,7 @@ public struct EntryDetailScreen: View {
             case .style(let s):
                 let cls = EntryDisplay.styleClass(name: s.common.name, classification: s.details.classification)
                 let color = EntryDisplay.colorType(name: s.common.name)
-                HStack(spacing: 8) {
+                HStack(alignment: .top, spacing: 8) {
                     tile(label: "COLOR", chip: chip(color.rawValue, .colorType, key: color.rawValue)) {
                         DexIcon(iconID: db.icons.colorIcon(color.rawValue), size: 32, color: Dex.stone200)
                     }
@@ -140,7 +140,7 @@ public struct EntryDetailScreen: View {
                 }
 
             case .flavor(let f):
-                HStack(spacing: 8) {
+                HStack(alignment: .top, spacing: 8) {
                     tile(label: "CLASS", chip: chip(f.details.classification, .flavorClass, key: f.details.classification)) {
                         DexIcon(iconID: db.iconID(for: entry), size: 32, color: Color(dexHex: entry.color))
                     }
@@ -192,11 +192,15 @@ public struct EntryDetailScreen: View {
                 .foregroundStyle(Dex.green)
             icon()
                 .frame(height: 34)
+            // Two lines before shrinking: at a third of the screen, names like
+            // CABERNET SAUVIGNON and GRÜNER VELTLINER were being scaled to
+            // 55% and still clipped. Wrapping keeps them readable.
             ChipView(label: chip.label, chip: db.palette.resolve(chip))
-                .lineLimit(1)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
                 .minimumScaleFactor(0.55)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .top)
     }
 
     // MARK: Category sections
@@ -368,9 +372,13 @@ public struct EntryDetailScreen: View {
                 HStack(spacing: 4) {
                     let filled = rarityRank(g.rarity)
                     ForEach(0..<4, id: \.self) { index in
-                        Circle()
-                            .fill(index < filled ? Dex.yellow : Dex.stone700)
-                            .frame(width: 10, height: 10)
+                        // The top tier takes a crown rather than a fourth
+                        // star, so NOBLE reads as its own thing at a glance
+                        // instead of "one more star than RARE".
+                        let isCrown = g.rarity == .noble && index == 3
+                        Image(systemName: isCrown ? "crown.fill" : (index < filled ? "star.fill" : "star"))
+                            .font(.system(size: 11))
+                            .foregroundStyle(index < filled ? Dex.yellow : Dex.stone700)
                     }
                 }
             }
@@ -388,14 +396,21 @@ public struct EntryDetailScreen: View {
 
     private func systemSection(_ r: RegionEntry) -> some View {
         section("APPELLATION SYSTEM", symbol: "shield") {
-            HStack {
+            HStack(alignment: .top) {
+                // Spelled out here, but still keyed by the abbreviation: the
+                // palette tables are indexed by `classification`.
                 ChipView(
-                    label: r.details.classification.uppercased(),
+                    label: EntryDisplay.appellationName(
+                        classification: r.details.classification,
+                        country: r.details.origin
+                    ),
                     chip: db.palette.classificationChips[r.details.classification]
                         ?? db.palette.namedChips["SYSTEM"]
                         ?? Palette.Chip(bg: "#1f2937", border: "#4b5563", text: "#e5e7eb")
                 )
-                Spacer()
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 8)
                 if let state = r.details.state {
                     Text(state.uppercased())
                         .font(DexFont.mono(19))

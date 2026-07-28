@@ -78,6 +78,41 @@ public enum EntryDisplay {
             .map { $0.prefix(1).uppercased() + $0.dropFirst().lowercased() }
             .joined(separator: " ")
     }
+
+    /// Spells out an appellation abbreviation for the region detail screen.
+    ///
+    /// The dataset stores the short form (`AOC`, `DOCG`) because that is what
+    /// labels and the chip palette are keyed by, but the abbreviation alone
+    /// tells a reader nothing. Country matters: `DOC` and `DO` are used by
+    /// several countries for differently-spelled systems, so the pair is the
+    /// key, not the abbreviation on its own.
+    ///
+    /// Unknown pairs return the classification unchanged, so a new region
+    /// renders its abbreviation rather than blank.
+    public static func appellationName(classification: String, country: String) -> String {
+        let system = classification.trimmingCharacters(in: .whitespaces)
+        let place = TextNormalize.label(country)
+
+        switch (system.uppercased(), place) {
+        case ("AOC", _):   return "Appellation d'Origine Contrôlée"
+        case ("AVA", _):   return "American Viticultural Area"
+        case ("DAC", _):   return "Districtus Austriae Controllatus"
+        case ("DHC", _):   return "Districtus Hungaricus Controllatus"
+        case ("GI", _):    return "Geographical Indication"
+        case ("PDO", _):   return "Protected Designation of Origin"
+        case ("WO", _):    return "Wine of Origin"
+        case ("DOCG", _):  return "Denominazione di Origine Controllata e Garantita"
+        case ("DOCA", _):  return "Denominación de Origen Calificada"
+        case ("DO", _):    return "Denominación de Origen"
+
+        // The genuinely ambiguous one: same abbreviation, three languages.
+        case ("DOC", "italy"):    return "Denominazione di Origine Controllata"
+        case ("DOC", "portugal"): return "Denominação de Origem Controlada"
+        case ("DOC", _):          return "Denominación de Origen Controlada"
+
+        default: return system
+        }
+    }
 }
 
 public extension WineEntry {

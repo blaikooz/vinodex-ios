@@ -121,4 +121,35 @@ struct CoverageTests {
         #expect(r.details.synonyms?.contains("Napa") == true)
         #expect(r.climate == .warm)
     }
+
+    /// The region screen spells out the appellation abbreviation. An unmapped
+    /// system falls back to the abbreviation, which renders but reads as a
+    /// bug — so adding a region in a new country should fail here first.
+    @Test("every region's appellation system has a spelled-out name")
+    func appellationNamesResolve() {
+        for entry in db.entries(in: .regions) {
+            guard case .region(let r) = entry else { continue }
+            let short = r.details.classification
+            guard !short.isEmpty else { continue }
+            let full = EntryDisplay.appellationName(classification: short, country: r.details.origin)
+            #expect(
+                full != short || short == "Prädikatswein",
+                "\(r.common.name): '\(short)' (\(r.details.origin)) has no spelled-out name"
+            )
+        }
+    }
+
+    /// `DOC` means three different things depending on the country, so the
+    /// lookup is keyed by the pair rather than the abbreviation alone.
+    @Test("DOC resolves per country")
+    func docIsCountrySpecific() {
+        #expect(EntryDisplay.appellationName(classification: "DOC", country: "Italy")
+            == "Denominazione di Origine Controllata")
+        #expect(EntryDisplay.appellationName(classification: "DOC", country: "Portugal")
+            == "Denominação de Origem Controlada")
+        #expect(EntryDisplay.appellationName(classification: "DOC", country: "Argentina")
+            == "Denominación de Origen Controlada")
+        // Unknown systems pass through rather than rendering empty.
+        #expect(EntryDisplay.appellationName(classification: "XYZ", country: "Nowhere") == "XYZ")
+    }
 }
