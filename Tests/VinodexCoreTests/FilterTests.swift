@@ -96,7 +96,7 @@ struct FilterTests {
 
     @Test("no filter matches everything in the category")
     func noFilter() {
-        #expect(db.entries.apply(.category(.styles)).count == 20)
+        #expect(db.entries.apply(.category(.styles)).count == db.entries(in: .styles).count)
     }
 }
 
@@ -110,30 +110,51 @@ struct CrossLinkTests {
         #expect(db.entry(named: "cabernet sauvignon") != nil, "lookup should be case-insensitive")
     }
 
-    /// At starter scale most linked names point outside the selection. Returning
-    /// nil is the expected, common path — the UI must render those as
-    /// non-tappable labels rather than dead buttons.
+    /// A name with no entry must return nil rather than a near-match, so the UI
+    /// renders it as a plain label instead of a dead button.
     ///
-    /// Merlot and Nebbiolo were the examples here pre-Phase 2, but both are now
-    /// part of the 25-grape selection (see generate.ts) and resolve — swapped
-    /// for Cabernet Franc and Gamay, which are still outside it.
-    @Test("returns nil for names outside the selection")
+    /// This used to name real grapes outside the 25-grape selection (Cabernet
+    /// Franc, Gamay). The full database ships now, so both resolve — the case
+    /// needs a name that genuinely does not exist.
+    @Test("returns nil for names not in the database")
     func unresolved() {
-        #expect(db.entry(named: "Cabernet Franc") == nil)
-        #expect(db.entry(named: "Gamay") == nil)
+        #expect(db.entry(named: "Definitely Not A Grape") == nil)
+        #expect(db.entry(named: "") == nil)
     }
 
-    @Test("Bordeaux lists grapes both inside and outside the selection")
-    func mixedLinks() throws {
-        let bordeaux = try #require(db.entry(named: "Bordeaux"))
-        let linked = bordeaux.notableGrapes
-        let resolved = linked.filter { db.entry(named: $0) != nil }
-        let unresolved = linked.filter { db.entry(named: $0) == nil }
+    /// Most cross-links land now that the full database ships, but 24 names do
+    /// not: regions and styles reference grapes absent from the grape table
+    /// (Rioja → Graciano, Douro → Tinta Roriz, Jura → Poulsard/Savagnin/
+    /// Trousseau), and Pétillant Naturel lists the literal "Various".
+    ///
+    /// That is a content gap rather than a fault — the UI renders an
+    /// unresolved name as a plain label, not a dead button. Pinned so the
+    /// number cannot grow unnoticed, and so the day someone fills the gap the
+    /// test says so.
+    @Test("grape cross-links resolve, apart from a known data gap")
+    func crossLinksResolve() {
+        var unresolved: Set<String> = []
+        var total = 0
 
-        // Cabernet Sauvignon and (since Phase 2) Merlot now resolve; Cabernet
-        // Franc remains outside the selection.
-        #expect(!resolved.isEmpty, "expected at least Cabernet Sauvignon to resolve")
-        #expect(!unresolved.isEmpty, "expected Cabernet Franc to be unresolved")
+        for entry in db.entries(in: .regions) + db.entries(in: .styles) {
+            for name in entry.notableGrapes {
+                total += 1
+                if db.entry(named: name) == nil { unresolved.insert(name) }
+            }
+        }
+
+        #expect(total > 0)
+        #expect(
+            unresolved.count <= 24,
+            "unresolved cross-links grew to \(unresolved.count): \(unresolved.sorted())"
+        )
+        // The vast majority must still land; a resolution *mechanism* break
+        // would show up here rather than as a slow creep in the count above.
+        let resolved = total - unresolved.count
+        #expect(
+            Double(resolved) / Double(total) > 0.85,
+            "only \(resolved)/\(total) cross-links resolve"
+        )
     }
 
     @Test("category-scoped lookup does not cross categories")

@@ -19,28 +19,32 @@ struct CoverageTests {
 
     @Test("per-category counts match the selection")
     func counts() {
-        // Phase 3: 35 hand-picked grapes, with regions/styles *derived* from
-        // those grapes' real cross-links (each REGION/STYLE's
-        // `notableGrapes`) rather than independently curated — so these
-        // counts are a consequence of the grape selection, not a separate
-        // choice. See `STARTER_GRAPES` in native/scripts/generate.ts.
+        // The full database now ships — `STARTER_SELECTION` is nil. The one
+        // thing still filtered is COUNTRY_GATE, whose category `EntryCategory`
+        // cannot decode; shipping it failed the whole entries.json decode.
         //
-        // Update these deliberately when the selection changes; a change you
-        // did not intend is exactly what this is here to catch.
-        #expect(db.entries(in: .grapes).count == 35)
-        #expect(db.entries(in: .regions).count == 50)
-        #expect(db.entries(in: .styles).count == 20)
+        // Update these deliberately when the data changes; a change you did not
+        // intend is exactly what this is here to catch.
+        #expect(db.entries(in: .grapes).count == 80)
+        #expect(db.entries(in: .regions).count == 60)
+        #expect(db.entries(in: .styles).count == 29)
+        #expect(db.entries(in: .continents).count == 6)
     }
 
-    /// 25 grapes x up to 3 notes = 75 instances collapsing to ~40-75 distinct
-    /// once shared notes (e.g. "cherry") merge across grapes. A count near
-    /// the full database's total would mean the selection was applied
-    /// *after* `buildFlavorEntries` rather than to the source grapes — the
-    /// pipeline bug the plan calls out.
-    @Test("flavors are derived from the selected grapes only")
+    /// Flavours are derived from the grapes' tasting notes, collapsing shared
+    /// notes (e.g. "cherry") across grapes — so the count must stay well below
+    /// the number of note *instances*. The real assertion is the loop: every
+    /// flavour must link a grape that exists.
+    @Test("flavors are derived from the grapes")
     func flavorsDerived() {
         let flavors = db.entries(in: .flavors)
-        #expect(flavors.count >= 40 && flavors.count <= 75, "got \(flavors.count)")
+        let noteInstances = db.entries(in: .grapes)
+            .reduce(0) { $0 + $1.tastingProfile.count }
+        #expect(!flavors.isEmpty)
+        #expect(
+            flavors.count < noteInstances,
+            "\(flavors.count) flavours from \(noteInstances) notes — shared notes are not merging"
+        )
 
         let grapeNames = Set(db.entries(in: .grapes).map(\.name))
         for flavor in flavors {

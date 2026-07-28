@@ -96,7 +96,13 @@ const linkedIds = <T extends { id: string; details: { notableGrapes?: string[] }
     .filter((entry) => entry.details.notableGrapes?.some((name) => selectedGrapeNames.has(name)))
     .map((entry) => entry.id);
 
-const STARTER_SELECTION: EntrySelection | undefined = {
+/// The full database now ships. `STARTER_GRAPES` is kept because the free-tier
+/// rule below is expressed against real grape properties rather than a
+/// hand-listed selection, and because reverting to a curated subset is a
+/// one-line change if the full set turns out to be unwieldy.
+const STARTER_SELECTION: EntrySelection | undefined = undefined;
+
+const UNUSED_STARTER_SELECTION: EntrySelection = {
   grapes: STARTER_GRAPES,
   regions: linkedIds(REGIONS),
   styles: linkedIds(STYLES),
@@ -580,7 +586,13 @@ function assertCoverage(entries: readonly WineEntry[], palette: ReturnType<typeo
 
 function main() {
   const full = buildWineEntries();
-  const entries = buildWineEntries(STARTER_SELECTION);
+  // COUNTRY_GATE entries are the web app's country drill-down nodes (country ->
+  // states -> regions). The native port has no country screen — `DexRoute` has
+  // no case for it and `EntryCategory` cannot decode it — so shipping them
+  // failed the *entire* entries.json decode on one bad category, taking the
+  // whole database down with it. Excluded until that screen exists.
+  const entries = buildWineEntries(STARTER_SELECTION)
+    .filter((entry) => entry.category !== 'COUNTRY_GATE');
   const palette = buildPalette(full);
 
   const summary = assertCoverage(entries, palette);
@@ -588,14 +600,29 @@ function main() {
 
   mkdirSync(OUT_DIR, { recursive: true });
 
-  // Which entries the free tier unlocks. The first 25 grapes are the Phase 1+2
-  // selection; regions, styles and flavours follow from *their* cross-links, so
-  // the free tier stays internally consistent — you never meet a region whose
-  // key grape is locked. Continents are always free: the globe is navigation,
-  // and locking it would strand the user on the map screen.
-  const freeGrapeIDs = new Set(STARTER_GRAPES.slice(0, 25));
+  // Which entries the free tier unlocks: every NOBLE grape, plus the COMMON
+  // grapes of the four countries a newcomer is most likely to be holding a
+  // bottle from. Expressed against grape properties rather than a hand-listed
+  // set, so it stays correct as the database grows.
+  //
+  // Regions, styles and flavours follow from *their* cross-links, so the free
+  // tier stays internally consistent — you never meet a region whose key grape
+  // is locked. Continents are always free: the globe is navigation, and locking
+  // it would strand the user on the map screen.
+  const FREE_COMMON_ORIGINS = new Set(['France', 'Italy', 'USA', 'Spain']);
+  const freeGrapeIDs = new Set(
+    entries
+      .filter((entry) => {
+        if (entry.category !== 'GRAPES') return false;
+        const rarity = (entry as { rarity?: string }).rarity;
+        if (rarity === 'NOBLE') return true;
+        const origin = (entry.details as { origin?: string }).origin ?? '';
+        return rarity === 'COMMON' && FREE_COMMON_ORIGINS.has(origin);
+      })
+      .map((entry) => entry.id),
+  );
   const freeGrapeNames = new Set(
-    GRAPE_CARDS.filter((card) => freeGrapeIDs.has(card.id)).map((card) => card.name),
+    entries.filter((entry) => freeGrapeIDs.has(entry.id)).map((entry) => entry.name),
   );
   const isFree = (entry: WineEntry): boolean => {
     if (entry.category === 'CONTINENTS') return true;

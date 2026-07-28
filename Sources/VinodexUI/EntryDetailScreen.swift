@@ -9,9 +9,41 @@ import VinodexCore
 /// Sections are driven by the entry variant rather than a pile of optional
 /// checks — `if case .grape(let g)` gives the compiler the same guarantees the
 /// TypeScript type guards gave the web app.
+/// Wraps a header tile in a button when it has somewhere to go, and leaves it
+/// untouched when it does not — so an inert tile has no press animation and no
+/// hit target suggesting otherwise.
+private struct TileLink: ViewModifier {
+    let destination: DexRoute?
+    let onOpen: (DexRoute) -> Void
+
+    func body(content: Content) -> some View {
+        if let destination {
+            Button {
+                Haptics.select()
+                onOpen(destination)
+            } label: {
+                content
+                    .overlay(alignment: .topTrailing) {
+                        // Quiet affordance: enough to read as tappable without
+                        // competing with the chip it sits beside.
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(Dex.green.opacity(0.7))
+                    }
+            }
+            .buttonStyle(DexPressStyle(scale: 0.95))
+        } else {
+            content
+        }
+    }
+}
+
 public struct EntryDetailScreen: View {
     let entry: WineEntry
     let onSelectRelated: (WineEntry) -> Void
+    /// Cross-links from the header tiles go to a filtered list rather than a
+    /// single entry, so they need a route rather than a `WineEntry`.
+    var onOpenRoute: (DexRoute) -> Void = { _ in }
 
     private let db = WineDatabase.shared
     @State private var bookmarks = BookmarkStore.shared
@@ -19,9 +51,14 @@ public struct EntryDetailScreen: View {
     /// The web app caps linked lists at 8 rows.
     private static let linkedRowLimit = 8
 
-    public init(entry: WineEntry, onSelectRelated: @escaping (WineEntry) -> Void) {
+    public init(
+        entry: WineEntry,
+        onSelectRelated: @escaping (WineEntry) -> Void,
+        onOpenRoute: @escaping (DexRoute) -> Void = { _ in }
+    ) {
         self.entry = entry
         self.onSelectRelated = onSelectRelated
+        self.onOpenRoute = onOpenRoute
     }
 
     public var body: some View {
@@ -130,13 +167,19 @@ public struct EntryDetailScreen: View {
             switch entry {
             case .grape(let g):
                 HStack(alignment: .top, spacing: 8) {
-                    tile(label: "COLOR", chip: chip(g.grapeType.rawValue.uppercased(), .colorType)) { tint in
+                    tile(label: "COLOR",
+                         chip: chip(g.grapeType.rawValue.uppercased(), .colorType),
+                         destination: .list(category: .grapes, filter: .type(g.grapeType.rawValue))) { tint in
                         DexIcon(iconID: db.icons.colorIcon(g.grapeType.rawValue.uppercased()), size: 32, color: tint)
                     }
-                    tile(label: "TYPE", chip: chip(EntryDisplay.grapeBodyLabel(g), .wineType, key: g.grapeStyle)) { tint in
+                    tile(label: "TYPE",
+                         chip: chip(EntryDisplay.grapeBodyLabel(g), .wineType, key: g.grapeStyle),
+                         destination: .list(category: .grapes, filter: .type(g.grapeStyle))) { tint in
                         DexIcon(iconID: db.icons.bodyIcon(g.grapeBodyClass), size: 32, color: tint)
                     }
-                    tile(label: "ORIGIN", chip: chip(g.details.origin.uppercased(), .country, key: g.details.origin)) { _ in
+                    tile(label: "ORIGIN",
+                         chip: chip(g.details.origin.uppercased(), .country, key: g.details.origin),
+                         destination: .list(category: .regions, filter: .origin(g.details.origin))) { _ in
                         FlagSwatch(country: g.details.origin)
                     }
                 }
@@ -144,13 +187,20 @@ public struct EntryDetailScreen: View {
             case .region(let r):
                 HStack(alignment: .top, spacing: 8) {
                     let keyGrape = r.details.notableGrapes.first
-                    tile(label: "KEY GRAPE", chip: chip((keyGrape ?? "N/A").uppercased(), .wineType, key: keyGrape ?? "")) { _ in
+                    let keyGrapeEntry = keyGrape.flatMap { db.entry(named: $0) }
+                    tile(label: "KEY GRAPE",
+                         chip: chip((keyGrape ?? "N/A").uppercased(), .wineType, key: keyGrape ?? ""),
+                         destination: keyGrapeEntry.map { .detail(entryID: $0.id) }) { _ in
                         keyGrapeIcon(keyGrape)
                     }
-                    tile(label: "CLIMATE", chip: chip((r.climate?.rawValue ?? "N/A").uppercased(), .climate, key: r.climate?.rawValue ?? "")) { tint in
+                    tile(label: "CLIMATE",
+                         chip: chip((r.climate?.rawValue ?? "N/A").uppercased(), .climate, key: r.climate?.rawValue ?? ""),
+                         destination: r.climate.map { .list(category: .regions, filter: .climate($0)) }) { tint in
                         DexIcon(iconID: db.icons.climateIcon(r.climate), size: 32, color: tint)
                     }
-                    tile(label: "COUNTRY", chip: chip(r.details.origin.uppercased(), .country, key: r.details.origin)) { _ in
+                    tile(label: "COUNTRY",
+                         chip: chip(r.details.origin.uppercased(), .country, key: r.details.origin),
+                         destination: .list(category: .regions, filter: .origin(r.details.origin))) { _ in
                         FlagSwatch(country: r.details.origin)
                     }
                 }
@@ -159,14 +209,20 @@ public struct EntryDetailScreen: View {
                 let cls = EntryDisplay.styleClass(name: s.common.name, classification: s.details.classification)
                 let color = EntryDisplay.colorType(name: s.common.name)
                 HStack(alignment: .top, spacing: 8) {
-                    tile(label: "COLOR", chip: chip(color.rawValue, .colorType, key: color.rawValue)) { tint in
+                    tile(label: "COLOR",
+                         chip: chip(color.rawValue, .colorType, key: color.rawValue),
+                         destination: .list(category: .grapes, filter: .type(color.rawValue))) { tint in
                         DexIcon(iconID: db.icons.colorIcon(color.rawValue), size: 32, color: tint)
                     }
-                    tile(label: "CLASS", chip: chip(cls.rawValue, .styleClass, key: cls.rawValue)) { tint in
+                    tile(label: "CLASS",
+                         chip: chip(cls.rawValue, .styleClass, key: cls.rawValue),
+                         destination: .list(category: .styles, filter: .system(s.details.classification))) { tint in
                         DexIcon(iconID: db.iconID(for: entry), size: 32, color: tint)
                     }
                     if s.details.origin.lowercased() != "various" {
-                        tile(label: "ORIGIN", chip: chip(s.details.origin.uppercased(), .country, key: s.details.origin)) { _ in
+                        tile(label: "ORIGIN",
+                             chip: chip(s.details.origin.uppercased(), .country, key: s.details.origin),
+                             destination: .list(category: .regions, filter: .origin(s.details.origin))) { _ in
                             FlagSwatch(country: s.details.origin)
                         }
                     }
@@ -174,7 +230,9 @@ public struct EntryDetailScreen: View {
 
             case .flavor(let f):
                 HStack(alignment: .top, spacing: 8) {
-                    tile(label: "CLASS", chip: chip(f.details.classification, .flavorClass, key: f.details.classification)) { _ in
+                    tile(label: "CLASS",
+                         chip: chip(f.details.classification, .flavorClass, key: f.details.classification),
+                         destination: .list(category: .flavors, filter: .tasting(f.details.classification))) { _ in
                         DexIcon(iconID: db.iconID(for: entry), size: 32, color: Color(dexHex: entry.color))
                     }
                     tile(
@@ -221,9 +279,12 @@ public struct EntryDetailScreen: View {
     /// The icon builder is handed the resolved chip's colour so the glyph and
     /// its chip read as one unit. They were all flat `stone200`, which made the
     /// row look inert next to the coloured chips directly beneath it.
+    /// `destination` makes the tile a cross-link. Nil leaves it inert rather
+    /// than tappable-but-dead.
     private func tile<C: View>(
         label: String,
         chip: TileChip,
+        destination: DexRoute? = nil,
         @ViewBuilder icon: (Color) -> C
     ) -> some View {
         let tint = Color(dexHex: db.palette.resolve(chip).text)
@@ -233,15 +294,18 @@ public struct EntryDetailScreen: View {
                 .foregroundStyle(Dex.green)
             icon(tint)
                 .frame(height: 34)
-            // Two lines before shrinking: at a third of the screen, names like
-            // CABERNET SAUVIGNON and GRÜNER VELTLINER were being scaled to
-            // 55% and still clipped. Wrapping keeps them readable.
+            // Wrap rather than shrink. `minimumScaleFactor` let each tile pick
+            // its own effective size, so the three sat at three different
+            // scales — the row read as inconsistent even though every label
+            // was nominally 11pt. Chip labels carry soft hyphens (see
+            // `EntryDisplay.hyphenated`), so even a single long word has
+            // somewhere legal to break, at any screen width.
             ChipView(label: chip.label, chip: db.palette.resolve(chip))
-                .lineLimit(2)
+                .lineLimit(3)
                 .multilineTextAlignment(.center)
-                .minimumScaleFactor(0.55)
         }
         .frame(maxWidth: .infinity, alignment: .top)
+        .modifier(TileLink(destination: destination, onOpen: onOpenRoute))
     }
 
     // MARK: Category sections

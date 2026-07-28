@@ -104,7 +104,11 @@ struct RootView: View {
 
         case .detail(let id):
             if let entry = db.entry(id: id) {
-                EntryDetailScreen(entry: entry) { open($0) }
+                EntryDetailScreen(
+                    entry: entry,
+                    onSelectRelated: { open($0) },
+                    onOpenRoute: { push($0) }
+                )
             } else {
                 notFound
             }
