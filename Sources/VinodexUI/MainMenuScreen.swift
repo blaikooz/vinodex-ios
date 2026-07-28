@@ -42,7 +42,12 @@ public struct MainMenuScreen: View {
                 searchButton
 
                 HStack(spacing: 10) {
-                    tile("STYLES", symbol: "square.stack.3d.up.fill",
+                    // Matches the web app's own STYLES button, which uses
+                    // lucide's `Wine` (MainMenu.tsx). This was
+                    // `square.stack.3d.up.fill` — a layers glyph that had no
+                    // counterpart on the web side. SF Symbols 4 / iOS 16, so
+                    // it clears the iOS 17 deployment target.
+                    tile("STYLES", symbol: "wineglass.fill",
                          face: "#f97316", shadow: "#9a3412") {
                         onSelect(.list(category: .styles, filter: nil))
                     }
