@@ -115,7 +115,10 @@ public enum DexMetrics {
     /// Floor for the island strip. `.statusBarHidden()` can collapse
     /// `safeAreaInsets.top` to zero on cutout devices, so this must independently
     /// be tall enough to contain the island (~11pt from the top, ~37pt tall).
-    public static let islandStripMinHeight: CGFloat = 55
+    /// Tall enough to seat a full-size `controlButton` beside the cutout, so
+    /// the orb and the cog match the footer buttons instead of being shrunk to
+    /// fit. Costs a little LCD height at the top, which is the trade.
+    public static let islandStripMinHeight: CGFloat = 70
     public static let islandClearance: CGFloat = 138
     public static let islandFlankPaddingH: CGFloat = 0.5 * rem
     /// Pulls flank content in toward the cutout rather than the screen edges.
@@ -123,8 +126,13 @@ public enum DexMetrics {
     /// which reads as deliberate rather than stranded at the corner.
     public static let islandFlankInnerGap: CGFloat = 0.125 * rem
     public static let bezelTopMargin: CGFloat = 0.5 * rem
-    public static let lcdOrb: CGFloat = 1.75 * rem
+    /// Orb, cog and the two footer buttons are all `controlButton` now — one
+    /// size for every physical control on the chassis.
+    public static let lcdOrb: CGFloat = controlButton
     public static let statusDot: CGFloat = 0.5 * rem
+    /// Tightened so the three status lights read as one cluster next to the
+    /// larger orb rather than a spread-out row.
+    public static let statusDotSpacing: CGFloat = 0.2 * rem
     public static let titleSize: CGFloat = 0.9375 * rem
 
     /// Screen housing

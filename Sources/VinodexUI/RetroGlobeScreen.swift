@@ -13,28 +13,16 @@ import VinodexCore
 /// three.js's `Vector3.project`.
 public struct RetroGlobeScreen: View {
     let onSelectContinent: (Continent) -> Void
-    let onSelectEntry: (WineEntry) -> Void
+    let onWorldSearch: () -> Void
 
     @State private var model = GlobeModel()
-    @State private var search = ""
-
-    private let db = WineDatabase.shared
 
     public init(
         onSelectContinent: @escaping (Continent) -> Void,
-        onSelectEntry: @escaping (WineEntry) -> Void
+        onWorldSearch: @escaping () -> Void
     ) {
         self.onSelectContinent = onSelectContinent
-        self.onSelectEntry = onSelectEntry
-    }
-
-    /// Regions and continents only — the globe's own domain. Grapes and styles
-    /// have their own screens and would swamp a place-name search.
-    private var results: [WineEntry] {
-        guard !search.trimmingCharacters(in: .whitespaces).isEmpty else { return [] }
-        return db.entries.apply(
-            EntryQuery(categories: [.regions, .continents], filter: nil, search: search)
-        )
+        self.onWorldSearch = onWorldSearch
     }
 
     public var body: some View {
@@ -46,9 +34,9 @@ public struct RetroGlobeScreen: View {
                 .opacity(0.3)
 
             VStack(spacing: 12) {
-                // Search sits above the globe, matching the other screens, and
-                // below the sphere it competed with the drag hint for the same
-                // corner of the eye.
+                // Looks like the other screens' search bars, but it opens the
+                // search screen rather than filtering in place — results laid
+                // over a spinning sphere read as a rendering glitch.
                 searchBar
 
                 ZStack {
@@ -56,16 +44,10 @@ public struct RetroGlobeScreen: View {
                         .gesture(dragGesture)
 
                     markerLayer
-
-                    // Results sit over the sphere rather than pushing to another
-                    // screen, so the globe stays put behind them.
-                    if !results.isEmpty {
-                        resultsOverlay
-                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                Text(results.isEmpty ? "DRAG TO SPIN GLOBE" : "\(results.count) MATCH\(results.count == 1 ? "" : "ES")")
+                Text("DRAG TO SPIN GLOBE")
                     .font(DexFont.retro(11))
                     .tracking(3)
                     .foregroundStyle(Color(dexHex: "#86efac"))
@@ -108,55 +90,37 @@ public struct RetroGlobeScreen: View {
         }
     }
 
-    /// Same treatment as `EncyclopediaListScreen.searchBar`, so the globe reads
-    /// as one of the search screens rather than a special case.
+    /// Carries the same capsule treatment as `EncyclopediaListScreen.searchBar`
+    /// so it reads as a search affordance, but it is a button: tapping it opens
+    /// the world-search screen with a real keyboard-backed field.
     private var searchBar: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 18, weight: .bold))
-                .foregroundStyle(Dex.green500)
+        Button {
+            Haptics.tap()
+            onWorldSearch()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(Dex.green500)
 
-            DexSearchField(text: $search, placeholder: "SEARCH WORLD...")
-                .frame(height: 34)
+                Text("SEARCH WORLD...")
+                    .font(DexFont.retro(11))
+                    .tracking(1)
+                    .foregroundStyle(Dex.green500.opacity(0.55))
 
-            if !search.isEmpty {
-                Button {
-                    Haptics.tap()
-                    search = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 18))
-                        .foregroundStyle(Dex.stone600)
-                }
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(Dex.stone600)
             }
+            .padding(.horizontal, 14)
+            .frame(height: 46)
+            .background(Capsule().fill(.black))
+            .overlay(Capsule().strokeBorder(Dex.stone600, lineWidth: 2))
         }
+        .buttonStyle(DexPressStyle(scale: 0.97))
         .padding(.horizontal, 12)
-        .frame(height: 46)
-        .background(Capsule().fill(.black))
-        .overlay(Capsule().strokeBorder(Dex.stone600, lineWidth: 2))
-        .padding(.horizontal, 12)
-    }
-
-    private var resultsOverlay: some View {
-        ScrollView {
-            VStack(spacing: 8) {
-                ForEach(results) { entry in
-                    EntryTileView(entry: entry, palette: db.palette) {
-                        search = ""
-                        onSelectEntry(entry)
-                    }
-                }
-            }
-            .padding(10)
-        }
-        .scrollDismissesKeyboard(.interactively)
-        .background(.black.opacity(0.82))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(Dex.green.opacity(0.5), lineWidth: 2)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .padding(10)
     }
 
     // MARK: Drag
@@ -222,6 +186,18 @@ final class GlobeModel {
     private static let cameraDistance: Double = 4.25
     /// Markers hide well before the limb so they never straddle the edge.
     private static let frontFacingThreshold: Double = 0.55
+
+    /// Screen-space shift applied to every marker, ~10 characters of the retro
+    /// face at marker size.
+    ///
+    /// Empirical, and worth replacing once we know why it is needed: the
+    /// coordinates are continent centroids and the projection is the same
+    /// formula the web app uses, so a constant error points at SceneKit's
+    /// `SCNSphere` UV mapping differing from three.js's `SphereGeometry` —
+    /// i.e. the texture is rotated relative to the lat/lng maths. If so the
+    /// real fix is an angular offset in `latLngToVector3`, which stays correct
+    /// as the globe spins; this one is only exact near the sphere's centre.
+    private static let markerNudgeX: CGFloat = 70
 
     /// Continent marker colours, overriding the continent palette entries.
     private static let markerColors: [Continent: String] = [
@@ -422,7 +398,10 @@ final class GlobeModel {
             let world = globeNode.convertPosition(local, to: nil)
             let projected = view.projectPoint(world)
 
-            let point = CGPoint(x: CGFloat(projected.x), y: CGFloat(projected.y))
+            let point = CGPoint(
+                x: CGFloat(projected.x) - Self.markerNudgeX,
+                y: CGFloat(projected.y)
+            )
             let inBounds = point.x - hw >= 0
                 && point.x + hw <= viewportSize.width
                 && point.y - hh >= 0

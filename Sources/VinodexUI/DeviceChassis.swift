@@ -18,6 +18,8 @@ public struct DeviceChassis<Content: View>: View {
     /// The system panel lives here rather than in the app module so it can be
     /// confined to the LCD — see `SettingsPanel`.
     @State private var showsPanel = false
+    /// Whether the device is showing its underside — see `DeviceBackPlate`.
+    @State private var isFlipped = false
 
     public init(
         title: String,
@@ -47,41 +49,66 @@ public struct DeviceChassis<Content: View>: View {
             let topStrip = max(geo.safeAreaInsets.top, DexMetrics.islandStripMinHeight)
             let bottomInset = geo.safeAreaInsets.bottom
 
-            ZStack(alignment: .top) {
-                Dex.red
+            ZStack {
+                // Front and back are both mounted, each hidden when facing
+                // away, and the pair is rotated together — the same structure
+                // as the web app's preserve-3d flip container.
+                frontFace(topStrip: topStrip, bottomInset: bottomInset)
+                    .opacity(isFlipped ? 0 : 1)
+                    .accessibilityHidden(isFlipped)
 
-                VStack(spacing: 0) {
-                    Color.clear.frame(height: topStrip)
-                    screenHousing
-                    // The footer band absorbs the home-indicator inset rather
-                    // than sitting above it, which drops the marquee and the
-                    // control buttons toward the bottom edge.
-                    footer(extraBottom: bottomInset)
-                }
-
-                islandFlank(height: topStrip)
+                DeviceBackPlate { isFlipped = false }
+                    // Pre-rotated so it reads the right way round once the
+                    // container has turned; without this it arrives mirrored.
+                    .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
+                    .opacity(isFlipped ? 1 : 0)
+                    .accessibilityHidden(!isFlipped)
             }
+            .rotation3DEffect(
+                .degrees(isFlipped ? 180 : 0),
+                axis: (x: 0, y: 1, z: 0),
+                perspective: 0.45
+            )
+            .animation(.easeInOut(duration: 0.7), value: isFlipped)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
         }
         .background(Dex.red.ignoresSafeArea())
     }
 
+    private func frontFace(topStrip: CGFloat, bottomInset: CGFloat) -> some View {
+        ZStack(alignment: .top) {
+            Dex.red
+
+            VStack(spacing: 0) {
+                Color.clear.frame(height: topStrip)
+                screenHousing
+                // The footer band absorbs the home-indicator inset rather
+                // than sitting above it, which drops the marquee and the
+                // control buttons toward the bottom edge.
+                footer(extraBottom: bottomInset)
+            }
+
+            islandFlank(height: topStrip)
+        }
+    }
+
     // MARK: Island flank
     //
-    // Orb + status lights to the left of the Dynamic Island, wordmark to the
+    // Orb + status lights to the left of the Dynamic Island, cog to the
     // right. This band is otherwise dead chassis, so using it costs the LCD
     // nothing — the bezel keeps none of it.
 
     private func islandFlank(height: CGFloat) -> some View {
-        // Orb and lights scale to the strip rather than using a fixed size, so
-        // they stay as large as fits neatly whatever inset the device reports.
-        let orb = min(height * 0.72, 46)
+        // One control size across the whole chassis. The strip is sized to seat
+        // it (`islandStripMinHeight`); the clamp only matters on a device that
+        // reports a shorter inset than we ask for.
+        let control = min(DexMetrics.controlButton, height - 8)
 
-        return HStack(spacing: 0) {
-            HStack(spacing: orb * 0.22) {
-                lcdOrb(size: orb)
-                statusDots(size: max(orb * 0.26, 8))
+        return HStack(alignment: .center, spacing: 0) {
+            HStack(alignment: .center, spacing: DexMetrics.statusDotSpacing * 2) {
+                lcdOrb(size: control)
+                statusDots(size: max(control * 0.2, 8))
             }
             // `fixedSize` first: without it the inner HStack stays greedy and the
             // trailing alignment has nothing to push against, leaving the orb
@@ -93,7 +120,7 @@ public struct DeviceChassis<Content: View>: View {
             // Clearance held open for the cutout itself.
             Color.clear.frame(width: DexMetrics.islandClearance)
 
-            logoButton(height: height)
+            settingsButton(size: control)
                 .fixedSize()
                 .frame(maxWidth: .infinity)
         }
@@ -101,32 +128,52 @@ public struct DeviceChassis<Content: View>: View {
         .frame(height: height)
     }
 
-    /// The pixel-V mark. Tapping it opens the system panel — a deliberate,
-    /// discoverable-once affordance rather than a gesture that fights scrolling.
+    /// A brushed-silver cog: the settings button.
     ///
-    /// Styled as a physical key on the chassis: a raised well and a lit ring
-    /// while open, so it reads as a button rather than decoration.
-    private func logoButton(height: CGFloat) -> some View {
+    /// Was the pixel-V wordmark, which looked like branding and so read as
+    /// decoration — nobody expects a logo to be tappable. A cog states what it
+    /// does. Same diameter as the footer controls, so every button on the
+    /// chassis is one size.
+    private func settingsButton(size: CGFloat) -> some View {
         Button {
             Haptics.tap()
             showsPanel.toggle()
         } label: {
-            LogoMark()
-                .frame(width: height * 0.52, height: height * 0.52)
-                .padding(height * 0.13)
-                .background(Circle().fill(Dex.darkRed.opacity(showsPanel ? 0.55 : 0.28)))
+            Image(systemName: "gearshape.fill")
+                .font(.system(size: size * 0.52, weight: .semibold))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [
+                            Color(dexHex: "#f4f5f6"),
+                            Color(dexHex: "#c3c6ca"),
+                            Color(dexHex: "#8b8f95"),
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .shadow(color: .black.opacity(0.5), radius: 0, x: 0, y: 1)
+                .frame(width: size, height: size)
+                .background(
+                    Circle().fill(
+                        LinearGradient(
+                            colors: [Dex.stone700, Dex.stone900],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                )
                 .overlay(
                     Circle().strokeBorder(
-                        showsPanel ? Dex.yellow : Dex.darkRed,
+                        showsPanel ? Dex.yellow : Dex.stone400,
                         lineWidth: showsPanel ? 3 : 2
                     )
                 )
                 .shadow(color: .black.opacity(0.45), radius: 2, y: 1)
-                // Comfortably past the 44pt minimum even on a short strip.
                 .contentShape(Circle())
         }
-        .buttonStyle(DexPressStyle(scale: 0.86))
-        .accessibilityLabel("System panel")
+        .buttonStyle(DexPressStyle(scale: 0.9))
+        .accessibilityLabel("Settings")
     }
 
     private func lcdOrb(size: CGFloat) -> some View {
@@ -147,7 +194,7 @@ public struct DeviceChassis<Content: View>: View {
     }
 
     private func statusDots(size: CGFloat) -> some View {
-        HStack(spacing: size * 0.55) {
+        HStack(spacing: DexMetrics.statusDotSpacing) {
             statusDot(Dex.red600, border: Dex.red800, period: 6.1, size: size)
             statusDot(Dex.yellow400, border: Dex.yellow600, period: 7.4, size: size)
             statusDot(Dex.green500, border: Dex.green700, period: 4.8, size: size)
@@ -211,9 +258,18 @@ public struct DeviceChassis<Content: View>: View {
             // Confined to the LCD, so the bezel, footer and island stay put and
             // the panel reads as the device's own menu rather than an iOS modal.
             if showsPanel {
-                SettingsPanel { showsPanel = false }
-                    .padding(6)
-                    .transition(.opacity)
+                SettingsPanel(
+                    onClose: { showsPanel = false },
+                    onFlip: {
+                        // Close first: the panel is on the face that is about
+                        // to turn away, and leaving it up means it is still
+                        // there when the device comes back.
+                        showsPanel = false
+                        isFlipped = true
+                    }
+                )
+                .padding(6)
+                .transition(.opacity)
             }
 
             ScanlineOverlay()
@@ -262,8 +318,20 @@ public struct DeviceChassis<Content: View>: View {
 
     private func footer(extraBottom: CGFloat) -> some View {
         HStack(spacing: 8) {
-            ChassisButton(kind: .back, enabled: showsBack && onBack != nil) {
-                onBack?()
+            // Back and Home act on whatever is in front of you. With the panel
+            // open (or the device flipped) they dismiss that first, rather than
+            // navigating underneath it and appearing to do nothing.
+            ChassisButton(
+                kind: .back,
+                enabled: isFlipped || showsPanel || (showsBack && onBack != nil)
+            ) {
+                if isFlipped {
+                    isFlipped = false
+                } else if showsPanel {
+                    showsPanel = false
+                } else {
+                    onBack?()
+                }
             }
 
             MarqueeBanner(
@@ -274,6 +342,8 @@ public struct DeviceChassis<Content: View>: View {
             .frame(maxWidth: .infinity)
 
             ChassisButton(kind: .home, enabled: onHome != nil) {
+                isFlipped = false
+                showsPanel = false
                 onHome?()
             }
         }

@@ -17,8 +17,11 @@ public struct MainMenuScreen: View {
         ZStack {
             DexScreenBackground()
 
-            VStack(spacing: 12) {
-                HStack(spacing: 14) {
+            // Tightened so the tiles claim more of the LCD. Kept at 8/10pt
+            // rather than zero: the tiles carry a 6pt fake extrusion on their
+            // bottom edge, and butting them together loses that read.
+            VStack(spacing: 8) {
+                HStack(spacing: 10) {
                     tile("GRAPES", symbol: "circle.grid.3x3.fill",
                          face: "#a855f7", shadow: "#6b21a8") {
                         onSelect(.list(category: .grapes, filter: nil))
@@ -31,7 +34,7 @@ public struct MainMenuScreen: View {
 
                 searchButton
 
-                HStack(spacing: 14) {
+                HStack(spacing: 10) {
                     tile("STYLES", symbol: "square.stack.3d.up.fill",
                          face: "#f97316", shadow: "#9a3412") {
                         onSelect(.list(category: .styles, filter: nil))
@@ -42,7 +45,7 @@ public struct MainMenuScreen: View {
                     }
                 }
             }
-            .padding(14)
+            .padding(8)
         }
     }
 
@@ -110,7 +113,8 @@ public struct MainMenuScreen: View {
             .shadow(color: Dex.yellow.opacity(0.4), radius: 12)
         }
         .buttonStyle(DexPressStyle(scale: 0.95))
-        .frame(height: 96)
+        // Tight to the 92pt circle; the extra 4pt was dead space between rows.
+        .frame(height: 92)
     }
 }
 #endif

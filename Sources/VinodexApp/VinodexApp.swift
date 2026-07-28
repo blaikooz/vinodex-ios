@@ -83,13 +83,13 @@ struct RootView: View {
                     // info screen rather than jumping straight to its regions.
                     push(.continent(entryID: "CONT_\(continent.rawValue)"))
                 },
-                onSelectEntry: { entry in
-                    // Search results are regions and continents, and
-                    // `destination` already routes a continent to its own
-                    // screen rather than the generic detail one.
-                    push(entry.destination)
-                }
+                onWorldSearch: { push(.globeSearch) }
             )
+
+        case .globeSearch:
+            // Continents and regions between them carry country and state
+            // names, and `matchesSearch` already looks at origin and state.
+            EncyclopediaListScreen(categories: [.continents, .regions]) { push($0.destination) }
 
         case .continent(let id):
             if let entry = db.entry(id: id), case .continent(let c) = entry {

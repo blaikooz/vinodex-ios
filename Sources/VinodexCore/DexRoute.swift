@@ -13,6 +13,10 @@ public enum DexRoute: Hashable, Sendable {
     case masterSearch
     case detail(entryID: String)
     case globe
+    /// Place search: continents and regions, which between them carry the
+    /// country and state names too. Its own screen rather than an overlay on
+    /// the globe — results floating over a spinning sphere read as a glitch.
+    case globeSearch
     /// The continent info screen — INFO blurb plus a COUNTRIES list, each
     /// linking to that country's regions. Reached from the globe markers.
     case continent(entryID: String)
@@ -27,6 +31,8 @@ public enum DexRoute: Hashable, Sendable {
             "SCAN"
         case .globe:
             "GLOBE SCAN"
+        case .globeSearch:
+            "WORLD SEARCH"
         case .continent:
             "CONTINENT SCAN"
         }

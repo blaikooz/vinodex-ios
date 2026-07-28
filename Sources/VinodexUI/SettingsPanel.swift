@@ -19,6 +19,7 @@ public struct SettingsPanel: View {
     }
 
     let onClose: () -> Void
+    let onFlip: () -> Void
 
     @State private var tab: Tab = .settings
     /// Placeholder until there is something real to configure.
@@ -26,8 +27,9 @@ public struct SettingsPanel: View {
 
     private let db = WineDatabase.shared
 
-    public init(onClose: @escaping () -> Void) {
+    public init(onClose: @escaping () -> Void, onFlip: @escaping () -> Void) {
         self.onClose = onClose
+        self.onFlip = onFlip
     }
 
     public var body: some View {
@@ -104,6 +106,44 @@ public struct SettingsPanel: View {
 
     private var settings: some View {
         VStack(alignment: .leading, spacing: 8) {
+            Button {
+                Haptics.tap()
+                onFlip()
+            } label: {
+                HStack(spacing: 10) {
+                    // Available since iOS 13; the trianglehead variants are 18+
+                    // and would render blank on the iOS 17 target.
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 16, weight: .bold))
+                    Text("FLIP DEVICE")
+                        .font(DexFont.retro(11))
+                        .tracking(2)
+                    Spacer(minLength: 0)
+                    Text("SEE BACK PLATE")
+                        .font(DexFont.mono(16))
+                        .foregroundStyle(Dex.stone600)
+                }
+                .foregroundStyle(Dex.stone200)
+                .padding(.horizontal, 12)
+                .frame(height: 46)
+                .frame(maxWidth: .infinity)
+                .background(
+                    RoundedRectangle(cornerRadius: 6).fill(
+                        LinearGradient(
+                            colors: [Dex.stone700, Dex.stone900],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .strokeBorder(Dex.stone400.opacity(0.6), lineWidth: 2)
+                )
+            }
+            .buttonStyle(DexPressStyle(scale: 0.97))
+            .padding(.bottom, 6)
+
             Text("SCRATCH FIELD")
                 .font(DexFont.retro(9))
                 .foregroundStyle(Dex.green)
