@@ -41,6 +41,11 @@ public struct EntryDetailScreen: View {
             .padding(.bottom, 72)
         }
         .background(Color.black)
+        // Following a cross-link swaps the entry but keeps the same ScrollView,
+        // so the new entry opened at the previous one's scroll offset — halfway
+        // down a screen you had never seen. Keying on the id gives each entry a
+        // fresh scroll view, which starts at the top.
+        .id(entry.id)
     }
 
     // MARK: Hero

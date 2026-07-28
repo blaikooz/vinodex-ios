@@ -187,17 +187,25 @@ final class GlobeModel {
     /// Markers hide well before the limb so they never straddle the edge.
     private static let frontFacingThreshold: Double = 0.55
 
-    /// Screen-space shift applied to every marker, ~10 characters of the retro
-    /// face at marker size.
+    /// Correction between the lat/lng maths and where the texture actually
+    /// draws each landmass.
     ///
-    /// Empirical, and worth replacing once we know why it is needed: the
-    /// coordinates are continent centroids and the projection is the same
-    /// formula the web app uses, so a constant error points at SceneKit's
-    /// `SCNSphere` UV mapping differing from three.js's `SphereGeometry` —
-    /// i.e. the texture is rotated relative to the lat/lng maths. If so the
-    /// real fix is an angular offset in `latLngToVector3`, which stays correct
-    /// as the globe spins; this one is only exact near the sphere's centre.
-    private static let markerNudgeX: CGFloat = 70
+    /// `SCNSphere` does not lay an equirectangular image out the way three.js's
+    /// `SphereGeometry` does, so the projection formula ported from the web app
+    /// lands a quarter-turn away from the coastline it names. Two rounds of
+    /// screen-space nudging summed to roughly the globe's on-screen radius,
+    /// which is the signature of a 90° longitude error — a pixel shift equal to
+    /// the radius is what `sin(90°)` gives you.
+    ///
+    /// Applied as an angle rather than a pixel offset so it stays correct as
+    /// the globe spins and as markers move away from the sphere's centre, where
+    /// a fixed screen shift over-corrects.
+    ///
+    /// If this overshoots, the other candidates are `+90` and `180`.
+    private static let markerLongitudeOffset: Double = -90
+    /// Small southward bias: the label box is centred on its point, so the eye
+    /// reads the marker as sitting above the landmass it names.
+    private static let markerLatitudeOffset: Double = -8
 
     /// Continent marker colours, overriding the continent palette entries.
     private static let markerColors: [Continent: String] = [
@@ -385,8 +393,8 @@ final class GlobeModel {
         markers = markers.map { marker in
             var next = marker
             let local = Self.latLngToVector3(
-                lat: marker.continent.coordinate.lat,
-                lng: marker.continent.coordinate.lng,
+                lat: marker.continent.coordinate.lat + Self.markerLatitudeOffset,
+                lng: marker.continent.coordinate.lng + Self.markerLongitudeOffset,
                 radius: Self.globeRadius
             )
             // Into world space through the globe's current orientation.
@@ -398,10 +406,7 @@ final class GlobeModel {
             let world = globeNode.convertPosition(local, to: nil)
             let projected = view.projectPoint(world)
 
-            let point = CGPoint(
-                x: CGFloat(projected.x) - Self.markerNudgeX,
-                y: CGFloat(projected.y)
-            )
+            let point = CGPoint(x: CGFloat(projected.x), y: CGFloat(projected.y))
             let inBounds = point.x - hw >= 0
                 && point.x + hw <= viewportSize.width
                 && point.y - hh >= 0

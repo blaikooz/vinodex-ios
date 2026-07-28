@@ -20,6 +20,11 @@ public struct DeviceChassis<Content: View>: View {
     @State private var showsPanel = false
     /// Whether the device is showing its underside — see `DeviceBackPlate`.
     @State private var isFlipped = false
+    /// Shared with `SettingsPanel` through `@AppStorage`, so toggling it there
+    /// repaints the chassis without any state being threaded between them.
+    @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
+
+    private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
 
     public init(
         title: String,
@@ -38,7 +43,7 @@ public struct DeviceChassis<Content: View>: View {
     private var isMainScreen: Bool { title == "VINODEX" }
 
     private var footerTitle: String {
-        isMainScreen ? "CHEERS! - SANTE! - SALUTE! - PROST! - KANPAI!" : title
+        isMainScreen ? "CHEERS!SANTE!SALUTE!PROST!KANPAI!" : title
     }
 
     public var body: some View {
@@ -73,12 +78,12 @@ public struct DeviceChassis<Content: View>: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
         }
-        .background(Dex.red.ignoresSafeArea())
+        .background(skin.body.ignoresSafeArea())
     }
 
     private func frontFace(topStrip: CGFloat, bottomInset: CGFloat) -> some View {
         ZStack(alignment: .top) {
-            Dex.red
+            skin.body
 
             VStack(spacing: 0) {
                 Color.clear.frame(height: topStrip)
@@ -106,23 +111,24 @@ public struct DeviceChassis<Content: View>: View {
         let control = min(DexMetrics.controlButton, height - 8)
 
         return HStack(alignment: .center, spacing: 0) {
-            HStack(alignment: .center, spacing: DexMetrics.statusDotSpacing * 2) {
-                lcdOrb(size: control)
-                statusDots(size: max(control * 0.2, 8))
-            }
-            // `fixedSize` first: without it the inner HStack stays greedy and the
-            // trailing alignment has nothing to push against, leaving the orb
-            // pinned to the far left.
-            .fixedSize()
-            .frame(maxWidth: .infinity, alignment: .trailing)
-            .padding(.trailing, DexMetrics.islandFlankInnerGap)
+            // Orb pinned left, directly above the Back button.
+            lcdOrb(size: control)
+                .fixedSize()
+
+            // Lights take the whole run between the orb and the cutout and
+            // centre themselves in it, rather than hugging one end.
+            statusDots(size: max(control * 0.2, 8))
+                .fixedSize()
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.horizontal, DexMetrics.islandFlankInnerGap)
 
             // Clearance held open for the cutout itself.
             Color.clear.frame(width: DexMetrics.islandClearance)
 
+            // Cog pinned right, directly above Home.
             settingsButton(size: control)
                 .fixedSize()
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(.horizontal, DexMetrics.islandFlankPaddingH)
         .frame(height: height)
@@ -220,7 +226,7 @@ public struct DeviceChassis<Content: View>: View {
             innerBezel
             bottomVents
         }
-        .background(Dex.ui)
+        .background(skin.panel)
         .clipShape(
             .rect(
                 topLeadingRadius: DexMetrics.screenPanelCorner,
@@ -236,7 +242,7 @@ public struct DeviceChassis<Content: View>: View {
                 bottomTrailingRadius: DexMetrics.screenPanelCorner,
                 topTrailingRadius: DexMetrics.screenPanelCorner
             )
-            .strokeBorder(Dex.stone400, lineWidth: DexMetrics.screenPanelBorder)
+            .strokeBorder(skin.panelEdge, lineWidth: DexMetrics.screenPanelBorder)
         }
         .padding(.horizontal, DexMetrics.screenPanelInset)
         .frame(maxHeight: .infinity)
@@ -304,7 +310,7 @@ public struct DeviceChassis<Content: View>: View {
                 Spacer()
                 VStack(spacing: 2) {
                     ForEach(0..<3, id: \.self) { _ in
-                        Capsule().fill(Dex.stone400).frame(width: 64, height: 2)
+                        Capsule().fill(skin.grill).frame(width: 64, height: 2)
                     }
                 }
                 .opacity(0.5)
@@ -348,11 +354,14 @@ public struct DeviceChassis<Content: View>: View {
             }
         }
         .padding(.horizontal, DexMetrics.footerPaddingH)
-        // Nudges the buttons and banner toward the bottom edge.
-        .padding(.top, DexMetrics.footerTopNudge)
-        .frame(height: DexMetrics.footerHeight + DexMetrics.footerTopNudge)
-        .padding(.bottom, extraBottom)
-        .background(Dex.red.opacity(0.7))
+        // Bottom-aligned rather than top-padded, so the row sits as low as the
+        // corner clearance allows instead of floating in the middle of the band.
+        .frame(
+            height: DexMetrics.footerHeight + DexMetrics.footerTopNudge,
+            alignment: .bottom
+        )
+        .padding(.bottom, DexMetrics.footerBottomInset + extraBottom)
+        .background(skin.footerWash)
     }
 }
 
@@ -542,7 +551,9 @@ public struct MarqueeBanner: View {
 
     @State private var labelWidth: CGFloat = 0
 
-    private let gap: CGFloat = 44
+    /// No gap: the two copies butt together so the loop reads as one
+    /// continuous run of text with no pause at the seam.
+    private let gap: CGFloat = 0
 
     public init(text: String, fontSize: CGFloat, pointsPerSecond: Double = 34) {
         self.text = text

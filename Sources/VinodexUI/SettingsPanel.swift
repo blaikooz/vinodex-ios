@@ -24,6 +24,10 @@ public struct SettingsPanel: View {
     @State private var tab: Tab = .settings
     /// Placeholder until there is something real to configure.
     @State private var scratch = ""
+    /// Same key `DeviceChassis` reads, so the chassis repaints as this changes.
+    @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
+
+    private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
 
     private let db = WineDatabase.shared
 
@@ -106,6 +110,44 @@ public struct SettingsPanel: View {
 
     private var settings: some View {
         VStack(alignment: .leading, spacing: 8) {
+            Text("CHASSIS SKIN")
+                .font(DexFont.retro(9))
+                .foregroundStyle(Dex.green)
+
+            HStack(spacing: 0) {
+                ForEach(ChassisSkin.allCases) { option in
+                    Button {
+                        Haptics.select()
+                        skinRaw = option.rawValue
+                    } label: {
+                        HStack(spacing: 8) {
+                            // A chip of the actual moulding colour, so the
+                            // choice is legible without applying it first.
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(option.body)
+                                .frame(width: 16, height: 16)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .strokeBorder(option.panelEdge, lineWidth: 1)
+                                )
+                            Text(option.rawValue)
+                                .font(DexFont.retro(9))
+                        }
+                        .foregroundStyle(skin == option ? .black : Dex.stone400)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(skin == option ? Dex.green : Dex.stone800)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .strokeBorder(Dex.stone700, lineWidth: 1)
+            )
+            .padding(.bottom, 6)
+
             Button {
                 Haptics.tap()
                 onFlip()

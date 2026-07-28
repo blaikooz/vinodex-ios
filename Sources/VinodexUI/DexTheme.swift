@@ -1,4 +1,4 @@
-#if canImport(SwiftUI)
+#if canImport(SwiftUI) && canImport(UIKit)
 import SwiftUI
 import CoreText
 import VinodexCore
@@ -50,6 +50,10 @@ public enum Dex {
     public static let screen = Color(dexHex: "#232323")
     public static let screenBg = Color(dexHex: "#98CB98")
     public static let ui = Color(dexHex: "#DEDEDE")
+    /// Midnight-skin equivalents of the chassis body and its front panel.
+    public static let graphite = Color(dexHex: "#17161A")
+    public static let graphitePanel = Color(dexHex: "#2B2A30")
+    public static let graphiteEdge = Color(dexHex: "#4A4852")
     public static let blue = Color(dexHex: "#2AB5FF")
     public static let yellow = Color(dexHex: "#FACC15")
     public static let green = Color(dexHex: "#4ADE80")
@@ -120,12 +124,17 @@ public enum DexMetrics {
     /// fit. Costs a little LCD height at the top, which is the trade.
     public static let islandStripMinHeight: CGFloat = 70
     public static let islandClearance: CGFloat = 138
-    public static let islandFlankPaddingH: CGFloat = 0.5 * rem
+    /// Matches `footerPaddingH` so the orb sits directly above the Back button
+    /// and the cog above Home — the four chassis controls share two columns.
+    public static let islandFlankPaddingH: CGFloat = 0.75 * rem
     /// Pulls flank content in toward the cutout rather than the screen edges.
     /// Small on purpose: the orb and status lights sit closer to the island,
     /// which reads as deliberate rather than stranded at the corner.
     public static let islandFlankInnerGap: CGFloat = 0.125 * rem
-    public static let bezelTopMargin: CGFloat = 0.5 * rem
+    /// Matched to `ventStripHeight` so the white housing frames the LCD evenly
+    /// top and bottom. It used to be 0.5rem against a 2.25rem skirt, which read
+    /// as the screen sitting too high in its panel.
+    public static let bezelTopMargin: CGFloat = 1.75 * rem
     /// Orb, cog and the two footer buttons are all `controlButton` now — one
     /// size for every physical control on the chassis.
     public static let lcdOrb: CGFloat = controlButton
@@ -145,9 +154,9 @@ public enum DexMetrics {
     /// every point here is a point of screen height.
     public static let bezelFrame: CGFloat = 4
     /// The white panel's skirt below the LCD, carrying the red dot and the
-    /// speaker grill. Taller than the web's h-6 so the two are framed by white
-    /// rather than crowded against the panel's bottom edge.
-    public static let ventStripHeight: CGFloat = 2.25 * rem
+    /// speaker grill. Matched to `bezelTopMargin` for an even frame — still
+    /// wider than the web's h-6, so both stay clear of the panel edge.
+    public static let ventStripHeight: CGFloat = 1.75 * rem
     public static let ventDot: CGFloat = 0.5 * rem            // w-2
 
     /// Footer
@@ -159,8 +168,12 @@ public enum DexMetrics {
     /// floor — the band cannot go below that plus the nudge.
     public static let footerHeight: CGFloat = 4.25 * rem
     public static let footerPaddingH: CGFloat = 0.75 * rem
-    /// Pushes the footer row down toward the bottom edge.
+    /// Reserve above the footer row. The row is bottom-aligned within the band,
+    /// so this sets the band's height rather than the row's position.
     public static let footerTopNudge: CGFloat = 22
+    /// The only thing holding the row off the bottom edge. Just enough to clear
+    /// the chassis' rounded corners — matching the clearance at the top.
+    public static let footerBottomInset: CGFloat = 6
     public static let controlButton: CGFloat = 3.5 * rem
     public static let marqueeMaxWidth: CGFloat = 16.5 * rem
     public static let marqueeCorner: CGFloat = 0.8 * rem
@@ -265,4 +278,62 @@ public enum DexResources {
         return Bundle.module.url(forResource: name, withExtension: ext)
     }
 }
+
+/// Chassis colourway. The LCD itself never changes — only the moulding around
+/// it — so a skin swap cannot affect legibility of the content.
+///
+/// Persisted under this key by both `DeviceChassis` and `SettingsPanel`;
+/// `@AppStorage` keeps the two in sync without threading state between them.
+public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
+    case classic = "CLASSIC"
+    case midnight = "MIDNIGHT"
+
+    public static let storageKey = "chassisSkin"
+
+    public var id: String { rawValue }
+
+    /// The moulding.
+    public var body: Color {
+        switch self {
+        case .classic: Dex.red
+        case .midnight: Dex.graphite
+        }
+    }
+
+    /// Wash behind the footer row, a shade off the body.
+    public var footerWash: Color {
+        switch self {
+        case .classic: Dex.red.opacity(0.7)
+        case .midnight: Dex.graphite.opacity(0.75)
+        }
+    }
+
+    /// The panel the LCD is set into — white on the classic shell.
+    public var panel: Color {
+        switch self {
+        case .classic: Dex.ui
+        case .midnight: Dex.graphitePanel
+        }
+    }
+
+    public var panelEdge: Color {
+        switch self {
+        case .classic: Dex.stone400
+        case .midnight: Dex.graphiteEdge
+        }
+    }
+
+    /// Speaker grill slats.
+    public var grill: Color {
+        switch self {
+        case .classic: Dex.stone400
+        case .midnight: Dex.stone600
+        }
+    }
+
+    public var next: ChassisSkin {
+        self == .classic ? .midnight : .classic
+    }
+}
+
 #endif
