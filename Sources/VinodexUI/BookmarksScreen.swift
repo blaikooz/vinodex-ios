@@ -46,7 +46,9 @@ public struct BookmarksScreen: View {
                             }
                             // Swipe is not discoverable on a custom row, so
                             // removal is an explicit control on each tile.
-                            .overlay(alignment: .topTrailing) {
+                            // Bottom-trailing, not top: at the top it sat on
+                            // the tile's own chevron and clipped it.
+                            .overlay(alignment: .bottomTrailing) {
                                 removeButton(entry)
                             }
                         }

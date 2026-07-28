@@ -17,6 +17,8 @@ public struct DeviceChassis<Content: View>: View {
     /// Opens saved entries. On the main screen this takes the Back button's
     /// slot, which would otherwise be a permanently greyed-out control.
     var onBookmarks: (() -> Void)?
+    /// Opens the grape of the day, launched from the settings panel.
+    var onDailyGrape: (() -> Void)?
     @ViewBuilder var content: () -> Content
 
     /// The system panel lives here rather than in the app module so it can be
@@ -38,6 +40,7 @@ public struct DeviceChassis<Content: View>: View {
         onBack: (() -> Void)? = nil,
         onHome: (() -> Void)? = nil,
         onBookmarks: (() -> Void)? = nil,
+        onDailyGrape: (() -> Void)? = nil,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.title = title
@@ -45,6 +48,7 @@ public struct DeviceChassis<Content: View>: View {
         self.onBack = onBack
         self.onHome = onHome
         self.onBookmarks = onBookmarks
+        self.onDailyGrape = onDailyGrape
         self.content = content
     }
 
@@ -69,12 +73,22 @@ public struct DeviceChassis<Content: View>: View {
                     .opacity(isFlipped ? 0 : 1)
                     .accessibilityHidden(isFlipped)
 
-                DeviceBackPlate { isFlipped = false }
+                DeviceBackPlate()
                     // Pre-rotated so it reads the right way round once the
                     // container has turned; without this it arrives mirrored.
                     .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
                     .opacity(isFlipped ? 1 : 0)
                     .accessibilityHidden(!isFlipped)
+                    // Swipe rather than tap, so returning is the same gesture
+                    // in reverse. A tap gave no sense of the panel turning.
+                    .gesture(
+                        DragGesture(minimumDistance: 24)
+                            .onEnded { value in
+                                if abs(value.translation.width) > 60 {
+                                    isFlipped = false
+                                }
+                            }
+                    )
             }
             .rotation3DEffect(
                 .degrees(isFlipped ? 180 : 0),
@@ -149,7 +163,11 @@ public struct DeviceChassis<Content: View>: View {
             // not for the app you are currently looking at.
             statusDots(size: dot)
                 .fixedSize()
-                .frame(maxWidth: .infinity, alignment: .trailing)
+                // Top-aligned to the cutout, not centred in the strip: the
+                // island starts ~11pt down, so a vertically centred cluster
+                // sat noticeably below its top edge.
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .padding(.top, DexMetrics.islandTopInset)
                 .padding(.trailing, DexMetrics.islandFlankInnerGap)
 
             // Clearance held open for the cutout itself.
@@ -294,11 +312,17 @@ public struct DeviceChassis<Content: View>: View {
             // Confined to the LCD, so the bezel, footer and island stay put and
             // the panel reads as the device's own menu rather than an iOS modal.
             if showsPanel {
-                // Flipping moved to a long-press on the orb, so the panel no
-                // longer needs a flip callback.
-                SettingsPanel(onClose: { showsPanel = false })
-                    .padding(6)
-                    .transition(.opacity)
+                // Hinged on the right edge rather than filling the screen —
+                // see `SettingsPanel`. Flipping moved to a long-press on the
+                // orb, so the panel no longer needs a flip callback.
+                SettingsPanel(
+                    onClose: { showsPanel = false },
+                    onDailyGrape: {
+                        showsPanel = false
+                        onDailyGrape?()
+                    }
+                )
+                .transition(.move(edge: .trailing))
             }
 
             ScanlineOverlay()

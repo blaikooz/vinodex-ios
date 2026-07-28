@@ -7,32 +7,24 @@ import SwiftUI
 /// Engraved nameplate, corner screws and a serial, on a diagonal metal
 /// gradient. The whole plate is tappable to flip back, matching the web app.
 public struct DeviceBackPlate: View {
-    let onReturn: () -> Void
-
     private static let creator = "HORIZON"
-    private static let version = "v0.2.1"
+    private static let version = "v0.3.5"
 
     private var year: Int { Calendar.current.component(.year, from: Date()) }
 
-    public init(onReturn: @escaping () -> Void) {
-        self.onReturn = onReturn
-    }
+    public init() {}
 
     public var body: some View {
-        Button {
-            Haptics.tap()
-            onReturn()
-        } label: {
-            ZStack {
-                metal
-                striations
-                highlight
-                screws
-                engraving
-            }
+        // Dismissal is a swipe, owned by `DeviceChassis` — the plate is a
+        // surface, not a button.
+        ZStack {
+            metal
+            striations
+            highlight
+            screws
+            engraving
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Flip device back to front")
+        .accessibilityLabel("Device back plate. Swipe to return.")
     }
 
     private var metal: some View {
@@ -176,9 +168,9 @@ public struct DeviceBackPlate: View {
             Spacer(minLength: 0)
 
             HStack(spacing: 8) {
-                Image(systemName: "arrowtriangle.left.fill")
-                    .font(.system(size: 11))
-                Text("TAP TO RETURN")
+                Image(systemName: "hand.draw")
+                    .font(.system(size: 13))
+                Text("SWIPE TO RETURN")
                     .font(DexFont.mono(18))
                     .tracking(5)
             }

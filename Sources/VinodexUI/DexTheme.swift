@@ -54,6 +54,10 @@ public enum Dex {
     public static let graphite = Color(dexHex: "#17161A")
     public static let graphitePanel = Color(dexHex: "#2B2A30")
     public static let graphiteEdge = Color(dexHex: "#4A4852")
+    /// The original handheld's off-white shell and its cooler grey panel.
+    public static let bone = Color(dexHex: "#D8D8D0")
+    public static let bonePanel = Color(dexHex: "#EFEFE9")
+    public static let boneEdge = Color(dexHex: "#9A9A93")
     public static let blue = Color(dexHex: "#2AB5FF")
     public static let yellow = Color(dexHex: "#FACC15")
     public static let green = Color(dexHex: "#4ADE80")
@@ -101,6 +105,9 @@ public enum DexMetrics {
     /// chassis outline follows it instead of being cropped by it; the inset
     /// keeps the stroke fully on-screen at the top corners.
     public static let chassisCorner: CGFloat = 2.5 * rem
+    /// Main-menu tiles. Much rounder than the 12pt they were — at tile size a
+    /// small radius reads as a plain rectangle.
+    public static let menuTileCorner: CGFloat = 26
     public static let deviceCorner: CGFloat = 55
     public static let chassisBorderInset: CGFloat = 2
     public static let chassisBorder: CGFloat = 3
@@ -143,6 +150,9 @@ public enum DexMetrics {
     /// inset from the top edge by exactly what the footer row is from the bottom.
     public static let islandStripMinHeight: CGFloat = controlBandHeight
     public static let islandClearance: CGFloat = 138
+    /// How far down the cutout starts. The status lights top-align to this so
+    /// their top edge matches the island's rather than floating above it.
+    public static let islandTopInset: CGFloat = 11
     /// Matches `footerPaddingH` so the orb sits directly above the Back button
     /// and the cog above Home — the four chassis controls share two columns.
     public static let islandFlankPaddingH: CGFloat = cornerGuardH
@@ -298,6 +308,29 @@ public enum DexResources {
     }
 }
 
+/// Main-screen text scale. Deliberately a small adjustment with a hard floor
+/// and ceiling: the retro face has no optical sizes, so a large jump breaks the
+/// tile layout and a small one stops being legible at arm's length.
+///
+/// Applies to the main menu only — entry screens carry long copy and already
+/// wrap, so scaling those is a different problem.
+public enum TextScale: String, CaseIterable, Identifiable, Sendable {
+    case small = "SMALL"
+    case large = "LARGE"
+
+    public static let storageKey = "mainScreenTextScale"
+
+    public var id: String { rawValue }
+
+    /// Multiplier on the main menu's tile label.
+    public var factor: CGFloat {
+        switch self {
+        case .small: 1.0
+        case .large: 1.25
+        }
+    }
+}
+
 /// Chassis colourway. The LCD itself never changes — only the moulding around
 /// it — so a skin swap cannot affect legibility of the content.
 ///
@@ -306,6 +339,8 @@ public enum DexResources {
 public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     case classic = "CLASSIC"
     case midnight = "MIDNIGHT"
+    /// The original grey-and-white shell rather than the red one.
+    case original = "ORIGINAL"
 
     public static let storageKey = "chassisSkin"
 
@@ -316,6 +351,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .classic: Dex.red
         case .midnight: Dex.graphite
+        case .original: Dex.bone
         }
     }
 
@@ -324,6 +360,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .classic: Dex.red.opacity(0.7)
         case .midnight: Dex.graphite.opacity(0.75)
+        case .original: Dex.bone.opacity(0.75)
         }
     }
 
@@ -332,6 +369,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .classic: Dex.ui
         case .midnight: Dex.graphitePanel
+        case .original: Dex.bonePanel
         }
     }
 
@@ -339,6 +377,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .classic: Dex.stone400
         case .midnight: Dex.graphiteEdge
+        case .original: Dex.boneEdge
         }
     }
 
@@ -347,11 +386,14 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .classic: Dex.stone400
         case .midnight: Dex.stone600
+        case .original: Dex.stone400
         }
     }
 
     public var next: ChassisSkin {
-        self == .classic ? .midnight : .classic
+        let all = ChassisSkin.allCases
+        let i = all.firstIndex(of: self) ?? 0
+        return all[(i + 1) % all.count]
     }
 }
 

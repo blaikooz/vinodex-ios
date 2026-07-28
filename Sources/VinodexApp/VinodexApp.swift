@@ -58,7 +58,8 @@ struct RootView: View {
             showsBack: !path.isEmpty,
             onBack: path.isEmpty ? nil : { goBack() },
             onHome: { goHome() },
-            onBookmarks: { push(.bookmarks) }
+            onBookmarks: { push(.bookmarks) },
+            onDailyGrape: { push(.dailyGrape) }
         ) {
             screen
                 // Content swaps instantly; no push transition.
@@ -151,13 +152,10 @@ struct RootView: View {
             )
 
         case .state(let name):
-            // States have no screen of their own — the regions list filtered by
-            // origin is the useful destination, and `.origin` already matches
-            // a region's `state` field as well as its country.
-            EncyclopediaListScreen(
-                categories: [.regions],
-                filter: .origin(name)
-            ) { open($0) }
+            StateScreen(state: name) { open($0) }
+
+        case .dailyGrape:
+            DailyGrapeScreen { open($0) }
 
         case .continent(let id):
             if let entry = db.entry(id: id), case .continent(let c) = entry {

@@ -22,6 +22,7 @@ public struct ContinentScreen: View {
     let onSelectCountry: (String) -> Void
 
     private let db = WineDatabase.shared
+    @State private var comingSoon: String?
 
     public init(continent: ContinentEntry, onSelectCountry: @escaping (String) -> Void) {
         self.continent = continent
@@ -41,6 +42,18 @@ public struct ContinentScreen: View {
             .padding(.bottom, 72)
         }
         .background(Color.black)
+        .overlay {
+            if let comingSoon {
+                DexAlert(
+                    title: "COMING SOON",
+                    message: "\(comingSoon.uppercased()) has no regions in the database yet. It is on the list.",
+                    confirmLabel: "OK",
+                    onConfirm: { self.comingSoon = nil },
+                    onCancel: { self.comingSoon = nil }
+                )
+            }
+        }
+        .animation(.easeOut(duration: 0.15), value: comingSoon)
     }
 
     // MARK: Hero
@@ -129,9 +142,14 @@ public struct ContinentScreen: View {
         let hasRegions = db.hasRegions(inCountry: country)
 
         return Button {
-            guard hasRegions else { return }
             Haptics.select()
-            onSelectCountry(country)
+            if hasRegions {
+                onSelectCountry(country)
+            } else {
+                // Unwritten rather than locked — say so instead of being a
+                // dead row that looks identical to a paywalled one.
+                comingSoon = country
+            }
         } label: {
             HStack(spacing: 10) {
                 FlagSwatch(country: country)
@@ -169,7 +187,6 @@ public struct ContinentScreen: View {
             )
         }
         .buttonStyle(DexPressStyle(scale: 0.98))
-        .disabled(!hasRegions)
     }
 
     /// Section header: symbol plus label over a green rule, matching

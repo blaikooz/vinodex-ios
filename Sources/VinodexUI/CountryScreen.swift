@@ -15,7 +15,13 @@ public struct CountryScreen: View {
     let onSelectState: (String) -> Void
 
     @State private var access = AccessStore.shared
+    @State private var bookmarks = BookmarkStore.shared
+    @State private var showsAllStates = false
     private let db = WineDatabase.shared
+
+    /// Countries have no entry, so the bookmark key is synthesised. Prefixed so
+    /// it can never collide with a real entry id.
+    private var bookmarkID: String { "COUNTRY_\(country)" }
 
     public init(
         country: String,
@@ -46,7 +52,10 @@ public struct CountryScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 hero
+                infoSection
                 if !states.isEmpty { statesSection }
+                if !notableGrapes.isEmpty { grapesSection }
+                if !appellations.isEmpty { appellationsSection }
                 regionsSection
             }
             .padding(.horizontal, 14)
@@ -72,10 +81,7 @@ public struct CountryScreen: View {
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text("\(regions.count) REGION\(regions.count == 1 ? "" : "S")")
-                .font(DexFont.retro(10))
-                .tracking(2)
-                .foregroundStyle(Color(dexHex: "#86efac"))
+            saveButton
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 18)
@@ -90,10 +96,123 @@ public struct CountryScreen: View {
         .padding(.bottom, 16)
     }
 
+    /// Same control as the entry screens, so a country is savable like
+    /// anything else.
+    private var saveButton: some View {
+        let saved = bookmarks.contains(bookmarkID)
+        return Button {
+            Haptics.select()
+            bookmarks.toggle(bookmarkID)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: saved ? "bookmark.fill" : "bookmark")
+                    .font(.system(size: 14, weight: .bold))
+                Text(saved ? "SAVED" : "SAVE")
+                    .font(DexFont.retro(10))
+                    .tracking(2)
+            }
+            .foregroundStyle(saved ? .black : Dex.green)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(Capsule().fill(saved ? Dex.green : .black.opacity(0.35)))
+            .overlay(Capsule().strokeBorder(Dex.green, lineWidth: 2))
+        }
+        .buttonStyle(DexPressStyle(scale: 0.94))
+    }
+
+    /// A country has no authored description, so this is assembled from what
+    /// its regions actually say — climates, region count, appellation systems.
+    /// Stating that plainly beats inventing prose the data cannot support.
+    private var infoSection: some View {
+        let climates = Set(regions.compactMap(\.climate)).map(\.rawValue).sorted()
+        let text = "\(country) holds \(regions.count) region\(regions.count == 1 ? "" : "s") in this database"
+            + (climates.isEmpty ? "" : ", across \(climates.joined(separator: ", ")) climates")
+            + "."
+
+        return section("INFO", symbol: "book") {
+            Text(text)
+                .font(DexFont.mono(18))
+                .foregroundStyle(Color(dexHex: "#bbf7d0"))
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.leading, 14)
+                .padding(.vertical, 10)
+                .background(alignment: .leading) {
+                    Color(dexHex: "#15803d").frame(width: 4)
+                }
+                .background(Color(dexHex: "#14532d").opacity(0.08))
+        }
+    }
+
+    /// Every grape this country's regions name, deduplicated and ordered by how
+    /// often they appear — the ones defining the country come first.
+    private var notableGrapes: [String] {
+        var counts: [String: Int] = [:]
+        for entry in regions {
+            for name in entry.notableGrapes { counts[name, default: 0] += 1 }
+        }
+        return counts.sorted { ($0.value, $1.key) > ($1.value, $0.key) }.map(\.key)
+    }
+
+    private var grapesSection: some View {
+        section("NOTABLE GRAPES", symbol: "list.bullet") {
+            FlowLayout(spacing: 6) {
+                ForEach(notableGrapes.prefix(12), id: \.self) { name in
+                    ChipView(
+                        label: name,
+                        chip: db.palette.wineTypeChips[name]
+                            ?? Palette.Chip(bg: "#1c1917", border: "#57534e", text: "#e7e5e4")
+                    )
+                }
+            }
+        }
+    }
+
+    /// Every appellation system in use here.
+    private var appellations: [String] {
+        var seen: Set<String> = []
+        for entry in regions {
+            if case .region(let r) = entry, !r.details.classification.isEmpty {
+                seen.insert(r.details.classification)
+            }
+        }
+        return seen.sorted()
+    }
+
+    private var appellationsSection: some View {
+        section("APPELLATION SYSTEMS", symbol: "shield") {
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(appellations, id: \.self) { system in
+                    HStack(alignment: .top, spacing: 8) {
+                        ChipView(
+                            label: system,
+                            chip: db.palette.resolve(
+                                TileChip(label: system, key: system, table: .classification)
+                            )
+                        )
+                        Text(EntryDisplay.appellationName(classification: system, country: country))
+                            .font(DexFont.mono(17))
+                            .foregroundStyle(Dex.stone400)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                    }
+                }
+            }
+        }
+    }
+
+    /// Three states, then the rest behind a toggle. USA is the only country
+    /// with enough to need it, and an eight-row block above the regions list
+    /// pushed the regions themselves off the first screen.
+    private var visibleStates: [String] {
+        showsAllStates ? states : Array(states.prefix(3))
+    }
+
     private var statesSection: some View {
         section("STATES", symbol: "map") {
             VStack(spacing: 8) {
-                ForEach(states, id: \.self) { state in
+                ForEach(visibleStates, id: \.self) { state in
                     Button {
                         Haptics.select()
                         onSelectState(state)
@@ -122,6 +241,31 @@ public struct CountryScreen: View {
                             RoundedRectangle(cornerRadius: 4)
                                 .strokeBorder(Dex.stone700, lineWidth: 2)
                         )
+                    }
+                    .buttonStyle(DexPressStyle(scale: 0.98))
+                }
+
+                if states.count > 3 {
+                    Button {
+                        Haptics.select()
+                        withAnimation(.easeOut(duration: 0.2)) { showsAllStates.toggle() }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: showsAllStates ? "chevron.up" : "magnifyingglass")
+                                .font(.system(size: 13, weight: .bold))
+                            Text(showsAllStates
+                                ? "SHOW FEWER"
+                                : "SEARCH STATES (\(states.count))")
+                                .font(DexFont.retro(10))
+                                .tracking(1)
+                            Spacer(minLength: 0)
+                        }
+                        .foregroundStyle(Dex.green)
+                        .padding(.horizontal, 12)
+                        .frame(height: 42)
+                        .frame(maxWidth: .infinity)
+                        .background(Capsule().fill(.black))
+                        .overlay(Capsule().strokeBorder(Dex.stone600, lineWidth: 2))
                     }
                     .buttonStyle(DexPressStyle(scale: 0.98))
                 }

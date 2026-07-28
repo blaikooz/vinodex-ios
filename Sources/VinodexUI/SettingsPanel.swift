@@ -2,68 +2,71 @@
 import SwiftUI
 import VinodexCore
 
-/// The device's own menu: SETTINGS and a DEV tab holding diagnostics and the
-/// component catalog.
+/// The device's own menu, hinged on the right edge of the LCD.
 ///
-/// Presented inside the LCD rather than as a `.sheet`. A sheet slides over the
-/// whole chassis, which breaks the device metaphor — the bezel, footer and
-/// island strip are meant to be physical furniture that never moves. Confining
-/// the panel to the screen keeps that intact and makes it read as the device
-/// showing a menu rather than iOS showing a modal.
+/// It slides in from the right and covers most — not all — of the screen, so
+/// the app stays visible behind it and the panel reads as a flap swung out of
+/// the side of the device rather than a page you navigated to. That is also the
+/// shape a folding screen wants: the same view can occupy the second panel
+/// unchanged when there is one.
 public struct SettingsPanel: View {
     public enum Tab: String, CaseIterable, Identifiable {
         case settings = "SETTINGS"
-        /// Diagnostics and the component catalog, which are both developer
-        /// tools and were competing for tab space with the one tab a user has
-        /// any reason to open.
+        /// Diagnostics and the component catalog — both developer tools, and
+        /// they were competing for tab space with the one tab a user opens.
         case dev = "DEV"
 
         public var id: String { rawValue }
     }
 
     let onClose: () -> Void
+    let onDailyGrape: () -> Void
 
     @State private var tab: Tab = .settings
-    /// Placeholder until there is something real to configure.
-    @State private var scratch = ""
-    /// Same key `DeviceChassis` reads, so the chassis repaints as this changes.
-    @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
-
     @State private var access = AccessStore.shared
-
-    private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
-    private var totalCount: Int { db.entries.count }
-    private var freeCount: Int { db.entries.filter { db.isFree($0.id) }.count }
+    @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
+    @AppStorage(TextScale.storageKey) private var scaleRaw = TextScale.small.rawValue
 
     private let db = WineDatabase.shared
 
-    public init(onClose: @escaping () -> Void) {
+    private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
+    private var scale: TextScale { TextScale(rawValue: scaleRaw) ?? .small }
+    private var totalCount: Int { db.entries.count }
+    private var freeCount: Int { db.entries.filter { db.isFree($0.id) }.count }
+
+    public init(onClose: @escaping () -> Void, onDailyGrape: @escaping () -> Void = {}) {
         self.onClose = onClose
+        self.onDailyGrape = onDailyGrape
     }
 
     public var body: some View {
-        VStack(spacing: 0) {
-            header
-            tabBar
+        HStack(spacing: 0) {
+            // Dead strip on the left: tapping it closes, and it keeps a sliver
+            // of the app visible so the panel reads as an overlay.
+            Color.black.opacity(0.55)
+                .frame(width: 26)
+                .contentShape(Rectangle())
+                .onTapGesture { onClose() }
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    switch tab {
-                    case .settings: settings
-                    case .dev: dev
+            VStack(spacing: 0) {
+                header
+                tabBar
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 18) {
+                        switch tab {
+                        case .settings: settings
+                        case .dev: dev
+                        }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(12)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12)
+                .scrollDismissesKeyboard(.interactively)
             }
-            .scrollDismissesKeyboard(.interactively)
+            .background(Dex.screen)
+            .overlay(alignment: .leading) { Dex.green.opacity(0.55).frame(width: 2) }
         }
-        .background(Dex.screen)
-        .overlay(
-            RoundedRectangle(cornerRadius: 6)
-                .strokeBorder(Dex.green.opacity(0.55), lineWidth: 2)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 
     private var header: some View {
@@ -77,7 +80,7 @@ public struct SettingsPanel: View {
                 Haptics.tap()
                 onClose()
             } label: {
-                Image(systemName: "xmark")
+                Image(systemName: "chevron.right")
                     .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(Dex.stone200)
                     .frame(width: 34, height: 34)
@@ -112,122 +115,199 @@ public struct SettingsPanel: View {
         .overlay(alignment: .bottom) { Dex.stone700.frame(height: 1) }
     }
 
-    /// Report first, then the component gallery, then the icon sheet last —
-    /// the icon grid is the longest thing in the panel by far and pushed
-    /// everything else off-screen when it sat in the middle.
-    private var dev: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            DiagnosticsReport(db: db)
-            CatalogScreen(db: db, showsIcons: false)
-            CatalogScreen.IconSheet(db: db)
+    // MARK: Settings
+
+    private var settings: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            dailyGrapeButton
+            paywallTesting
+            skinTesting
+            textSize
         }
     }
 
-    private var settings: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("STARTER TIER")
-                .font(DexFont.retro(9))
-                .foregroundStyle(Dex.green)
+    private var dailyGrapeButton: some View {
+        Button {
+            Haptics.tap()
+            onDailyGrape()
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(Dex.yellow)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("GRAPE OF THE DAY")
+                        .font(DexFont.retro(11))
+                        .tracking(1)
+                        .foregroundStyle(.white)
+                    Text("A new one every day")
+                        .font(DexFont.mono(16))
+                        .foregroundStyle(Dex.stone600)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(Dex.stone600)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity)
+            .background(RoundedRectangle(cornerRadius: 6).fill(Dex.stone800))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6).strokeBorder(Dex.yellow.opacity(0.5), lineWidth: 2)
+            )
+        }
+        .buttonStyle(DexPressStyle(scale: 0.98))
+    }
 
+    private var paywallTesting: some View {
+        settingsSection("PAYWALL TESTING") {
             Button {
                 Haptics.select()
                 access.starterOnly.toggle()
             } label: {
                 HStack(spacing: 10) {
                     Image(systemName: access.starterOnly ? "lock.fill" : "lock.open.fill")
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(access.starterOnly ? Dex.yellow : Dex.green)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(access.starterOnly ? "STARTER — 25 GRAPES" : "EVERYTHING UNLOCKED")
-                            .font(DexFont.retro(10))
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(access.starterOnly ? "FREE TIER" : "EVERYTHING UNLOCKED")
+                            .font(DexFont.retro(11))
                             .tracking(1)
                             .foregroundStyle(Dex.stone200)
                         Text(access.starterOnly
                             ? "\(freeCount) of \(totalCount) entries browsable"
                             : "All \(totalCount) entries browsable")
-                            .font(DexFont.mono(15))
+                            .font(DexFont.mono(16))
                             .foregroundStyle(Dex.stone600)
                     }
                     Spacer(minLength: 0)
-                    // A switch-like track, drawn rather than a UISwitch so it
-                    // matches the rest of the panel.
-                    Capsule()
-                        .fill(access.starterOnly ? Dex.yellow : Dex.stone700)
-                        .frame(width: 42, height: 24)
-                        .overlay(alignment: access.starterOnly ? .trailing : .leading) {
-                            Circle()
-                                .fill(.white)
-                                .frame(width: 18, height: 18)
-                                .padding(3)
-                        }
+                    toggleTrack(on: access.starterOnly)
                 }
                 .padding(.horizontal, 12)
-                .padding(.vertical, 10)
+                .padding(.vertical, 14)
+                .frame(maxWidth: .infinity)
                 .background(RoundedRectangle(cornerRadius: 6).fill(Dex.stone800))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .strokeBorder(Dex.stone700, lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 6).strokeBorder(Dex.stone700, lineWidth: 1)
                 )
             }
             .buttonStyle(DexPressStyle(scale: 0.98))
-            .padding(.bottom, 10)
+        }
+    }
 
-            Text("CHASSIS SKIN")
-                .font(DexFont.retro(9))
-                .foregroundStyle(Dex.green)
-
-            HStack(spacing: 0) {
+    private var skinTesting: some View {
+        settingsSection("SKIN TESTING") {
+            VStack(spacing: 8) {
                 ForEach(ChassisSkin.allCases) { option in
                     Button {
                         Haptics.select()
                         skinRaw = option.rawValue
                     } label: {
-                        HStack(spacing: 8) {
-                            // A chip of the actual moulding colour, so the
-                            // choice is legible without applying it first.
-                            RoundedRectangle(cornerRadius: 3)
+                        HStack(spacing: 12) {
+                            // Body over panel, so the pair reads as the actual
+                            // shell rather than one flat swatch.
+                            RoundedRectangle(cornerRadius: 4)
                                 .fill(option.body)
-                                .frame(width: 16, height: 16)
+                                .frame(width: 34, height: 26)
+                                .overlay(alignment: .bottom) {
+                                    Rectangle()
+                                        .fill(option.panel)
+                                        .frame(height: 9)
+                                }
+                                .clipShape(RoundedRectangle(cornerRadius: 4))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 3)
+                                    RoundedRectangle(cornerRadius: 4)
                                         .strokeBorder(option.panelEdge, lineWidth: 1)
                                 )
                             Text(option.rawValue)
-                                .font(DexFont.retro(9))
+                                .font(DexFont.retro(11))
+                                .tracking(1)
+                            Spacer(minLength: 0)
+                            if skin == option {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 14, weight: .bold))
+                            }
                         }
                         .foregroundStyle(skin == option ? .black : Dex.stone400)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 13)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(skin == option ? Dex.green : Dex.stone800)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(skin == option ? Dex.green : Dex.stone800)
+                        )
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(DexPressStyle(scale: 0.98))
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-            .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .strokeBorder(Dex.stone700, lineWidth: 1)
-            )
-            .padding(.bottom, 6)
+        }
+    }
 
-
-            Text("SCRATCH FIELD")
-                .font(DexFont.retro(9))
-                .foregroundStyle(Dex.green)
-
-            HStack(spacing: 8) {
-                DexSearchField(text: $scratch, placeholder: "TYPE HERE...", fontSize: 20)
-                    .frame(height: 30)
+    private var textSize: some View {
+        settingsSection("TEXT SIZE") {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    ForEach(TextScale.allCases) { option in
+                        Button {
+                            Haptics.select()
+                            scaleRaw = option.rawValue
+                        } label: {
+                            Text(option.rawValue)
+                                .font(DexFont.retro(11))
+                                .tracking(1)
+                                .foregroundStyle(scale == option ? .black : Dex.stone400)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(scale == option ? Dex.green : Dex.stone800)
+                                )
+                        }
+                        .buttonStyle(DexPressStyle(scale: 0.97))
+                    }
+                }
+                Text("Main screen only. Entry text already wraps and is left as it is.")
+                    .font(DexFont.mono(15))
+                    .foregroundStyle(Dex.stone600)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.horizontal, 10)
-            .frame(height: 42)
-            .background(Capsule().fill(.black))
-            .overlay(Capsule().strokeBorder(Dex.stone600, lineWidth: 2))
+        }
+    }
 
-            Text("Placeholder. Real settings land here once there is something worth persisting.")
-                .font(DexFont.mono(17))
-                .foregroundStyle(Dex.stone600)
-                .fixedSize(horizontal: false, vertical: true)
+    private func toggleTrack(on: Bool) -> some View {
+        Capsule()
+            .fill(on ? Dex.yellow : Dex.stone700)
+            .frame(width: 42, height: 24)
+            .overlay(alignment: on ? .trailing : .leading) {
+                Circle().fill(.white).frame(width: 18, height: 18).padding(3)
+            }
+    }
+
+    private func settingsSection<C: View>(
+        _ title: String,
+        @ViewBuilder content: () -> C
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(DexFont.retro(10))
+                .tracking(1)
+                .foregroundStyle(Dex.green)
+                .padding(.bottom, 2)
+                .overlay(alignment: .bottom) { Dex.green.opacity(0.35).frame(height: 1) }
+            content()
+        }
+    }
+
+    // MARK: Dev
+
+    /// Report, then the component gallery, then the icon sheet last — the icon
+    /// grid is the longest thing here and buried everything after it.
+    private var dev: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            DiagnosticsReport(db: db)
+            CatalogScreen(db: db, showsIcons: false)
+            CatalogScreen.IconSheet(db: db)
         }
     }
 }

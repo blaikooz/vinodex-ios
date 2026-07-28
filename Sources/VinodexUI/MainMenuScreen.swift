@@ -9,6 +9,10 @@ import VinodexCore
 public struct MainMenuScreen: View {
     let onSelect: (DexRoute) -> Void
 
+    /// Main-screen-only text scale — see `TextScale`.
+    @AppStorage(TextScale.storageKey) private var scaleRaw = TextScale.small.rawValue
+    private var scale: TextScale { TextScale(rawValue: scaleRaw) ?? .small }
+
     public init(onSelect: @escaping (DexRoute) -> Void) {
         self.onSelect = onSelect
     }
@@ -62,11 +66,11 @@ public struct MainMenuScreen: View {
         } label: {
             VStack(spacing: 12) {
                 Image(systemName: symbol)
-                    .font(.system(size: 46, weight: .semibold))
+                    .font(.system(size: 46 * scale.factor, weight: .semibold))
                     .foregroundStyle(.white)
                     .shadow(color: .black.opacity(0.3), radius: 0, x: 1, y: 2)
                 Text(title)
-                    .font(DexFont.retro(16))
+                    .font(DexFont.retro(16 * scale.factor))
                     .foregroundStyle(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
@@ -74,16 +78,16 @@ public struct MainMenuScreen: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: DexMetrics.menuTileCorner)
                     .fill(Color(dexHex: face))
                     .overlay(alignment: .bottom) {
                         // The web tiles use a 6px bottom border as a fake extrusion.
                         Color(dexHex: shadow).frame(height: 6)
                     }
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .clipShape(RoundedRectangle(cornerRadius: DexMetrics.menuTileCorner))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: DexMetrics.menuTileCorner)
                     .fill(
                         LinearGradient(
                             colors: [.white.opacity(0.12), .clear],

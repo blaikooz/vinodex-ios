@@ -25,6 +25,8 @@ public enum DexRoute: Hashable, Sendable {
     case country(name: String)
     /// The regions of one state within a country.
     case state(name: String)
+    /// The daily grape reveal — see `DailyPick`.
+    case dailyGrape
     /// The continent info screen — INFO blurb plus a COUNTRIES list, each
     /// linking to that country's regions. Reached from the globe markers.
     case continent(entryID: String)
@@ -47,6 +49,8 @@ public enum DexRoute: Hashable, Sendable {
             name.uppercased()
         case .state(let name):
             name.uppercased()
+        case .dailyGrape:
+            "GRAPE OF THE DAY"
         case .continent:
             "CONTINENT SCAN"
         }
