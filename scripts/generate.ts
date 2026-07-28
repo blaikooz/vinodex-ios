@@ -322,21 +322,37 @@ const STYLE_COLOR_TYPE_COLORS: Record<string, string> = {
 
 /// Soil chips on the region screen. Keyword-matched (`soilDisplay.tsx`), so the
 /// matching rule lives in Swift and only the table is generated.
-// Six of the ten soils used to share `lucide:mountain`, which made the section
-// read as one repeated glyph. These are drawn from icons already rasterised
-// into Resources/Icons, so the set needs no new Iconify fetch.
+// Soil keyword -> glyph. Every soil term that appears in the data needs a
+// keyword here; anything unmatched renders as the default mountain, which reads
+// as a bug rather than a fallback. `alluvial`, `shale`, `loess`, `laterite`,
+// `basalt` and `loam` were all landing on the default until they were added.
+//
+// KEY ORDER IS SIGNIFICANT. Matching is first-substring-wins, so more specific
+// terms must precede the ones they contain, and `clay` must precede `loam` so
+// "clay loam" reads as clay. The order is exported as `soilKeywords` and the
+// Swift side iterates that, rather than keeping its own copy in sync.
 const SOIL_ICONS: Record<string, { icon: string; color: string }> = {
-  volcanic: { icon: 'game-icons:flame', color: '#FF4500' },
+  volcanic: { icon: 'game-icons:volcano', color: '#FF4500' },
+  basalt: { icon: 'game-icons:stone-pile', color: '#2F4F4F' },
   clay: { icon: 'lucide:droplet', color: '#B5651D' },
+  loam: { icon: 'game-icons:plow', color: '#8B5A2B' },
   sand: { icon: 'game-icons:salt-shaker', color: '#F4A460' },
   limestone: { icon: 'game-icons:mountains', color: '#E0E0E0' },
   chalk: { icon: 'lucide:triangle', color: '#EDEDED' },
   slate: { icon: 'game-icons:rock', color: '#708090' },
+  shale: { icon: 'game-icons:flat-platform', color: '#6B7B8C' },
   schist: { icon: 'lucide:mountain', color: '#5F7A8A' },
-  granite: { icon: 'game-icons:mountains', color: '#A9A9A9' },
+  granite: { icon: 'game-icons:crystal-cluster', color: '#A9A9A9' },
   gravel: { icon: 'lucide:circle', color: '#696969' },
+  alluvial: { icon: 'game-icons:river', color: '#6CA0DC' },
+  loess: { icon: 'game-icons:dust-cloud', color: '#C2B280' },
+  laterite: { icon: 'game-icons:ore', color: '#A0522D' },
   default: { icon: 'lucide:mountain', color: '#8B4513' },
 };
+
+/// Match order for `SOIL_ICONS`, minus the fallback. Exported so the Swift
+/// matcher does not carry a second, drifting copy of the keyword list.
+const SOIL_KEYWORDS = Object.keys(SOIL_ICONS).filter((k) => k !== 'default');
 
 /// Regions without an explicit `soilType` fall back to a climate-keyed triplet.
 const CLIMATE_SOIL_FALLBACK: Record<string, string[]> = {
@@ -444,6 +460,7 @@ function buildIconManifest(entries: readonly WineEntry[]) {
     styleClassBg: STYLE_CLASS_BG,
     styleColorTypeColors: STYLE_COLOR_TYPE_COLORS,
     soilIcons: SOIL_ICONS,
+    soilKeywords: SOIL_KEYWORDS,
     climateSoilFallback: CLIMATE_SOIL_FALLBACK,
     defaultSoils: DEFAULT_SOILS,
     flags,

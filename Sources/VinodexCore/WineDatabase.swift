@@ -20,15 +20,34 @@ public enum Continent: String, Sendable, CaseIterable, Identifiable {
         }
     }
 
-    /// Latitude/longitude the marker is pinned to, from `RetroGlobeScreen.tsx`.
+    /// Latitude/longitude the marker is pinned to.
+    ///
+    /// These are continent centroids, not wine regions. The values ported from
+    /// `RetroGlobeScreen.tsx` were the latter — North America sat on San
+    /// Francisco, Africa on Cape Town, South America on Santiago — so markers
+    /// hung off the edge of the landmass they label, and no uniform nudge could
+    /// fix them because each was wrong by a different amount.
     public var coordinate: (lat: Double, lng: Double) {
         switch self {
-        case .northAmerica: (38, -122)
-        case .southAmerica: (-33, -70)
-        case .europe: (43, 12)
-        case .africa: (-33, 20)
-        case .asia: (34, 105)
-        case .oceania: (-35, 147)
+        case .northAmerica: (45, -100)
+        case .southAmerica: (-15, -60)
+        case .europe: (50, 15)
+        case .africa: (2, 20)
+        case .asia: (45, 90)
+        case .oceania: (-25, 135)
+        }
+    }
+
+    /// Box the centroid must fall inside, so a bad edit is caught by a test
+    /// rather than by squinting at the globe on a phone.
+    public var coordinateBounds: (lat: ClosedRange<Double>, lng: ClosedRange<Double>) {
+        switch self {
+        case .northAmerica: (25...70, -130...(-60))
+        case .southAmerica: (-40...10, -80...(-35))
+        case .europe: (40...65, -10...40)
+        case .africa: (-30...30, -15...50)
+        case .asia: (20...65, 45...140)
+        case .oceania: (-40...(-10), 115...155)
         }
     }
 }
@@ -107,6 +126,10 @@ public struct IconManifest: Codable, Sendable {
     public let styleColorTypeColors: [String: String]
     /// Soil keyword -> glyph + colour.
     public let soilIcons: [String: SoilIcon]
+    /// Match order for `soilIcons`, generated alongside it. Optional so an
+    /// older manifest still decodes; `soilIcon(_:)` falls back to the table's
+    /// own keys, which costs only the ordering guarantee.
+    public let soilKeywords: [String]?
     /// Soils used when a region carries no explicit `soilType`.
     public let climateSoilFallback: [String: [String]]
     public let defaultSoils: [String]
@@ -124,10 +147,15 @@ public struct IconManifest: Codable, Sendable {
     }
 
     /// Keyword match over the soil table, mirroring `getSoilIcon`.
+    ///
+    /// First substring wins, so the generated `soilKeywords` order matters —
+    /// "clay loam" must reach `clay` before `loam`. The keyword list used to be
+    /// hardcoded here and drifted from the generator's table, which silently
+    /// dropped soils onto the default glyph.
     public func soilIcon(_ soil: String) -> SoilIcon {
         let s = soil.lowercased()
-        for key in ["volcanic", "clay", "sand", "limestone", "chalk", "slate", "schist", "granite", "gravel"]
-        where s.contains(key) {
+        let keys = soilKeywords ?? soilIcons.keys.filter { $0 != "default" }.sorted()
+        for key in keys where s.contains(key) {
             if let hit = soilIcons[key] { return hit }
         }
         return soilIcons["default"] ?? SoilIcon(icon: "lucide:mountain", color: "#8B4513")
@@ -220,6 +248,7 @@ public final class WineDatabase: Sendable {
                     styleClassBg: [:],
                     styleColorTypeColors: [:],
                     soilIcons: [:],
+                    soilKeywords: nil,
                     climateSoilFallback: [:],
                     defaultSoils: [],
                     flags: [:]

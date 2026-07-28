@@ -139,6 +139,63 @@ struct CoverageTests {
         }
     }
 
+    /// Flavour INFO is only worth showing while the blurbs are specific. They
+    /// were hidden originally because every one was the same sentence with the
+    /// nouns swapped; each should now name the grapes it derives from.
+    @Test("flavor descriptions are distinct and name their grapes")
+    func flavorDescriptions() {
+        let flavors = db.entries(in: .flavors)
+        #expect(!flavors.isEmpty)
+
+        var seen: Set<String> = []
+        for entry in flavors {
+            let text = entry.entryDescription
+            #expect(!text.isEmpty, "\(entry.name) has no description")
+            #expect(seen.insert(text).inserted, "duplicate blurb: \(text)")
+
+            // Each flavour is derived from at least one grape, so the sentence
+            // should be able to name one.
+            if let grape = entry.notableGrapes.first {
+                #expect(text.contains(grape), "\(entry.name) does not mention \(grape)")
+            }
+        }
+    }
+
+    /// Every soil the region screen can show must match a keyword. Falling
+    /// through to the default mountain renders, but reads as a bug — six terms
+    /// were silently doing exactly that.
+    @Test("every soil in the dataset resolves to a specific glyph")
+    func soilsResolve() {
+        let fallback = db.icons.soilIcons["default"]
+        var seen: Set<String> = []
+
+        for entry in db.entries(in: .regions) {
+            guard case .region(let r) = entry else { continue }
+            for soil in db.icons.soils(soilType: r.details.soilType, climate: r.climate) {
+                seen.insert(soil)
+                #expect(
+                    db.icons.soilIcon(soil) != fallback,
+                    "'\(soil)' (\(r.common.name)) has no soil keyword — falls back to the default glyph"
+                )
+            }
+        }
+        #expect(!seen.isEmpty, "no soils were exercised at all")
+    }
+
+    /// Matching is first-substring-wins, so the generated keyword order is
+    /// load-bearing: "clay loam" must reach clay, "sandstone" must reach sand.
+    @Test("soil keyword order disambiguates compound terms")
+    func soilKeywordOrder() throws {
+        let keywords = try #require(db.icons.soilKeywords, "generator no longer emits soilKeywords")
+        let clay = try #require(keywords.firstIndex(of: "clay"))
+        let loam = try #require(keywords.firstIndex(of: "loam"))
+        #expect(clay < loam, "'clay loam' would resolve as loam")
+
+        #expect(db.icons.soilIcon("Clay loam") == db.icons.soilIcons["clay"])
+        #expect(db.icons.soilIcon("sandstone") == db.icons.soilIcons["sand"])
+        #expect(db.icons.soilIcon("Volcanic ash") == db.icons.soilIcons["volcanic"])
+    }
+
     /// `DOC` means three different things depending on the country, so the
     /// lookup is keyed by the pair rather than the abbreviation alone.
     @Test("DOC resolves per country")

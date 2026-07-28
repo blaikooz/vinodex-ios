@@ -168,10 +168,12 @@
     "game-icons:cherry",
     "game-icons:chocolate-bar",
     "game-icons:coffee-cup",
+    "game-icons:crystal-cluster",
     "game-icons:cut-lemon",
+    "game-icons:dust-cloud",
     "game-icons:elderberry",
     "game-icons:feather",
-    "game-icons:flame",
+    "game-icons:flat-platform",
     "game-icons:fluffy-cloud",
     "game-icons:france",
     "game-icons:gas-pump",
@@ -189,12 +191,15 @@
     "game-icons:mountains",
     "game-icons:mushrooms",
     "game-icons:olive",
+    "game-icons:ore",
     "game-icons:peach",
     "game-icons:pine-tree",
+    "game-icons:plow",
     "game-icons:plum",
     "game-icons:portugal",
     "game-icons:pouring-chalice",
     "game-icons:raspberry",
+    "game-icons:river",
     "game-icons:rock",
     "game-icons:rose",
     "game-icons:salt-shaker",
@@ -204,12 +209,14 @@
     "game-icons:snowflake-2",
     "game-icons:south-africa",
     "game-icons:spain",
+    "game-icons:stone-pile",
     "game-icons:strawberry",
     "game-icons:sun",
     "game-icons:switzerland",
     "game-icons:tomato",
     "game-icons:two-shadows",
     "game-icons:vanilla-flower",
+    "game-icons:volcano",
     "game-icons:weight",
     "game-icons:weight-lifting-up",
     "game-icons:weight-scale",
@@ -284,12 +291,20 @@
   },
   "soilIcons": {
     "volcanic": {
-      "icon": "game-icons:flame",
+      "icon": "game-icons:volcano",
       "color": "#FF4500"
+    },
+    "basalt": {
+      "icon": "game-icons:stone-pile",
+      "color": "#2F4F4F"
     },
     "clay": {
       "icon": "lucide:droplet",
       "color": "#B5651D"
+    },
+    "loam": {
+      "icon": "game-icons:plow",
+      "color": "#8B5A2B"
     },
     "sand": {
       "icon": "game-icons:salt-shaker",
@@ -307,23 +322,56 @@
       "icon": "game-icons:rock",
       "color": "#708090"
     },
+    "shale": {
+      "icon": "game-icons:flat-platform",
+      "color": "#6B7B8C"
+    },
     "schist": {
       "icon": "lucide:mountain",
       "color": "#5F7A8A"
     },
     "granite": {
-      "icon": "game-icons:mountains",
+      "icon": "game-icons:crystal-cluster",
       "color": "#A9A9A9"
     },
     "gravel": {
       "icon": "lucide:circle",
       "color": "#696969"
     },
+    "alluvial": {
+      "icon": "game-icons:river",
+      "color": "#6CA0DC"
+    },
+    "loess": {
+      "icon": "game-icons:dust-cloud",
+      "color": "#C2B280"
+    },
+    "laterite": {
+      "icon": "game-icons:ore",
+      "color": "#A0522D"
+    },
     "default": {
       "icon": "lucide:mountain",
       "color": "#8B4513"
     }
   },
+  "soilKeywords": [
+    "volcanic",
+    "basalt",
+    "clay",
+    "loam",
+    "sand",
+    "limestone",
+    "chalk",
+    "slate",
+    "shale",
+    "schist",
+    "granite",
+    "gravel",
+    "alluvial",
+    "loess",
+    "laterite"
+  ],
   "climateSoilFallback": {
     "maritime": [
       "Alluvial",

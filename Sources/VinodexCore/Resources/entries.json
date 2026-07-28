@@ -4157,7 +4157,7 @@
   {
     "id": "FLAVOR-blackcurrant1",
     "name": "Blackcurrant",
-    "description": "Blackcurrant is a berry nuance with a sweet lean often found in wines.",
+    "description": "Blackcurrant is a ripe, sweet-leaning berry note, carried here by Cabernet Sauvignon.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -4200,7 +4200,7 @@
   {
     "id": "FLAVOR-cedar1",
     "name": "Cedar",
-    "description": "Cedar is a wood nuance with a umami lean often found in wines.",
+    "description": "Cedar is a savoury, umami-leaning wood note, carried here by Cabernet Sauvignon.",
     "category": "FLAVORS",
     "tags": [
       "UMAMI",
@@ -4243,7 +4243,7 @@
   {
     "id": "FLAVOR-spice1",
     "name": "Spice",
-    "description": "Spice is a spice nuance with a bitter lean often found in wines.",
+    "description": "Spice is a firm, bitter-edged note, carried here by Cabernet Sauvignon.",
     "category": "FLAVORS",
     "tags": [
       "BITTER",
@@ -4286,7 +4286,7 @@
   {
     "id": "FLAVOR-cherry1",
     "name": "Cherry",
-    "description": "Cherry is a red fruit nuance with a sweet lean often found in wines.",
+    "description": "Cherry is a ripe, sweet-leaning red fruit note, carried here by Pinot Noir, Nebbiolo and Sangiovese.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -4331,7 +4331,7 @@
   {
     "id": "FLAVOR-earth1",
     "name": "Earth",
-    "description": "Earth is a earth nuance with a umami lean often found in wines.",
+    "description": "Earth is a savoury, umami-leaning note, carried here by Pinot Noir and Saperavi.",
     "category": "FLAVORS",
     "tags": [
       "UMAMI",
@@ -4375,7 +4375,7 @@
   {
     "id": "FLAVOR-floral1",
     "name": "Floral",
-    "description": "Floral is a floral nuance with a umami lean often found in wines.",
+    "description": "Floral is a savoury, umami-leaning note, carried here by Pinot Noir.",
     "category": "FLAVORS",
     "tags": [
       "UMAMI",
@@ -4418,7 +4418,7 @@
   {
     "id": "FLAVOR-apple1",
     "name": "Apple",
-    "description": "Apple is a orchard fruit nuance with a sweet lean often found in wines.",
+    "description": "Apple is a ripe, sweet-leaning orchard fruit note, carried here by Chardonnay.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -4461,7 +4461,7 @@
   {
     "id": "FLAVOR-butter1",
     "name": "Butter",
-    "description": "Butter is a baking nuance with a sweet lean often found in wines.",
+    "description": "Butter is a ripe, sweet-leaning baking note, carried here by Chardonnay.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -4504,7 +4504,7 @@
   {
     "id": "FLAVOR-vanilla1",
     "name": "Vanilla",
-    "description": "Vanilla is a baking nuance with a sweet lean often found in wines.",
+    "description": "Vanilla is a ripe, sweet-leaning baking note, carried here by Chardonnay.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -4547,7 +4547,7 @@
   {
     "id": "FLAVOR-plum1",
     "name": "Plum",
-    "description": "Plum is a dark fruit nuance with a sweet lean often found in wines.",
+    "description": "Plum is a ripe, sweet-leaning dark fruit note, carried here by Merlot and Malbec.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -4591,7 +4591,7 @@
   {
     "id": "FLAVOR-chocolate1",
     "name": "Chocolate",
-    "description": "Chocolate is a baking nuance with a sweet lean often found in wines.",
+    "description": "Chocolate is a ripe, sweet-leaning baking note, carried here by Merlot.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -4634,7 +4634,7 @@
   {
     "id": "FLAVOR-herbs1",
     "name": "Herbs",
-    "description": "Herbs is a herbal nuance with a umami lean often found in wines.",
+    "description": "Herbs is a savoury, umami-leaning herbal note, carried here by Merlot.",
     "category": "FLAVORS",
     "tags": [
       "UMAMI",
@@ -4677,7 +4677,7 @@
   {
     "id": "FLAVOR-blackberry1",
     "name": "Blackberry",
-    "description": "Blackberry is a berry nuance with a sweet lean often found in wines.",
+    "description": "Blackberry is a ripe, sweet-leaning berry note, carried here by Syrah and Pinotage.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -4721,7 +4721,7 @@
   {
     "id": "FLAVOR-pepper1",
     "name": "Pepper",
-    "description": "Pepper is a spice nuance with a bitter lean often found in wines.",
+    "description": "Pepper is a firm, bitter-edged spice note, carried here by Syrah and Grenache.",
     "category": "FLAVORS",
     "tags": [
       "BITTER",
@@ -4765,7 +4765,7 @@
   {
     "id": "FLAVOR-smoke1",
     "name": "Smoke",
-    "description": "Smoke is a smoky nuance with a bitter lean often found in wines.",
+    "description": "Smoke is a firm, bitter-edged smoky note, carried here by Syrah, Furmint and Pinotage.",
     "category": "FLAVORS",
     "tags": [
       "BITTER",
@@ -4810,7 +4810,7 @@
   {
     "id": "FLAVOR-lime1",
     "name": "Lime",
-    "description": "Lime is a citrus nuance with a sour lean often found in wines.",
+    "description": "Lime is a tart, acid-lifted citrus note, carried here by Sauvignon Blanc, Riesling and Furmint.",
     "category": "FLAVORS",
     "tags": [
       "SOUR",
@@ -4855,7 +4855,7 @@
   {
     "id": "FLAVOR-gooseberry1",
     "name": "Gooseberry",
-    "description": "Gooseberry is a berry nuance with a sweet lean often found in wines.",
+    "description": "Gooseberry is a ripe, sweet-leaning berry note, carried here by Sauvignon Blanc.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -4898,7 +4898,7 @@
   {
     "id": "FLAVOR-grass1",
     "name": "Grass",
-    "description": "Grass is a herbal nuance with a umami lean often found in wines.",
+    "description": "Grass is a savoury, umami-leaning herbal note, carried here by Sauvignon Blanc.",
     "category": "FLAVORS",
     "tags": [
       "UMAMI",
@@ -4941,7 +4941,7 @@
   {
     "id": "FLAVOR-peach1",
     "name": "Peach",
-    "description": "Peach is a stone fruit nuance with a sweet lean often found in wines.",
+    "description": "Peach is a ripe, sweet-leaning stone fruit note, carried here by Riesling.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -4984,7 +4984,7 @@
   {
     "id": "FLAVOR-petrol1",
     "name": "Petrol",
-    "description": "Petrol is a earth nuance with a umami lean often found in wines.",
+    "description": "Petrol is a savoury, umami-leaning earth note, carried here by Riesling.",
     "category": "FLAVORS",
     "tags": [
       "UMAMI",
@@ -5027,7 +5027,7 @@
   {
     "id": "FLAVOR-rose1",
     "name": "Rose",
-    "description": "Rose is a floral nuance with a umami lean often found in wines.",
+    "description": "Rose is a savoury, umami-leaning floral note, carried here by Nebbiolo, Torrontés and Gewürztraminer.",
     "category": "FLAVORS",
     "tags": [
       "UMAMI",
@@ -5072,7 +5072,7 @@
   {
     "id": "FLAVOR-tar1",
     "name": "Tar",
-    "description": "Tar is a earth nuance with a umami lean often found in wines.",
+    "description": "Tar is a savoury, umami-leaning earth note, carried here by Nebbiolo.",
     "category": "FLAVORS",
     "tags": [
       "UMAMI",
@@ -5115,7 +5115,7 @@
   {
     "id": "FLAVOR-tomato1",
     "name": "Tomato",
-    "description": "Tomato is a vegetal nuance with a umami lean often found in wines.",
+    "description": "Tomato is a savoury, umami-leaning vegetal note, carried here by Sangiovese.",
     "category": "FLAVORS",
     "tags": [
       "UMAMI",
@@ -5158,7 +5158,7 @@
   {
     "id": "FLAVOR-espresso1",
     "name": "Espresso",
-    "description": "Espresso is a baking nuance with a sweet lean often found in wines.",
+    "description": "Espresso is a ripe, sweet-leaning baking note, carried here by Sangiovese.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -5201,7 +5201,7 @@
   {
     "id": "FLAVOR-strawberry1",
     "name": "Strawberry",
-    "description": "Strawberry is a berry nuance with a sweet lean often found in wines.",
+    "description": "Strawberry is a ripe, sweet-leaning berry note, carried here by Grenache.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -5244,7 +5244,7 @@
   {
     "id": "FLAVOR-raspberry1",
     "name": "Raspberry",
-    "description": "Raspberry is a berry nuance with a sweet lean often found in wines.",
+    "description": "Raspberry is a ripe, sweet-leaning berry note, carried here by Grenache.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -5287,7 +5287,7 @@
   {
     "id": "FLAVOR-fig1",
     "name": "Fig",
-    "description": "Fig is a dark fruit nuance with a sweet lean often found in wines.",
+    "description": "Fig is a ripe, sweet-leaning dark fruit note, carried here by Tempranillo.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -5330,7 +5330,7 @@
   {
     "id": "FLAVOR-tobacco1",
     "name": "Tobacco",
-    "description": "Tobacco is a spice nuance with a bitter lean often found in wines.",
+    "description": "Tobacco is a firm, bitter-edged spice note, carried here by Tempranillo and Zinfandel.",
     "category": "FLAVORS",
     "tags": [
       "BITTER",
@@ -5374,7 +5374,7 @@
   {
     "id": "FLAVOR-dill1",
     "name": "Dill",
-    "description": "Dill is a herbal nuance with a umami lean often found in wines.",
+    "description": "Dill is a savoury, umami-leaning herbal note, carried here by Tempranillo.",
     "category": "FLAVORS",
     "tags": [
       "UMAMI",
@@ -5417,7 +5417,7 @@
   {
     "id": "FLAVOR-blueberry1",
     "name": "Blueberry",
-    "description": "Blueberry is a berry nuance with a sweet lean often found in wines.",
+    "description": "Blueberry is a ripe, sweet-leaning berry note, carried here by Malbec.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -5460,7 +5460,7 @@
   {
     "id": "FLAVOR-cocoa1",
     "name": "Cocoa",
-    "description": "Cocoa is a baking nuance with a sweet lean often found in wines.",
+    "description": "Cocoa is a ripe, sweet-leaning baking note, carried here by Malbec and Montepulciano.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -5504,7 +5504,7 @@
   {
     "id": "FLAVOR-jammy berry1",
     "name": "Jammy Berry",
-    "description": "Jammy Berry is a berry nuance with a sweet lean often found in wines.",
+    "description": "Jammy Berry is a ripe, sweet-leaning berry note, carried here by Zinfandel.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -5547,7 +5547,7 @@
   {
     "id": "FLAVOR-cinnamon1",
     "name": "Cinnamon",
-    "description": "Cinnamon is a spice nuance with a bitter lean often found in wines.",
+    "description": "Cinnamon is a firm, bitter-edged spice note, carried here by Zinfandel and Primitivo.",
     "category": "FLAVORS",
     "tags": [
       "BITTER",
@@ -5591,7 +5591,7 @@
   {
     "id": "FLAVOR-lychee1",
     "name": "Lychee",
-    "description": "Lychee is a tropical nuance with a sweet lean often found in wines.",
+    "description": "Lychee is a ripe, sweet-leaning tropical note, carried here by Torrontés and Gewürztraminer.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -5635,7 +5635,7 @@
   {
     "id": "FLAVOR-citrus1",
     "name": "Citrus",
-    "description": "Citrus is a citrus nuance with a sour lean often found in wines.",
+    "description": "Citrus is a tart, acid-lifted note, carried here by Torrontés and Albariño.",
     "category": "FLAVORS",
     "tags": [
       "SOUR",
@@ -5679,7 +5679,7 @@
   {
     "id": "FLAVOR-ginger1",
     "name": "Ginger",
-    "description": "Ginger is a spice nuance with a bitter lean often found in wines.",
+    "description": "Ginger is a firm, bitter-edged spice note, carried here by Gewürztraminer.",
     "category": "FLAVORS",
     "tags": [
       "BITTER",
@@ -5722,7 +5722,7 @@
   {
     "id": "FLAVOR-apricot1",
     "name": "Apricot",
-    "description": "Apricot is a stone fruit nuance with a sweet lean often found in wines.",
+    "description": "Apricot is a ripe, sweet-leaning stone fruit note, carried here by Albariño.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -5765,7 +5765,7 @@
   {
     "id": "FLAVOR-sea salt1",
     "name": "Sea Salt",
-    "description": "Sea Salt is a salty nuance with a salty lean often found in wines.",
+    "description": "Sea Salt is a saline, mineral note, carried here by Albariño.",
     "category": "FLAVORS",
     "tags": [
       "SALTY",
@@ -5798,7 +5798,7 @@
   {
     "id": "FLAVOR-lemon1",
     "name": "Lemon",
-    "description": "Lemon is a citrus nuance with a sour lean often found in wines.",
+    "description": "Lemon is a tart, acid-lifted citrus note, carried here by Assyrtiko.",
     "category": "FLAVORS",
     "tags": [
       "SOUR",
@@ -5841,7 +5841,7 @@
   {
     "id": "FLAVOR-saline1",
     "name": "Saline",
-    "description": "Saline is a salty nuance with a salty lean often found in wines.",
+    "description": "Saline is a saline, mineral note, carried here by Assyrtiko.",
     "category": "FLAVORS",
     "tags": [
       "SALTY",
@@ -5874,7 +5874,7 @@
   {
     "id": "FLAVOR-mineral1",
     "name": "Mineral",
-    "description": "Mineral is a earth nuance with a umami lean often found in wines.",
+    "description": "Mineral is a savoury, umami-leaning earth note, carried here by Assyrtiko and Koshu.",
     "category": "FLAVORS",
     "tags": [
       "UMAMI",
@@ -5918,7 +5918,7 @@
   {
     "id": "FLAVOR-violet1",
     "name": "Violet",
-    "description": "Violet is a floral nuance with a umami lean often found in wines.",
+    "description": "Violet is a savoury, umami-leaning floral note, carried here by Touriga Nacional.",
     "category": "FLAVORS",
     "tags": [
       "UMAMI",
@@ -5961,7 +5961,7 @@
   {
     "id": "FLAVOR-black fruit1",
     "name": "Black Fruit",
-    "description": "Black Fruit is a berry nuance with a sweet lean often found in wines.",
+    "description": "Black Fruit is a ripe, sweet-leaning berry note, carried here by Touriga Nacional.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -6004,7 +6004,7 @@
   {
     "id": "FLAVOR-herb1",
     "name": "Herb",
-    "description": "Herb is a herbal nuance with a umami lean often found in wines.",
+    "description": "Herb is a savoury, umami-leaning herbal note, carried here by Touriga Nacional.",
     "category": "FLAVORS",
     "tags": [
       "UMAMI",
@@ -6047,7 +6047,7 @@
   {
     "id": "FLAVOR-honey1",
     "name": "Honey",
-    "description": "Honey is a wax nuance with a umami lean often found in wines.",
+    "description": "Honey is a savoury, umami-leaning wax note, carried here by Furmint.",
     "category": "FLAVORS",
     "tags": [
       "UMAMI",
@@ -6090,7 +6090,7 @@
   {
     "id": "FLAVOR-yuzu citrus1",
     "name": "Yuzu Citrus",
-    "description": "Yuzu Citrus is a citrus nuance with a sour lean often found in wines.",
+    "description": "Yuzu Citrus is a tart, acid-lifted citrus note, carried here by Koshu.",
     "category": "FLAVORS",
     "tags": [
       "SOUR",
@@ -6133,7 +6133,7 @@
   {
     "id": "FLAVOR-jasmine1",
     "name": "Jasmine",
-    "description": "Jasmine is a floral nuance with a umami lean often found in wines.",
+    "description": "Jasmine is a savoury, umami-leaning floral note, carried here by Koshu.",
     "category": "FLAVORS",
     "tags": [
       "UMAMI",
@@ -6176,7 +6176,7 @@
   {
     "id": "FLAVOR-black plum1",
     "name": "Black Plum",
-    "description": "Black Plum is a dark fruit nuance with a sweet lean often found in wines.",
+    "description": "Black Plum is a ripe, sweet-leaning dark fruit note, carried here by Saperavi and Montepulciano.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -6220,7 +6220,7 @@
   {
     "id": "FLAVOR-smoky spice1",
     "name": "Smoky Spice",
-    "description": "Smoky Spice is a spice nuance with a bitter lean often found in wines.",
+    "description": "Smoky Spice is a firm, bitter-edged spice note, carried here by Saperavi.",
     "category": "FLAVORS",
     "tags": [
       "BITTER",
@@ -6263,7 +6263,7 @@
   {
     "id": "FLAVOR-dark chocolate1",
     "name": "Dark Chocolate",
-    "description": "Dark Chocolate is a baking nuance with a sweet lean often found in wines.",
+    "description": "Dark Chocolate is a ripe, sweet-leaning baking note, carried here by Pinotage.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -6306,7 +6306,7 @@
   {
     "id": "FLAVOR-dried herbs1",
     "name": "Dried Herbs",
-    "description": "Dried Herbs is a herbal nuance with a umami lean often found in wines.",
+    "description": "Dried Herbs is a savoury, umami-leaning herbal note, carried here by Montepulciano.",
     "category": "FLAVORS",
     "tags": [
       "UMAMI",
@@ -6349,7 +6349,7 @@
   {
     "id": "FLAVOR-sour cherry1",
     "name": "Sour Cherry",
-    "description": "Sour Cherry is a red fruit nuance with a sweet lean often found in wines.",
+    "description": "Sour Cherry is a ripe, sweet-leaning red fruit note, carried here by Xinomavro.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -6392,7 +6392,7 @@
   {
     "id": "FLAVOR-tomato leaf1",
     "name": "Tomato Leaf",
-    "description": "Tomato Leaf is a vegetal nuance with a umami lean often found in wines.",
+    "description": "Tomato Leaf is a savoury, umami-leaning vegetal note, carried here by Xinomavro.",
     "category": "FLAVORS",
     "tags": [
       "UMAMI",
@@ -6435,7 +6435,7 @@
   {
     "id": "FLAVOR-olive1",
     "name": "Olive",
-    "description": "Olive is a vegetal nuance with a umami lean often found in wines.",
+    "description": "Olive is a savoury, umami-leaning vegetal note, carried here by Xinomavro.",
     "category": "FLAVORS",
     "tags": [
       "UMAMI",
@@ -6478,7 +6478,7 @@
   {
     "id": "FLAVOR-blackberry jam1",
     "name": "Blackberry Jam",
-    "description": "Blackberry Jam is a berry nuance with a sweet lean often found in wines.",
+    "description": "Blackberry Jam is a ripe, sweet-leaning berry note, carried here by Primitivo.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -6521,7 +6521,7 @@
   {
     "id": "FLAVOR-licorice1",
     "name": "Licorice",
-    "description": "Licorice is a spice nuance with a bitter lean often found in wines.",
+    "description": "Licorice is a firm, bitter-edged spice note, carried here by Primitivo.",
     "category": "FLAVORS",
     "tags": [
       "BITTER",

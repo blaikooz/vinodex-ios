@@ -46,6 +46,24 @@ struct ContinentTests {
 
     /// France backs several regions in the starter selection (Bordeaux,
     /// Burgundy, Champagne, ...) so its country row should be tappable.
+    /// Marker coordinates are continent centroids. They used to be wine-region
+    /// coordinates ported from the web (North America on San Francisco, Africa
+    /// on Cape Town), which put markers off the landmass they label. Nothing
+    /// else checks them — the globe is UI, so it is untested.
+    @Test("every continent's marker coordinate sits inside its own landmass", arguments: Continent.allCases)
+    func markerCoordinateInBounds(continent: Continent) {
+        let point = continent.coordinate
+        let bounds = continent.coordinateBounds
+        #expect(
+            bounds.lat.contains(point.lat),
+            "\(continent.rawValue) latitude \(point.lat) outside \(bounds.lat)"
+        )
+        #expect(
+            bounds.lng.contains(point.lng),
+            "\(continent.rawValue) longitude \(point.lng) outside \(bounds.lng)"
+        )
+    }
+
     @Test("hasRegions is true for a country with regions in the selection")
     func hasRegionsTrue() {
         #expect(db.hasRegions(inCountry: "France"))
