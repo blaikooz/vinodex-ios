@@ -260,7 +260,7 @@ public struct DeviceChassis<Content: View>: View {
 
             MarqueeBanner(
                 text: footerTitle,
-                fontSize: isMainScreen ? DexMetrics.marqueeTextSizeLong : DexMetrics.marqueeTextSize
+                fontSize: DexMetrics.marqueeTextSize
             )
             .frame(maxWidth: DexMetrics.marqueeMaxWidth)
             .frame(maxWidth: .infinity)

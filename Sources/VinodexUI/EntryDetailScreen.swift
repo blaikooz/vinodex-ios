@@ -210,7 +210,7 @@ public struct EntryDetailScreen: View {
             // The reference titles the grape notes section FLAVOR PROFILE.
             flavorProfileSection(entry.tastingProfile)
             if !g.grapeAlternateNames.isEmpty {
-                chipSection("ALSO KNOWN AS", symbol: "textformat.abc", names: g.grapeAlternateNames)
+                chipSection("ALSO KNOWN AS", symbol: "character.book.closed", names: g.grapeAlternateNames)
             }
             linkedSection("NOTABLE REGIONS", symbol: "mappin.and.ellipse", names: g.grapeNotableRegions)
 
@@ -227,7 +227,6 @@ public struct EntryDetailScreen: View {
             }
 
         case .style(let s):
-            styleProfileSection(s)
             styleRelatedSections(s)
 
         case .flavor:
@@ -402,31 +401,6 @@ public struct EntryDetailScreen: View {
                         .font(DexFont.mono(19))
                         .foregroundStyle(Dex.stone400)
                 }
-            }
-        }
-    }
-
-    private func styleProfileSection(_ s: StyleEntry) -> some View {
-        section("PROFILE", symbol: "slider.horizontal.3") {
-            VStack(alignment: .leading, spacing: 6) {
-                profileRow("BODY", s.details.body)
-                profileRow("TANNIN", s.details.tannin)
-                profileRow("ACIDITY", s.details.acidity)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func profileRow(_ label: String, _ value: String?) -> some View {
-        if let value, !value.isEmpty {
-            HStack {
-                Text(label)
-                    .font(DexFont.retro(9))
-                    .foregroundStyle(Dex.green)
-                Spacer()
-                Text(value.uppercased())
-                    .font(DexFont.mono(19))
-                    .foregroundStyle(Color(dexHex: "#bbf7d0"))
             }
         }
     }

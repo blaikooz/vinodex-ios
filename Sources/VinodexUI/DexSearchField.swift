@@ -138,8 +138,14 @@ public final class BlockCaretTextField: UITextField {
             block.isHidden = true
             return
         }
-        let width = max(font?.pointSize ?? 20, 18) * 0.42
-        block.frame = CGRect(x: rect.minX, y: rect.minY, width: width, height: rect.height)
+        let font = self.font ?? .monospacedSystemFont(ofSize: 20, weight: .regular)
+        let width = max(font.pointSize, 18) * 0.42
+        // `caretRect` is a hairline at the glyph's leading edge, so the block
+        // hung off to the left of the character it marks. The field is
+        // monospaced, so any glyph measures the cell — centre the block in it.
+        let cell = ("0" as NSString).size(withAttributes: [.font: font]).width
+        let inset = cell.isFinite && cell > width ? (cell - width) / 2 : 0
+        block.frame = CGRect(x: rect.minX + inset, y: rect.minY, width: width, height: rect.height)
     }
 
     public override func caretRect(for position: UITextPosition) -> CGRect {

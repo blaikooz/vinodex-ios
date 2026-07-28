@@ -151,8 +151,9 @@ public enum DexMetrics {
     public static let marqueeInnerCorner: CGFloat = 0.6 * rem
     /// The banner matches the control buttons so the footer reads as one row.
     public static let marqueeHeight: CGFloat = controlButton
+    /// One size for every screen: the main screen's longer banner scrolls,
+    /// so it does not need to shrink to fit.
     public static let marqueeTextSize: CGFloat = 1.3 * rem
-    public static let marqueeTextSizeLong: CGFloat = 1.0 * rem
 
     /// Scanline overlay
     public static let scanlineSpacing: CGFloat = 4
