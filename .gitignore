@@ -1,2 +1,15 @@
 .build/
+.swiftpm/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+
+# xtool's build output (the packaged .app)
+xtool/
+
+# Only needed if you regenerate the bundled data; see README.
+node_modules/
 scripts/.generate.mjs
+
+.DS_Store
+*.log

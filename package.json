@@ -1,0 +1,16 @@
+{
+  "name": "vinodex-swift-tools",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Node tooling for regenerating the bundled data. Not needed to build or run the app — Sources/VinodexCore/Resources/*.json is committed.",
+  "scripts": {
+    "generate": "ts-node --esm scripts/generate-ios-data.ts",
+    "icons": "bash scripts/rasterize-icons.sh"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.8.2"
+  }
+}

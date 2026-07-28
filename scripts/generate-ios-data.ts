@@ -1,37 +1,44 @@
 /**
- * Generates the native app's bundled data from the web app's sources.
+ * Generates the iOS app's bundled data from the shared data + colour tables.
  *
- * Emits two files into native/Resources/Data:
+ * Emits four files into the VinodexCore resource directory:
  *   entries.json  — the WineEntry set for the current selection
+ *   tiers.json    — which entry ids the free tier unlocks
  *   palette.json  — the full colour tables, materialised by probing the
- *                   web app's lookup functions over their key domains
+ *                   shared lookup functions over their key domains
+ *   icons.json    — the icon manifest rasterize-icons.sh consumes
  *
- * Both are committed so a Swift build never needs Node. Scaling the starter to
- * the full database is a matter of setting STARTER_SELECTION to `undefined`.
+ * All four are committed so a Swift build never needs Node. Scaling the starter
+ * to the full database is a matter of setting STARTER_SELECTION to `undefined`.
+ *
+ * Everything this reads lives under `shared/`, which is a sibling of `scripts/`
+ * in both the monorepo and the published `vinodex-swift` mirror — so the import
+ * specifiers below are identical in both and the script runs in either repo.
+ * Only the output path differs; see OUT_DIR.
  */
-import { resolveFlavorIcon } from '../../src/services/flavorIcon.ts';
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { resolveFlavorIcon } from '../shared/services/flavorIcon.ts';
+import { existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { buildWineEntries, type EntrySelection } from '../../constants.ts';
-import type { WineEntry } from '../../types.ts';
-import { CONTINENTS } from '../../data/continents.ts';
-import { CLIMATE_CLASS_MAP } from '../../data/climateClasses.ts';
-import { getFlagGradient } from '../../data/flagGradients.ts';
-import { GRAPE_CARDS } from '../../data/grapeCards.ts';
-import { REGIONS } from '../../data/regions.ts';
-import { STYLES } from '../../data/styles.ts';
-import { STYLE_TONE_PALETTE } from '../../stylePalette.ts';
+import { buildWineEntries, type EntrySelection } from '../shared/constants.ts';
+import type { WineEntry } from '../shared/types.ts';
+import { CONTINENTS } from '../shared/data/continents.ts';
+import { CLIMATE_CLASS_MAP } from '../shared/data/climateClasses.ts';
+import { getFlagGradient } from '../shared/data/flagGradients.ts';
+import { GRAPE_CARDS } from '../shared/data/grapeCards.ts';
+import { REGIONS } from '../shared/data/regions.ts';
+import { STYLES } from '../shared/data/styles.ts';
+import { STYLE_TONE_PALETTE } from '../shared/stylePalette.ts';
 import {
   FLAVOR_SUBCLASS_KEYWORDS,
   FLAVOR_CLASS_COLORS,
   getStyleClassType,
-} from '../../src/services/entryUtils.ts';
+} from '../shared/services/entryUtils.ts';
 import {
   getRegionClassificationIconColor,
   getFlavorSubclassIconColor,
-} from '../../src/services/colorUtils.ts';
+} from '../shared/services/colorUtils.ts';
 import {
   getCountryChipColors,
   getClassificationChipColors,
@@ -46,11 +53,25 @@ import {
   BLUE_CHIP_COLOR,
   APPELLATION_CHIP_COLORS,
   type ChipColorStyle,
-} from '../../src/services/chipColors.ts';
+} from '../shared/services/chipColors.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-// SwiftPM resolves target resources relative to the target's source directory.
-const OUT_DIR = resolve(HERE, '..', 'Sources', 'VinodexCore', 'Resources');
+const REPO_ROOT = resolve(HERE, '..');
+
+// The Swift package sits under `ios/` in the monorepo but at the root of the
+// published `vinodex-swift` mirror. Probe rather than hard-code, so one script
+// serves both. SwiftPM resolves target resources relative to the target's
+// source directory, hence the Sources/... suffix either way.
+const SWIFT_ROOT = existsSync(resolve(REPO_ROOT, 'ios', 'Package.swift'))
+  ? resolve(REPO_ROOT, 'ios')
+  : REPO_ROOT;
+const OUT_DIR = resolve(SWIFT_ROOT, 'Sources', 'VinodexCore', 'Resources');
+
+if (!existsSync(resolve(SWIFT_ROOT, 'Package.swift'))) {
+  throw new Error(
+    `no Package.swift under ${SWIFT_ROOT} — run this from the monorepo root or from a vinodex-swift checkout`,
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Starter selection. Chosen for UI-state coverage, not familiarity — see the
@@ -102,7 +123,10 @@ const linkedIds = <T extends { id: string; details: { notableGrapes?: string[] }
 /// one-line change if the full set turns out to be unwieldy.
 const STARTER_SELECTION: EntrySelection | undefined = undefined;
 
-const UNUSED_STARTER_SELECTION: EntrySelection = {
+/// Retained as the ready-made argument for STARTER_SELECTION above. Exported
+/// only so `noUnusedLocals` doesn't delete the one thing that makes reverting
+/// to a curated subset a one-line change.
+export const CURATED_SELECTION: EntrySelection = {
   grapes: STARTER_GRAPES,
   regions: linkedIds(REGIONS),
   styles: linkedIds(STYLES),
@@ -138,7 +162,10 @@ function collectKeyDomain(all: readonly WineEntry[]) {
   const wineTypes: string[] = [];
 
   for (const entry of all) {
-    const details = entry.details as Record<string, unknown>;
+    // The details union has no index signature, and CountryGateDetails in
+    // particular does not overlap structurally — go via unknown rather than
+    // widening every member of the union.
+    const details = entry.details as unknown as Record<string, unknown>;
     if (typeof details.origin === 'string') origins.push(details.origin);
     if (typeof details.classification === 'string') classifications.push(details.classification);
     if (entry.category === 'GRAPES') {

@@ -1,0 +1,20 @@
+# Normalize line endings so the mirror's object database stays LF regardless of
+# the platform that ran the publish. Without this the assembled tree is copied
+# straight from a Windows working directory and every source file lands in the
+# repo as CRLF, showing up as a whole-repo diff on the first publish.
+* text=auto
+
+# Known binary types — explicit so git's content-sniffing heuristic never
+# mis-detects them (matters most for the rasterized Icons/ and Flags/ trees and
+# the pixelflags/ source).
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.zip binary
+*.pdf binary
