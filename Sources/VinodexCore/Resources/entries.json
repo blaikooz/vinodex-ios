@@ -1230,6 +1230,96 @@
     "tileCallback": "grape"
   },
   {
+    "id": "G022",
+    "name": "Petit Verdot",
+    "description": "A late-ripening Bordeaux blending grape that adds violet aromas and deep color to wines. Rarely bottled alone, it provides structure and inky depth to the final blend.",
+    "category": "GRAPES",
+    "tags": [
+      "Violet",
+      "Lilac",
+      "Sage"
+    ],
+    "color": "#800020",
+    "icon": "sparkles",
+    "wineType": "Full-Body Red",
+    "grapeType": "red",
+    "grapeStyle": "Full-Body Red",
+    "grapeBodyClass": "Full",
+    "grapeCharacteristics": {
+      "tannin": 4,
+      "acid": 4,
+      "colorIntensity": 4,
+      "aromatics": 5,
+      "body": 5
+    },
+    "grapeAlternateNames": [
+      "Verdot"
+    ],
+    "grapeNotableRegions": [
+      "Bordeaux"
+    ],
+    "grapeCountryOfOrigin": "France",
+    "grapeRarityTier": "rare",
+    "tastingProfile": [
+      {
+        "note": "Violet",
+        "icon": "sun",
+        "color": "#9370DB"
+      },
+      {
+        "note": "Lilac",
+        "icon": "sun",
+        "color": "#D8BFD8"
+      },
+      {
+        "note": "Sage",
+        "icon": "leaf",
+        "color": "#9ACD32"
+      }
+    ],
+    "grapeCard": {
+      "id": "G022",
+      "name": "Petit Verdot",
+      "type": "red",
+      "style": "Full-Body Red",
+      "styleId": "full-body-red",
+      "countryOfOrigin": "France",
+      "alternateNames": [
+        "Verdot"
+      ],
+      "rarityTier": "rare",
+      "characteristics": {
+        "tannin": 4,
+        "acid": 4,
+        "colorIntensity": 4,
+        "aromatics": 5,
+        "body": 5
+      },
+      "tastingProfile": [
+        "Violet",
+        "Lilac",
+        "Sage"
+      ],
+      "notableRegions": [
+        "Bordeaux"
+      ],
+      "info": "A late-ripening Bordeaux blending grape that adds violet aromas and deep color to wines. Rarely bottled alone, it provides structure and inky depth to the final blend."
+    },
+    "rarity": "RARE",
+    "details": {
+      "origin": "France",
+      "synonyms": [
+        "Verdot"
+      ],
+      "keyRegions": [
+        "Bordeaux"
+      ],
+      "body": "Full"
+    },
+    "iconCallback": "grape",
+    "tileCallback": "grape"
+  },
+  {
     "id": "G024",
     "name": "Torrontés",
     "description": "Argentina's signature white grape that smells sweet but tastes dry, often deceiving the senses. Its intense rose and lychee aromas make it one of the world's most distinctive whites.",
@@ -1494,6 +1584,96 @@
     "tileCallback": "grape"
   },
   {
+    "id": "G028",
+    "name": "Grüner Veltliner",
+    "description": "Austria's pride and most planted grape, known for its distinctive white pepper and green pea notes. It ranges from light and crisp to powerful and age-worthy depending on terroir.",
+    "category": "GRAPES",
+    "tags": [
+      "Green Pea",
+      "White Pepper",
+      "Citrus"
+    ],
+    "color": "#D4B896",
+    "icon": "leaf",
+    "wineType": "Light-Body White",
+    "grapeType": "white",
+    "grapeStyle": "Light-Body White",
+    "grapeBodyClass": "Light",
+    "grapeCharacteristics": {
+      "tannin": 3,
+      "acid": 4,
+      "colorIntensity": 2,
+      "aromatics": 5,
+      "body": 3
+    },
+    "grapeAlternateNames": [
+      "Grüner"
+    ],
+    "grapeNotableRegions": [
+      "Wachau"
+    ],
+    "grapeCountryOfOrigin": "Austria",
+    "grapeRarityTier": "uncommon",
+    "tastingProfile": [
+      {
+        "note": "Green Pea",
+        "icon": "circle",
+        "color": "#90EE90"
+      },
+      {
+        "note": "White Pepper",
+        "icon": "triangle",
+        "color": "#F5F5F5"
+      },
+      {
+        "note": "Citrus",
+        "icon": "sun",
+        "color": "#FFF44F"
+      }
+    ],
+    "grapeCard": {
+      "id": "G028",
+      "name": "Grüner Veltliner",
+      "type": "white",
+      "style": "Light-Body White",
+      "styleId": "light-body-white",
+      "countryOfOrigin": "Austria",
+      "alternateNames": [
+        "Grüner"
+      ],
+      "rarityTier": "uncommon",
+      "characteristics": {
+        "tannin": 3,
+        "acid": 4,
+        "colorIntensity": 2,
+        "aromatics": 5,
+        "body": 3
+      },
+      "tastingProfile": [
+        "Green Pea",
+        "White Pepper",
+        "Citrus"
+      ],
+      "notableRegions": [
+        "Wachau"
+      ],
+      "info": "Austria's pride and most planted grape, known for its distinctive white pepper and green pea notes. It ranges from light and crisp to powerful and age-worthy depending on terroir."
+    },
+    "rarity": "UNCOMMON",
+    "details": {
+      "origin": "Austria",
+      "synonyms": [
+        "Grüner"
+      ],
+      "keyRegions": [
+        "Wachau"
+      ],
+      "body": "Light"
+    },
+    "iconCallback": "grape",
+    "tileCallback": "grape"
+  },
+  {
     "id": "G035",
     "name": "Assyrtiko",
     "description": "A Greek grape from Santorini with intense mineral character and very high acidity. It thrives on volcanic soils and produces wines with remarkable saline and citrus notes.",
@@ -1573,6 +1753,90 @@
         "Santorini"
       ],
       "body": "Medium"
+    },
+    "iconCallback": "grape",
+    "tileCallback": "grape"
+  },
+  {
+    "id": "G037",
+    "name": "Nero d'Avola",
+    "description": "Sicily's most important red grape, producing rich wines with black cherry, plum, and spice flavors. It has become the ambassador of Sicilian winemaking.",
+    "category": "GRAPES",
+    "tags": [
+      "Black Cherry",
+      "Plum",
+      "Spice"
+    ],
+    "color": "#800020",
+    "icon": "flame",
+    "wineType": "Full-Body Red",
+    "grapeType": "red",
+    "grapeStyle": "Full-Body Red",
+    "grapeBodyClass": "Full",
+    "grapeCharacteristics": {
+      "tannin": 4,
+      "acid": 3,
+      "colorIntensity": 4,
+      "aromatics": 5,
+      "body": 5
+    },
+    "grapeAlternateNames": [],
+    "grapeNotableRegions": [
+      "Sicily"
+    ],
+    "grapeCountryOfOrigin": "Italy",
+    "grapeRarityTier": "uncommon",
+    "tastingProfile": [
+      {
+        "note": "Black Cherry",
+        "icon": "circle",
+        "color": "#8B0000"
+      },
+      {
+        "note": "Plum",
+        "icon": "droplet",
+        "color": "#800080"
+      },
+      {
+        "note": "Spice",
+        "icon": "triangle",
+        "color": "#D2691E"
+      }
+    ],
+    "grapeCard": {
+      "id": "G037",
+      "name": "Nero d'Avola",
+      "type": "red",
+      "style": "Full-Body Red",
+      "styleId": "full-body-red",
+      "countryOfOrigin": "Italy",
+      "alternateNames": [],
+      "rarityTier": "uncommon",
+      "characteristics": {
+        "tannin": 4,
+        "acid": 3,
+        "colorIntensity": 4,
+        "aromatics": 5,
+        "body": 5
+      },
+      "tastingProfile": [
+        "Black Cherry",
+        "Plum",
+        "Spice"
+      ],
+      "notableRegions": [
+        "Sicily"
+      ],
+      "info": "Sicily's most important red grape, producing rich wines with black cherry, plum, and spice flavors. It has become the ambassador of Sicilian winemaking."
+    },
+    "rarity": "UNCOMMON",
+    "details": {
+      "origin": "Italy",
+      "synonyms": [],
+      "keyRegions": [
+        "Sicily"
+      ],
+      "body": "Full"
     },
     "iconCallback": "grape",
     "tileCallback": "grape"
@@ -1746,6 +2010,93 @@
     "tileCallback": "grape"
   },
   {
+    "id": "G042",
+    "name": "Cabernet Gernischt",
+    "description": "A historic Bordeaux transplant thriving in China, often mistaken for Carmenère. Shows herbal spice and black fruit with a distinctly savory edge in cooler Chinese vineyards.",
+    "category": "GRAPES",
+    "tags": [
+      "Blackberry",
+      "Green Peppercorn",
+      "Tea Leaf"
+    ],
+    "color": "#9B2335",
+    "icon": "leaf",
+    "wineType": "Medium-Body Red",
+    "grapeType": "red",
+    "grapeStyle": "Medium-Body Red",
+    "grapeBodyClass": "Medium",
+    "grapeCharacteristics": {
+      "tannin": 3,
+      "acid": 3,
+      "colorIntensity": 4,
+      "aromatics": 5,
+      "body": 3
+    },
+    "grapeAlternateNames": [],
+    "grapeNotableRegions": [
+      "Shandong",
+      "Hebei"
+    ],
+    "grapeCountryOfOrigin": "China",
+    "grapeRarityTier": "rare",
+    "tastingProfile": [
+      {
+        "note": "Blackberry",
+        "icon": "fruit",
+        "color": "#191970"
+      },
+      {
+        "note": "Green Peppercorn",
+        "icon": "spice",
+        "color": "#556B2F"
+      },
+      {
+        "note": "Tea Leaf",
+        "icon": "herb",
+        "color": "#3C8D0D"
+      }
+    ],
+    "grapeCard": {
+      "id": "G042",
+      "name": "Cabernet Gernischt",
+      "type": "red",
+      "style": "Medium-Body Red",
+      "styleId": "medium-body-red",
+      "countryOfOrigin": "China",
+      "alternateNames": [],
+      "rarityTier": "rare",
+      "characteristics": {
+        "tannin": 3,
+        "acid": 3,
+        "colorIntensity": 4,
+        "aromatics": 5,
+        "body": 3
+      },
+      "tastingProfile": [
+        "Blackberry",
+        "Green Peppercorn",
+        "Tea Leaf"
+      ],
+      "notableRegions": [
+        "Shandong",
+        "Hebei"
+      ],
+      "info": "A historic Bordeaux transplant thriving in China, often mistaken for Carmenère. Shows herbal spice and black fruit with a distinctly savory edge in cooler Chinese vineyards."
+    },
+    "rarity": "RARE",
+    "details": {
+      "origin": "China",
+      "synonyms": [],
+      "keyRegions": [
+        "Shandong",
+        "Hebei"
+      ],
+      "body": "Medium"
+    },
+    "iconCallback": "grape",
+    "tileCallback": "grape"
+  },
+  {
     "id": "G043",
     "name": "Koshu",
     "description": "Japan's signature pale-purple skinned grape that yields delicate, mineral-driven whites. Its subtle citrus and jasmine notes shine in the misty foothills of Mount Fuji.",
@@ -1822,6 +2173,86 @@
       "origin": "Japan",
       "synonyms": [],
       "keyRegions": [
+        "Yamanashi"
+      ],
+      "body": "Light"
+    },
+    "iconCallback": "grape",
+    "tileCallback": "grape"
+  },
+  {
+    "id": "G044",
+    "name": "Muscat Bailey A",
+    "description": "A hybrid created in Japan combining Muscat of Hamburg and Bailey, producing aromatic, softly tannic reds with strawberry candy notes. Often vinified as a chilled, vibrant style.",
+    "category": "GRAPES",
+    "tags": [
+      "Strawberry Candy",
+      "Rose Petal"
+    ],
+    "color": "#C48B8B",
+    "icon": "sparkles",
+    "wineType": "Light-Body Red",
+    "grapeType": "red",
+    "grapeStyle": "Light-Body Red",
+    "grapeBodyClass": "Light",
+    "grapeCharacteristics": {
+      "tannin": 2,
+      "acid": 3,
+      "colorIntensity": 4,
+      "aromatics": 4,
+      "body": 2
+    },
+    "grapeAlternateNames": [],
+    "grapeNotableRegions": [
+      "Yamagata",
+      "Yamanashi"
+    ],
+    "grapeCountryOfOrigin": "Japan",
+    "grapeRarityTier": "uncommon",
+    "tastingProfile": [
+      {
+        "note": "Strawberry Candy",
+        "icon": "fruit",
+        "color": "#FF6B81"
+      },
+      {
+        "note": "Rose Petal",
+        "icon": "flower",
+        "color": "#FFC0CB"
+      }
+    ],
+    "grapeCard": {
+      "id": "G044",
+      "name": "Muscat Bailey A",
+      "type": "red",
+      "style": "Light-Body Red",
+      "styleId": "light-body-red",
+      "countryOfOrigin": "Japan",
+      "alternateNames": [],
+      "rarityTier": "uncommon",
+      "characteristics": {
+        "tannin": 2,
+        "acid": 3,
+        "colorIntensity": 4,
+        "aromatics": 4,
+        "body": 2
+      },
+      "tastingProfile": [
+        "Strawberry Candy",
+        "Rose Petal"
+      ],
+      "notableRegions": [
+        "Yamagata",
+        "Yamanashi"
+      ],
+      "info": "A hybrid created in Japan combining Muscat of Hamburg and Bailey, producing aromatic, softly tannic reds with strawberry candy notes. Often vinified as a chilled, vibrant style."
+    },
+    "rarity": "UNCOMMON",
+    "details": {
+      "origin": "Japan",
+      "synonyms": [],
+      "keyRegions": [
+        "Yamagata",
         "Yamanashi"
       ],
       "body": "Light"
@@ -2094,6 +2525,99 @@
     "tileCallback": "grape"
   },
   {
+    "id": "G062",
+    "name": "Melon de Bourgogne",
+    "description": "The classic grape of Muscadet, delivering lean, saline whites with citrus zest and subtle yeasty notes when aged on lees. Its neutral profile and brisk acidity make it especially seafood-friendly.",
+    "category": "GRAPES",
+    "tags": [
+      "Lemon Zest",
+      "Sea Spray",
+      "Brioche"
+    ],
+    "color": "#D4B896",
+    "icon": "droplet",
+    "wineType": "Light-Body White",
+    "grapeType": "white",
+    "grapeStyle": "Light-Body White",
+    "grapeBodyClass": "Light",
+    "grapeCharacteristics": {
+      "tannin": 3,
+      "acid": 4,
+      "colorIntensity": 2,
+      "aromatics": 5,
+      "body": 2
+    },
+    "grapeAlternateNames": [
+      "Melon"
+    ],
+    "grapeNotableRegions": [
+      "Loire Valley",
+      "Muscadet Sèvre-et-Maine"
+    ],
+    "grapeCountryOfOrigin": "France",
+    "grapeRarityTier": "uncommon",
+    "tastingProfile": [
+      {
+        "note": "Lemon Zest",
+        "icon": "circle",
+        "color": "#FACC15"
+      },
+      {
+        "note": "Sea Spray",
+        "icon": "mineral",
+        "color": "#94A3B8"
+      },
+      {
+        "note": "Brioche",
+        "icon": "cloud",
+        "color": "#D6B88D"
+      }
+    ],
+    "grapeCard": {
+      "id": "G062",
+      "name": "Melon de Bourgogne",
+      "type": "white",
+      "style": "Light-Body White",
+      "styleId": "light-body-white",
+      "countryOfOrigin": "France",
+      "alternateNames": [
+        "Melon"
+      ],
+      "rarityTier": "uncommon",
+      "characteristics": {
+        "tannin": 3,
+        "acid": 4,
+        "colorIntensity": 2,
+        "aromatics": 5,
+        "body": 2
+      },
+      "tastingProfile": [
+        "Lemon Zest",
+        "Sea Spray",
+        "Brioche"
+      ],
+      "notableRegions": [
+        "Loire Valley",
+        "Muscadet Sèvre-et-Maine"
+      ],
+      "info": "The classic grape of Muscadet, delivering lean, saline whites with citrus zest and subtle yeasty notes when aged on lees. Its neutral profile and brisk acidity make it especially seafood-friendly."
+    },
+    "rarity": "UNCOMMON",
+    "details": {
+      "origin": "France",
+      "synonyms": [
+        "Melon"
+      ],
+      "keyRegions": [
+        "Loire Valley",
+        "Muscadet Sèvre-et-Maine"
+      ],
+      "body": "Light"
+    },
+    "iconCallback": "grape",
+    "tileCallback": "grape"
+  },
+  {
     "id": "G063",
     "name": "Xinomavro",
     "description": "Greece's age-worthy northern red known for high acidity, firm tannins, and aromas of sour cherry, olive, and sun-dried tomato. Often compared stylistically to Nebbiolo for its structure and savory complexity.",
@@ -2176,6 +2700,288 @@
         "Amyndeon"
       ],
       "body": "Full"
+    },
+    "iconCallback": "grape",
+    "tileCallback": "grape"
+  },
+  {
+    "id": "G070",
+    "name": "Müller-Thurgau",
+    "description": "A crossing of Riesling and Madeleine Royale that produces aromatic, easy-drinking whites with gentle acidity. Styles often show orchard fruit, fresh herbs, and soft floral notes.",
+    "category": "GRAPES",
+    "tags": [
+      "Green Apple",
+      "Nutmeg",
+      "White Blossom"
+    ],
+    "color": "#D4B896",
+    "icon": "leaf",
+    "wineType": "Light-Body White",
+    "grapeType": "white",
+    "grapeStyle": "Light-Body White",
+    "grapeBodyClass": "Light",
+    "grapeCharacteristics": {
+      "tannin": 3,
+      "acid": 3,
+      "colorIntensity": 2,
+      "aromatics": 5,
+      "body": 2
+    },
+    "grapeAlternateNames": [
+      "Rivaner"
+    ],
+    "grapeNotableRegions": [
+      "Germany",
+      "Alto Adige",
+      "Austria"
+    ],
+    "grapeCountryOfOrigin": "Germany",
+    "grapeRarityTier": "common",
+    "tastingProfile": [
+      {
+        "note": "Green Apple",
+        "icon": "circle",
+        "color": "#84CC16"
+      },
+      {
+        "note": "Nutmeg",
+        "icon": "spice",
+        "color": "#B45309"
+      },
+      {
+        "note": "White Blossom",
+        "icon": "flower",
+        "color": "#FBCFE8"
+      }
+    ],
+    "grapeCard": {
+      "id": "G070",
+      "name": "Müller-Thurgau",
+      "type": "white",
+      "style": "Light-Body White",
+      "styleId": "light-body-white",
+      "countryOfOrigin": "Germany",
+      "alternateNames": [
+        "Rivaner"
+      ],
+      "rarityTier": "common",
+      "characteristics": {
+        "tannin": 3,
+        "acid": 3,
+        "colorIntensity": 2,
+        "aromatics": 5,
+        "body": 2
+      },
+      "tastingProfile": [
+        "Green Apple",
+        "Nutmeg",
+        "White Blossom"
+      ],
+      "notableRegions": [
+        "Germany",
+        "Alto Adige",
+        "Austria"
+      ],
+      "info": "A crossing of Riesling and Madeleine Royale that produces aromatic, easy-drinking whites with gentle acidity. Styles often show orchard fruit, fresh herbs, and soft floral notes."
+    },
+    "rarity": "COMMON",
+    "details": {
+      "origin": "Germany",
+      "synonyms": [
+        "Rivaner"
+      ],
+      "keyRegions": [
+        "Germany",
+        "Alto Adige",
+        "Austria"
+      ],
+      "body": "Light"
+    },
+    "iconCallback": "grape",
+    "tileCallback": "grape"
+  },
+  {
+    "id": "G076",
+    "name": "Blaufränkisch",
+    "description": "A central European red grape known for vivid acidity, dark berry fruit, and spicy, mineral edge. It produces energetic wines that can show excellent aging potential in cooler sites.",
+    "category": "GRAPES",
+    "tags": [
+      "Blackberry",
+      "White Pepper",
+      "Mineral"
+    ],
+    "color": "#722F37",
+    "icon": "shield",
+    "wineType": "Medium-Full Red",
+    "grapeType": "red",
+    "grapeStyle": "Medium-Full Red",
+    "grapeBodyClass": "Full",
+    "grapeCharacteristics": {
+      "tannin": 4,
+      "acid": 4,
+      "colorIntensity": 4,
+      "aromatics": 5,
+      "body": 5
+    },
+    "grapeAlternateNames": [
+      "Lemberger",
+      "Kékfrankos"
+    ],
+    "grapeNotableRegions": [
+      "Burgenland",
+      "Mittelburgenland",
+      "Hungary"
+    ],
+    "grapeCountryOfOrigin": "Austria",
+    "grapeRarityTier": "uncommon",
+    "tastingProfile": [
+      {
+        "note": "Blackberry",
+        "icon": "fruit",
+        "color": "#312E81"
+      },
+      {
+        "note": "White Pepper",
+        "icon": "spice",
+        "color": "#E5E7EB"
+      },
+      {
+        "note": "Mineral",
+        "icon": "stone",
+        "color": "#64748B"
+      }
+    ],
+    "grapeCard": {
+      "id": "G076",
+      "name": "Blaufränkisch",
+      "type": "red",
+      "style": "Medium-Full Red",
+      "styleId": "medium-full-red",
+      "countryOfOrigin": "Austria",
+      "alternateNames": [
+        "Lemberger",
+        "Kékfrankos"
+      ],
+      "rarityTier": "uncommon",
+      "characteristics": {
+        "tannin": 4,
+        "acid": 4,
+        "colorIntensity": 4,
+        "aromatics": 5,
+        "body": 5
+      },
+      "tastingProfile": [
+        "Blackberry",
+        "White Pepper",
+        "Mineral"
+      ],
+      "notableRegions": [
+        "Burgenland",
+        "Mittelburgenland",
+        "Hungary"
+      ],
+      "info": "A central European red grape known for vivid acidity, dark berry fruit, and spicy, mineral edge. It produces energetic wines that can show excellent aging potential in cooler sites."
+    },
+    "rarity": "UNCOMMON",
+    "details": {
+      "origin": "Austria",
+      "synonyms": [
+        "Lemberger",
+        "Kékfrankos"
+      ],
+      "keyRegions": [
+        "Burgenland",
+        "Mittelburgenland",
+        "Hungary"
+      ],
+      "body": "Full"
+    },
+    "iconCallback": "grape",
+    "tileCallback": "grape"
+  },
+  {
+    "id": "G077",
+    "name": "Nerello Mascalese",
+    "description": "Sicily's Etna flagship red, delivering pale color but firm structure with red fruit, herbs, and volcanic minerality. Often compared to Pinot Noir or Nebbiolo for its aromatic lift and tension.",
+    "category": "GRAPES",
+    "tags": [
+      "Red Cherry",
+      "Dried Herbs",
+      "Volcanic Ash"
+    ],
+    "color": "#800020",
+    "icon": "mountain",
+    "wineType": "Medium-Body Red",
+    "grapeType": "red",
+    "grapeStyle": "Medium-Body Red",
+    "grapeBodyClass": "Medium",
+    "grapeCharacteristics": {
+      "tannin": 4,
+      "acid": 4,
+      "colorIntensity": 4,
+      "aromatics": 5,
+      "body": 3
+    },
+    "grapeAlternateNames": [],
+    "grapeNotableRegions": [
+      "Etna",
+      "Sicily"
+    ],
+    "grapeCountryOfOrigin": "Italy",
+    "grapeRarityTier": "uncommon",
+    "tastingProfile": [
+      {
+        "note": "Red Cherry",
+        "icon": "circle",
+        "color": "#DC2626"
+      },
+      {
+        "note": "Dried Herbs",
+        "icon": "herb",
+        "color": "#4D7C0F"
+      },
+      {
+        "note": "Volcanic Ash",
+        "icon": "stone",
+        "color": "#6B7280"
+      }
+    ],
+    "grapeCard": {
+      "id": "G077",
+      "name": "Nerello Mascalese",
+      "type": "red",
+      "style": "Medium-Body Red",
+      "styleId": "medium-body-red",
+      "countryOfOrigin": "Italy",
+      "alternateNames": [],
+      "rarityTier": "uncommon",
+      "characteristics": {
+        "tannin": 4,
+        "acid": 4,
+        "colorIntensity": 4,
+        "aromatics": 5,
+        "body": 3
+      },
+      "tastingProfile": [
+        "Red Cherry",
+        "Dried Herbs",
+        "Volcanic Ash"
+      ],
+      "notableRegions": [
+        "Etna",
+        "Sicily"
+      ],
+      "info": "Sicily's Etna flagship red, delivering pale color but firm structure with red fruit, herbs, and volcanic minerality. Often compared to Pinot Noir or Nebbiolo for its aromatic lift and tension."
+    },
+    "rarity": "UNCOMMON",
+    "details": {
+      "origin": "Italy",
+      "synonyms": [],
+      "keyRegions": [
+        "Etna",
+        "Sicily"
+      ],
+      "body": "Medium"
     },
     "iconCallback": "grape",
     "tileCallback": "grape"
@@ -2272,6 +3078,102 @@
         "Manduria"
       ],
       "body": "Full"
+    },
+    "iconCallback": "grape",
+    "tileCallback": "grape"
+  },
+  {
+    "id": "G080",
+    "name": "Fer Servadou",
+    "description": "A southwest French red grape valued for brisk acidity, black fruit, and peppery herbal character. It adds structure and freshness in blends and can produce savory, medium-bodied varietal wines.",
+    "category": "GRAPES",
+    "tags": [
+      "Blackcurrant",
+      "Green Peppercorn",
+      "Violet"
+    ],
+    "color": "#73343A",
+    "icon": "shield",
+    "wineType": "Medium-Body Red",
+    "grapeType": "red",
+    "grapeStyle": "Medium-Body Red",
+    "grapeBodyClass": "Medium",
+    "grapeCharacteristics": {
+      "tannin": 4,
+      "acid": 4,
+      "colorIntensity": 4,
+      "aromatics": 5,
+      "body": 3
+    },
+    "grapeAlternateNames": [
+      "Braucol",
+      "Mansois"
+    ],
+    "grapeNotableRegions": [
+      "Gaillac",
+      "Marcillac"
+    ],
+    "grapeCountryOfOrigin": "France",
+    "grapeRarityTier": "rare",
+    "tastingProfile": [
+      {
+        "note": "Blackcurrant",
+        "icon": "fruit",
+        "color": "#312E81"
+      },
+      {
+        "note": "Green Peppercorn",
+        "icon": "spice",
+        "color": "#4D7C0F"
+      },
+      {
+        "note": "Violet",
+        "icon": "flower",
+        "color": "#A78BFA"
+      }
+    ],
+    "grapeCard": {
+      "id": "G080",
+      "name": "Fer Servadou",
+      "type": "red",
+      "style": "Medium-Body Red",
+      "styleId": "medium-body-red",
+      "countryOfOrigin": "France",
+      "alternateNames": [
+        "Braucol",
+        "Mansois"
+      ],
+      "rarityTier": "rare",
+      "characteristics": {
+        "tannin": 4,
+        "acid": 4,
+        "colorIntensity": 4,
+        "aromatics": 5,
+        "body": 3
+      },
+      "tastingProfile": [
+        "Blackcurrant",
+        "Green Peppercorn",
+        "Violet"
+      ],
+      "notableRegions": [
+        "Gaillac",
+        "Marcillac"
+      ],
+      "info": "A southwest French red grape valued for brisk acidity, black fruit, and peppery herbal character. It adds structure and freshness in blends and can produce savory, medium-bodied varietal wines."
+    },
+    "rarity": "RARE",
+    "details": {
+      "origin": "France",
+      "synonyms": [
+        "Braucol",
+        "Mansois"
+      ],
+      "keyRegions": [
+        "Gaillac",
+        "Marcillac"
+      ],
+      "body": "Medium"
     },
     "iconCallback": "grape",
     "tileCallback": "grape"
@@ -2844,6 +3746,34 @@
       ]
     },
     "climate": "continental",
+    "iconCallback": "region",
+    "tileCallback": "region"
+  },
+  {
+    "id": "R024",
+    "name": "Sicily",
+    "description": "Italy's largest wine island, producing increasingly impressive wines from ancient native varieties. Volcanic Mount Etna has become a hotbed for elegant reds and mineral whites.",
+    "category": "REGIONS",
+    "color": "#800020",
+    "icon": "sun",
+    "tags": [
+      "Italy",
+      "Island"
+    ],
+    "details": {
+      "origin": "Italy",
+      "notableGrapes": [
+        "Nero d'Avola",
+        "Grillo",
+        "Nerello Mascalese"
+      ],
+      "classification": "DOC",
+      "appellations": [
+        "Etna",
+        "Cerasuolo di Vittoria"
+      ]
+    },
+    "climate": "mediterranean",
     "iconCallback": "region",
     "tileCallback": "region"
   },
@@ -4157,7 +5087,7 @@
   {
     "id": "FLAVOR-blackcurrant1",
     "name": "Blackcurrant",
-    "description": "Blackcurrant is a ripe, sweet-leaning berry note, carried here by Cabernet Sauvignon.",
+    "description": "Blackcurrant is a ripe, sweet-leaning berry note, carried here by Cabernet Sauvignon and Fer Servadou.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -4191,7 +5121,8 @@
       "classification": "SWEET",
       "subclass": "BERRY",
       "notableGrapes": [
-        "Cabernet Sauvignon"
+        "Cabernet Sauvignon",
+        "Fer Servadou"
       ]
     },
     "iconCallback": "flavor",
@@ -4243,7 +5174,7 @@
   {
     "id": "FLAVOR-spice1",
     "name": "Spice",
-    "description": "Spice is a firm, bitter-edged note, carried here by Cabernet Sauvignon.",
+    "description": "Spice is a firm, bitter-edged note, carried here by Cabernet Sauvignon and Nero d'Avola.",
     "category": "FLAVORS",
     "tags": [
       "BITTER",
@@ -4277,7 +5208,8 @@
       "classification": "BITTER",
       "subclass": "SPICE",
       "notableGrapes": [
-        "Cabernet Sauvignon"
+        "Cabernet Sauvignon",
+        "Nero d'Avola"
       ]
     },
     "iconCallback": "flavor",
@@ -4547,7 +5479,7 @@
   {
     "id": "FLAVOR-plum1",
     "name": "Plum",
-    "description": "Plum is a ripe, sweet-leaning dark fruit note, carried here by Merlot and Malbec.",
+    "description": "Plum is a ripe, sweet-leaning dark fruit note, carried here by Merlot, Malbec and Nero d'Avola.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -4582,7 +5514,8 @@
       "subclass": "DARK_FRUIT",
       "notableGrapes": [
         "Merlot",
-        "Malbec"
+        "Malbec",
+        "Nero d'Avola"
       ]
     },
     "iconCallback": "flavor",
@@ -4677,7 +5610,7 @@
   {
     "id": "FLAVOR-blackberry1",
     "name": "Blackberry",
-    "description": "Blackberry is a ripe, sweet-leaning berry note, carried here by Syrah and Pinotage.",
+    "description": "Blackberry is a ripe, sweet-leaning berry note, carried here by Syrah, Cabernet Gernischt and Pinotage.",
     "category": "FLAVORS",
     "tags": [
       "SWEET",
@@ -4712,7 +5645,9 @@
       "subclass": "BERRY",
       "notableGrapes": [
         "Syrah",
-        "Pinotage"
+        "Cabernet Gernischt",
+        "Pinotage",
+        "Blaufränkisch"
       ]
     },
     "iconCallback": "flavor",
@@ -5589,6 +6524,137 @@
     "tileCallback": "flavor"
   },
   {
+    "id": "FLAVOR-violet1",
+    "name": "Violet",
+    "description": "Violet is a savoury, umami-leaning floral note, carried here by Petit Verdot, Touriga Nacional and Fer Servadou.",
+    "category": "FLAVORS",
+    "tags": [
+      "UMAMI",
+      "FLORAL"
+    ],
+    "color": "#14b8a6",
+    "icon": "sun",
+    "tastingProfile": [
+      {
+        "note": "Violet",
+        "icon": "sun",
+        "color": "#9370DB"
+      },
+      {
+        "note": "Cedar",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Earth",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Floral",
+        "icon": "default",
+        "color": "#0d9488"
+      }
+    ],
+    "details": {
+      "classification": "UMAMI",
+      "subclass": "FLORAL",
+      "notableGrapes": [
+        "Petit Verdot",
+        "Touriga Nacional",
+        "Fer Servadou"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-lilac1",
+    "name": "Lilac",
+    "description": "Lilac is a savoury, umami-leaning floral note, carried here by Petit Verdot.",
+    "category": "FLAVORS",
+    "tags": [
+      "UMAMI",
+      "FLORAL"
+    ],
+    "color": "#14b8a6",
+    "icon": "sun",
+    "tastingProfile": [
+      {
+        "note": "Lilac",
+        "icon": "sun",
+        "color": "#D8BFD8"
+      },
+      {
+        "note": "Cedar",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Earth",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Floral",
+        "icon": "default",
+        "color": "#0d9488"
+      }
+    ],
+    "details": {
+      "classification": "UMAMI",
+      "subclass": "FLORAL",
+      "notableGrapes": [
+        "Petit Verdot"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-sage1",
+    "name": "Sage",
+    "description": "Sage is a savoury, umami-leaning herbal note, carried here by Petit Verdot.",
+    "category": "FLAVORS",
+    "tags": [
+      "UMAMI",
+      "HERBAL"
+    ],
+    "color": "#14b8a6",
+    "icon": "leaf",
+    "tastingProfile": [
+      {
+        "note": "Sage",
+        "icon": "leaf",
+        "color": "#9ACD32"
+      },
+      {
+        "note": "Cedar",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Earth",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Floral",
+        "icon": "default",
+        "color": "#0d9488"
+      }
+    ],
+    "details": {
+      "classification": "UMAMI",
+      "subclass": "HERBAL",
+      "notableGrapes": [
+        "Petit Verdot"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
     "id": "FLAVOR-lychee1",
     "name": "Lychee",
     "description": "Lychee is a ripe, sweet-leaning tropical note, carried here by Torrontés and Gewürztraminer.",
@@ -5635,7 +6701,7 @@
   {
     "id": "FLAVOR-citrus1",
     "name": "Citrus",
-    "description": "Citrus is a tart, acid-lifted note, carried here by Torrontés and Albariño.",
+    "description": "Citrus is a tart, acid-lifted note, carried here by Torrontés, Albariño and Grüner Veltliner.",
     "category": "FLAVORS",
     "tags": [
       "SOUR",
@@ -5670,7 +6736,8 @@
       "subclass": "CITRUS",
       "notableGrapes": [
         "Torrontés",
-        "Albariño"
+        "Albariño",
+        "Grüner Veltliner"
       ]
     },
     "iconCallback": "flavor",
@@ -5783,6 +6850,11 @@
         "note": "Saline",
         "icon": "default",
         "color": "#0ea5e9"
+      },
+      {
+        "note": "Sea Spray",
+        "icon": "default",
+        "color": "#0ea5e9"
       }
     ],
     "details": {
@@ -5790,6 +6862,93 @@
       "subclass": "SALTY",
       "notableGrapes": [
         "Albariño"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-green pea1",
+    "name": "Green Pea",
+    "description": "Green Pea is a savoury, umami-leaning vegetal note, carried here by Grüner Veltliner.",
+    "category": "FLAVORS",
+    "tags": [
+      "UMAMI",
+      "VEGETAL"
+    ],
+    "color": "#14b8a6",
+    "icon": "circle",
+    "tastingProfile": [
+      {
+        "note": "Green Pea",
+        "icon": "circle",
+        "color": "#90EE90"
+      },
+      {
+        "note": "Cedar",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Earth",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Floral",
+        "icon": "default",
+        "color": "#0d9488"
+      }
+    ],
+    "details": {
+      "classification": "UMAMI",
+      "subclass": "VEGETAL",
+      "notableGrapes": [
+        "Grüner Veltliner"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-white pepper1",
+    "name": "White Pepper",
+    "description": "White Pepper is a firm, bitter-edged spice note, carried here by Grüner Veltliner and Blaufränkisch.",
+    "category": "FLAVORS",
+    "tags": [
+      "BITTER",
+      "SPICE"
+    ],
+    "color": "#8b5cf6",
+    "icon": "triangle",
+    "tastingProfile": [
+      {
+        "note": "White Pepper",
+        "icon": "triangle",
+        "color": "#F5F5F5"
+      },
+      {
+        "note": "Spice",
+        "icon": "default",
+        "color": "#6d28d9"
+      },
+      {
+        "note": "Pepper",
+        "icon": "default",
+        "color": "#6d28d9"
+      },
+      {
+        "note": "Smoke",
+        "icon": "default",
+        "color": "#6d28d9"
+      }
+    ],
+    "details": {
+      "classification": "BITTER",
+      "subclass": "SPICE",
+      "notableGrapes": [
+        "Grüner Veltliner",
+        "Blaufränkisch"
       ]
     },
     "iconCallback": "flavor",
@@ -5859,6 +7018,11 @@
         "note": "Sea Salt",
         "icon": "default",
         "color": "#0ea5e9"
+      },
+      {
+        "note": "Sea Spray",
+        "icon": "default",
+        "color": "#0ea5e9"
       }
     ],
     "details": {
@@ -5874,7 +7038,7 @@
   {
     "id": "FLAVOR-mineral1",
     "name": "Mineral",
-    "description": "Mineral is a savoury, umami-leaning earth note, carried here by Assyrtiko and Koshu.",
+    "description": "Mineral is a savoury, umami-leaning earth note, carried here by Assyrtiko, Koshu and Blaufränkisch.",
     "category": "FLAVORS",
     "tags": [
       "UMAMI",
@@ -5909,50 +7073,51 @@
       "subclass": "EARTH",
       "notableGrapes": [
         "Assyrtiko",
-        "Koshu"
+        "Koshu",
+        "Blaufränkisch"
       ]
     },
     "iconCallback": "flavor",
     "tileCallback": "flavor"
   },
   {
-    "id": "FLAVOR-violet1",
-    "name": "Violet",
-    "description": "Violet is a savoury, umami-leaning floral note, carried here by Touriga Nacional.",
+    "id": "FLAVOR-black cherry1",
+    "name": "Black Cherry",
+    "description": "Black Cherry is a ripe, sweet-leaning red fruit note, carried here by Nero d'Avola.",
     "category": "FLAVORS",
     "tags": [
-      "UMAMI",
-      "FLORAL"
+      "SWEET",
+      "RED_FRUIT"
     ],
-    "color": "#14b8a6",
-    "icon": "sun",
+    "color": "#f59e0b",
+    "icon": "circle",
     "tastingProfile": [
       {
-        "note": "Violet",
-        "icon": "sun",
-        "color": "#9370DB"
+        "note": "Black Cherry",
+        "icon": "circle",
+        "color": "#8B0000"
       },
       {
-        "note": "Cedar",
+        "note": "Blackcurrant",
         "icon": "default",
-        "color": "#0d9488"
+        "color": "#b45309"
       },
       {
-        "note": "Earth",
+        "note": "Cherry",
         "icon": "default",
-        "color": "#0d9488"
+        "color": "#b45309"
       },
       {
-        "note": "Floral",
+        "note": "Apple",
         "icon": "default",
-        "color": "#0d9488"
+        "color": "#b45309"
       }
     ],
     "details": {
-      "classification": "UMAMI",
-      "subclass": "FLORAL",
+      "classification": "SWEET",
+      "subclass": "RED_FRUIT",
       "notableGrapes": [
-        "Touriga Nacional"
+        "Nero d'Avola"
       ]
     },
     "iconCallback": "flavor",
@@ -6088,6 +7253,93 @@
     "tileCallback": "flavor"
   },
   {
+    "id": "FLAVOR-green peppercorn1",
+    "name": "Green Peppercorn",
+    "description": "Green Peppercorn is a savoury, umami-leaning vegetal note, carried here by Cabernet Gernischt and Fer Servadou.",
+    "category": "FLAVORS",
+    "tags": [
+      "UMAMI",
+      "VEGETAL"
+    ],
+    "color": "#14b8a6",
+    "icon": "spice",
+    "tastingProfile": [
+      {
+        "note": "Green Peppercorn",
+        "icon": "spice",
+        "color": "#556B2F"
+      },
+      {
+        "note": "Cedar",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Earth",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Floral",
+        "icon": "default",
+        "color": "#0d9488"
+      }
+    ],
+    "details": {
+      "classification": "UMAMI",
+      "subclass": "VEGETAL",
+      "notableGrapes": [
+        "Cabernet Gernischt",
+        "Fer Servadou"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-tea leaf1",
+    "name": "Tea Leaf",
+    "description": "Tea Leaf is a savoury, umami-leaning herbal note, carried here by Cabernet Gernischt.",
+    "category": "FLAVORS",
+    "tags": [
+      "UMAMI",
+      "HERBAL"
+    ],
+    "color": "#14b8a6",
+    "icon": "herb",
+    "tastingProfile": [
+      {
+        "note": "Tea Leaf",
+        "icon": "herb",
+        "color": "#3C8D0D"
+      },
+      {
+        "note": "Cedar",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Earth",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Floral",
+        "icon": "default",
+        "color": "#0d9488"
+      }
+    ],
+    "details": {
+      "classification": "UMAMI",
+      "subclass": "HERBAL",
+      "notableGrapes": [
+        "Cabernet Gernischt"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
     "id": "FLAVOR-yuzu citrus1",
     "name": "Yuzu Citrus",
     "description": "Yuzu Citrus is a tart, acid-lifted citrus note, carried here by Koshu.",
@@ -6168,6 +7420,92 @@
       "subclass": "FLORAL",
       "notableGrapes": [
         "Koshu"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-strawberry candy1",
+    "name": "Strawberry Candy",
+    "description": "Strawberry Candy is a ripe, sweet-leaning berry note, carried here by Muscat Bailey A.",
+    "category": "FLAVORS",
+    "tags": [
+      "SWEET",
+      "BERRY"
+    ],
+    "color": "#f59e0b",
+    "icon": "fruit",
+    "tastingProfile": [
+      {
+        "note": "Strawberry Candy",
+        "icon": "fruit",
+        "color": "#FF6B81"
+      },
+      {
+        "note": "Blackcurrant",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Cherry",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Apple",
+        "icon": "default",
+        "color": "#b45309"
+      }
+    ],
+    "details": {
+      "classification": "SWEET",
+      "subclass": "BERRY",
+      "notableGrapes": [
+        "Muscat Bailey A"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-rose petal1",
+    "name": "Rose Petal",
+    "description": "Rose Petal is a savoury, umami-leaning floral note, carried here by Muscat Bailey A.",
+    "category": "FLAVORS",
+    "tags": [
+      "UMAMI",
+      "FLORAL"
+    ],
+    "color": "#14b8a6",
+    "icon": "flower",
+    "tastingProfile": [
+      {
+        "note": "Rose Petal",
+        "icon": "flower",
+        "color": "#FFC0CB"
+      },
+      {
+        "note": "Cedar",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Earth",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Floral",
+        "icon": "default",
+        "color": "#0d9488"
+      }
+    ],
+    "details": {
+      "classification": "UMAMI",
+      "subclass": "FLORAL",
+      "notableGrapes": [
+        "Muscat Bailey A"
       ]
     },
     "iconCallback": "flavor",
@@ -6306,7 +7644,7 @@
   {
     "id": "FLAVOR-dried herbs1",
     "name": "Dried Herbs",
-    "description": "Dried Herbs is a savoury, umami-leaning herbal note, carried here by Montepulciano.",
+    "description": "Dried Herbs is a savoury, umami-leaning herbal note, carried here by Montepulciano and Nerello Mascalese.",
     "category": "FLAVORS",
     "tags": [
       "UMAMI",
@@ -6340,7 +7678,132 @@
       "classification": "UMAMI",
       "subclass": "HERBAL",
       "notableGrapes": [
-        "Montepulciano"
+        "Montepulciano",
+        "Nerello Mascalese"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-lemon zest1",
+    "name": "Lemon Zest",
+    "description": "Lemon Zest is a tart, acid-lifted citrus note, carried here by Melon de Bourgogne.",
+    "category": "FLAVORS",
+    "tags": [
+      "SOUR",
+      "CITRUS"
+    ],
+    "color": "#22c55e",
+    "icon": "circle",
+    "tastingProfile": [
+      {
+        "note": "Lemon Zest",
+        "icon": "circle",
+        "color": "#FACC15"
+      },
+      {
+        "note": "Lime",
+        "icon": "default",
+        "color": "#15803d"
+      },
+      {
+        "note": "Citrus",
+        "icon": "default",
+        "color": "#15803d"
+      },
+      {
+        "note": "Lemon",
+        "icon": "default",
+        "color": "#15803d"
+      }
+    ],
+    "details": {
+      "classification": "SOUR",
+      "subclass": "CITRUS",
+      "notableGrapes": [
+        "Melon de Bourgogne"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-sea spray1",
+    "name": "Sea Spray",
+    "description": "Sea Spray is a saline, mineral briny note, carried here by Melon de Bourgogne.",
+    "category": "FLAVORS",
+    "tags": [
+      "SALTY",
+      "BRINY"
+    ],
+    "color": "#38bdf8",
+    "icon": "mineral",
+    "tastingProfile": [
+      {
+        "note": "Sea Spray",
+        "icon": "mineral",
+        "color": "#94A3B8"
+      },
+      {
+        "note": "Sea Salt",
+        "icon": "default",
+        "color": "#0ea5e9"
+      },
+      {
+        "note": "Saline",
+        "icon": "default",
+        "color": "#0ea5e9"
+      }
+    ],
+    "details": {
+      "classification": "SALTY",
+      "subclass": "BRINY",
+      "notableGrapes": [
+        "Melon de Bourgogne"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-brioche1",
+    "name": "Brioche",
+    "description": "Brioche is a ripe, sweet-leaning bread note, carried here by Melon de Bourgogne.",
+    "category": "FLAVORS",
+    "tags": [
+      "SWEET",
+      "BREAD"
+    ],
+    "color": "#f59e0b",
+    "icon": "cloud",
+    "tastingProfile": [
+      {
+        "note": "Brioche",
+        "icon": "cloud",
+        "color": "#D6B88D"
+      },
+      {
+        "note": "Blackcurrant",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Cherry",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Apple",
+        "icon": "default",
+        "color": "#b45309"
+      }
+    ],
+    "details": {
+      "classification": "SWEET",
+      "subclass": "BREAD",
+      "notableGrapes": [
+        "Melon de Bourgogne"
       ]
     },
     "iconCallback": "flavor",
@@ -6470,6 +7933,221 @@
       "subclass": "VEGETAL",
       "notableGrapes": [
         "Xinomavro"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-green apple1",
+    "name": "Green Apple",
+    "description": "Green Apple is a ripe, sweet-leaning orchard fruit note, carried here by Müller-Thurgau.",
+    "category": "FLAVORS",
+    "tags": [
+      "SWEET",
+      "ORCHARD_FRUIT"
+    ],
+    "color": "#f59e0b",
+    "icon": "circle",
+    "tastingProfile": [
+      {
+        "note": "Green Apple",
+        "icon": "circle",
+        "color": "#84CC16"
+      },
+      {
+        "note": "Blackcurrant",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Cherry",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Apple",
+        "icon": "default",
+        "color": "#b45309"
+      }
+    ],
+    "details": {
+      "classification": "SWEET",
+      "subclass": "ORCHARD_FRUIT",
+      "notableGrapes": [
+        "Müller-Thurgau"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-nutmeg1",
+    "name": "Nutmeg",
+    "description": "Nutmeg is a firm, bitter-edged spice note, carried here by Müller-Thurgau.",
+    "category": "FLAVORS",
+    "tags": [
+      "BITTER",
+      "SPICE"
+    ],
+    "color": "#8b5cf6",
+    "icon": "spice",
+    "tastingProfile": [
+      {
+        "note": "Nutmeg",
+        "icon": "spice",
+        "color": "#B45309"
+      },
+      {
+        "note": "Spice",
+        "icon": "default",
+        "color": "#6d28d9"
+      },
+      {
+        "note": "Pepper",
+        "icon": "default",
+        "color": "#6d28d9"
+      },
+      {
+        "note": "Smoke",
+        "icon": "default",
+        "color": "#6d28d9"
+      }
+    ],
+    "details": {
+      "classification": "BITTER",
+      "subclass": "SPICE",
+      "notableGrapes": [
+        "Müller-Thurgau"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-white blossom1",
+    "name": "White Blossom",
+    "description": "White Blossom is a savoury, umami-leaning floral note, carried here by Müller-Thurgau.",
+    "category": "FLAVORS",
+    "tags": [
+      "UMAMI",
+      "FLORAL"
+    ],
+    "color": "#14b8a6",
+    "icon": "flower",
+    "tastingProfile": [
+      {
+        "note": "White Blossom",
+        "icon": "flower",
+        "color": "#FBCFE8"
+      },
+      {
+        "note": "Cedar",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Earth",
+        "icon": "default",
+        "color": "#0d9488"
+      },
+      {
+        "note": "Floral",
+        "icon": "default",
+        "color": "#0d9488"
+      }
+    ],
+    "details": {
+      "classification": "UMAMI",
+      "subclass": "FLORAL",
+      "notableGrapes": [
+        "Müller-Thurgau"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-red cherry1",
+    "name": "Red Cherry",
+    "description": "Red Cherry is a ripe, sweet-leaning red fruit note, carried here by Nerello Mascalese.",
+    "category": "FLAVORS",
+    "tags": [
+      "SWEET",
+      "RED_FRUIT"
+    ],
+    "color": "#f59e0b",
+    "icon": "circle",
+    "tastingProfile": [
+      {
+        "note": "Red Cherry",
+        "icon": "circle",
+        "color": "#DC2626"
+      },
+      {
+        "note": "Blackcurrant",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Cherry",
+        "icon": "default",
+        "color": "#b45309"
+      },
+      {
+        "note": "Apple",
+        "icon": "default",
+        "color": "#b45309"
+      }
+    ],
+    "details": {
+      "classification": "SWEET",
+      "subclass": "RED_FRUIT",
+      "notableGrapes": [
+        "Nerello Mascalese"
+      ]
+    },
+    "iconCallback": "flavor",
+    "tileCallback": "flavor"
+  },
+  {
+    "id": "FLAVOR-volcanic ash1",
+    "name": "Volcanic Ash",
+    "description": "Volcanic Ash is a firm, bitter-edged smoky note, carried here by Nerello Mascalese.",
+    "category": "FLAVORS",
+    "tags": [
+      "BITTER",
+      "SMOKY"
+    ],
+    "color": "#8b5cf6",
+    "icon": "stone",
+    "tastingProfile": [
+      {
+        "note": "Volcanic Ash",
+        "icon": "stone",
+        "color": "#6B7280"
+      },
+      {
+        "note": "Spice",
+        "icon": "default",
+        "color": "#6d28d9"
+      },
+      {
+        "note": "Pepper",
+        "icon": "default",
+        "color": "#6d28d9"
+      },
+      {
+        "note": "Smoke",
+        "icon": "default",
+        "color": "#6d28d9"
+      }
+    ],
+    "details": {
+      "classification": "BITTER",
+      "subclass": "SMOKY",
+      "notableGrapes": [
+        "Nerello Mascalese"
       ]
     },
     "iconCallback": "flavor",

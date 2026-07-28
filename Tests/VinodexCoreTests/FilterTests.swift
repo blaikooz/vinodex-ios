@@ -28,7 +28,12 @@ struct FilterTests {
 
     @Test("empty search returns the whole category")
     func emptySearch() {
-        #expect(db.entries.apply(.category(.grapes, search: "")).count == 25)
+        // Not a magic number: an empty search must return the category
+        // untouched, whatever the selection currently holds.
+        #expect(
+            db.entries.apply(.category(.grapes, search: "")).count
+                == db.entries(in: .grapes).count
+        )
     }
 
     @Test("results are sorted by name")

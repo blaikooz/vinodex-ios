@@ -45,21 +45,22 @@ public struct ContinentScreen: View {
 
     // MARK: Hero
     //
-    // A plain SF Symbol globe rather than `EntryIconWell`/`DexIcon`: the
-    // generated glyph for continents (`lucide:globe`) depends on a
-    // rasterization step that needs network access, which isn't guaranteed to
-    // have run. An SF Symbol renders correctly regardless of bundle state —
-    // see `EntryVisual.continentVisual`, which makes the same call for any
-    // continent shown through a generic icon well elsewhere.
+    // Uses the generated glyph, same as every other entry. This was a plain SF
+    // Symbol globe on the theory that the rasterised set might be missing, but
+    // that made every continent identical here *and* inconsistent with the
+    // search rows — and the icons are committed to the bundle, not fetched at
+    // runtime, so the hedge was protecting against nothing.
 
     private var hero: some View {
         VStack(spacing: 14) {
             ZStack {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color(dexHex: continent.common.color))
-                Image(systemName: "globe")
-                    .font(.system(size: 44, weight: .semibold))
-                    .foregroundStyle(.white)
+                DexIcon(
+                    iconID: WineDatabase.shared.iconID(for: .continent(continent)),
+                    size: 44,
+                    color: .white
+                )
             }
             .frame(width: 80, height: 80)
             .overlay(

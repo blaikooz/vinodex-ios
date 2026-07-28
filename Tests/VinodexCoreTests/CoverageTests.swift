@@ -19,13 +19,16 @@ struct CoverageTests {
 
     @Test("per-category counts match the selection")
     func counts() {
-        // Phase 2: 25 hand-picked grapes, with regions/styles *derived* from
+        // Phase 3: 35 hand-picked grapes, with regions/styles *derived* from
         // those grapes' real cross-links (each REGION/STYLE's
         // `notableGrapes`) rather than independently curated — so these
         // counts are a consequence of the grape selection, not a separate
-        // choice. See native/scripts/generate.ts.
-        #expect(db.entries(in: .grapes).count == 25)
-        #expect(db.entries(in: .regions).count == 49)
+        // choice. See `STARTER_GRAPES` in native/scripts/generate.ts.
+        //
+        // Update these deliberately when the selection changes; a change you
+        // did not intend is exactly what this is here to catch.
+        #expect(db.entries(in: .grapes).count == 35)
+        #expect(db.entries(in: .regions).count == 50)
         #expect(db.entries(in: .styles).count == 20)
     }
 

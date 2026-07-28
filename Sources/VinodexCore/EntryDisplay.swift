@@ -155,21 +155,12 @@ public extension WineEntry {
                 TileChip(label: f.details.classification, key: f.details.classification, table: .flavorClass),
                 TileChip(label: EntryDisplay.humanize(f.details.subclass).uppercased(), key: f.details.subclass, table: .flavorSubclass),
             ]
-        case .continent(let c):
+        case .continent:
             // Continents do reach a tile listing now: the world search covers
-            // them alongside regions. Without chips they rendered as a bare
-            // name on an otherwise chip-dense list.
-            var chips = [TileChip(label: "CONTINENT", key: "Continent", table: .named)]
-            let countries = c.details.keyRegions
-            if let first = countries.first {
-                chips.append(TileChip(label: first.uppercased(), key: first, table: .country))
-            }
-            if countries.count > 1 {
-                chips.append(
-                    TileChip(label: "+\(countries.count - 1) MORE", key: "COUNTRY", table: .named)
-                )
-            }
-            return chips
+            // them alongside regions. One chip is enough — naming member
+            // countries here duplicated the continent screen's own list and
+            // made the row noisier than the regions beside it.
+            return [TileChip(label: "CONTINENT", key: "Continent", table: .named)]
         }
     }
 }

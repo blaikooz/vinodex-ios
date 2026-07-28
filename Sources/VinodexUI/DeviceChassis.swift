@@ -1,5 +1,6 @@
 #if canImport(SwiftUI) && canImport(UIKit)
 import SwiftUI
+import UIKit
 import VinodexCore
 
 /// The retro handheld chassis that wraps every screen.
@@ -113,17 +114,24 @@ public struct DeviceChassis<Content: View>: View {
         // reports a shorter inset than we ask for.
         let control = min(DexMetrics.controlButton, height - 8)
 
+        let dot = max(control * 0.2, 8)
+
         return HStack(alignment: .center, spacing: 0) {
-            // Orb pinned left, directly above the Back button.
+            // Orb pinned left, directly above the Back button, with the lights
+            // clustered off its top-right shoulder rather than strung out
+            // beside it — they read as belonging to the orb that way.
             lcdOrb(size: control)
                 .fixedSize()
+                .overlay(alignment: .topTrailing) {
+                    statusDots(size: dot)
+                        .fixedSize()
+                        .offset(x: dot * 1.9, y: -dot * 0.25)
+                }
+                // The lights sit outside the orb's bounds, so the row must not
+                // clip them.
+                .padding(.trailing, dot * 4.5)
 
-            // Lights take the whole run between the orb and the cutout and
-            // centre themselves in it, rather than hugging one end.
-            statusDots(size: max(control * 0.2, 8))
-                .fixedSize()
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.horizontal, DexMetrics.islandFlankInnerGap)
+            Spacer(minLength: DexMetrics.islandFlankInnerGap)
 
             // Clearance held open for the cutout itself.
             Color.clear.frame(width: DexMetrics.islandClearance)
@@ -567,11 +575,20 @@ public struct MarqueeBanner: View {
     let fontSize: CGFloat
     var pointsPerSecond: Double = 34
 
-    @State private var labelWidth: CGFloat = 0
+    /// A space and a half of the retro face, so the loop has a beat at the
+    /// seam without reading as a pause.
+    private var gap: CGFloat { fontSize * 1.5 }
 
-    /// No gap: the two copies butt together so the loop reads as one
-    /// continuous run of text with no pause at the seam.
-    private let gap: CGFloat = 0
+    /// Measured directly from the font rather than through a background
+    /// `GeometryReader`. The reader only reports after a layout pass, so on a
+    /// cold render `labelWidth` was 0 for a frame or more — the banner would
+    /// sit blank and then pop in. Press Start 2P is monospaced, so measuring
+    /// the string is exact and available on the very first frame.
+    private var labelWidth: CGFloat {
+        let font = UIFont(name: DexFont.names.retro, size: fontSize)
+            ?? .monospacedSystemFont(ofSize: fontSize, weight: .regular)
+        return (text as NSString).size(withAttributes: [.font: font]).width
+    }
 
     public init(text: String, fontSize: CGFloat, pointsPerSecond: Double = 34) {
         self.text = text
@@ -608,13 +625,6 @@ public struct MarqueeBanner: View {
 
                     HStack(spacing: gap) {
                         label
-                            .background(
-                                GeometryReader { inner in
-                                    Color.clear
-                                        .onAppear { labelWidth = inner.size.width }
-                                        .onChange(of: inner.size.width) { _, new in labelWidth = new }
-                                }
-                            )
                         label
                     }
                     .fixedSize()

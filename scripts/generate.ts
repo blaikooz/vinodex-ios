@@ -75,6 +75,13 @@ const STARTER_GRAPES = [
   // Japan (Koshu), Greece (Xinomavro), Italy (Primitivo).
   'G004', 'G005', 'G006', 'G008', 'G010', 'G011', 'G012', 'G017', 'G024',
   'G026', 'G040', 'G043', 'G046', 'G063', 'G078',
+  // Phase 3 expansion (+10), chosen to stress the layout rather than to round
+  // out the canon: the two longest names in the set (Cabernet Gernischt, Melon
+  // de Bourgogne, both 18 chars), umlauts (Grüner Veltliner, Müller-Thurgau,
+  // Blaufränkisch), an apostrophe (Nero d'Avola), a hyphen, and RARE tiers so
+  // the rarity crown is not only ever seen on NOBLE.
+  'G042', 'G062', 'G077', 'G028', 'G044',
+  'G070', 'G076', 'G037', 'G022', 'G080',
 ];
 
 const selectedGrapeNames = new Set(

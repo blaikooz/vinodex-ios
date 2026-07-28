@@ -210,7 +210,14 @@ public struct EntryVisual {
     // drawn (e.g. the debug catalog).
 
     private static func continentVisual(_ c: ContinentEntry, db: WineDatabase) -> EntryVisual {
-        EntryVisual(well: .color(Color(dexHex: c.common.color)), iconID: nil, iconColor: .white, ringColor: nil)
+        // `iconID: nil` rendered a bare colour block, so continents in the
+        // world search were the only rows with no glyph at all.
+        EntryVisual(
+            well: .color(Color(dexHex: c.common.color)),
+            iconID: db.iconID(for: .continent(c)),
+            iconColor: .white,
+            ringColor: nil
+        )
     }
 
     // MARK: - Flavors

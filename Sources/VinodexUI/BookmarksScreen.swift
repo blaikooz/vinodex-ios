@@ -10,6 +10,7 @@ public struct BookmarksScreen: View {
     let onSelect: (WineEntry) -> Void
 
     @State private var bookmarks = BookmarkStore.shared
+    @State private var confirmingClear = false
     private let db = WineDatabase.shared
 
     public init(onSelect: @escaping (WineEntry) -> Void) {
@@ -43,6 +44,22 @@ public struct BookmarksScreen: View {
                 }
             }
         }
+        // Clearing every bookmark is one tap from a scroll view and cannot be
+        // undone, so it asks first. Removing a single entry does not — that one
+        // is cheap to redo.
+        .confirmationDialog(
+            "Clear all saved entries?",
+            isPresented: $confirmingClear,
+            titleVisibility: .visible
+        ) {
+            Button("Clear \(entries.count) saved", role: .destructive) {
+                Haptics.select()
+                bookmarks.removeAll()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This cannot be undone.")
+        }
     }
 
     private var header: some View {
@@ -54,7 +71,7 @@ public struct BookmarksScreen: View {
             Spacer()
             Button {
                 Haptics.tap()
-                bookmarks.removeAll()
+                confirmingClear = true
             } label: {
                 Text("CLEAR ALL")
                     .font(DexFont.retro(9))

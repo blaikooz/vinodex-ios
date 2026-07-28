@@ -104,6 +104,13 @@ public enum DexMetrics {
     public static let deviceCorner: CGFloat = 55
     public static let chassisBorderInset: CGFloat = 2
     public static let chassisBorder: CGFloat = 3
+    /// Horizontal clearance for the display's rounded corners.
+    ///
+    /// A control sitting `chassisEdgeInset` (10pt) above the bottom edge is cut
+    /// into by ~23pt of a 55pt corner arc — `deviceCorner - sqrt(r² - (r-h)²)`.
+    /// The old 12pt padding put the outer edge of Back and Home inside that
+    /// arc, so they were clipped on the diagonal. 26pt clears it with a margin.
+    public static let cornerGuardH: CGFloat = 26
 
     /// Island strip
     ///
@@ -138,15 +145,15 @@ public enum DexMetrics {
     public static let islandClearance: CGFloat = 138
     /// Matches `footerPaddingH` so the orb sits directly above the Back button
     /// and the cog above Home — the four chassis controls share two columns.
-    public static let islandFlankPaddingH: CGFloat = 0.75 * rem
+    public static let islandFlankPaddingH: CGFloat = cornerGuardH
     /// Pulls flank content in toward the cutout rather than the screen edges.
     /// Small on purpose: the orb and status lights sit closer to the island,
     /// which reads as deliberate rather than stranded at the corner.
     public static let islandFlankInnerGap: CGFloat = 0.125 * rem
     /// Matched to `ventStripHeight` so the white housing frames the LCD evenly
-    /// top and bottom. It used to be 0.5rem against a 2.25rem skirt, which read
-    /// as the screen sitting too high in its panel.
-    public static let bezelTopMargin: CGFloat = 1.75 * rem
+    /// top and bottom. Trimmed from 1.75rem: symmetric was right, but that much
+    /// white read as a thick border and it was all LCD height.
+    public static let bezelTopMargin: CGFloat = rem
     /// Orb, cog and the two footer buttons are all `controlButton` now — one
     /// size for every physical control on the chassis.
     public static let lcdOrb: CGFloat = controlButton
@@ -169,9 +176,9 @@ public enum DexMetrics {
     /// every point here is a point of screen height.
     public static let bezelFrame: CGFloat = 4
     /// The white panel's skirt below the LCD, carrying the red dot and the
-    /// speaker grill. Matched to `bezelTopMargin` for an even frame — still
-    /// wider than the web's h-6, so both stay clear of the panel edge.
-    public static let ventStripHeight: CGFloat = 1.75 * rem
+    /// speaker grill. Matched to `bezelTopMargin`; 1rem still clears the three
+    /// 2pt grill slats and the vent dot comfortably.
+    public static let ventStripHeight: CGFloat = rem
     public static let ventDot: CGFloat = 0.5 * rem            // w-2
 
     /// Footer
@@ -184,7 +191,7 @@ public enum DexMetrics {
     /// nearly twice the top. The row is centred in the band, so the indicator
     /// falls in the 10pt of bare chassis below it rather than over a control.
     public static let footerHeight: CGFloat = controlBandHeight
-    public static let footerPaddingH: CGFloat = 0.75 * rem
+    public static let footerPaddingH: CGFloat = cornerGuardH
     public static let controlButton: CGFloat = 3.5 * rem
     public static let marqueeMaxWidth: CGFloat = 16.5 * rem
     public static let marqueeCorner: CGFloat = 0.8 * rem
