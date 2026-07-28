@@ -2,7 +2,8 @@
 import SwiftUI
 import VinodexCore
 
-/// The device's own menu: SETTINGS, DIAGNOSTICS and the debug CATALOG.
+/// The device's own menu: SETTINGS and a DEV tab holding diagnostics and the
+/// component catalog.
 ///
 /// Presented inside the LCD rather than as a `.sheet`. A sheet slides over the
 /// whole chassis, which breaks the device metaphor — the bezel, footer and
@@ -12,14 +13,15 @@ import VinodexCore
 public struct SettingsPanel: View {
     public enum Tab: String, CaseIterable, Identifiable {
         case settings = "SETTINGS"
-        case diagnostics = "DIAGNOSTICS"
-        case catalog = "CATALOG"
+        /// Diagnostics and the component catalog, which are both developer
+        /// tools and were competing for tab space with the one tab a user has
+        /// any reason to open.
+        case dev = "DEV"
 
         public var id: String { rawValue }
     }
 
     let onClose: () -> Void
-    let onFlip: () -> Void
 
     @State private var tab: Tab = .settings
     /// Placeholder until there is something real to configure.
@@ -35,9 +37,8 @@ public struct SettingsPanel: View {
 
     private let db = WineDatabase.shared
 
-    public init(onClose: @escaping () -> Void, onFlip: @escaping () -> Void) {
+    public init(onClose: @escaping () -> Void) {
         self.onClose = onClose
-        self.onFlip = onFlip
     }
 
     public var body: some View {
@@ -49,8 +50,7 @@ public struct SettingsPanel: View {
                 VStack(alignment: .leading, spacing: 14) {
                     switch tab {
                     case .settings: settings
-                    case .diagnostics: DiagnosticsReport(db: db)
-                    case .catalog: CatalogScreen(db: db)
+                    case .dev: dev
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -110,6 +110,17 @@ public struct SettingsPanel: View {
             }
         }
         .overlay(alignment: .bottom) { Dex.stone700.frame(height: 1) }
+    }
+
+    /// Report first, then the component gallery, then the icon sheet last —
+    /// the icon grid is the longest thing in the panel by far and pushed
+    /// everything else off-screen when it sat in the middle.
+    private var dev: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            DiagnosticsReport(db: db)
+            CatalogScreen(db: db, showsIcons: false)
+            CatalogScreen.IconSheet(db: db)
+        }
     }
 
     private var settings: some View {
@@ -199,43 +210,6 @@ public struct SettingsPanel: View {
             )
             .padding(.bottom, 6)
 
-            Button {
-                Haptics.tap()
-                onFlip()
-            } label: {
-                HStack(spacing: 10) {
-                    // Available since iOS 13; the trianglehead variants are 18+
-                    // and would render blank on the iOS 17 target.
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 16, weight: .bold))
-                    Text("FLIP DEVICE")
-                        .font(DexFont.retro(11))
-                        .tracking(2)
-                    Spacer(minLength: 0)
-                    Text("SEE BACK PLATE")
-                        .font(DexFont.mono(16))
-                        .foregroundStyle(Dex.stone600)
-                }
-                .foregroundStyle(Dex.stone200)
-                .padding(.horizontal, 12)
-                .frame(height: 46)
-                .frame(maxWidth: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: 6).fill(
-                        LinearGradient(
-                            colors: [Dex.stone700, Dex.stone900],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .strokeBorder(Dex.stone400.opacity(0.6), lineWidth: 2)
-                )
-            }
-            .buttonStyle(DexPressStyle(scale: 0.97))
-            .padding(.bottom, 6)
 
             Text("SCRATCH FIELD")
                 .font(DexFont.retro(9))

@@ -103,10 +103,12 @@ public struct RetroGlobeScreen: View {
                     .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(Dex.green500)
 
+                // Same face, size and colour as DexSearchField's placeholder,
+                // so this reads as the identical control — it just happens to
+                // open the search screen rather than accept typing in place.
                 Text("SEARCH WORLD...")
-                    .font(DexFont.retro(11))
-                    .tracking(1)
-                    .foregroundStyle(Dex.green500.opacity(0.55))
+                    .font(DexFont.mono(26))
+                    .foregroundStyle(Dex.green500.opacity(0.35))
 
                 Spacer(minLength: 0)
 

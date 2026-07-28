@@ -2,15 +2,19 @@
 import SwiftUI
 import VinodexCore
 
-/// Saved entries, newest first.
+/// The user screen: who you are, and what you have saved.
 ///
-/// Reuses `EntryTileView` so a saved row looks exactly like the same entry in
-/// any list — a bookmark is a pointer, not a different kind of thing.
+/// Reuses `EntryTileView` for the saved rows so a bookmark looks exactly like
+/// the same entry in any list — it is a pointer, not a different kind of thing.
 public struct BookmarksScreen: View {
     let onSelect: (WineEntry) -> Void
 
     @State private var bookmarks = BookmarkStore.shared
     @State private var confirmingClear = false
+    @State private var access = AccessStore.shared
+    /// Local only, and deliberately so — there is no account, and inventing a
+    /// backend for a display name would be the tail wagging the dog.
+    @AppStorage("userDisplayName") private var displayName = ""
     private let db = WineDatabase.shared
 
     public init(onSelect: @escaping (WineEntry) -> Void) {
@@ -23,14 +27,21 @@ public struct BookmarksScreen: View {
         ZStack {
             DexScreenBackground()
 
-            if entries.isEmpty {
-                emptyState
-            } else {
-                ScrollView {
-                    VStack(spacing: 8) {
-                        header
+            ScrollView {
+                VStack(alignment: .leading, spacing: 8) {
+                    profileSection
+
+                    savedHeader
+
+                    if entries.isEmpty {
+                        emptyState
+                    } else {
                         ForEach(entries) { entry in
-                            EntryTileView(entry: entry, palette: db.palette) {
+                            EntryTileView(
+                                entry: entry,
+                                palette: db.palette,
+                                locked: access.isLocked(entry, in: db)
+                            ) {
                                 onSelect(entry)
                             }
                             // Swipe is not discoverable on a custom row, so
@@ -40,9 +51,10 @@ public struct BookmarksScreen: View {
                             }
                         }
                     }
-                    .padding(10)
                 }
+                .padding(10)
             }
+            .scrollDismissesKeyboard(.interactively)
         }
         // Clearing every bookmark is one tap from a scroll view and cannot be
         // undone, so it asks first. Removing a single entry does not — that one
@@ -65,31 +77,87 @@ public struct BookmarksScreen: View {
         .animation(.easeOut(duration: 0.15), value: confirmingClear)
     }
 
-    private var header: some View {
+    private var savedHeader: some View {
         HStack {
             Text("\(entries.count) SAVED")
                 .font(DexFont.retro(10))
                 .tracking(2)
                 .foregroundStyle(Dex.green)
             Spacer()
-            Button {
-                Haptics.tap()
-                confirmingClear = true
-            } label: {
-                Text("CLEAR ALL")
+            if !entries.isEmpty {
+                Button {
+                    Haptics.tap()
+                    confirmingClear = true
+                } label: {
+                    Text("CLEAR ALL")
                     .font(DexFont.retro(9))
                     .tracking(1)
                     .foregroundStyle(Dex.stone400)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 4)
-                            .strokeBorder(Dex.stone700, lineWidth: 1)
-                    )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4)
+                                .strokeBorder(Dex.stone700, lineWidth: 1)
+                        )
+                }
+                .buttonStyle(DexPressStyle(scale: 0.95))
             }
-            .buttonStyle(DexPressStyle(scale: 0.95))
         }
         .padding(.horizontal, 2)
+        .padding(.top, 6)
+    }
+
+    /// Name entry. Placed above the saved list because it is the part that
+    /// makes this feel like *your* screen rather than a second list.
+    private var profileSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Image(systemName: "person.crop.circle.fill")
+                    .font(.system(size: 34))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Dex.stone200, Dex.stone400, Dex.stone600],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(displayName.isEmpty ? "TASTER" : displayName.uppercased())
+                        .font(DexFont.retro(13))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    Text("\(bookmarks.count) SAVED")
+                        .font(DexFont.mono(16))
+                        .foregroundStyle(Dex.stone600)
+                }
+                Spacer(minLength: 0)
+            }
+
+            Text("NAME")
+                .font(DexFont.retro(9))
+                .foregroundStyle(Dex.green)
+
+            HStack(spacing: 8) {
+                Image(systemName: "pencil")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(Dex.green500)
+                DexSearchField(text: $displayName, placeholder: "ENTER NAME...", fontSize: 22)
+                    .frame(height: 30)
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 44)
+            .background(Capsule().fill(.black))
+            .overlay(Capsule().strokeBorder(Dex.stone600, lineWidth: 2))
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Dex.stone900)
+        .overlay(
+            RoundedRectangle(cornerRadius: 4)
+                .strokeBorder(Dex.stone700, lineWidth: 2)
+        )
+        .padding(.bottom, 6)
     }
 
     private func removeButton(_ entry: WineEntry) -> some View {

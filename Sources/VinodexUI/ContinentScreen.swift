@@ -144,10 +144,20 @@ public struct ContinentScreen: View {
 
                 Spacer(minLength: 4)
 
+                // Three distinct states, which used to be two. A country with
+                // no regions in the data (Morocco, say) is *unwritten*, not
+                // locked and not broken — it now says so with a question mark
+                // rather than just being a dead grey row indistinguishable
+                // from something the paywall is holding back.
                 if hasRegions {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(Dex.stone600)
+                } else {
+                    Image(systemName: "questionmark")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Dex.stone600)
+                        .accessibilityLabel("No entries yet")
                 }
             }
             .padding(7)

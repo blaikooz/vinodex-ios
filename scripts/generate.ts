@@ -397,6 +397,13 @@ const FLAG_PATHS: Record<string, string> = {
   Hungary: 'Europe/hungary/hungary.png',
   Austria: 'Europe/austria/austria.png',
   Croatia: 'Europe/croatia/croatia.png',
+  // US states, for the country screen's STATES section. Keyed by state name
+  // alongside the countries because `FlagSwatch` looks up one flat table — a
+  // state and a country never collide in this data.
+  California: 'North America/united_states/california/california.png',
+  Oregon: 'North America/united_states/oregon/oregon.png',
+  Washington: 'North America/united_states/washington/washington.png',
+  'New York': 'North America/united_states/new_york/new_york.png',
   Georgia: 'Europe/georgia_country/georgia_country_flag.png',
   Switzerland: 'Europe/switzerland/switzerland.png',
   Romania: 'Europe/romania/romania.png',
@@ -450,6 +457,11 @@ function buildIconManifest(entries: readonly WineEntry[]) {
     ...entries
       .filter((e) => e.category === 'CONTINENTS')
       .flatMap((e) => (e.details as { keyRegions?: string[] }).keyRegions ?? []),
+    // States too: the country screen's STATES section flies a state flag, and
+    // `FlagSwatch` reads the same flat table for both.
+    ...entries
+      .map((e) => (e.details as { state?: string }).state)
+      .filter((s): s is string => typeof s === 'string'),
   ]);
   const flags = Object.fromEntries(
     Object.entries(FLAG_PATHS).filter(([country]) => origins.has(country)),

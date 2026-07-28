@@ -19,6 +19,12 @@ public enum DexRoute: Hashable, Sendable {
     case globeSearch
     /// Saved entries — see `BookmarkStore`.
     case bookmarks
+    /// A country's page: its regions, and its states where it has any.
+    /// Assembled from region origins rather than a data entry, since
+    /// COUNTRY_GATE is not ported.
+    case country(name: String)
+    /// The regions of one state within a country.
+    case state(name: String)
     /// The continent info screen — INFO blurb plus a COUNTRIES list, each
     /// linking to that country's regions. Reached from the globe markers.
     case continent(entryID: String)
@@ -37,6 +43,10 @@ public enum DexRoute: Hashable, Sendable {
             "WORLD SEARCH"
         case .bookmarks:
             "SAVED"
+        case .country(let name):
+            name.uppercased()
+        case .state(let name):
+            name.uppercased()
         case .continent:
             "CONTINENT SCAN"
         }

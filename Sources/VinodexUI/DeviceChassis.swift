@@ -24,6 +24,8 @@ public struct DeviceChassis<Content: View>: View {
     @State private var showsPanel = false
     /// Whether the device is showing its underside — see `DeviceBackPlate`.
     @State private var isFlipped = false
+    /// Drives the orb's depress animation while the flip gesture is held.
+    @State private var orbHeld = false
     /// Shared with `SettingsPanel` through `@AppStorage`, so toggling it there
     /// repaints the chassis without any state being threaded between them.
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
@@ -117,23 +119,38 @@ public struct DeviceChassis<Content: View>: View {
         let dot = max(control * 0.2, 8)
 
         return HStack(alignment: .center, spacing: 0) {
-            // Orb pinned left, directly above the Back button, with the lights
-            // clustered off its top-right shoulder rather than strung out
-            // beside it — they read as belonging to the orb that way.
+            // Orb pinned left, directly above the Back button.
             lcdOrb(size: control)
-                .fixedSize()
-                .overlay(alignment: .topTrailing) {
-                    statusDots(size: dot)
-                        .fixedSize()
-                        // Clear of the orb's edge entirely — at 1.9x the
-                        // cluster still overlapped its top-right curve.
-                        .offset(x: dot * 3.4, y: -dot * 0.4)
+                .scaleEffect(orbHeld ? 0.88 : 1)
+                .brightness(orbHeld ? -0.18 : 0)
+                .animation(.easeOut(duration: 0.12), value: orbHeld)
+                // Hold to flip. A hidden gesture on a decorative-looking part
+                // is a poor primary affordance, but this one is a deliberate
+                // easter egg: the orb depresses under the finger so the
+                // feedback arrives before the flip does.
+                .onLongPressGesture(minimumDuration: 2.0) {
+                    Haptics.tap()
+                    orbHeld = false
+                    isFlipped = true
+                } onPressingChanged: { pressing in
+                    orbHeld = pressing
+                    if pressing { Haptics.select() }
                 }
-                // The lights sit outside the orb's bounds, so the row must not
-                // clip them.
-                .padding(.trailing, dot * 6)
+                .fixedSize()
 
-            Spacer(minLength: DexMetrics.islandFlankInnerGap)
+            // Lights pushed hard against the cutout's left edge, so they read
+            // as belonging to the island rather than floating in the flank.
+            //
+            // As close to "inside" as an app can get: the island is a hardware
+            // cutout and the OS masks anything drawn under it. Rendering *in*
+            // it means a Live Activity — ActivityKit plus a widget-extension
+            // target, which a SwiftPM/xtool project has no way to add — and
+            // even then the island shows Live Activities for background work,
+            // not for the app you are currently looking at.
+            statusDots(size: dot)
+                .fixedSize()
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.trailing, DexMetrics.islandFlankInnerGap)
 
             // Clearance held open for the cutout itself.
             Color.clear.frame(width: DexMetrics.islandClearance)
@@ -277,18 +294,11 @@ public struct DeviceChassis<Content: View>: View {
             // Confined to the LCD, so the bezel, footer and island stay put and
             // the panel reads as the device's own menu rather than an iOS modal.
             if showsPanel {
-                SettingsPanel(
-                    onClose: { showsPanel = false },
-                    onFlip: {
-                        // Close first: the panel is on the face that is about
-                        // to turn away, and leaving it up means it is still
-                        // there when the device comes back.
-                        showsPanel = false
-                        isFlipped = true
-                    }
-                )
-                .padding(6)
-                .transition(.opacity)
+                // Flipping moved to a long-press on the orb, so the panel no
+                // longer needs a flip callback.
+                SettingsPanel(onClose: { showsPanel = false })
+                    .padding(6)
+                    .transition(.opacity)
             }
 
             ScanlineOverlay()
@@ -434,7 +444,9 @@ public struct ChassisButton: View {
 
     private var borderColor: Color {
         switch kind {
-        case .back, .bookmarks: Dex.stone900
+        // Brushed silver, matching the settings cog — the three dark controls
+        // read as one family that way, against Home's amber.
+        case .back, .bookmarks: Dex.stone400
         case .home: Dex.amber700
         }
     }
@@ -607,6 +619,12 @@ public struct MarqueeBanner: View {
             ZStack {
                 RoundedRectangle(cornerRadius: DexMetrics.marqueeCorner)
                     .fill(.black)
+                    // Same scan grid the LCD carries, so the banner reads as a
+                    // small second screen rather than a plain black strip.
+                    .overlay(
+                        DexGridBackground(spacing: 12, color: Dex.green, opacity: 0.18)
+                            .clipShape(RoundedRectangle(cornerRadius: DexMetrics.marqueeCorner))
+                    )
                     .overlay(
                         RoundedRectangle(cornerRadius: DexMetrics.marqueeCorner)
                             .strokeBorder(.white.opacity(0.75), lineWidth: 1)

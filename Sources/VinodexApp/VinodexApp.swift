@@ -36,6 +36,18 @@ struct RootView: View {
         }
     }
 
+    /// Routes from header-tile cross-links. A `.detail` route names an entry,
+    /// so it has to clear the same gate `open(_:)` does — a tile linking to a
+    /// locked grape (Loire's key grape Chenin Blanc, say) was pushing straight
+    /// past the paywall because it carried a route rather than an entry.
+    private func openRoute(_ route: DexRoute) {
+        if case .detail(let id) = route, let entry = db.entry(id: id) {
+            open(entry)
+        } else {
+            push(route)
+        }
+    }
+
     /// No `NavigationStack`: the chassis is physical furniture and should not
     /// slide off-screen when you press a button on it. Only the LCD content
     /// changes, which is also what the device metaphor implies. `path` is still
@@ -107,7 +119,7 @@ struct RootView: View {
                 EntryDetailScreen(
                     entry: entry,
                     onSelectRelated: { open($0) },
-                    onOpenRoute: { push($0) }
+                    onOpenRoute: { openRoute($0) }
                 )
             } else {
                 notFound
@@ -131,10 +143,26 @@ struct RootView: View {
             // names, and `matchesSearch` already looks at origin and state.
             EncyclopediaListScreen(categories: [.continents, .regions]) { open($0) }
 
+        case .country(let name):
+            CountryScreen(
+                country: name,
+                onSelectRegion: { open($0) },
+                onSelectState: { push(.state(name: $0)) }
+            )
+
+        case .state(let name):
+            // States have no screen of their own — the regions list filtered by
+            // origin is the useful destination, and `.origin` already matches
+            // a region's `state` field as well as its country.
+            EncyclopediaListScreen(
+                categories: [.regions],
+                filter: .origin(name)
+            ) { open($0) }
+
         case .continent(let id):
             if let entry = db.entry(id: id), case .continent(let c) = entry {
                 ContinentScreen(continent: c) { country in
-                    push(.list(category: .regions, filter: .origin(country)))
+                    push(.country(name: country))
                 }
             } else {
                 notFound

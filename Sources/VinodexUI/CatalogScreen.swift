@@ -11,31 +11,57 @@ import VinodexCore
 /// them one at a time.
 public struct CatalogScreen: View {
     let db: WineDatabase
+    /// The settings panel renders the icon sheet separately, at the very
+    /// bottom — it is the longest block here and buried everything after it.
+    var showsIcons: Bool = true
 
-    public init(db: WineDatabase = .shared) {
+    public init(db: WineDatabase = .shared, showsIcons: Bool = true) {
         self.db = db
+        self.showsIcons = showsIcons
     }
 
     public var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                diagnostics
-                iconGrid
-                fontSpecimens
-                chipGallery
-                statBars
-                entrySummary
-            }
-            .padding(14)
+        VStack(alignment: .leading, spacing: 20) {
+            if showsIcons { IconSheet(db: db) }
+            fontSpecimens
+            chipGallery
+            statBars
+            entrySummary
         }
-        .background(Dex.screen)
     }
 
-    // MARK: Diagnostics
+    /// Every rasterised glyph on one sheet. Split out so it can be placed last.
+    public struct IconSheet: View {
+        let db: WineDatabase
 
-    private var diagnostics: some View {
-        // Shared with the settings panel — see `DiagnosticsReport`.
-        section("DIAGNOSTICS") { DiagnosticsReport(db: db) }
+        public init(db: WineDatabase = .shared) { self.db = db }
+
+        public var body: some View {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("ICONS (\(db.icons.unique.count))")
+                    .font(DexFont.retro(11))
+                    .foregroundStyle(Dex.green)
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6), spacing: 10) {
+                    ForEach(db.icons.unique, id: \.self) { iconID in
+                        VStack(spacing: 3) {
+                            DexIcon(iconID: iconID, size: 28, color: .white)
+                            Text(iconID.split(separator: ":").last.map(String.init) ?? iconID)
+                                .font(.system(size: 7))
+                                .foregroundStyle(Dex.stone600)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.6)
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(10)
+            .background(Dex.stone900)
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .strokeBorder(Dex.stone700, lineWidth: 2)
+            )
+        }
     }
 
     /// Still used by `entrySummary`; the diagnostics rows moved out.
@@ -47,29 +73,6 @@ public struct CatalogScreen: View {
             Text(text)
                 .font(DexFont.mono(18))
                 .foregroundStyle(Dex.stone200)
-        }
-    }
-
-    // MARK: Icons
-    //
-    // The whole set on one screen. The rasterisation runs on Linux with no way
-    // to preview it, so this is the only place a broken glyph becomes visible
-    // without a per-icon deploy. A red dashed square means the PNG is missing.
-
-    private var iconGrid: some View {
-        section("ICONS (\(db.icons.unique.count))") {
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6), spacing: 10) {
-                ForEach(db.icons.unique, id: \.self) { iconID in
-                    VStack(spacing: 3) {
-                        DexIcon(iconID: iconID, size: 28, color: .white)
-                        Text(iconID.split(separator: ":").last.map(String.init) ?? iconID)
-                            .font(.system(size: 7))
-                            .foregroundStyle(Dex.stone600)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.6)
-                    }
-                }
-            }
         }
     }
 
