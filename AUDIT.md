@@ -8,21 +8,24 @@ they never get renumbered, even as items are resolved.
 
 ## Status
 
-**22 resolved · 1 won't-fix · 74 open**
+**26 resolved · 1 won't-fix · 70 open**
 
 Re-reconciled against `0a446d3` on 2026-07-29 (see the update log). The counts
-below moved because the code advanced through v0.4.1 and v0.4.1.5 *after* the last
+first moved because the code advanced through v0.4.1 and v0.4.1.5 *after* the last
 re-verification at `fb5dcf2`, and this file was then restored from a snapshot that
 predated those releases — so 13 items were already fixed in code but still showed
-open here. Each is now checked off with a `Verified @0a446d3` note.
+open here (each checked off with a `Verified @0a446d3` note). A further 4 pipeline
+items (M43, L17, L23, L24) are prepped on the `audit-fixes` branch; 3 more (M3, M4,
+L18) are partly prepped there and stay open — all marked with a `(audit-fixes)`
+note.
 
 | Severity | Open | Resolved | Won't-fix | Total |
 |---|---:|---:|---:|---:|
 | Critical | 0 | — | — | 0 |
 | High | 4 | 7 | — | 11 |
-| Medium | 35 | 8 | 1 | 44 |
-| Low | 35 | 7 | — | 42 |
-| **Total** | **74** | **22** | **1** | **97** |
+| Medium | 34 | 9 | 1 | 44 |
+| Low | 32 | 10 | — | 42 |
+| **Total** | **70** | **26** | **1** | **97** |
 
 Open items by workstream — each row is roughly one sitting's worth of related work:
 
@@ -31,7 +34,7 @@ Open items by workstream — each row is roughly one sitting's worth of related 
 | UI & UX polish | 15 | M17 M23 M24 · L28 L32 L34–L42 |
 | Architecture & code quality | 13 | M26–M31 · L1 L2 L4 L5 L6 L9 L10 |
 | Performance | 11 | M5 M6 M7 M8 M9 M11 · L11 L12 L14 L15 L16 |
-| Pipeline & reproducibility | 8 | M40 M43 · L17 L19 L23 L24 L25 L26 |
+| Pipeline & reproducibility | 4 | M40 · L19 L25 L26 |
 | Accessibility | 7 | H10 H11 · M18 M19 M20 M21 M25 |
 | Light mode & contrast | 7 | M13 M14 M15 M44 · L29 L30 L33 |
 | Data & robustness | 6 | H2 · M1 M2 M3 M4 · L18 |
@@ -102,7 +105,9 @@ quoted symbol instead.
 - [ ] **M1** · robustness · tiers.json decoded with `try?` — a corrupt manifest silently unlocks the entire paywall and never reaches decodeErrors · `Sources/VinodexCore/WineDatabase.swift:253` → do/catch distinguishing file-missing (unlock) from decode-failure (log to decodeErrors)
 - [ ] **M2** · ux-state · a DB decode failure shows a normal menu plus "NO DATA FOUND" (reads as a no-results message), truth visible only in the DEV tab · `Sources/VinodexCore/WineDatabase.swift:260` + `EncyclopediaListScreen.swift:123` → explicit "DATA LOAD ERROR" state when decodeErrors is non-empty
 - [ ] **M3** · pipeline · no schema contract between generator and Swift (no version field, no validation; generator already emits keys Swift silently drops) — a TS rename ships as a whole-app decode failure · `scripts/generate-ios-data.ts:674` → emit a schemaVersion asserted at load plus a generator-side decode smoke test
+  - **Partly prepped (`audit-fixes`).** `validateOutputs()` now re-reads the written JSON and asserts the shape the Swift structs require, failing `npm run generate` (and CI) on drift — positive+negative tested. Held: the `schemaVersion` field emitted-and-asserted-at-load (Swift side).
 - [ ] **M4** · data · entries.json ships ~70KB (~20%) in never-read fields (grapeCard 47.7KB, callbacks 14.5KB, icon, grapeRarityTier) parsed at every launch · `Sources/VinodexCore/WineEntry.swift:89` → strip from generator output and delete the unused EntryCommon properties
+  - **Partly prepped (`audit-fixes`).** Generator no longer emits `grapeCard` or `grapeRarityTier` (entries.json 346KB → 280KB, −19%); proven surgical by deep-equality against HEAD. Held for a CI-gated Swift change: `icon`/`iconCallback`/`tileCallback` (strip from output *and* delete the optional `EntryCommon` properties).
 
 **Performance**
 
@@ -182,8 +187,8 @@ quoted symbol instead.
   - **Since audit:** narrowed by `fb5dcf2` — the flag half is fixed (`pixelflags/` is committed and the script defaults to it); the live iconify fetch remains.
 - [x] **M41** · pipeline · nothing verifies committed JSON matches generator output (four divergent historical versions already in pack history) · `Sources/VinodexCore/Resources/entries.json` → stamp the source SHA into outputs and add a verify-data regen-and-diff step
   - **Resolved @0a446d3.** CI's `data` job runs `npm run generate` and fails on `git diff` against `Sources/VinodexCore/Resources` (icons/PNGs excluded, since they need network). The regen-and-diff gate now exists; explicit source-SHA stamping was not needed.
-- [ ] **M43** · portability · rasterize-icons.sh fails on macOS (GNU-only `mktemp --suffix`, apt-only dependency hint) · `scripts/rasterize-icons.sh:54` → portable mktemp pattern plus a brew hint
-  - **Since audit:** README now declares Linux/WSL as the dev environment, but this checkout is on macOS and the script still fails there.
+- [x] **M43** · portability · rasterize-icons.sh fails on macOS (GNU-only `mktemp --suffix`, apt-only dependency hint) · `scripts/rasterize-icons.sh:54` → portable mktemp pattern plus a brew hint
+  - **Prepped (`audit-fixes`).** `mktemp "${TMPDIR:-/tmp}/vinodex-icon.XXXXXX"` (no GNU `--suffix`); the missing-tool hint now names both `apt install librsvg2-bin` and `brew install librsvg`.
 
 ## Low — open
 
@@ -210,8 +215,10 @@ quoted symbol instead.
 
 **Assets & data footprint**
 
-- [ ] **L17** · assets · 21 orphan icon PNGs (7 slugs × 3 scales, ~70KB) ship unreferenced because the rasterizer never prunes · `Sources/VinodexUI/Resources/Icons` + `scripts/rasterize-icons.sh:26` → delete orphans and add a prune step
+- [x] **L17** · assets · 21 orphan icon PNGs (7 slugs × 3 scales, ~70KB) ship unreferenced because the rasterizer never prunes · `Sources/VinodexUI/Resources/Icons` + `scripts/rasterize-icons.sh:26` → delete orphans and add a prune step
+  - **Prepped (`audit-fixes`).** Deleted the 21 orphans (circle, flame, oak, shield, sparkles, lucide flag, lucide globe) and added a prune step that drops any `Icons/*.png` whose slug left the manifest.
 - [ ] **L18** · data · palette.json ships fields nothing decodes (flagGradients, flavorClassMeta) and Palette decodes fields nothing reads (appellationChips, continentColors) · `WineDatabase.swift:91` + `scripts/generate-ios-data.ts` → drop both sides
+  - **Partly prepped (`audit-fixes`).** Generator no longer emits `flagGradients` or `flavorClassMeta` (Swift-unread). Held for a CI-gated Swift change: `appellationChips` + `continentColors` (still non-optional in `Palette`, so both the property and the emission must go together).
 - [ ] **L19** · data · all four JSONs are pretty-printed (2-space indent), inflating ~412KB by roughly a third · `scripts/generate-ios-data.ts:674` → emit minified (keep a --pretty debug flag)
 - [ ] **L20** · assets · AppIcon.png is a barely-compressed 1024² PNG at 932KB (~⅓ of the git pack) · `AppIcon.png` → recompress losslessly (oxipng/zopflipng) and note a binary-asset policy
 - [ ] **L22** · reproducibility · the xtool version used for packaging/signing is recorded nowhere · `xtool.yml` → record the known-good version as part of the release checklist
@@ -219,9 +226,10 @@ quoted symbol instead.
 
 **Pipeline & diagnostics**
 
-- [ ] **L23** · pipeline · a failed rsvg-convert on one scale leaves already-written variants behind — partial scale sets can be committed unnoticed · `scripts/rasterize-icons.sh:74` → render to temp names, move atomically only when all three succeed
-- [ ] **L24** · pipeline · a missing pixelflags directory is a soft skip that still exits 0 · `scripts/rasterize-icons.sh:126` → fail hard unless SKIP_FLAGS=1
-  - **Since audit:** largely moot since `fb5dcf2` committed `pixelflags/` in-repo; the guard is still worth adding for PIXELFLAGS overrides.
+- [x] **L23** · pipeline · a failed rsvg-convert on one scale leaves already-written variants behind — partial scale sets can be committed unnoticed · `scripts/rasterize-icons.sh:74` → render to temp names, move atomically only when all three succeed
+  - **Prepped (`audit-fixes`).** Each scale renders to a `.tmp.$$` name; the three are `mv`-ed into place only if all succeed, else all are removed. (Render path not run locally — no rsvg-convert here.)
+- [x] **L24** · pipeline · a missing pixelflags directory is a soft skip that still exits 0 · `scripts/rasterize-icons.sh:126` → fail hard unless SKIP_FLAGS=1
+  - **Prepped (`audit-fixes`).** A missing `pixelflags/` now increments `failed` (so the run exits 1) unless `SKIP_FLAGS=1` is set explicitly.
 - [ ] **L25** · pipeline · the country→slug rule is implemented twice (shell `tr` vs Swift string ops) with no shared test — divergence means a silently missing flag · `scripts/rasterize-icons.sh:110` → emit the final slug per country into icons.json and consume it on both sides
 - [ ] **L26** · diagnostics · nothing checks that every icons.json id has a bundled PNG — a rasterization gap ships as the red questionmark placeholder · `Sources/VinodexUI/DiagnosticsReport.swift:23` → probe the bundle for each `unique` id and flag misses
 
@@ -273,6 +281,15 @@ quoted symbol instead.
 ---
 
 ## Update log
+
+**2026-07-29 — pipeline prep on `audit-fixes`.** Verifiable data/pipeline items
+prepped locally (no Swift toolchain in that environment, so Swift items are held
+for a CI-gated pass). Fully done: **M43, L17, L23, L24**. Partly done (pipeline
+half; Swift half held): **M3** (generator `validateOutputs()` schema self-check),
+**M4** (stripped `grapeCard`/`grapeRarityTier`, −19% on entries.json), **L18**
+(stripped `flagGradients`/`flavorClassMeta`). Verified by regeneration +
+deep-equality diff, `tsc --noEmit`, `bash -n`, and a negative test of the
+self-check.
 
 **2026-07-29 — reconciled @ `0a446d3`.** The file had been restored from a
 snapshot predating v0.4.1 (`30af72b`) and v0.4.1.5 (`885a62f`), so its checkboxes
