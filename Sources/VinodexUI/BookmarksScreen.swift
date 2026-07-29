@@ -15,6 +15,8 @@ public struct BookmarksScreen: View {
     @State private var confirmingClear = false
     @State private var pendingDelete: SavedItem?
     @State private var access = AccessStore.shared
+    /// Scroll position outlives the view — see `ScreenStateStore`.
+    @State private var screens = ScreenStateStore.shared
     /// Local only, and deliberately so — there is no account, and inventing a
     /// backend for a display name would be the tail wagging the dog.
     @AppStorage("userDisplayName") private var displayName = ""
@@ -36,15 +38,31 @@ public struct BookmarksScreen: View {
     /// to resolve against and were being dropped entirely.
     private var items: [SavedItem] { bookmarks.saved(in: db) }
 
+    /// One screen, so one key — unlike the countries and entries, there is only
+    /// ever a single saved list.
+    private static let profileAnchor = "__profile__"
+
+    private var anchorBinding: Binding<String?> {
+        Binding(
+            get: { screens.anchor(for: ScreenStateStore.bookmarks) },
+            set: { screens.setAnchor($0, for: ScreenStateStore.bookmarks) }
+        )
+    }
+
     public var body: some View {
         ZStack {
             DexScreenBackground()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
-                    profileSection
+                    // The profile block and the header are one scroll target
+                    // between them, so an anchor pointing here means "the top".
+                    VStack(alignment: .leading, spacing: 8) {
+                        profileSection
 
-                    savedHeader
+                        savedHeader
+                    }
+                    .id(Self.profileAnchor)
 
                     if items.isEmpty {
                         emptyState
@@ -59,9 +77,14 @@ public struct BookmarksScreen: View {
                         }
                     }
                 }
+                .scrollTargetLayout()
                 .padding(10)
             }
             .scrollDismissesKeyboard(.interactively)
+            // Row-level, since the rows carry stable ids: coming back from a
+            // saved entry lands on the row you tapped. An id that is no longer
+            // saved simply resolves to nothing and the list opens at the top.
+            .scrollPosition(id: anchorBinding)
         }
         // Clearing every bookmark is one tap from a scroll view and cannot be
         // undone, so it asks first. Removing a single entry does not — that one

@@ -225,13 +225,15 @@ struct RootView: View {
         path.removeLast()
     }
 
-    /// Home is the reset. Searches survive Back — that is the point of
-    /// `SearchStateStore` — but they must not survive Home, or re-entering a
+    /// Home is the reset. Searches, scroll positions and expanded sections all
+    /// survive Back — that is the point of `SearchStateStore` and
+    /// `ScreenStateStore` — but they must not survive Home, or re-entering a
     /// list from the main menu would silently open it pre-filtered by something
-    /// you typed several screens ago.
+    /// you typed several screens ago, and a country would open halfway down.
     private func goHome() {
         path.removeAll()
         SearchStateStore.shared.clear()
+        ScreenStateStore.shared.clear()
     }
 }
 

@@ -26,24 +26,43 @@ public struct ContinentScreen: View {
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
     @State private var comingSoon: String?
+    /// Scroll position outlives the view — see `ScreenStateStore`.
+    @State private var screens = ScreenStateStore.shared
 
     public init(continent: ContinentEntry, onSelectCountry: @escaping (String) -> Void) {
         self.continent = continent
         self.onSelectCountry = onSelectCountry
     }
 
+    private var screenKey: String { ScreenStateStore.continent(continent.id) }
+
+    private enum Anchor {
+        static let hero = "hero"
+        static let info = "info"
+        static let countries = "countries"
+    }
+
+    private var anchorBinding: Binding<String?> {
+        Binding(
+            get: { screens.anchor(for: screenKey) },
+            set: { screens.setAnchor($0, for: screenKey) }
+        )
+    }
+
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                hero
+                hero.id(Anchor.hero)
                 if !continent.common.description.isEmpty {
-                    infoSection
+                    infoSection.id(Anchor.info)
                 }
-                countriesSection
+                countriesSection.id(Anchor.countries)
             }
+            .scrollTargetLayout()
             .padding(.horizontal, 14)
             .padding(.bottom, 72)
         }
+        .scrollPosition(id: anchorBinding)
         .background(lcd.page)
         .overlay {
             if let comingSoon {
