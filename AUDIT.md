@@ -8,38 +8,38 @@ they never get renumbered, even as items are resolved.
 
 ## Status
 
-**27 resolved · 1 won't-fix · 69 open**
+**43 resolved · 1 won't-fix · 53 open**
 
-Re-reconciled against `0a446d3` on 2026-07-29 (see the update log). The counts
-first moved because the code advanced through v0.4.1 and v0.4.1.5 *after* the last
-re-verification at `fb5dcf2`, and this file was then restored from a snapshot that
-predated those releases — so 13 items were already fixed in code but still showed
-open here (each checked off with a `Verified @0a446d3` note). A further 4 pipeline
-items (M43, L17, L23, L24) are prepped on the `audit-fixes` branch; 3 more (M3, M4,
-L18) are partly prepped there and stay open — all marked with a `(audit-fixes)`
-note.
+Reconciled against `0a446d3` on 2026-07-29, then worked on the `audit-fixes`
+branch. The counts first moved because the code advanced through v0.4.1 and
+v0.4.1.5 *after* the last re-verification at `fb5dcf2`, and this file was restored
+from a snapshot predating those releases — so 13 items were already fixed in code
+(checked off with a `Verified @0a446d3` note). The `audit-fixes` branch then landed
+the verifiable pipeline pass and the low-risk Swift batches (light-mode, a11y,
+data-strip, dead-code, tiers robustness) — see the update log. **The remaining 53
+are the higher-risk refactors and anything needing a compiler/device to verify.**
 
 | Severity | Open | Resolved | Won't-fix | Total |
 |---|---:|---:|---:|---:|
 | Critical | 0 | — | — | 0 |
-| High | 4 | 7 | — | 11 |
-| Medium | 34 | 9 | 1 | 44 |
-| Low | 31 | 11 | — | 42 |
-| **Total** | **69** | **27** | **1** | **97** |
+| High | 3 | 8 | — | 11 |
+| Medium | 26 | 17 | 1 | 44 |
+| Low | 24 | 18 | — | 42 |
+| **Total** | **53** | **43** | **1** | **97** |
 
 Open items by workstream — each row is roughly one sitting's worth of related work:
 
 | Workstream | Open | Items |
 |---|---:|---|
-| UI & UX polish | 15 | M17 M23 M24 · L28 L32 L34–L42 |
-| Architecture & code quality | 13 | M26–M31 · L1 L2 L4 L5 L6 L9 L10 |
+| UI & UX polish | 14 | M17 M23 M24 · L28 L32 L35–L42 |
+| Architecture & code quality | 10 | M26–M31 · L1 L2 L9 L10 |
 | Performance | 11 | M5 M6 M7 M8 M9 M11 · L11 L12 L14 L15 L16 |
-| Pipeline & reproducibility | 3 | M40 · L25 L26 |
-| Accessibility | 7 | H10 H11 · M18 M19 M20 M21 M25 |
-| Light mode & contrast | 7 | M13 M14 M15 M44 · L29 L30 L33 |
-| Data & robustness | 6 | H2 · M1 M2 M3 M4 · L18 |
+| Accessibility | 4 | H11 · M18 M20 M21 |
+| Data & robustness | 3 | H2 · M2 M3 |
 | Release & licensing | 5 | M35 M36 M37 · L20 L22 |
+| Pipeline & reproducibility | 3 | M40 · L25 L26 |
 | Tests & CI | 2 | M32 M33 |
+| Light mode & contrast | 1 | L33 |
 
 **No critical items.** Nothing crashes, corrupts data, or breaks the build today.
 The closest call is the all-or-nothing database decode (**H2**) — one bad
@@ -95,19 +95,19 @@ quoted symbol instead.
   - **Resolved @0a446d3** (v0.4.1). The list is a `LazyVStack` and `results` is recomputed once per query via `.task(id:)`.
 - [x] **H9** · perf · `entry(named:)`/`entry(id:)` are O(n) scans re-running Unicode folding per candidate, called per-row per-render (~20k+ foldings per list pass) · `Sources/VinodexCore/WineDatabase.swift:327,318` → precompute `[normalizedKey→entry]` and `[id→entry]` dictionaries in init
   - **Resolved @0a446d3** (v0.4.1). `WineDatabase.init` builds `byID`, `byName` (per-category) and `byNameAnyCategory`; both lookups are now hash lookups.
-- [ ] **H10** · a11y · Back/Home/Saved chassis buttons have no accessibilityLabel (Saved announces as a person icon) — primary navigation unlabeled for VoiceOver · `Sources/VinodexUI/DeviceChassis.swift:428` → add `.accessibilityLabel` per ChassisButton kind, matching the settings cog
+- [x] **H10** · a11y · Back/Home/Saved chassis buttons have no accessibilityLabel (Saved announces as a person icon) — primary navigation unlabeled for VoiceOver · `Sources/VinodexUI/DeviceChassis.swift:428` → add `.accessibilityLabel` per ChassisButton kind, matching the settings cog
 - [ ] **H11** · a11y · Dynamic Type strategy is incoherent: `Font.custom(_:size:)` auto-scales with system text size while every layout metric is a fixed literal and no cap is set — accessibility sizes blow out tiles/marquee/chips, and 8–9pt base labels sit below the HIG floor · `Sources/VinodexUI/DexTheme.swift:264` + `VinodexApp.swift:59` → either cap at the root and use `fixedSize` fonts (relying on in-app TEXT SIZE), or adopt `relativeTo` + ScaledMetric layouts; raise the 8–9pt floors
 
 ## Medium — open
 
 **Data & robustness**
 
-- [ ] **M1** · robustness · tiers.json decoded with `try?` — a corrupt manifest silently unlocks the entire paywall and never reaches decodeErrors · `Sources/VinodexCore/WineDatabase.swift:253` → do/catch distinguishing file-missing (unlock) from decode-failure (log to decodeErrors)
+- [x] **M1** · robustness · tiers.json decoded with `try?` — a corrupt manifest silently unlocks the entire paywall and never reaches decodeErrors · `Sources/VinodexCore/WineDatabase.swift:253` → do/catch distinguishing file-missing (unlock) from decode-failure (log to decodeErrors)
 - [ ] **M2** · ux-state · a DB decode failure shows a normal menu plus "NO DATA FOUND" (reads as a no-results message), truth visible only in the DEV tab · `Sources/VinodexCore/WineDatabase.swift:260` + `EncyclopediaListScreen.swift:123` → explicit "DATA LOAD ERROR" state when decodeErrors is non-empty
 - [ ] **M3** · pipeline · no schema contract between generator and Swift (no version field, no validation; generator already emits keys Swift silently drops) — a TS rename ships as a whole-app decode failure · `scripts/generate-ios-data.ts:674` → emit a schemaVersion asserted at load plus a generator-side decode smoke test
   - **Partly prepped (`audit-fixes`).** `validateOutputs()` now re-reads the written JSON and asserts the shape the Swift structs require, failing `npm run generate` (and CI) on drift — positive+negative tested. Held: the `schemaVersion` field emitted-and-asserted-at-load (Swift side).
-- [ ] **M4** · data · entries.json ships ~70KB (~20%) in never-read fields (grapeCard 47.7KB, callbacks 14.5KB, icon, grapeRarityTier) parsed at every launch · `Sources/VinodexCore/WineEntry.swift:89` → strip from generator output and delete the unused EntryCommon properties
-  - **Partly prepped (`audit-fixes`).** Generator no longer emits `grapeCard` or `grapeRarityTier` (entries.json 346KB → 280KB, −19%); proven surgical by deep-equality against HEAD. Held for a CI-gated Swift change: `icon`/`iconCallback`/`tileCallback` (strip from output *and* delete the optional `EntryCommon` properties).
+- [x] **M4** · data · entries.json ships ~70KB (~20%) in never-read fields (grapeCard 47.7KB, callbacks 14.5KB, icon, grapeRarityTier) parsed at every launch · `Sources/VinodexCore/WineEntry.swift:89` → strip from generator output and delete the unused EntryCommon properties
+  - **Resolved (`audit-fixes`).** Generator strips `grapeCard`, `grapeRarityTier`, `icon`, `iconCallback`, `tileCallback`; the three optional `EntryCommon` properties were deleted. entries.json 346KB → 175KB. Proven surgical by deep-equality against HEAD (nested `tastingProfile.icon` retained).
 
 **Performance**
 
@@ -125,21 +125,21 @@ quoted symbol instead.
 
 **UI & light mode**
 
-- [ ] **M13** · light-mode · DexSearchField styles from LcdMode.current only in makeUIView — toggling SCREEN MODE leaves live fields with stale, illegible colors · `Sources/VinodexUI/DexSearchField.swift:34` → re-apply colors in updateUIView with the mode passed as a property
+- [x] **M13** · light-mode · DexSearchField styles from LcdMode.current only in makeUIView — toggling SCREEN MODE leaves live fields with stale, illegible colors · `Sources/VinodexUI/DexSearchField.swift:34` → re-apply colors in updateUIView with the mode passed as a property
   - **Since audit:** latent-only since v0.3.9 — settings is now a route, so no search field is mounted during a mode toggle. Still worth fixing as hygiene.
-- [ ] **M14** · contrast · `Dex.stone400` secondary text is ~2.3:1 on light surfaces (appellations, CLEAR ALL) · `CountryScreen.swift:245` + `BookmarksScreen.swift:117` → use `lcd.subtext`
+- [x] **M14** · contrast · `Dex.stone400` secondary text is ~2.3:1 on light surfaces (appellations, CLEAR ALL) · `CountryScreen.swift:245` + `BookmarksScreen.swift:117` → use `lcd.subtext`
   - **Since audit:** narrowed by v0.3.9 — the EntryDetail state readout was fixed and `lcd.subtext` is now in use there; these two sites remain.
-- [ ] **M15** · light-mode · the filter banner is hardcoded stone800/stone200 — a dark web-theme strip over light lists · `Sources/VinodexUI/EncyclopediaListScreen.swift:82` → `lcd.surface`/`lcd.text`/`lcd.surfaceEdge`
+- [x] **M15** · light-mode · the filter banner is hardcoded stone800/stone200 — a dark web-theme strip over light lists · `Sources/VinodexUI/EncyclopediaListScreen.swift:82` → `lcd.surface`/`lcd.text`/`lcd.surfaceEdge`
 - [x] **M16** · light-mode · globe screen mixes a hardcoded black page with light-mode tokens (deep-green caption ~3.2:1 on black, stark white search well) · `Sources/VinodexUI/RetroGlobeScreen.swift:33` → commit the screen to dark tokens or theme the page with `lcd.page`
   - **Resolved @0a446d3.** The screen uses `DexScreenBackground()` and rebuilds the scene on `isLight` (`.id(lcd)`), so page, grid and globe emission all follow SCREEN MODE.
 - [ ] **M17** · layout · no orientation lock anywhere while chassis geometry hard-assumes a portrait island cutout · `xtool.yml` → declare portrait-only in the generated Info.plist
-- [ ] **M44** · contrast · selected-option labels in the SYSTEM screen changed from `.black` to `.white` on an `lcd.accent` fill — in dark mode the accent is #4ADE80 mint, so the selected tab/skin/screen-mode/text-size buttons are white-on-mint at ~1.8:1 (was ~12:1) · `Sources/VinodexUI/SettingsPanel.swift:98,224,262,288` → add a per-mode `lcd.onAccent` token (dark → .black, light → .white) and use it for all selected states
+- [x] **M44** · contrast · selected-option labels in the SYSTEM screen changed from `.black` to `.white` on an `lcd.accent` fill — in dark mode the accent is #4ADE80 mint, so the selected tab/skin/screen-mode/text-size buttons are white-on-mint at ~1.8:1 (was ~12:1) · `Sources/VinodexUI/SettingsPanel.swift:98,224,262,288` → add a per-mode `lcd.onAccent` token (dark → .black, light → .white) and use it for all selected states
   - **Since audit:** new — this is a regression introduced by v0.3.9, not an original finding.
 
 **UX & accessibility**
 
 - [ ] **M18** · a11y · `accessibilityReduceMotion` is checked nowhere — marquee, PulseGlow, globe autospin, and the 0.7s flip are all unstoppable · `Sources/VinodexUI/DeviceChassis.swift:652` → honor the environment flag (static marquee, frozen glow, no autospin, cross-fade)
-- [ ] **M19** · a11y · DexAlert dialogs are not VO-modal — focus escapes into obscured content and scrim-tap-to-cancel has no accessible equivalent · `Sources/VinodexUI/DexAlert.swift:36` → `.accessibilityAddTraits(.isModal)` on the dialog card
+- [x] **M19** · a11y · DexAlert dialogs are not VO-modal — focus escapes into obscured content and scrim-tap-to-cancel has no accessible equivalent · `Sources/VinodexUI/DexAlert.swift:36` → `.accessibilityAddTraits(.isModal)` on the dialog card
 - [ ] **M20** · a11y · continent selection needs taps on continuously moving markers plus a drag for rear continents — impossible under VoiceOver · `Sources/VinodexUI/RetroGlobeScreen.swift:355` → pause autospin at rest / add a static continent-list fallback
 - [ ] **M21** · a11y+discoverability · the device flip is an unhinted 2s long-press on a non-button orb; the back plate is unreachable via VoiceOver · `Sources/VinodexUI/DeviceChassis.swift:148` → settings "About / flip" row plus an accessibilityAction on the orb
 - [x] **M22** · ux · the PRO alert's UNLOCK button silently dismisses (no storefront exists) — indistinguishable from a broken purchase · `Sources/VinodexApp/VinodexApp.swift:78` → "COMING SOON"/OK until IAP exists
@@ -147,7 +147,7 @@ quoted symbol instead.
 - [ ] **M23** · ux · Grape of the Day is buried inside the settings screen — the daily-return feature is invisible from the main menu · `Sources/VinodexUI/SettingsPanel.swift:131` → surface it on the main menu or as an orb badge
   - **Since audit:** v0.3.9 made settings a full SYSTEM screen, but the entry point is unchanged.
 - [ ] **M24** · ux · the blanket `.transaction { $0.animation = nil }` strips in-screen animations (expander, daily reveal), not just nav swaps · `Sources/VinodexApp/VinodexApp.swift:71` → scope `Transaction(animation: nil)` to path mutations only
-- [ ] **M25** · a11y · the destructive remove-bookmark button is a 26×26pt target sitting on a tappable row · `Sources/VinodexUI/BookmarksScreen.swift:255` → 44pt hit area via frame/contentShape, keep the 26pt visual
+- [x] **M25** · a11y · the destructive remove-bookmark button is a 26×26pt target sitting on a tappable row · `Sources/VinodexUI/BookmarksScreen.swift:255` → 44pt hit area via frame/contentShape, keep the 26pt visual
 
 **Architecture**
 
@@ -198,10 +198,10 @@ quoted symbol instead.
 - [ ] **L2** · magic-string · main-screen behavior keyed on `title == "VINODEX"` — breaks silently if the home title changes · `Sources/VinodexUI/DeviceChassis.swift:58` → pass an explicit isRoot flag from RootView
 - [x] **L3** · ux-state · the daily-grape reveal resets on every visit (plain @State) though `DailyPick.isSameDay` was built to persist it · `Sources/VinodexUI/DailyGrapeScreen.swift:16` → persist last-revealed date and initialize revealed from it
   - **Resolved (redesigned) @0a446d3.** The feature became a repeatable cursor-based guessing game (`DailyPick.RevealCursor`); per-visit reset is now intended. `DailyPick.isSameDay` is vestigial (test-only) — a candidate for L4-style dead-code removal.
-- [ ] **L4** · dead-code · textSection, WineEntry.iconTint, Palette.chip(country:) have no callers (and isSameDay is test-only pending L3) · `EntryDetailScreen.swift:567` + `DexIcon.swift:100` + `WineDatabase.swift:99` → delete (or wire isSameDay via L3)
+- [x] **L4** · dead-code · textSection, WineEntry.iconTint, Palette.chip(country:) have no callers (and isSameDay is test-only pending L3) · `EntryDetailScreen.swift:567` + `DexIcon.swift:100` + `WineDatabase.swift:99` → delete (or wire isSameDay via L3)
   - **Narrowed @0a446d3.** `Palette.chip(country:)` now has a caller (ScannerScreen) — keep it. Still dead: `textSection` (EntryDetailScreen) and `WineEntry.iconTint` (DexIcon); `DailyPick.isSameDay` is now also dead per L3. Delete those three.
-- [ ] **L5** · stale-docs · comments still describe the retired 30-entry starter dataset, plus UTF-8 mojibake ("â€”") · `WineDatabase.swift:324` + `DexTheme.swift:430` → update comments to full-dataset reality and fix the em-dash
-- [ ] **L6** · stale-docs · the continent MARK comment contradicts the code below it (claims "no glyph"/SF Symbol while generated glyphs are used) · `Sources/VinodexUI/EntryVisual.swift:220` → rewrite to describe current behavior
+- [x] **L5** · stale-docs · comments still describe the retired 30-entry starter dataset, plus UTF-8 mojibake ("â€”") · `WineDatabase.swift:324` + `DexTheme.swift:430` → update comments to full-dataset reality and fix the em-dash
+- [x] **L6** · stale-docs · the continent MARK comment contradicts the code below it (claims "no glyph"/SF Symbol while generated glyphs are used) · `Sources/VinodexUI/EntryVisual.swift:220` → rewrite to describe current behavior
 - [ ] **L9** · access-control · many VinodexUI types are public but never used outside the module (CatalogScreen, IconLoader, FlowLayout, StatBar, …) · `Sources/VinodexUI/CatalogScreen.swift:12` → demote to internal except what VinodexApp imports
 - [ ] **L10** · lifecycle · GlobeModel's CADisplayLink is invalidated only in onDisappear — a skipped callback leaves it firing forever · `Sources/VinodexUI/RetroGlobeScreen.swift:344` → invalidate in dismantleUIView/deinit as well
 
@@ -217,8 +217,8 @@ quoted symbol instead.
 
 - [x] **L17** · assets · 21 orphan icon PNGs (7 slugs × 3 scales, ~70KB) ship unreferenced because the rasterizer never prunes · `Sources/VinodexUI/Resources/Icons` + `scripts/rasterize-icons.sh:26` → delete orphans and add a prune step
   - **Prepped (`audit-fixes`).** Deleted the 21 orphans (circle, flame, oak, shield, sparkles, lucide flag, lucide globe) and added a prune step that drops any `Icons/*.png` whose slug left the manifest.
-- [ ] **L18** · data · palette.json ships fields nothing decodes (flagGradients, flavorClassMeta) and Palette decodes fields nothing reads (appellationChips, continentColors) · `WineDatabase.swift:91` + `scripts/generate-ios-data.ts` → drop both sides
-  - **Partly prepped (`audit-fixes`).** Generator no longer emits `flagGradients` or `flavorClassMeta` (Swift-unread). Held for a CI-gated Swift change: `appellationChips` + `continentColors` (still non-optional in `Palette`, so both the property and the emission must go together).
+- [x] **L18** · data · palette.json ships fields nothing decodes (flagGradients, flavorClassMeta) and Palette decodes fields nothing reads (appellationChips, continentColors) · `WineDatabase.swift:91` + `scripts/generate-ios-data.ts` → drop both sides
+  - **Resolved (`audit-fixes`).** Generator strips `flagGradients`, `flavorClassMeta`, `appellationChips`, `continentColors`; the two non-optional `Palette` properties (`appellationChips`, `continentColors`) and the `emptyPalette` init were updated to match.
 - [x] **L19** · data · all four JSONs are pretty-printed (2-space indent), inflating ~412KB by roughly a third · `scripts/generate-ios-data.ts:674` → emit minified (keep a --pretty debug flag)
   - **Prepped (`audit-fixes`).** Minified by default via `serialize()`; `--pretty`/`PRETTY=1` for readable output. With M4/L18, entries.json 346KB → 193KB (−44%). Verified whitespace-only by JSON.parse deep-equality.
 - [ ] **L20** · assets · AppIcon.png is a barely-compressed 1024² PNG at 932KB (~⅓ of the git pack) · `AppIcon.png` → recompress losslessly (oxipng/zopflipng) and note a binary-asset policy
@@ -239,14 +239,14 @@ quoted symbol instead.
 - [x] **L27** · a11y · the settings close button is a 34×34pt target · `Sources/VinodexUI/SettingsPanel.swift:77` → 44×44 frame around the 34pt visual
   - **Resolved @0a446d3.** Settings became a pushed route with no dedicated close control; it is dismissed by the chassis Back button (`DexMetrics.footerControl` = 64pt).
 - [ ] **L28** · pixel-art · DexIcon omits `.interpolation(.none)` while FlagImage/LogoMark set it — glyphs blur instead of staying crisp · `Sources/VinodexUI/DexIcon.swift:54` → add `.interpolation(.none)`
-- [ ] **L29** · light-mode · hero panels overlay a hardcoded dark-green grid that reads heavy/busy on the light hero (4 screens) · `EntryDetailScreen.swift:113` + `CountryScreen.swift:95` + `ContinentScreen.swift:99` + `StateScreen.swift:72` → mode-aware heroGrid color on LcdMode
-- [ ] **L30** · light-mode · EntryDetail's hero title shadow hardcodes #006400 while sibling screens use `lcd.accent.opacity(0.55)` — reads as blur in light mode · `Sources/VinodexUI/EntryDetailScreen.swift:104` → match the siblings (also resolved by M28's extraction)
+- [x] **L29** · light-mode · hero panels overlay a hardcoded dark-green grid that reads heavy/busy on the light hero (4 screens) · `EntryDetailScreen.swift:113` + `CountryScreen.swift:95` + `ContinentScreen.swift:99` + `StateScreen.swift:72` → mode-aware heroGrid color on LcdMode
+- [x] **L30** · light-mode · EntryDetail's hero title shadow hardcodes #006400 while sibling screens use `lcd.accent.opacity(0.55)` — reads as blur in light mode · `Sources/VinodexUI/EntryDetailScreen.swift:104` → match the siblings (also resolved by M28's extraction)
 - [ ] **L32** · layout · SE-class devices still reserve the 138pt island clearance for a phantom cutout, leaving a dead gap · `Sources/VinodexUI/DeviceChassis.swift:180` → collapse clearance when safe-area top is below the cutout threshold
 - [ ] **L33** · theme-discipline · inline hex palettes bypass the token system (menu tiles, statColors, markerColors) — how light-mode surfaces got missed before · `MainMenuScreen.swift:32` + `EntryDetailScreen.swift:448` + `RetroGlobeScreen.swift:216` → hoist into Dex/palette.json tokens
 
 **UX polish**
 
-- [ ] **L34** · search · no clear button on the search field (`clearButtonMode = .never`) — queries must be deleted character by character · `Sources/VinodexUI/DexSearchField.swift:30` → `.whileEditing` (or a retro X button)
+- [x] **L34** · search · no clear button on the search field (`clearButtonMode = .never`) — queries must be deleted character by character · `Sources/VinodexUI/DexSearchField.swift:30` → `.whileEditing` (or a retro X button)
 - [ ] **L35** · search · MASTER SEARCH opens without focusing the field — an extra tap on a screen whose whole purpose is typing · `Sources/VinodexUI/DexSearchField.swift:23` → autofocus option enabled for the masterSearch route
 - [ ] **L36** · empty-state · StateScreen renders a bare "REGIONS" header with zero rows and no message when a state resolves empty · `Sources/VinodexUI/StateScreen.swift:116` → "NO REGIONS FOUND" empty state matching the list screens
 - [ ] **L37** · consistency · the code comment says single-item removal deliberately skips confirmation, but every ✕ tap shows a confirm dialog · `Sources/VinodexUI/BookmarksScreen.swift:84` → drop the confirm (SAVE toggle is the undo) or fix the comment
@@ -282,6 +282,21 @@ quoted symbol instead.
 ---
 
 ## Update log
+
+**2026-07-29 — Swift batches on `audit-fixes`.** Landed the low-risk Swift work
+(reviewed for compile-safety by a Swift-savvy pass, since the working environment
+had no toolchain; CI `swift test` is the gate). Resolved: **M4 + L18** (finished —
+deleted the unused `EntryCommon`/`Palette` properties and stripped all nine fields
+from the generator; entries.json 346KB → 175KB), **M13 M14 M15 M44 L29 L30 L34**
+(light-mode & contrast: new `onAccent`/`heroGrid` tokens, token swaps, live
+SCREEN-MODE repaint, clear button), **H10 M19 M25** (a11y: chassis labels, modal
+alerts, 44pt target), **L4** (dead `iconTint`/`textSection`), **L5 L6** (stale
+comments + mojibake), **M1** (corrupt `tiers.json` now recorded, not silently
+unlocking). Partial: **L16** (font-availability now cached in static lets; the
+per-call `TextScale` UserDefaults read remains). Deliberately **not** attempted
+here (want a compiler/device): **H2** (element-wise decode), **M2**, the
+architecture refactors (**M26–M31**), the perf rewrites (**M5 M8 M9 M11**, **L10
+L11 L12**), **H6/H11**, and **L33**.
 
 **2026-07-29 — pipeline prep on `audit-fixes`.** Verifiable data/pipeline items
 prepped locally (no Swift toolchain in that environment, so Swift items are held
