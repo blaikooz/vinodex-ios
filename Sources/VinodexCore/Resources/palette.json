@@ -1840,38 +1840,6 @@
       }
     }
   },
-  "flavorClassMeta": {
-    "SWEET": {
-      "color": "#f59e0b",
-      "icon": "sparkles",
-      "border": "#b45309",
-      "text": "#fffbeb"
-    },
-    "SOUR": {
-      "color": "#22c55e",
-      "icon": "citrus",
-      "border": "#15803d",
-      "text": "#ecfdf3"
-    },
-    "SALTY": {
-      "color": "#38bdf8",
-      "icon": "droplet",
-      "border": "#0ea5e9",
-      "text": "#e0f2fe"
-    },
-    "BITTER": {
-      "color": "#8b5cf6",
-      "icon": "triangle",
-      "border": "#6d28d9",
-      "text": "#f3e8ff"
-    },
-    "UMAMI": {
-      "color": "#14b8a6",
-      "icon": "leaf",
-      "border": "#0d9488",
-      "text": "#e0f2f1"
-    }
-  },
   "regionClassificationIconColors": {
     "AOC": "#f43f5e",
     "AOP (Appellation d’Origine Protégée)": "#e5e7eb",
@@ -2159,33 +2127,6 @@
     "BRINY": "#e5e7eb",
     "WAX": "#f59e0b",
     "NUT": "#eab308"
-  },
-  "flagGradients": {
-    "Argentina": "linear-gradient(90deg,#38bdf8 33%,#e5e7eb 33% 66%,#38bdf8 66%)",
-    "Australia": "linear-gradient(135deg,#00205b 44%,#fff 44% 46%,#00205b 46% 54%,#c8102e 54%)",
-    "Austria": "linear-gradient(90deg,#c53030 33%,#ffffff 33% 66%,#c53030 66%)",
-    "Canada": "linear-gradient(90deg,#c53030 25%,#ffffff 25% 75%,#c53030 75%)",
-    "Chile": "linear-gradient(90deg,#1d4ed8 33%,#ffffff 33% 66%,#c53030 66%)",
-    "China": "linear-gradient(90deg,#b91c1c 70%,#f59e0b 70%)",
-    "Croatia": "linear-gradient(#374151,#111827)",
-    "France": "linear-gradient(90deg,#1f3f99 33%,#ffffff 33%,#ffffff 66%,#c53030 66%)",
-    "Georgia": "linear-gradient(5deg,#de2910 30%,#ffffff 30% 70%,#de2910 70%)",
-    "Germany": "linear-gradient(90deg,#0f172a 33%,#b91c1c 33% 66%,#f59e0b 66%)",
-    "Greece": "linear-gradient(90deg,#2563eb 33%,#e2e8f0 33% 66%,#2563eb 66%)",
-    "Hungary": "linear-gradient(90deg,#b91c1c 33%,#ffffff 33% 66%,#16a34a 66%)",
-    "India": "linear-gradient(90deg,#f97316 33%,#ffffff 33% 66%,#16a34a 66%)",
-    "Italy": "linear-gradient(90deg,#1b9b4c 33%,#ffffff 33%,#ffffff 66%,#c53030 66%)",
-    "Japan": "radial-gradient(circle at 50% 50%,#b91c1c 0 40%,#f8fafc 40%)",
-    "Morocco": "linear-gradient(#374151,#111827)",
-    "New Zealand": "linear-gradient(135deg,#00205b 70%,#101820 70%), radial-gradient(circle at 20% 30%,#c8102e 0 18%,transparent 18% 21%), radial-gradient(circle at 33% 50%,#c8102e 0 12%,transparent 12% 15%), radial-gradient(circle at 20% 70%,#c8102e 0 12%,transparent 12% 15%), radial-gradient(circle at 35% 80%,#c8102e 0 12%,transparent 12% 15%)",
-    "Portugal": "linear-gradient(90deg,#046c4e 45%,#7f1d1d 45%)",
-    "Romania": "linear-gradient(90deg,#1d4ed8 33%,#facc15 33% 66%,#dc2626 66%)",
-    "South Africa": "linear-gradient(90deg,#065f46 20%,#111827 20% 40%,#eab308 40% 50%,#e11d48 50% 70%,#1d4ed8 70%)",
-    "Spain": "linear-gradient(90deg,#c53030 0 20%,#f6ad55 20% 80%,#c53030 80% 100%)",
-    "Switzerland": "linear-gradient(90deg,#dc2626 0 100%)",
-    "USA": "linear-gradient(90deg,#1d4ed8 0 40%,#e11d48 40% 100%)",
-    "Uruguay": "linear-gradient(#374151,#111827)",
-    "Various": "linear-gradient(90deg,#0f766e 0 25%,#1d4ed8 25% 50%,#7c3aed 50% 75%,#f59e0b 75% 100%)"
   },
   "continentColors": {
     "NORTH_AMERICA": "#722F37",

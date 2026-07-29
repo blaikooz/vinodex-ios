@@ -31,7 +31,6 @@
       "Napa Valley"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "noble",
     "tastingProfile": [
       {
         "note": "Blackcurrant",
@@ -49,36 +48,6 @@
         "color": "#D2691E"
       }
     ],
-    "grapeCard": {
-      "id": "G001",
-      "name": "Cabernet Sauvignon",
-      "type": "red",
-      "style": "Full-Body Red",
-      "styleId": "noble-grapes",
-      "countryOfOrigin": "France",
-      "alternateNames": [
-        "Vidure",
-        "Petit-Cabernet"
-      ],
-      "rarityTier": "noble",
-      "characteristics": {
-        "tannin": 4,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Blackcurrant",
-        "Cedar",
-        "Spice"
-      ],
-      "notableRegions": [
-        "Bordeaux",
-        "Napa Valley"
-      ],
-      "info": "The undisputed king of red wines, producing full-bodied wines with blackcurrant, cedar, and spice notes. It thrives in warm climates and forms the backbone of Bordeaux's legendary blends."
-    },
     "rarity": "NOBLE",
     "details": {
       "origin": "France",
@@ -128,7 +97,6 @@
       "Willamette Valley"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "noble",
     "tastingProfile": [
       {
         "note": "Cherry",
@@ -146,37 +114,6 @@
         "color": "#FF69B4"
       }
     ],
-    "grapeCard": {
-      "id": "G002",
-      "name": "Pinot Noir",
-      "type": "red",
-      "style": "Light-Body Red",
-      "styleId": "noble-grapes",
-      "countryOfOrigin": "France",
-      "alternateNames": [
-        "Spätburgunder",
-        "Pinot Nero",
-        "Blauburgunder"
-      ],
-      "rarityTier": "noble",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Cherry",
-        "Earth",
-        "Floral"
-      ],
-      "notableRegions": [
-        "Burgundy",
-        "Willamette Valley"
-      ],
-      "info": "Known as the heartbreak grape for its difficulty to grow, it produces elegant wines with cherry and earthy notes. This thin-skinned variety expresses terroir like no other grape."
-    },
     "rarity": "NOBLE",
     "details": {
       "origin": "France",
@@ -226,7 +163,6 @@
       "Napa Valley"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "noble",
     "tastingProfile": [
       {
         "note": "Apple",
@@ -244,36 +180,6 @@
         "color": "#DEB887"
       }
     ],
-    "grapeCard": {
-      "id": "G003",
-      "name": "Chardonnay",
-      "type": "white",
-      "style": "Full-Body White",
-      "styleId": "noble-grapes",
-      "countryOfOrigin": "France",
-      "alternateNames": [
-        "Morillon",
-        "Beaunois"
-      ],
-      "rarityTier": "noble",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 3,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Apple",
-        "Butter",
-        "Vanilla"
-      ],
-      "notableRegions": [
-        "Burgundy",
-        "Napa Valley"
-      ],
-      "info": "The world's most versatile white grape, acting as a canvas for winemakers to craft everything from crisp to buttery styles. It responds beautifully to oak aging and malolactic fermentation."
-    },
     "rarity": "NOBLE",
     "details": {
       "origin": "France",
@@ -322,7 +228,6 @@
       "Walla Walla"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "noble",
     "tastingProfile": [
       {
         "note": "Plum",
@@ -340,36 +245,6 @@
         "color": "#556B2F"
       }
     ],
-    "grapeCard": {
-      "id": "G004",
-      "name": "Merlot",
-      "type": "red",
-      "style": "Medium-Body Red",
-      "styleId": "noble-grapes",
-      "countryOfOrigin": "France",
-      "alternateNames": [
-        "Merlau",
-        "Bigney"
-      ],
-      "rarityTier": "noble",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 3,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Plum",
-        "Chocolate",
-        "Herbs"
-      ],
-      "notableRegions": [
-        "Bordeaux",
-        "Walla Walla"
-      ],
-      "info": "A soft and velvety red grape that produces approachable wines with plum and chocolate flavors. It serves as an excellent blending partner and stands beautifully on its own."
-    },
     "rarity": "NOBLE",
     "details": {
       "origin": "France",
@@ -418,7 +293,6 @@
       "Barossa"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "noble",
     "tastingProfile": [
       {
         "note": "Blackberry",
@@ -436,36 +310,6 @@
         "color": "#8B4513"
       }
     ],
-    "grapeCard": {
-      "id": "G005",
-      "name": "Syrah",
-      "type": "red",
-      "style": "Full-Body Red",
-      "styleId": "noble-grapes",
-      "countryOfOrigin": "France",
-      "alternateNames": [
-        "Shiraz",
-        "Hermitage"
-      ],
-      "rarityTier": "noble",
-      "characteristics": {
-        "tannin": 4,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Blackberry",
-        "Pepper",
-        "Smoke"
-      ],
-      "notableRegions": [
-        "Rhône",
-        "Barossa"
-      ],
-      "info": "A powerful grape producing intense wines with pepper, smoke, and dark fruit characteristics. Known as Syrah in France and Shiraz in Australia, it adapts dramatically to its climate."
-    },
     "rarity": "NOBLE",
     "details": {
       "origin": "France",
@@ -513,7 +357,6 @@
       "Loire"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "noble",
     "tastingProfile": [
       {
         "note": "Lime",
@@ -531,35 +374,6 @@
         "color": "#228B22"
       }
     ],
-    "grapeCard": {
-      "id": "G006",
-      "name": "Sauvignon Blanc",
-      "type": "white",
-      "style": "Light-Body White",
-      "styleId": "noble-grapes",
-      "countryOfOrigin": "France",
-      "alternateNames": [
-        "Fumé Blanc"
-      ],
-      "rarityTier": "noble",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 5,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Lime",
-        "Gooseberry",
-        "Grass"
-      ],
-      "notableRegions": [
-        "Marlborough",
-        "Loire"
-      ],
-      "info": "A zesty and herbaceous white grape known for its crisp acidity and distinctive citrus and green notes. It expresses vastly different characters from the Loire Valley to New Zealand."
-    },
     "rarity": "NOBLE",
     "details": {
       "origin": "France",
@@ -606,7 +420,6 @@
       "Alsace"
     ],
     "grapeCountryOfOrigin": "Germany",
-    "grapeRarityTier": "noble",
     "tastingProfile": [
       {
         "note": "Lime",
@@ -624,35 +437,6 @@
         "color": "#708090"
       }
     ],
-    "grapeCard": {
-      "id": "G007",
-      "name": "Riesling",
-      "type": "white",
-      "style": "Aromatic White",
-      "styleId": "noble-grapes",
-      "countryOfOrigin": "Germany",
-      "alternateNames": [
-        "Johannisberg"
-      ],
-      "rarityTier": "noble",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 5,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 2
-      },
-      "tastingProfile": [
-        "Lime",
-        "Peach",
-        "Petrol"
-      ],
-      "notableRegions": [
-        "Mosel",
-        "Alsace"
-      ],
-      "info": "An aromatic white grape with exceptional purity and high acidity that ages remarkably well. It ranges from bone-dry to lusciously sweet, developing complex petrol notes with age."
-    },
     "rarity": "NOBLE",
     "details": {
       "origin": "Germany",
@@ -699,7 +483,6 @@
       "Piedmont"
     ],
     "grapeCountryOfOrigin": "Italy",
-    "grapeRarityTier": "noble",
     "tastingProfile": [
       {
         "note": "Cherry",
@@ -717,35 +500,6 @@
         "color": "#2F4F4F"
       }
     ],
-    "grapeCard": {
-      "id": "G008",
-      "name": "Nebbiolo",
-      "type": "red",
-      "style": "Full-Body Red",
-      "styleId": "noble-grapes",
-      "countryOfOrigin": "Italy",
-      "alternateNames": [
-        "Spanna",
-        "Chiavennasca"
-      ],
-      "rarityTier": "noble",
-      "characteristics": {
-        "tannin": 5,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Cherry",
-        "Rose",
-        "Tar"
-      ],
-      "notableRegions": [
-        "Piedmont"
-      ],
-      "info": "A legendary Italian grape producing pale-colored wines with massive tannins and floral aromas of tar and roses. It requires long aging to soften and is the soul of Barolo and Barbaresco."
-    },
     "rarity": "NOBLE",
     "details": {
       "origin": "Italy",
@@ -792,7 +546,6 @@
       "Tuscany"
     ],
     "grapeCountryOfOrigin": "Italy",
-    "grapeRarityTier": "common",
     "tastingProfile": [
       {
         "note": "Cherry",
@@ -810,35 +563,6 @@
         "color": "#3E2723"
       }
     ],
-    "grapeCard": {
-      "id": "G009",
-      "name": "Sangiovese",
-      "type": "red",
-      "style": "Medium-Body Red",
-      "styleId": "medium-body-red",
-      "countryOfOrigin": "Italy",
-      "alternateNames": [
-        "Brunello",
-        "Prugnolo Gentile"
-      ],
-      "rarityTier": "common",
-      "characteristics": {
-        "tannin": 4,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Cherry",
-        "Tomato",
-        "Espresso"
-      ],
-      "notableRegions": [
-        "Tuscany"
-      ],
-      "info": "Italy's most planted red grape, producing savory wines with vibrant cherry and tomato leaf characters. It is the backbone of Chianti, Brunello di Montalcino, and countless Tuscan wines."
-    },
     "rarity": "COMMON",
     "details": {
       "origin": "Italy",
@@ -886,7 +610,6 @@
       "Priorat"
     ],
     "grapeCountryOfOrigin": "Spain",
-    "grapeRarityTier": "common",
     "tastingProfile": [
       {
         "note": "Strawberry",
@@ -904,36 +627,6 @@
         "color": "#D3D3D3"
       }
     ],
-    "grapeCard": {
-      "id": "G010",
-      "name": "Grenache",
-      "type": "red",
-      "style": "Medium-Body Red",
-      "styleId": "medium-body-red",
-      "countryOfOrigin": "Spain",
-      "alternateNames": [
-        "Garnacha",
-        "Cannonau"
-      ],
-      "rarityTier": "common",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 3,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Strawberry",
-        "Raspberry",
-        "Pepper"
-      ],
-      "notableRegions": [
-        "Rhône",
-        "Priorat"
-      ],
-      "info": "A sweet red fruit-driven grape that produces wines high in alcohol with strawberry and raspberry flavors. It is a key component in Southern Rhône blends and Spanish Garnacha wines."
-    },
     "rarity": "COMMON",
     "details": {
       "origin": "Spain",
@@ -981,7 +674,6 @@
       "Rioja"
     ],
     "grapeCountryOfOrigin": "Spain",
-    "grapeRarityTier": "common",
     "tastingProfile": [
       {
         "note": "Fig",
@@ -999,35 +691,6 @@
         "color": "#556B2F"
       }
     ],
-    "grapeCard": {
-      "id": "G011",
-      "name": "Tempranillo",
-      "type": "red",
-      "style": "Medium-Body Red",
-      "styleId": "medium-body-red",
-      "countryOfOrigin": "Spain",
-      "alternateNames": [
-        "Tinto Fino",
-        "Cencibel"
-      ],
-      "rarityTier": "common",
-      "characteristics": {
-        "tannin": 4,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Fig",
-        "Tobacco",
-        "Dill"
-      ],
-      "notableRegions": [
-        "Rioja"
-      ],
-      "info": "Spain's noble grape variety, producing elegant wines with leather, tobacco, and red berry notes. It is the backbone of Rioja and Ribera del Duero, aging beautifully in American oak."
-    },
     "rarity": "COMMON",
     "details": {
       "origin": "Spain",
@@ -1074,7 +737,6 @@
       "Mendoza"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "common",
     "tastingProfile": [
       {
         "note": "Blueberry",
@@ -1092,35 +754,6 @@
         "color": "#800080"
       }
     ],
-    "grapeCard": {
-      "id": "G012",
-      "name": "Malbec",
-      "type": "red",
-      "style": "Full-Body Red",
-      "styleId": "full-body-red",
-      "countryOfOrigin": "France",
-      "alternateNames": [
-        "Côt",
-        "Auxerrois"
-      ],
-      "rarityTier": "common",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 3,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Blueberry",
-        "Cocoa",
-        "Plum"
-      ],
-      "notableRegions": [
-        "Mendoza"
-      ],
-      "info": "Originally from Cahors, France, this dark and inky grape has become Argentina's signature variety. It produces velvety wines with intense plum, blueberry, and cocoa flavors."
-    },
     "rarity": "COMMON",
     "details": {
       "origin": "France",
@@ -1167,7 +800,6 @@
       "Loire"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Bell Pepper",
@@ -1185,35 +817,6 @@
         "color": "#708090"
       }
     ],
-    "grapeCard": {
-      "id": "G013",
-      "name": "Cabernet Franc",
-      "type": "red",
-      "style": "Medium-Body Red",
-      "styleId": "medium-body-red",
-      "countryOfOrigin": "France",
-      "alternateNames": [
-        "Bouchet",
-        "Breton"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Bell Pepper",
-        "Raspberry",
-        "Graphite"
-      ],
-      "notableRegions": [
-        "Loire"
-      ],
-      "info": "The parent grape of Cabernet Sauvignon, known for its herbaceous character with bell pepper and raspberry notes. It excels in the Loire Valley and plays a supporting role in Bordeaux blends."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "France",
@@ -1259,7 +862,6 @@
       "Loire"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Quince",
@@ -1277,34 +879,6 @@
         "color": "#F0E68C"
       }
     ],
-    "grapeCard": {
-      "id": "G014",
-      "name": "Chenin Blanc",
-      "type": "white",
-      "style": "Light-Body White",
-      "styleId": "light-body-white",
-      "countryOfOrigin": "France",
-      "alternateNames": [
-        "Steen"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Quince",
-        "Honey",
-        "Chamomile"
-      ],
-      "notableRegions": [
-        "Loire"
-      ],
-      "info": "An incredibly versatile chameleon grape capable of producing dry, sweet, and sparkling wines. Its high acidity allows for exceptional aging and expression of terroir."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "France",
@@ -1347,7 +921,6 @@
       "Rhône"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Tangerine",
@@ -1365,32 +938,6 @@
         "color": "#FFD700"
       }
     ],
-    "grapeCard": {
-      "id": "G015",
-      "name": "Viognier",
-      "type": "white",
-      "style": "Full-Body White",
-      "styleId": "full-body-white",
-      "countryOfOrigin": "France",
-      "alternateNames": [],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 2,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Tangerine",
-        "Honeysuckle",
-        "Mango"
-      ],
-      "notableRegions": [
-        "Rhône"
-      ],
-      "info": "A perfumed and aromatic white grape producing full-bodied wines with peach, tangerine, and honeysuckle notes. It originates from the Rhône Valley and is often co-fermented with Syrah."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "France",
@@ -1433,7 +980,6 @@
       "Beaujolais"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Pomegranate",
@@ -1451,34 +997,6 @@
         "color": "#5D4037"
       }
     ],
-    "grapeCard": {
-      "id": "G016",
-      "name": "Gamay",
-      "type": "red",
-      "style": "Light-Body Red",
-      "styleId": "light-body-red",
-      "countryOfOrigin": "France",
-      "alternateNames": [
-        "Gamay Noir"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 2,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 2
-      },
-      "tastingProfile": [
-        "Pomegranate",
-        "Banana",
-        "Earth"
-      ],
-      "notableRegions": [
-        "Beaujolais"
-      ],
-      "info": "A fruity and fresh grape that produces light, gulpable wines perfect for serving slightly chilled. It is the sole grape of Beaujolais and excels with carbonic maceration techniques."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "France",
@@ -1524,7 +1042,6 @@
       "Lodi"
     ],
     "grapeCountryOfOrigin": "Croatia",
-    "grapeRarityTier": "common",
     "tastingProfile": [
       {
         "note": "Jammy Berry",
@@ -1542,35 +1059,6 @@
         "color": "#8B4513"
       }
     ],
-    "grapeCard": {
-      "id": "G017",
-      "name": "Zinfandel",
-      "type": "red",
-      "style": "Full-Body Red",
-      "styleId": "full-body-red",
-      "countryOfOrigin": "Croatia",
-      "alternateNames": [
-        "Primitivo",
-        "Tribidrag"
-      ],
-      "rarityTier": "common",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 3,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Jammy Berry",
-        "Cinnamon",
-        "Tobacco"
-      ],
-      "notableRegions": [
-        "Lodi"
-      ],
-      "info": "A bold and jammy grape that produces high-alcohol wines with ripe berry and spice characteristics. Genetically identical to Primitivo, it has become California's signature red variety."
-    },
     "rarity": "COMMON",
     "details": {
       "origin": "Croatia",
@@ -1616,7 +1104,6 @@
       "Bordeaux"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Lemon Curd",
@@ -1634,34 +1121,6 @@
         "color": "#FFFACD"
       }
     ],
-    "grapeCard": {
-      "id": "G018",
-      "name": "Semillon",
-      "type": "white",
-      "style": "Medium-Body White",
-      "styleId": "medium-body-white",
-      "countryOfOrigin": "France",
-      "alternateNames": [
-        "Sémillon"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 3,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Lemon Curd",
-        "Beeswax",
-        "Lanolin"
-      ],
-      "notableRegions": [
-        "Bordeaux"
-      ],
-      "info": "A golden-hued grape often blended with Sauvignon Blanc, producing waxy whites with lemon curd and lanolin notes. It is essential for Sauternes and ages remarkably well."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "France",
@@ -1707,7 +1166,6 @@
       "Rhône"
     ],
     "grapeCountryOfOrigin": "Spain",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Black Fruit",
@@ -1725,35 +1183,6 @@
         "color": "#556B2F"
       }
     ],
-    "grapeCard": {
-      "id": "G019",
-      "name": "Mourvèdre",
-      "type": "red",
-      "style": "Full-Body Red",
-      "styleId": "full-body-red",
-      "countryOfOrigin": "Spain",
-      "alternateNames": [
-        "Monastrell",
-        "Mataro"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 4,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Black Fruit",
-        "Game",
-        "Herbs"
-      ],
-      "notableRegions": [
-        "Rhône"
-      ],
-      "info": "A meaty and herbal red grape that produces full-bodied wines with game, black fruit, and herb flavors. It is a key blending partner in GSM blends and the star of Bandol rosé."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Spain",
@@ -1797,7 +1226,6 @@
       "Piedmont"
     ],
     "grapeCountryOfOrigin": "Italy",
-    "grapeRarityTier": "common",
     "tastingProfile": [
       {
         "note": "Sour Cherry",
@@ -1815,32 +1243,6 @@
         "color": "#000000"
       }
     ],
-    "grapeCard": {
-      "id": "G020",
-      "name": "Barbera",
-      "type": "red",
-      "style": "Medium-Body Red",
-      "styleId": "medium-body-red",
-      "countryOfOrigin": "Italy",
-      "alternateNames": [],
-      "rarityTier": "common",
-      "characteristics": {
-        "tannin": 2,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Sour Cherry",
-        "Herbs",
-        "Liquorice"
-      ],
-      "notableRegions": [
-        "Piedmont"
-      ],
-      "info": "A juicy and high-acid Italian grape that produces everyday drinking wines with sour cherry and herb flavors. It thrives in Piedmont and offers excellent value."
-    },
     "rarity": "COMMON",
     "details": {
       "origin": "Italy",
@@ -1884,7 +1286,6 @@
       "Alsace"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "common",
     "tastingProfile": [
       {
         "note": "Peach",
@@ -1902,35 +1303,6 @@
         "color": "#D3D3D3"
       }
     ],
-    "grapeCard": {
-      "id": "G021",
-      "name": "Pinot Gris",
-      "type": "white",
-      "style": "Light-Body White",
-      "styleId": "light-body-white",
-      "countryOfOrigin": "France",
-      "alternateNames": [
-        "Pinot Grigio",
-        "Grauburgunder"
-      ],
-      "rarityTier": "common",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Peach",
-        "Lemon",
-        "Mineral"
-      ],
-      "notableRegions": [
-        "Alsace"
-      ],
-      "info": "A mutation of Pinot Noir that produces white wines ranging from zesty Italian Pinot Grigio to rich Alsatian styles. Its grayish-pink skin gives it its name."
-    },
     "rarity": "COMMON",
     "details": {
       "origin": "France",
@@ -1976,7 +1348,6 @@
       "Bordeaux"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "rare",
     "tastingProfile": [
       {
         "note": "Violet",
@@ -1994,34 +1365,6 @@
         "color": "#9ACD32"
       }
     ],
-    "grapeCard": {
-      "id": "G022",
-      "name": "Petit Verdot",
-      "type": "red",
-      "style": "Full-Body Red",
-      "styleId": "full-body-red",
-      "countryOfOrigin": "France",
-      "alternateNames": [
-        "Verdot"
-      ],
-      "rarityTier": "rare",
-      "characteristics": {
-        "tannin": 4,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Violet",
-        "Lilac",
-        "Sage"
-      ],
-      "notableRegions": [
-        "Bordeaux"
-      ],
-      "info": "A late-ripening Bordeaux blending grape that adds violet aromas and deep color to wines. Rarely bottled alone, it provides structure and inky depth to the final blend."
-    },
     "rarity": "RARE",
     "details": {
       "origin": "France",
@@ -2064,7 +1407,6 @@
       "Chile"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Green Pepper",
@@ -2082,32 +1424,6 @@
         "color": "#8B4513"
       }
     ],
-    "grapeCard": {
-      "id": "G023",
-      "name": "Carmenère",
-      "type": "red",
-      "style": "Medium-Body Red",
-      "styleId": "medium-body-red",
-      "countryOfOrigin": "France",
-      "alternateNames": [],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 3,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Green Pepper",
-        "Raspberry",
-        "Cocoa"
-      ],
-      "notableRegions": [
-        "Chile"
-      ],
-      "info": "Once thought extinct in Bordeaux, this lost grape found a new home in Chile where it produces distinctive wines. Its green pepper and raspberry notes make it Chile's signature variety."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "France",
@@ -2148,7 +1464,6 @@
       "Salta"
     ],
     "grapeCountryOfOrigin": "Argentina",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Rose",
@@ -2166,32 +1481,6 @@
         "color": "#FFFF00"
       }
     ],
-    "grapeCard": {
-      "id": "G024",
-      "name": "Torrontés",
-      "type": "white",
-      "style": "Aromatic White",
-      "styleId": "aromatic-white",
-      "countryOfOrigin": "Argentina",
-      "alternateNames": [],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 3,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Rose",
-        "Lychee",
-        "Citrus"
-      ],
-      "notableRegions": [
-        "Salta"
-      ],
-      "info": "Argentina's signature white grape that smells sweet but tastes dry, often deceiving the senses. Its intense rose and lychee aromas make it one of the world's most distinctive whites."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Argentina",
@@ -2235,7 +1524,6 @@
       "Piedmont"
     ],
     "grapeCountryOfOrigin": "Italy",
-    "grapeRarityTier": "common",
     "tastingProfile": [
       {
         "note": "Orange Blossom",
@@ -2253,35 +1541,6 @@
         "color": "#F0E68C"
       }
     ],
-    "grapeCard": {
-      "id": "G025",
-      "name": "Moscato",
-      "type": "white",
-      "style": "Sweet White",
-      "styleId": "sweet-white",
-      "countryOfOrigin": "Italy",
-      "alternateNames": [
-        "Muscat",
-        "Moscatel"
-      ],
-      "rarityTier": "common",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 2
-      },
-      "tastingProfile": [
-        "Orange Blossom",
-        "Lemon",
-        "Pear"
-      ],
-      "notableRegions": [
-        "Piedmont"
-      ],
-      "info": "One of the world's oldest grape families, known for its sweet, fizzy, and intensely aromatic wines. Its orange blossom perfume and low alcohol make it perfect for casual sipping."
-    },
     "rarity": "COMMON",
     "details": {
       "origin": "Italy",
@@ -2327,7 +1586,6 @@
       "Alsace"
     ],
     "grapeCountryOfOrigin": "Germany",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Lychee",
@@ -2345,34 +1603,6 @@
         "color": "#DEB887"
       }
     ],
-    "grapeCard": {
-      "id": "G026",
-      "name": "Gewürztraminer",
-      "type": "white",
-      "style": "Aromatic White",
-      "styleId": "aromatic-white",
-      "countryOfOrigin": "Germany",
-      "alternateNames": [
-        "Traminer"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 2,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Lychee",
-        "Rose",
-        "Ginger"
-      ],
-      "notableRegions": [
-        "Alsace"
-      ],
-      "info": "A highly aromatic grape with distinctive lychee and rose petal aromas that is unmistakable in blind tastings. Its name means 'spiced traminer' and it produces rich wines with low acidity."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Germany",
@@ -2417,7 +1647,6 @@
       "Rías Baixas"
     ],
     "grapeCountryOfOrigin": "Spain",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Apricot",
@@ -2435,34 +1664,6 @@
         "color": "#FFF44F"
       }
     ],
-    "grapeCard": {
-      "id": "G027",
-      "name": "Albariño",
-      "type": "white",
-      "style": "Light-Body White",
-      "styleId": "light-body-white",
-      "countryOfOrigin": "Spain",
-      "alternateNames": [
-        "Alvarinho"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Apricot",
-        "Sea Salt",
-        "Citrus"
-      ],
-      "notableRegions": [
-        "Rías Baixas"
-      ],
-      "info": "Spain's coastal Atlantic white grape that produces crisp, refreshing wines with apricot and sea salt notes. It thrives in Rías Baixas where ocean influence creates distinctive saline character."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Spain",
@@ -2507,7 +1708,6 @@
       "Wachau"
     ],
     "grapeCountryOfOrigin": "Austria",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Green Pea",
@@ -2525,34 +1725,6 @@
         "color": "#FFF44F"
       }
     ],
-    "grapeCard": {
-      "id": "G028",
-      "name": "Grüner Veltliner",
-      "type": "white",
-      "style": "Light-Body White",
-      "styleId": "light-body-white",
-      "countryOfOrigin": "Austria",
-      "alternateNames": [
-        "Grüner"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Green Pea",
-        "White Pepper",
-        "Citrus"
-      ],
-      "notableRegions": [
-        "Wachau"
-      ],
-      "info": "Austria's pride and most planted grape, known for its distinctive white pepper and green pea notes. It ranges from light and crisp to powerful and age-worthy depending on terroir."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Austria",
@@ -2598,7 +1770,6 @@
       "Sardinia"
     ],
     "grapeCountryOfOrigin": "Italy",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Lime",
@@ -2616,35 +1787,6 @@
         "color": "#228B22"
       }
     ],
-    "grapeCard": {
-      "id": "G029",
-      "name": "Vermentino",
-      "type": "white",
-      "style": "Light-Body White",
-      "styleId": "light-body-white",
-      "countryOfOrigin": "Italy",
-      "alternateNames": [
-        "Rolle",
-        "Pigato"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Lime",
-        "Almond",
-        "Herbs"
-      ],
-      "notableRegions": [
-        "Sardinia"
-      ],
-      "info": "A Mediterranean white grape that thrives along coastal regions, producing citrus-driven wines with herbal hints. It is known by different names across Sardinia, Corsica, and the French Riviera."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Italy",
@@ -2688,7 +1830,6 @@
       "Rueda"
     ],
     "grapeCountryOfOrigin": "Spain",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Fennel",
@@ -2706,32 +1847,6 @@
         "color": "#DEB887"
       }
     ],
-    "grapeCard": {
-      "id": "G030",
-      "name": "Verdejo",
-      "type": "white",
-      "style": "Light-Body White",
-      "styleId": "light-body-white",
-      "countryOfOrigin": "Spain",
-      "alternateNames": [],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Fennel",
-        "Grapefruit",
-        "Almond"
-      ],
-      "notableRegions": [
-        "Rueda"
-      ],
-      "info": "An aromatic Spanish white grape that produces herbal wines with fennel and grapefruit characteristics. It is the star of Rueda and offers a Spanish alternative to Sauvignon Blanc."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Spain",
@@ -2772,7 +1887,6 @@
       "Rhône"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "rare",
     "tastingProfile": [
       {
         "note": "Herbal Tea",
@@ -2790,32 +1904,6 @@
         "color": "#FFD700"
       }
     ],
-    "grapeCard": {
-      "id": "G031",
-      "name": "Roussanne",
-      "type": "white",
-      "style": "Full-Body White",
-      "styleId": "full-body-white",
-      "countryOfOrigin": "France",
-      "alternateNames": [],
-      "rarityTier": "rare",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 3,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Herbal Tea",
-        "Pear",
-        "Honey"
-      ],
-      "notableRegions": [
-        "Rhône"
-      ],
-      "info": "A golden Rhône white grape that produces full-bodied wines with herbal tea and pear flavors. It is often blended with Marsanne and ages beautifully, developing honeyed complexity."
-    },
     "rarity": "RARE",
     "details": {
       "origin": "France",
@@ -2856,7 +1944,6 @@
       "Rhône"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "rare",
     "tastingProfile": [
       {
         "note": "Almond",
@@ -2874,32 +1961,6 @@
         "color": "#F5DEB3"
       }
     ],
-    "grapeCard": {
-      "id": "G032",
-      "name": "Marsanne",
-      "type": "white",
-      "style": "Full-Body White",
-      "styleId": "full-body-white",
-      "countryOfOrigin": "France",
-      "alternateNames": [],
-      "rarityTier": "rare",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 2,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Almond",
-        "Peach",
-        "Marzipan"
-      ],
-      "notableRegions": [
-        "Rhône"
-      ],
-      "info": "A rich white Rhône grape that produces nutty, full-bodied wines with almond and marzipan notes. It develops waxy, honeyed flavors with age and pairs beautifully with rich dishes."
-    },
     "rarity": "RARE",
     "details": {
       "origin": "France",
@@ -2942,7 +2003,6 @@
       "Italy"
     ],
     "grapeCountryOfOrigin": "Italy",
-    "grapeRarityTier": "common",
     "tastingProfile": [
       {
         "note": "Green Apple",
@@ -2960,34 +2020,6 @@
         "color": "#FFF44F"
       }
     ],
-    "grapeCard": {
-      "id": "G033",
-      "name": "Trebbiano",
-      "type": "white",
-      "style": "Light-Body White",
-      "styleId": "light-body-white",
-      "countryOfOrigin": "Italy",
-      "alternateNames": [
-        "Ugni Blanc"
-      ],
-      "rarityTier": "common",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 2
-      },
-      "tastingProfile": [
-        "Green Apple",
-        "Almond",
-        "Lemon"
-      ],
-      "notableRegions": [
-        "Italy"
-      ],
-      "info": "A light and neutral Italian workhorse grape that produces high-volume, everyday white wines. It forms the base of many Italian wines and French Cognac production."
-    },
     "rarity": "COMMON",
     "details": {
       "origin": "Italy",
@@ -3030,7 +2062,6 @@
       "Campania"
     ],
     "grapeCountryOfOrigin": "Italy",
-    "grapeRarityTier": "rare",
     "tastingProfile": [
       {
         "note": "Hazelnut",
@@ -3048,32 +2079,6 @@
         "color": "#FFF44F"
       }
     ],
-    "grapeCard": {
-      "id": "G034",
-      "name": "Fiano",
-      "type": "white",
-      "style": "Medium-Body White",
-      "styleId": "medium-body-white",
-      "countryOfOrigin": "Italy",
-      "alternateNames": [],
-      "rarityTier": "rare",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Hazelnut",
-        "Honey",
-        "Citrus"
-      ],
-      "notableRegions": [
-        "Campania"
-      ],
-      "info": "An aromatic Italian white grape from Campania that produces wines with hazelnut and honey notes. It has ancient origins and is experiencing a modern renaissance."
-    },
     "rarity": "RARE",
     "details": {
       "origin": "Italy",
@@ -3114,7 +2119,6 @@
       "Santorini"
     ],
     "grapeCountryOfOrigin": "Greece",
-    "grapeRarityTier": "rare",
     "tastingProfile": [
       {
         "note": "Lemon",
@@ -3132,32 +2136,6 @@
         "color": "#708090"
       }
     ],
-    "grapeCard": {
-      "id": "G035",
-      "name": "Assyrtiko",
-      "type": "white",
-      "style": "Medium-Body White",
-      "styleId": "medium-body-white",
-      "countryOfOrigin": "Greece",
-      "alternateNames": [],
-      "rarityTier": "rare",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 5,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Lemon",
-        "Saline",
-        "Mineral"
-      ],
-      "notableRegions": [
-        "Santorini"
-      ],
-      "info": "A Greek grape from Santorini with intense mineral character and very high acidity. It thrives on volcanic soils and produces wines with remarkable saline and citrus notes."
-    },
     "rarity": "RARE",
     "details": {
       "origin": "Greece",
@@ -3198,7 +2176,6 @@
       "Campania"
     ],
     "grapeCountryOfOrigin": "Italy",
-    "grapeRarityTier": "rare",
     "tastingProfile": [
       {
         "note": "Plum",
@@ -3216,32 +2193,6 @@
         "color": "#696969"
       }
     ],
-    "grapeCard": {
-      "id": "G036",
-      "name": "Aglianico",
-      "type": "red",
-      "style": "Full-Body Red",
-      "styleId": "full-body-red",
-      "countryOfOrigin": "Italy",
-      "alternateNames": [],
-      "rarityTier": "rare",
-      "characteristics": {
-        "tannin": 5,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Plum",
-        "Leather",
-        "Smoke"
-      ],
-      "notableRegions": [
-        "Campania"
-      ],
-      "info": "A powerful Italian red grape from southern Italy producing tannic, age-worthy wines with plum and leather notes. It is often called the 'Barolo of the South'."
-    },
     "rarity": "RARE",
     "details": {
       "origin": "Italy",
@@ -3282,7 +2233,6 @@
       "Sicily"
     ],
     "grapeCountryOfOrigin": "Italy",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Black Cherry",
@@ -3300,32 +2250,6 @@
         "color": "#D2691E"
       }
     ],
-    "grapeCard": {
-      "id": "G037",
-      "name": "Nero d'Avola",
-      "type": "red",
-      "style": "Full-Body Red",
-      "styleId": "full-body-red",
-      "countryOfOrigin": "Italy",
-      "alternateNames": [],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 4,
-        "acid": 3,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Black Cherry",
-        "Plum",
-        "Spice"
-      ],
-      "notableRegions": [
-        "Sicily"
-      ],
-      "info": "Sicily's most important red grape, producing rich wines with black cherry, plum, and spice flavors. It has become the ambassador of Sicilian winemaking."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Italy",
@@ -3366,7 +2290,6 @@
       "Douro"
     ],
     "grapeCountryOfOrigin": "Portugal",
-    "grapeRarityTier": "rare",
     "tastingProfile": [
       {
         "note": "Violet",
@@ -3384,32 +2307,6 @@
         "color": "#556B2F"
       }
     ],
-    "grapeCard": {
-      "id": "G038",
-      "name": "Touriga Nacional",
-      "type": "red",
-      "style": "Full-Body Red",
-      "styleId": "full-body-red",
-      "countryOfOrigin": "Portugal",
-      "alternateNames": [],
-      "rarityTier": "rare",
-      "characteristics": {
-        "tannin": 4,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Violet",
-        "Black Fruit",
-        "Herb"
-      ],
-      "notableRegions": [
-        "Douro"
-      ],
-      "info": "Portugal's noblest grape and the backbone of Port wine, producing intensely colored wines with violet and dark fruit notes. It excels in both fortified and dry table wines."
-    },
     "rarity": "RARE",
     "details": {
       "origin": "Portugal",
@@ -3450,7 +2347,6 @@
       "Uruguay"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Blackberry",
@@ -3468,32 +2364,6 @@
         "color": "#A0522D"
       }
     ],
-    "grapeCard": {
-      "id": "G039",
-      "name": "Tannat",
-      "type": "red",
-      "style": "Full-Body Red",
-      "styleId": "full-body-red",
-      "countryOfOrigin": "France",
-      "alternateNames": [],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 5,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Blackberry",
-        "Leather",
-        "Tobacco"
-      ],
-      "notableRegions": [
-        "Uruguay"
-      ],
-      "info": "A tannic powerhouse grape that has become Uruguay's national variety. It produces deeply colored, robust wines with blackberry and leather characteristics."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "France",
@@ -3534,7 +2404,6 @@
       "Tokaj"
     ],
     "grapeCountryOfOrigin": "Hungary",
-    "grapeRarityTier": "rare",
     "tastingProfile": [
       {
         "note": "Lime",
@@ -3552,32 +2421,6 @@
         "color": "#FFD700"
       }
     ],
-    "grapeCard": {
-      "id": "G040",
-      "name": "Furmint",
-      "type": "white",
-      "style": "Medium-Body White",
-      "styleId": "medium-body-white",
-      "countryOfOrigin": "Hungary",
-      "alternateNames": [],
-      "rarityTier": "rare",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 5,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Lime",
-        "Smoke",
-        "Honey"
-      ],
-      "notableRegions": [
-        "Tokaj"
-      ],
-      "info": "The primary grape of Hungary's famous Tokaji sweet wines with very high acidity and citrus notes. It also makes excellent dry wines with smoky, minerally complexity."
-    },
     "rarity": "RARE",
     "details": {
       "origin": "Hungary",
@@ -3618,7 +2461,6 @@
       "Shandong"
     ],
     "grapeCountryOfOrigin": "China",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Black Plum",
@@ -3631,32 +2473,6 @@
         "color": "#9370DB"
       }
     ],
-    "grapeCard": {
-      "id": "G041",
-      "name": "Marselan",
-      "type": "red",
-      "style": "Full-Body Red",
-      "styleId": "full-body-red",
-      "countryOfOrigin": "China",
-      "alternateNames": [],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 3,
-        "colorIntensity": 4,
-        "aromatics": 4,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Black Plum",
-        "Violet"
-      ],
-      "notableRegions": [
-        "Helan Mountain East",
-        "Shandong"
-      ],
-      "info": "A Cabernet Sauvignon and Grenache crossing that has become the flagship red of modern China. Produces plush, dark-fruited wines with polished tannins in the foothills of Helan Mountain."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "China",
@@ -3699,7 +2515,6 @@
       "Hebei"
     ],
     "grapeCountryOfOrigin": "China",
-    "grapeRarityTier": "rare",
     "tastingProfile": [
       {
         "note": "Blackberry",
@@ -3717,33 +2532,6 @@
         "color": "#3C8D0D"
       }
     ],
-    "grapeCard": {
-      "id": "G042",
-      "name": "Cabernet Gernischt",
-      "type": "red",
-      "style": "Medium-Body Red",
-      "styleId": "medium-body-red",
-      "countryOfOrigin": "China",
-      "alternateNames": [],
-      "rarityTier": "rare",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 3,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Blackberry",
-        "Green Peppercorn",
-        "Tea Leaf"
-      ],
-      "notableRegions": [
-        "Shandong",
-        "Hebei"
-      ],
-      "info": "A historic Bordeaux transplant thriving in China, often mistaken for Carmenère. Shows herbal spice and black fruit with a distinctly savory edge in cooler Chinese vineyards."
-    },
     "rarity": "RARE",
     "details": {
       "origin": "China",
@@ -3785,7 +2573,6 @@
       "Yamanashi"
     ],
     "grapeCountryOfOrigin": "Japan",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Yuzu Citrus",
@@ -3803,32 +2590,6 @@
         "color": "#B0BEC5"
       }
     ],
-    "grapeCard": {
-      "id": "G043",
-      "name": "Koshu",
-      "type": "white",
-      "style": "Light-Body White",
-      "styleId": "light-body-white",
-      "countryOfOrigin": "Japan",
-      "alternateNames": [],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 2
-      },
-      "tastingProfile": [
-        "Yuzu Citrus",
-        "Jasmine",
-        "Mineral"
-      ],
-      "notableRegions": [
-        "Yamanashi"
-      ],
-      "info": "Japan's signature pale-purple skinned grape that yields delicate, mineral-driven whites. Its subtle citrus and jasmine notes shine in the misty foothills of Mount Fuji."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Japan",
@@ -3869,7 +2630,6 @@
       "Yamanashi"
     ],
     "grapeCountryOfOrigin": "Japan",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Strawberry Candy",
@@ -3882,32 +2642,6 @@
         "color": "#FFC0CB"
       }
     ],
-    "grapeCard": {
-      "id": "G044",
-      "name": "Muscat Bailey A",
-      "type": "red",
-      "style": "Light-Body Red",
-      "styleId": "light-body-red",
-      "countryOfOrigin": "Japan",
-      "alternateNames": [],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 2,
-        "acid": 3,
-        "colorIntensity": 4,
-        "aromatics": 4,
-        "body": 2
-      },
-      "tastingProfile": [
-        "Strawberry Candy",
-        "Rose Petal"
-      ],
-      "notableRegions": [
-        "Yamagata",
-        "Yamanashi"
-      ],
-      "info": "A hybrid created in Japan combining Muscat of Hamburg and Bailey, producing aromatic, softly tannic reds with strawberry candy notes. Often vinified as a chilled, vibrant style."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Japan",
@@ -3949,7 +2683,6 @@
       "Kakheti"
     ],
     "grapeCountryOfOrigin": "Georgia",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Black Plum",
@@ -3967,32 +2700,6 @@
         "color": "#4B4B4B"
       }
     ],
-    "grapeCard": {
-      "id": "G046",
-      "name": "Saperavi",
-      "type": "red",
-      "style": "Full-Body Red",
-      "styleId": "full-body-red",
-      "countryOfOrigin": "Georgia",
-      "alternateNames": [],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 4,
-        "acid": 3,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Black Plum",
-        "Smoky Spice",
-        "Earth"
-      ],
-      "notableRegions": [
-        "Kakheti"
-      ],
-      "info": "Georgia's flagship teinturier red with intense black fruit, savory spice, and the structure to age gracefully."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Georgia",
@@ -4034,7 +2741,6 @@
       "Imereti"
     ],
     "grapeCountryOfOrigin": "Georgia",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Quince",
@@ -4052,33 +2758,6 @@
         "color": "#f59e0b"
       }
     ],
-    "grapeCard": {
-      "id": "G047",
-      "name": "Rkatsiteli",
-      "type": "white",
-      "style": "Full-Body White",
-      "styleId": "full-body-white",
-      "countryOfOrigin": "Georgia",
-      "alternateNames": [],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 2,
-        "acid": 4,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Quince",
-        "Herbal Tea",
-        "Honey"
-      ],
-      "notableRegions": [
-        "Kakheti",
-        "Imereti"
-      ],
-      "info": "Ancient Georgian white grape famed for amber qvevri wines with quince, tea, and honeyed depth."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Georgia",
@@ -4119,7 +2798,6 @@
       "Kakheti"
     ],
     "grapeCountryOfOrigin": "Georgia",
-    "grapeRarityTier": "rare",
     "tastingProfile": [
       {
         "note": "Apricot",
@@ -4132,31 +2810,6 @@
         "color": "#f472b6"
       }
     ],
-    "grapeCard": {
-      "id": "G048",
-      "name": "Kisi",
-      "type": "white",
-      "style": "Medium-Body White",
-      "styleId": "medium-body-white",
-      "countryOfOrigin": "Georgia",
-      "alternateNames": [],
-      "rarityTier": "rare",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 3,
-        "colorIntensity": 2,
-        "aromatics": 4,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Apricot",
-        "White Flower"
-      ],
-      "notableRegions": [
-        "Kakheti"
-      ],
-      "info": "Fragrant Georgian white offering apricot, white flowers, and subtle tannin when fermented on skins."
-    },
     "rarity": "RARE",
     "details": {
       "origin": "Georgia",
@@ -4199,7 +2852,6 @@
       "Piedmont"
     ],
     "grapeCountryOfOrigin": "Italy",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Black Cherry",
@@ -4217,34 +2869,6 @@
         "color": "#D6B88D"
       }
     ],
-    "grapeCard": {
-      "id": "G049",
-      "name": "Dolcetto",
-      "type": "red",
-      "style": "Medium-Body Red",
-      "styleId": "medium-body-red",
-      "countryOfOrigin": "Italy",
-      "alternateNames": [
-        "Dolcetto di Dogliani"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 3,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Black Cherry",
-        "Violet",
-        "Almond"
-      ],
-      "notableRegions": [
-        "Piedmont"
-      ],
-      "info": "A Piedmontese red grape known for juicy black fruit, low acidity, and soft tannins, making it ideal for early drinking. Despite the name meaning 'little sweet one,' the wines are typically dry and pleasantly bitter on the finish."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Italy",
@@ -4288,7 +2912,6 @@
       "Swartland"
     ],
     "grapeCountryOfOrigin": "South Africa",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Blackberry",
@@ -4306,33 +2929,6 @@
         "color": "#4B2E2B"
       }
     ],
-    "grapeCard": {
-      "id": "G050",
-      "name": "Pinotage",
-      "type": "red",
-      "style": "Full-Body Red",
-      "styleId": "full-body-red",
-      "countryOfOrigin": "South Africa",
-      "alternateNames": [],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 4,
-        "acid": 3,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Blackberry",
-        "Smoke",
-        "Dark Chocolate"
-      ],
-      "notableRegions": [
-        "Stellenbosch",
-        "Swartland"
-      ],
-      "info": "South Africa's signature crossing of Pinot Noir and Cinsault, producing deeply colored wines with dark berry fruit, smoke, and earthy spice. Styles range from fresh and fruit-driven to concentrated, oak-aged bottlings."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "South Africa",
@@ -4377,7 +2973,6 @@
       "Marche"
     ],
     "grapeCountryOfOrigin": "Italy",
-    "grapeRarityTier": "common",
     "tastingProfile": [
       {
         "note": "Black Plum",
@@ -4395,35 +2990,6 @@
         "color": "#5B3A29"
       }
     ],
-    "grapeCard": {
-      "id": "G051",
-      "name": "Montepulciano",
-      "type": "red",
-      "style": "Medium-Full Red",
-      "styleId": "medium-full-red",
-      "countryOfOrigin": "Italy",
-      "alternateNames": [
-        "Montepulciano d'Abruzzo (grape)"
-      ],
-      "rarityTier": "common",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 3,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Black Plum",
-        "Dried Herbs",
-        "Cocoa"
-      ],
-      "notableRegions": [
-        "Abruzzo",
-        "Marche"
-      ],
-      "info": "A widely planted central Italian red grape that gives plush, fruit-forward wines with moderate tannin and herbal depth. It is the backbone of Montepulciano d'Abruzzo and responds well to both youthful and oak-aged styles."
-    },
     "rarity": "COMMON",
     "details": {
       "origin": "Italy",
@@ -4470,7 +3036,6 @@
       "Veneto"
     ],
     "grapeCountryOfOrigin": "Italy",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Sour Cherry",
@@ -4488,35 +3053,6 @@
         "color": "#B45309"
       }
     ],
-    "grapeCard": {
-      "id": "G052",
-      "name": "Corvina",
-      "type": "red",
-      "style": "Medium-Body Red",
-      "styleId": "medium-body-red",
-      "countryOfOrigin": "Italy",
-      "alternateNames": [
-        "Corvina Veronese"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Sour Cherry",
-        "Dried Herbs",
-        "Cinnamon"
-      ],
-      "notableRegions": [
-        "Valpolicella",
-        "Veneto"
-      ],
-      "info": "The principal red grape of Valpolicella, prized for sour-cherry brightness and herbal lift. Its thick skins and naturally high acidity make it especially suited to appassimento styles like Amarone."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Italy",
@@ -4561,7 +3097,6 @@
       "Veneto"
     ],
     "grapeCountryOfOrigin": "Italy",
-    "grapeRarityTier": "rare",
     "tastingProfile": [
       {
         "note": "Red Cherry",
@@ -4579,33 +3114,6 @@
         "color": "#7C2D12"
       }
     ],
-    "grapeCard": {
-      "id": "G053",
-      "name": "Rondinella",
-      "type": "red",
-      "style": "Medium-Body Red",
-      "styleId": "medium-body-red",
-      "countryOfOrigin": "Italy",
-      "alternateNames": [],
-      "rarityTier": "rare",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Red Cherry",
-        "Violet",
-        "Dried Fig"
-      ],
-      "notableRegions": [
-        "Valpolicella",
-        "Veneto"
-      ],
-      "info": "A reliable blending grape from Veneto commonly paired with Corvina in Valpolicella and Amarone. It contributes color, floral aromatics, and steady acidity, especially in dried-grape wines."
-    },
     "rarity": "RARE",
     "details": {
       "origin": "Italy",
@@ -4652,7 +3160,6 @@
       "Germany"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Green Apple",
@@ -4670,37 +3177,6 @@
         "color": "#FBCFE8"
       }
     ],
-    "grapeCard": {
-      "id": "G054",
-      "name": "Pinot Blanc",
-      "type": "white",
-      "style": "Light-Body White",
-      "styleId": "light-body-white",
-      "countryOfOrigin": "France",
-      "alternateNames": [
-        "Pinot Bianco",
-        "Weissburgunder"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Green Apple",
-        "Almond",
-        "White Flower"
-      ],
-      "notableRegions": [
-        "Alsace",
-        "Alto Adige",
-        "Germany"
-      ],
-      "info": "A white mutation of Pinot Noir producing crisp wines with orchard fruit, almond, and gentle floral notes. It shines in Alsace, Alto Adige, and Germany, where styles range from fresh and linear to richer, lees-aged expressions."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "France",
@@ -4750,7 +3226,6 @@
       "Marlborough"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Red Apple",
@@ -4768,36 +3243,6 @@
         "color": "#D6B88D"
       }
     ],
-    "grapeCard": {
-      "id": "G055",
-      "name": "Pinot Meunier",
-      "type": "red",
-      "style": "Light-Body Red",
-      "styleId": "light-body-red",
-      "countryOfOrigin": "France",
-      "alternateNames": [
-        "Meunier",
-        "Schwarzriesling"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 2,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Red Apple",
-        "Raspberry",
-        "Brioche"
-      ],
-      "notableRegions": [
-        "Champagne",
-        "Marlborough"
-      ],
-      "info": "A key Champagne grape that brings ripe fruit, approachability, and early charm to sparkling blends. As a still wine it can show bright red berry flavors, supple texture, and moderate structure."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "France",
@@ -4845,7 +3290,6 @@
       "Languedoc"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Blackberry",
@@ -4863,35 +3307,6 @@
         "color": "#4B2E2B"
       }
     ],
-    "grapeCard": {
-      "id": "G056",
-      "name": "Petite Sirah",
-      "type": "red",
-      "style": "Full-Body Red",
-      "styleId": "full-body-red",
-      "countryOfOrigin": "France",
-      "alternateNames": [
-        "Durif"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 4,
-        "acid": 3,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Blackberry",
-        "Black Pepper",
-        "Dark Chocolate"
-      ],
-      "notableRegions": [
-        "California",
-        "Languedoc"
-      ],
-      "info": "A deeply colored, full-bodied red grape known for bold blackberry fruit, pepper, and firm tannins. Widely planted in California, it produces structured wines that can age well with oak integration."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "France",
@@ -4939,7 +3354,6 @@
       "Canary Islands"
     ],
     "grapeCountryOfOrigin": "Spain",
-    "grapeRarityTier": "rare",
     "tastingProfile": [
       {
         "note": "Almond",
@@ -4957,36 +3371,6 @@
         "color": "#94A3B8"
       }
     ],
-    "grapeCard": {
-      "id": "G057",
-      "name": "Palomino",
-      "type": "white",
-      "style": "Light-Body White",
-      "styleId": "light-body-white",
-      "countryOfOrigin": "Spain",
-      "alternateNames": [
-        "Palomino Fino",
-        "Listán"
-      ],
-      "rarityTier": "rare",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 3,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 2
-      },
-      "tastingProfile": [
-        "Almond",
-        "Green Apple",
-        "Sea Salt"
-      ],
-      "notableRegions": [
-        "Jerez",
-        "Canary Islands"
-      ],
-      "info": "The principal white grape of Jerez, valued for its neutral profile and ability to transmit the effects of biological and oxidative aging in Sherry. In warm climates it yields dry wines with subtle orchard fruit, almond, and saline notes."
-    },
     "rarity": "RARE",
     "details": {
       "origin": "Spain",
@@ -5032,7 +3416,6 @@
       "Dão"
     ],
     "grapeCountryOfOrigin": "Portugal",
-    "grapeRarityTier": "rare",
     "tastingProfile": [
       {
         "note": "Black Cherry",
@@ -5050,33 +3433,6 @@
         "color": "#57534E"
       }
     ],
-    "grapeCard": {
-      "id": "G058",
-      "name": "Baga",
-      "type": "red",
-      "style": "Full-Body Red",
-      "styleId": "full-body-red",
-      "countryOfOrigin": "Portugal",
-      "alternateNames": [],
-      "rarityTier": "rare",
-      "characteristics": {
-        "tannin": 4,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Black Cherry",
-        "Tobacco",
-        "Earth"
-      ],
-      "notableRegions": [
-        "Bairrada",
-        "Dão"
-      ],
-      "info": "Portugal's structured red grape from Bairrada, producing high-acid, high-tannin wines with dark berries, tobacco, and earthy complexity. It can be rustic in youth but rewards aging and careful extraction."
-    },
     "rarity": "RARE",
     "details": {
       "origin": "Portugal",
@@ -5121,7 +3477,6 @@
       "Alto Adige"
     ],
     "grapeCountryOfOrigin": "Italy",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Blackberry",
@@ -5139,35 +3494,6 @@
         "color": "#4D7C0F"
       }
     ],
-    "grapeCard": {
-      "id": "G059",
-      "name": "Teroldego",
-      "type": "red",
-      "style": "Medium-Full Red",
-      "styleId": "medium-full-red",
-      "countryOfOrigin": "Italy",
-      "alternateNames": [
-        "Teroldego Rotaliano"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 4,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Blackberry",
-        "Violet",
-        "Alpine Herbs"
-      ],
-      "notableRegions": [
-        "Trentino",
-        "Alto Adige"
-      ],
-      "info": "An alpine red from Trentino known for vivid color, dark berry fruit, and firm but polished tannins. It combines mountain freshness with savory spice and often performs well in both stainless and oak-aged styles."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Italy",
@@ -5212,7 +3538,6 @@
       "Trentino"
     ],
     "grapeCountryOfOrigin": "Italy",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Black Plum",
@@ -5230,33 +3555,6 @@
         "color": "#6B7280"
       }
     ],
-    "grapeCard": {
-      "id": "G060",
-      "name": "Lagrein",
-      "type": "red",
-      "style": "Full-Body Red",
-      "styleId": "full-body-red",
-      "countryOfOrigin": "Italy",
-      "alternateNames": [],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 4,
-        "acid": 3,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Black Plum",
-        "Cocoa",
-        "Smoke"
-      ],
-      "notableRegions": [
-        "Alto Adige",
-        "Trentino"
-      ],
-      "info": "A deeply pigmented grape from Alto Adige producing structured wines with blackberry, cocoa, and smoky spice. It can be intensely tannic when young, then evolves toward velvety, savory complexity."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Italy",
@@ -5301,7 +3599,6 @@
       "Eastern Europe"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Lemon",
@@ -5319,35 +3616,6 @@
         "color": "#CBD5E1"
       }
     ],
-    "grapeCard": {
-      "id": "G061",
-      "name": "Aligoté",
-      "type": "white",
-      "style": "Light-Body White",
-      "styleId": "light-body-white",
-      "countryOfOrigin": "France",
-      "alternateNames": [
-        "Bourgogne Aligoté"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 2
-      },
-      "tastingProfile": [
-        "Lemon",
-        "Green Apple",
-        "Chalk"
-      ],
-      "notableRegions": [
-        "Burgundy",
-        "Eastern Europe"
-      ],
-      "info": "Burgundy's bright, high-acid white grape offering lemon, green apple, and chalky mineral notes. Traditionally used in Kir and increasingly bottled as serious single-varietal wines from cooler limestone sites."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "France",
@@ -5394,7 +3662,6 @@
       "Muscadet Sèvre-et-Maine"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Lemon Zest",
@@ -5412,35 +3679,6 @@
         "color": "#D6B88D"
       }
     ],
-    "grapeCard": {
-      "id": "G062",
-      "name": "Melon de Bourgogne",
-      "type": "white",
-      "style": "Light-Body White",
-      "styleId": "light-body-white",
-      "countryOfOrigin": "France",
-      "alternateNames": [
-        "Melon"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 2
-      },
-      "tastingProfile": [
-        "Lemon Zest",
-        "Sea Spray",
-        "Brioche"
-      ],
-      "notableRegions": [
-        "Loire Valley",
-        "Muscadet Sèvre-et-Maine"
-      ],
-      "info": "The classic grape of Muscadet, delivering lean, saline whites with citrus zest and subtle yeasty notes when aged on lees. Its neutral profile and brisk acidity make it especially seafood-friendly."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "France",
@@ -5485,7 +3723,6 @@
       "Amyndeon"
     ],
     "grapeCountryOfOrigin": "Greece",
-    "grapeRarityTier": "rare",
     "tastingProfile": [
       {
         "note": "Sour Cherry",
@@ -5503,33 +3740,6 @@
         "color": "#3F6212"
       }
     ],
-    "grapeCard": {
-      "id": "G063",
-      "name": "Xinomavro",
-      "type": "red",
-      "style": "Full-Body Red",
-      "styleId": "full-body-red",
-      "countryOfOrigin": "Greece",
-      "alternateNames": [],
-      "rarityTier": "rare",
-      "characteristics": {
-        "tannin": 4,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Sour Cherry",
-        "Tomato Leaf",
-        "Olive"
-      ],
-      "notableRegions": [
-        "Naoussa",
-        "Amyndeon"
-      ],
-      "info": "Greece's age-worthy northern red known for high acidity, firm tannins, and aromas of sour cherry, olive, and sun-dried tomato. Often compared stylistically to Nebbiolo for its structure and savory complexity."
-    },
     "rarity": "RARE",
     "details": {
       "origin": "Greece",
@@ -5574,7 +3784,6 @@
       "Peloponnese"
     ],
     "grapeCountryOfOrigin": "Greece",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Red Cherry",
@@ -5592,35 +3801,6 @@
         "color": "#7E22CE"
       }
     ],
-    "grapeCard": {
-      "id": "G064",
-      "name": "Agiorgitiko",
-      "type": "red",
-      "style": "Medium-Body Red",
-      "styleId": "medium-body-red",
-      "countryOfOrigin": "Greece",
-      "alternateNames": [
-        "St. George"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 3,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Red Cherry",
-        "Clove",
-        "Plum"
-      ],
-      "notableRegions": [
-        "Nemea",
-        "Peloponnese"
-      ],
-      "info": "A versatile Greek red from Nemea producing plush wines with red berry fruit, warm spice, and supple tannins. Depending on altitude and élevage, styles range from juicy and youthful to rich and oak-influenced."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Greece",
@@ -5667,7 +3847,6 @@
       "Friuli-Venezia Giulia"
     ],
     "grapeCountryOfOrigin": "Italy",
-    "grapeRarityTier": "common",
     "tastingProfile": [
       {
         "note": "Pear",
@@ -5685,35 +3864,6 @@
         "color": "#FBCFE8"
       }
     ],
-    "grapeCard": {
-      "id": "G065",
-      "name": "Glera",
-      "type": "white",
-      "style": "Light-Body White",
-      "styleId": "light-body-white",
-      "countryOfOrigin": "Italy",
-      "alternateNames": [
-        "Prosecco"
-      ],
-      "rarityTier": "common",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 2
-      },
-      "tastingProfile": [
-        "Pear",
-        "White Peach",
-        "White Flower"
-      ],
-      "notableRegions": [
-        "Veneto",
-        "Friuli-Venezia Giulia"
-      ],
-      "info": "The principal grape of Prosecco, prized for fresh pear, apple, and white blossom aromas with lively but gentle acidity. It is typically crafted in tank-method sparkling wines that emphasize bright fruit and approachability."
-    },
     "rarity": "COMMON",
     "details": {
       "origin": "Italy",
@@ -5762,7 +3912,6 @@
       "Sardinia"
     ],
     "grapeCountryOfOrigin": "Spain",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Black Cherry",
@@ -5780,37 +3929,6 @@
         "color": "#57534E"
       }
     ],
-    "grapeCard": {
-      "id": "G066",
-      "name": "Carignan",
-      "type": "red",
-      "style": "Medium-Full Red",
-      "styleId": "medium-full-red",
-      "countryOfOrigin": "Spain",
-      "alternateNames": [
-        "Cariñena",
-        "Carignano"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 4,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Black Cherry",
-        "Dried Herbs",
-        "Earth"
-      ],
-      "notableRegions": [
-        "Languedoc",
-        "Priorat",
-        "Sardinia"
-      ],
-      "info": "A Mediterranean red grape known for deep color, savory dark fruit, and naturally high acidity. Old-vine plantings in southern France and Spain can produce concentrated, mineral wines with notable structure."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Spain",
@@ -5860,7 +3978,6 @@
       "South Africa"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Strawberry",
@@ -5878,36 +3995,6 @@
         "color": "#E5E7EB"
       }
     ],
-    "grapeCard": {
-      "id": "G067",
-      "name": "Cinsault",
-      "type": "red",
-      "style": "Light-Body Red",
-      "styleId": "light-body-red",
-      "countryOfOrigin": "France",
-      "alternateNames": [
-        "Cinsaut"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 2,
-        "acid": 3,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Strawberry",
-        "Rose Petal",
-        "White Pepper"
-      ],
-      "notableRegions": [
-        "Languedoc",
-        "Provence",
-        "South Africa"
-      ],
-      "info": "A soft, aromatic red grape prized for red-fruit perfume and supple tannins. Often used in Rhône and southern French blends, it is also central to many pale, delicate rosé wines."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "France",
@@ -5953,7 +4040,6 @@
       "Benevento"
     ],
     "grapeCountryOfOrigin": "Italy",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Lemon",
@@ -5971,33 +4057,6 @@
         "color": "#FBCFE8"
       }
     ],
-    "grapeCard": {
-      "id": "G068",
-      "name": "Falanghina",
-      "type": "white",
-      "style": "Light-Body White",
-      "styleId": "light-body-white",
-      "countryOfOrigin": "Italy",
-      "alternateNames": [],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Lemon",
-        "Green Apple",
-        "White Flower"
-      ],
-      "notableRegions": [
-        "Campania",
-        "Benevento"
-      ],
-      "info": "A southern Italian white grape delivering bright citrus, apple, and floral aromas with refreshing acidity. It has become a flagship variety in Campania for both crisp young and textured styles."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Italy",
@@ -6043,7 +4102,6 @@
       "Matelica"
     ],
     "grapeCountryOfOrigin": "Italy",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Lemon Zest",
@@ -6061,36 +4119,6 @@
         "color": "#94A3B8"
       }
     ],
-    "grapeCard": {
-      "id": "G069",
-      "name": "Verdicchio",
-      "type": "white",
-      "style": "Medium-Body White",
-      "styleId": "medium-body-white",
-      "countryOfOrigin": "Italy",
-      "alternateNames": [
-        "Trebbiano di Soave"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Lemon Zest",
-        "Almond",
-        "Sea Breeze"
-      ],
-      "notableRegions": [
-        "Marche",
-        "Jesi",
-        "Matelica"
-      ],
-      "info": "A classic central Italian white grape known for citrus zest, bitter-almond finish, and subtle saline minerality. It balances freshness and texture, with top bottlings capable of significant aging."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Italy",
@@ -6139,7 +4167,6 @@
       "Austria"
     ],
     "grapeCountryOfOrigin": "Germany",
-    "grapeRarityTier": "common",
     "tastingProfile": [
       {
         "note": "Green Apple",
@@ -6157,36 +4184,6 @@
         "color": "#FBCFE8"
       }
     ],
-    "grapeCard": {
-      "id": "G070",
-      "name": "Müller-Thurgau",
-      "type": "white",
-      "style": "Light-Body White",
-      "styleId": "light-body-white",
-      "countryOfOrigin": "Germany",
-      "alternateNames": [
-        "Rivaner"
-      ],
-      "rarityTier": "common",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 3,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 2
-      },
-      "tastingProfile": [
-        "Green Apple",
-        "Nutmeg",
-        "White Blossom"
-      ],
-      "notableRegions": [
-        "Germany",
-        "Alto Adige",
-        "Austria"
-      ],
-      "info": "A crossing of Riesling and Madeleine Royale that produces aromatic, easy-drinking whites with gentle acidity. Styles often show orchard fruit, fresh herbs, and soft floral notes."
-    },
     "rarity": "COMMON",
     "details": {
       "origin": "Germany",
@@ -6235,7 +4232,6 @@
       "Alsace"
     ],
     "grapeCountryOfOrigin": "Germany",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Pear",
@@ -6253,36 +4249,6 @@
         "color": "#94A3B8"
       }
     ],
-    "grapeCard": {
-      "id": "G071",
-      "name": "Silvaner",
-      "type": "white",
-      "style": "Light-Body White",
-      "styleId": "light-body-white",
-      "countryOfOrigin": "Germany",
-      "alternateNames": [
-        "Sylvaner"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 3,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Pear",
-        "Fresh Herbs",
-        "Stone"
-      ],
-      "notableRegions": [
-        "Franconia",
-        "Rheinhessen",
-        "Alsace"
-      ],
-      "info": "A traditional Central European white grape offering understated aromatics, savory texture, and marked site expression. In Franconia and Alsace it can produce dry wines with herbal, orchard, and stony nuances."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Germany",
@@ -6328,7 +4294,6 @@
       "Bierzo"
     ],
     "grapeCountryOfOrigin": "Spain",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Grapefruit",
@@ -6346,33 +4311,6 @@
         "color": "#94A3B8"
       }
     ],
-    "grapeCard": {
-      "id": "G072",
-      "name": "Godello",
-      "type": "white",
-      "style": "Medium-Body White",
-      "styleId": "medium-body-white",
-      "countryOfOrigin": "Spain",
-      "alternateNames": [],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Grapefruit",
-        "Pear",
-        "Mineral"
-      ],
-      "notableRegions": [
-        "Valdeorras",
-        "Bierzo"
-      ],
-      "info": "A rising Spanish white grape from Galicia and Bierzo with citrus, orchard fruit, and mineral depth. It can be vinified in fresh steel styles or richer barrel-aged expressions with notable complexity."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Spain",
@@ -6416,7 +4354,6 @@
       "Canary Islands"
     ],
     "grapeCountryOfOrigin": "Portugal",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Pineapple",
@@ -6434,34 +4371,6 @@
         "color": "#B45309"
       }
     ],
-    "grapeCard": {
-      "id": "G073",
-      "name": "Verdelho",
-      "type": "white",
-      "style": "Light-Body White",
-      "styleId": "light-body-white",
-      "countryOfOrigin": "Portugal",
-      "alternateNames": [],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Pineapple",
-        "Lime",
-        "Ginger"
-      ],
-      "notableRegions": [
-        "Madeira",
-        "Hunter Valley",
-        "Canary Islands"
-      ],
-      "info": "A versatile white grape associated with Madeira and Australian coastal regions, showing tropical citrus, herbal hints, and bright freshness. It can produce both dry table wines and fortified expressions."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Portugal",
@@ -6508,7 +4417,6 @@
       "Tejo"
     ],
     "grapeCountryOfOrigin": "Portugal",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Lemon",
@@ -6526,36 +4434,6 @@
         "color": "#94A3B8"
       }
     ],
-    "grapeCard": {
-      "id": "G074",
-      "name": "Arinto",
-      "type": "white",
-      "style": "Light-Body White",
-      "styleId": "light-body-white",
-      "countryOfOrigin": "Portugal",
-      "alternateNames": [
-        "Pedernã"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Lemon",
-        "Green Apple",
-        "Mineral"
-      ],
-      "notableRegions": [
-        "Vinho Verde",
-        "Bucelas",
-        "Tejo"
-      ],
-      "info": "A Portuguese white grape prized for naturally high acidity and citrus-mineral precision, even in warm climates. It forms the backbone of many fresh Atlantic whites and ages gracefully with bottle time."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Portugal",
@@ -6603,7 +4481,6 @@
       "Niederösterreich"
     ],
     "grapeCountryOfOrigin": "Austria",
-    "grapeRarityTier": "common",
     "tastingProfile": [
       {
         "note": "Sour Cherry",
@@ -6621,35 +4498,6 @@
         "color": "#A78BFA"
       }
     ],
-    "grapeCard": {
-      "id": "G075",
-      "name": "Zweigelt",
-      "type": "red",
-      "style": "Medium-Body Red",
-      "styleId": "medium-body-red",
-      "countryOfOrigin": "Austria",
-      "alternateNames": [
-        "Rotburger"
-      ],
-      "rarityTier": "common",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Sour Cherry",
-        "Black Pepper",
-        "Violet"
-      ],
-      "notableRegions": [
-        "Burgenland",
-        "Niederösterreich"
-      ],
-      "info": "Austria's most planted red grape, combining juicy cherry fruit with peppery spice and bright acidity. It can range from fresh, everyday bottlings to more structured oak-aged versions."
-    },
     "rarity": "COMMON",
     "details": {
       "origin": "Austria",
@@ -6698,7 +4546,6 @@
       "Hungary"
     ],
     "grapeCountryOfOrigin": "Austria",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Blackberry",
@@ -6716,37 +4563,6 @@
         "color": "#64748B"
       }
     ],
-    "grapeCard": {
-      "id": "G076",
-      "name": "Blaufränkisch",
-      "type": "red",
-      "style": "Medium-Full Red",
-      "styleId": "medium-full-red",
-      "countryOfOrigin": "Austria",
-      "alternateNames": [
-        "Lemberger",
-        "Kékfrankos"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 4,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Blackberry",
-        "White Pepper",
-        "Mineral"
-      ],
-      "notableRegions": [
-        "Burgenland",
-        "Mittelburgenland",
-        "Hungary"
-      ],
-      "info": "A central European red grape known for vivid acidity, dark berry fruit, and spicy, mineral edge. It produces energetic wines that can show excellent aging potential in cooler sites."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Austria",
@@ -6793,7 +4609,6 @@
       "Sicily"
     ],
     "grapeCountryOfOrigin": "Italy",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Red Cherry",
@@ -6811,33 +4626,6 @@
         "color": "#6B7280"
       }
     ],
-    "grapeCard": {
-      "id": "G077",
-      "name": "Nerello Mascalese",
-      "type": "red",
-      "style": "Medium-Body Red",
-      "styleId": "medium-body-red",
-      "countryOfOrigin": "Italy",
-      "alternateNames": [],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 4,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Red Cherry",
-        "Dried Herbs",
-        "Volcanic Ash"
-      ],
-      "notableRegions": [
-        "Etna",
-        "Sicily"
-      ],
-      "info": "Sicily's Etna flagship red, delivering pale color but firm structure with red fruit, herbs, and volcanic minerality. Often compared to Pinot Noir or Nebbiolo for its aromatic lift and tension."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Italy",
@@ -6883,7 +4671,6 @@
       "Manduria"
     ],
     "grapeCountryOfOrigin": "Italy",
-    "grapeRarityTier": "common",
     "tastingProfile": [
       {
         "note": "Blackberry Jam",
@@ -6901,36 +4688,6 @@
         "color": "#1F2937"
       }
     ],
-    "grapeCard": {
-      "id": "G078",
-      "name": "Primitivo",
-      "type": "red",
-      "style": "Full-Body Red",
-      "styleId": "full-body-red",
-      "countryOfOrigin": "Italy",
-      "alternateNames": [
-        "Zinfandel",
-        "Tribidrag"
-      ],
-      "rarityTier": "common",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 3,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 5
-      },
-      "tastingProfile": [
-        "Blackberry Jam",
-        "Cinnamon",
-        "Licorice"
-      ],
-      "notableRegions": [
-        "Puglia",
-        "Manduria"
-      ],
-      "info": "A warm-climate red grape known for ripe black fruit, jammy richness, and generous alcohol. In Puglia it produces plush, spicy wines and shares a genetic identity with Zinfandel."
-    },
     "rarity": "COMMON",
     "details": {
       "origin": "Italy",
@@ -6979,7 +4736,6 @@
       "Collio"
     ],
     "grapeCountryOfOrigin": "Italy",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Pear",
@@ -6997,36 +4753,6 @@
         "color": "#4D7C0F"
       }
     ],
-    "grapeCard": {
-      "id": "G079",
-      "name": "Friulano",
-      "type": "white",
-      "style": "Light-Body White",
-      "styleId": "light-body-white",
-      "countryOfOrigin": "Italy",
-      "alternateNames": [
-        "Sauvignonasse",
-        "Tai"
-      ],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 3,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Pear",
-        "Almond",
-        "Herbs"
-      ],
-      "notableRegions": [
-        "Friuli-Venezia Giulia",
-        "Collio"
-      ],
-      "info": "A northeastern Italian white grape with citrus, almond, and subtle herbal notes, often textured and dry. It is a benchmark variety of Friuli with notable food-pairing versatility."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Italy",
@@ -7075,7 +4801,6 @@
       "Marcillac"
     ],
     "grapeCountryOfOrigin": "France",
-    "grapeRarityTier": "rare",
     "tastingProfile": [
       {
         "note": "Blackcurrant",
@@ -7093,36 +4818,6 @@
         "color": "#A78BFA"
       }
     ],
-    "grapeCard": {
-      "id": "G080",
-      "name": "Fer Servadou",
-      "type": "red",
-      "style": "Medium-Body Red",
-      "styleId": "medium-body-red",
-      "countryOfOrigin": "France",
-      "alternateNames": [
-        "Braucol",
-        "Mansois"
-      ],
-      "rarityTier": "rare",
-      "characteristics": {
-        "tannin": 4,
-        "acid": 4,
-        "colorIntensity": 4,
-        "aromatics": 5,
-        "body": 3
-      },
-      "tastingProfile": [
-        "Blackcurrant",
-        "Green Peppercorn",
-        "Violet"
-      ],
-      "notableRegions": [
-        "Gaillac",
-        "Marcillac"
-      ],
-      "info": "A southwest French red grape valued for brisk acidity, black fruit, and peppery herbal character. It adds structure and freshness in blends and can produce savory, medium-bodied varietal wines."
-    },
     "rarity": "RARE",
     "details": {
       "origin": "France",
@@ -7168,7 +4863,6 @@
       "Peloponnese"
     ],
     "grapeCountryOfOrigin": "Greece",
-    "grapeRarityTier": "uncommon",
     "tastingProfile": [
       {
         "note": "Rose Petal",
@@ -7186,33 +4880,6 @@
         "color": "#B45309"
       }
     ],
-    "grapeCard": {
-      "id": "G081",
-      "name": "Moschofilero",
-      "type": "white",
-      "style": "Aromatic White",
-      "styleId": "aromatic-white",
-      "countryOfOrigin": "Greece",
-      "alternateNames": [],
-      "rarityTier": "uncommon",
-      "characteristics": {
-        "tannin": 3,
-        "acid": 4,
-        "colorIntensity": 2,
-        "aromatics": 5,
-        "body": 2
-      },
-      "tastingProfile": [
-        "Rose Petal",
-        "Lemon",
-        "Ginger"
-      ],
-      "notableRegions": [
-        "Mantinia",
-        "Peloponnese"
-      ],
-      "info": "An aromatic Greek pink-skinned grape used for fragrant white wines with rose, citrus, and spice notes. It is especially associated with high-altitude Mantinia styles marked by freshness and perfume."
-    },
     "rarity": "UNCOMMON",
     "details": {
       "origin": "Greece",
