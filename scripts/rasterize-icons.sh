@@ -25,7 +25,7 @@ MANIFEST="${1:-$REPO_ROOT/Sources/VinodexCore/Resources/icons.json}"
 OUTDIR="${2:-$REPO_ROOT/Sources/VinodexUI/Resources/Icons}"
 BASE=64   # @1x edge in points; @2x and @3x are multiples
 
-command -v rsvg-convert >/dev/null || { echo "rsvg-convert not found (apt install librsvg2-bin)"; exit 1; }
+command -v rsvg-convert >/dev/null || { echo "rsvg-convert not found (Linux: apt install librsvg2-bin  •  macOS: brew install librsvg)"; exit 1; }
 [ -f "$MANIFEST" ] || { echo "manifest not found: $MANIFEST"; exit 1; }
 
 mkdir -p "$OUTDIR"
@@ -46,7 +46,9 @@ while IFS= read -r icon; do
   name="${icon#*:}"
   slug="${prefix}--${name}"
 
-  tmp=$(mktemp --suffix=.svg)
+  # Portable mktemp — GNU-only `--suffix` breaks on macOS/BSD (audit M43). The
+  # extension is cosmetic: rsvg-convert reads by content, not filename.
+  tmp=$(mktemp "${TMPDIR:-/tmp}/vinodex-icon.XXXXXX")
   # `color=white` resolves `currentColor` so the glyph rasterises as a tintable mask.
   url="https://api.iconify.design/${prefix}/${name}.svg?color=white"
 
@@ -65,24 +67,57 @@ while IFS= read -r icon; do
     continue
   fi
 
+  # Render every scale to a temp name first and only move them into place once
+  # all three succeed (audit L23). A failure mid-way otherwise left a partial
+  # scale set (e.g. @1x present, @3x missing) that could be committed unnoticed.
   ok=1
+  moves=()
   for scale in 1 2 3; do
     px=$((BASE * scale))
     suffix=""
     [ "$scale" -gt 1 ] && suffix="@${scale}x"
-    if ! rsvg-convert -w "$px" -h "$px" -o "$OUTDIR/${slug}${suffix}.png" "$tmp" 2>/dev/null; then
+    out="$OUTDIR/${slug}${suffix}.png"
+    tmpout="${out}.tmp.$$"
+    if rsvg-convert -w "$px" -h "$px" -o "$tmpout" "$tmp" 2>/dev/null; then
+      moves+=("$tmpout|$out")
+    else
       ok=0
+      break
     fi
   done
   rm -f "$tmp"
 
   if [ "$ok" -eq 1 ]; then
+    for pair in "${moves[@]}"; do mv -f "${pair%%|*}" "${pair##*|}"; done
     total=$((total + 1))
   else
+    for pair in "${moves[@]}"; do rm -f "${pair%%|*}"; done
     echo "  FAIL rasterize $icon"
     failed=$((failed + 1))
   fi
 done <<< "$ICONS"
+
+# Prune orphans: any Icons/*.png whose slug is no longer in the manifest's
+# `unique` list. Without this the rasteriser only ever adds, so a renamed or
+# removed icon leaves dead PNGs shipping forever (audit L17). Flags live in a
+# sibling dir and are not touched here.
+UNIQUE_SLUGS=$(python3 -c "
+import json,sys
+with open(sys.argv[1]) as fh:
+    print('\n'.join(i.replace(':','--') for i in json.load(fh)['unique']))
+" "$MANIFEST")
+pruned=0
+shopt -s nullglob
+for png in "$OUTDIR"/*.png; do
+  base=$(basename "$png" .png)
+  slug="${base%@*x}"   # strip @2x / @3x
+  if ! grep -qxF -- "$slug" <<< "$UNIQUE_SLUGS"; then
+    rm -f "$png"
+    pruned=$((pruned + 1))
+  fi
+done
+shopt -u nullglob
+[ "$pruned" -gt 0 ] && echo "pruned $pruned orphan PNGs from $OUTDIR"
 
 echo "rasterized $total icons -> $OUTDIR"
 echo "failed: $failed"
@@ -117,8 +152,13 @@ with open(sys.argv[1]) as fh:
         print(f'{country}\t{path}')
 " "$MANIFEST")
   echo "copied $copied flags -> $FLAGDIR"
+elif [ "${SKIP_FLAGS:-0}" = "1" ]; then
+  echo "  pixelflags dir not found at $PIXELFLAGS — skipping flags (SKIP_FLAGS=1)"
 else
-  echo "  pixelflags dir not found at $PIXELFLAGS — skipping flags"
+  # A silent skip that still exits 0 could ship a build with no flags (audit
+  # L24). Fail unless the skip is explicit.
+  echo "  pixelflags dir not found at $PIXELFLAGS — set SKIP_FLAGS=1 to skip intentionally"
+  failed=$((failed + 1))
 fi
 
 [ "$failed" -eq 0 ] || exit 1
