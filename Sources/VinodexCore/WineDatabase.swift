@@ -96,12 +96,10 @@ public struct Palette: Codable, Sendable {
     public let flavorClassChips: [String: Chip]
     public let flavorSubclassChips: [String: Chip]
     public let namedChips: [String: Chip]
-    public let appellationChips: [Chip]
     public let styleTones: [String: StyleTone]
     public let climates: [String: ClimateMeta]
     public let regionClassificationIconColors: [String: String]
     public let flavorSubclassIconColors: [String: String]
-    public let continentColors: [String: String]
     public let continentCountries: [String: [String]]
 
     public func chip(country: String?) -> Chip? {
@@ -391,9 +389,9 @@ public final class WineDatabase: Sendable {
     private static let emptyPalette = Palette(
         countryChips: [:], classificationChips: [:], wineTypeChips: [:], rarityChips: [:],
         colorTypeChips: [:], styleClassChips: [:], flavorClassChips: [:], flavorSubclassChips: [:],
-        namedChips: [:], appellationChips: [], styleTones: [:], climates: [:],
+        namedChips: [:], styleTones: [:], climates: [:],
         regionClassificationIconColors: [:], flavorSubclassIconColors: [:],
-        continentColors: [:], continentCountries: [:]
+        continentCountries: [:]
     )
 
     // MARK: - Queries

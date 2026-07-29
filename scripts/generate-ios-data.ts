@@ -708,15 +708,13 @@ function assertCoverage(entries: readonly WineEntry[], palette: ReturnType<typeo
 // ---------------------------------------------------------------------------
 
 // AUDIT M4 / L18 — fields the Swift app never decodes, stripped from the shipped
-// JSON to shrink the launch-time parse. Verified decode-safe: `grapeCard` and
-// `grapeRarityTier` are unknown keys to every Swift Codable type (no property,
-// no CodingKey), and JSONDecoder ignores unknown keys; `flagGradients` and
-// `flavorClassMeta` likewise have no Swift property. HELD for a coordinated Swift
-// change (they need the properties deleted, so they're done under CI): entries
-// `icon`/`iconCallback`/`tileCallback` (optional in EntryCommon) and palette
-// `appellationChips`/`continentColors` (still decoded, non-optional).
-const STRIP_ENTRY_FIELDS = ['grapeCard', 'grapeRarityTier'];
-const STRIP_PALETTE_FIELDS = ['flagGradients', 'flavorClassMeta'];
+// JSON to shrink the launch-time parse. The matching Swift properties were
+// deleted alongside this (EntryCommon.icon/iconCallback/tileCallback and
+// Palette.appellationChips/continentColors), so these keys are now unknown to
+// every Codable type; grapeCard/grapeRarityTier/flagGradients/flavorClassMeta
+// never had a Swift property at all.
+const STRIP_ENTRY_FIELDS = ['grapeCard', 'grapeRarityTier', 'icon', 'iconCallback', 'tileCallback'];
+const STRIP_PALETTE_FIELDS = ['flagGradients', 'flavorClassMeta', 'appellationChips', 'continentColors'];
 
 // AUDIT L19 — ship minified JSON (the app decodes it identically) to drop ~⅓ of
 // the on-disk/bundle size that 2-space pretty-printing added. Pass --pretty (or
@@ -746,9 +744,9 @@ function omitKeys<T>(value: T, keys: string[]): T {
 const ENTRY_CATEGORIES = new Set(['GRAPES', 'REGIONS', 'STYLES', 'FLAVORS', 'CONTINENTS']);
 const PALETTE_REQUIRED = [
   'countryChips', 'classificationChips', 'wineTypeChips', 'rarityChips', 'colorTypeChips',
-  'styleClassChips', 'flavorClassChips', 'flavorSubclassChips', 'namedChips', 'appellationChips',
+  'styleClassChips', 'flavorClassChips', 'flavorSubclassChips', 'namedChips',
   'styleTones', 'climates', 'regionClassificationIconColors', 'flavorSubclassIconColors',
-  'continentColors', 'continentCountries',
+  'continentCountries',
 ];
 const ICONS_REQUIRED = [
   'byEntry', 'unique', 'fallback', 'bodyIcons', 'climateIcons', 'colorIcons', 'styleClassIcons',
