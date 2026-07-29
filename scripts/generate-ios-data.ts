@@ -14,10 +14,11 @@
  * All five are committed so a Swift build never needs Node. Scaling the starter
  * to the full database is a matter of setting STARTER_SELECTION to `undefined`.
  *
- * Everything this reads lives under `shared/`, which is a sibling of `scripts/`
- * in both the monorepo and the published `vinodex-swift` mirror — so the import
- * specifiers below are identical in both and the script runs in either repo.
- * Only the output path differs; see OUT_DIR.
+ * Everything this reads lives under `shared/`, a sibling of `scripts/` in this
+ * repo. That used to be true of two repos at once — this script was published
+ * into a mirror whose Swift package sat at the root rather than under `ios/`,
+ * so it probed for `ios/Package.swift` to decide where to write. This repo is
+ * now the only home, so the paths below are direct.
  */
 import {
   resolveFlavorIcon,
@@ -66,19 +67,12 @@ import {
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, '..');
 
-// The Swift package sits under `ios/` in the monorepo but at the root of the
-// published `vinodex-swift` mirror. Probe rather than hard-code, so one script
-// serves both. SwiftPM resolves target resources relative to the target's
-// source directory, hence the Sources/... suffix either way.
-const SWIFT_ROOT = existsSync(resolve(REPO_ROOT, 'ios', 'Package.swift'))
-  ? resolve(REPO_ROOT, 'ios')
-  : REPO_ROOT;
-const OUT_DIR = resolve(SWIFT_ROOT, 'Sources', 'VinodexCore', 'Resources');
+// The Swift package is this repo. SwiftPM resolves target resources relative to
+// the target's source directory, hence the Sources/... suffix.
+const OUT_DIR = resolve(REPO_ROOT, 'Sources', 'VinodexCore', 'Resources');
 
-if (!existsSync(resolve(SWIFT_ROOT, 'Package.swift'))) {
-  throw new Error(
-    `no Package.swift under ${SWIFT_ROOT} — run this from the monorepo root or from a vinodex-swift checkout`,
-  );
+if (!existsSync(resolve(REPO_ROOT, 'Package.swift'))) {
+  throw new Error(`no Package.swift at ${REPO_ROOT} — run this from the repo root`);
 }
 
 // ---------------------------------------------------------------------------

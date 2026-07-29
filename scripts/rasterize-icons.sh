@@ -18,16 +18,11 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$HERE/.." && pwd)"
 
-# The Swift package sits under ios/ in the monorepo but at the root of the
-# published vinodex-swift mirror. Probe, so one script serves both.
-if [ -f "$REPO_ROOT/ios/Package.swift" ]; then
-  SWIFT_ROOT="$REPO_ROOT/ios"
-else
-  SWIFT_ROOT="$REPO_ROOT"
-fi
-
-MANIFEST="${1:-$SWIFT_ROOT/Sources/VinodexCore/Resources/icons.json}"
-OUTDIR="${2:-$SWIFT_ROOT/Sources/VinodexUI/Resources/Icons}"
+# The Swift package is this repo. This used to probe for `ios/Package.swift`,
+# because the same script was published into a mirror whose package sat at the
+# root while the monorepo kept it under `ios/`; there is one layout now.
+MANIFEST="${1:-$REPO_ROOT/Sources/VinodexCore/Resources/icons.json}"
+OUTDIR="${2:-$REPO_ROOT/Sources/VinodexUI/Resources/Icons}"
 BASE=64   # @1x edge in points; @2x and @3x are multiples
 
 command -v rsvg-convert >/dev/null || { echo "rsvg-convert not found (apt install librsvg2-bin)"; exit 1; }
@@ -98,7 +93,7 @@ echo "failed: $failed"
 # ---------------------------------------------------------------------------
 
 FLAGDIR="$(dirname "$OUTDIR")/Flags"
-# pixelflags/ is a repo-root sibling of scripts/ in both repos.
+# pixelflags/ is a repo-root sibling of scripts/.
 PIXELFLAGS="${PIXELFLAGS:-$REPO_ROOT/pixelflags}"
 mkdir -p "$FLAGDIR"
 

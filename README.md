@@ -1,15 +1,20 @@
 # Vinodex — iOS
 
-A SwiftUI port of [Vinodex](https://github.com/blaikooz/vinodex), a retro-handheld
-wine field guide covering grape varieties, regions, styles and tasting profiles.
+A retro-handheld wine field guide covering grape varieties, regions, styles and
+tasting profiles, built in SwiftUI.
 
-> **This repo is generated.** It is assembled and published from the
-> [`blaikooz/vinodex`](https://github.com/blaikooz/vinodex) monorepo by
-> `scripts/publish-swift.mjs`. Commits made directly here will be overwritten on
-> the next publish — send changes to the monorepo instead.
+**This repo is the app.** It owns its source, its data and the tooling that
+generates that data. Commit here, open pull requests here. Nothing outside this
+repo is required to build, test or regenerate it, and nothing outside it can
+write to it.
 
-Everything needed to build, run **and regenerate** the app is in this repo. No
-part of the build reaches outside it.
+> **History note.** Until 2026-07-29 this repo was *assembled* from the
+> `blaikooz/vinodex` monorepo by a publish script that emptied the tree and
+> rebuilt it on every run, so direct commits did not survive — the merged
+> [PR #1](https://github.com/blaikooz/vinodex-ios/pull/1) lost `AUDIT.md` to
+> exactly that. The publish path has been deleted and the monorepo's copies of
+> `ios/`, `shared/` and `pixelflags/` are frozen leftovers. This repo is
+> authoritative.
 
 ## Layout
 
@@ -24,6 +29,8 @@ part of the build reaches outside it.
 | `scripts/` | Data generator and icon rasteriser |
 | `pixelflags/` | Pixel-art country/state flags, the source for `Resources/Flags` |
 | `xtool.yml` | Bundle ID and icon path for [xtool](https://github.com/xtool-org/xtool) |
+| `AUDIT.md` | Standing work order — numbered, permanent IDs referenced in commits |
+| `KNOWN-ISSUES.md` | Runbook: device deployment, WSL setup, traps that waste time |
 
 ## Build and run
 
@@ -45,27 +52,37 @@ fails under `xtool dev build`. UI changes have to be checked on a device.
 
 ## Regenerating the bundled data
 
-`Sources/VinodexCore/Resources/{entries,palette,tiers,icons}.json` are generated
-from `shared/` and committed, so a Swift build never needs Node. Regenerate only
-after changing something under `shared/`:
+`Sources/VinodexCore/Resources/{entries,palette,tiers,icons,countries}.json` are
+generated from `shared/` and committed, so a Swift build never needs Node.
+Regenerate only after changing something under `shared/`:
 
 ```bash
 npm install
-npm run generate           # rewrites the four JSON files
+npm run generate           # rewrites the five JSON files
 npm run icons              # re-rasterises Icons/ and re-copies Flags/
 ```
 
 `npm run icons` needs `rsvg-convert` (`apt install librsvg2-bin`), `python3`, and
-network access to `api.iconify.design`.
+network access to `api.iconify.design`. Verify any new Iconify id resolves before
+adding it — the API answers a miss with a non-SVG body rather than an error.
 
 Generation is deterministic: a change scoped to one table leaves the other files
 byte-identical. Always check `git diff --stat Sources/VinodexCore/Resources/`
 afterwards — a wider diff than expected means the change was wider than intended.
+CI enforces this: a push whose `shared/` and generated JSON disagree fails the
+`generated data is current` job.
 
 Note `CoverageTests` pins per-category counts, so deliberately changing the entry
 selection will fail two tests that must then be updated by hand.
 
-## Operational notes
+## Contributing
 
-`KNOWN-ISSUES.md` is the runbook — device deployment, the WSL build setup, and
-the traps that produce false readings. Read it before debugging a failed deploy.
+- Branch from `main`, open a PR. CI runs `swift test` on Linux and checks the
+  generated data is in step with `shared/`.
+- A green CI run does not mean the app builds — the UI layer is invisible to
+  Linux. Run `xtool dev build` before merging anything that touches
+  `Sources/VinodexUI/` or `Sources/VinodexApp/`.
+- `AUDIT.md` carries permanent item IDs (`H3`, `M12`, `L27`). Name the ones a PR
+  closes in its description and tick them in the same PR.
+- `KNOWN-ISSUES.md` is where operational discoveries go — anything that cost you
+  an hour and would cost the next person the same.

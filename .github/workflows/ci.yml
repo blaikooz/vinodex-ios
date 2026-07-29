@@ -1,0 +1,80 @@
+name: CI
+
+# The Linux-ready half of the package, run on every push and PR.
+#
+# `VinodexCore` is deliberately Foundation-only so it builds and tests on Linux
+# without a Mac or a Darwin SDK — that is what makes this workflow possible on
+# free runners. `VinodexUI` and `VinodexApp` are wrapped in
+# `#if canImport(SwiftUI) && canImport(UIKit)` and compile to nothing here, so
+# a green run does **not** mean the app builds; see the note in the summary step.
+# Closes AUDIT.md M34.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# A force-push or a quick follow-up commit should cancel the older run rather
+# than queue behind it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: swift test (Linux)
+    runs-on: ubuntu-latest
+    container: swift:6.0
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Swift version
+        run: swift --version
+
+      # Cached separately from the build so a dependency-free package still
+      # benefits once one is added; today this is close to a no-op.
+      - name: Cache .build
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: ${{ runner.os }}-swiftpm-${{ hashFiles('Package.swift', 'Package.resolved') }}
+          restore-keys: ${{ runner.os }}-swiftpm-
+
+      - name: Test
+        run: swift test --enable-code-coverage
+
+      - name: Note what this does not cover
+        if: always()
+        run: |
+          echo "::notice title=Scope::VinodexUI and VinodexApp are guarded behind canImport(SwiftUI) and compile to nothing on Linux. A syntax error in the UI layer cannot fail this job — only 'xtool dev build' catches those."
+
+  # The generated data is committed, so a drifted checkout means someone edited
+  # shared/ without regenerating. Cheap to catch here; confusing to find later.
+  data:
+    name: generated data is current
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install tooling
+        run: npm install --no-audit --no-fund
+
+      - name: Regenerate
+        run: npm run generate
+
+      # Generation is deterministic, so a clean tree here proves the committed
+      # JSON matches shared/. Icons are not regenerated: that step needs network
+      # access to the Iconify API and rsvg-convert, and is run by hand.
+      - name: Check for drift
+        run: |
+          if ! git diff --quiet -- Sources/VinodexCore/Resources; then
+            echo "::error title=Stale data::Sources/VinodexCore/Resources is out of date with shared/. Run 'npm run generate' and commit the result."
+            git diff --stat -- Sources/VinodexCore/Resources
+            exit 1
+          fi
+          echo "generated data matches shared/"
