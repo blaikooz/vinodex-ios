@@ -180,7 +180,7 @@ of truth — never edit the WSL copy.**
 
 ```bash
 rsync -a --delete --exclude ".build/" --exclude "xtool/" --exclude ".git/" \
-  /mnt/c/Users/StreetPC/Desktop/dev/vinodex-ios/ \
+  /mnt/c/Users/StreetPC/Desktop/HGapps/vinodex-ios/ \
   /root/projects/vinodex-ios/
 ```
 
