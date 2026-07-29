@@ -131,6 +131,10 @@ public struct SettingsSectionPanel: View {
     /// locked entry raises, so a paywalled *setting* behaves like a paywalled
     /// page rather than being a dead control.
     @State private var lockedBundle: Entitlement?
+    /// Scroll position outlives the view — see `ScreenStateStore`. ACCESS and
+    /// DATA are both taller than the LCD, so opening the upgrade prompt from a
+    /// bundle row near the bottom used to bounce the panel back to the top.
+    @State private var screens = ScreenStateStore.shared
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
     @AppStorage(TextScale.storageKey) private var scaleRaw = TextScale.small.rawValue
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
@@ -146,6 +150,15 @@ public struct SettingsSectionPanel: View {
         self.section = section
     }
 
+    private var screenKey: String { ScreenStateStore.settings(section.rawValue) }
+
+    private var anchorBinding: Binding<String?> {
+        Binding(
+            get: { screens.anchor(for: screenKey) },
+            set: { screens.setAnchor($0, for: screenKey) }
+        )
+    }
+
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
@@ -156,9 +169,16 @@ public struct SettingsSectionPanel: View {
                 case .dev: dev
                 }
             }
+            // Pairs with `scrollPosition(id:)` — without it nothing in this
+            // column is addressable and the anchor is ignored. Every branch
+            // above emits `settingsSection`s as direct children, which is what
+            // makes them the scroll targets; each carries its own title as its
+            // id, so an anchor names a heading rather than an offset.
+            .scrollTargetLayout()
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
         }
+        .scrollPosition(id: anchorBinding)
         .scrollDismissesKeyboard(.interactively)
         .background(lcd.isLight ? lcd.page : Dex.screen)
         .overlay {
@@ -352,14 +372,35 @@ public struct SettingsSectionPanel: View {
                     } label: {
                         HStack(spacing: 12) {
                             // Body over panel, so the pair reads as the actual
-                            // shell rather than one flat swatch.
+                            // shell rather than one flat swatch — plus the orb
+                            // and the lit button, which are what a skin now
+                            // actually varies. Without those two the picker
+                            // showed five rows that differed only in moulding
+                            // and the colourway looked like a paint job.
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(option.body)
                                 .frame(width: 44, height: 34)
+                                .overlay(alignment: .topLeading) {
+                                    Circle()
+                                        .fill(option.orb)
+                                        .frame(width: 9, height: 9)
+                                        .padding(4)
+                                }
+                                .overlay(alignment: .topTrailing) {
+                                    Circle()
+                                        .fill(option.accent.bright)
+                                        .frame(width: 9, height: 9)
+                                        .padding(4)
+                                }
                                 .overlay(alignment: .bottom) {
                                     Rectangle()
                                         .fill(option.panel)
                                         .frame(height: 12)
+                                        .overlay {
+                                            Capsule()
+                                                .fill(option.marqueeText)
+                                                .frame(width: 20, height: 3)
+                                        }
                                 }
                                 .clipShape(RoundedRectangle(cornerRadius: 4))
                                 .overlay(
@@ -484,48 +525,51 @@ public struct SettingsSectionPanel: View {
     ///
     /// Counts come from `WineDatabase.databaseStats` rather than being counted
     /// here, so `CoverageTests` can pin them — `VinodexUI` has no test target.
+    ///
+    /// Emitted as loose sections rather than wrapped in a `VStack`, like every
+    /// other branch: the wrapper made all three DATA sections one scroll target
+    /// between them, so this was the panel whose position could not be restored.
+    @ViewBuilder
     private var dataReadout: some View {
         let stats = db.databaseStats
 
-        return VStack(alignment: .leading, spacing: 18) {
-            settingsSection("DATABASE") {
-                LazyVGrid(columns: statColumns, spacing: 8) {
-                    ForEach(stats.categoryLines) { line in
-                        statTile(label: line.label, count: line.count)
-                    }
+        settingsSection("DATABASE") {
+            LazyVGrid(columns: statColumns, spacing: 8) {
+                ForEach(stats.categoryLines) { line in
+                    statTile(label: line.label, count: line.count)
                 }
             }
+        }
 
-            settingsSection("TOTAL ENTRIES") {
-                HStack(spacing: 12) {
-                    Image(systemName: "square.stack.3d.up.fill")
-                        .font(.system(size: 26, weight: .semibold))
-                        .foregroundStyle(lcd.accent)
-                    Text("\(stats.total)")
-                        .font(DexFont.retro(24))
-                        .foregroundStyle(lcd.text)
-                    Spacer(minLength: 0)
-                    Text("ACROSS \(stats.categoryLines.count) TABLES")
-                        .font(DexFont.mono(16))
-                        .foregroundStyle(lcd.subtext)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 14)
-                .frame(maxWidth: .infinity)
-                .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6).strokeBorder(lcd.surfaceEdge, lineWidth: 1)
-                )
+        settingsSection("TOTAL ENTRIES") {
+            HStack(spacing: 12) {
+                Image(systemName: "square.stack.3d.up.fill")
+                    .font(.system(size: 26, weight: .semibold))
+                    .foregroundStyle(lcd.accent)
+                Text("\(stats.total)")
+                    .font(DexFont.retro(24))
+                    .foregroundStyle(lcd.text)
+                Spacer(minLength: 0)
+                Text("ACROSS \(stats.categoryLines.count) TABLES")
+                    .font(DexFont.mono(16))
+                    .foregroundStyle(lcd.subtext)
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity)
+            .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6).strokeBorder(lcd.surfaceEdge, lineWidth: 1)
+            )
+        }
 
-            settingsSection("GROWTH") {
-                VStack(alignment: .leading, spacing: 8) {
-                    DataWave(milestones: stats.waveMilestones, lcd: lcd)
-                    Text("Entries shipped, from the first starter selection to the current build.")
-                        .font(DexFont.mono(15))
-                        .foregroundStyle(lcd.subtext)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+        settingsSection("GROWTH") {
+            VStack(alignment: .leading, spacing: 8) {
+                DataWave(milestones: stats.waveMilestones, lcd: lcd)
+                Text("Entries shipped, from the first starter selection to the current build.")
+                    .font(DexFont.mono(15))
+                    .foregroundStyle(lcd.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -597,18 +641,25 @@ public struct SettingsSectionPanel: View {
                 .overlay(alignment: .bottom) { lcd.accent.opacity(0.45).frame(height: 2) }
             content()
         }
+        // The heading doubles as the section's scroll anchor — see
+        // `anchorBinding`. Titles are unique within a panel, which is what makes
+        // them usable as ids.
+        .id(title)
     }
 
     // MARK: Dev
 
     /// Report, then the component gallery, then the icon sheet last — the icon
     /// grid is the longest thing here and buried everything after it.
+    ///
+    /// Loose rather than in a `VStack`, for the same reason `dataReadout` is:
+    /// this is the tallest panel in the app and its three blocks have to be
+    /// individually addressable for the scroll position to come back.
+    @ViewBuilder
     private var dev: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            DiagnosticsReport(db: db)
-            CatalogScreen(db: db, showsIcons: false)
-            CatalogScreen.IconSheet(db: db)
-        }
+        DiagnosticsReport(db: db).id("DIAGNOSTICS")
+        CatalogScreen(db: db, showsIcons: false).id("COMPONENTS")
+        CatalogScreen.IconSheet(db: db).id("ICONS")
     }
 }
 

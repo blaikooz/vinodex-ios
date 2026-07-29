@@ -220,9 +220,21 @@ struct RootView: View {
         path = next
     }
 
+    /// Back pops one route — and, for the daily reveal, ends the visit.
+    ///
+    /// Every other screen's state is kept until Home so that stepping *into*
+    /// something and coming out of it lands you where you were. The reveal is
+    /// the one screen whose contract is the opposite: it is meant to hand you a
+    /// new entry each time you open it, so leaving it for the minigames hub has
+    /// to drop the held pick, while opening the revealed entry from inside it
+    /// must not. `goBack` is the only place that can tell those two apart,
+    /// because it is the only place that knows *which* screen you are leaving.
     private func goBack() {
-        guard !path.isEmpty else { return }
+        guard let leaving = path.last else { return }
         path.removeLast()
+        if leaving == .dailyGrape {
+            ScreenStateStore.shared.forget(ScreenStateStore.dailyGrape)
+        }
     }
 
     /// Home is the reset. Searches, scroll positions and expanded sections all

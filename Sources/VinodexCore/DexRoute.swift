@@ -6,13 +6,18 @@ import Foundation
 /// toggles had grown past a screenful, and the two a user actually reaches for
 /// were below the developer-facing ones.
 ///
-/// SCREEN, TEXT and SKIN used to be three tiles. They are one CUSTOMIZATION
-/// tile now: all three answer the same question — what the device looks like —
-/// and splitting them meant three taps to try a colourway against a screen
-/// mode, with a trip back to the grid between each. Their panels were also the
-/// three shortest in the app, so a combined one still fits a screenful.
+/// SCREEN, TEXT and SKIN used to be three tiles. They are one CUSTOMIZE tile
+/// now: all three answer the same question — what the device looks like — and
+/// splitting them meant three taps to try a colourway against a screen mode,
+/// with a trip back to the grid between each. Their panels were also the three
+/// shortest in the app, so a combined one still fits a screenful.
+///
+/// The raw values are display copy, not storage: no `SettingsSection` is
+/// persisted anywhere, so CUSTOMIZATION could simply be shortened to CUSTOMIZE
+/// — thirteen characters was the longest label on the grid and the only one
+/// that had to shrink to fit its square.
 public enum SettingsSection: String, CaseIterable, Hashable, Sendable, Identifiable {
-    case customization = "CUSTOMIZATION"
+    case customization = "CUSTOMIZE"
     /// What the database actually holds. Read-only, unlike everything else
     /// here — it is a readout rather than a setting, but the settings grid is
     /// where a user goes looking for "what is in this thing".

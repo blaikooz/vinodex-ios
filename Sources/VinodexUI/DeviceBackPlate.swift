@@ -131,6 +131,20 @@ public struct DeviceBackPlate: View {
     /// one thing the plate exists to show.
     private var engraving: some View {
         VStack(spacing: 28) {
+            // The only instruction on the plate, and it was the last thing on
+            // it: set in engraved grey at the very bottom edge, below a serial
+            // number and a copyright line, in the part of a full-screen surface
+            // the eye reaches last. On brushed silver that treatment is close to
+            // invisible — the plate looked like a dead end, and the way out of
+            // it was the one thing you could not find.
+            //
+            // Now above the nameplate, held clear of the screw line, and drawn
+            // as a recessed dark chip rather than as engraving: the same recess
+            // the nameplate uses, so it still belongs to the object, but with
+            // light lettering in it so it is the highest-contrast thing here.
+            swipeHint
+                .padding(.top, 64)
+
             Spacer(minLength: 0)
 
             // Recessed nameplate.
@@ -194,20 +208,43 @@ public struct DeviceBackPlate: View {
             .engraved()
 
             Spacer(minLength: 0)
-
-            HStack(spacing: 10) {
-                Image(systemName: "hand.draw")
-                    .font(.system(size: 18))
-                Text("SWIPE TO RETURN")
-                    .font(DexFont.mono(23))
-                    .tracking(6)
-            }
-            .foregroundStyle(Dex.stone800.opacity(0.85))
-            .padding(.bottom, 34)
         }
         .multilineTextAlignment(.center)
         .padding(.horizontal, 24)
         .allowsHitTesting(false)
+    }
+
+    /// VT323 rather than the retro face: `SWIPE TO RETURN` is fifteen tracked
+    /// characters, and Press Start 2P at a size worth reading overruns the
+    /// plate on a phone at the LARGE text scale. The scale factor is the floor
+    /// under that anyway.
+    private var swipeHint: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "hand.draw")
+                .font(.system(size: 22, weight: .semibold))
+            Text("SWIPE TO RETURN")
+                .font(DexFont.mono(26))
+                .tracking(6)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+        }
+        .foregroundStyle(Dex.stone200)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 13)
+        .background(
+            Capsule().fill(
+                LinearGradient(
+                    colors: [Dex.stone800, Dex.stone950],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+        )
+        .overlay(Capsule().strokeBorder(Dex.stone600, lineWidth: 2))
+        // A light lip below the recess, the same trick `engraved()` uses — it
+        // is what makes the chip read as sunk into the plate rather than laid
+        // on top of it.
+        .shadow(color: .white.opacity(0.5), radius: 0, x: 0, y: 1)
     }
 }
 

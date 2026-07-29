@@ -1,16 +1,36 @@
 <div align="center">
 
-<img src="AppIcon.png" alt="Vinodex" width="160" />
+<img src="AppIcon.png" alt="Vinodex" width="132" />
 
-# VINODEX — iOS
+# VINODEX
 
 ### A wine field guide that looks like a 90s handheld.
 
-284 grapes, regions, styles and flavours in a plastic shell you can re-skin five
-different ways. Native SwiftUI, built on Linux, deployed to a real phone without
-a Mac in sight.
+**284 grapes, regions, styles and flavours** in a plastic shell you can re-skin
+five different ways. Native SwiftUI, built on Linux, deployed to a real phone
+without a Mac in sight.
 
 `Swift 6.3` · `SwiftUI` · `iOS 17+` · `SwiftPM` · `xtool`
+
+<p>
+<img src="Sources/VinodexUI/Resources/Flags/france.png" alt="France" height="26" />
+<img src="Sources/VinodexUI/Resources/Flags/italy.png" alt="Italy" height="26" />
+<img src="Sources/VinodexUI/Resources/Flags/spain.png" alt="Spain" height="26" />
+<img src="Sources/VinodexUI/Resources/Flags/portugal.png" alt="Portugal" height="26" />
+<img src="Sources/VinodexUI/Resources/Flags/germany.png" alt="Germany" height="26" />
+<img src="Sources/VinodexUI/Resources/Flags/austria.png" alt="Austria" height="26" />
+<img src="Sources/VinodexUI/Resources/Flags/greece.png" alt="Greece" height="26" />
+<img src="Sources/VinodexUI/Resources/Flags/usa.png" alt="USA" height="26" />
+<img src="Sources/VinodexUI/Resources/Flags/argentina.png" alt="Argentina" height="26" />
+<img src="Sources/VinodexUI/Resources/Flags/chile.png" alt="Chile" height="26" />
+<img src="Sources/VinodexUI/Resources/Flags/australia.png" alt="Australia" height="26" />
+<img src="Sources/VinodexUI/Resources/Flags/new-zealand.png" alt="New Zealand" height="26" />
+<img src="Sources/VinodexUI/Resources/Flags/south-africa.png" alt="South Africa" height="26" />
+<img src="Sources/VinodexUI/Resources/Flags/japan.png" alt="Japan" height="26" />
+</p>
+
+*Twenty-eight hand-drawn pixel flags, one per wine-producing country and state
+in the atlas.*
 
 </div>
 
@@ -21,12 +41,30 @@ a Mac in sight.
 | | |
 |---|---|
 | **The dex** | Grapes, regions, styles, flavours and continents. Every entry cross-links to the others, and every link resolves — the tests pin that. |
-| **Globe scan** | A drag-to-spin globe. Continent markers open a continent screen, then its countries, then their regions. |
+| **Globe scan** | A drag-to-spin globe. Continent markers open a continent screen, then its countries, then their regions. Where you spun it to survives the trip into a region. |
 | **Scanner** | Colour, body, origin, flavours — then a deduction. Flavours are ANDed, capped at three, because a fourth specific note reliably matches nothing. |
 | **What's that…?** | A daily reveal played as a guess. Deterministic from the date, so everyone gets the same entry, and a cursor that advances per open so it is replayable. |
 | **Moon dial** | The biodynamic day — fruit, root, leaf or flower. |
-| **Saved** | Bookmarks, stored as ids so a data regeneration never shows stale text. |
-| **Five chassis skins** | Vinodex Classic, Côte de Nuits, Blanc de Blancs, Burgundy Velour, Electric Riesling — plus a light screen mode and two text sizes. The LCD never changes with the skin, so a colourway can never hurt legibility. |
+| **Saved** | Bookmarks, stored as ids so a data regeneration never shows stale text. Your own photograph and name sit above them. |
+| **Nothing loses its place** | Scroll positions, expanded sections, searches and half-finished scans all survive Back. Home is the reset. |
+
+## Five devices, not one device in five colours
+
+Each chassis skin carries its own **orb**, its own **lit button** and its own
+**marquee phosphor** — the parts that look powered — on top of its moulding.
+The LCD never changes with the skin, so a colourway can never hurt legibility.
+
+| Skin | Shell | Orb | Marquee |
+|---|---|---|---|
+| **Vinodex Classic** | House red | Cyan | Green |
+| **Côte de Nuits** | Graphite | Amethyst | Violet |
+| **Blanc de Blancs** | Bone | Champagne gold | Amber |
+| **Burgundy Velour** | Velvet purple | Gold | Rose |
+| **Electric Riesling** | Walkman yellow | Electric blue | Cyan |
+
+Plus a light screen mode and two text sizes.
+
+---
 
 **This repo is the app.** It owns its source, its data and the tooling that
 generates that data. Commit here, open pull requests here. Nothing outside this
@@ -119,3 +157,9 @@ selection will fail two tests that must then be updated by hand.
   closes in its description and tick them in the same PR.
 - `KNOWN-ISSUES.md` is where operational discoveries go — anything that cost you
   an hour and would cost the next person the same.
+
+## Credits
+
+- **game-icons** — wine, flavour and regional glyphs, via Iconify
+  ([game-icons.net](https://game-icons.net))
+- **Press Start 2P** and **VT323** — the retro and terminal faces

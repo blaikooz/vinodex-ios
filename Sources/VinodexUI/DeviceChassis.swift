@@ -272,7 +272,7 @@ public struct DeviceChassis<Content: View>: View {
 
     private func lcdOrb(size: CGFloat) -> some View {
         Circle()
-            .fill(Dex.cyan300)
+            .fill(skin.orb)
             .frame(width: size, height: size)
             .overlay(Circle().strokeBorder(.white, lineWidth: max(size * 0.07, 2)))
             .overlay(alignment: .top) {
@@ -284,7 +284,7 @@ public struct DeviceChassis<Content: View>: View {
                     .padding(.top, size * 0.1)
             }
             .shadow(color: .black.opacity(0.5), radius: 3, y: 2)
-            .modifier(PulseGlow(color: Dex.blue, period: 5.3, minRadius: 2, maxRadius: size * 0.3))
+            .modifier(PulseGlow(color: skin.orbGlow, period: 5.3, minRadius: 2, maxRadius: size * 0.3))
     }
 
     private func statusDots(size: CGFloat) -> some View {
@@ -456,6 +456,13 @@ public struct ChassisButton: View {
     let enabled: Bool
     let action: () -> Void
 
+    /// Read here rather than passed down, the same way `DexToggle` reads the
+    /// screen mode: the footer builds these, and threading a skin through would
+    /// mean every future caller had to remember to.
+    @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
+
+    private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
+
     public init(kind: Kind, enabled: Bool = true, action: @escaping () -> Void) {
         self.kind = kind
         self.enabled = enabled
@@ -485,7 +492,7 @@ public struct ChassisButton: View {
         case .back:
             LinearGradient(colors: [Dex.stone700, Dex.stone950], startPoint: .top, endPoint: .bottom)
         case .home:
-            LinearGradient(colors: [Dex.amber200, Dex.amber500], startPoint: .top, endPoint: .bottom)
+            LinearGradient(colors: [skin.accent.light, skin.accent.mid], startPoint: .top, endPoint: .bottom)
         case .bookmarks:
             LinearGradient(colors: [Dex.stone700, Dex.stone950], startPoint: .top, endPoint: .bottom)
         }
@@ -494,9 +501,12 @@ public struct ChassisButton: View {
     private var borderColor: Color {
         switch kind {
         // Brushed silver, matching the settings cog — the three dark controls
-        // read as one family that way, against Home's amber.
+        // read as one family that way, against Home's lit ramp. Deliberately
+        // *not* skinned: the dark pair are the mechanical controls and stay the
+        // same part on every shell, which is what makes Home read as the one
+        // button that is powered.
         case .back, .bookmarks: Dex.stone400
-        case .home: Dex.amber700
+        case .home: skin.accent.edge
         }
     }
 
@@ -516,13 +526,13 @@ public struct ChassisButton: View {
                 .foregroundStyle(.white)
         case .home:
             Circle()
-                .fill(LinearGradient(colors: [Dex.amber100, Dex.amber400], startPoint: .top, endPoint: .bottom))
-                .overlay(Circle().strokeBorder(Dex.amber500, lineWidth: 1))
+                .fill(LinearGradient(colors: [skin.accent.pale, skin.accent.bright], startPoint: .top, endPoint: .bottom))
+                .overlay(Circle().strokeBorder(skin.accent.mid, lineWidth: 1))
                 .padding(2)
                 .overlay {
                     Image(systemName: "house.fill")
                         .font(.system(size: DexMetrics.footerControl * 0.41, weight: .bold))
-                        .foregroundStyle(Dex.amber900)
+                        .foregroundStyle(skin.accent.ink)
                 }
         }
     }
@@ -651,6 +661,11 @@ public struct MarqueeBanner: View {
     let fontSize: CGFloat
     var pointsPerSecond: Double = 34
 
+    /// The strip's phosphor follows the shell — see `ChassisSkin.marqueeText`.
+    @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
+
+    private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
+
     public init(text: String, fontSize: CGFloat, pointsPerSecond: Double = 34) {
         self.text = text
         self.fontSize = fontSize
@@ -679,7 +694,7 @@ public struct MarqueeBanner: View {
             RoundedRectangle(cornerRadius: DexMetrics.marqueeCorner)
                 .fill(.black)
                 .overlay(
-                    DexGridBackground(spacing: 12, color: Dex.green, opacity: 0.18)
+                    DexGridBackground(spacing: 12, color: skin.marqueeGrid, opacity: 0.18)
                         .clipShape(RoundedRectangle(cornerRadius: DexMetrics.marqueeCorner))
                 )
                 .overlay(
@@ -721,10 +736,10 @@ public struct MarqueeBanner: View {
     private var label: some View {
         Text(text)
             .font(DexFont.retro(fontSize))
-            .foregroundStyle(Dex.green500)
+            .foregroundStyle(skin.marqueeText)
             .lineLimit(1)
             .fixedSize()
-            .shadow(color: Color(dexHex: "#082010").opacity(0.65), radius: 0, x: 1, y: 1)
+            .shadow(color: skin.marqueeShadow.opacity(0.65), radius: 0, x: 1, y: 1)
     }
 }
 

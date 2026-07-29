@@ -504,11 +504,57 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+/// The six-stop colour ramp one lit chassis button is built from.
+///
+/// A struct rather than six properties on `ChassisSkin` because they are only
+/// ever used together, and a skin that got four of them right and two of them
+/// from the previous colourway would look like a manufacturing fault rather than
+/// like a mistake in the code.
+///
+/// Named by lightness rather than by where each one lands, so a skin author does
+/// not have to know that `mid` is both the outer button's bottom stop and the
+/// inner disc's ring. `ChassisButton` owns that arrangement.
+public struct ChassisAccent: Sendable {
+    /// Inner disc, top.
+    public let pale: Color
+    /// Outer button, top.
+    public let light: Color
+    /// Inner disc, bottom.
+    public let bright: Color
+    /// Outer button, bottom — and the inner disc's hairline.
+    public let mid: Color
+    /// Outer border.
+    public let edge: Color
+    /// The glyph.
+    public let ink: Color
+
+    public init(pale: String, light: String, bright: String, mid: String, edge: String, ink: String) {
+        self.pale = Color(dexHex: pale)
+        self.light = Color(dexHex: light)
+        self.bright = Color(dexHex: bright)
+        self.mid = Color(dexHex: mid)
+        self.edge = Color(dexHex: edge)
+        self.ink = Color(dexHex: ink)
+    }
+}
+
 /// Chassis colourway. The LCD itself never changes — only the moulding around
 /// it — so a skin swap cannot affect legibility of the content.
 ///
 /// Persisted under this key by both `DeviceChassis` and `SettingsPanel`;
 /// `@AppStorage` keeps the two in sync without threading state between them.
+///
+/// A skin used to be four greys and a body colour: swap it and you got the same
+/// cyan orb, the same amber Home button and the same green marquee in a
+/// different-coloured tray. The moulding changed and none of the *parts* did,
+/// which is why four of the five read as recolours of one device rather than as
+/// five devices. Each now carries its own orb, its own lit-button ramp and its
+/// own marquee phosphor.
+///
+/// **Vinodex Classic is deliberately untouched** — every value below for
+/// `.classic` is what the whole chassis used before this existed. It is the
+/// house device and the reference the others are variations on; changing it
+/// would move the baseline rather than add to it.
 public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     case classic = "CLASSIC"
     case midnight = "MIDNIGHT"
@@ -594,6 +640,103 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .original: Dex.stone400
         case .burgundy: Dex.velourEdge
         case .riesling: Dex.walkmanEdge
+        }
+    }
+
+    // MARK: Parts
+    //
+    // The three things on the chassis that emit light rather than merely being
+    // moulded: the orb, the lit button, and the marquee. Everything above this
+    // point is plastic; everything below it is powered, which is why these are
+    // the parts worth varying — a skin reads as a different *device* when its
+    // indicators are a different colour, and as a paint job when they are not.
+
+    /// The glass orb on the island strip.
+    public var orb: Color {
+        switch self {
+        case .classic: Dex.cyan300
+        // Pinot noir after dark: amethyst rather than ice.
+        case .midnight: Color(dexHex: "#d8b4fe")
+        // A champagne bead on the pale shell — cyan vanished against bone.
+        case .original: Color(dexHex: "#ffd76e")
+        // Gold on velvet. Blue-on-purple was the one pairing with no contrast
+        // at all: the orb and the moulding sat two steps apart on the wheel.
+        case .burgundy: Color(dexHex: "#ffd166")
+        // Sports-electronics blue on the yellow shell, which is the livery the
+        // shell is quoting in the first place.
+        case .riesling: Color(dexHex: "#38bdf8")
+        }
+    }
+
+    /// Its halo. Deeper than `orb` in every case — the glow reads as the orb's
+    /// own colour bleeding out, not as a second light behind it.
+    public var orbGlow: Color {
+        switch self {
+        case .classic: Dex.blue
+        case .midnight: Color(dexHex: "#a855f7")
+        case .original: Color(dexHex: "#f0b429")
+        case .burgundy: Color(dexHex: "#f59e0b")
+        case .riesling: Color(dexHex: "#0284c7")
+        }
+    }
+
+    /// Home, and anything else built to look powered.
+    public var accent: ChassisAccent {
+        switch self {
+        // Amber, exactly as before.
+        case .classic:
+            ChassisAccent(pale: "#fef3c7", light: "#fde68a", bright: "#fbbf24",
+                          mid: "#f59e0b", edge: "#b45309", ink: "#78350f")
+        case .midnight:
+            ChassisAccent(pale: "#f3e8ff", light: "#e9d5ff", bright: "#c084fc",
+                          mid: "#a855f7", edge: "#6b21a8", ink: "#3b0764")
+        // Magenta, after the original handheld's own A/B buttons.
+        case .original:
+            ChassisAccent(pale: "#ffe4e6", light: "#fecdd3", bright: "#fb7185",
+                          mid: "#e11d48", edge: "#9f1239", ink: "#4c0519")
+        case .burgundy:
+            ChassisAccent(pale: "#fef3c7", light: "#fde68a", bright: "#fbbf24",
+                          mid: "#d97706", edge: "#92400e", ink: "#451a03")
+        case .riesling:
+            ChassisAccent(pale: "#fee2e2", light: "#fca5a5", bright: "#f87171",
+                          mid: "#dc2626", edge: "#7f1d1d", ink: "#450a0a")
+        }
+    }
+
+    /// Marquee phosphor. Period LED strips came in green, amber, red and blue,
+    /// so this is the one part where a colour change is period-correct rather
+    /// than merely decorative.
+    public var marqueeText: Color {
+        switch self {
+        case .classic: Dex.green500
+        case .midnight: Color(dexHex: "#c084fc")
+        case .original: Color(dexHex: "#fbbf24")
+        case .burgundy: Color(dexHex: "#f9a8d4")
+        case .riesling: Color(dexHex: "#22d3ee")
+        }
+    }
+
+    /// The faint grid behind the phosphor, and the colour its letters are cut
+    /// out of. One step deeper, so the strip still reads as glass over a grid.
+    public var marqueeGrid: Color {
+        switch self {
+        case .classic: Dex.green
+        case .midnight: Color(dexHex: "#a855f7")
+        case .original: Color(dexHex: "#f59e0b")
+        case .burgundy: Color(dexHex: "#ec4899")
+        case .riesling: Color(dexHex: "#06b6d4")
+        }
+    }
+
+    /// Hard drop shadow under each glyph on the strip — a very dark form of the
+    /// phosphor, which is what makes the letters look lit rather than printed.
+    public var marqueeShadow: Color {
+        switch self {
+        case .classic: Color(dexHex: "#082010")
+        case .midnight: Color(dexHex: "#1e0b32")
+        case .original: Color(dexHex: "#301a02")
+        case .burgundy: Color(dexHex: "#3b0723")
+        case .riesling: Color(dexHex: "#04262c")
         }
     }
 

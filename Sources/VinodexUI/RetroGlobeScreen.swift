@@ -357,8 +357,31 @@ final class GlobeModel {
 
     func attach(to view: SCNView) {
         sceneView = view
+        restoreHeading()
         applyOrientation()
         start()
+    }
+
+    /// Where the globe was pointing, kept across navigation.
+    ///
+    /// The globe is a *map*, and leaving one for a place and coming back to find
+    /// it re-centred on the Atlantic is the same complaint as a list reopening
+    /// at the top: you have to find Europe again to open the second continent.
+    /// Read and written here rather than by the view, because `attach(to:)` is
+    /// the moment the scene exists and the frame loop has not yet moved it.
+    ///
+    /// Session-only via `ScreenStateStore`, so a cold launch still opens on the
+    /// default heading, and Home resets it.
+    private func restoreHeading() {
+        let store = ScreenStateStore.shared
+        yaw = store.number("yaw", for: ScreenStateStore.globe) ?? 0
+        pitch = min(max(store.number("pitch", for: ScreenStateStore.globe) ?? 0, -Self.maxPitch), Self.maxPitch)
+    }
+
+    private func saveHeading() {
+        let store = ScreenStateStore.shared
+        store.setNumber(yaw, "yaw", for: ScreenStateStore.globe)
+        store.setNumber(pitch, "pitch", for: ScreenStateStore.globe)
     }
 
     // MARK: Loop
@@ -374,6 +397,7 @@ final class GlobeModel {
     func stop() {
         displayLink?.invalidate()
         displayLink = nil
+        saveHeading()
     }
 
     private func tick() {

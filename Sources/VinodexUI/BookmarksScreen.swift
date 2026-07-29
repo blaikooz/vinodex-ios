@@ -1,4 +1,5 @@
 #if canImport(SwiftUI) && canImport(UIKit)
+import PhotosUI
 import SwiftUI
 import VinodexCore
 
@@ -20,6 +21,13 @@ public struct BookmarksScreen: View {
     /// Local only, and deliberately so — there is no account, and inventing a
     /// backend for a display name would be the tail wagging the dog.
     @AppStorage("userDisplayName") private var displayName = ""
+    /// The picture, which is local for the same reason. See `AvatarStore`.
+    @State private var avatar = AvatarStore.shared
+    @State private var pickedPhoto: PhotosPickerItem?
+    /// Whether the name row is showing its field. Off by resting state: the
+    /// field used to be permanently on screen, which made the top of this
+    /// screen a form.
+    @State private var editingName = false
     private let db = WineDatabase.shared
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
@@ -122,10 +130,18 @@ public struct BookmarksScreen: View {
         .animation(.easeOut(duration: 0.15), value: pendingDelete?.id)
     }
 
+    /// The one section heading on this screen.
+    ///
+    /// It was 10pt retro — smaller than the body copy under it and smaller than
+    /// the same headings in the settings panels, which had already been lifted
+    /// to 14 over a 2pt rule for exactly this reason. A heading that is the
+    /// smallest type on its screen is not a heading. The count moved into the
+    /// profile card above, where it belongs with the rest of the who-you-are
+    /// readout and stops being printed twice.
     private var savedHeader: some View {
-        HStack {
-            Text("\(items.count) SAVED")
-                .font(DexFont.retro(10))
+        HStack(alignment: .bottom) {
+            Text("SAVED")
+                .font(DexFont.retro(14))
                 .tracking(2)
                 .foregroundStyle(lcd.accent)
             Spacer()
@@ -135,11 +151,11 @@ public struct BookmarksScreen: View {
                     confirmingClear = true
                 } label: {
                     Text("CLEAR ALL")
-                    .font(DexFont.retro(9))
-                    .tracking(1)
-                    .foregroundStyle(Dex.stone400)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
+                        .font(DexFont.retro(11))
+                        .tracking(1)
+                        .foregroundStyle(Dex.stone400)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
                         .overlay(
                             RoundedRectangle(cornerRadius: 4)
                                 .strokeBorder(lcd.surfaceEdge, lineWidth: 1)
@@ -149,53 +165,34 @@ public struct BookmarksScreen: View {
             }
         }
         .padding(.horizontal, 2)
-        .padding(.top, 6)
+        .padding(.top, 10)
+        .padding(.bottom, 5)
+        .overlay(alignment: .bottom) { lcd.accent.opacity(0.45).frame(height: 2) }
     }
 
-    /// Name entry. Placed above the saved list because it is the part that
+    /// Who you are. Placed above the saved list because it is the part that
     /// makes this feel like *your* screen rather than a second list.
+    ///
+    /// It used to be a 34pt system glyph, a name, and — below both — a labelled
+    /// text field that was permanently open for typing. Three problems with
+    /// that. The identity was a piece of SF Symbols furniture nobody could
+    /// change; the name was printed twice, once as a caption and once as
+    /// whatever was in the field; and an always-live input made the top of the
+    /// screen a form you had to look past to reach your bookmarks.
+    ///
+    /// Now: one large avatar you can put your own photograph in, one name, and
+    /// a pencil. The field only exists while the pencil is engaged.
     private var profileSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                Image(systemName: "person.crop.circle.fill")
-                    .font(.system(size: 34))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Dex.stone200, Dex.stone400, Dex.stone600],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(displayName.isEmpty ? "TASTER" : displayName.uppercased())
-                        .font(DexFont.retro(13))
-                        .foregroundStyle(lcd.text)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                    Text("\(items.count) SAVED")
-                        .font(DexFont.mono(16))
-                        .foregroundStyle(Dex.stone600)
-                }
-                Spacer(minLength: 0)
-            }
+        HStack(alignment: .top, spacing: 16) {
+            avatarPicker
 
-            Text("NAME")
-                .font(DexFont.retro(9))
-                .foregroundStyle(lcd.accent)
-
-            HStack(spacing: 8) {
-                Image(systemName: "pencil")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(lcd.accent)
-                DexSearchField(text: $displayName, placeholder: "ENTER NAME...", fontSize: 22)
-                    .frame(height: 30)
+            VStack(alignment: .leading, spacing: 10) {
+                nameRow
+                savedStat
             }
-            .padding(.horizontal, 12)
-            .frame(height: 44)
-            .background(Capsule().fill(lcd.well))
-            .overlay(Capsule().strokeBorder(lcd.surfaceEdge, lineWidth: 2))
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(10)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(lcd.surface)
         .overlay(
@@ -203,6 +200,118 @@ public struct BookmarksScreen: View {
                 .strokeBorder(lcd.surfaceEdge, lineWidth: 2)
         )
         .padding(.bottom, 6)
+        // The picker is out-of-process, so it needs no photo-library usage
+        // description and no permission prompt — the user selects in Apple's
+        // own UI and this app only ever receives the one image.
+        .onChange(of: pickedPhoto) { _, item in
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self) {
+                    avatar.adopt(data)
+                    Haptics.tap()
+                }
+                pickedPhoto = nil
+            }
+        }
+    }
+
+    /// The avatar, at 96pt — an actual portrait rather than a row glyph.
+    private var avatarPicker: some View {
+        PhotosPicker(selection: $pickedPhoto, matching: .images, photoLibrary: .shared()) {
+            ZStack {
+                if let image = avatar.image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    // The placeholder keeps the old brushed-metal treatment, so
+                    // an empty avatar still reads as part of the device.
+                    Image(systemName: "person.crop.circle.fill")
+                        .font(.system(size: 78))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Dex.stone200, Dex.stone400, Dex.stone600],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
+            }
+            .frame(width: 96, height: 96)
+            .clipShape(Circle())
+            .overlay(Circle().strokeBorder(lcd.accent.opacity(0.7), lineWidth: 3))
+            // A camera badge rather than a caption: the affordance has to be on
+            // the avatar, because the avatar is the target.
+            .overlay(alignment: .bottomTrailing) {
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(lcd.isLight ? .white : .black)
+                    .frame(width: 30, height: 30)
+                    .background(Circle().fill(lcd.accent))
+                    .overlay(Circle().strokeBorder(lcd.surface, lineWidth: 2))
+            }
+            .shadow(color: .black.opacity(0.45), radius: 4, y: 3)
+        }
+        .buttonStyle(DexPressStyle(scale: 0.95))
+        .accessibilityLabel(avatar.hasImage ? "Change your picture" : "Add a picture")
+    }
+
+    /// The name, and the one control that edits it.
+    ///
+    /// Resting state is a name and a pencil. Engaged, the name becomes the
+    /// field and the pencil becomes a tick — one row either way, so nothing
+    /// below it moves when you start or finish typing.
+    @ViewBuilder
+    private var nameRow: some View {
+        HStack(spacing: 10) {
+            if editingName {
+                DexSearchField(
+                    text: $displayName,
+                    placeholder: "YOUR NAME",
+                    fontSize: 26,
+                    focusesOnAppear: true
+                )
+                .frame(height: 34)
+            } else {
+                Text(displayName.isEmpty ? "TASTER" : displayName.uppercased())
+                    .font(DexFont.retro(17))
+                    .foregroundStyle(displayName.isEmpty ? lcd.subtext : lcd.text)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                Spacer(minLength: 0)
+            }
+
+            Button {
+                Haptics.select()
+                withAnimation(.easeOut(duration: 0.15)) { editingName.toggle() }
+            } label: {
+                Image(systemName: editingName ? "checkmark" : "pencil")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(lcd.accent)
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(lcd.well))
+                    .overlay(Circle().strokeBorder(lcd.surfaceEdge, lineWidth: 2))
+            }
+            .buttonStyle(DexPressStyle(scale: 0.9))
+            .accessibilityLabel(editingName ? "Done editing name" : "Edit name")
+        }
+        .frame(minHeight: 44)
+    }
+
+    private var savedStat: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "bookmark.fill")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(lcd.accent)
+            Text("\(items.count) SAVED")
+                .font(DexFont.retro(12))
+                .tracking(1)
+                .foregroundStyle(lcd.subtext)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .background(Capsule().fill(lcd.well))
+        .overlay(Capsule().strokeBorder(lcd.surfaceEdge, lineWidth: 2))
     }
 
     /// Rows are entries or places. Places carry a flag and route to their own

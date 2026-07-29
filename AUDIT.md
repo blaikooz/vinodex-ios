@@ -8,15 +8,15 @@ they never get renumbered, even as items are resolved.
 
 ## Status
 
-**10 resolved · 87 open**
+**11 resolved · 86 open**
 
 | Severity | Open | Resolved | Total |
 |---|---:|---:|---:|
 | Critical | 0 | — | 0 |
 | High | 9 | 2 | 11 |
-| Medium | 41 | 3 | 44 |
+| Medium | 40 | 4 | 44 |
 | Low | 37 | 5 | 42 |
-| **Total** | **87** | **10** | **97** |
+| **Total** | **86** | **11** | **97** |
 
 Open items by workstream — each row is roughly one sitting's worth of related work:
 
@@ -24,7 +24,7 @@ Open items by workstream — each row is roughly one sitting's worth of related 
 |---|---:|---|
 | UI & UX polish | 18 | H6 H7 · M17 M22 M23 M24 · L3 L28 L32 L34–L42 |
 | Performance | 15 | H8 H9 · M5–M12 · L11 L12 L14 L15 L16 |
-| Architecture & code quality | 13 | M26–M31 · L1 L2 L4 L5 L6 L9 L10 |
+| Architecture & code quality | 12 | M27–M31 · L1 L2 L4 L5 L6 L9 L10 |
 | Light mode & contrast | 10 | H4 H5 · M13 M14 M15 M16 M44 · L29 L30 L33 |
 | Pipeline & reproducibility | 9 | M40 M41 M43 · L17 L19 L23 L24 L25 L26 |
 | Accessibility | 8 | H10 H11 · M18–M21 M25 · L27 |
@@ -127,7 +127,6 @@ quoted symbol instead.
 
 **Architecture**
 
-- [ ] **M26** · nav · RootView renders only `path.last` — every push/pop rebuilds screens from scratch, losing search text, expanders, scroll, and globe orientation · `Sources/VinodexApp/VinodexApp.swift:110` → keep the stack mounted (ZStack) or move transient state to route-keyed storage
 - [ ] **M27** · di · leaf views hard-read `WineDatabase.shared` despite the injectable init (LinkedRow, FlagImage, ContinentScreen hero) — nothing is exercisable against a fixture DB · `EntryDetailScreen.swift:690` + `EntryVisual.swift:314` + `ContinentScreen.swift:76` → inject via environment/params and drop the `.shared` reads
 - [ ] **M28** · duplication · hero panel, SAVE button, and section header are copy-pasted across 4 screens, and drift already shipped (EntryDetail hero still dark-theme) · `EntryDetailScreen.swift:104` + `CountryScreen.swift:72` + `StateScreen.swift:49` + `ContinentScreen.swift:70` → extract DexHero/DexSaveButton/DexSection
 - [ ] **M29** · testability · pure logic lives in the untested UI module (Palette.resolve color mapping, grapeWellColor/styleTone keyword heuristics) · `EntryTileView.swift:98` + `EntryVisual.swift:72` → move to Core returning hex strings and test beside FilterTests
@@ -232,6 +231,8 @@ quoted symbol instead.
   - **Resolved by `fb5dcf2`:** `shared/` vendored in-repo, generator renamed `scripts/generate-ios-data.ts` importing `../shared/*`, `npm run generate` wired up, regeneration verified byte-identical, and the publish script now validates that every relative import resolves inside the mirror.
 - [x] **H3** · state · `.id(scaleRaw)` remounts the whole chassis when TEXT SIZE changes — the settings panel slams shut and all screen state is wiped · `Sources/VinodexApp/VinodexApp.swift:90`
   - **Resolved in effect by v0.3.9:** settings became a pushed route, so the panel-slam is gone and TEXT SIZE is only reachable from a screen whose route survives the remount. The `.id(scaleRaw)` hack itself remains at :90 as tech debt — replace it when tackling **M26**.
+- [x] **M26** · nav · RootView renders only `path.last` — every push/pop rebuilds screens from scratch, losing search text, expanders, scroll, and globe orientation · `Sources/VinodexApp/VinodexApp.swift:110`
+  - **Resolved by v0.4.1.7 + v0.4.2.1**, via the second option offered — route-keyed storage rather than a mounted stack. `SearchStateStore` already covered the searches; `ScreenStateStore` added scroll anchors and expanders in v0.4.1.7; v0.4.2.1 finished the list, taking in the scanner's questionnaire, the daily reveal's held pick, the settings panels' scroll and the globe's orientation. RootView still renders only `path.last` — nothing user-visible depends on that any more. The `.id(scaleRaw)` remount noted under **H3** stays as tech debt, and is now harmless for the same reason: a remount rereads the stores.
 - [x] **M39** · pipeline · the regeneration command exists only in shell history (no package.json, no pinned runner; `.generate.mjs` gitignored) · `.gitignore:2`
   - **Resolved by `fb5dcf2`:** package.json with `npm run generate`/`npm run icons` via ts-node, documented in README. Residual nit: dep ranges without a lockfile or `.nvmrc`.
 - [x] **M42** · docs · no README/Makefile — the xtool/WSL build, Linux test loop, syslog diagnostics, and two-script pipeline live only in scattered code comments · `Package.swift:6`
