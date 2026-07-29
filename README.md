@@ -1,7 +1,32 @@
-# Vinodex — iOS
+<div align="center">
 
-A retro-handheld wine field guide covering grape varieties, regions, styles and
-tasting profiles, built in SwiftUI.
+<img src="AppIcon.png" alt="Vinodex" width="160" />
+
+# VINODEX — iOS
+
+### A wine field guide that looks like a 90s handheld.
+
+284 grapes, regions, styles and flavours in a plastic shell you can re-skin five
+different ways. Native SwiftUI, built on Linux, deployed to a real phone without
+a Mac in sight.
+
+`Swift 6.3` · `SwiftUI` · `iOS 17+` · `SwiftPM` · `xtool`
+
+</div>
+
+---
+
+## What's in it
+
+| | |
+|---|---|
+| **The dex** | Grapes, regions, styles, flavours and continents. Every entry cross-links to the others, and every link resolves — the tests pin that. |
+| **Globe scan** | A drag-to-spin globe. Continent markers open a continent screen, then its countries, then their regions. |
+| **Scanner** | Colour, body, origin, flavours — then a deduction. Flavours are ANDed, capped at three, because a fourth specific note reliably matches nothing. |
+| **What's that…?** | A daily reveal played as a guess. Deterministic from the date, so everyone gets the same entry, and a cursor that advances per open so it is replayable. |
+| **Moon dial** | The biodynamic day — fruit, root, leaf or flower. |
+| **Saved** | Bookmarks, stored as ids so a data regeneration never shows stale text. |
+| **Five chassis skins** | Vinodex Classic, Côte de Nuits, Blanc de Blancs, Burgundy Velour, Electric Riesling — plus a light screen mode and two text sizes. The LCD never changes with the skin, so a colourway can never hurt legibility. |
 
 **This repo is the app.** It owns its source, its data and the tooling that
 generates that data. Commit here, open pull requests here. Nothing outside this
@@ -16,21 +41,9 @@ write to it.
 > `ios/`, `shared/` and `pixelflags/` are frozen leftovers. This repo is
 > authoritative.
 
-## Layout
-
-| Path | What it is |
-|---|---|
-| `Package.swift` | SwiftPM manifest — one library product, `Vinodex` |
-| `Sources/VinodexCore/` | Foundation-only model + queries. Builds and tests on Linux. |
-| `Sources/VinodexUI/` | SwiftUI views, guarded `#if canImport(SwiftUI) && canImport(UIKit)` |
-| `Sources/VinodexApp/` | App entry point and routing |
-| `Tests/VinodexCoreTests/` | Tests for `VinodexCore` — the only target with coverage |
-| `shared/` | The data + colour tables, as TypeScript. Source of truth for the JSON. |
-| `scripts/` | Data generator and icon rasteriser |
-| `pixelflags/` | Pixel-art country/state flags, the source for `Resources/Flags` |
-| `xtool.yml` | Bundle ID and icon path for [xtool](https://github.com/xtool-org/xtool) |
-| `AUDIT.md` | Standing work order — numbered, permanent IDs referenced in commits |
-| `KNOWN-ISSUES.md` | Runbook: device deployment, WSL setup, traps that waste time |
+There is also a **[web build](https://github.com/blaikooz/vinodex-web)** of the
+same device, kept deliberately close to this one — same chassis, same screens,
+same rules. This Swift source is the reference when the two disagree.
 
 ## Build and run
 
@@ -49,6 +62,26 @@ xtool dev run              # build, install and launch on a connected device
 `swift test` does **not** compile `VinodexUI` — on Linux the `canImport(SwiftUI)`
 guards reduce it to nothing, so a syntax error there passes `swift test` and only
 fails under `xtool dev build`. UI changes have to be checked on a device.
+
+**Deploying to a phone from Windows + WSL is where the time actually goes.**
+[`KNOWN-ISSUES.md`](KNOWN-ISSUES.md) is the runbook — start with the port 27015
+race, which is the single most likely reason a deploy fails.
+
+## Layout
+
+| Path | What it is |
+|---|---|
+| `Package.swift` | SwiftPM manifest — one library product, `Vinodex` |
+| `Sources/VinodexCore/` | Foundation-only model + queries. Builds and tests on Linux. |
+| `Sources/VinodexUI/` | SwiftUI views, guarded `#if canImport(SwiftUI) && canImport(UIKit)` |
+| `Sources/VinodexApp/` | App entry point and routing |
+| `Tests/VinodexCoreTests/` | Tests for `VinodexCore` — the only target with coverage |
+| `shared/` | The data + colour tables, as TypeScript. Source of truth for the JSON. |
+| `scripts/` | Data generator and icon rasteriser |
+| `pixelflags/` | Pixel-art country/state flags, the source for `Resources/Flags` |
+| `xtool.yml` | Bundle ID and icon path for [xtool](https://github.com/xtool-org/xtool) |
+| `AUDIT.md` | Standing work order — numbered, permanent IDs referenced in commits |
+| `KNOWN-ISSUES.md` | Runbook: device deployment, WSL setup, traps that waste time |
 
 ## Regenerating the bundled data
 
