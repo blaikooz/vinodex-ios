@@ -5,10 +5,18 @@ import Foundation
 /// The settings screen is a grid of these rather than one long scroll: the
 /// toggles had grown past a screenful, and the two a user actually reaches for
 /// were below the developer-facing ones.
+///
+/// SCREEN, TEXT and SKIN used to be three tiles. They are one CUSTOMIZATION
+/// tile now: all three answer the same question — what the device looks like —
+/// and splitting them meant three taps to try a colourway against a screen
+/// mode, with a trip back to the grid between each. Their panels were also the
+/// three shortest in the app, so a combined one still fits a screenful.
 public enum SettingsSection: String, CaseIterable, Hashable, Sendable, Identifiable {
-    case screen = "SCREEN"
-    case text = "TEXT"
-    case skin = "SKIN"
+    case customization = "CUSTOMIZATION"
+    /// What the database actually holds. Read-only, unlike everything else
+    /// here — it is a readout rather than a setting, but the settings grid is
+    /// where a user goes looking for "what is in this thing".
+    case data = "DATA"
     case access = "ACCESS"
     case dev = "DEV"
 
@@ -18,9 +26,8 @@ public enum SettingsSection: String, CaseIterable, Hashable, Sendable, Identifia
     /// symbols with a later OS floor rendering blank rather than failing.
     public var symbol: String {
         switch self {
-        case .screen: "sun.max.fill"
-        case .text: "textformat.size"
-        case .skin: "paintpalette.fill"
+        case .customization: "paintpalette.fill"
+        case .data: "chart.bar.fill"
         case .access: "lock.fill"
         case .dev: "ladybug.fill"
         }
@@ -52,8 +59,14 @@ public enum DexRoute: Hashable, Sendable {
     case country(name: String)
     /// The regions of one state within a country.
     case state(name: String)
-    /// The daily grape reveal — see `DailyPick`.
+    /// The daily reveal — see `DailyPick`. Named "WHAT'S THAT…?" rather than
+    /// "grape of the day" since the pick rotates through regions and styles too.
     case dailyGrape
+    /// The guided grape identifier — colour, body, origin and flavours, then a
+    /// deduction. See `GrapeScanCriteria`.
+    case scanner
+    /// The biodynamic day readout — see `MoonCalendar`.
+    case moonDial
     /// System settings. A pushed screen rather than a side flap: the flap
     /// could never be more than a strip wide, and the toggles want room.
     /// Now a grid of `SettingsSection` tiles rather than the toggles themselves.
@@ -88,7 +101,11 @@ public enum DexRoute: Hashable, Sendable {
         case .state(let name):
             name.uppercased()
         case .dailyGrape:
-            "GRAPE OF THE DAY"
+            "WHAT'S THAT…?"
+        case .scanner:
+            "SCANNER"
+        case .moonDial:
+            "MOON DIAL"
         case .settings:
             "SYSTEM"
         case .settingsSection(let section):

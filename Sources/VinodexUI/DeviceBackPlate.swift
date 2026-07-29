@@ -1,5 +1,6 @@
 #if canImport(SwiftUI) && canImport(UIKit)
 import SwiftUI
+import VinodexCore
 
 /// The brushed-metal underside of the device, ported from
 /// `components/DeviceBackPanel.tsx`.
@@ -8,7 +9,6 @@ import SwiftUI
 /// gradient. The whole plate is tappable to flip back, matching the web app.
 public struct DeviceBackPlate: View {
     private static let creator = "HORIZON"
-    private static let version = "v0.3.5"
 
     private var year: Int { Calendar.current.component(.year, from: Date()) }
 
@@ -23,6 +23,17 @@ public struct DeviceBackPlate: View {
             highlight
             screws
             engraving
+        }
+        // A dark edge all the way round. Without it the plate's pale metal ran
+        // straight into the chassis behind it and the underside read as a
+        // lighting change rather than as a separate part that has been turned
+        // over. Inset rather than a full-bleed stroke so the corner radius of
+        // the display does not clip it away.
+        .overlay {
+            RoundedRectangle(cornerRadius: DexMetrics.deviceCorner)
+                .strokeBorder(Color(dexHex: "#2b2d30"), lineWidth: 5)
+                .padding(3)
+                .allowsHitTesting(false)
         }
         .accessibilityLabel("Device back plate. Swipe to return.")
     }
@@ -74,13 +85,19 @@ public struct DeviceBackPlate: View {
         .allowsHitTesting(false)
     }
 
+    /// Screws pulled well in from the corners.
+    ///
+    /// At 16pt they sat inside the display's 55pt corner arc, so each one was
+    /// cut into on the diagonal and the top pair fouled the dark border. This is
+    /// the same arithmetic `cornerGuardH` does for the chassis controls: a
+    /// fastener has to sit on flat plate, not on the curve.
     private var screws: some View {
         VStack {
             HStack { screw; Spacer(); screw }
             Spacer()
             HStack { screw; Spacer(); screw }
         }
-        .padding(16)
+        .padding(38)
         .allowsHitTesting(false)
     }
 
@@ -93,37 +110,48 @@ public struct DeviceBackPlate: View {
                     endPoint: .bottomTrailing
                 )
             )
-            .frame(width: 20, height: 20)
+            .frame(width: 26, height: 26)
             .overlay(Circle().strokeBorder(Dex.stone700, lineWidth: 1))
             .overlay(
                 // The slot.
                 Capsule()
                     .fill(Dex.stone800.opacity(0.7))
-                    .frame(width: 14, height: 2)
+                    .frame(width: 18, height: 3)
                     .rotationEffect(.degrees(45))
             )
             .shadow(color: .black.opacity(0.4), radius: 1, y: 1)
     }
 
+    /// The engraved copy, scaled up throughout.
+    ///
+    /// This is a full-screen surface carrying six short lines, and it was set at
+    /// list-row sizes — the nameplate that is meant to be the object's makers
+    /// mark was smaller than a section header on the LCD. Every size here is up
+    /// roughly a third, with the nameplate up more than that, since it is the
+    /// one thing the plate exists to show.
     private var engraving: some View {
-        VStack(spacing: 22) {
+        VStack(spacing: 28) {
             Spacer(minLength: 0)
 
             // Recessed nameplate.
-            VStack(spacing: 8) {
+            VStack(spacing: 12) {
                 Text("VINODEX")
-                    .font(DexFont.retro(26))
-                    .tracking(6)
+                    .font(DexFont.retro(36))
+                    .tracking(8)
                     .foregroundStyle(Dex.stone800)
-                Text(Self.version)
-                    .font(DexFont.mono(20))
-                    .tracking(6)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                // Read from `AppVersion` rather than a literal here, which had
+                // been stuck at v0.3.5 for several releases.
+                Text(AppVersion.display)
+                    .font(DexFont.mono(28))
+                    .tracking(7)
                     .foregroundStyle(Dex.stone700)
             }
-            .padding(.horizontal, 26)
-            .padding(.vertical, 16)
+            .padding(.horizontal, 34)
+            .padding(.vertical, 22)
             .background(
-                RoundedRectangle(cornerRadius: 6)
+                RoundedRectangle(cornerRadius: 8)
                     .fill(
                         LinearGradient(
                             colors: [Dex.stone600.opacity(0.4), Dex.stone800.opacity(0.4)],
@@ -133,14 +161,14 @@ public struct DeviceBackPlate: View {
                     )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .strokeBorder(Dex.stone700.opacity(0.6), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(Dex.stone700.opacity(0.6), lineWidth: 2)
             )
             .engraved()
 
             Text("CREATED BY \(Self.creator)")
-                .font(DexFont.mono(19))
-                .tracking(5)
+                .font(DexFont.mono(25))
+                .tracking(6)
                 .foregroundStyle(Dex.stone700)
                 .engraved()
 
@@ -152,30 +180,30 @@ public struct DeviceBackPlate: View {
                         endPoint: .trailing
                     )
                 )
-                .frame(height: 1)
+                .frame(height: 2)
                 .padding(.horizontal, 40)
 
-            VStack(spacing: 7) {
+            VStack(spacing: 10) {
                 Text("SN: VDX-\(String(year))-001")
                 Text("© \(String(year)) \(Self.creator)")
                 Text("ALL RIGHTS RESERVED")
             }
-            .font(DexFont.mono(17))
-            .tracking(3)
+            .font(DexFont.mono(22))
+            .tracking(4)
             .foregroundStyle(Dex.stone700)
             .engraved()
 
             Spacer(minLength: 0)
 
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Image(systemName: "hand.draw")
-                    .font(.system(size: 13))
+                    .font(.system(size: 18))
                 Text("SWIPE TO RETURN")
-                    .font(DexFont.mono(18))
-                    .tracking(5)
+                    .font(DexFont.mono(23))
+                    .tracking(6)
             }
             .foregroundStyle(Dex.stone800.opacity(0.85))
-            .padding(.bottom, 28)
+            .padding(.bottom, 34)
         }
         .multilineTextAlignment(.center)
         .padding(.horizontal, 24)

@@ -71,12 +71,10 @@ public struct CountryScreen: View {
 
     private var hero: some View {
         VStack(spacing: 14) {
-            FlagSwatch(country: country)
-                .frame(width: 96, height: 60)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .strokeBorder(.black.opacity(0.35), lineWidth: 2)
-                )
+            // The flag *is* the hero here — there is no entry icon to carry the
+            // page — so it gets hero proportions rather than the row size.
+            FlagSwatch(country: country, width: 168, height: 106)
+                .shadow(color: .black.opacity(0.45), radius: 6, y: 3)
 
             Text(country.uppercased())
                 .font(DexFont.retro(21))
@@ -124,28 +122,47 @@ public struct CountryScreen: View {
         .buttonStyle(DexPressStyle(scale: 0.94))
     }
 
-    /// A country has no authored description, so this is assembled from what
-    /// its regions actually say — climates, region count, appellation systems.
-    /// Stating that plainly beats inventing prose the data cannot support.
+    /// The country blurb, plus a one-line readout of what this database holds
+    /// for it.
+    ///
+    /// The prose used to be the readout: "France holds 12 regions in this
+    /// database, across cool, maritime, mediterranean climates." That was
+    /// honest — a country has no entry here, so there was nothing authored to
+    /// show — but it described the *app*, not the country, and it was the same
+    /// sentence with the nouns swapped on all eighteen pages. The blurbs are
+    /// authored in `shared/data/countries.ts` and generated into
+    /// `countries.json`; the derived line stays, demoted to a caption, because
+    /// knowing how much of a country is covered is genuinely useful.
     private var infoSection: some View {
         let climates = Set(regions.compactMap(\.climate)).map(\.rawValue).sorted()
-        let text = "\(country) holds \(regions.count) region\(regions.count == 1 ? "" : "s") in this database"
-            + (climates.isEmpty ? "" : ", across \(climates.joined(separator: ", ")) climates")
-            + "."
+        let summary = "\(regions.count) region\(regions.count == 1 ? "" : "s") in this database"
+            + (climates.isEmpty ? "" : " · \(climates.joined(separator: ", "))")
 
         return section("INFO", symbol: "book") {
-            Text(text)
-                .font(DexFont.mono(18))
-                .foregroundStyle(lcd.bodyText)
-                .lineSpacing(2)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 14)
-                .padding(.vertical, 10)
-                .background(alignment: .leading) {
-                    lcd.accent.frame(width: 4)
+            VStack(alignment: .leading, spacing: 8) {
+                if let info = db.countryInfo(country) {
+                    Text(info.description)
+                        .font(DexFont.mono(18))
+                        .foregroundStyle(lcd.bodyText)
+                        .lineSpacing(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .background(lcd.accent.opacity(0.06))
+
+                Text(summary.uppercased())
+                    .font(DexFont.retro(8))
+                    .tracking(1)
+                    .foregroundStyle(lcd.accent)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.leading, 14)
+            .padding(.trailing, 10)
+            .padding(.vertical, 10)
+            .background(alignment: .leading) {
+                lcd.accent.frame(width: 4)
+            }
+            .background(lcd.accent.opacity(0.06))
         }
     }
 
@@ -267,15 +284,10 @@ public struct CountryScreen: View {
                         onSelectState(state)
                     } label: {
                         HStack(spacing: 12) {
-                            FlagSwatch(country: state)
-                                .frame(width: 40, height: 26)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 3)
-                                        .strokeBorder(.black.opacity(0.3), lineWidth: 1)
-                                )
+                            FlagSwatch(country: state, width: 68, height: 44)
                             Text(state.uppercased())
                                 .font(DexFont.retro(12))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(lcd.text)
                             Spacer()
                             Text("\(regionCount(in: state))")
                                 .font(DexFont.mono(18))

@@ -27,13 +27,21 @@ public enum Continent: String, Sendable, CaseIterable, Identifiable {
     /// Francisco, Africa on Cape Town, South America on Santiago — so markers
     /// hung off the edge of the landmass they label, and no uniform nudge could
     /// fix them because each was wrong by a different amount.
+    ///
+    /// Four of them then carry a deliberate offset *from* the centroid, judged
+    /// on the device. The label is a 108x62 box centred on its point, so a
+    /// centroid-accurate pin puts half the box over the landmass's northern
+    /// half; biasing south (and away from the limb the continent trails toward)
+    /// seats the box on the body of the landmass instead of across its top edge.
+    /// Latitude down moves the marker down the screen, longitude up moves it
+    /// right — see `latLngToVector3` in `RetroGlobeScreen`.
     public var coordinate: (lat: Double, lng: Double) {
         switch self {
-        case .northAmerica: (45, -100)
-        case .southAmerica: (-15, -60)
+        case .northAmerica: (37, -108)   // down + left, off (45, -100)
+        case .southAmerica: (-23, -68)   // down + left, off (-15, -60)
         case .europe: (50, 15)
-        case .africa: (2, 20)
-        case .asia: (45, 90)
+        case .africa: (-6, 12)           // down + left, off (2, 20)
+        case .asia: (37, 100)            // down + right, off (45, 90)
         case .oceania: (-25, 135)
         }
     }
@@ -118,6 +126,15 @@ public struct IconManifest: Codable, Sendable {
     public let colorIcons: [String: String]
     /// Glyph per style classification (TYPE/BLEND/ORIGIN/METHOD/STYLE).
     public let styleClassIcons: [String: String]
+    /// Glyph per flavour class (SWEET/SOUR/SALTY/BITTER/UMAMI) and per subclass
+    /// (BERRY, SMOKY, WOOD, ...). Optional so an older manifest still decodes;
+    /// `flavorClassIcon(_:)` falls back to the placeholder glyph.
+    ///
+    /// Both tiles on a flavour's scan used to draw `byEntry` — the *entry's* own
+    /// glyph — so CLASS and SUBCLASS were always the same picture, and it was a
+    /// different picture for every entry in the same subclass.
+    public let flavorClassIcons: [String: String]?
+    public let flavorSubclassIcons: [String: String]?
     /// Country outline glyphs, used to mask a flag into the country's shape.
     public let countryShapeIcons: [String: String]
     /// Icon-well background per style classification.
@@ -187,6 +204,14 @@ public struct IconManifest: Codable, Sendable {
         colorIcons[colorType] ?? "game-icons:wine-glass"
     }
 
+    public func flavorClassIcon(_ classification: String) -> String {
+        flavorClassIcons?[classification] ?? fallback
+    }
+
+    public func flavorSubclassIcon(_ subclass: String) -> String {
+        flavorSubclassIcons?[subclass] ?? fallback
+    }
+
     /// Bundled flag stem for a country, e.g. `New Zealand` -> `new-zealand`.
     public func flagSlug(for country: String?) -> String? {
         guard let country, flags[country] != nil else { return nil }
@@ -211,6 +236,12 @@ public final class WineDatabase: Sendable {
     public let entries: [WineEntry]
     public let palette: Palette
     public let icons: IconManifest
+    /// Authored prose for the country (and state) pages, keyed by name.
+    ///
+    /// Countries are not entries here — a country page is assembled from the
+    /// regions that name it as their origin — so there is nowhere on an entry
+    /// for a country's description to live. See `CountryInfo`.
+    public let countries: [String: CountryInfo]
     /// Entry ids the free tier unlocks. Empty means *everything* is free — a
     /// missing or unreadable manifest must not lock the app down.
     public let freeIDs: Set<String>
@@ -243,12 +274,14 @@ public final class WineDatabase: Sendable {
         entries: [WineEntry],
         palette: Palette,
         icons: IconManifest,
+        countries: [String: CountryInfo] = [:],
         freeIDs: Set<String> = [],
         decodeErrors: [String] = []
     ) {
         self.entries = entries
         self.palette = palette
         self.icons = icons
+        self.countries = countries
         self.freeIDs = freeIDs
         self.decodeErrors = decodeErrors
 
@@ -300,10 +333,14 @@ public final class WineDatabase: Sendable {
             let icons: IconManifest = try Self.decode("icons")
             // Optional on purpose: a build without it is fully unlocked.
             let tiers: EntryTiers? = try? Self.decode("tiers")
+            // Also optional: without it a country page falls back to the
+            // derived summary sentence, which is worse but not broken.
+            let countries: [String: CountryInfo] = (try? Self.decode("countries")) ?? [:]
             self.init(
                 entries: entries,
                 palette: palette,
                 icons: icons,
+                countries: countries,
                 freeIDs: Set(tiers?.free ?? [])
             )
         } catch {
@@ -321,6 +358,8 @@ public final class WineDatabase: Sendable {
                     climateIcons: [:],
                     colorIcons: [:],
                     styleClassIcons: [:],
+                    flavorClassIcons: nil,
+                    flavorSubclassIcons: nil,
                     countryShapeIcons: [:],
                     styleClassBg: [:],
                     styleColorTypeColors: [:],
@@ -382,6 +421,17 @@ public final class WineDatabase: Sendable {
         return byName[category]?[target]
     }
 
+    /// The authored blurb for a country or state, if one was generated.
+    ///
+    /// Case-insensitive on the same grounds as `hasRegions(inCountry:)`: region
+    /// origins and the country table are both hand-authored strings and do not
+    /// always agree on case.
+    public func countryInfo(_ name: String) -> CountryInfo? {
+        if let hit = countries[name] { return hit }
+        let target = TextNormalize.label(name)
+        return countries.first { TextNormalize.label($0.key) == target }?.value
+    }
+
     /// The countries the globe attributes to a continent. Sourced from
     /// `data/continents.ts`, whose `keyRegions` field holds **country** names.
     public func countries(in continent: Continent) -> [String] {
@@ -412,9 +462,128 @@ public final class WineDatabase: Sendable {
         if case .continent(let c)? = entry(id: "CONT_\(continent.rawValue)") { return c }
         return nil
     }
+
+    /// Distinct countries the regions come from.
+    ///
+    /// Counted off region origins rather than `palette.continentCountries`,
+    /// which lists every country the globe *knows about* including ones with no
+    /// region written yet — the DATA panel should report what is actually in
+    /// here, not what is planned. Folded through `TextNormalize.label` for the
+    /// same reason `hasRegions(inCountry:)` is: origins are hand-authored and
+    /// do not always agree on case.
+    public var countryCount: Int {
+        Set(
+            entries(in: .regions)
+                .compactMap(\.origin)
+                .map { TextNormalize.label($0) }
+                .filter { !$0.isEmpty }
+        ).count
+    }
+
+    /// Per-category counts for the DATA readout.
+    ///
+    /// In `VinodexCore` rather than the panel that draws it so it is reachable
+    /// from `VinodexCoreTests` — `VinodexUI` has no test target, and a count
+    /// that silently drifts is exactly the kind of thing `CoverageTests` is for.
+    public var databaseStats: DatabaseStats {
+        DatabaseStats(
+            grapes: entries(in: .grapes).count,
+            regions: entries(in: .regions).count,
+            styles: entries(in: .styles).count,
+            flavors: entries(in: .flavors).count,
+            continents: entries(in: .continents).count,
+            countries: countryCount,
+            total: entries.count
+        )
+    }
+}
+
+/// What the shipped database holds, for the DATA panel.
+///
+/// `countries` is deliberately not an `EntryCategory`: countries are not
+/// entries — a country page is assembled from the regions naming it as their
+/// origin — so it is counted separately and carries no category.
+public struct DatabaseStats: Sendable, Hashable {
+    public let grapes: Int
+    public let regions: Int
+    public let styles: Int
+    public let flavors: Int
+    public let continents: Int
+    public let countries: Int
+    public let total: Int
+
+    public init(
+        grapes: Int,
+        regions: Int,
+        styles: Int,
+        flavors: Int,
+        continents: Int,
+        countries: Int,
+        total: Int
+    ) {
+        self.grapes = grapes
+        self.regions = regions
+        self.styles = styles
+        self.flavors = flavors
+        self.continents = continents
+        self.countries = countries
+        self.total = total
+    }
+
+    /// One labelled count in the DATA panel's grid.
+    ///
+    /// A struct rather than a tuple because the panel feeds these to `ForEach`,
+    /// and key paths — which `Identifiable` and `ForEach(_:id:)` both need —
+    /// cannot address tuple elements.
+    public struct Line: Sendable, Hashable, Identifiable {
+        public let label: String
+        public let count: Int
+
+        public var id: String { label }
+
+        public init(label: String, count: Int) {
+            self.label = label
+            self.count = count
+        }
+    }
+
+    /// Category counts in the order the panel lists them, paired with the
+    /// label each is shown under. Countries sit last, after the five real
+    /// categories, because they are the one line that is not an entry count.
+    public var categoryLines: [Line] {
+        [
+            Line(label: "GRAPES", count: grapes),
+            Line(label: "REGIONS", count: regions),
+            Line(label: "STYLES", count: styles),
+            Line(label: "FLAVORS", count: flavors),
+            Line(label: "CONTINENTS", count: continents),
+            Line(label: "COUNTRIES", count: countries),
+        ]
+    }
+
+    /// Milestones the DATA panel's wave sweeps through: empty, the original
+    /// starter selection, the first full import, and wherever the data stands
+    /// now. Fixed history plus a live tail, so the graph keeps meaning as the
+    /// dataset grows.
+    public var waveMilestones: [Int] {
+        [0, 25, 186, total]
+    }
 }
 
 /// The free-tier manifest, generated alongside the dataset.
 public struct EntryTiers: Codable, Sendable {
     public let free: [String]
+}
+
+/// Authored INFO copy for one country or state.
+///
+/// A struct rather than a bare `String` so the file can grow fields (a founding
+/// date, a bottle count) without another optional resource and another decode
+/// path — the country page has more room than it currently uses.
+public struct CountryInfo: Codable, Sendable, Hashable {
+    public let description: String
+
+    public init(description: String) {
+        self.description = description
+    }
 }

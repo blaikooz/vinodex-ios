@@ -12,12 +12,20 @@ import VinodexCore
 /// the two screens reachable from the cog read as one system.
 public struct MinigamesScreen: View {
     let onDailyGrape: () -> Void
+    let onScanner: () -> Void
+    let onMoonDial: () -> Void
 
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
-    public init(onDailyGrape: @escaping () -> Void) {
+    public init(
+        onDailyGrape: @escaping () -> Void,
+        onScanner: @escaping () -> Void = {},
+        onMoonDial: @escaping () -> Void = {}
+    ) {
         self.onDailyGrape = onDailyGrape
+        self.onScanner = onScanner
+        self.onMoonDial = onMoonDial
     }
 
     private let columns = [
@@ -31,18 +39,29 @@ public struct MinigamesScreen: View {
 
             ScrollView {
                 LazyVGrid(columns: columns, spacing: 10) {
+                    // Named for the question it asks rather than for its pick:
+                    // the reveal rotates through regions and styles as well as
+                    // grapes, so "grape of the day" was wrong two days in three.
                     tile(
-                        title: "GRAPE OF\nTHE DAY",
+                        title: "WHAT'S\nTHAT…?",
                         symbol: "sparkles",
                         tint: Dex.yellow,
                         action: onDailyGrape
                     )
 
-                    // Shown rather than hidden: an empty-looking hub reads as
-                    // broken, and the placeholder is what makes it obvious this
-                    // screen is a shelf with room on it. Not yet built — see
-                    // `web/components/MoonDialScreen.tsx` for the reference.
-                    comingSoonTile(title: "MOON DIAL", symbol: "moon.stars.fill")
+                    tile(
+                        title: "SCANNER",
+                        symbol: "sparkle.magnifyingglass",
+                        tint: Dex.green,
+                        action: onScanner
+                    )
+
+                    tile(
+                        title: "MOON DIAL",
+                        symbol: "moon.stars.fill",
+                        tint: Dex.blue,
+                        action: onMoonDial
+                    )
                 }
                 .padding(12)
             }
@@ -62,24 +81,6 @@ public struct MinigamesScreen: View {
             tileFace(title: title, symbol: symbol, tint: tint)
         }
         .buttonStyle(DexPressStyle(scale: 0.97))
-    }
-
-    private func comingSoonTile(title: String, symbol: String) -> some View {
-        tileFace(title: title, symbol: symbol, tint: lcd.subtext)
-            .overlay(alignment: .topTrailing) {
-                Text("SOON")
-                    .font(DexFont.retro(8))
-                    .tracking(1)
-                    .foregroundStyle(Dex.screen)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(Capsule().fill(lcd.subtext))
-                    .padding(8)
-            }
-            .opacity(0.55)
-            // Not a disabled Button: there is nothing to press, and a dead
-            // button that depresses under the finger promises otherwise.
-            .accessibilityLabel("\(title), coming soon")
     }
 
     private func tileFace(title: String, symbol: String, tint: Color) -> some View {

@@ -14,6 +14,13 @@ import VinodexCore
 public struct RetroGlobeScreen: View {
     let onSelectContinent: (Continent) -> Void
     let onWorldSearch: () -> Void
+    /// Whether to offer world search.
+    ///
+    /// On its own route it always should. Embedded in the scanner it must not:
+    /// world search is a route push, and pushing out of the scanner would
+    /// discard the answers collected so far — so the control is removed rather
+    /// than left present and inert.
+    var showsSearch: Bool
 
     @State private var model = GlobeModel()
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
@@ -22,38 +29,59 @@ public struct RetroGlobeScreen: View {
 
     public init(
         onSelectContinent: @escaping (Continent) -> Void,
-        onWorldSearch: @escaping () -> Void
+        onWorldSearch: @escaping () -> Void,
+        showsSearch: Bool = true
     ) {
         self.onSelectContinent = onSelectContinent
         self.onWorldSearch = onWorldSearch
+        self.showsSearch = showsSearch
     }
 
     public var body: some View {
         ZStack {
-            Color.black
-
-            // 24pt scan grid behind the globe.
-            DexGridBackground(spacing: 24, color: Dex.green, opacity: 0.24)
-                .opacity(0.3)
+            // The same ground and grid every other screen uses, rather than a
+            // black plate under a 24pt green grid of its own. The globe screen
+            // was the only place the backdrop changed pitch, which read as a
+            // different app — and it ignored the LCD mode setting entirely.
+            DexScreenBackground()
 
             VStack(spacing: 12) {
                 // Looks like the other screens' search bars, but it opens the
                 // search screen rather than filtering in place — results laid
                 // over a spinning sphere read as a rendering glitch.
-                searchBar
+                if showsSearch {
+                    searchBar
+                }
 
                 ZStack {
-                    GlobeSceneView(model: model)
+                    GlobeSceneView(model: model, isLight: lcd.isLight)
                         .gesture(dragGesture)
+                        // The scene's lighting and emission are baked in
+                        // `buildScene`, which only runs in `makeUIView` — so a
+                        // mode switch has to rebuild the view to take effect.
+                        // Keyed on the mode alone, it costs one rebuild per
+                        // toggle rather than one per render.
+                        .id(lcd)
 
                     markerLayer
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                Text("DRAG TO SPIN GLOBE")
-                    .font(DexFont.retro(11))
-                    .tracking(3)
-                    .foregroundStyle(lcd.accent)
+                // Two lines, because the globe has two affordances and the
+                // second one is the one that actually gets you somewhere. A
+                // marker looks like a label, so nothing on screen said it was
+                // tappable — the instruction only mentioned spinning.
+                VStack(spacing: 5) {
+                    Text("DRAG TO SPIN GLOBE")
+                        .font(DexFont.retro(11))
+                        .tracking(3)
+                        .foregroundStyle(lcd.accent)
+                    Text("TAP TO SELECT CONTINENT")
+                        .font(DexFont.retro(9))
+                        .tracking(2)
+                        .foregroundStyle(lcd.subtext)
+                }
+                .multilineTextAlignment(.center)
             }
             .padding(.vertical, 12)
         }
@@ -72,9 +100,19 @@ public struct RetroGlobeScreen: View {
                     Text(marker.continent.markerLabel)
                         .font(DexFont.retro(11))
                         .multilineTextAlignment(.center)
+                        // Always light, in both LCD modes. A marker does not sit
+                        // on the screen background — it sits on the *globe*,
+                        // which is dark green whatever the mode is, so following
+                        // `lcd.text` turned the label near-black over a dark
+                        // sphere and made it unreadable in light mode.
                         .foregroundStyle(.white)
                         .frame(width: 108, height: 62)
-                        .background(marker.color.opacity(0.12))
+                        // The plate carries the contrast instead: a black scrim
+                        // under the continent tint, deepened in light mode where
+                        // the surrounding page is pale and the marker would
+                        // otherwise read as washed out.
+                        .background(.black.opacity(lcd.isLight ? 0.5 : 0.35))
+                        .background(marker.color.opacity(lcd.isLight ? 0.45 : 0.2))
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
                                 .strokeBorder(marker.color.opacity(0.9), lineWidth: 3)
@@ -93,39 +131,14 @@ public struct RetroGlobeScreen: View {
         }
     }
 
-    /// Carries the same capsule treatment as `EncyclopediaListScreen.searchBar`
-    /// so it reads as a search affordance, but it is a button: tapping it opens
-    /// the world-search screen with a real keyboard-backed field.
+    /// The exact control the list screens use — same shell, same glyph tint,
+    /// same placeholder face — but it opens the world-search screen instead of
+    /// accepting typing in place. It used to be a hand-rolled near-copy with a
+    /// different glyph colour, different padding and a trailing chevron nothing
+    /// else had, which made it read as a different kind of control.
     private var searchBar: some View {
-        Button {
-            Haptics.tap()
-            onWorldSearch()
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(lcd.accent)
-
-                // Same face, size and colour as DexSearchField's placeholder,
-                // so this reads as the identical control — it just happens to
-                // open the search screen rather than accept typing in place.
-                Text("SEARCH WORLD...")
-                    .font(DexFont.mono(26))
-                    .foregroundStyle(lcd.accent.opacity(0.45))
-
-                Spacer(minLength: 0)
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(Dex.stone600)
-            }
-            .padding(.horizontal, 14)
-            .frame(height: 46)
-            .background(Capsule().fill(lcd.well))
-            .overlay(Capsule().strokeBorder(lcd.surfaceEdge, lineWidth: 2))
-        }
-        .buttonStyle(DexPressStyle(scale: 0.97))
-        .padding(.horizontal, 12)
+        DexSearchBarButton(placeholder: "SEARCH WORLD...", action: onWorldSearch)
+            .padding(.horizontal, 12)
     }
 
     // MARK: Drag
@@ -142,13 +155,14 @@ public struct RetroGlobeScreen: View {
 /// Hosts the `SCNView`. SceneKit is UIKit-only, so this is the bridge.
 struct GlobeSceneView: UIViewRepresentable {
     let model: GlobeModel
+    var isLight: Bool
 
     func makeUIView(context: Context) -> SCNView {
         let view = SCNView()
         view.backgroundColor = .clear
         view.antialiasingMode = .multisampling2X
         view.isUserInteractionEnabled = false   // gestures are handled in SwiftUI
-        view.scene = model.buildScene()
+        view.scene = model.buildScene(isLight: isLight)
         view.pointOfView = model.cameraNode
         model.attach(to: view)
         return view
@@ -249,7 +263,14 @@ final class GlobeModel {
 
     // MARK: Scene construction
 
-    func buildScene() -> SCNScene {
+    /// Builds the globe for one LCD mode.
+    ///
+    /// The screen mode has to reach in here rather than being handled by the
+    /// SwiftUI layer alone: the whole rig — emission, three light colours and
+    /// the wireframe — is a green CRT glow tuned against a black ground. Left
+    /// alone on the light screen it read as a hole punched in the page, which
+    /// is why the globe was the one screen the setting appeared not to touch.
+    func buildScene(isLight: Bool) -> SCNScene {
         let scene = SCNScene()
         scene.background.contents = UIColor.clear
 
@@ -268,8 +289,11 @@ final class GlobeModel {
         material.diffuse.wrapT = .clamp
         material.roughness.contents = 0.92
         material.metalness.contents = 0.08
-        material.emission.contents = UIColor(Color(dexHex: "#0d311f"))
-        material.emission.intensity = 0.3
+        // Self-illumination is what makes the dark globe glow. On paper it only
+        // washes the landmasses out, so light mode keeps a trace of it for
+        // warmth and lets the lights do the work.
+        material.emission.contents = UIColor(Color(dexHex: isLight ? "#20402f" : "#0d311f"))
+        material.emission.intensity = isLight ? 0.08 : 0.3
         sphere.materials = [material]
         globeNode = SCNNode(geometry: sphere)
         scene.rootNode.addChildNode(globeNode)
@@ -280,26 +304,32 @@ final class GlobeModel {
         let wireMaterial = SCNMaterial()
         wireMaterial.fillMode = .lines
         wireMaterial.lightingModel = .constant
-        wireMaterial.diffuse.contents = UIColor(Color(dexHex: "#7bffbc"))
-        wireMaterial.transparency = 0.08
+        // Neon mint disappears against the light ground, so the light shell is
+        // drawn in the deep bottle green the rest of light mode uses — and
+        // needs more opacity, since a dark line at 8% is invisible where a
+        // glowing one was not.
+        wireMaterial.diffuse.contents = UIColor(Color(dexHex: isLight ? "#1B6B3A" : "#7bffbc"))
+        wireMaterial.transparency = isLight ? 0.22 : 0.08
         wireMaterial.isDoubleSided = true
         wire.materials = [wireMaterial]
         wireNode = SCNNode(geometry: wire)
         scene.rootNode.addChildNode(wireNode)
 
-        // Lighting: ambient + key + rim, matching the three.js rig.
+        // Lighting: ambient + key + rim, matching the three.js rig. Light mode
+        // neutralises the green cast and lifts the ambient, so the sphere reads
+        // as a lit object on paper rather than a glowing one in the dark.
         let ambient = SCNNode()
         ambient.light = SCNLight()
         ambient.light?.type = .ambient
-        ambient.light?.color = UIColor(Color(dexHex: "#66ff99"))
-        ambient.light?.intensity = 330
+        ambient.light?.color = UIColor(Color(dexHex: isLight ? "#EAF3EC" : "#66ff99"))
+        ambient.light?.intensity = isLight ? 620 : 330
         scene.rootNode.addChildNode(ambient)
 
         let key = SCNNode()
         key.light = SCNLight()
         key.light?.type = .directional
-        key.light?.color = UIColor(Color(dexHex: "#9bffca"))
-        key.light?.intensity = 1100
+        key.light?.color = UIColor(Color(dexHex: isLight ? "#FFFFFF" : "#9bffca"))
+        key.light?.intensity = isLight ? 950 : 1100
         key.position = SCNVector3(2.5, 1.8, 3.2)
         key.look(at: SCNVector3Zero)
         scene.rootNode.addChildNode(key)
@@ -307,8 +337,8 @@ final class GlobeModel {
         let rim = SCNNode()
         rim.light = SCNLight()
         rim.light?.type = .directional
-        rim.light?.color = UIColor(Color(dexHex: "#1fff91"))
-        rim.light?.intensity = 500
+        rim.light?.color = UIColor(Color(dexHex: isLight ? "#8FBFA2" : "#1fff91"))
+        rim.light?.intensity = isLight ? 260 : 500
         rim.position = SCNVector3(-3, -1, -2)
         rim.look(at: SCNVector3Zero)
         scene.rootNode.addChildNode(rim)

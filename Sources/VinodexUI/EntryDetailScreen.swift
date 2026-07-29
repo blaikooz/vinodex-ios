@@ -234,17 +234,22 @@ public struct EntryDetailScreen: View {
                 }
 
             case .flavor(let f):
+                // Both tiles used to draw `db.iconID(for: entry)` — the entry's
+                // own glyph — so CLASS and SUBCLASS were always the same picture
+                // as each other and as the hero above them, and it changed with
+                // whichever note you had opened. Each taxonomy level now owns a
+                // glyph of its own; see `flavorClassIcons` in the manifest.
                 HStack(alignment: .top, spacing: 8) {
                     tile(label: "CLASS",
                          chip: chip(f.details.classification, .flavorClass, key: f.details.classification),
-                         destination: .list(category: .flavors, filter: .tasting(f.details.classification))) { _ in
-                        DexIcon(iconID: db.iconID(for: entry), size: 32, color: Color(dexHex: entry.color))
+                         destination: .list(category: .flavors, filter: .tasting(f.details.classification))) { tint in
+                        DexIcon(iconID: db.icons.flavorClassIcon(f.details.classification), size: 32, color: tint)
                     }
                     tile(
                         label: "SUBCLASS",
                         chip: chip(EntryDisplay.humanize(f.details.subclass).uppercased(), .flavorSubclass, key: f.details.subclass)
                     ) { tint in
-                        DexIcon(iconID: db.iconID(for: entry), size: 32, color: tint)
+                        DexIcon(iconID: db.icons.flavorSubclassIcon(f.details.subclass), size: 32, color: tint)
                     }
                 }
 
@@ -330,15 +335,19 @@ public struct EntryDetailScreen: View {
 
         case .region(let r):
             systemSection(r)
+            // Directly under the system that governs them, rather than at the
+            // bottom of the screen below the grape list: the appellations *are*
+            // that system's denominations, and reading them a section apart made
+            // them look like an unrelated tag cloud.
+            if let appellations = r.details.appellations, !appellations.isEmpty {
+                chipSection("APPELLATIONS", symbol: "shield", names: appellations)
+            }
             // Climate and soil are always shown for regions, even without data:
             // climate falls back to "Unknown Climate" and soils to a
             // climate-keyed triplet.
             climateSection(r)
             soilSection(r)
             linkedSection("NOTABLE GRAPES", symbol: "list.bullet", names: r.details.notableGrapes)
-            if let appellations = r.details.appellations, !appellations.isEmpty {
-                chipSection("APPELLATIONS", symbol: "shield", names: appellations)
-            }
 
         case .style(let s):
             styleRelatedSections(s)
@@ -354,13 +363,19 @@ public struct EntryDetailScreen: View {
         }
     }
 
-    /// Style sections vary by classification, matching the reference exactly:
-    /// METHOD shows KEY GRAPES, STYLE and ORIGIN show NOTABLE GRAPES, and every
-    /// class shows KEY REGIONS.
+    /// Style sections vary by classification: METHOD shows KEY GRAPES, every
+    /// other class shows NOTABLE GRAPES, and all of them show KEY REGIONS.
     ///
-    /// Note TYPE and BLEND therefore show no grape list at all — that is what
-    /// the web app does, and it is almost certainly an oversight there, since
-    /// those styles do carry `notableGrapes`.
+    /// TYPE used to show no grape list at all. That was faithful to the web app,
+    /// which is where the omission comes from — but TYPE styles ("Full-Bodied
+    /// Red", "Aromatic White") *do* carry `notableGrapes`, and they are the
+    /// entries where the list matters most: a class defined by how the wine
+    /// tastes rather than by where it is from is only useful once you know which
+    /// grapes make it. The data was already there and simply was not drawn.
+    ///
+    /// BLEND is deliberately still excluded: its `notableGrapes` are the
+    /// components of the blend, already named in the entry's own description,
+    /// and listing them again as "notable" reads as a duplicate.
     @ViewBuilder
     private func styleRelatedSections(_ s: StyleEntry) -> some View {
         let cls = EntryDisplay.styleClass(name: s.common.name, classification: s.details.classification)
@@ -368,9 +383,9 @@ public struct EntryDetailScreen: View {
         switch cls {
         case .method:
             linkedSection("KEY GRAPES", symbol: "list.bullet", names: s.details.notableGrapes, limit: 6)
-        case .style, .origin:
+        case .style, .origin, .type:
             linkedSection("NOTABLE GRAPES", symbol: "list.bullet", names: s.details.notableGrapes, limit: 6)
-        case .type, .blend:
+        case .blend:
             EmptyView()
         }
 
@@ -509,23 +524,30 @@ public struct EntryDetailScreen: View {
         }
     }
 
+    /// The abbreviation in the chip, the spelled-out name beside it — the
+    /// treatment `CountryScreen`'s APPELLATION SYSTEMS section already uses.
+    ///
+    /// The chip used to carry the full name. That made a chip five words wide
+    /// which then wrapped to three lines, and it hid the abbreviation the bottle
+    /// label actually prints — which is the thing worth recognising.
     private func systemSection(_ r: RegionEntry) -> some View {
         section("APPELLATION SYSTEM", symbol: "shield") {
-            HStack(alignment: .top) {
-                // Spelled out here, but still keyed by the abbreviation: the
-                // palette tables are indexed by `classification`.
-                // Resolved through the same `.classification` table the list
+            HStack(alignment: .top, spacing: 8) {
+                // Keyed by the abbreviation either way: the palette tables are
+                // indexed by `classification`, through the same table the list
                 // tile uses, so an appellation is one colour everywhere.
                 ChipView(
-                    label: EntryDisplay.appellationName(
-                        classification: r.details.classification,
-                        country: r.details.origin
-                    ),
+                    label: r.details.classification,
                     chip: db.palette.resolve(
                         chip(r.details.classification, .classification, key: r.details.classification)
                     )
                 )
-                .multilineTextAlignment(.leading)
+                Text(EntryDisplay.appellationName(
+                    classification: r.details.classification,
+                    country: r.details.origin
+                ))
+                .font(DexFont.mono(17))
+                .foregroundStyle(Dex.stone400)
                 .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 8)
                 if let state = r.details.state {
@@ -703,7 +725,11 @@ struct LinkedRow: View {
 
                 Text(title.uppercased())
                     .font(DexFont.retro(11))
-                    .foregroundStyle(resolved ? .white : Dex.stone600)
+                    // Not `.white`: this row's ground is `lcd.surface`, which is
+                    // white in light mode — the label was white-on-white and
+                    // vanished. This is the row FLAVOR PROFILE, NOTABLE GRAPES
+                    // and every other linked list is built from.
+                    .foregroundStyle(resolved ? lcd.text : lcd.disabledText)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -728,19 +754,38 @@ struct LinkedRow: View {
     }
 }
 
-/// Flag swatch used in the three-tile header row.
+/// Flag swatch used in the three-tile header row, and — larger — as the hero of
+/// the country and state screens.
+///
+/// The size is a parameter rather than something the caller wraps in a `.frame`.
+/// It used to be hard-coded at 52x32, and every call site that wanted a
+/// different size put an outer frame around it: an outer frame does not resize
+/// fixed content, so the country hero's `.frame(width: 96, height: 60)` was
+/// simply centring a 52x32 flag in a 96x60 box, and the STATES rows' 40x26 box
+/// was smaller than the flag it nominally sized.
 public struct FlagSwatch: View {
     let country: String
+    var width: CGFloat
+    var height: CGFloat
 
-    public init(country: String) { self.country = country }
+    public init(country: String, width: CGFloat = 52, height: CGFloat = 32) {
+        self.country = country
+        self.width = width
+        self.height = height
+    }
+
+    /// Scaled off the swatch so a hero-sized flag does not carry the same 3pt
+    /// radius and 2pt border a row-sized one does.
+    private var corner: CGFloat { max(width * 0.06, 3) }
+    private var border: CGFloat { max(width * 0.04, 2) }
 
     public var body: some View {
         FlagImage(country: country)
-            .frame(width: 52, height: 32)
-            .clipShape(RoundedRectangle(cornerRadius: 3))
+            .frame(width: width, height: height)
+            .clipShape(RoundedRectangle(cornerRadius: corner))
             .overlay(
-                RoundedRectangle(cornerRadius: 3)
-                    .strokeBorder(.white, lineWidth: 2)
+                RoundedRectangle(cornerRadius: corner)
+                    .strokeBorder(.white, lineWidth: border)
             )
     }
 }

@@ -754,7 +754,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C001',
     name: 'France',
-    description: 'France hosts the world’s most celebrated appellations, spanning Champagne, Bordeaux, Burgundy, and more.',
+    description: 'France is the reference point the rest of the wine world argues with: Bordeaux for Cabernet and Merlot blends, Burgundy for single-vineyard Pinot Noir and Chardonnay, Champagne for sparkling, the Rhone for Syrah and Grenache. Its AOC system codified the idea that a wine is named for its place rather than its grape — the model most of Europe later copied. Expect the label to tell you where, and to assume you know the grape.',
     category: 'COUNTRY_GATE',
     color: '#1f3f99',
     icon: 'flag',
@@ -769,7 +769,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C002',
     name: 'Italy',
-    description: 'Italy is rich in regional diversity, from the hills of Tuscany to the volcanic soils of Sicily.',
+    description: 'Italy grows more distinct native grape varieties than any other country, and all twenty of its regions make wine. Piedmont’s Nebbiolo and Tuscany’s Sangiovese anchor the classics, while Sicily’s volcanic slopes and the Alpine north are where the current excitement is. DOCG sits at the top of the quality pyramid and DOC below it; IGT was invented deliberately outside it, so Tuscany’s Cabernet blends had somewhere to go.',
     category: 'COUNTRY_GATE',
     color: '#14532d',
     icon: 'flag',
@@ -784,7 +784,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C003',
     name: 'Spain',
-    description: 'Spain blends Old World tradition and innovation across regions such as Rioja, Ribiera del Duero, and Priorat.',
+    description: 'Spain has more land under vine than any country on earth, much of it planted sparsely across dry, high country. Tempranillo drives Rioja and Ribera del Duero, old-vine Garnacha and Carinena drive Priorat, and Albarino in Rias Baixas answers the assumption that Spain is all reds. Only Rioja and Priorat hold DOCa, the tier above DO; the crianza / reserva / gran reserva marks tell you how long a wine aged before release.',
     category: 'COUNTRY_GATE',
     color: '#7f1d1d',
     icon: 'flag',
@@ -799,7 +799,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C004',
     name: 'Germany',
-    description: 'Germany is known for precision white wines, especially Riesling from steep vineyard slopes.',
+    description: 'Germany makes the world’s benchmark Riesling, on slate slopes so steep that Mosel vineyards are still worked by hand. The northerly latitude is the point: long, slow ripening builds aromatics and acidity rather than weight, and one site can yield anything from bone dry to lusciously sweet. The Pradikat levels — Kabinett up to Trockenbeerenauslese — grade ripeness at harvest, not sweetness in the glass, so a dry Spatlese is entirely normal.',
     category: 'COUNTRY_GATE',
     color: '#422006',
     icon: 'flag',
@@ -814,7 +814,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C005',
     name: 'Portugal',
-    description: 'Portugal excels in fortified wines like Port and Madeira, and offers vibrant dry wines from Douro and Vinho Verde.',
+    description: 'Portugal is best known for fortified wine — Port from the terraced Douro, Madeira from the Atlantic island that oxidises it on purpose — but the dry wines are the reason to look twice. Touriga Nacional and its Douro companions make dense, structured reds, while Vinho Verde in the north is light, high-acid and often faintly spritzy. Almost everything grown here is indigenous; the country largely refused to replant to international varieties.',
     category: 'COUNTRY_GATE',
     color: '#064e3b',
     icon: 'flag',
@@ -829,7 +829,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C006',
     name: 'Hungary',
-    description: 'Hungary’s legendary sweet wines come from Tokaj, and its other vineyards produce elegant dry whites and reds.',
+    description: 'Tokaj was the first wine region anywhere to be classified by vineyard, in 1730 — ahead of Bordeaux by well over a century. Its Aszu wines are made from Furmint berries shrivelled by botrytis, kneaded to a paste and measured out in puttonyos; the same grape vinified bone dry is the region’s current cause. Further west, Kekfrankos carries the reds, including the blends sold as Bull’s Blood.',
     category: 'COUNTRY_GATE',
     color: '#365314',
     icon: 'flag',
@@ -844,7 +844,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C007',
     name: 'Austria',
-    description: 'Austria is prized for crisp Grüner Veltliner and Riesling from valleys like Wachau and Kamptal.',
+    description: 'Austria’s signature is Gruner Veltliner: dry, peppery, high in acid, and grown seriously almost nowhere else. The Danube valleys of Wachau, Kremstal and Kamptal terrace it above the river alongside Riesling, while Burgenland to the east is red country led by Blaufrankisch. The DAC system is stricter than it looks — a district name may only be used when the wine actually tastes typical of that district.',
     category: 'COUNTRY_GATE',
     color: '#831843',
     icon: 'flag',
@@ -859,7 +859,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C008',
     name: 'Switzerland',
-    description: 'Switzerland produces elegant wines from steep terraces, especially Chasselas whites and Pinot Noir reds from Valais and Vaud.',
+    description: 'Switzerland drinks nearly everything it makes, which is why so little of it is ever seen abroad. Chasselas — neutral, textural and unapologetically about site rather than flavour — covers the terraces of Valais and Vaud above Lake Geneva, with Pinot Noir and Gamay for the reds. Vineyards here reach some of the highest altitudes in Europe, and the Lavaux terraces are a UNESCO World Heritage site.',
     category: 'COUNTRY_GATE',
     color: '#dc2626',
     icon: 'flag',
@@ -874,7 +874,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C009',
     name: 'Romania',
-    description: 'Romania is known for Feteasca Neagra and Feteasca Alba, with emerging regions like Dealu Mare producing structured reds.',
+    description: 'Romania has grown wine for millennia and is among Europe’s largest producers by volume, though very little of it travels. Feteasca Neagra gives dark, spiced reds and Feteasca Alba floral whites; Dealu Mare, on the southern Carpathian foothills, is the country’s most serious red district. Bordeaux varieties planted during the communist era still take up a large share of the vineyard.',
     category: 'COUNTRY_GATE',
     color: '#1e40af',
     icon: 'flag',
@@ -889,7 +889,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C010',
     name: 'Greece',
-    description: 'Greece produces mineral-rich wines from islands and mountain vineyards, led by Santorini and Nemea.',
+    description: 'Greek vineyards escaped phylloxera in places, which is why some vines here are ungrafted and very old. Santorini’s Assyrtiko is the emblem: trained low in basket-shaped kouloura against the wind, rooted in volcanic ash, searingly dry and saline. Nemea’s Agiorgitiko and Naoussa’s Xinomavro carry the reds — the latter is routinely compared to Nebbiolo, and earns the comparison.',
     category: 'COUNTRY_GATE',
     color: '#0e7490',
     icon: 'flag',
@@ -904,7 +904,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C011',
     name: 'Georgia',
-    description: 'Georgia is the ancestral home of wine, famous for amber wines and qvevri winemaking in Kakheti and beyond.',
+    description: 'Georgia is where winemaking begins: 8,000 years of unbroken production, and the earliest chemical evidence of wine found anywhere. Qvevri — beeswax-lined clay vessels buried to the neck — ferment white grapes on their skins for months, which is where the modern amber, or orange, wine category came from. Kakheti in the east is the heartland, planted to Saperavi, one of the few red-fleshed grapes, and to Rkatsiteli.',
     category: 'COUNTRY_GATE',
     color: '#8b5cf6',
     icon: 'flag',
@@ -919,7 +919,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C012',
     name: 'USA',
-    description: 'The United States is a major New World wine producer, led by California with premium AVAs and diverse climates nationwide.',
+    description: 'The United States is the world’s fourth-largest producer, and California accounts for the overwhelming majority of it. Napa built its name on Cabernet Sauvignon and Sonoma on Pinot Noir and Chardonnay; Oregon’s Willamette Valley and New York’s Finger Lakes are the cool-climate counterweights, and Washington’s Columbia Valley the high-desert one. An AVA delimits a place and nothing else — it sets no rules about grape, yield or method.',
     category: 'COUNTRY_GATE',
     color: '#1e1b4b',
     icon: 'flag',
@@ -934,7 +934,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C012_CAN',
     name: 'Canada',
-    description: 'Canada is known for ice wine and cool-climate whites, especially from Ontario and British Columbia.',
+    description: 'Canadian wine is shaped by the problem of ripening at all, and by the one thing the cold makes possible: icewine, pressed from grapes left to freeze solid on the vine. Ontario’s Niagara Peninsula, moderated by the lake, grows Riesling, Chardonnay and Vidal, while British Columbia’s Okanagan Valley is warmer and drier and takes reds seriously. VQA is the appellation system and the quality guarantee.',
     category: 'COUNTRY_GATE',
     color: '#7f1d1d',
     icon: 'flag',
@@ -949,7 +949,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C013',
     name: 'Argentina',
-    description: 'Argentina is dominated by Malbec from Mendoza, with high-altitude vineyards producing bold, ripe reds.',
+    description: 'Argentina adopted Malbec after the variety fell out of favour in its native Bordeaux, and made it something else entirely. Altitude does the work: Mendoza averages around 900m and the Uco Valley climbs well past 1,200, where fierce sun builds ripeness and cold nights hold the acidity in place. Torrontes is the white counterpart — intensely floral on the nose, and then dry in the mouth.',
     category: 'COUNTRY_GATE',
     color: '#0ea5e9',
     icon: 'flag',
@@ -964,7 +964,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C014',
     name: 'Chile',
-    description: 'Chile produces elegant Cabernet Sauvignon and Carmenere from coastal and Andean vineyards across the Maipo and Colchagua valleys.',
+    description: 'Chile is a natural quarantine — desert to the north, Antarctic water to the south, the Andes east and the Pacific west — which kept phylloxera out and left old, ungrafted vines in the ground. Maipo and Colchagua make the classic Cabernet. Carmenere, presumed extinct in Bordeaux, was rediscovered here in 1994 after a century of being mistaken for Merlot, and the coastal Casablanca and Limari valleys handle the cool-climate whites.',
     category: 'COUNTRY_GATE',
     color: '#7f1d1d',
     icon: 'flag',
@@ -979,7 +979,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C015',
     name: 'Uruguay',
-    description: 'Uruguay is best known for Tannat, producing rich and savory reds from a cool Atlantic-influenced climate.',
+    description: 'Uruguay bet on Tannat, a thick-skinned and ferociously tannic Basque grape, and it suits the humid Atlantic-cooled clay of Canelones better than it ever suited south-west France. The wines are dark and savoury, and increasingly softened by shorter maceration or a little Merlot. The scale is small and domestic: family bodegas rather than corporate estates.',
     category: 'COUNTRY_GATE',
     color: '#312e81',
     icon: 'flag',
@@ -994,7 +994,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C016',
     name: 'Australia',
-    description: 'Australia is home to bold Shiraz and refined Chardonnay, with premium regions like Barossa Valley and Margaret River.',
+    description: 'Australia spans everything from the baking Barossa floor to vineyards cooler than Burgundy. Shiraz is the calling card — dense and sweet-fruited in Barossa, leaner and almost Rhone-like in the Hunter — while Margaret River makes Cabernet and Chardonnay of real restraint and the Clare and Eden Valleys make lime-driven, bone-dry Riesling. Barossa holds some of the oldest continuously producing vines on earth, planted before phylloxera reached Europe.',
     category: 'COUNTRY_GATE',
     color: '#7c2d12',
     icon: 'flag',
@@ -1009,7 +1009,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C017',
     name: 'New Zealand',
-    description: 'New Zealand excels in aromatic Sauvignon Blanc and pristine Pinot Noir from Marlborough and Central Otago.',
+    description: 'New Zealand went from almost nothing to a globally copied style within a generation: Marlborough Sauvignon Blanc, so pungently gooseberry and passionfruit that it reset what people expect of the grape. Central Otago, the southernmost wine region in the world, does the serious Pinot Noir, and Hawke’s Bay handles Bordeaux blends and Syrah. Screwcaps are near-universal here, adopted early and on purpose.',
     category: 'COUNTRY_GATE',
     color: '#0f172a',
     icon: 'flag',
@@ -1024,7 +1024,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C018',
     name: 'South Africa',
-    description: 'South Africa combines Old World structure and New World expressiveness, especially from Stellenbosch and Walker Bay.',
+    description: 'South Africa has made wine since 1659, which makes it older than most of the New World and gives its best bottles an Old World frame. Stellenbosch does Cabernet and Bordeaux blends, Swartland old-vine Chenin Blanc and Rhone varieties, and cool coastal Walker Bay Pinot Noir and Chardonnay. Pinotage, a 1925 crossing of Pinot Noir and Cinsault, exists nowhere else, and the Wine of Origin scheme certifies exactly where everything came from.',
     category: 'COUNTRY_GATE',
     color: '#312e81',
     icon: 'flag',
@@ -1039,7 +1039,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C019',
     name: 'China',
-    description: 'China is an emerging wine producer, with Ningxia and Helan Mountain gaining attention for polished Bordeaux-style reds.',
+    description: 'China now holds one of the largest vineyard areas in the world, though much of the fruit is table grapes rather than wine. Ningxia, on the desert edge below the Helan Mountains, is the serious region: Cabernet Sauvignon and Bordeaux blends from vines buried under earth each winter to survive temperatures that would otherwise kill them. Yunnan’s Shangri-La pushes viticulture above 2,000m into the Himalayan foothills.',
     category: 'COUNTRY_GATE',
     color: '#854d0e',
     icon: 'flag',
@@ -1054,7 +1054,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C020',
     name: 'Japan',
-    description: 'Japan is known for delicate Koshu whites and elegant cool-climate wines from Yamanashi.',
+    description: 'Koshu, a pale pink-skinned grape grown in Yamanashi for centuries, makes delicate, low-alcohol, faintly citrus whites built to sit beside food rather than talk over it. Humidity and typhoons are the real constraint, which is why vines are often trained on overhead pergolas to keep air moving through the canopy. Hokkaido, cooler and drier, is where the country is expanding.',
     category: 'COUNTRY_GATE',
     color: '#9f1239',
     icon: 'flag',
@@ -1069,7 +1069,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C021',
     name: 'India',
-    description: 'India is an emerging wine region producing tropical whites and spicy Syrahs from cooler highland sites.',
+    description: 'Indian vineyards are tropical, so the vine never truly goes dormant and is pruned twice a year — once for growth, once for fruit. Elevation supplies what the latitude will not: Nashik at around 600m and the Nandi Hills above Bangalore both get the cool nights ripening needs. Sauvignon Blanc, Chenin Blanc and Syrah do the most convincing work.',
     category: 'COUNTRY_GATE',
     color: '#713f12',
     icon: 'flag',
@@ -1084,7 +1084,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C022',
     name: 'Morocco',
-    description: 'Morocco is an emerging wine producer with vineyards in the Atlas Mountains, producing aromatic whites and structured reds.',
+    description: 'Morocco supplied France with vast quantities of blending wine under the protectorate, and substantial old vineyards survive from that era. The best sites sit inland at altitude below the Atlas Mountains, where night-time cooling offsets the heat, and they are planted largely to Rhone varieties — Syrah, Grenache and Carignan. Its AOG appellation system is modelled directly on the French one.',
     category: 'COUNTRY_GATE',
     color: '#ea580c',
     icon: 'flag',

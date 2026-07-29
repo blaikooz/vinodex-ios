@@ -71,15 +71,20 @@ struct RootView: View {
         }
         .overlay {
             if let entry = lockedAttempt {
-                DexAlert(
-                    title: "VINODEX PRO",
-                    message: "\(entry.name.uppercased()) is part of the full collection. Unlock every grape, region, style and flavour.",
-                    confirmLabel: "UNLOCK",
-                    onConfirm: {
-                        // No storefront yet — this is where the purchase flow
-                        // will go. Dismissing keeps the placeholder honest
-                        // rather than silently unlocking.
+                // Offers the bundle the entry actually belongs to rather than
+                // Pro every time — a locked Bordeaux region prompts for the
+                // France bundle. See `Entitlement.offer(for:)`.
+                let offer = Entitlement.offer(for: entry)
+                UpgradePrompt(
+                    entitlement: offer,
+                    onUnlock: {
+                        // Grants for real, then continues to the entry the user
+                        // was trying to open. Stopping at "unlocked!" and making
+                        // them find their way back was the other half of why
+                        // this button felt broken.
+                        access.grant(offer)
                         lockedAttempt = nil
+                        push(entry.destination)
                     },
                     onCancel: { lockedAttempt = nil }
                 )
@@ -177,7 +182,17 @@ struct RootView: View {
             SettingsSectionPanel(section: section)
 
         case .minigames:
-            MinigamesScreen { push(.dailyGrape) }
+            MinigamesScreen(
+                onDailyGrape: { push(.dailyGrape) },
+                onScanner: { push(.scanner) },
+                onMoonDial: { push(.moonDial) }
+            )
+
+        case .scanner:
+            ScannerScreen { open($0) }
+
+        case .moonDial:
+            MoonDialScreen()
 
         case .continent(let id):
             if let entry = db.entry(id: id), case .continent(let c) = entry {
@@ -210,8 +225,13 @@ struct RootView: View {
         path.removeLast()
     }
 
+    /// Home is the reset. Searches survive Back — that is the point of
+    /// `SearchStateStore` — but they must not survive Home, or re-entering a
+    /// list from the main menu would silently open it pre-filtered by something
+    /// you typed several screens ago.
     private func goHome() {
         path.removeAll()
+        SearchStateStore.shared.clear()
     }
 }
 

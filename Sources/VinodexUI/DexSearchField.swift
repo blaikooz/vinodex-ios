@@ -87,4 +87,90 @@ public struct DexSearchField: UIViewRepresentable {
     }
 }
 
+/// The capsule shell every search affordance in the app wears.
+///
+/// Extracted because there were two hand-rolled copies that had drifted: the
+/// list screens' bar tinted its glyph `green500` while the globe's tinted it
+/// `lcd.accent`, they used 12pt and 14pt of inner padding, and the globe's
+/// carried a trailing chevron the others did not. Read side by side they looked
+/// like two different controls, which is exactly what a search bar must not be.
+///
+/// The shell is the shared part; what sits in it is not. `DexSearchBar` takes a
+/// binding and accepts typing; `DexSearchBarButton` looks identical and opens a
+/// screen instead, which is what the globe needs — results laid over a spinning
+/// sphere read as a rendering glitch.
+public struct DexSearchBarShell<Content: View>: View {
+    @ViewBuilder var content: () -> Content
+
+    @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
+    private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
+
+    public init(@ViewBuilder content: @escaping () -> Content) {
+        self.content = content
+    }
+
+    public var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(lcd.accent)
+            content()
+        }
+        .padding(.horizontal, 14)
+        .frame(height: 46)
+        .background(Capsule().fill(lcd.well))
+        .overlay(Capsule().strokeBorder(lcd.surfaceEdge, lineWidth: 2))
+    }
+}
+
+/// A live search field in the standard shell.
+public struct DexSearchBar: View {
+    @Binding var text: String
+    var placeholder: String
+
+    public init(text: Binding<String>, placeholder: String = "INPUT SEARCH...") {
+        self._text = text
+        self.placeholder = placeholder
+    }
+
+    public var body: some View {
+        DexSearchBarShell {
+            DexSearchField(text: $text, placeholder: placeholder)
+                .frame(height: 34)
+        }
+    }
+}
+
+/// A search bar that opens a screen rather than accepting typing.
+///
+/// Renders the placeholder with `DexSearchField`'s own face, size and colour, so
+/// it is indistinguishable from the real thing until you tap it.
+public struct DexSearchBarButton: View {
+    var placeholder: String
+    var action: () -> Void
+
+    @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
+    private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
+
+    public init(placeholder: String, action: @escaping () -> Void) {
+        self.placeholder = placeholder
+        self.action = action
+    }
+
+    public var body: some View {
+        Button {
+            Haptics.tap()
+            action()
+        } label: {
+            DexSearchBarShell {
+                Text(placeholder)
+                    .font(DexFont.mono(26))
+                    .foregroundStyle(lcd.accent.opacity(0.45))
+                Spacer(minLength: 0)
+            }
+        }
+        .buttonStyle(DexPressStyle(scale: 0.97))
+    }
+}
+
 #endif

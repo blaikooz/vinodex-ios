@@ -14,6 +14,13 @@ public struct DailyGrapeScreen: View {
     let onOpen: (WineEntry) -> Void
 
     @State private var revealed = false
+    /// Position in the cycle for *this* visit, fixed on appear.
+    ///
+    /// Read into state rather than off `RevealCursor` each time `pick` is
+    /// evaluated: the pick is computed during `body`, and reading a value that
+    /// advances would give a different entry on every re-render — the icon and
+    /// the name would disagree.
+    @State private var cursor: Int?
     private let db = WineDatabase.shared
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
@@ -22,7 +29,11 @@ public struct DailyGrapeScreen: View {
         self.onOpen = onOpen
     }
 
-    private var pick: WineEntry? { DailyPick.entry(in: db) }
+    /// A new entry every time the game is opened — see `DailyPick.entry(cursor:)`.
+    private var pick: WineEntry? {
+        guard let cursor else { return nil }
+        return DailyPick.entry(cursor: cursor, in: db)
+    }
 
     /// "WHAT'S THAT GRAPE / REGION / STYLE" — named for whatever today is.
     private var kindWord: String {
@@ -44,6 +55,11 @@ public struct DailyGrapeScreen: View {
                     .font(DexFont.retro(12))
                     .foregroundStyle(Dex.stone400)
             }
+        }
+        // Advance once per open, not once per render.
+        .onAppear {
+            guard cursor == nil else { return }
+            cursor = RevealCursor.shared.advance()
         }
     }
 

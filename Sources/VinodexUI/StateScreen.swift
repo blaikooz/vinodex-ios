@@ -48,12 +48,10 @@ public struct StateScreen: View {
 
     private var hero: some View {
         VStack(spacing: 14) {
-            FlagSwatch(country: state)
-                .frame(width: 96, height: 60)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .strokeBorder(.black.opacity(0.35), lineWidth: 2)
-                )
+            // Hero-sized, matching `CountryScreen` — the two screens are the
+            // same shape and a state's flag is doing the same job.
+            FlagSwatch(country: state, width: 168, height: 106)
+                .shadow(color: .black.opacity(0.45), radius: 6, y: 3)
 
             Text(state.uppercased())
                 .font(DexFont.retro(21))

@@ -7,6 +7,23 @@
  * everything from here so existing imports of it keep working unchanged.
  */
 
+/**
+ * Glyph per flavour *class* — the five top-level tastes.
+ *
+ * Keyed and named to match `FLAVOR_CLASS_COLORS` in `entryUtils.ts`, whose
+ * `icon` field carries these same lucide names; spelled as Iconify ids here
+ * because that is what the iOS rasteriser consumes. Deliberately abstract marks
+ * rather than foods, so a class icon can never collide with one of its own
+ * subclasses' icons below.
+ */
+export const FLAVOR_CLASS_ICON_MAP: Record<string, string> = {
+  sweet: 'lucide:sparkles',
+  sour: 'lucide:citrus',
+  salty: 'lucide:droplet',
+  bitter: 'lucide:triangle',
+  umami: 'lucide:leaf',
+};
+
 export const FLAVOR_ICON_MAP: Record<string, string> = {
   'orchard fruit': 'game-icons:shiny-apple',
   'stone fruit': 'game-icons:peach',
@@ -29,6 +46,10 @@ export const FLAVOR_ICON_MAP: Record<string, string> = {
   'salty': 'game-icons:salt-shaker',
   'floral': 'game-icons:lotus-flower',
   'game': 'game-icons:deer',
+  // WOOD was the one subclass in `SUBCLASS_TO_CLASS` with no entry here, so it
+  // fell through to the question-mark fallback wherever a subclass glyph was
+  // asked for. Oak, not a tree: in wine, wood means the barrel.
+  'wood': 'game-icons:oak-leaf',
 };
 
 export const FLAVOR_NAME_ICON_MAP: Record<string, string> = {
@@ -123,3 +144,20 @@ export const resolveFlavorIcon = (name?: string, subclass?: string): string => {
   if (subKey && FLAVOR_ICON_MAP[subKey]) return FLAVOR_ICON_MAP[subKey];
   return FALLBACK_ICON;
 };
+
+/**
+ * Glyph for a flavour subclass alone, ignoring any note's name.
+ *
+ * `resolveFlavorIcon` prefers the per-note map, which is right for an *entry* —
+ * "Blackberry jam" should be a jam jar, not the generic berry. It is the wrong
+ * answer when the thing being labelled is the subclass itself: the flavour
+ * scan's CLASS and SUBCLASS tiles both showed the glyph of whichever entry you
+ * had opened, so a subclass wore a different icon on every page and the two
+ * tiles were always identical to each other.
+ */
+export const resolveFlavorSubclassIcon = (subclass?: string): string =>
+  FLAVOR_ICON_MAP[normalizeKey(subclass)] ?? FALLBACK_ICON;
+
+/** Glyph for a flavour class (SWEET / SOUR / SALTY / BITTER / UMAMI). */
+export const resolveFlavorClassIcon = (cls?: string): string =>
+  FLAVOR_CLASS_ICON_MAP[normalizeKey(cls)] ?? FALLBACK_ICON;

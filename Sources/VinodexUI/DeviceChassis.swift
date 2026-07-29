@@ -25,6 +25,14 @@ public struct DeviceChassis<Content: View>: View {
     /// confined to the LCD — see `SettingsPanel`.
     /// Whether the device is showing its underside — see `DeviceBackPlate`.
     @State private var isFlipped = false
+    /// Which face is *drawn*, stepped at the midpoint of the turn rather than
+    /// following `isFlipped` directly — see the flip in `body`.
+    @State private var showsBackFace = false
+    /// The pending midpoint swap, cancelled if the flip is reversed before it
+    /// lands. Without this, flipping back within the half-second leaves a stale
+    /// task to fire afterwards and show the wrong face.
+    @State private var flipSwapTask: Task<Void, Never>?
+
     /// Drives the orb's depress animation while the flip gesture is held.
     @State private var orbHeld = false
     /// Shared with `SettingsPanel` through `@AppStorage`, so toggling it there
@@ -68,15 +76,23 @@ public struct DeviceChassis<Content: View>: View {
                 // Front and back are both mounted, each hidden when facing
                 // away, and the pair is rotated together — the same structure
                 // as the web app's preserve-3d flip container.
+                //
+                // The opacity swap is deliberately **not** animated with the
+                // rotation. Sharing the 0.7s easing cross-faded the two faces
+                // through each other, so for most of the turn you saw a ghost of
+                // the LCD lying over the metal — which reads as a dissolve, not
+                // as a panel being turned over. `flipSwap` steps at the midpoint
+                // instead, when the plate is edge-on and the cut is invisible,
+                // so the flip is purely physical.
                 frontFace(topStrip: topStrip)
-                    .opacity(isFlipped ? 0 : 1)
+                    .opacity(showsBackFace ? 0 : 1)
                     .accessibilityHidden(isFlipped)
 
                 DeviceBackPlate()
                     // Pre-rotated so it reads the right way round once the
                     // container has turned; without this it arrives mirrored.
                     .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
-                    .opacity(isFlipped ? 1 : 0)
+                    .opacity(showsBackFace ? 1 : 0)
                     .accessibilityHidden(!isFlipped)
                     // Swipe rather than tap, so returning is the same gesture
                     // in reverse. A tap gave no sense of the panel turning.
@@ -94,7 +110,18 @@ public struct DeviceChassis<Content: View>: View {
                 axis: (x: 0, y: 1, z: 0),
                 perspective: 0.45
             )
-            .animation(.easeInOut(duration: 0.7), value: isFlipped)
+            .animation(.easeInOut(duration: DexMetrics.flipDuration), value: isFlipped)
+            // Hard cut at the halfway point: no duration, so the faces swap in
+            // one frame rather than fading, and it lands while the plate is
+            // edge-on so nothing is visibly on screen to pop.
+            .onChange(of: isFlipped) { _, flipped in
+                flipSwapTask?.cancel()
+                flipSwapTask = Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(DexMetrics.flipDuration / 2))
+                    guard !Task.isCancelled else { return }
+                    showsBackFace = flipped
+                }
+            }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
         }
@@ -127,17 +154,12 @@ public struct DeviceChassis<Content: View>: View {
         // One control size across the whole chassis. The strip is sized to seat
         // it (`islandStripMinHeight`); the clamp only matters on a device that
         // reports a shorter inset than we ask for.
-        let control = min(DexMetrics.controlButton, height - 8)
+        let control = min(DexMetrics.controlButton, height - DexMetrics.islandBottomInset)
 
-        let dot = max(control * 0.2, 8)
+        let dot = max(control * 0.17, 8)
 
         return HStack(alignment: .center, spacing: 0) {
-            // Orb pinned left, directly above the Back button, wearing the
-            // status lights on its upper-right shoulder.
-            //
-            // The lights used to be a layout sibling here, absorbing the row's
-            // slack width. As an overlay they cost no width at all, which is why
-            // the two `Spacer`s below now carry the clearance instead.
+            // Orb pinned left, directly above the Back button.
             //
             // Rendering *in* the cutout is not an option, for the record: the
             // island is hardware, the OS masks anything drawn under it, and
@@ -148,21 +170,16 @@ public struct DeviceChassis<Content: View>: View {
                 .scaleEffect(orbHeld ? 0.88 : 1)
                 .brightness(orbHeld ? -0.18 : 0)
                 .animation(.easeOut(duration: 0.12), value: orbHeld)
-                .overlay(alignment: .topTrailing) {
-                    statusDots(size: dot)
-                        // Nudged out along the top-right diagonal so the cluster
-                        // sits on the orb's shoulder rather than across its face,
-                        // where it would cover the specular highlight.
-                        .offset(x: dot * 0.9, y: -dot * 0.5)
-                        // Decoration only — the orb's long-press must still get
-                        // the whole orb, including the part under the lights.
-                        .allowsHitTesting(false)
-                }
                 // Hold to flip. A hidden gesture on a decorative-looking part
                 // is a poor primary affordance, but this one is a deliberate
                 // easter egg: the orb depresses under the finger so the
                 // feedback arrives before the flip does.
-                .onLongPressGesture(minimumDuration: 2.0) {
+                //
+                // One second, down from two. Two is long enough that someone who
+                // already knows the gesture assumes it has stopped working and
+                // lets go early — the orb depressing gives immediate feedback,
+                // so the hold only has to be long enough not to fire on a tap.
+                .onLongPressGesture(minimumDuration: 1.0) {
                     Haptics.tap()
                     orbHeld = false
                     isFlipped = true
@@ -170,6 +187,19 @@ public struct DeviceChassis<Content: View>: View {
                     orbHeld = pressing
                     if pressing { Haptics.select() }
                 }
+                .fixedSize()
+
+            // Status lights to the *right* of the orb, as a layout sibling.
+            //
+            // They were an overlay pinned to the orb's top-right shoulder, which
+            // cost no width but did put the cluster across the orb's own edge —
+            // at one shared control size the two collide outright. Beside it they
+            // cost real width, which the flanking spacers pay for; the cluster is
+            // sized off the orb so the pair stays proportional.
+            Color.clear.frame(width: DexMetrics.statusDotsGap)
+            statusDots(size: dot)
+                // Decoration only, and never a touch target sitting next to one.
+                .allowsHitTesting(false)
                 .fixedSize()
 
             // Clearance held open for the cutout itself, centred between the two
@@ -184,7 +214,12 @@ public struct DeviceChassis<Content: View>: View {
                 .fixedSize()
         }
         .padding(.horizontal, DexMetrics.islandFlankPaddingH)
-        .frame(height: height)
+        // Bottom-aligned with the small inset below, mirroring the footer's
+        // asymmetry: extra strip height (a device reporting a deeper top inset
+        // than we ask for) lands above the controls, on bare chassis, rather
+        // than being split and reopening the gap to the screen housing.
+        .padding(.bottom, DexMetrics.islandBottomInset)
+        .frame(height: height, alignment: .bottom)
     }
 
     /// A brushed-silver cog: the settings button.

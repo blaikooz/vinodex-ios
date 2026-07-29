@@ -22,6 +22,7 @@ public struct ContinentScreen: View {
     let onSelectCountry: (String) -> Void
 
     private let db = WineDatabase.shared
+    @State private var bookmarks = BookmarkStore.shared
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
     @State private var comingSoon: String?
@@ -90,6 +91,8 @@ public struct ContinentScreen: View {
                 .shadow(color: lcd.accent.opacity(0.55), radius: 0, x: 4, y: 4)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
+
+            saveButton
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 18)
@@ -104,6 +107,33 @@ public struct ContinentScreen: View {
         }
         .padding(.horizontal, -14)
         .padding(.bottom, 16)
+    }
+
+    /// Continents were the one screen with no SAVE control, so a continent was
+    /// the only thing in the app you could reach and not keep. It needs no
+    /// synthesised id the way a country does — a continent *is* an entry
+    /// (`CONT_EUROPE`), so it resolves straight back out of `BookmarkStore` and
+    /// the saved list renders it with the standard tile.
+    private var saveButton: some View {
+        let saved = bookmarks.contains(continent.id)
+        return Button {
+            Haptics.select()
+            bookmarks.toggle(continent.id)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: saved ? "bookmark.fill" : "bookmark")
+                    .font(.system(size: 14, weight: .bold))
+                Text(saved ? "SAVED" : "SAVE")
+                    .font(DexFont.retro(10))
+                    .tracking(2)
+            }
+            .foregroundStyle(saved ? .white : lcd.accent)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(Capsule().fill(saved ? lcd.accent : lcd.buttonWell))
+            .overlay(Capsule().strokeBorder(lcd.accent, lineWidth: 2))
+        }
+        .buttonStyle(DexPressStyle(scale: 0.94))
     }
 
     // MARK: Info
@@ -159,7 +189,7 @@ public struct ContinentScreen: View {
 
                 Text(country.uppercased())
                     .font(DexFont.retro(11))
-                    .foregroundStyle(hasRegions ? .white : Dex.stone600)
+                    .foregroundStyle(hasRegions ? lcd.text : lcd.disabledText)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
 

@@ -58,6 +58,16 @@ public enum Dex {
     public static let bone = Color(dexHex: "#D8D8D0")
     public static let bonePanel = Color(dexHex: "#EFEFE9")
     public static let boneEdge = Color(dexHex: "#9A9A93")
+    /// Burgundy Velour — a velvet purple shell with a dusty lilac panel, so the
+    /// pairing reads as upholstery rather than as a flat purple slab.
+    public static let velour = Color(dexHex: "#4B1D3F")
+    public static let velourPanel = Color(dexHex: "#D3BBCE")
+    public static let velourEdge = Color(dexHex: "#2C0F24")
+    /// Electric Riesling — the yellow of a 1980s sports Walkman, with the cream
+    /// panel those shells carried rather than white.
+    public static let walkman = Color(dexHex: "#F2C11B")
+    public static let walkmanPanel = Color(dexHex: "#FBF0CC")
+    public static let walkmanEdge = Color(dexHex: "#9A7A0A")
     public static let blue = Color(dexHex: "#2AB5FF")
     public static let yellow = Color(dexHex: "#FACC15")
     public static let green = Color(dexHex: "#4ADE80")
@@ -138,42 +148,37 @@ public enum DexMetrics {
     /// corners, and using one value for both is what makes the chassis read as
     /// symmetric top to bottom.
     public static let chassisEdgeInset: CGFloat = 16
-    /// The *island* band: one control tall plus that inset on each side.
-    ///
-    /// The footer no longer shares this. It used to, which made the two bands
-    /// identical by construction — but the footer is the band you actually
-    /// touch, and it wanted bigger controls sitting closer to the screen than a
-    /// single shared number could give both ends. See `footerHeight`.
-    public static let controlBandHeight: CGFloat = controlButton + 2 * chassisEdgeInset
     /// Gap between the screen housing and the bands. Minimal on purpose — every
     /// point here comes off the LCD — but non-zero so the housing does not butt
     /// straight into the controls.
     public static let housingGap: CGFloat = 4
-    /// Floor for the island strip: the band height, so the orb and cog are
-    /// inset from the top edge by exactly what the footer row is from the bottom.
-    public static let islandStripMinHeight: CGFloat = controlBandHeight
+    /// Gap from the island controls down to the screen housing. Matches
+    /// `footerTopInset` so the housing sits the same distance from both rows.
+    public static let islandBottomInset: CGFloat = footerTopInset
+    /// Floor for the island strip, built the same way the footer band is but
+    /// mirrored: `chassisEdgeInset` against the display edge, one control, then
+    /// the small `islandBottomInset` against the screen housing.
+    ///
+    /// It used to be `controlButton + 2 * chassisEdgeInset`, i.e. symmetric — so
+    /// the gap from the orb down to the housing was 16pt while the matching gap
+    /// from the housing down to the footer row was 6pt, and the chassis read as
+    /// top-heavy. The two bands are now mirror images: the big inset faces the
+    /// display edge at both ends, the small one faces the screen.
+    public static let islandStripMinHeight: CGFloat = chassisEdgeInset + controlButton + islandBottomInset
     public static let islandClearance: CGFloat = 138
-    /// How far down the cutout starts. The status lights top-align to this so
-    /// their top edge matches the island's rather than floating above it.
-    public static let islandTopInset: CGFloat = 11
     /// Matches `footerPaddingH` so the orb sits directly above the Back button
     /// and the cog above Home — the four chassis controls share two columns.
     public static let islandFlankPaddingH: CGFloat = cornerGuardH
-    /// Pulls flank content in toward the cutout rather than the screen edges.
-    /// Small on purpose: the orb and status lights sit closer to the island,
-    /// which reads as deliberate rather than stranded at the corner.
-    public static let islandFlankInnerGap: CGFloat = 0.125 * rem
     /// Matched to `ventStripHeight` so the white housing frames the LCD evenly
     /// top and bottom. Trimmed from 1.75rem: symmetric was right, but that much
     /// white read as a thick border and it was all LCD height.
     public static let bezelTopMargin: CGFloat = rem
-    /// Orb, cog and the two footer buttons are all `controlButton` now — one
-    /// size for every physical control on the chassis.
-    public static let lcdOrb: CGFloat = controlButton
-    public static let statusDot: CGFloat = 0.5 * rem
     /// Tightened so the three status lights read as one cluster next to the
     /// larger orb rather than a spread-out row.
     public static let statusDotSpacing: CGFloat = 0.2 * rem
+    /// Gap between the orb and the status-light cluster now that the lights sit
+    /// beside it rather than on its shoulder.
+    public static let statusDotsGap: CGFloat = 6
     public static let titleSize: CGFloat = 0.9375 * rem
 
     /// Screen housing
@@ -217,11 +222,14 @@ public enum DexMetrics {
     /// inset below the row — see `footerHeight`.
     public static let footerTopInset: CGFloat = 6
     public static let footerPaddingH: CGFloat = cornerGuardH
-    /// Every control on the island strip: orb and cog.
-    public static let controlButton: CGFloat = 3.5 * rem
-    /// The footer's own controls, larger than the island's. These are the
-    /// buttons in constant use — Back, Home, saved — and at `controlButton`
-    /// they were the same size as two pieces of chassis decoration.
+    /// **One** diameter for every physical control on the chassis: the orb and
+    /// the cog on the island strip, Back/saved and Home in the footer.
+    ///
+    /// The island pair used to be 3.5rem against the footer's 4rem, on the
+    /// argument that the footer buttons are the ones in constant use. Sitting in
+    /// the same two columns at two different sizes just read as a mistake, so
+    /// they are all `footerControl` now and the strip is sized to seat it.
+    public static let controlButton: CGFloat = footerControl
     public static let footerControl: CGFloat = 4 * rem
     public static let marqueeMaxWidth: CGFloat = 16.5 * rem
     public static let marqueeCorner: CGFloat = 0.8 * rem
@@ -231,6 +239,14 @@ public enum DexMetrics {
     /// One size for every screen: the main screen's longer banner scrolls,
     /// so it does not need to shrink to fit. Scaled with `footerControl`.
     public static let marqueeTextSize: CGFloat = 1.45 * rem
+
+    /// How long the device takes to turn over.
+    ///
+    /// Lives here rather than on `DeviceChassis` because that type is generic
+    /// over its content, and Swift has no static stored properties on generic
+    /// types — the half of this value is what times the face swap, so the two
+    /// must come from one number.
+    public static let flipDuration: Double = 0.7
 
     /// Scanline overlay
     public static let scanlineSpacing: CGFloat = 4
@@ -343,10 +359,18 @@ public enum TextScale: String, CaseIterable, Identifiable, Sendable {
 
     public var id: String { rawValue }
 
+    /// Both steps moved down one notch: LARGE is now what SMALL used to be
+    /// (1.0), and SMALL goes below it. The old pair ran 1.0/1.2, which meant
+    /// the *smallest* the app could be was already the size the tiles were
+    /// drawn against — there was headroom above the layout but none below it,
+    /// and LARGE was the one that crowded its tiles.
+    ///
+    /// 1.0 stays the ceiling for the same reason it was the old floor: the
+    /// retro face has no optical sizes and the tile metrics are tuned to it.
     public var factor: CGFloat {
         switch self {
-        case .small: 1.0
-        case .large: 1.2
+        case .small: 0.85
+        case .large: 1.0
         }
     }
 
@@ -462,6 +486,19 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// Text on a row that exists but cannot be opened — a cross-link pointing
+    /// outside the current selection, or a country with no region written yet.
+    ///
+    /// Has to read as *inactive* without disappearing, which is why light mode
+    /// does not simply share the dark theme's stone600: against `surface` that
+    /// grey is close enough to `text` to look like an ordinary enabled row.
+    public var disabledText: Color {
+        switch self {
+        case .dark: Dex.stone600
+        case .light: Color(dexHex: "#A3A39B")
+        }
+    }
+
     public static var current: LcdMode {
         LcdMode(rawValue: UserDefaults.standard.string(forKey: storageKey) ?? "") ?? .dark
     }
@@ -477,10 +514,34 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     case midnight = "MIDNIGHT"
     /// The original grey-and-white shell rather than the red one.
     case original = "ORIGINAL"
+    /// Velvet purple.
+    case burgundy = "BURGUNDY"
+    /// Vintage Walkman yellow.
+    case riesling = "RIESLING"
 
     public static let storageKey = "chassisSkin"
 
     public var id: String { rawValue }
+
+    /// What the picker calls this skin.
+    ///
+    /// Deliberately separate from `rawValue`: the raw value is the persisted
+    /// `@AppStorage` key, so renaming ORIGINAL to "Blanc de Blancs" by editing
+    /// the case would silently reset every device already storing "ORIGINAL"
+    /// back to the default shell. The stored vocabulary stays put and only the
+    /// label moves.
+    public var displayName: String {
+        switch self {
+        // The house colourway, named for the house rather than described as
+        // "classic" — every other skin here has a wine name, and the default
+        // was the only one still labelled by category.
+        case .classic: "VINODEX CLASSIC"
+        case .midnight: "CÔTE DE NUITS"
+        case .original: "BLANC DE BLANCS"
+        case .burgundy: "BURGUNDY VELOUR"
+        case .riesling: "ELECTRIC RIESLING"
+        }
+    }
 
     /// The moulding.
     public var body: Color {
@@ -488,6 +549,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .classic: Dex.red
         case .midnight: Dex.graphite
         case .original: Dex.bone
+        case .burgundy: Dex.velour
+        case .riesling: Dex.walkman
         }
     }
 
@@ -497,6 +560,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .classic: Dex.red.opacity(0.7)
         case .midnight: Dex.graphite.opacity(0.75)
         case .original: Dex.bone.opacity(0.75)
+        case .burgundy: Dex.velour.opacity(0.75)
+        case .riesling: Dex.walkman.opacity(0.7)
         }
     }
 
@@ -506,6 +571,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .classic: Dex.ui
         case .midnight: Dex.graphitePanel
         case .original: Dex.bonePanel
+        case .burgundy: Dex.velourPanel
+        case .riesling: Dex.walkmanPanel
         }
     }
 
@@ -514,6 +581,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .classic: Dex.stone400
         case .midnight: Dex.graphiteEdge
         case .original: Dex.boneEdge
+        case .burgundy: Dex.velourEdge
+        case .riesling: Dex.walkmanEdge
         }
     }
 
@@ -523,6 +592,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .classic: Dex.stone400
         case .midnight: Dex.stone600
         case .original: Dex.stone400
+        case .burgundy: Dex.velourEdge
+        case .riesling: Dex.walkmanEdge
         }
     }
 

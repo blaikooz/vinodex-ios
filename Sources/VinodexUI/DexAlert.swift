@@ -1,5 +1,6 @@
 #if canImport(SwiftUI) && canImport(UIKit)
 import SwiftUI
+import VinodexCore
 
 /// An in-LCD confirmation, styled like the rest of the screen.
 ///
@@ -108,6 +109,47 @@ public struct DexAlert: View {
                 )
         }
         .buttonStyle(DexPressStyle(scale: 0.96))
+    }
+}
+
+/// The Vinodex Pro prompt, raised by a locked entry or a gated cosmetic.
+///
+/// One view for both so the paywall says the same thing wherever it appears —
+/// and, more to the point, so UNLOCK *does* the same thing. It used to dismiss
+/// and nothing else, with a comment explaining that there was no storefront yet;
+/// that was defensible while the only entitlement was an all-or-nothing
+/// developer switch, but it meant the button labelled UNLOCK was the one control
+/// in the app that did not do what it said. It now grants the bundle it names.
+///
+/// There is still no payment step. When there is one, it goes between the tap
+/// and `onUnlock` — the rest of this does not move.
+public struct UpgradePrompt: View {
+    let entitlement: Entitlement
+    let onUnlock: () -> Void
+    let onCancel: () -> Void
+
+    public init(
+        entitlement: Entitlement,
+        onUnlock: @escaping () -> Void,
+        onCancel: @escaping () -> Void
+    ) {
+        self.entitlement = entitlement
+        self.onUnlock = onUnlock
+        self.onCancel = onCancel
+    }
+
+    public var body: some View {
+        DexAlert(
+            title: entitlement.title,
+            message: entitlement.blurb,
+            confirmLabel: "UNLOCK",
+            cancelLabel: "NOT NOW",
+            onConfirm: {
+                Haptics.select()
+                onUnlock()
+            },
+            onCancel: onCancel
+        )
     }
 }
 #endif

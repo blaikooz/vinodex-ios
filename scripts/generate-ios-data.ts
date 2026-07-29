@@ -1,14 +1,17 @@
 /**
  * Generates the iOS app's bundled data from the shared data + colour tables.
  *
- * Emits four files into the VinodexCore resource directory:
- *   entries.json  — the WineEntry set for the current selection
- *   tiers.json    — which entry ids the free tier unlocks
- *   palette.json  — the full colour tables, materialised by probing the
- *                   shared lookup functions over their key domains
- *   icons.json    — the icon manifest rasterize-icons.sh consumes
+ * Emits five files into the VinodexCore resource directory:
+ *   entries.json   — the WineEntry set for the current selection
+ *   tiers.json     — which entry ids the free tier unlocks
+ *   palette.json   — the full colour tables, materialised by probing the
+ *                    shared lookup functions over their key domains
+ *   icons.json     — the icon manifest rasterize-icons.sh consumes
+ *   countries.json — authored INFO prose for the country pages, which are
+ *                    assembled from region fields and so have no entry of
+ *                    their own to carry a description
  *
- * All four are committed so a Swift build never needs Node. Scaling the starter
+ * All five are committed so a Swift build never needs Node. Scaling the starter
  * to the full database is a matter of setting STARTER_SELECTION to `undefined`.
  *
  * Everything this reads lives under `shared/`, which is a sibling of `scripts/`
@@ -16,7 +19,11 @@
  * specifiers below are identical in both and the script runs in either repo.
  * Only the output path differs; see OUT_DIR.
  */
-import { resolveFlavorIcon } from '../shared/services/flavorIcon.ts';
+import {
+  resolveFlavorIcon,
+  resolveFlavorClassIcon,
+  resolveFlavorSubclassIcon,
+} from '../shared/services/flavorIcon.ts';
 import { existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -24,6 +31,7 @@ import { fileURLToPath } from 'node:url';
 import { buildWineEntries, type EntrySelection } from '../shared/constants.ts';
 import type { WineEntry } from '../shared/types.ts';
 import { CONTINENTS } from '../shared/data/continents.ts';
+import { COUNTRIES } from '../shared/data/countries.ts';
 import { CLIMATE_CLASS_MAP } from '../shared/data/climateClasses.ts';
 import { getFlagGradient } from '../shared/data/flagGradients.ts';
 import { GRAPE_CARDS } from '../shared/data/grapeCards.ts';
@@ -461,8 +469,56 @@ const CONTINENT_ICONS: Record<string, string> = {
   CONT_ASIA: 'game-icons:pagoda',
 };
 
+/**
+ * Authored country blurbs for `CountryScreen`'s INFO block, keyed by country
+ * name and by state name alike.
+ *
+ * COUNTRY_GATE is still not a shipped *category* — `EntryCategory` on the Swift
+ * side cannot decode it, and a country page is assembled from region fields
+ * rather than an entry. But the one thing that assembly genuinely could not
+ * produce was prose: the screen was reduced to counting its own regions
+ * ("France holds 12 regions in this database"), which is a readout, not
+ * information. The descriptions are authored in `countries.ts`, so the web
+ * country gate and the native country page say the same thing.
+ *
+ * Only places the app can actually navigate to are emitted, so the resource
+ * does not carry fifty US states that no screen will ever ask for.
+ */
+function buildCountryInfo(entries: readonly WineEntry[]) {
+  const reachable = new Set<string>();
+  for (const entry of entries) {
+    const details = entry.details as unknown as Record<string, unknown>;
+    if (typeof details.origin === 'string') reachable.add(details.origin);
+    if (typeof details.state === 'string') reachable.add(details.state);
+    if (entry.category === 'CONTINENTS') {
+      for (const country of entry.details.keyRegions) reachable.add(country);
+    }
+  }
+
+  const info: Record<string, { description: string }> = {};
+  for (const country of COUNTRIES) {
+    if (!reachable.has(country.name)) continue;
+    if (!country.description) continue;
+    info[country.name] = { description: country.description };
+  }
+  return info;
+}
+
 function buildIconManifest(entries: readonly WineEntry[]) {
   const byEntry: Record<string, string> = {};
+
+  // Glyphs for the flavour taxonomy itself, keyed by the class/subclass values
+  // actually present. Emitted per-dataset rather than as a fixed table so a new
+  // subclass with no icon shows up in `assertCoverage` instead of shipping a
+  // question mark on the flavour scan's SUBCLASS tile.
+  const flavorClassIcons: Record<string, string> = {};
+  const flavorSubclassIcons: Record<string, string> = {};
+  for (const entry of entries) {
+    if (entry.category !== 'FLAVORS') continue;
+    const { classification, subclass } = entry.details;
+    flavorClassIcons[classification] = resolveFlavorClassIcon(classification);
+    flavorSubclassIcons[subclass] = resolveFlavorSubclassIcon(subclass);
+  }
 
   for (const entry of entries) {
     if (entry.category === 'FLAVORS') {
@@ -508,6 +564,8 @@ function buildIconManifest(entries: readonly WineEntry[]) {
       ...Object.values(CLIMATE_ICONS),
       ...Object.values(COLOR_ICONS),
       ...Object.values(STYLE_CLASS_ICONS),
+      ...Object.values(flavorClassIcons),
+      ...Object.values(flavorSubclassIcons),
       ...Object.values(shapeIcons),
       ...Object.values(SOIL_ICONS).map((v) => v.icon),
       'game-icons:fluffy-cloud', // climate fallback
@@ -523,6 +581,8 @@ function buildIconManifest(entries: readonly WineEntry[]) {
     climateIcons: CLIMATE_ICONS,
     colorIcons: COLOR_ICONS,
     styleClassIcons: STYLE_CLASS_ICONS,
+    flavorClassIcons,
+    flavorSubclassIcons,
     countryShapeIcons: shapeIcons,
     styleClassBg: STYLE_CLASS_BG,
     styleColorTypeColors: STYLE_COLOR_TYPE_COLORS,
@@ -610,6 +670,36 @@ function assertCoverage(entries: readonly WineEntry[], palette: ReturnType<typeo
     );
   }
 
+  // Every flavour class and subclass must own a glyph, and no two may share
+  // one: the scan's CLASS and SUBCLASS tiles sit side by side, so a duplicate
+  // reads as a rendering bug and the fallback reads as a missing asset.
+  //
+  // Levels are qualified by kind rather than by name: SALTY is both a class and
+  // a subclass, and they are two levels that each need a glyph of their own.
+  const flavorGlyphs = new Map<string, string>();
+  for (const flavor of flavors) {
+    if (flavor.category !== 'FLAVORS') continue;
+    for (const [kind, value, icon] of [
+      ['class', flavor.details.classification, resolveFlavorClassIcon(flavor.details.classification)],
+      ['subclass', flavor.details.subclass, resolveFlavorSubclassIcon(flavor.details.subclass)],
+    ] as const) {
+      const level = `${kind} ${value}`;
+      check(`flavor ${level} has no glyph`, icon !== FALLBACK_ICON);
+      const owner = flavorGlyphs.get(icon);
+      check(`flavor ${level} reuses ${icon}`, owner === undefined || owner === level, owner);
+      flavorGlyphs.set(icon, level);
+    }
+  }
+
+  // Every country a region names as its origin must have an authored INFO
+  // blurb, or that country's page falls back to counting its own regions.
+  const countryInfo = buildCountryInfo(entries);
+  for (const origin of new Set(
+    regions.map((r) => ('origin' in r.details ? String(r.details.origin ?? '') : '')).filter(Boolean),
+  )) {
+    check(`country ${origin} has no INFO blurb`, countryInfo[origin] !== undefined);
+  }
+
   check('no grapes emitted', grapes.length > 0);
   check('no regions emitted', regions.length > 0);
   check('no styles emitted', styles.length > 0);
@@ -671,10 +761,13 @@ function main() {
   };
   const tiers = { free: entries.filter(isFree).map((entry) => entry.id) };
 
+  const countries = buildCountryInfo(entries);
+
   writeFileSync(resolve(OUT_DIR, 'entries.json'), JSON.stringify(entries, null, 2) + '\n');
   writeFileSync(resolve(OUT_DIR, 'tiers.json'), JSON.stringify(tiers, null, 2) + '\n');
   writeFileSync(resolve(OUT_DIR, 'palette.json'), JSON.stringify(palette, null, 2) + '\n');
   writeFileSync(resolve(OUT_DIR, 'icons.json'), JSON.stringify(icons, null, 2) + '\n');
+  writeFileSync(resolve(OUT_DIR, 'countries.json'), JSON.stringify(countries, null, 2) + '\n');
 
   const hexes = new Set(JSON.stringify(palette).match(/#[0-9a-fA-F]{6}/g) ?? []);
 
@@ -688,6 +781,8 @@ function main() {
   console.log(`  unique hex values ${hexes.size}`);
   console.log('tiers.json');
   console.log(`  free tier      ${tiers.free.length} of ${entries.length}`);
+  console.log('countries.json');
+  console.log(`  country blurbs ${Object.keys(countries).length}`);
   console.log('icons.json');
   console.log(`  distinct icons ${icons.unique.length}`);
   const missing = Object.entries(icons.byEntry)

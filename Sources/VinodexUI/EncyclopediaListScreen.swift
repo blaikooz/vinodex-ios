@@ -9,11 +9,45 @@ public struct EncyclopediaListScreen: View {
     let showsSearch: Bool
     let onSelect: (WineEntry) -> Void
 
-    @State private var search = ""
+    /// Held outside the view, so it survives the screen being torn down and
+    /// rebuilt when you open an entry and come back — see `SearchStateStore`.
+    @State private var searches = SearchStateStore.shared
     @State private var access = AccessStore.shared
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
     private let db = WineDatabase.shared
+
+    private var searchKey: String {
+        SearchStateStore.key(categories: categories, filter: filter)
+    }
+
+    private var search: String { searches.query(for: searchKey) }
+
+    /// Bound straight through to the store rather than mirrored into `@State`
+    /// and restored on appear: a mirror has to be seeded from *somewhere*, and
+    /// every ordering of `onAppear` / `task` against the initial `task(id:)` run
+    /// either filtered twice or flashed the unfiltered list first.
+    private var searchBinding: Binding<String> {
+        Binding(
+            get: { searches.query(for: searchKey) },
+            set: { searches.setQuery($0, for: searchKey) }
+        )
+    }
+
+    /// Identity for the search bar within the scroll target layout.
+    ///
+    /// Prefixed so it can never collide with an entry id, since both flow
+    /// through the same `String?` anchor.
+    static let searchBarAnchor = "__searchbar__"
+
+    /// Where the list was scrolled to, held in the same store as the query so
+    /// the two are restored together and dropped together.
+    private var anchorBinding: Binding<String?> {
+        Binding(
+            get: { searches.anchor(for: searchKey) },
+            set: { searches.setAnchor($0, for: searchKey) }
+        )
+    }
 
     public init(
         categories: Set<EntryCategory>,
@@ -69,6 +103,12 @@ public struct EncyclopediaListScreen: View {
                     LazyVStack(spacing: 8) {
                         if showsSearch {
                             searchBar
+                                // Explicitly identified so it is a legal scroll
+                                // target: `scrollPosition(id:)` can only address
+                                // views the target layout has ids for, and
+                                // without this the search bar is a hole at the
+                                // top of the list that the anchor cannot name.
+                                .id(Self.searchBarAnchor)
                         }
 
                         if results.isEmpty {
@@ -85,9 +125,18 @@ public struct EncyclopediaListScreen: View {
                             }
                         }
                     }
+                    // Pairs with `scrollPosition(id:)` below — without it the
+                    // scroll view has no per-subview geometry to report or to
+                    // scroll to, and the binding stays nil forever.
+                    .scrollTargetLayout()
                     .padding(10)
                 }
                 .scrollDismissesKeyboard(.interactively)
+                // Two-way: SwiftUI writes the top-most visible row's id as you
+                // scroll, and scrolls to it when the value is set on rebuild.
+                // That rebuild is exactly what happens on the way back from an
+                // entry, which is the whole point.
+                .scrollPosition(id: anchorBinding)
             }
         }
     }
@@ -111,17 +160,7 @@ public struct EncyclopediaListScreen: View {
     }
 
     private var searchBar: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 18, weight: .bold))
-                .foregroundStyle(Dex.green500)
-            DexSearchField(text: $search)
-                .frame(height: 34)
-        }
-        .padding(.horizontal, 12)
-        .frame(height: 46)
-        .background(Capsule().fill(lcd.well))
-        .overlay(Capsule().strokeBorder(lcd.surfaceEdge, lineWidth: 2))
+        DexSearchBar(text: searchBinding)
     }
 
     private var emptyState: some View {

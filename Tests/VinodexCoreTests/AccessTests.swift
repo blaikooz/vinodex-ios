@@ -101,6 +101,154 @@ struct AccessTests {
             #expect(!store.isLocked(entry, in: open))
         }
     }
+
+    // MARK: Bundles
+
+    /// Pro is the superset: granting it must open everything, which is what
+    /// makes it a coherent top tier rather than one bundle among several.
+    @Test("pro unlocks every entry")
+    func proUnlocksAll() {
+        let store = makeStore()
+        store.starterOnly = true
+        store.grant(.pro)
+        for entry in db.entries {
+            #expect(!store.isLocked(entry, in: db), "\(entry.name) still locked with Pro")
+        }
+    }
+
+    /// The edge case the single boolean could never express: one bundle owned,
+    /// everything else still shut.
+    @Test("the flavors bundle opens flavors and nothing else")
+    func flavorsBundleIsNarrow() {
+        let store = makeStore()
+        store.starterOnly = true
+
+        let lockedBefore = db.entries.filter { store.isLocked($0, in: db) }
+        store.grant(.flavors)
+
+        for entry in db.entries(in: .flavors) {
+            #expect(!store.isLocked(entry, in: db), "\(entry.name) locked despite the flavor bundle")
+        }
+
+        // Everything it opened must have been a flavour.
+        let opened = lockedBefore.filter { !store.isLocked($0, in: db) }
+        #expect(!opened.isEmpty, "the flavor bundle opened nothing — was anything locked?")
+        for entry in opened {
+            #expect(entry.category == .flavors, "\(entry.name) is not a flavour but the bundle opened it")
+        }
+    }
+
+    /// A country bundle covers grapes, regions and styles from that country,
+    /// and must not leak into its neighbours.
+    @Test("a country bundle opens only that country")
+    func countryBundleIsNarrow() {
+        let store = makeStore()
+        store.starterOnly = true
+
+        let lockedBefore = db.entries.filter { store.isLocked($0, in: db) }
+        store.grant(.country("France"))
+
+        let opened = lockedBefore.filter { !store.isLocked($0, in: db) }
+        #expect(!opened.isEmpty, "the France bundle opened nothing")
+        for entry in opened {
+            #expect(
+                TextNormalize.label(entry.origin ?? "") == "france",
+                "\(entry.name) (\(entry.origin ?? "no origin")) opened by the France bundle"
+            )
+        }
+    }
+
+    /// Case is not consistent in the authored origins, so the bundle has to
+    /// fold — same reasoning as `hasRegions(inCountry:)`.
+    @Test("country bundles are case-insensitive")
+    func countryBundleFoldsCase() {
+        let store = makeStore()
+        store.starterOnly = true
+        store.grant(.country("france"))
+
+        let french = db.entries(in: .regions).filter {
+            TextNormalize.label($0.origin ?? "") == "france"
+        }
+        #expect(!french.isEmpty)
+        for entry in french {
+            #expect(!store.isLocked(entry, in: db), "\(entry.name) locked by a lower-case grant")
+        }
+    }
+
+    /// Cosmetics gate a setting, not a page — they must never open an entry.
+    @Test("cosmetic bundles unlock no entries")
+    func cosmeticsAreNotContent() {
+        let store = makeStore()
+        store.starterOnly = true
+        let lockedBefore = Set(db.entries.filter { store.isLocked($0, in: db) }.map(\.id))
+
+        store.grant(.skins)
+        store.grant(.lightMode)
+
+        let lockedAfter = Set(db.entries.filter { store.isLocked($0, in: db) }.map(\.id))
+        #expect(lockedBefore == lockedAfter, "a cosmetic bundle changed which entries are readable")
+        #expect(store.isUnlocked(.skins))
+        #expect(store.isUnlocked(.lightMode))
+    }
+
+    /// With the free tier off, nothing is gated — including cosmetics, so the
+    /// developer switch gives the whole app back in one move.
+    @Test("cosmetics are open while the free tier is off")
+    func cosmeticsFollowTheTierSwitch() {
+        let store = makeStore()
+        #expect(store.starterOnly == false)
+        #expect(store.isUnlocked(.skins))
+        store.starterOnly = true
+        #expect(!store.isUnlocked(.skins))
+    }
+
+    @Test("grants survive a reload and can be revoked")
+    func grantsPersist() {
+        let name = UUID().uuidString
+        let defaults = UserDefaults(suiteName: name)!
+        defaults.removePersistentDomain(forName: name)
+
+        let first = AccessStore(defaults: defaults)
+        first.grant(.flavors)
+        first.grant(.country("Italy"))
+
+        let reloaded = AccessStore(defaults: defaults)
+        #expect(reloaded.granted.contains(.flavors))
+        #expect(reloaded.granted.contains(.country("Italy")))
+
+        reloaded.revokeAll()
+        #expect(AccessStore(defaults: defaults).granted.isEmpty)
+    }
+
+    /// The ids are the persisted vocabulary, so they have to round-trip exactly.
+    @Test("every entitlement round-trips through its id")
+    func entitlementIDsRoundTrip() {
+        let all: [Entitlement] = [.pro, .flavors, .skins, .lightMode, .country("New Zealand")]
+        for entitlement in all {
+            #expect(Entitlement(id: entitlement.id) == entitlement, "\(entitlement.id) did not round-trip")
+        }
+        #expect(Entitlement(id: "nonsense") == nil)
+        #expect(Entitlement(id: "country:") == nil)
+    }
+
+    /// The prompt should offer the bundle that actually covers what you tapped,
+    /// not Pro for everything.
+    @Test("the offer for a locked entry covers it")
+    func offerCoversTheEntry() throws {
+        let store = makeStore()
+        store.starterOnly = true
+
+        let locked = db.entries.filter { store.isLocked($0, in: db) }
+        #expect(!locked.isEmpty)
+
+        for entry in locked {
+            let offer = Entitlement.offer(for: entry)
+            #expect(
+                offer.covers(entry, in: db),
+                "\(entry.name) would be offered \(offer.id), which does not cover it"
+            )
+        }
+    }
 }
 
 @Suite("Display hyphenation")
