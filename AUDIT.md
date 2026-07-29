@@ -8,7 +8,7 @@ they never get renumbered, even as items are resolved.
 
 ## Status
 
-**26 resolved · 1 won't-fix · 70 open**
+**27 resolved · 1 won't-fix · 69 open**
 
 Re-reconciled against `0a446d3` on 2026-07-29 (see the update log). The counts
 first moved because the code advanced through v0.4.1 and v0.4.1.5 *after* the last
@@ -24,8 +24,8 @@ note.
 | Critical | 0 | — | — | 0 |
 | High | 4 | 7 | — | 11 |
 | Medium | 34 | 9 | 1 | 44 |
-| Low | 32 | 10 | — | 42 |
-| **Total** | **70** | **26** | **1** | **97** |
+| Low | 31 | 11 | — | 42 |
+| **Total** | **69** | **27** | **1** | **97** |
 
 Open items by workstream — each row is roughly one sitting's worth of related work:
 
@@ -34,7 +34,7 @@ Open items by workstream — each row is roughly one sitting's worth of related 
 | UI & UX polish | 15 | M17 M23 M24 · L28 L32 L34–L42 |
 | Architecture & code quality | 13 | M26–M31 · L1 L2 L4 L5 L6 L9 L10 |
 | Performance | 11 | M5 M6 M7 M8 M9 M11 · L11 L12 L14 L15 L16 |
-| Pipeline & reproducibility | 4 | M40 · L19 L25 L26 |
+| Pipeline & reproducibility | 3 | M40 · L25 L26 |
 | Accessibility | 7 | H10 H11 · M18 M19 M20 M21 M25 |
 | Light mode & contrast | 7 | M13 M14 M15 M44 · L29 L30 L33 |
 | Data & robustness | 6 | H2 · M1 M2 M3 M4 · L18 |
@@ -219,7 +219,8 @@ quoted symbol instead.
   - **Prepped (`audit-fixes`).** Deleted the 21 orphans (circle, flame, oak, shield, sparkles, lucide flag, lucide globe) and added a prune step that drops any `Icons/*.png` whose slug left the manifest.
 - [ ] **L18** · data · palette.json ships fields nothing decodes (flagGradients, flavorClassMeta) and Palette decodes fields nothing reads (appellationChips, continentColors) · `WineDatabase.swift:91` + `scripts/generate-ios-data.ts` → drop both sides
   - **Partly prepped (`audit-fixes`).** Generator no longer emits `flagGradients` or `flavorClassMeta` (Swift-unread). Held for a CI-gated Swift change: `appellationChips` + `continentColors` (still non-optional in `Palette`, so both the property and the emission must go together).
-- [ ] **L19** · data · all four JSONs are pretty-printed (2-space indent), inflating ~412KB by roughly a third · `scripts/generate-ios-data.ts:674` → emit minified (keep a --pretty debug flag)
+- [x] **L19** · data · all four JSONs are pretty-printed (2-space indent), inflating ~412KB by roughly a third · `scripts/generate-ios-data.ts:674` → emit minified (keep a --pretty debug flag)
+  - **Prepped (`audit-fixes`).** Minified by default via `serialize()`; `--pretty`/`PRETTY=1` for readable output. With M4/L18, entries.json 346KB → 193KB (−44%). Verified whitespace-only by JSON.parse deep-equality.
 - [ ] **L20** · assets · AppIcon.png is a barely-compressed 1024² PNG at 932KB (~⅓ of the git pack) · `AppIcon.png` → recompress losslessly (oxipng/zopflipng) and note a binary-asset policy
 - [ ] **L22** · reproducibility · the xtool version used for packaging/signing is recorded nowhere · `xtool.yml` → record the known-good version as part of the release checklist
   - **Since audit:** narrowed by `fb5dcf2` — README now pins the Swift requirement (6.3); xtool remains unpinned.
@@ -284,7 +285,7 @@ quoted symbol instead.
 
 **2026-07-29 — pipeline prep on `audit-fixes`.** Verifiable data/pipeline items
 prepped locally (no Swift toolchain in that environment, so Swift items are held
-for a CI-gated pass). Fully done: **M43, L17, L23, L24**. Partly done (pipeline
+for a CI-gated pass). Fully done: **M43, L17, L23, L24, L19**. Partly done (pipeline
 half; Swift half held): **M3** (generator `validateOutputs()` schema self-check),
 **M4** (stripped `grapeCard`/`grapeRarityTier`, −19% on entries.json), **L18**
 (stripped `flagGradients`/`flavorClassMeta`). Verified by regeneration +
