@@ -114,7 +114,7 @@ public struct BookmarksScreen: View {
                     Text("CLEAR ALL")
                     .font(DexFont.retro(9))
                     .tracking(1)
-                    .foregroundStyle(Dex.stone400)
+                    .foregroundStyle(lcd.subtext)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                         .overlay(
@@ -246,7 +246,7 @@ public struct BookmarksScreen: View {
         } label: {
             Image(systemName: "xmark")
                 .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(Dex.stone400)
+                .foregroundStyle(lcd.subtext)
                 .frame(width: 26, height: 26)
                 .background(Circle().fill(Dex.stone900))
                 .overlay(Circle().strokeBorder(lcd.surfaceEdge, lineWidth: 1))
@@ -264,7 +264,7 @@ public struct BookmarksScreen: View {
             Text("NOTHING SAVED")
                 .font(DexFont.retro(12))
                 .tracking(2)
-                .foregroundStyle(Dex.stone400)
+                .foregroundStyle(lcd.subtext)
             Text("Tap SAVE on any entry to keep it here.")
                 .font(DexFont.mono(18))
                 .foregroundStyle(Dex.stone600)

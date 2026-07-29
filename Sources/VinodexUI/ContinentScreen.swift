@@ -99,7 +99,7 @@ public struct ContinentScreen: View {
         .background(
             ZStack {
                 lcd.heroWash
-                DexGridBackground(spacing: 34, color: Color(dexHex: "#14532d"), opacity: 0.5)
+                DexGridBackground(spacing: 34, color: lcd.heroGrid, opacity: 0.5)
             }
         )
         .overlay(alignment: .bottom) {

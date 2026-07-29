@@ -145,17 +145,17 @@ public struct EncyclopediaListScreen: View {
         HStack(spacing: 10) {
             Image(systemName: "line.3.horizontal.decrease.circle.fill")
                 .font(.system(size: 20))
-                .foregroundStyle(Dex.green)
+                .foregroundStyle(lcd.accent)
             Text(filter.indicatorText)
                 .font(DexFont.mono(20))
-                .foregroundStyle(Dex.stone200)
+                .foregroundStyle(lcd.text)
             Spacer()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Dex.stone800)
+        .background(lcd.surface)
         .overlay(alignment: .bottom) {
-            Dex.stone700.frame(height: 1)
+            lcd.surfaceEdge.frame(height: 1)
         }
     }
 
