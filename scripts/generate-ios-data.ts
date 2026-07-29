@@ -718,6 +718,13 @@ function assertCoverage(entries: readonly WineEntry[], palette: ReturnType<typeo
 const STRIP_ENTRY_FIELDS = ['grapeCard', 'grapeRarityTier'];
 const STRIP_PALETTE_FIELDS = ['flagGradients', 'flavorClassMeta'];
 
+// AUDIT L19 — ship minified JSON (the app decodes it identically) to drop ~⅓ of
+// the on-disk/bundle size that 2-space pretty-printing added. Pass --pretty (or
+// PRETTY=1) to emit readable JSON when eyeballing a data change.
+const PRETTY = process.argv.includes('--pretty') || process.env.PRETTY === '1';
+const serialize = (value: unknown): string =>
+  (PRETTY ? JSON.stringify(value, null, 2) : JSON.stringify(value)) + '\n';
+
 function omitKeys<T>(value: T, keys: string[]): T {
   if (Array.isArray(value)) return value.map((v) => omitKeys(v, keys)) as unknown as T;
   if (value && typeof value === 'object') {
@@ -850,11 +857,11 @@ function main() {
   const leanEntries = omitKeys(entries, STRIP_ENTRY_FIELDS);
   const leanPalette = omitKeys(palette, STRIP_PALETTE_FIELDS);
 
-  writeFileSync(resolve(OUT_DIR, 'entries.json'), JSON.stringify(leanEntries, null, 2) + '\n');
-  writeFileSync(resolve(OUT_DIR, 'tiers.json'), JSON.stringify(tiers, null, 2) + '\n');
-  writeFileSync(resolve(OUT_DIR, 'palette.json'), JSON.stringify(leanPalette, null, 2) + '\n');
-  writeFileSync(resolve(OUT_DIR, 'icons.json'), JSON.stringify(icons, null, 2) + '\n');
-  writeFileSync(resolve(OUT_DIR, 'countries.json'), JSON.stringify(countries, null, 2) + '\n');
+  writeFileSync(resolve(OUT_DIR, 'entries.json'), serialize(leanEntries));
+  writeFileSync(resolve(OUT_DIR, 'tiers.json'), serialize(tiers));
+  writeFileSync(resolve(OUT_DIR, 'palette.json'), serialize(leanPalette));
+  writeFileSync(resolve(OUT_DIR, 'icons.json'), serialize(icons));
+  writeFileSync(resolve(OUT_DIR, 'countries.json'), serialize(countries));
 
   // AUDIT M3 — fail loudly here (and in CI) if the emitted JSON would not decode.
   validateOutputs(OUT_DIR);
