@@ -250,9 +250,11 @@ public struct BookmarksScreen: View {
                 .frame(width: 26, height: 26)
                 .background(Circle().fill(Dex.stone900))
                 .overlay(Circle().strokeBorder(lcd.surfaceEdge, lineWidth: 1))
+                // 44pt hit target around the 26pt visual (audit M25).
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(DexPressStyle(scale: 0.9))
-        .padding(6)
         .accessibilityLabel("Remove \(item.displayName) from saved")
     }
 

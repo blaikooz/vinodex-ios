@@ -82,6 +82,10 @@ public struct DexAlert: View {
                     .strokeBorder(Dex.green.opacity(0.6), lineWidth: 2)
             )
             .padding(20)
+            // Trap VoiceOver focus in the dialog instead of letting it wander
+            // into the obscured content behind the scrim. (audit M19)
+            .accessibilityElement(children: .contain)
+            .accessibilityAddTraits(.isModal)
         }
         .transition(.opacity)
     }
