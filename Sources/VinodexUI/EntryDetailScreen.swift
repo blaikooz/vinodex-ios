@@ -588,22 +588,6 @@ public struct EntryDetailScreen: View {
         }
     }
 
-    private func textSection(_ title: String, symbol: String, body: String) -> some View {
-        section(title, symbol: symbol) {
-            Text(body)
-                .font(DexFont.mono(20))
-                .foregroundStyle(lcd.bodyText)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 14)
-                .padding(.vertical, 8)
-                .background(alignment: .leading) {
-                    lcd.accent.frame(width: 4)
-                }
-                .background(lcd.accent.opacity(0.06))
-        }
-    }
-
     /// Full-width rows, as the reference renders related entries — chips are
     /// reserved for short metadata like appellations.
     @ViewBuilder
