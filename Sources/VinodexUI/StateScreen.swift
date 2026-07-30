@@ -15,6 +15,8 @@ public struct StateScreen: View {
 
     @State private var access = AccessStore.shared
     @State private var bookmarks = BookmarkStore.shared
+    /// Scroll position outlives the view — see `ScreenStateStore`.
+    @State private var screens = ScreenStateStore.shared
     private let db = WineDatabase.shared
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
@@ -26,6 +28,20 @@ public struct StateScreen: View {
 
     private var bookmarkID: String { "STATE_\(state)" }
 
+    private var screenKey: String { ScreenStateStore.state(state) }
+
+    private enum Anchor {
+        static let hero = "hero"
+        static let regions = "regions"
+    }
+
+    private var anchorBinding: Binding<String?> {
+        Binding(
+            get: { screens.anchor(for: screenKey) },
+            set: { screens.setAnchor($0, for: screenKey) }
+        )
+    }
+
     private var regions: [WineEntry] {
         db.entries(in: .regions).filter {
             if case .region(let r) = $0 { return r.details.state == state }
@@ -36,12 +52,17 @@ public struct StateScreen: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                hero
-                regionsSection
+                hero.id(Anchor.hero)
+                regionsSection.id(Anchor.regions)
             }
-            .padding(.horizontal, 14)
-            .padding(.bottom, 72)
+            .scrollTargetLayout()
         }
+        // Content margins rather than padding around the target layout — see
+        // the note in `EncyclopediaListScreen`. The generous tail keeps the
+        // last section clear of the footer, matching pb-20.
+        .contentMargins(.horizontal, 14, for: .scrollContent)
+        .contentMargins(.bottom, 72, for: .scrollContent)
+        .scrollPosition(id: anchorBinding)
         .background(lcd.page)
         .id(state)
     }

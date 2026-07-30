@@ -49,9 +49,31 @@ public struct EntryDetailScreen: View {
 
     private let db = WineDatabase.shared
     @State private var bookmarks = BookmarkStore.shared
+    /// Scroll position outlives the view — see `ScreenStateStore`.
+    @State private var screens = ScreenStateStore.shared
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
 
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
+
+    private var screenKey: String { ScreenStateStore.detail(entry.id) }
+
+    /// Coarser than the other screens': the category sections are built by a
+    /// `@ViewBuilder` switch over the entry variant, so they share one anchor
+    /// rather than each carrying its own. Landing at the top of the readout's
+    /// body still beats landing at the top of the page.
+    private enum Anchor {
+        static let hero = "hero"
+        static let tiles = "tiles"
+        static let info = "info"
+        static let sections = "sections"
+    }
+
+    private var anchorBinding: Binding<String?> {
+        Binding(
+            get: { screens.anchor(for: screenKey) },
+            set: { screens.setAnchor($0, for: screenKey) }
+        )
+    }
 
     /// The web app caps linked lists at 8 rows.
     private static let linkedRowLimit = 8
@@ -69,20 +91,35 @@ public struct EntryDetailScreen: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                hero
-                headerTiles
+                hero.id(Anchor.hero)
+                headerTiles.id(Anchor.tiles)
                 // Flavours were skipped while their blurb was a bare template
                 // sentence. It now names the grapes the flavour derives from,
                 // which is worth showing.
                 if !entry.entryDescription.isEmpty {
-                    infoSection
+                    infoSection.id(Anchor.info)
                 }
-                categorySections
+                // Wrapped in a real container before being identified: the
+                // builder returns a tuple of sections, and putting `.id()`
+                // straight on that would collapse N stack children into one
+                // view. The zero spacing and matching alignment make the extra
+                // stack invisible.
+                VStack(alignment: .leading, spacing: 0) {
+                    categorySections
+                }
+                .id(Anchor.sections)
             }
-            .padding(.horizontal, 14)
-            // Generous tail so the last section clears the footer, matching pb-20.
-            .padding(.bottom, 72)
+            .scrollTargetLayout()
         }
+        // Content margins rather than padding around the target layout — see
+        // the note in `EncyclopediaListScreen`. The generous tail keeps the
+        // last section clear of the footer, matching pb-20.
+        .contentMargins(.horizontal, 14, for: .scrollContent)
+        .contentMargins(.bottom, 72, for: .scrollContent)
+        // Restores where this entry was left, and starts a never-seen entry at
+        // the top — the stored anchor is keyed per entry id, so a cross-link to
+        // a new entry has none. See `ScreenStateStore`.
+        .scrollPosition(id: anchorBinding)
         .background(lcd.page)
         // Following a cross-link swaps the entry but keeps the same ScrollView,
         // so the new entry opened at the previous one's scroll offset — halfway

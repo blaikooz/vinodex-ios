@@ -16,8 +16,14 @@ import VinodexCore
 public struct ScannerScreen: View {
     let onOpen: (WineEntry) -> Void
 
+    /// Both mirrored into `ScreenStateStore` on every change — see
+    /// `persist()`. `@State` alone dies with the view, and this screen is one of
+    /// the two the user *leaves and comes back to* mid-task: the reveal offers
+    /// OPEN ENTRY, and taking it used to mean answering all five questions again
+    /// to see the second candidate.
     @State private var step: Step = .color
     @State private var criteria = GrapeScanCriteria()
+    @State private var screens = ScreenStateStore.shared
 
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
@@ -46,6 +52,13 @@ public struct ScannerScreen: View {
     private enum FlavorKind: Hashable {
         case classification
         case subclass
+
+        var storageValue: String {
+            switch self {
+            case .classification: "class"
+            case .subclass: "sub"
+            }
+        }
     }
 
     /// Which of the five questions a step belongs to. The globe, the country
@@ -79,6 +92,70 @@ public struct ScannerScreen: View {
 
     private func advance(to next: Step) {
         withAnimation(.easeOut(duration: 0.2)) { step = next }
+    }
+
+    // MARK: Surviving the trip to an entry
+
+    /// Where the questionnaire had got to, as a string.
+    ///
+    /// Spelled out rather than derived from `String(describing:)` for the reason
+    /// `ScreenStateStore`'s own keys are: that form is a compiler detail, and a
+    /// renamed case would silently restore the wrong question. Split with
+    /// `maxSplits` so a flavour value containing a colon still round-trips.
+    private static func storageValue(of step: Step) -> String {
+        switch step {
+        case .color: "color"
+        case .body: "body"
+        case .origin: "origin"
+        case .globe: "globe"
+        case .country(let continent): "country:" + continent.rawValue
+        case .flavors: "flavors"
+        case .flavorList(let kind, let value): "flavorList:\(kind.storageValue):\(value)"
+        case .reveal: "reveal"
+        }
+    }
+
+    private static func step(from raw: String) -> Step? {
+        let parts = raw.split(separator: ":", maxSplits: 2, omittingEmptySubsequences: false)
+        switch parts.first.map(String.init) {
+        case "color": return .color
+        case "body": return .body
+        case "origin": return .origin
+        case "globe": return .globe
+        case "flavors": return .flavors
+        case "reveal": return .reveal
+        case "country":
+            guard parts.count == 2, let continent = Continent(rawValue: String(parts[1])) else { return nil }
+            return .country(continent)
+        case "flavorList":
+            guard parts.count == 3 else { return nil }
+            let kind: FlavorKind? = parts[1] == "class" ? .classification : (parts[1] == "sub" ? .subclass : nil)
+            guard let kind else { return nil }
+            return .flavorList(kind: kind, value: String(parts[2]))
+        default: return nil
+        }
+    }
+
+    /// Restores on appear rather than on init: the view is rebuilt on every
+    /// navigation and an initialiser cannot touch `@State` that SwiftUI has not
+    /// installed yet. Anything unreadable falls back to a fresh scan.
+    private func restore() {
+        let key = ScreenStateStore.scanner
+        if let raw = screens.value("step", for: key), let restored = Self.step(from: raw) {
+            step = restored
+        }
+        if let saved = screens.decoded(GrapeScanCriteria.self, "criteria", for: key) {
+            criteria = saved
+        }
+    }
+
+    private func persist() {
+        let key = ScreenStateStore.scanner
+        screens.setValue(Self.storageValue(of: step), "step", for: key)
+        // A blank slate stores nothing, so RESET genuinely resets: leaving and
+        // returning after it lands back on question one rather than on whatever
+        // was there before.
+        screens.encode(criteria.isEmpty ? nil : criteria, "criteria", for: key)
     }
 
     // MARK: Body
@@ -122,6 +199,12 @@ public struct ScannerScreen: View {
                 }
             }
         }
+        .onAppear { restore() }
+        // Mirrored on change rather than at each of the dozen call sites that
+        // move the cursor or amend an answer — one of those would eventually be
+        // added without its matching save.
+        .onChange(of: step) { _, _ in persist() }
+        .onChange(of: criteria) { _, _ in persist() }
     }
 
     private var header: some View {

@@ -16,9 +16,10 @@ public struct CountryScreen: View {
 
     @State private var access = AccessStore.shared
     @State private var bookmarks = BookmarkStore.shared
-    @State private var showsAllStates = false
-    @State private var showsAllGrapes = false
-    @State private var showsAllRegions = false
+    /// Expander state and scroll position live outside the view, so they survive
+    /// it being torn down and rebuilt on the way back from a region — see
+    /// `ScreenStateStore`.
+    @State private var screens = ScreenStateStore.shared
     private let db = WineDatabase.shared
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
@@ -26,6 +27,34 @@ public struct CountryScreen: View {
     /// Countries have no entry, so the bookmark key is synthesised. Prefixed so
     /// it can never collide with a real entry id.
     private var bookmarkID: String { "COUNTRY_\(country)" }
+
+    private var screenKey: String { ScreenStateStore.country(country) }
+
+    /// Section identities, doubling as scroll anchors and as the names of the
+    /// expander flags. One set of constants rather than two, since a section
+    /// that can be scrolled to is the same section that can be expanded.
+    private enum Anchor {
+        static let hero = "hero"
+        static let info = "info"
+        static let states = "states"
+        static let grapes = "grapes"
+        static let appellations = "appellations"
+        static let regions = "regions"
+    }
+
+    private var showsAllStates: Bool { screens.isOn(Anchor.states, for: screenKey) }
+    private var showsAllGrapes: Bool { screens.isOn(Anchor.grapes, for: screenKey) }
+    private var showsAllRegions: Bool { screens.isOn(Anchor.regions, for: screenKey) }
+
+    /// Two-way: SwiftUI writes the top-most visible section as you scroll, and
+    /// scrolls back to it when the value is set on rebuild. That rebuild is
+    /// exactly what happens on the way back from a region.
+    private var anchorBinding: Binding<String?> {
+        Binding(
+            get: { screens.anchor(for: screenKey) },
+            set: { screens.setAnchor($0, for: screenKey) }
+        )
+    }
 
     public init(
         country: String,
@@ -55,16 +84,24 @@ public struct CountryScreen: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                hero
-                infoSection
-                if !states.isEmpty { statesSection }
-                if !notableGrapes.isEmpty { grapesSection }
-                if !appellations.isEmpty { appellationsSection }
-                regionsSection
+                hero.id(Anchor.hero)
+                infoSection.id(Anchor.info)
+                if !states.isEmpty { statesSection.id(Anchor.states) }
+                if !notableGrapes.isEmpty { grapesSection.id(Anchor.grapes) }
+                if !appellations.isEmpty { appellationsSection.id(Anchor.appellations) }
+                regionsSection.id(Anchor.regions)
             }
-            .padding(.horizontal, 14)
-            .padding(.bottom, 72)
+            // Pairs with `scrollPosition(id:)` below — without it the scroll
+            // view has no per-section geometry to report or to scroll to, and
+            // the binding stays nil forever.
+            .scrollTargetLayout()
         }
+        // Content margins rather than padding around the target layout — see
+        // the note in `EncyclopediaListScreen`. The generous tail keeps the
+        // last section clear of the footer, matching pb-20.
+        .contentMargins(.horizontal, 14, for: .scrollContent)
+        .contentMargins(.bottom, 72, for: .scrollContent)
+        .scrollPosition(id: anchorBinding)
         .background(lcd.page)
         .id(country)
     }
@@ -122,23 +159,17 @@ public struct CountryScreen: View {
         .buttonStyle(DexPressStyle(scale: 0.94))
     }
 
-    /// The country blurb, plus a one-line readout of what this database holds
-    /// for it.
+    /// The country blurb, authored in `shared/data/countries.ts` and generated
+    /// into `countries.json`.
     ///
-    /// The prose used to be the readout: "France holds 12 regions in this
-    /// database, across cool, maritime, mediterranean climates." That was
-    /// honest — a country has no entry here, so there was nothing authored to
-    /// show — but it described the *app*, not the country, and it was the same
-    /// sentence with the nouns swapped on all eighteen pages. The blurbs are
-    /// authored in `shared/data/countries.ts` and generated into
-    /// `countries.json`; the derived line stays, demoted to a caption, because
-    /// knowing how much of a country is covered is genuinely useful.
+    /// A derived caption used to sit under the blurb — "12 REGIONS IN THIS
+    /// DATABASE · COOL, MARITIME". It was the last survivor of the days when
+    /// that readout *was* the whole section, before there were authored blurbs
+    /// to replace it. It describes the app rather than the country, it was the
+    /// same sentence with the nouns swapped on all eighteen pages, and the
+    /// REGIONS section directly below already shows the count. Gone.
     private var infoSection: some View {
-        let climates = Set(regions.compactMap(\.climate)).map(\.rawValue).sorted()
-        let summary = "\(regions.count) region\(regions.count == 1 ? "" : "s") in this database"
-            + (climates.isEmpty ? "" : " · \(climates.joined(separator: ", "))")
-
-        return section("INFO", symbol: "book") {
+        section("INFO", symbol: "book") {
             VStack(alignment: .leading, spacing: 8) {
                 if let info = db.countryInfo(country) {
                     Text(info.description)
@@ -148,13 +179,6 @@ public struct CountryScreen: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-
-                Text(summary.uppercased())
-                    .font(DexFont.retro(8))
-                    .tracking(1)
-                    .foregroundStyle(lcd.accent)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(.leading, 14)
             .padding(.trailing, 10)
@@ -198,7 +222,7 @@ public struct CountryScreen: View {
                 }
                 if all.count > 3 {
                     expander(expanded: showsAllGrapes, total: all.count) {
-                        showsAllGrapes.toggle()
+                        screens.toggleFlag(Anchor.grapes, for: screenKey)
                     }
                 }
             }
@@ -308,7 +332,7 @@ public struct CountryScreen: View {
 
                 if states.count > 3 {
                     expander(expanded: showsAllStates, total: states.count) {
-                        showsAllStates.toggle()
+                        screens.toggleFlag(Anchor.states, for: screenKey)
                     }
                 }
             }
@@ -338,7 +362,7 @@ public struct CountryScreen: View {
                 }
                 if all.count > 3 {
                     expander(expanded: showsAllRegions, total: all.count) {
-                        showsAllRegions.toggle()
+                        screens.toggleFlag(Anchor.regions, for: screenKey)
                     }
                 }
             }

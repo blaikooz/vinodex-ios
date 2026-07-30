@@ -1,7 +1,103 @@
-# Vinodex — iOS
+<div align="center">
 
-A retro-handheld wine field guide covering grape varieties, regions, styles and
-tasting profiles, built in SwiftUI.
+<img src="AppIcon.png" alt="Vinodex" width="148" />
+
+# VINODEX
+
+### A wine encyclopedia that looks like a 90s handheld.
+
+**284 grapes, regions, styles and flavours** — colour-coded, cross-linked, and
+wrapped in a plastic shell you can re-skin five different ways.
+
+<p>
+<img src="Sources/VinodexUI/Resources/Flags/france.png" alt="France" height="24" />
+<img src="Sources/VinodexUI/Resources/Flags/italy.png" alt="Italy" height="24" />
+<img src="Sources/VinodexUI/Resources/Flags/spain.png" alt="Spain" height="24" />
+<img src="Sources/VinodexUI/Resources/Flags/portugal.png" alt="Portugal" height="24" />
+<img src="Sources/VinodexUI/Resources/Flags/germany.png" alt="Germany" height="24" />
+<img src="Sources/VinodexUI/Resources/Flags/austria.png" alt="Austria" height="24" />
+<img src="Sources/VinodexUI/Resources/Flags/greece.png" alt="Greece" height="24" />
+<img src="Sources/VinodexUI/Resources/Flags/usa.png" alt="USA" height="24" />
+<img src="Sources/VinodexUI/Resources/Flags/argentina.png" alt="Argentina" height="24" />
+<img src="Sources/VinodexUI/Resources/Flags/chile.png" alt="Chile" height="24" />
+<img src="Sources/VinodexUI/Resources/Flags/australia.png" alt="Australia" height="24" />
+<img src="Sources/VinodexUI/Resources/Flags/new-zealand.png" alt="New Zealand" height="24" />
+<img src="Sources/VinodexUI/Resources/Flags/south-africa.png" alt="South Africa" height="24" />
+<img src="Sources/VinodexUI/Resources/Flags/japan.png" alt="Japan" height="24" />
+</p>
+
+</div>
+
+---
+
+## Two apps, one device
+
+Vinodex exists twice. Same chassis, same screens, same rules — built on
+different stacks because they are for different moments.
+
+| | **Vinodex for iOS** ← *this repo* | **Vinodex Web** |
+|---|---|---|
+| **What it is** | A native SwiftUI app for the phone in your pocket. Haptics on every button, the photo library for your avatar, and a real 3D globe. The one you open in a wine shop. | A progressive web app that runs in any browser and installs to a home screen. Nothing to download, nothing to sign. The one you send someone a link to. |
+| **Built with** | `Swift 6.3` · `SwiftUI` · `iOS 17+` · `SwiftPM` · `xtool` | `React 19` · `TypeScript` · `Vite` · `Tailwind v4` |
+| **Where** | [`blaikooz/vinodex-ios`](https://github.com/blaikooz/vinodex-ios) | [`blaikooz/vinodex-web`](https://github.com/blaikooz/vinodex-web) → **[open it](https://vinodex.vercel.app)** |
+| **Run it** | `swift test`, then `xtool dev run` | `npm install && npm run dev` |
+
+**This Swift source is the reference when the two disagree.** The web app is
+kept deliberately close to it, and neither repo copies from the other.
+
+## What's in it
+
+| | |
+|---|---|
+| **The dex** | Grapes, regions, styles, flavours and continents. Every entry cross-links to the others, and every link resolves — the tests pin that. |
+| **Globe scan** | A drag-to-spin globe. Continent markers open a continent screen, then its countries, then their regions. Where you spun it to survives the trip into a region. |
+| **Scanner** | Colour, body, origin, flavours — then a deduction. Flavours are ANDed, capped at three, because a fourth specific note reliably matches nothing. |
+| **Chip filter** | Narrow all 284 entries by colour, body, rarity and climate at once. Every chip shows the count it would produce *before* you tap it. |
+| **Tasting quiz** | WSET Level 1-style questions generated from the data, so a question can never contradict the entry behind it. Answer, then read the entry you just met. |
+| **What's that…?** | A daily reveal played as a guess. Deterministic from the date, so everyone gets the same entry, and a cursor that advances per open so it is replayable. |
+| **Moon dial** | The biodynamic day — fruit, root, leaf or flower. |
+| **Saved** | Bookmarks, stored as ids so a data regeneration never shows stale text. Your own photograph and name sit above them. |
+| **Guided tour** | Opt-in from BEGIN in settings — a walk round the device with each control lit in turn. Never shown unasked. |
+| **Nothing loses its place** | Scroll positions, expanded sections, searches and half-finished scans all survive Back. Home is the reset. |
+
+## Five devices, not one device in five colours
+
+Each chassis skin carries its own **orb**, its own **buttons** and its own
+**marquee phosphor** — the parts that look powered — on top of its moulding. The
+LCD never changes with the skin, so a colourway can never hurt legibility.
+
+| Skin | Shell | Orb | Marquee |
+|---|---|---|---|
+| **Vinodex Classic** | House red | Cyan | Green |
+| **Côte de Nuits** | Graphite | Amethyst | Violet |
+| **Blanc de Blancs** | Bone | Champagne gold | Amber |
+| **Burgundy Velour** | Velvet purple | Gold | Rose |
+| **Electric Riesling** | Walkman yellow | Electric blue | Cyan |
+
+Plus a light screen mode and two text sizes.
+
+## How to run it
+
+The app builds from the committed resources alone — **Node is not required**
+unless you are regenerating data. Requires Swift 6.3 and, for a device build,
+[xtool](https://github.com/xtool-org/xtool) with a Darwin SDK. Development
+happens on Linux/WSL; there is no Xcode project.
+
+```bash
+swift test                 # VinodexCore — runs anywhere Swift does
+xtool dev build            # build the iOS app
+xtool dev run              # build, install and launch on a connected device
+```
+
+`swift test` does **not** compile `VinodexUI` — on Linux the `canImport(SwiftUI)`
+guards reduce it to nothing, so a syntax error there passes `swift test` and only
+fails under `xtool dev build`. UI changes have to be checked on a device.
+
+> **Deploying to a phone from Windows + WSL is where the time actually goes.**
+> [`KNOWN-ISSUES.md`](KNOWN-ISSUES.md) is the runbook — start with the port 27015
+> race, which is the single most likely reason a deploy fails.
+
+## Repo ownership
 
 **This repo is the app.** It owns its source, its data and the tooling that
 generates that data. Commit here, open pull requests here. Nothing outside this
@@ -29,26 +125,8 @@ write to it.
 | `scripts/` | Data generator and icon rasteriser |
 | `pixelflags/` | Pixel-art country/state flags, the source for `Resources/Flags` |
 | `xtool.yml` | Bundle ID and icon path for [xtool](https://github.com/xtool-org/xtool) |
-| `AUDIT.md` | Standing work order — numbered, permanent IDs referenced in commits |
-| `KNOWN-ISSUES.md` | Runbook: device deployment, WSL setup, traps that waste time |
-
-## Build and run
-
-The app builds from the committed resources alone — **Node is not required**
-unless you are regenerating data.
-
-Requires Swift 6.3 and, for a device build, [xtool](https://github.com/xtool-org/xtool)
-with a Darwin SDK. Development happens on Linux/WSL; there is no Xcode project.
-
-```bash
-swift test                 # VinodexCore, runs anywhere Swift does
-xtool dev build            # build the iOS app
-xtool dev run              # build, install and launch on a connected device
-```
-
-`swift test` does **not** compile `VinodexUI` — on Linux the `canImport(SwiftUI)`
-guards reduce it to nothing, so a syntax error there passes `swift test` and only
-fails under `xtool dev build`. UI changes have to be checked on a device.
+| [`AUDIT.md`](AUDIT.md) | Standing work order — numbered, permanent IDs referenced in commits |
+| [`KNOWN-ISSUES.md`](KNOWN-ISSUES.md) | Runbook: device deployment, WSL setup, traps that waste time |
 
 ## Regenerating the bundled data
 
@@ -86,3 +164,9 @@ selection will fail two tests that must then be updated by hand.
   closes in its description and tick them in the same PR.
 - `KNOWN-ISSUES.md` is where operational discoveries go — anything that cost you
   an hour and would cost the next person the same.
+
+## Credits
+
+- **game-icons** — wine, flavour and regional glyphs, via Iconify
+  ([game-icons.net](https://game-icons.net))
+- **Press Start 2P** and **VT323** — the retro and terminal faces

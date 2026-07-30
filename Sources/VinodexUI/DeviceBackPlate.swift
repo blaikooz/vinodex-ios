@@ -193,21 +193,43 @@ public struct DeviceBackPlate: View {
             .foregroundStyle(Dex.stone700)
             .engraved()
 
-            Spacer(minLength: 0)
+            swipeHint
 
-            HStack(spacing: 10) {
-                Image(systemName: "hand.draw")
-                    .font(.system(size: 18))
-                Text("SWIPE TO RETURN")
-                    .font(DexFont.mono(23))
-                    .tracking(6)
-            }
-            .foregroundStyle(Dex.stone800.opacity(0.85))
-            .padding(.bottom, 34)
+            Spacer(minLength: 0)
         }
         .multilineTextAlignment(.center)
         .padding(.horizontal, 24)
         .allowsHitTesting(false)
+    }
+
+    /// The way out, engraved directly under the middle block.
+    ///
+    /// It has moved twice. It began in engraved grey at the very bottom edge,
+    /// below the serial and the copyright, where nobody found it. It was then
+    /// tried as a dark chip above the nameplate, which solved the contrast by
+    /// putting a *button* on a plate that has no buttons — the one element here
+    /// that did not look machined.
+    ///
+    /// This is the version that keeps both: it stays engraved, in the plate's
+    /// own language, but sits directly under the centred block rather than at
+    /// the bottom edge, and is set larger and darker than the serial lines
+    /// around it. Position and weight carry the emphasis instead of colour.
+    ///
+    /// VT323 rather than the retro face: `SWIPE TO RETURN` is fifteen tracked
+    /// characters, and Press Start 2P at a size worth reading overruns the
+    /// plate on a phone at the LARGE text scale.
+    private var swipeHint: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "hand.draw")
+                .font(.system(size: 26, weight: .semibold))
+            Text("SWIPE TO RETURN")
+                .font(DexFont.mono(30))
+                .tracking(7)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+        }
+        .foregroundStyle(Dex.stone800)
+        .engraved()
     }
 }
 

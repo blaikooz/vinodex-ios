@@ -155,16 +155,25 @@ public enum DexMetrics {
     /// Gap from the island controls down to the screen housing. Matches
     /// `footerTopInset` so the housing sits the same distance from both rows.
     public static let islandBottomInset: CGFloat = footerTopInset
-    /// Floor for the island strip, built the same way the footer band is but
-    /// mirrored: `chassisEdgeInset` against the display edge, one control, then
-    /// the small `islandBottomInset` against the screen housing.
+    /// Gap from the display's top edge down to the island controls.
     ///
-    /// It used to be `controlButton + 2 * chassisEdgeInset`, i.e. symmetric — so
-    /// the gap from the orb down to the housing was 16pt while the matching gap
-    /// from the housing down to the footer row was 6pt, and the chassis read as
-    /// top-heavy. The two bands are now mirror images: the big inset faces the
-    /// display edge at both ends, the small one faces the screen.
-    public static let islandStripMinHeight: CGFloat = chassisEdgeInset + controlButton + islandBottomInset
+    /// This was `chassisEdgeInset` (16), on the argument that the band should
+    /// mirror the footer — big inset against the display edge, small one against
+    /// the screen. The footer earns its 16 because the home indicator lands in
+    /// it. There is no home indicator up here, so the same number bought
+    /// nothing and simply pushed the orb and cog down into the LCD's height.
+    ///
+    /// 8 rather than the footer's own 6, and that difference is load-bearing:
+    /// the display's 55pt corner arc cuts `55 - sqrt(55² - (55-h)²)` off each
+    /// side at height `h`, which at 8pt is ~26pt — exactly `cornerGuardH`. The
+    /// controls survive it because they are *circles*: the widest point of the
+    /// orb sits half a control lower, where the arc has closed to ~2pt. Going
+    /// much below 8 starts cutting the button's actual edge rather than the
+    /// empty corner of its bounding box.
+    public static let islandTopInset: CGFloat = 8
+    /// Floor for the island strip: the inset above, one control, then the small
+    /// `islandBottomInset` against the screen housing.
+    public static let islandStripMinHeight: CGFloat = islandTopInset + controlButton + islandBottomInset
     public static let islandClearance: CGFloat = 138
     /// Matches `footerPaddingH` so the orb sits directly above the Back button
     /// and the cog above Home — the four chassis controls share two columns.
@@ -179,6 +188,14 @@ public enum DexMetrics {
     /// Gap between the orb and the status-light cluster now that the lights sit
     /// beside it rather than on its shoulder.
     public static let statusDotsGap: CGFloat = 6
+    /// How far the status cluster rides above the orb's centre line.
+    ///
+    /// Centred, the three lights read as a continuation of the orb — one row of
+    /// four round things. Lifted, they read as indicator lamps set into the
+    /// chassis *above* the control, which is where a period device puts them.
+    /// An offset rather than an alignment guide: this is decoration and must not
+    /// change what the strip reserves.
+    public static let statusDotsRise: CGFloat = 7
     public static let titleSize: CGFloat = 0.9375 * rem
 
     /// Screen housing
@@ -504,11 +521,85 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+/// The six-stop colour ramp one lit chassis button is built from.
+///
+/// A struct rather than six properties on `ChassisSkin` because they are only
+/// ever used together, and a skin that got four of them right and two of them
+/// from the previous colourway would look like a manufacturing fault rather than
+/// like a mistake in the code.
+///
+/// Named by lightness rather than by where each one lands, so a skin author does
+/// not have to know that `mid` is both the outer button's bottom stop and the
+/// inner disc's ring. `ChassisButton` owns that arrangement.
+public struct ChassisAccent: Sendable {
+    /// Inner disc, top.
+    public let pale: Color
+    /// Outer button, top.
+    public let light: Color
+    /// Inner disc, bottom.
+    public let bright: Color
+    /// Outer button, bottom — and the inner disc's hairline.
+    public let mid: Color
+    /// Outer border.
+    public let edge: Color
+    /// The glyph.
+    public let ink: Color
+
+    public init(pale: String, light: String, bright: String, mid: String, edge: String, ink: String) {
+        self.pale = Color(dexHex: pale)
+        self.light = Color(dexHex: light)
+        self.bright = Color(dexHex: bright)
+        self.mid = Color(dexHex: mid)
+        self.edge = Color(dexHex: edge)
+        self.ink = Color(dexHex: ink)
+    }
+}
+
+/// The moulded (unlit) chassis buttons: Back and the user/saved button.
+///
+/// Separate from `ChassisAccent` because these are a different *kind* of part.
+/// The accent ramp describes something that looks powered — six stops, an inner
+/// disc, a glow. This is a moulded cap: a face, a shadow under it, a rim, and
+/// whatever colour the glyph has to be to sit on it.
+///
+/// `glyph` is here rather than assumed white because one skin needs it dark.
+/// Blanc de Blancs' buttons are the original handheld's pale grey, and white on
+/// pale grey is unreadable.
+public struct ChassisControl: Sendable {
+    /// Top of the cap's gradient.
+    public let top: Color
+    /// Bottom of it.
+    public let bottom: Color
+    /// The rim.
+    public let edge: Color
+    /// The chevron or person glyph.
+    public let glyph: Color
+
+    public init(top: String, bottom: String, edge: String, glyph: String) {
+        self.top = Color(dexHex: top)
+        self.bottom = Color(dexHex: bottom)
+        self.edge = Color(dexHex: edge)
+        self.glyph = Color(dexHex: glyph)
+    }
+}
+
 /// Chassis colourway. The LCD itself never changes — only the moulding around
 /// it — so a skin swap cannot affect legibility of the content.
 ///
 /// Persisted under this key by both `DeviceChassis` and `SettingsPanel`;
 /// `@AppStorage` keeps the two in sync without threading state between them.
+///
+/// A skin used to be four greys and a body colour: swap it and you got the same
+/// cyan orb, the same amber Home button and the same green marquee in a
+/// different-coloured tray. The moulding changed and none of the *parts* did,
+/// which is why four of the five read as recolours of one device rather than as
+/// five devices. Each now carries its own orb, its own lit-button ramp and its
+/// own marquee phosphor.
+///
+/// **Vinodex Classic is deliberately untouched** — every value below for
+/// `.classic` is what the whole chassis used before this existed. It is the
+/// house device and the reference the others are variations on; changing it
+/// would move the baseline rather than add to it.
 public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     case classic = "CLASSIC"
     case midnight = "MIDNIGHT"
@@ -594,6 +685,130 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .original: Dex.stone400
         case .burgundy: Dex.velourEdge
         case .riesling: Dex.walkmanEdge
+        }
+    }
+
+    // MARK: Parts
+    //
+    // The three things on the chassis that emit light rather than merely being
+    // moulded: the orb, the lit button, and the marquee. Everything above this
+    // point is plastic; everything below it is powered, which is why these are
+    // the parts worth varying — a skin reads as a different *device* when its
+    // indicators are a different colour, and as a paint job when they are not.
+
+    /// The glass orb on the island strip.
+    public var orb: Color {
+        switch self {
+        case .classic: Dex.cyan300
+        // Pinot noir after dark: amethyst rather than ice.
+        case .midnight: Color(dexHex: "#d8b4fe")
+        // A champagne bead on the pale shell — cyan vanished against bone.
+        case .original: Color(dexHex: "#ffd76e")
+        // Gold on velvet. Blue-on-purple was the one pairing with no contrast
+        // at all: the orb and the moulding sat two steps apart on the wheel.
+        case .burgundy: Color(dexHex: "#ffd166")
+        // Sports-electronics blue on the yellow shell, which is the livery the
+        // shell is quoting in the first place.
+        case .riesling: Color(dexHex: "#38bdf8")
+        }
+    }
+
+    /// Its halo. Deeper than `orb` in every case — the glow reads as the orb's
+    /// own colour bleeding out, not as a second light behind it.
+    public var orbGlow: Color {
+        switch self {
+        case .classic: Dex.blue
+        case .midnight: Color(dexHex: "#a855f7")
+        case .original: Color(dexHex: "#f0b429")
+        case .burgundy: Color(dexHex: "#f59e0b")
+        case .riesling: Color(dexHex: "#0284c7")
+        }
+    }
+
+    /// Home, and anything else built to look powered.
+    public var accent: ChassisAccent {
+        switch self {
+        // Amber, exactly as before.
+        case .classic:
+            ChassisAccent(pale: "#fef3c7", light: "#fde68a", bright: "#fbbf24",
+                          mid: "#f59e0b", edge: "#b45309", ink: "#78350f")
+        case .midnight:
+            ChassisAccent(pale: "#f3e8ff", light: "#e9d5ff", bright: "#c084fc",
+                          mid: "#a855f7", edge: "#6b21a8", ink: "#3b0764")
+        // Magenta, after the original handheld's own A/B buttons.
+        case .original:
+            ChassisAccent(pale: "#ffe4e6", light: "#fecdd3", bright: "#fb7185",
+                          mid: "#e11d48", edge: "#9f1239", ink: "#4c0519")
+        case .burgundy:
+            ChassisAccent(pale: "#fef3c7", light: "#fde68a", bright: "#fbbf24",
+                          mid: "#d97706", edge: "#92400e", ink: "#451a03")
+        case .riesling:
+            ChassisAccent(pale: "#fee2e2", light: "#fca5a5", bright: "#f87171",
+                          mid: "#dc2626", edge: "#7f1d1d", ink: "#450a0a")
+        }
+    }
+
+    /// Back and the user button.
+    ///
+    /// These were one dark cap on all five shells, on the argument that the
+    /// mechanical controls should stay the same part across the range while only
+    /// Home looked powered. In practice a near-black button reads as a hole
+    /// punched in a bone or yellow shell — the two pale skins were the ones it
+    /// suited least, and they are the ones whose real-world references had
+    /// *light* buttons. The cap is moulded from the shell now, like the rest of
+    /// the plastic; Home still reads as the lit one because it is the only thing
+    /// on the chassis carrying a six-stop ramp and an inner disc.
+    public var control: ChassisControl {
+        switch self {
+        // Stone, exactly as before.
+        case .classic:
+            ChassisControl(top: "#44403c", bottom: "#0c0a09", edge: "#a8a29e", glyph: "#ffffff")
+        case .midnight:
+            ChassisControl(top: "#3b3746", bottom: "#0b0a10", edge: "#8b86a3", glyph: "#ffffff")
+        // Pale grey with a dark glyph — the original handheld's own d-pad.
+        case .original:
+            ChassisControl(top: "#c2c2ba", bottom: "#83837b", edge: "#5f5f59", glyph: "#262622")
+        case .burgundy:
+            ChassisControl(top: "#4a2440", bottom: "#150a12", edge: "#b58aab", glyph: "#ffffff")
+        case .riesling:
+            ChassisControl(top: "#3f4652", bottom: "#0b0e14", edge: "#9fb0c6", glyph: "#ffffff")
+        }
+    }
+
+    /// Marquee phosphor. Period LED strips came in green, amber, red and blue,
+    /// so this is the one part where a colour change is period-correct rather
+    /// than merely decorative.
+    public var marqueeText: Color {
+        switch self {
+        case .classic: Dex.green500
+        case .midnight: Color(dexHex: "#c084fc")
+        case .original: Color(dexHex: "#fbbf24")
+        case .burgundy: Color(dexHex: "#f9a8d4")
+        case .riesling: Color(dexHex: "#22d3ee")
+        }
+    }
+
+    /// The faint grid behind the phosphor, and the colour its letters are cut
+    /// out of. One step deeper, so the strip still reads as glass over a grid.
+    public var marqueeGrid: Color {
+        switch self {
+        case .classic: Dex.green
+        case .midnight: Color(dexHex: "#a855f7")
+        case .original: Color(dexHex: "#f59e0b")
+        case .burgundy: Color(dexHex: "#ec4899")
+        case .riesling: Color(dexHex: "#06b6d4")
+        }
+    }
+
+    /// Hard drop shadow under each glyph on the strip — a very dark form of the
+    /// phosphor, which is what makes the letters look lit rather than printed.
+    public var marqueeShadow: Color {
+        switch self {
+        case .classic: Color(dexHex: "#082010")
+        case .midnight: Color(dexHex: "#1e0b32")
+        case .original: Color(dexHex: "#301a02")
+        case .burgundy: Color(dexHex: "#3b0723")
+        case .riesling: Color(dexHex: "#04262c")
         }
     }
 

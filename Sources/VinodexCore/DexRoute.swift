@@ -6,13 +6,18 @@ import Foundation
 /// toggles had grown past a screenful, and the two a user actually reaches for
 /// were below the developer-facing ones.
 ///
-/// SCREEN, TEXT and SKIN used to be three tiles. They are one CUSTOMIZATION
-/// tile now: all three answer the same question — what the device looks like —
-/// and splitting them meant three taps to try a colourway against a screen
-/// mode, with a trip back to the grid between each. Their panels were also the
-/// three shortest in the app, so a combined one still fits a screenful.
+/// SCREEN, TEXT and SKIN used to be three tiles. They are one CUSTOMIZE tile
+/// now: all three answer the same question — what the device looks like — and
+/// splitting them meant three taps to try a colourway against a screen mode,
+/// with a trip back to the grid between each. Their panels were also the three
+/// shortest in the app, so a combined one still fits a screenful.
+///
+/// The raw values are display copy, not storage: no `SettingsSection` is
+/// persisted anywhere, so CUSTOMIZATION could simply be shortened to CUSTOMIZE
+/// — thirteen characters was the longest label on the grid and the only one
+/// that had to shrink to fit its square.
 public enum SettingsSection: String, CaseIterable, Hashable, Sendable, Identifiable {
-    case customization = "CUSTOMIZATION"
+    case customization = "CUSTOMIZE"
     /// What the database actually holds. Read-only, unlike everything else
     /// here — it is a readout rather than a setting, but the settings grid is
     /// where a user goes looking for "what is in this thing".
@@ -75,9 +80,22 @@ public enum DexRoute: Hashable, Sendable {
     /// so the chassis Back button returns to the settings grid instead of
     /// dropping the user out of settings entirely.
     case settingsSection(SettingsSection)
-    /// The minigames hub. Grape of the day used to hang off the settings list;
-    /// it is a game, not a setting, and there is now more than one of them.
+    /// The tools hub — games *and* instruments.
+    ///
+    /// Called MINIGAMES while everything on it was a game. It now also holds the
+    /// chip filter, which is a search tool with no play in it at all, and
+    /// "minigames" was the wrong promise for a shelf you go to in order to get
+    /// work done. The case keeps its name because nothing persists it; only the
+    /// label moved.
     case minigames
+    /// Filter the whole database by tapping chips — colour, body, rarity, type,
+    /// climate — with a live count of what survives. See `ChipFilter`.
+    case chipFilter
+    /// The WSET-style tasting quiz: one question, four answers, then the entry
+    /// behind the right one.
+    case wsetQuiz
+    /// The guided tour. Opt-in from the settings grid, never shown unasked.
+    case walkthrough
     /// The continent info screen — INFO blurb plus a COUNTRIES list, each
     /// linking to that country's regions. Reached from the globe markers.
     case continent(entryID: String)
@@ -111,7 +129,13 @@ public enum DexRoute: Hashable, Sendable {
         case .settingsSection(let section):
             section.rawValue
         case .minigames:
-            "MINIGAMES"
+            "TOOLS"
+        case .chipFilter:
+            "CHIP FILTER"
+        case .wsetQuiz:
+            "TASTING QUIZ"
+        case .walkthrough:
+            "WALKTHROUGH"
         case .continent:
             "CONTINENT SCAN"
         }
