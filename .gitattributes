@@ -4,6 +4,18 @@
 # repo as CRLF, showing up as a whole-repo diff on the first publish.
 * text=auto
 
+# Generated data — check out as LF on every platform, not just where the shell
+# happens to be POSIX.
+#
+# `npm run generate` writes '\n' unconditionally. Under plain `text=auto` with
+# `core.autocrlf=true` git hands Windows a CRLF checkout, the next regeneration
+# rewrites it as LF, and these five files then sit in `git status` as permanently
+# modified — while `git diff` shows nothing, because the content is identical once
+# normalized. That combination is worse than either failure alone: the tree looks
+# dirty, so a real drift in the generated data is easy to wave away as "just the
+# line-ending thing", and the CI drift gate is the only honest reading left.
+Sources/VinodexCore/Resources/*.json text eol=lf
+
 # Known binary types — explicit so git's content-sniffing heuristic never
 # mis-detects them (matters most for the rasterized Icons/ and Flags/ trees and
 # the pixelflags/ source).

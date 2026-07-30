@@ -26,24 +26,46 @@ public struct ContinentScreen: View {
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
     @State private var comingSoon: String?
+    /// Scroll position outlives the view — see `ScreenStateStore`.
+    @State private var screens = ScreenStateStore.shared
 
     public init(continent: ContinentEntry, onSelectCountry: @escaping (String) -> Void) {
         self.continent = continent
         self.onSelectCountry = onSelectCountry
     }
 
+    private var screenKey: String { ScreenStateStore.continent(continent.id) }
+
+    private enum Anchor {
+        static let hero = "hero"
+        static let info = "info"
+        static let countries = "countries"
+    }
+
+    private var anchorBinding: Binding<String?> {
+        Binding(
+            get: { screens.anchor(for: screenKey) },
+            set: { screens.setAnchor($0, for: screenKey) }
+        )
+    }
+
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                hero
+                hero.id(Anchor.hero)
                 if !continent.common.description.isEmpty {
-                    infoSection
+                    infoSection.id(Anchor.info)
                 }
-                countriesSection
+                countriesSection.id(Anchor.countries)
             }
-            .padding(.horizontal, 14)
-            .padding(.bottom, 72)
+            .scrollTargetLayout()
         }
+        // Content margins rather than padding around the target layout — see
+        // the note in `EncyclopediaListScreen`. The generous tail keeps the
+        // last section clear of the footer, matching pb-20.
+        .contentMargins(.horizontal, 14, for: .scrollContent)
+        .contentMargins(.bottom, 72, for: .scrollContent)
+        .scrollPosition(id: anchorBinding)
         .background(lcd.page)
         .overlay {
             if let comingSoon {
@@ -99,7 +121,7 @@ public struct ContinentScreen: View {
         .background(
             ZStack {
                 lcd.heroWash
-                DexGridBackground(spacing: 34, color: Color(dexHex: "#14532d"), opacity: 0.5)
+                DexGridBackground(spacing: 34, color: lcd.heroGrid, opacity: 0.5)
             }
         )
         .overlay(alignment: .bottom) {

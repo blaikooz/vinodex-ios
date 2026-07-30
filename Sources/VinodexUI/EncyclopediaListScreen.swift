@@ -129,8 +129,20 @@ public struct EncyclopediaListScreen: View {
                     // scroll view has no per-subview geometry to report or to
                     // scroll to, and the binding stays nil forever.
                     .scrollTargetLayout()
-                    .padding(10)
                 }
+                // Inset as a *content margin*, not as padding around the target
+                // layout.
+                //
+                // `.padding(10)` here shifted the list ten points left every
+                // time a position was restored. Padding outside
+                // `scrollTargetLayout()` puts the targets' origin ten points in
+                // from the scroll content's origin, and `scrollPosition(id:)`
+                // aligns a target on both axes — so restoring one scrolled x to
+                // +10 to make the origins meet. Manual scrolling only ever
+                // *reads* the id, which is why it looked like a bug in the
+                // saving rather than in the layout. `contentMargins` is the
+                // inset the scroll system itself knows about.
+                .contentMargins(10, for: .scrollContent)
                 .scrollDismissesKeyboard(.interactively)
                 // Two-way: SwiftUI writes the top-most visible row's id as you
                 // scroll, and scrolls to it when the value is set on rebuild.
@@ -145,17 +157,17 @@ public struct EncyclopediaListScreen: View {
         HStack(spacing: 10) {
             Image(systemName: "line.3.horizontal.decrease.circle.fill")
                 .font(.system(size: 20))
-                .foregroundStyle(Dex.green)
+                .foregroundStyle(lcd.accent)
             Text(filter.indicatorText)
                 .font(DexFont.mono(20))
-                .foregroundStyle(Dex.stone200)
+                .foregroundStyle(lcd.text)
             Spacer()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Dex.stone800)
+        .background(lcd.surface)
         .overlay(alignment: .bottom) {
-            Dex.stone700.frame(height: 1)
+            lcd.surfaceEdge.frame(height: 1)
         }
     }
 

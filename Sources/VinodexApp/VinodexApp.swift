@@ -175,18 +175,33 @@ struct RootView: View {
             SettingsPanel(
                 onClose: { goBack() },
                 onSection: { push(.settingsSection($0)) },
-                onMinigames: { push(.minigames) }
+                onMinigames: { push(.minigames) },
+                onWalkthrough: { push(.walkthrough) }
             )
 
         case .settingsSection(let section):
             SettingsSectionPanel(section: section)
 
         case .minigames:
-            MinigamesScreen(
+            ToolsScreen(
                 onDailyGrape: { push(.dailyGrape) },
                 onScanner: { push(.scanner) },
-                onMoonDial: { push(.moonDial) }
+                onMoonDial: { push(.moonDial) },
+                onChipFilter: { push(.chipFilter) },
+                onQuiz: { push(.wsetQuiz) }
             )
+
+        case .chipFilter:
+            ChipFilterScreen { open($0) }
+
+        case .wsetQuiz:
+            TastingQuizScreen { open($0) }
+
+        case .walkthrough:
+            // FINISH goes Home rather than Back: the tour's last step tells you
+            // to press Home and pick a tile, and landing back in the settings
+            // grid you started from would contradict it.
+            WalkthroughScreen { goHome() }
 
         case .scanner:
             ScannerScreen { open($0) }
@@ -220,18 +235,32 @@ struct RootView: View {
         path = next
     }
 
+    /// Back pops one route — and, for the daily reveal, ends the visit.
+    ///
+    /// Every other screen's state is kept until Home so that stepping *into*
+    /// something and coming out of it lands you where you were. The reveal is
+    /// the one screen whose contract is the opposite: it is meant to hand you a
+    /// new entry each time you open it, so leaving it for the minigames hub has
+    /// to drop the held pick, while opening the revealed entry from inside it
+    /// must not. `goBack` is the only place that can tell those two apart,
+    /// because it is the only place that knows *which* screen you are leaving.
     private func goBack() {
-        guard !path.isEmpty else { return }
+        guard let leaving = path.last else { return }
         path.removeLast()
+        if leaving == .dailyGrape {
+            ScreenStateStore.shared.forget(ScreenStateStore.dailyGrape)
+        }
     }
 
-    /// Home is the reset. Searches survive Back — that is the point of
-    /// `SearchStateStore` — but they must not survive Home, or re-entering a
+    /// Home is the reset. Searches, scroll positions and expanded sections all
+    /// survive Back — that is the point of `SearchStateStore` and
+    /// `ScreenStateStore` — but they must not survive Home, or re-entering a
     /// list from the main menu would silently open it pre-filtered by something
-    /// you typed several screens ago.
+    /// you typed several screens ago, and a country would open halfway down.
     private func goHome() {
         path.removeAll()
         SearchStateStore.shared.clear()
+        ScreenStateStore.shared.clear()
     }
 }
 

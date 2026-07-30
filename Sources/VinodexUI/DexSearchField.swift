@@ -13,11 +13,25 @@ public struct DexSearchField: UIViewRepresentable {
     @Binding var text: String
     var placeholder: String
     var fontSize: CGFloat
+    /// Raises the keyboard as soon as the field exists.
+    ///
+    /// For a field that is *revealed* by a control rather than always on
+    /// screen — the profile name, behind its pencil — where tapping the pencil
+    /// and then having to tap the field it just produced is a wasted step.
+    /// `@FocusState` cannot do this: `.focused()` has no effect on a
+    /// `UIViewRepresentable`, which owns its own responder.
+    var focusesOnAppear: Bool
 
-    public init(text: Binding<String>, placeholder: String = "INPUT SEARCH...", fontSize: CGFloat = 26) {
+    public init(
+        text: Binding<String>,
+        placeholder: String = "INPUT SEARCH...",
+        fontSize: CGFloat = 26,
+        focusesOnAppear: Bool = false
+    ) {
         self._text = text
         self.placeholder = placeholder
         self.fontSize = fontSize
+        self.focusesOnAppear = focusesOnAppear
     }
 
     public func makeUIView(context: Context) -> UITextField {
@@ -27,22 +41,19 @@ public struct DexSearchField: UIViewRepresentable {
         field.autocapitalizationType = .allCharacters
         field.spellCheckingType = .no
         field.returnKeyType = .search
-        field.clearButtonMode = .never
+        // A clear (×) button while editing, so a query need not be deleted
+        // character by character (audit L34).
+        field.clearButtonMode = .whileEditing
         field.backgroundColor = .clear
-        // Typed text has to contrast with the well it sits in, which is
-        // white in light mode — the mint green vanished on it.
-        field.tintColor = UIColor(LcdMode.current.accent)
-        field.textColor = UIColor(LcdMode.current.accent)
         field.font = uiFont
-        field.attributedPlaceholder = NSAttributedString(
-            string: placeholder,
-            attributes: [
-                .foregroundColor: UIColor(LcdMode.current.accent).withAlphaComponent(0.45),
-                .font: uiFont,
-            ]
-        )
+        applyColors(to: field)
         field.addTarget(context.coordinator, action: #selector(Coordinator.editingChanged(_:)), for: .editingChanged)
         field.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        // Deferred: the view is not in a window yet during `makeUIView`, and a
+        // responder request from outside the hierarchy is simply dropped.
+        if focusesOnAppear {
+            DispatchQueue.main.async { field.becomeFirstResponder() }
+        }
         return field
     }
 
@@ -50,6 +61,26 @@ public struct DexSearchField: UIViewRepresentable {
         if field.text != text {
             field.text = text
         }
+        // Re-apply colours on every update so toggling SCREEN MODE while a field
+        // is mounted repaints it, instead of leaving stale, possibly illegible
+        // colours from makeUIView (audit M13).
+        applyColors(to: field)
+    }
+
+    /// Tint, text and placeholder colours from the current LCD mode. Typed text
+    /// has to contrast with the well it sits in, which is white in light mode —
+    /// the mint green vanished on it. Called from both make and update.
+    private func applyColors(to field: UITextField) {
+        let accent = UIColor(LcdMode.current.accent)
+        field.tintColor = accent
+        field.textColor = accent
+        field.attributedPlaceholder = NSAttributedString(
+            string: placeholder,
+            attributes: [
+                .foregroundColor: accent.withAlphaComponent(0.45),
+                .font: uiFont,
+            ]
+        )
     }
 
     private var uiFont: UIFont {

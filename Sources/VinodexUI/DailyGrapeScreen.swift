@@ -21,6 +21,15 @@ public struct DailyGrapeScreen: View {
     /// advances would give a different entry on every re-render — the icon and
     /// the name would disagree.
     @State private var cursor: Int?
+    /// Keeps the cursor and the reveal across a trip into the entry.
+    ///
+    /// "Once per open" was being measured in *view lifetimes*, and this view is
+    /// destroyed by any navigation away from it — so tapping OPEN ENTRY on a
+    /// revealed grape and pressing Back advanced the cycle and put the
+    /// silhouette back up. You could not return to the thing you had just
+    /// looked at. A visit now ends at Back-to-the-hub or Home, not at the first
+    /// link you follow out of it.
+    @State private var screens = ScreenStateStore.shared
     private let db = WineDatabase.shared
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
@@ -56,10 +65,19 @@ public struct DailyGrapeScreen: View {
                     .foregroundStyle(Dex.stone400)
             }
         }
-        // Advance once per open, not once per render.
+        // Advance once per visit, not once per render and not once per rebuild.
         .onAppear {
             guard cursor == nil else { return }
-            cursor = RevealCursor.shared.advance()
+            if let held = screens.number("cursor", for: ScreenStateStore.dailyGrape) {
+                cursor = Int(held)
+                revealed = screens.isOn("revealed", for: ScreenStateStore.dailyGrape)
+            } else {
+                cursor = RevealCursor.shared.advance()
+                screens.setNumber(Double(cursor ?? 0), "cursor", for: ScreenStateStore.dailyGrape)
+            }
+        }
+        .onChange(of: revealed) { _, shown in
+            screens.setFlag("revealed", shown, for: ScreenStateStore.dailyGrape)
         }
     }
 

@@ -21,7 +21,10 @@ public enum GrapeBody: String, Codable, Sendable, CaseIterable, Identifiable {
 /// step — "I don't know" is a first-class answer, and the reveal has to work
 /// from none, some or all of it. An empty criteria set matches every grape,
 /// which is the correct behaviour: you told it nothing, so nothing is excluded.
-public struct GrapeScanCriteria: Sendable, Hashable {
+/// `Codable` so `ScreenStateStore` can hold the answers while the scanner's view
+/// is torn down — opening a revealed grape and pressing Back used to drop five
+/// questions' worth of input on the floor.
+public struct GrapeScanCriteria: Codable, Sendable, Hashable {
     /// Ceiling on the flavour basket. Three is the point at which an AND across
     /// tasting notes stops matching anything real — see `matches`.
     public static let flavorLimit = 3
