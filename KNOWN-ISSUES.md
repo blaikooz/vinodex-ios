@@ -205,6 +205,37 @@ own tests. Pure data queries belong in `VinodexCore/WineDatabase.swift`.
 `VinodexUI` and `VinodexApp` have **zero** test coverage; UI work is verified
 visually only.
 
+### A renamed repo poisons the Actions `.build` cache
+
+Symptom, on every file in the module, for a branch that tests green locally:
+
+```
+error: PCH was compiled with module cache path
+  '/__w/vinodex-swift/vinodex-swift/.build/.../ModuleCache/1I141E7TZTTFA',
+  but the path is currently
+  '/__w/vinodex-ios/vinodex-ios/.build/.../ModuleCache/1I141E7TZTTFA'
+error: missing required module 'SwiftShims'
+```
+
+`.build` holds precompiled headers with **absolute** paths baked in. This repo was
+renamed `vinodex-swift` → `vinodex-ios`; the cache key was keyed only on
+`hashFiles('Package.swift', 'Package.resolved')`, which had not changed, so the
+run happily restored a `.build` built under the old checkout path and every
+compile failed.
+
+Nothing in the error mentions the cache or the rename, and `swift test` passes
+locally, so it reads as a corrupt toolchain. **The repository name is now part of
+the cache key** (and of `restore-keys`, or the prefix fallback walks right back
+into the stale entry).
+
+If it happens again — any change to the checkout path will do it — clear the
+cache and re-run:
+
+```powershell
+gh cache list
+gh cache delete <id>        # or: gh cache delete --all
+```
+
 ### `rethrows` methods cannot sit inside `#expect`
 
 `allSatisfy`, `contains(where:)`, `map`, `first(where:)` — anything `rethrows` —

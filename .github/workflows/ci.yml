@@ -34,12 +34,27 @@ jobs:
 
       # Cached separately from the build so a dependency-free package still
       # benefits once one is added; today this is close to a no-op.
+      #
+      # The repository name is part of the key, and that is not decoration.
+      # `.build` holds precompiled headers with **absolute** paths baked in
+      # (`/__w/<repo>/<repo>/.build/...`). This repo was renamed from
+      # `vinodex-swift` to `vinodex-ios`, the old key still matched because
+      # Package.swift had not changed, and the restored PCH pointed at a
+      # workspace path that no longer existed — so every single file failed with
+      # `PCH was compiled with module cache path ...` and `missing required
+      # module 'SwiftShims'`. A green branch failed CI on cache contents alone,
+      # and the error names neither the cache nor the rename.
+      #
+      # Keying on the name means the checkout path is part of the identity of the
+      # cache, so the next rename misses instead of poisoning. `restore-keys` is
+      # scoped the same way for the same reason — an unscoped prefix fallback
+      # would walk straight back into a stale entry.
       - name: Cache .build
         uses: actions/cache@v4
         with:
           path: .build
-          key: ${{ runner.os }}-swiftpm-${{ hashFiles('Package.swift', 'Package.resolved') }}
-          restore-keys: ${{ runner.os }}-swiftpm-
+          key: ${{ runner.os }}-swiftpm-${{ github.repository }}-${{ hashFiles('Package.swift', 'Package.resolved') }}
+          restore-keys: ${{ runner.os }}-swiftpm-${{ github.repository }}-
 
       - name: Test
         run: swift test --enable-code-coverage
