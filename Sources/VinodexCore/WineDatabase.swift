@@ -139,6 +139,11 @@ public struct IconManifest: Codable, Sendable {
     /// Values are PNG stems under `Resources/FlavorArt`. Optional so an older
     /// manifest still decodes; flavours without art keep their tinted glyph.
     public let flavorArt: [String: String]?
+    /// Bunch-sprite stem per `GrapeArt` key (`green-light-none-common` …),
+    /// PNGs under `Resources/GrapeArt`. Generated over the full combo grid
+    /// with fallbacks, so every key the app can derive resolves. Optional so
+    /// an older manifest still decodes; grapes then keep their tinted glyph.
+    public let grapeArt: [String: String]?
     /// Country outline glyphs, used to mask a flag into the country's shape.
     public let countryShapeIcons: [String: String]
     /// Icon-well background per style classification.
@@ -221,6 +226,11 @@ public struct IconManifest: Codable, Sendable {
     /// case differences cannot miss their art.
     public func flavorArtStem(for name: String) -> String? {
         flavorArt?[TextNormalize.label(name)]
+    }
+
+    /// Bunch-sprite stem for a `GrapeArt` key, or nil when no art shipped.
+    public func grapeArtStem(forKey key: String) -> String? {
+        grapeArt?[key]
     }
 
     /// Bundled flag stem for a country, e.g. `New Zealand` -> `new-zealand`.
@@ -389,6 +399,7 @@ public final class WineDatabase: Sendable {
                     flavorClassIcons: nil,
                     flavorSubclassIcons: nil,
                     flavorArt: nil,
+                    grapeArt: nil,
                     countryShapeIcons: [:],
                     styleClassBg: [:],
                     styleColorTypeColors: [:],

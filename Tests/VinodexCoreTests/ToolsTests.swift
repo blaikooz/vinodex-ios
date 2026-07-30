@@ -557,33 +557,31 @@ struct WalkthroughTests {
         #expect(Set(ids).count == ids.count)
     }
 
-    /// v0.5.3's opening move: one control, alone on the diagram, then Back,
-    /// then a mocked-up entry — a first move rather than nine things at once.
-    /// The tour still closes on the whole device ("off you go").
-    @Test("the tour opens on the user button alone and closes on the device")
+    /// v0.5.4's flow: the main screen first — the whole app is up there —
+    /// and the tour closes on the whole device ("off you go"). The orb step
+    /// is deliberately gone: an easter egg you are told about is not one.
+    @Test("the tour opens on the screen and closes on the device")
     func bookends() {
-        let first = Walkthrough.steps.first
-        #expect(first?.highlight == .saved)
-        #expect(first?.isolated == true)
-        #expect(Walkthrough.steps.dropFirst().first?.highlight == .back)
+        #expect(Walkthrough.steps.first?.highlight == .screen)
         #expect(Walkthrough.steps.last?.highlight == .device)
+        #expect(!Walkthrough.steps.contains { $0.highlight == .orb })
     }
 
-    /// Only the opening step isolates — a mid-tour step that hid the rest of
-    /// the device would read as the diagram breaking.
-    @Test("no step after the first isolates the diagram")
-    func isolationIsTheOpeningMove() {
-        for step in Walkthrough.steps.dropFirst() {
-            #expect(!step.isolated, "\(step.id) isolates mid-tour")
+    /// Terse is the contract now (v0.5.4): a step that grows past a couple
+    /// of sentences has stopped being a tour and started being a manual.
+    @Test("step copy stays terse")
+    func copyStaysTerse() {
+        for step in Walkthrough.steps {
+            #expect(step.body.count < 180, "\(step.id) body is \(step.body.count) chars")
         }
     }
 
-    /// Every control the tour claims to explain must actually get a step, or the
+    /// Every part the tour claims to explain must actually get a step, or the
     /// diagram has a highlight nothing ever triggers.
-    @Test("the controls the diagram can light are all covered")
+    @Test("the parts the diagram can light are all covered")
     func coversTheControls() {
         let used = Set(Walkthrough.steps.map(\.highlight))
-        for required: WalkthroughStep.Highlight in [.screen, .search, .orb, .settings, .back, .home, .saved, .entry] {
+        for required: WalkthroughStep.Highlight in [.screen, .search, .entry, .settings, .tools, .back, .home] {
             #expect(used.contains(required), "no step highlights \(required.rawValue)")
         }
     }

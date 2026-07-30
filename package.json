@@ -7,7 +7,8 @@
   "scripts": {
     "generate": "ts-node --esm scripts/generate-ios-data.ts",
     "icons": "bash scripts/rasterize-icons.sh",
-    "flavor-art": "python3 scripts/import-flavor-art.py"
+    "flavor-art": "python3 scripts/import-flavor-art.py",
+    "grape-art": "python3 scripts/import-grape-art.py"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

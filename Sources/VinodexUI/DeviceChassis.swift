@@ -243,8 +243,9 @@ public struct DeviceChassis<Content: View>: View {
     /// decoration — nobody expects a logo to be tappable. A cog states what it
     /// does. Same diameter as the footer controls, so every button on the
     /// chassis is one size.
-    /// v0.5.3: machined from the mode's caps rather than fixed silver, so
-    /// the cog re-dresses with the rest of the controls.
+    /// Back on the skin's caps (v0.5.4, reversing 0.5.3's mode livery) —
+    /// see the note on `ChassisButton`. The glyph keeps its brushed-silver
+    /// gradient: a machined part, whatever the shell.
     private func settingsButton(size: CGFloat) -> some View {
         Button {
             Haptics.tap()
@@ -255,9 +256,9 @@ public struct DeviceChassis<Content: View>: View {
                 .foregroundStyle(
                     LinearGradient(
                         colors: [
-                            lcd.controlAccent.pale,
-                            lcd.controlAccent.light,
-                            lcd.controlAccent.bright,
+                            Color(dexHex: "#f4f5f6"),
+                            Color(dexHex: "#c3c6ca"),
+                            Color(dexHex: "#8b8f95"),
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -268,7 +269,7 @@ public struct DeviceChassis<Content: View>: View {
                 .background(
                     Circle().fill(
                         LinearGradient(
-                            colors: [lcd.controlCaps.top, lcd.controlCaps.bottom],
+                            colors: [skin.control.top, skin.control.bottom],
                             startPoint: .top,
                             endPoint: .bottom
                         )
@@ -276,7 +277,7 @@ public struct DeviceChassis<Content: View>: View {
                 )
                 .overlay(
                     Circle().strokeBorder(
-                        lcd.controlCaps.edge,
+                        skin.control.edge,
                         lineWidth: 2
                     )
                 )
@@ -537,11 +538,15 @@ public struct ChassisButton: View {
     /// screen mode: the footer builds these, and threading it through would
     /// mean every future caller had to remember to.
     ///
-    /// v0.5.3: the mode, not the skin — the controls follow the screen. See
-    /// the Chrome note on `LcdMode`.
-    @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
+    /// The *skin*, deliberately (v0.5.4, reversing 0.5.3): these are physical
+    /// parts of the chassis, and physical parts belong to the colourway. A
+    /// screen mode re-dressing the moulded buttons made every skin look like
+    /// the same device the moment the LCD changed. On-LCD chrome (the search
+    /// button, the settings tiles) still follows the mode — pixels on the
+    /// screen are the screen's business.
+    @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
 
-    private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
+    private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
 
     public init(kind: Kind, enabled: Bool = true, action: @escaping () -> Void) {
         self.kind = kind
@@ -581,16 +586,16 @@ public struct ChassisButton: View {
     private var gradient: LinearGradient {
         switch kind {
         case .back, .bookmarks:
-            LinearGradient(colors: [lcd.controlCaps.top, lcd.controlCaps.bottom], startPoint: .top, endPoint: .bottom)
+            LinearGradient(colors: [skin.control.top, skin.control.bottom], startPoint: .top, endPoint: .bottom)
         case .home:
-            LinearGradient(colors: [lcd.controlAccent.light, lcd.controlAccent.mid], startPoint: .top, endPoint: .bottom)
+            LinearGradient(colors: [skin.accent.light, skin.accent.mid], startPoint: .top, endPoint: .bottom)
         }
     }
 
     private var borderColor: Color {
         switch kind {
-        case .back, .bookmarks: lcd.controlCaps.edge
-        case .home: lcd.controlAccent.edge
+        case .back, .bookmarks: skin.control.edge
+        case .home: skin.accent.edge
         }
     }
 
@@ -603,20 +608,20 @@ public struct ChassisButton: View {
         case .back:
             Image(systemName: "chevron.left")
                 .font(.system(size: DexMetrics.footerControl * 0.47, weight: .heavy))
-                .foregroundStyle(lcd.controlCaps.glyph)
+                .foregroundStyle(skin.control.glyph)
         case .bookmarks:
             Image(systemName: "person.crop.circle")
                 .font(.system(size: DexMetrics.footerControl * 0.44, weight: .semibold))
-                .foregroundStyle(lcd.controlCaps.glyph)
+                .foregroundStyle(skin.control.glyph)
         case .home:
             Circle()
-                .fill(LinearGradient(colors: [lcd.controlAccent.pale, lcd.controlAccent.bright], startPoint: .top, endPoint: .bottom))
-                .overlay(Circle().strokeBorder(lcd.controlAccent.mid, lineWidth: 1))
+                .fill(LinearGradient(colors: [skin.accent.pale, skin.accent.bright], startPoint: .top, endPoint: .bottom))
+                .overlay(Circle().strokeBorder(skin.accent.mid, lineWidth: 1))
                 .padding(2)
                 .overlay {
                     Image(systemName: "house.fill")
                         .font(.system(size: DexMetrics.footerControl * 0.41, weight: .bold))
-                        .foregroundStyle(lcd.controlAccent.ink)
+                        .foregroundStyle(skin.accent.ink)
                 }
         }
     }
@@ -745,6 +750,23 @@ public struct MarqueeBanner: View {
     let fontSize: CGFloat
     var pointsPerSecond: Double = 34
 
+    /// Cycle geometry, computed once at init (audit M8 — these were computed
+    /// properties re-measured on every TimelineView tick, ~120 UIFont
+    /// constructions a second).
+    ///
+    /// Press Start 2P is monospaced, so the run width is the character count
+    /// times one cell — but measured at the size the label actually
+    /// *renders*: `DexFont.retro` multiplies by the text-scale factor, and
+    /// measuring at the raw size (audit M9) made the cycle wrong by that
+    /// factor, so the seam skipped every lap at the SMALL scale — which is
+    /// the default. `gap` is the spacing between the two copies and part of
+    /// the same geometry, so it scales with them.
+    ///
+    /// Init-time is safe: the root view is keyed on the text scale, so a
+    /// scale change rebuilds this view.
+    private let gap: CGFloat
+    private let cycle: CGFloat
+
     /// The strip's phosphor follows the shell — see `ChassisSkin.marqueeText`.
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
 
@@ -754,23 +776,15 @@ public struct MarqueeBanner: View {
         self.text = text
         self.fontSize = fontSize
         self.pointsPerSecond = pointsPerSecond
-    }
 
-    /// Press Start 2P is monospaced, so the run width is simply the character
-    /// count times one cell. No layout pass, no attributed-string measuring, no
-    /// state — which is what kept getting this wrong: a measured width that
-    /// disagreed with the rendered width by a few points made the seam jump
-    /// every cycle, and a width that arrived a frame late made it pop in.
-    private var cell: CGFloat {
-        let font = UIFont(name: DexFont.names.retro, size: fontSize)
-            ?? .monospacedSystemFont(ofSize: fontSize, weight: .regular)
-        return ("0" as NSString).size(withAttributes: [.font: font]).width
-    }
-
-    /// One copy plus the gap. The second copy starts exactly here, so shifting
-    /// by this amount lands back where it began.
-    private var cycle: CGFloat {
-        max(CGFloat(text.count) * cell + fontSize * 1.5, 1)
+        let rendered = fontSize * TextScale.current.factor
+        let font = UIFont(name: DexFont.names.retro, size: rendered)
+            ?? .monospacedSystemFont(ofSize: rendered, weight: .regular)
+        let cell = ("0" as NSString).size(withAttributes: [.font: font]).width
+        self.gap = rendered * 1.5
+        // One copy plus the gap. The second copy starts exactly here, so
+        // shifting by this amount lands back where it began.
+        self.cycle = max(CGFloat(text.count) * cell + rendered * 1.5, 1)
     }
 
     public var body: some View {
@@ -799,7 +813,7 @@ public struct MarqueeBanner: View {
                 // ignores `maxWidth` entirely, renders full-bleed across the
                 // footer and squeezes the Back/user button out of the row.
                 GeometryReader { strip in
-                    HStack(spacing: fontSize * 1.5) {
+                    HStack(spacing: gap) {
                         label
                         label
                     }
