@@ -205,6 +205,43 @@ own tests. Pure data queries belong in `VinodexCore/WineDatabase.swift`.
 `VinodexUI` and `VinodexApp` have **zero** test coverage; UI work is verified
 visually only.
 
+### `rethrows` methods cannot sit inside `#expect`
+
+`allSatisfy`, `contains(where:)`, `map`, `first(where:)` — anything `rethrows` —
+fail to compile inside a swift-testing `#expect`, even with a non-throwing
+closure or key path:
+
+```
+error: call can throw, but it is not marked with 'try' and the error is not handled
+macro expansion #expect:2:3
+```
+
+The macro expands the expression into a form the compiler analyses as throwing.
+The error points at the *expansion*, not at your line, so it reads as a compiler
+bug. Hoist the call into a `let` and `#expect` the result:
+
+```swift
+let allNumeric = part.allSatisfy(\.isNumber)   // not inside #expect
+#expect(allNumeric, "…")
+```
+
+### xtool stamps a fake version into every bundle
+
+xtool 1.17 writes `CFBundleShortVersionString = 1.0.0` and `CFBundleVersion = 1`
+into the built `.app` unconditionally, and **there is no `xtool.yml` key to
+override either** (`version:` in that file is the config-schema version, not the
+app's). So anything reading the bundle for a version gets `1.0.0`.
+
+`AppVersion` therefore keeps a `placeholders` denylist and prefers its own
+constant over those values — without it the back plate reported `v1.0.0` on
+every build ever made, which it silently did until 2026-07-29. **The day this app
+genuinely ships 1.0.0, that denylist has to change or the release under-reports
+itself.** `AppVersionTests` pins the behaviour.
+
+This is also why releases are marked with **annotated git tags** (`v` +
+`AppVersion.fallback`) rather than by a bundle version: git is the only place the
+real number can live until there is a signing pipeline that sets its own.
+
 ### Long jobs need an attached session
 
 WSL2 tears down the VM shortly after the last shell detaches — `nohup` and
