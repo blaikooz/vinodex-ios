@@ -119,6 +119,27 @@ struct FilterTests {
     func noFilter() {
         #expect(db.entries.apply(.category(.styles)).count == db.entries(in: .styles).count)
     }
+
+    /// v0.5.6: master search must span the whole database — every category,
+    /// nothing silently excluded — and countries ride alongside as rows of
+    /// their own, since a country is assembled from regions rather than
+    /// being an entry.
+    @Test("master search spans every entry, and countries search alongside")
+    func masterSearchIsTotal() {
+        #expect(db.entries.apply(.masterSearch("")).count == db.entries.count)
+
+        #expect(!db.searchableCountries.isEmpty)
+        #expect(db.searchableCountries.contains("France"))
+        // Every searchable country has regions behind it — a hit must open
+        // a page with something on it.
+        for country in db.searchableCountries {
+            #expect(db.hasRegions(inCountry: country), "\(country) has no regions")
+        }
+
+        #expect(db.countries(matching: "fra") == ["France"])
+        #expect(db.countries(matching: "") == db.searchableCountries)
+        #expect(db.countries(matching: "zzz").isEmpty)
+    }
 }
 
 @Suite("Cross-link resolution")

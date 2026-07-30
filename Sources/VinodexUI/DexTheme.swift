@@ -459,9 +459,10 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     public var displayName: String {
         switch self {
         case .blueScreen: "VINOFD"
-        case .gruenerBoy: "GRÜNER BOY"
-        // Picard's family runs a vineyard; the mode was always his console.
-        case .starTrek: "CHÂTEAU PICARD"
+        case .gruenerBoy: "GRÜNERBOY"
+        // Lowercase on purpose — the one label styled like a file name.
+        case .wineOS: "wine.os"
+        case .starTrek: "L-WINES"
         default: rawValue
         }
     }
@@ -959,13 +960,66 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Overrides the three status lamps' red/yellow/green when a skin wants
-    /// its own signal colour. WINE XMAS runs all three red, like a string of
-    /// holly-berry fairy lights.
-    public var statusLightOverride: (fill: Color, border: Color)? {
-        self == .christmas
-            ? (Color(dexHex: "#FF4D4D"), Color(dexHex: "#8F1414"))
-            : nil
+    /// Emblem glyph — the picker tile carries it the way screen-mode tiles
+    /// carry theirs, and the back plate wears it as an enamel badge.
+    public var symbol: String {
+        switch self {
+        case .classic: "gamecontroller.fill"
+        case .midnight: "moon.fill"
+        case .original: "sparkles"
+        case .burgundy: "diamond.fill"
+        case .riesling: "bolt.fill"
+        case .vinhoVerde: "shippingbox.fill"
+        case .glouglou: "wineglass.empty"
+        case .smartGrape: "plus.forwardslash.minus"
+        case .champagne: "party.popper.fill"
+        case .christmas: "gift.fill"
+        case .nouveau: "cpu.fill"
+        case .oaked: "tree.fill"
+        case .nocturne: "moon.zzz.fill"
+        case .steel: "gearshape.2.fill"
+        }
+    }
+
+    /// The three status lamps, left to right, as (fill, border) pairs — a
+    /// unique trio per skin (v0.5.6, generalising WINE XMAS's all-red set,
+    /// which used to be the one override on a fixed red/yellow/green).
+    public var statusLights: [(fill: Color, border: Color)] {
+        func trio(_ a: (String, String), _ b: (String, String), _ c: (String, String)) -> [(fill: Color, border: Color)] {
+            [a, b, c].map { (Color(dexHex: $0.0), Color(dexHex: $0.1)) }
+        }
+        switch self {
+        // The classic trio, exactly as it always was.
+        case .classic:
+            return trio(("#dc2626", "#991b1b"), ("#facc15", "#ca8a04"), ("#22c55e", "#15803d"))
+        case .midnight:
+            return trio(("#d8b4fe", "#7c3aed"), ("#a855f7", "#6b21a8"), ("#7c3aed", "#4c1d95"))
+        case .original:
+            return trio(("#ffd76e", "#f0b429"), ("#e8e0cc", "#9a9a93"), ("#d4a017", "#8a6820"))
+        case .burgundy:
+            return trio(("#f9a8d4", "#be185d"), ("#c084fc", "#7c3aed"), ("#7c3aed", "#4c1d95"))
+        case .riesling:
+            return trio(("#ef4444", "#b91c1c"), ("#facc15", "#ca8a04"), ("#4b5563", "#1f2937"))
+        case .vinhoVerde:
+            return trio(("#9BBC0F", "#6a8a0a"), ("#8BAC0F", "#5a740a"), ("#306230", "#0F380F"))
+        case .glouglou:
+            return trio(("#FDBA74", "#EA580C"), ("#FB923C", "#C2410C"), ("#F97316", "#9A3412"))
+        case .smartGrape:
+            return trio(("#FF9F0A", "#C97800"), ("#FFD60A", "#B8860B"), ("#8E8E93", "#48484A"))
+        case .champagne:
+            return trio(("#F5D97E", "#D4A017"), ("#E3BC5F", "#8A6820"), ("#FDF6E3", "#C8B87A"))
+        // Holly-berry fairy lights, all three.
+        case .christmas:
+            return trio(("#FF4D4D", "#8F1414"), ("#FF4D4D", "#8F1414"), ("#FF4D4D", "#8F1414"))
+        case .nouveau:
+            return trio(("#E9D5FF", "#A855F7"), ("#C084FC", "#7C3AED"), ("#A855F7", "#6B21A8"))
+        case .oaked:
+            return trio(("#E8C15A", "#B5892E"), ("#D9AE55", "#8A6820"), ("#B5892E", "#7A5A14"))
+        case .nocturne:
+            return trio(("#B9FFAB", "#57D63E"), ("#8DF06A", "#2E8A20"), ("#57D63E", "#1E6A14"))
+        case .steel:
+            return trio(("#E8F1FF", "#9FB8D8"), ("#C7CBD1", "#6B7078"), ("#9FD4FF", "#5FA8E8"))
+        }
     }
 
     /// The moulding.

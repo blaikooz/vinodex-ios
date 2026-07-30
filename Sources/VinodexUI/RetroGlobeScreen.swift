@@ -226,22 +226,15 @@ final class GlobeModel {
     /// reads the marker as sitting above the landmass it names.
     private static let markerLatitudeOffset: Double = -8
 
-    /// Continent marker colours, overriding the continent palette entries.
-    private static let markerColors: [Continent: String] = [
-        .northAmerica: "#E53935",
-        .southAmerica: "#8E24AA",
-        .europe: "#1E88E5",
-        .africa: "#8D6E63",
-        .asia: "#FDD835",
-        .oceania: "#43A047",
-    ]
-
+    /// Marker colours come from the continent entries themselves (v0.5.6):
+    /// the icon well and the globe marker are the same colour by
+    /// construction, not by two tables agreeing.
     var markers: [Marker] = Continent.allCases.map {
         Marker(
             continent: $0,
             position: .zero,
             visible: false,
-            color: Color(dexHex: markerColors[$0] ?? "#4ADE80")
+            color: Color(dexHex: WineDatabase.shared.continentEntry($0)?.common.color ?? "#4ADE80")
         )
     }
 

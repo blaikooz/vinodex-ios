@@ -83,10 +83,10 @@ LCD never changes with the skin, so a colourway can never hurt legibility.
 | **Stainless Steel** | Brushed aluminium, crisp dark seams | Ice | Ice blue |
 
 Plus ten screen modes — dark, light, monochrome VINTAGE (black on grey-green
-like an old organiser), AMBER and TERMINAL phosphors, the GRÜNER BOY dot-matrix,
-an early-GUI WINE OS, the VINOFD blue tube, and a CHÂTEAU PICARD console. Two
-text sizes, a haptics switch, and a single synthesized chiptune ping (off by
-default) with its own switch.
+like an old organiser), AMBER and TERMINAL phosphors, the GRÜNERBOY dot-matrix,
+the early-GUI wine.os, the VINOFD blue tube, and the L-WINES console. Two text
+sizes, a haptics switch, and an authored SFX pack — clicks, pings and stings,
+off by default — with its own switch.
 
 ## The web app is the sibling, not the source
 

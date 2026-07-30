@@ -568,6 +568,42 @@ const FLAG_PATHS: Record<string, string> = {
   India: 'Asia/india/india.png',
 };
 
+// Full-colour pixel-art portraits for styles (0.5.6), keyed by normalised
+// style name. Values are PNG stems under Sources/VinodexUI/Resources/StyleArt,
+// imported from shared/newicons/2new by scripts/import-style-art.py. All 29
+// shipped styles are covered; `crubeaujolas` preserves the artist's spelling.
+const STYLE_ART: Record<string, string> = {
+  'aromatic white': 'aromaticwhite',
+  'bordeaux blend': 'bordeauxblend',
+  'botrytis wine': 'botrytiswine',
+  'champagne': 'champagne',
+  'cremant': 'cremant',
+  'cru beaujolais': 'crubeaujolas',
+  'dessert wine': 'dessertwine',
+  'fortified wine': 'fortifiedwine',
+  'fresh chillable red': 'freshchillablered',
+  'full-body red': 'fullbodyred',
+  'full-body white': 'fullbodywhite',
+  'gsm blend': 'gsmblend',
+  'ice wine': 'icewine',
+  'late harvest': 'lateharvest',
+  'light-body red': 'chillablered',
+  'light-body white': 'lightbodywhite',
+  'medium-body red': 'mediumbodyred',
+  'natural wine': 'naturalwine',
+  'noble grapes': 'noblegrape',
+  'orange wine': 'orangewine',
+  'petillant naturel': 'petnat',
+  'port': 'port',
+  'prosecco': 'prosecco',
+  'qvevri amber': 'qvevriamber',
+  'rose': 'rose',
+  'sherry': 'sherry',
+  'sparkling red': 'sparklingred',
+  'sparkling wine': 'sparklingwine',
+  'super tuscan': 'supertuscan',
+};
+
 /**
  * Grape bunch sprites (0.5.4): one bunch recoloured across colour x depth x
  * blend, leaf coloured by rarity — see `GrapeArt` on the Swift side, which
@@ -736,6 +772,7 @@ function buildIconManifest(entries: readonly WineEntry[]) {
     flavorSubclassIcons,
     flavorArt: FLAVOR_ART,
     grapeArt: buildGrapeArt(),
+    styleArt: STYLE_ART,
     countryShapeIcons: shapeIcons,
     styleClassBg: STYLE_CLASS_BG,
     styleColorTypeColors: STYLE_COLOR_TYPE_COLORS,

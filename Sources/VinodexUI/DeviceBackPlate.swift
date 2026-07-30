@@ -56,6 +56,15 @@ public struct DeviceBackPlate: View {
                 .padding(.trailing, 34)
                 .padding(.top, 104)
                 .allowsHitTesting(false)
+            // The skin's enamel badge (v0.5.6): every colourway pins its own
+            // emblem to the plate, so turning the device over answers "which
+            // one is this" the way a console's model badge does.
+            SkinBadge(skin: skin)
+                .rotationEffect(.degrees(-7))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(.leading, 36)
+                .padding(.top, 108)
+                .allowsHitTesting(false)
         }
         // A dark edge all the way round. Without it the plate's pale metal ran
         // straight into the chassis behind it and the underside read as a
@@ -331,6 +340,31 @@ private struct BarcodeSticker: View {
         // Faded: the sticker sits *under* years of handling.
         .opacity(0.68)
         .shadow(color: .black.opacity(0.25), radius: 1, y: 1)
+    }
+}
+
+/// The skin's enamel badge: the emblem glyph on the accent ramp, ringed like
+/// a pin pressed into the plate. Colour and glyph both come off the skin, so
+/// each colourway leaves a different mark.
+private struct SkinBadge: View {
+    let skin: ChassisSkin
+
+    var body: some View {
+        Image(systemName: skin.symbol)
+            .font(.system(size: 22, weight: .bold))
+            .foregroundStyle(skin.accent.ink)
+            .frame(width: 52, height: 52)
+            .background(
+                Circle().fill(
+                    LinearGradient(
+                        colors: [skin.accent.light, skin.accent.bright],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+            )
+            .overlay(Circle().strokeBorder(skin.accent.edge, lineWidth: 3))
+            .shadow(color: .black.opacity(0.35), radius: 2, y: 2)
     }
 }
 

@@ -17,15 +17,14 @@ Requires Pillow.
 """
 import os
 import sys
-from collections import deque
 
 from PIL import Image
+
+from art_common import strip_background
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 DST = os.path.join(ROOT, "Sources", "VinodexUI", "Resources", "GrapeArt")
-
-WHITE_FLOOR = 240
 
 # Artist file name -> canonical stem. `redlight.png` is a byte-duplicate of
 # `redlightrare.png` and is deliberately absent; the `greeen…` typo is the
@@ -75,42 +74,6 @@ def source_dir():
         if os.path.isdir(candidate):
             return candidate
     sys.exit("no source dir found; pass it explicitly")
-
-
-def strip_background(img):
-    """Flood-fills near-white to transparent, in from every edge pixel.
-    Same pass as import-flavor-art.py — kept inline so each importer stays a
-    single runnable file."""
-    img = img.convert("RGBA")
-    px = img.load()
-    w, h = img.size
-
-    def is_ground(x, y):
-        r, g, b, a = px[x, y]
-        return a > 0 and r >= WHITE_FLOOR and g >= WHITE_FLOOR and b >= WHITE_FLOOR
-
-    queue = deque()
-    seen = set()
-    for x in range(w):
-        for y in (0, h - 1):
-            if is_ground(x, y):
-                queue.append((x, y))
-    for y in range(h):
-        for x in (0, w - 1):
-            if is_ground(x, y):
-                queue.append((x, y))
-
-    while queue:
-        x, y = queue.popleft()
-        if (x, y) in seen or not is_ground(x, y):
-            continue
-        seen.add((x, y))
-        r, g, b, _ = px[x, y]
-        px[x, y] = (r, g, b, 0)
-        for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
-            if 0 <= nx < w and 0 <= ny < h and (nx, ny) not in seen:
-                queue.append((nx, ny))
-    return img
 
 
 def main():

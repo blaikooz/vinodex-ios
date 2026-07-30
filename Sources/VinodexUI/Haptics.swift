@@ -40,6 +40,14 @@ public enum Haptics {
         guard enabled else { return }
         UISelectionFeedbackGenerator().selectionChanged()
     }
+
+    /// The orb pressing in: the selection haptic with the orb's own voice
+    /// (v0.5.6) instead of the generic ping — one gesture, one sound.
+    public static func orbPress() {
+        Sounds.orb()
+        guard enabled else { return }
+        UISelectionFeedbackGenerator().selectionChanged()
+    }
 }
 
 /// Keeps the display awake while browsing — a reference app gets consulted with

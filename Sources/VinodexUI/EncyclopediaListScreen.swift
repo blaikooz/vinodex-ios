@@ -7,7 +7,12 @@ public struct EncyclopediaListScreen: View {
     let categories: Set<EntryCategory>
     let filter: EntryFilter?
     let showsSearch: Bool
+    /// Whether country rows join the results (v0.5.6). Countries are not
+    /// entries — their pages are assembled from regions — so master and
+    /// world search list them explicitly rather than through the query.
+    let showsCountries: Bool
     let onSelect: (WineEntry) -> Void
+    let onSelectCountry: (String) -> Void
 
     /// Held outside the view, so it survives the screen being torn down and
     /// rebuilt when you open an entry and come back — see `SearchStateStore`.
@@ -53,12 +58,16 @@ public struct EncyclopediaListScreen: View {
         categories: Set<EntryCategory>,
         filter: EntryFilter? = nil,
         showsSearch: Bool = true,
-        onSelect: @escaping (WineEntry) -> Void
+        showsCountries: Bool = false,
+        onSelect: @escaping (WineEntry) -> Void,
+        onSelectCountry: @escaping (String) -> Void = { _ in }
     ) {
         self.categories = categories
         self.filter = filter
         self.showsSearch = showsSearch
+        self.showsCountries = showsCountries
         self.onSelect = onSelect
+        self.onSelectCountry = onSelectCountry
     }
 
     /// Recomputed only when the query actually changes.
@@ -68,11 +77,13 @@ public struct EncyclopediaListScreen: View {
     /// master search, the one screen with every category selected, was slow to
     /// appear. `task(id:)` runs it once per query instead.
     @State private var results: [WineEntry] = []
+    @State private var countryResults: [String] = []
 
     private func recompute() {
         results = db.entries.apply(
             EntryQuery(categories: categories, filter: filter, search: search)
         )
+        countryResults = showsCountries ? db.countries(matching: search) : []
     }
 
     /// `task(id:)` alone covers first appearance. The `onAppear` that used to sit
@@ -111,9 +122,16 @@ public struct EncyclopediaListScreen: View {
                                 .id(Self.searchBarAnchor)
                         }
 
-                        if results.isEmpty {
+                        if results.isEmpty && countryResults.isEmpty {
                             emptyState
                         } else {
+                            // Countries lead: there are at most a couple of
+                            // dozen, they answer place-shaped queries, and a
+                            // country buried under 200 entries is a country
+                            // nobody finds.
+                            ForEach(countryResults, id: \.self) { country in
+                                countryRow(country)
+                            }
                             ForEach(results) { entry in
                                 EntryTileView(
                                     entry: entry,
@@ -173,6 +191,44 @@ public struct EncyclopediaListScreen: View {
 
     private var searchBar: some View {
         DexSearchBar(text: searchBinding)
+    }
+
+    /// A country result: flag, name, kind chip — the same shape the saved
+    /// screen's place rows use, so a country looks like a country everywhere.
+    private func countryRow(_ name: String) -> some View {
+        Button {
+            Haptics.select()
+            onSelectCountry(name)
+        } label: {
+            HStack(spacing: 12) {
+                FlagSwatch(country: name, width: 60, height: 38)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(name.uppercased())
+                        .font(DexFont.retro(13))
+                        .foregroundStyle(lcd.text)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                    ChipView(
+                        label: "COUNTRY",
+                        chip: Palette.Chip(bg: "#1c1917", border: "#57534e", text: "#e7e5e4")
+                    )
+                }
+                Spacer(minLength: 4)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(lcd.subtext)
+            }
+            .padding(8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(lcd.surface)
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .strokeBorder(lcd.surfaceEdge, lineWidth: 2)
+            )
+        }
+        .buttonStyle(DexPressStyle(scale: 0.98))
+        // A stable, entry-safe scroll identity.
+        .id("__country__\(name)")
     }
 
     private var emptyState: some View {
