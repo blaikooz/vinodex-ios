@@ -202,9 +202,15 @@ public struct EntryDetailScreen: View {
     // MARK: Hero
 
     /// Centred icon above a centred wordmark, on a faintly gridded green panel.
+    ///
+    /// The well is the scan's portrait now (v0.5.6) — nearly double its old
+    /// 80pt, because the pixel art earns the space. Regions drop the glyph at
+    /// this size: the flag *is* the picture.
     private var hero: some View {
-        VStack(spacing: 14) {
-            EntryIconWell(entry: entry, size: 80, cornerRadius: 12)
+        let isRegion: Bool = { if case .region = entry { return true }; return false }()
+
+        return VStack(spacing: 14) {
+            EntryIconWell(entry: entry, size: 148, cornerRadius: 20, showsGlyph: !isRegion)
 
             Text(entry.name.uppercased())
                 .font(DexFont.retro(21))
@@ -480,8 +486,10 @@ public struct EntryDetailScreen: View {
     private var categorySections: some View {
         switch entry {
         case .grape(let g):
-            statsSection(g)
+            // Rarity leads (v0.5.6): it is the one-glance fact, and it was
+            // buried under five stat bars.
             raritySection(g)
+            statsSection(g)
             // The reference titles the grape notes section FLAVOR PROFILE.
             flavorProfileSection(entry.tastingProfile)
             if !g.grapeAlternateNames.isEmpty {

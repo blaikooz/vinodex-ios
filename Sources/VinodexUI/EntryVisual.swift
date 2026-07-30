@@ -210,12 +210,17 @@ public struct EntryVisual {
             && origin.lowercased() != "various"
             && db.icons.flagSlug(for: origin) != nil
 
+        // The pixel-art portrait (0.5.6), when the set has one — over the
+        // flag or the class-coloured well alike; the glyph stays the fallback.
+        let artName = db.icons.styleArtStem(for: s.common.name)
+
         if hasRealOrigin {
             return EntryVisual(
                 well: .flag(country: origin, shapeIcon: nil),
                 iconID: iconID,
                 iconColor: tint,
-                ringColor: .white
+                ringColor: .white,
+                artName: artName
             )
         }
 
@@ -223,7 +228,8 @@ public struct EntryVisual {
             well: .color(Color(dexHex: db.icons.styleClassBg[cls.rawValue] ?? s.common.color)),
             iconID: iconID,
             iconColor: tint,
-            ringColor: .white
+            ringColor: .white,
+            artName: artName
         )
     }
 
@@ -301,7 +307,7 @@ public final class EntryVisualCache {
 public final class PixelArtLoader {
     public static let shared = PixelArtLoader()
 
-    private static let subdirectories = ["Resources/FlavorArt", "Resources/GrapeArt"]
+    private static let subdirectories = ["Resources/FlavorArt", "Resources/GrapeArt", "Resources/StyleArt"]
 
     private var cache: [String: UIImage?] = [:]
 
@@ -354,20 +360,28 @@ public struct EntryIconWell: View {
     let entry: WineEntry
     var size: CGFloat
     var cornerRadius: CGFloat
+    /// Whether the glyph/art layer draws at all. The region *hero* passes
+    /// false (v0.5.6): at hero size the flag well is the picture, and a
+    /// glyph stamped on it read as a badge on a flag. Rows keep theirs.
+    var showsGlyph: Bool
 
     private var visual: EntryVisual { EntryVisualCache.shared.visual(for: entry) }
 
-    public init(entry: WineEntry, size: CGFloat = 48, cornerRadius: CGFloat = 8) {
+    public init(entry: WineEntry, size: CGFloat = 48, cornerRadius: CGFloat = 8, showsGlyph: Bool = true) {
         self.entry = entry
         self.size = size
         self.cornerRadius = cornerRadius
+        self.showsGlyph = showsGlyph
     }
 
     public var body: some View {
         let v = visual
         ZStack {
             background(v)
-            if let stem = v.artName, let art = PixelArtLoader.shared.image(stem) {
+            if !showsGlyph {
+                // The well alone — see `showsGlyph`.
+                EmptyView()
+            } else if let stem = v.artName, let art = PixelArtLoader.shared.image(stem) {
                 // The portrait ships its own colours and chunky outline, so it
                 // renders as-is — tinting or outlining it would double up.
                 // Slightly larger than the glyph scale: the art's transparent

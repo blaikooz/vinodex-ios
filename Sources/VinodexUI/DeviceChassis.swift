@@ -196,7 +196,7 @@ public struct DeviceChassis<Content: View>: View {
                     isFlipped = true
                 } onPressingChanged: { pressing in
                     orbHeld = pressing
-                    if pressing { Haptics.select() }
+                    if pressing { Haptics.orbPress() }
                 }
                 .fixedSize()
 
@@ -306,14 +306,13 @@ public struct DeviceChassis<Content: View>: View {
     }
 
     private func statusDots(size: CGFloat) -> some View {
-        // WINE XMAS runs its lamps all red — see `statusLightOverride`.
-        let tints: [(Color, Color)] = skin.statusLightOverride.map { [($0.fill, $0.border), ($0.fill, $0.border), ($0.fill, $0.border)] }
-            ?? [(Dex.red600, Dex.red800), (Dex.yellow400, Dex.yellow600), (Dex.green500, Dex.green700)]
+        // Every skin runs its own lamp trio — see `ChassisSkin.statusLights`.
+        let lights = skin.statusLights
 
         return HStack(spacing: DexMetrics.statusDotSpacing) {
-            statusDot(tints[0].0, border: tints[0].1, period: 6.1, size: size)
-            statusDot(tints[1].0, border: tints[1].1, period: 7.4, size: size)
-            statusDot(tints[2].0, border: tints[2].1, period: 4.8, size: size)
+            statusDot(lights[0].fill, border: lights[0].border, period: 6.1, size: size)
+            statusDot(lights[1].fill, border: lights[1].border, period: 7.4, size: size)
+            statusDot(lights[2].fill, border: lights[2].border, period: 4.8, size: size)
         }
     }
 
@@ -750,22 +749,22 @@ public struct MarqueeBanner: View {
     let fontSize: CGFloat
     var pointsPerSecond: Double = 34
 
-    /// Cycle geometry, computed once at init (audit M8 — these were computed
-    /// properties re-measured on every TimelineView tick, ~120 UIFont
-    /// constructions a second).
+    /// The first copy's width, measured from its own laid-out geometry.
     ///
-    /// Press Start 2P is monospaced, so the run width is the character count
-    /// times one cell — but measured at the size the label actually
-    /// *renders*: `DexFont.retro` multiplies by the text-scale factor, and
-    /// measuring at the raw size (audit M9) made the cycle wrong by that
-    /// factor, so the seam skipped every lap at the SMALL scale — which is
-    /// the default. `gap` is the spacing between the two copies and part of
-    /// the same geometry, so it scales with them.
-    ///
-    /// Init-time is safe: the root view is keyed on the text scale, so a
-    /// scale change rebuilds this view.
-    private let gap: CGFloat
-    private let cycle: CGFloat
+    /// Every previous version *predicted* this number — character count
+    /// times a `UIFont`-measured cell (0.5.1), then the same corrected for
+    /// the text-scale factor (0.5.4, audit M9) — and every prediction
+    /// disagreed with SwiftUI's actual layout by a point or two: `NSString`
+    /// metrics and SwiftUI `Text` rounding are not the same machinery, the
+    /// error scaled with the label's length, and the seam skipped by exactly
+    /// that error every lap. Measuring the rendered label itself cannot
+    /// disagree with the rendered label. Until the first measurement lands
+    /// the strip holds still (shift 0) rather than popping.
+    @State private var copyWidth: CGFloat = 0
+
+    /// Spacing between the two copies — part of the cycle geometry, scaled
+    /// like the glyphs.
+    private var gap: CGFloat { fontSize * TextScale.current.factor * 1.5 }
 
     /// The strip's phosphor follows the shell — see `ChassisSkin.marqueeText`.
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
@@ -776,15 +775,6 @@ public struct MarqueeBanner: View {
         self.text = text
         self.fontSize = fontSize
         self.pointsPerSecond = pointsPerSecond
-
-        let rendered = fontSize * TextScale.current.factor
-        let font = UIFont(name: DexFont.names.retro, size: rendered)
-            ?? .monospacedSystemFont(ofSize: rendered, weight: .regular)
-        let cell = ("0" as NSString).size(withAttributes: [.font: font]).width
-        self.gap = rendered * 1.5
-        // One copy plus the gap. The second copy starts exactly here, so
-        // shifting by this amount lands back where it began.
-        self.cycle = max(CGFloat(text.count) * cell + rendered * 1.5, 1)
     }
 
     public var body: some View {
@@ -801,11 +791,15 @@ public struct MarqueeBanner: View {
                 )
 
             // Offset is a pure function of the clock, so it cannot drift and
-            // cannot be restarted mid-run by a re-render.
+            // cannot be restarted mid-run by a re-render. The cycle is one
+            // measured copy plus the gap: the second copy starts exactly
+            // there, so a wrap lands on identical pixels.
             TimelineView(.animation) { context in
+                let cycle = copyWidth + gap
                 let elapsed = context.date.timeIntervalSinceReferenceDate
-                let shift = CGFloat((elapsed * pointsPerSecond)
-                    .truncatingRemainder(dividingBy: Double(cycle)))
+                let shift = copyWidth > 0
+                    ? CGFloat((elapsed * pointsPerSecond).truncatingRemainder(dividingBy: Double(cycle)))
+                    : 0
 
                 // The GeometryReader is load-bearing, not decoration: the
                 // `.fixedSize()` label pair is ~1500pt wide for the main-menu
@@ -815,6 +809,15 @@ public struct MarqueeBanner: View {
                 GeometryReader { strip in
                     HStack(spacing: gap) {
                         label
+                            .background(
+                                GeometryReader { copy in
+                                    Color.clear
+                                        .onAppear { copyWidth = copy.size.width }
+                                        .onChange(of: copy.size.width) { _, new in
+                                            copyWidth = new
+                                        }
+                                }
+                            )
                         label
                     }
                     .offset(x: -shift)

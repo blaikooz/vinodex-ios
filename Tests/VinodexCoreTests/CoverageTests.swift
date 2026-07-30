@@ -281,6 +281,28 @@ struct CoverageTests {
         #expect(db.icons.flavorArtStem(for: "BLACKCURRANT") != nil)
     }
 
+    /// The pixel-art style portraits (v0.5.6): every key names a real style,
+    /// and — unlike flavours, where partial coverage is by design — the set
+    /// covers *all* of them, so the styles screen is never a mix of art and
+    /// tinted glyphs.
+    @Test("every style has a portrait, and every portrait names a style")
+    func styleArtWiring() {
+        let art = db.icons.styleArt
+        #expect(art != nil, "manifest lost its styleArt table")
+        guard let art else { return }
+
+        let names = Set(db.entries(in: .styles).map { TextNormalize.label($0.name) })
+        for key in art.keys {
+            #expect(names.contains(key), "styleArt key '\(key)' names no style")
+        }
+        for entry in db.entries(in: .styles) {
+            #expect(
+                db.icons.styleArtStem(for: entry.name) != nil,
+                "\(entry.name) has no style art"
+            )
+        }
+    }
+
     /// Every soil the region screen can show must match a keyword. Falling
     /// through to the default mountain renders, but reads as a bug — six terms
     /// were silently doing exactly that.

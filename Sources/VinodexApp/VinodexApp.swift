@@ -132,7 +132,12 @@ struct RootView: View {
             ) { open($0) }
 
         case .masterSearch:
-            EncyclopediaListScreen(categories: Set(EntryCategory.allCases)) { open($0) }
+            EncyclopediaListScreen(
+                categories: Set(EntryCategory.allCases),
+                showsCountries: true,
+                onSelect: { open($0) },
+                onSelectCountry: { push(.country(name: $0)) }
+            )
 
         case .detail(let id):
             if let entry = db.entry(id: id) {
@@ -168,8 +173,13 @@ struct RootView: View {
 
         case .globeSearch:
             // Continents and regions between them carry country and state
-            // names, and `matchesSearch` already looks at origin and state.
-            EncyclopediaListScreen(categories: [.continents, .regions]) { open($0) }
+            // names; countries join as rows of their own (v0.5.6).
+            EncyclopediaListScreen(
+                categories: [.continents, .regions],
+                showsCountries: true,
+                onSelect: { open($0) },
+                onSelectCountry: { push(.country(name: $0)) }
+            )
 
         case .country(let name):
             CountryScreen(

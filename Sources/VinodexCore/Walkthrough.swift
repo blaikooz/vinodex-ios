@@ -9,7 +9,7 @@ import Foundation
 ///
 /// **Opt-in, always.** Nothing here runs unasked — there is no first-launch
 /// flag, no "3 of 7" dots ambushing a new user, and no dismissal state to
-/// remember. It is reached by choosing BEGIN in settings, which means everyone
+/// remember. It is reached by choosing TUTORIAL in settings, which means everyone
 /// who sees it asked for it, and it can be replayed as often as you like.
 public struct WalkthroughStep: Sendable, Hashable, Identifiable {
     /// Which part of the device the diagram lights up for this step.
@@ -128,8 +128,8 @@ public enum Walkthrough {
             id: "done",
             title: "THAT'S IT.",
             body: """
-            Press Home and pick a tile. Rerun this tour any time from BEGIN \
-            in settings.
+            Press Home and pick a tile. Rerun this tour any time from \
+            TUTORIAL in settings.
             """,
             highlight: .device
         ),

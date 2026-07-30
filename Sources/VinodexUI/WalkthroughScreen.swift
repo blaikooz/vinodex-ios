@@ -232,7 +232,7 @@ struct DeviceDiagram: View {
 
     /// The tools step's little LCD: a mock of the settings grid, with the
     /// TOOLS tile glowing. The other three tiles are the grid's real
-    /// neighbours (BEGIN, CUSTOMIZE, SETTINGS), so the drawing points at
+    /// neighbours (TUTORIAL, CUSTOMIZE, SETTINGS), so the drawing points at
     /// where TOOLS actually sits rather than at a made-up menu.
     private func miniSettingsGrid(control: CGFloat, spacing: CGFloat) -> some View {
         VStack(spacing: spacing) {
@@ -283,12 +283,10 @@ struct DeviceDiagram: View {
                             .shadow(color: skin.orbGlow.opacity(lit(.orb) ? 0.9 : 0), radius: 6)
 
                         HStack(spacing: 2.5) {
-                            Circle().fill(Dex.red600)
-                                .overlay(Circle().strokeBorder(Dex.red800, lineWidth: 1))
-                            Circle().fill(Dex.yellow400)
-                                .overlay(Circle().strokeBorder(Dex.yellow600, lineWidth: 1))
-                            Circle().fill(Dex.green500)
-                                .overlay(Circle().strokeBorder(Dex.green700, lineWidth: 1))
+                            ForEach(0..<3, id: \.self) { i in
+                                Circle().fill(skin.statusLights[i].fill)
+                                    .overlay(Circle().strokeBorder(skin.statusLights[i].border, lineWidth: 1))
+                            }
                         }
                         .frame(width: control * 0.75, height: control * 0.26)
                         .opacity(dim(.lights))

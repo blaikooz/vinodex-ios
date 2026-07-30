@@ -41,17 +41,14 @@ public struct ToolsScreen: View {
         self.onDailyChallenge = onDailyChallenge
     }
 
-    private let columns = [
-        GridItem(.flexible(), spacing: 10),
-        GridItem(.flexible(), spacing: 10),
-    ]
-
     public var body: some View {
         ZStack {
             DexScreenBackground()
 
-            ScrollView {
-                LazyVGrid(columns: columns, spacing: 10) {
+            // A fixed three-row grid that fills the LCD (v0.5.6), like the
+            // settings grid — six tools, no scrolling.
+            VStack(spacing: 10) {
+                HStack(spacing: 10) {
                     // The two that answer a question about a specific glass go
                     // first — they are the reason to open this screen while
                     // actually drinking something.
@@ -61,30 +58,30 @@ public struct ToolsScreen: View {
                         face: "#22c55e", shadow: "#15803d",
                         action: onScanner
                     )
-
                     tile(
                         title: "FILTER\nSEARCH",
                         symbol: "line.3.horizontal.decrease.circle.fill",
                         face: "#2AB5FF", shadow: "#136A99",
                         action: onChipFilter
                     )
-
+                }
+                // The quiz family sits together: the practice ladder, then
+                // the one paper a day that keeps the streak.
+                HStack(spacing: 10) {
                     tile(
                         title: "TASTING\nQUIZ",
                         symbol: "checkmark.seal.fill",
                         face: "#a855f7", shadow: "#6b21a8",
                         action: onQuiz
                     )
-
-                    // The quiz family sits together: the practice ladder, then
-                    // the one paper a day that keeps the streak.
                     tile(
                         title: "DAILY\nCHALLENGE",
                         symbol: "flame.fill",
                         face: "#ef4444", shadow: "#991b1b",
                         action: onDailyChallenge
                     )
-
+                }
+                HStack(spacing: 10) {
                     // Named for the question it asks rather than for its pick:
                     // the reveal rotates through regions and styles as well as
                     // grapes, so "grape of the day" was wrong two days in three.
@@ -94,7 +91,6 @@ public struct ToolsScreen: View {
                         face: "#FACC15", shadow: "#ca8a04", ink: Dex.amber900,
                         action: onDailyGrape
                     )
-
                     tile(
                         title: "MOON DIAL",
                         symbol: "moon.stars.fill",
@@ -102,8 +98,8 @@ public struct ToolsScreen: View {
                         action: onMoonDial
                     )
                 }
-                .padding(12)
             }
+            .padding(12)
         }
     }
 
@@ -138,7 +134,6 @@ public struct ToolsScreen: View {
                     .shadow(color: .black.opacity(0.35), radius: 0, x: 1, y: 1)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .aspectRatio(1, contentMode: .fit)
             .background(
                 RoundedRectangle(cornerRadius: 10)
                     .fill(Color(dexHex: face))

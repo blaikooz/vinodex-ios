@@ -21,7 +21,7 @@ public struct SettingsPanel: View {
     let onMinigames: () -> Void
     let onWalkthrough: () -> Void
 
-    /// Set when BEGIN is tapped. The tour is a few minutes of someone's time, so
+    /// Set when TUTORIAL is tapped. The tour is a few minutes of someone's time, so
     /// it asks before it takes them — and asking is also what makes it findable
     /// without being imposed: the tile says what it is, the prompt says what it
     /// will do, and NO costs one tap.
@@ -42,42 +42,58 @@ public struct SettingsPanel: View {
         self.onWalkthrough = onWalkthrough
     }
 
-    private let columns = [
-        GridItem(.flexible(), spacing: 10),
-        GridItem(.flexible(), spacing: 10),
-    ]
-
     public var body: some View {
-        ScrollView {
-            LazyVGrid(columns: columns, spacing: 10) {
-                // BEGIN first, and deliberately so: it is the tile that matters
-                // to exactly one person — someone who has just opened this thing
-                // and does not yet know what it is — and that person will not
-                // scroll past four settings groups to find it. It is worthless
-                // to everyone else, who will never tap it twice.
-                featureTile(title: "BEGIN", symbol: "flag.checkered") {
+        // A fixed three-row grid that fills the LCD (v0.5.6) — six tiles, no
+        // scrolling: the panel is sized by the screen, not by its content.
+        // TUTORIAL first, deliberately: it is the tile that matters to
+        // exactly one person — someone who has just opened this thing — and
+        // that person must not have to hunt for it.
+        VStack(spacing: 10) {
+            HStack(spacing: 10) {
+                featureTile(title: "TUTORIAL", symbol: "flag.checkered") {
                     offeringTour = true
                 }
-
-                // Then the tools: the only other tile here anyone opens for fun.
                 // A wrench, not a gamepad — the hub holds more instruments
-                // than games now, and the tile should promise what it opens.
+                // than games, and the tile should promise what it opens.
                 featureTile(
                     title: "TOOLS",
                     symbol: "wrench.and.screwdriver.fill",
                     action: onMinigames
                 )
-
-                // DEV is deliberately absent from the grid — it lives as a
-                // button inside SETTINGS now, where developer plumbing belongs.
-                ForEach(SettingsSection.allCases.filter { $0 != .dev }) { section in
-                    featureTile(title: section.rawValue, symbol: section.symbol) {
-                        onSection(section)
-                    }
+            }
+            // DEV is deliberately absent from the grid — it lives as a
+            // button inside SETTINGS, where developer plumbing belongs.
+            HStack(spacing: 10) {
+                featureTile(
+                    title: SettingsSection.customization.rawValue,
+                    symbol: SettingsSection.customization.symbol
+                ) {
+                    onSection(.customization)
+                }
+                featureTile(
+                    title: SettingsSection.settings.rawValue,
+                    symbol: SettingsSection.settings.symbol
+                ) {
+                    onSection(.settings)
                 }
             }
-            .padding(12)
+            HStack(spacing: 10) {
+                featureTile(
+                    title: SettingsSection.data.rawValue,
+                    symbol: SettingsSection.data.symbol
+                ) {
+                    onSection(.data)
+                }
+                featureTile(
+                    title: SettingsSection.access.rawValue,
+                    symbol: SettingsSection.access.symbol
+                ) {
+                    onSection(.access)
+                }
+            }
         }
+        .padding(12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(lcd.panelGround)
         // In-LCD, like every other dialog in the app — a system alert would
         // slide up from the device and break the chassis metaphor.
@@ -86,7 +102,7 @@ public struct SettingsPanel: View {
                 DexAlert(
                     title: "TAKE THE TOUR?",
                     message: "A quick walk round the device — what each button does and where things live. About a minute, and you can leave at any point.",
-                    confirmLabel: "YES, SHOW ME",
+                    confirmLabel: "YES",
                     cancelLabel: "NOT NOW",
                     onConfirm: {
                         offeringTour = false
@@ -99,20 +115,41 @@ public struct SettingsPanel: View {
         .animation(.easeOut(duration: 0.15), value: offeringTour)
     }
 
-    /// Square by construction — `aspectRatio(1, contentMode: .fit)` inside a
-    /// flexible grid column — so the grid stays square whatever the device width.
-    ///
+    /// Per-tile colours, tuned separately for the pale and dark grounds
+    /// (v0.5.6, reversing 0.5.3's uniform mode ramp): each tile is unique
+    /// again — the colour is half the identity — and light mode runs the
+    /// deeper cuts because the bright faces washed out on the pale page.
+    private func tileColors(_ title: String) -> (face: String, shadow: String, ink: Color) {
+        if lcd.isLight {
+            return switch title {
+            case "TUTORIAL": ("#15803D", "#0B4A24", .white)
+            case "TOOLS": ("#B45309", "#7A3606", .white)
+            case "CUSTOMIZE": ("#B91C1C", "#7A1010", .white)
+            case "SETTINGS": ("#C2410C", "#7C2D12", .white)
+            case "DATA": ("#1D6FA8", "#11486E", .white)
+            default: ("#7E22CE", "#4C1D95", .white)   // ACCESS
+            }
+        }
+        return switch title {
+        case "TUTORIAL": ("#22C55E", "#15803D", .white)
+        // Yellow takes a dark ink, like the main menu's search button.
+        case "TOOLS": ("#FACC15", "#CA8A04", Dex.amber900)
+        case "CUSTOMIZE": ("#EF4444", "#991B1B", .white)
+        case "SETTINGS": ("#F97316", "#9A3412", .white)
+        case "DATA": ("#2AB5FF", "#136A99", .white)
+        default: ("#A855F7", "#6B21A8", .white)       // ACCESS
+        }
+    }
+
     /// Styled like the main menu's tiles — filled face, 6pt bottom extrusion,
-    /// top-left sheen — but dressed in the mode's control livery rather than
-    /// per-tile hues (v0.5.3): the settings grid follows the screen mode with
-    /// the rest of the chrome, and the glyphs carry the identity the colours
-    /// used to.
+    /// top-left sheen. Stretches to fill its grid cell rather than squaring
+    /// off (v0.5.6): the grid fits the LCD, so the tiles absorb the height.
     private func featureTile(
         title: String,
         symbol: String,
         action: @escaping () -> Void
     ) -> some View {
-        let ramp = lcd.controlAccent
+        let style = tileColors(title)
 
         return Button {
             Haptics.tap()
@@ -121,24 +158,23 @@ public struct SettingsPanel: View {
             VStack(spacing: 12) {
                 Image(systemName: symbol)
                     .font(.system(size: 44, weight: .semibold))
-                    .foregroundStyle(ramp.ink)
+                    .foregroundStyle(style.ink)
                     .shadow(color: .black.opacity(0.3), radius: 0, x: 1, y: 2)
                 Text(title)
                     .font(DexFont.retro(13))
                     .tracking(1)
-                    .foregroundStyle(ramp.ink)
+                    .foregroundStyle(style.ink)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                     .shadow(color: .black.opacity(0.35), radius: 0, x: 1, y: 1)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .aspectRatio(1, contentMode: .fit)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(ramp.bright)
+                    .fill(Color(dexHex: style.face))
                     .overlay(alignment: .bottom) {
                         // The same 6pt fake extrusion the menu tiles carry.
-                        ramp.mid.frame(height: 6)
+                        Color(dexHex: style.shadow).frame(height: 6)
                     }
                     .clipShape(RoundedRectangle(cornerRadius: 10))
             )
@@ -444,7 +480,7 @@ public struct SettingsSectionPanel: View {
                     tint: soundsOn ? Dex.green : lcd.subtext,
                     title: "SOUNDS",
                     detail: soundsOn
-                        ? "One chiptune ping on every press."
+                        ? "Clicks, pings and stings from the SFX pack."
                         : "The device is silent to the ear."
                 ) {
                     DexToggle(isOn: soundsOn, tint: Dex.green) { soundsOn.toggle() }
@@ -529,37 +565,43 @@ public struct SettingsSectionPanel: View {
                     } label: {
                         VStack(spacing: 8) {
                             // Body over panel, so the swatch reads as the
-                            // actual shell — plus the orb and the lit button,
-                            // which are what a skin actually varies. The dark
-                            // base under the body is for the translucent
-                            // skins, whose smoke needs something to be over.
-                            // Tall enough to be the tile's subject rather
-                            // than a colour chip beside a label.
+                            // actual shell — with the skin's emblem glyph in
+                            // the middle, the way the screen-mode tiles carry
+                            // theirs, at the same 50pt so the two pickers
+                            // read as one instrument (v0.5.6). The dark base
+                            // under the body is for the translucent skins,
+                            // whose smoke needs something to be over.
                             RoundedRectangle(cornerRadius: 5)
                                 .fill(Color(dexHex: "#1B1D21"))
                                 .overlay(RoundedRectangle(cornerRadius: 5).fill(option.body))
-                                .frame(height: 76)
+                                .frame(height: 50)
                                 .frame(maxWidth: .infinity)
                                 .overlay(alignment: .topLeading) {
                                     Circle()
                                         .fill(option.orb)
-                                        .frame(width: 13, height: 13)
-                                        .padding(6)
+                                        .frame(width: 10, height: 10)
+                                        .padding(5)
                                 }
                                 .overlay(alignment: .topTrailing) {
                                     Circle()
                                         .fill(option.accent.bright)
-                                        .frame(width: 13, height: 13)
-                                        .padding(6)
+                                        .frame(width: 10, height: 10)
+                                        .padding(5)
+                                }
+                                .overlay {
+                                    Image(systemName: option.symbol)
+                                        .font(.system(size: 17, weight: .semibold))
+                                        .foregroundStyle(option.accent.pale)
+                                        .shadow(color: .black.opacity(0.55), radius: 0, x: 1, y: 1)
                                 }
                                 .overlay(alignment: .bottom) {
                                     Rectangle()
                                         .fill(option.panel)
-                                        .frame(height: 24)
+                                        .frame(height: 14)
                                         .overlay {
                                             Capsule()
                                                 .fill(option.marqueeText)
-                                                .frame(width: 32, height: 4)
+                                                .frame(width: 24, height: 3)
                                         }
                                 }
                                 .clipShape(RoundedRectangle(cornerRadius: 5))

@@ -144,6 +144,10 @@ public struct IconManifest: Codable, Sendable {
     /// with fallbacks, so every key the app can derive resolves. Optional so
     /// an older manifest still decodes; grapes then keep their tinted glyph.
     public let grapeArt: [String: String]?
+    /// Full-colour pixel-art portrait per style, keyed by *normalised name*
+    /// like `flavorArt`. PNGs under `Resources/StyleArt`. Optional so an
+    /// older manifest still decodes; styles then keep their class glyph.
+    public let styleArt: [String: String]?
     /// Country outline glyphs, used to mask a flag into the country's shape.
     public let countryShapeIcons: [String: String]
     /// Icon-well background per style classification.
@@ -233,6 +237,11 @@ public struct IconManifest: Codable, Sendable {
         grapeArt?[key]
     }
 
+    /// Pixel-art stem for a style name, or nil when the set has no portrait.
+    public func styleArtStem(for name: String) -> String? {
+        styleArt?[TextNormalize.label(name)]
+    }
+
     /// Bundled flag stem for a country, e.g. `New Zealand` -> `new-zealand`.
     public func flagSlug(for country: String?) -> String? {
         guard let country, flags[country] != nil else { return nil }
@@ -291,6 +300,12 @@ public final class WineDatabase: Sendable {
     /// that pass `category: nil`.
     private let byNameAnyCategory: [String: WineEntry]
 
+    /// Countries, as searchable items (v0.5.6). Countries are not entries —
+    /// a country page is assembled from the regions that name it — so master
+    /// and world search list them from here. Only countries with regions in
+    /// the selection ship: a hit must open a page with something on it.
+    public let searchableCountries: [String]
+
     public init(
         entries: [WineEntry],
         palette: Palette,
@@ -305,6 +320,16 @@ public final class WineDatabase: Sendable {
         self.countries = countries
         self.freeIDs = freeIDs
         self.decodeErrors = decodeErrors
+
+        var countrySet = Set<String>()
+        for entry in entries {
+            if case .region(let r) = entry, !r.details.origin.isEmpty {
+                countrySet.insert(r.details.origin)
+            }
+        }
+        self.searchableCountries = countrySet.sorted {
+            $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
+        }
 
         var ids: [String: WineEntry] = [:]
         ids.reserveCapacity(entries.count)
@@ -400,6 +425,7 @@ public final class WineDatabase: Sendable {
                     flavorSubclassIcons: nil,
                     flavorArt: nil,
                     grapeArt: nil,
+                    styleArt: nil,
                     countryShapeIcons: [:],
                     styleClassBg: [:],
                     styleColorTypeColors: [:],
@@ -440,6 +466,14 @@ public final class WineDatabase: Sendable {
 
     public func entries(in category: EntryCategory) -> [WineEntry] {
         entries.apply(.category(category))
+    }
+
+    /// The searchable countries matching a query — all of them for an empty
+    /// query, diacritic-insensitive substring otherwise, like `matchesSearch`.
+    public func countries(matching query: String) -> [String] {
+        let q = TextNormalize.label(query)
+        guard !q.isEmpty else { return searchableCountries }
+        return searchableCountries.filter { TextNormalize.label($0).contains(q) }
     }
 
     public func entry(id: String) -> WineEntry? {

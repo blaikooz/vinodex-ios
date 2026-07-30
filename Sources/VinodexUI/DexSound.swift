@@ -2,17 +2,14 @@
 import AVFoundation
 import UIKit
 
-/// The device's voice — for v0.5.1, a single synthesized ping.
+/// The device's voice — the authored SFX pack (v0.5.6).
 ///
-/// Synthesized rather than bundled, deliberately — short square waves with a
-/// decay envelope *are* the period-correct sound for this hardware, they cost
-/// no asset files, and every parameter is a number in this file rather than a
-/// .wav somebody has to re-produce to tweak.
-///
-/// The full pack (boot arpeggio, page sweep, quiz stings) is deliberately
-/// parked: one interaction sound is the ship decision until the pack earns
-/// its way back note by note. The per-event entry points stay so the ~60
-/// call sites do not churn when it does.
+/// The 0.5.3 single synthesized ping grew back into a small pack, but from
+/// *files* this time: the sounds are authored in `shared/newicons/sfx`,
+/// labeled by their intended use, and bundled under `Resources/SFX`. Events
+/// without an authored sound (page sweeps, the wrong-answer buzz, boot) stay
+/// deliberately silent until a labeled file arrives — their entry points
+/// remain so call sites do not churn.
 ///
 /// Gated at the choke point like `Haptics`, and for the same reason: a call
 /// site that checked the setting itself would be the one that forgets to.
@@ -20,28 +17,30 @@ import UIKit
 /// two systems share call sites but not a toggle.
 @MainActor
 public enum Sounds {
-    /// Missing key = **off**: sounds are opt-in from v0.5.1 (they shipped
-    /// opt-out in 0.5.0 and the default was wrong). The mute switch still
-    /// wins — the audio session is `.ambient`.
+    /// Missing key = **off**: sounds are opt-in (since 0.5.1). The mute
+    /// switch still wins — the audio session is `.ambient`.
     public static let storageKey = "soundsEnabled"
 
     private static var enabled: Bool {
         UserDefaults.standard.bool(forKey: storageKey)
     }
 
-    /// Launch is not an interaction; the boot chime is parked with the rest
-    /// of the pack.
+    /// Launch is not an interaction; no authored boot chime yet.
     public static func boot() {}
     /// The percussive button click.
-    public static func tap() { play(.ping) }
-    /// The softer selection blip.
-    public static func select() { play(.ping) }
-    /// The screen-change sweep.
-    public static func page() { play(.ping) }
+    public static func tap() { play(.tap) }
+    /// The softer selection blip — the warm ping.
+    public static func select() { play(.select) }
+    /// Screen changes ride the button click that caused them; no voice of
+    /// their own.
+    public static func page() {}
     /// The quiz's right-answer sting.
-    public static func correct() { play(.ping) }
-    /// The quiz's wrong-answer buzz.
-    public static func wrong() { play(.ping) }
+    public static func correct() { play(.correct) }
+    /// No authored wrong-answer sound yet; silence reads better than reusing
+    /// a cheerful one.
+    public static func wrong() {}
+    /// The orb pressing in — the flip gesture's own voice.
+    public static func orb() { play(.orb) }
 
     private static func play(_ kind: SoundEngine.Kind) {
         guard enabled else { return }
@@ -49,7 +48,7 @@ public enum Sounds {
     }
 }
 
-/// The machinery behind `Sounds`: one engine, one pre-rendered buffer.
+/// The machinery behind `Sounds`: one engine, the bundled buffers.
 ///
 /// Everything is lazy — nothing is created until the first enabled play — so
 /// the app's launch pays nothing for having a voice. Every AVFoundation call
@@ -59,14 +58,17 @@ public enum Sounds {
 private final class SoundEngine {
     static let shared = SoundEngine()
 
-    enum Kind: CaseIterable {
-        case ping
+    /// Raw values are the bundled file stems under `Resources/SFX` — the
+    /// artist's labels, kebabed.
+    enum Kind: String, CaseIterable {
+        case tap = "button-tap"
+        case select = "warm-ping"
+        case correct = "correct-answer"
+        case orb = "orb-depress"
     }
 
-    private static let sampleRate = 44_100.0
-
     private var engine: AVAudioEngine?
-    /// Round-robin players so a page sweep does not cut a click short.
+    /// Round-robin players so a sting does not cut a click short.
     private var players: [AVAudioPlayerNode] = []
     private var nextPlayer = 0
     private var buffers: [Kind: AVAudioPCMBuffer] = [:]
@@ -94,13 +96,27 @@ private final class SoundEngine {
         try? AVAudioSession.sharedInstance().setCategory(.ambient, options: [.mixWithOthers])
         try? AVAudioSession.sharedInstance().setActive(true)
 
-        let engine = AVAudioEngine()
-        guard let format = AVAudioFormat(
-            standardFormatWithSampleRate: Self.sampleRate, channels: 1
-        ) else {
+        for kind in Kind.allCases {
+            guard let url = DexResources.url(named: kind.rawValue, ext: "mp3", subdirectory: "Resources/SFX"),
+                  let file = try? AVAudioFile(forReading: url),
+                  let buffer = AVAudioPCMBuffer(
+                    pcmFormat: file.processingFormat,
+                    frameCapacity: AVAudioFrameCount(file.length)
+                  ),
+                  (try? file.read(into: buffer)) != nil
+            else { continue }
+            buffers[kind] = buffer
+        }
+
+        // All four files come off one production pipeline, so one format
+        // serves every connection; a missing set leaves the engine unstarted
+        // and the app silent rather than wrong.
+        guard let format = buffers.values.first?.format else {
             broken = true
             return
         }
+
+        let engine = AVAudioEngine()
         for _ in 0..<3 {
             let player = AVAudioPlayerNode()
             engine.attach(player)
@@ -115,66 +131,6 @@ private final class SoundEngine {
             return
         }
         self.engine = engine
-
-        for kind in Kind.allCases {
-            buffers[kind] = render(kind, format: format)
-        }
-    }
-
-    // MARK: Synthesis
-
-    /// A note in the pack: square wave at `frequency`, `duration` seconds,
-    /// exponential decay with time constant `decay`. A nil `sweepTo` holds
-    /// the pitch; otherwise the frequency glides there over the note.
-    private struct Note {
-        var frequency: Double
-        var duration: Double
-        var decay: Double
-        var sweepTo: Double?
-    }
-
-    private func score(_ kind: Kind) -> [Note] {
-        switch kind {
-        // The slider ping — G6, short, with a fast decay. This was the pack's
-        // `select` blip, kept because it is the one that read as the device's
-        // own voice rather than as a sound effect.
-        case .ping:
-            [Note(frequency: 1568, duration: 0.06, decay: 0.02, sweepTo: nil)]
-        }
-    }
-
-    private func render(_ kind: Kind, format: AVAudioFormat) -> AVAudioPCMBuffer? {
-        let notes = score(kind)
-        let totalFrames = notes.reduce(0) { $0 + Int($1.duration * Self.sampleRate) }
-        guard totalFrames > 0,
-              let buffer = AVAudioPCMBuffer(
-                pcmFormat: format, frameCapacity: AVAudioFrameCount(totalFrames)
-              ),
-              let samples = buffer.floatChannelData?[0]
-        else { return nil }
-
-        let amplitude: Float = 0.18
-        var frame = 0
-        for note in notes {
-            let frames = Int(note.duration * Self.sampleRate)
-            // Integrated phase rather than f(t)·t, so a sweep glides instead
-            // of chirping.
-            var phase = 0.0
-            for i in 0..<frames {
-                let t = Double(i) / Self.sampleRate
-                let progress = Double(i) / Double(frames)
-                let frequency = note.sweepTo.map {
-                    note.frequency + (($0 - note.frequency) * progress)
-                } ?? note.frequency
-                phase += frequency / Self.sampleRate
-                let square: Float = sin(2 * .pi * phase) >= 0 ? 1 : -1
-                let envelope = Float(exp(-t / note.decay))
-                samples[frame + i] = square * envelope * amplitude
-            }
-            frame += frames
-        }
-        buffer.frameLength = AVAudioFrameCount(totalFrames)
-        return buffer
     }
 }
 #endif
