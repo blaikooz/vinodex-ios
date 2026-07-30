@@ -26,6 +26,9 @@ public struct WalkthroughStep: Sendable, Hashable, Identifiable {
         /// step swaps the mini LCD to a mock of the settings panel so it can
         /// point at where TOOLS and the settings groups actually live.
         case tools
+        /// A mocked-up entry page on the diagram's little LCD, so the step
+        /// about entries has an actual entry to point at.
+        case entry
         case back
         case saved
         case home
@@ -36,33 +39,65 @@ public struct WalkthroughStep: Sendable, Hashable, Identifiable {
     public let title: String
     public let body: String
     public let highlight: Highlight
+    /// When set, the diagram *hides* everything that is not the subject
+    /// rather than dimming it — the opening step shows one button and
+    /// nothing else, so there is exactly one thing to look at.
+    public let isolated: Bool
 
-    public init(id: String, title: String, body: String, highlight: Highlight) {
+    public init(id: String, title: String, body: String, highlight: Highlight, isolated: Bool = false) {
         self.id = id
         self.title = title
         self.body = body
         self.highlight = highlight
+        self.isolated = isolated
     }
 }
 
 public enum Walkthrough {
-    /// Ten steps, in the order someone actually meets the device: what it is,
-    /// what the screen does, then each control, then where to go first.
+    /// Ten steps. The order changed in v0.5.3: the tour now opens on a single
+    /// control — the person button, alone on the diagram — then Back, then a
+    /// mocked-up entry, and only then widens out to the screen and the rest
+    /// of the chassis. Starting with the whole device gave a new user nine
+    /// things to look at and no first move.
     ///
     /// Written to be read aloud — short sentences, second person, no jargon that
     /// the app has not already introduced. The one piece of vocabulary it does
     /// teach is "chassis", because the settings panel uses that word.
     public static let steps: [WalkthroughStep] = [
         WalkthroughStep(
-            id: "welcome",
-            title: "WELCOME",
+            id: "saved",
+            title: "START HERE",
             body: """
-            This is a wine encyclopedia dressed as a handheld console. \
-            Everything lives inside the device — the screen shows what you look \
-            up, and the buttons around it get you there. It takes about a minute \
-            to learn. Let's walk round it.
+            This is a wine encyclopedia dressed as a handheld console, and \
+            this is the one button to remember: the person. It opens your \
+            shelf — everything you save, want to try, or have tried lands \
+            there — and it is where you set your name and photo, so the \
+            device feels like yours.
             """,
-            highlight: .device
+            highlight: .saved,
+            isolated: true
+        ),
+        WalkthroughStep(
+            id: "back",
+            title: "GOING BACK",
+            body: """
+            Back steps you one screen at a time, and it remembers where you \
+            were — the same scroll position, the same sections open. Nothing \
+            you were reading gets lost because you followed a link.
+            """,
+            highlight: .back
+        ),
+        WalkthroughStep(
+            id: "entry",
+            title: "WHAT AN ENTRY LOOKS LIKE",
+            body: """
+            Everything you look up is an entry, and they all share one shape: \
+            the picture and name up top, three tiles that link onward — to a \
+            colour, a place, a family — then the readouts underneath. Anything \
+            in a row with an arrow is a link; tap it and you are reading the \
+            next entry.
+            """,
+            highlight: .entry
         ),
         WalkthroughStep(
             id: "screen",
@@ -86,26 +121,6 @@ public enum Walkthrough {
             highlight: .search
         ),
         WalkthroughStep(
-            id: "saved",
-            title: "YOUR SHELF",
-            body: """
-            The person button opens your saved entries. Tap SAVE on anything \
-            worth coming back to and it lands there. That screen is also where \
-            you set your name and add a photo, so it feels like yours.
-            """,
-            highlight: .saved
-        ),
-        WalkthroughStep(
-            id: "back",
-            title: "GOING BACK",
-            body: """
-            Back steps you one screen at a time, and it remembers where you \
-            were — the same scroll position, the same sections open. Nothing \
-            you were reading gets lost because you followed a link.
-            """,
-            highlight: .back
-        ),
-        WalkthroughStep(
             id: "home",
             title: "STARTING OVER",
             body: """
@@ -121,9 +136,9 @@ public enum Walkthrough {
             title: "MAKING IT YOURS",
             body: """
             The cog opens the system panel. CUSTOMIZE picks the screen mode — \
-            eight of them, from paper-white to green terminal phosphor — and \
-            swaps the chassis: ten colourways, each with its own lights and \
-            buttons. SETTINGS holds text size, haptics and sound. DATA shows \
+            ten of them, from paper-white to green dot-matrix — and swaps the \
+            chassis: fourteen colourways, each with its own moulding and \
+            lights. SETTINGS holds text size, haptics and sound. DATA shows \
             you what is in the database.
             """,
             highlight: .settings

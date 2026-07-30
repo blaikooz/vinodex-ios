@@ -431,23 +431,46 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// Green phosphor on black — the amber treatment with the other classic
     /// tube. Same grayscale-and-tint pass, over the dark tokens.
     case terminal = "TERMINAL"
-    /// The vintage CRT diagnostic screen: deep blue ground, white text, a
-    /// pale cyan for everything that would be green elsewhere.
+    /// VINOFD: deep blue CRT ground with a light-blue vacuum-fluorescent
+    /// glow for the text. Shipped in 0.5.1 as "Blue Screen" (white text) —
+    /// the rawValue keeps that name because it is persisted; the label and
+    /// the glow are what changed.
     case blueScreen = "BLUE SCREEN"
     /// A vintage starship console: black glass, amber readouts, and purple
     /// for the accents — the two colours those panels actually ran.
     case starTrek = "STAR TREK"
+    /// DMG dot-matrix: dark ink on pea green, four tones total. Runs the
+    /// vintage/amber grayscale-and-tint pass with the DMG's own green, so
+    /// only the tokens' *luminance* matters — that is what collapses the
+    /// whole LCD to the handheld's palette. The rawValue is ASCII on
+    /// purpose (it persists); the umlaut lives in `displayName`.
+    case gruenerBoy = "GRUNER BOY"
 
     public static let storageKey = "lcdMode"
 
     public var id: String { rawValue }
+
+    /// What the picker calls this mode. Separate from `rawValue` for the
+    /// same reason `ChassisSkin.displayName` is: the raw value is persisted,
+    /// so a rename must move the label and only the label. BLUE SCREEN
+    /// shipped in 0.5.1 and re-brands as VINOFD without resetting anyone's
+    /// stored choice.
+    public var displayName: String {
+        switch self {
+        case .blueScreen: "VINOFD"
+        case .gruenerBoy: "GRÜNER BOY"
+        default: rawValue
+        }
+    }
 
     /// Whether the screen ground is pale. An explicit list, not `!= .dark`:
     /// vintage is dark ink on a pale ground and wants every light branch, but
     /// amber is a *dark* mode — pale scrims and dark-on-accent ink on it would
     /// be wrong in both directions. WINE OS joins the pale side; the other
     /// themed modes are dark glass.
-    public var isLight: Bool { self == .light || self == .vintage || self == .wineOS }
+    public var isLight: Bool {
+        self == .light || self == .vintage || self == .wineOS || self == .gruenerBoy
+    }
 
     /// The tint the chassis multiplies the grayscaled LCD by — nil renders in
     /// colour. This is what turns "black on white" into "black on grey-green"
@@ -459,6 +482,9 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .vintage: Color(dexHex: "#C6CFB2")
         case .amber: Color(dexHex: "#FFB300")
         case .terminal: Color(dexHex: "#4DFF4D")
+        // The DMG's lightest tone; everything darker falls out of the
+        // grayscale multiply.
+        case .gruenerBoy: Color(dexHex: "#9BBC0F")
         }
     }
 
@@ -473,6 +499,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .terminal: "terminal.fill"
         case .blueScreen: "pc"
         case .starTrek: "atom"
+        case .gruenerBoy: "gamecontroller.fill"
         }
     }
 
@@ -485,18 +512,21 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .wineOS: Color(dexHex: "#C7D3E6")
         case .blueScreen: Color(dexHex: "#1021B4")
         case .starTrek: Color(dexHex: "#0B0910")
+        case .gruenerBoy: Color(dexHex: "#E6EBCF")
         }
     }
 
-    /// Primary text on that ground.
+    /// Primary text on that ground. VINOFD's is deliberately *not* white:
+    /// the light-blue glow is what says vacuum-fluorescent rather than BSOD.
     public var text: Color {
         switch self {
         case .dark, .amber, .terminal: .white
         case .light: Color(dexHex: "#1F1F1C")
         case .vintage: Color(dexHex: "#101010")
         case .wineOS: Color(dexHex: "#0E2258")
-        case .blueScreen: Color(dexHex: "#F4F7FF")
+        case .blueScreen: Color(dexHex: "#A6DBFF")
         case .starTrek: Color(dexHex: "#FFA94D")
+        case .gruenerBoy: Color(dexHex: "#141A0C")
         }
     }
 
@@ -511,8 +541,10 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .light: Color(dexHex: "#1B6B3A")
         case .vintage: Color(dexHex: "#1A1A16")
         case .wineOS: Color(dexHex: "#1D3E9E")
-        case .blueScreen: Color(dexHex: "#93DBFF")
+        // VFD electric cyan — one register brighter than the text glow.
+        case .blueScreen: Color(dexHex: "#7DF9FF")
         case .starTrek: Color(dexHex: "#C983E8")
+        case .gruenerBoy: Color(dexHex: "#2F3A1C")
         }
     }
 
@@ -523,8 +555,9 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .light: Color(dexHex: "#23342A")
         case .vintage: Color(dexHex: "#20201C")
         case .wineOS: Color(dexHex: "#22335E")
-        case .blueScreen: Color(dexHex: "#DCE4FF")
+        case .blueScreen: Color(dexHex: "#BFE4FF")
         case .starTrek: Color(dexHex: "#F2CD9A")
+        case .gruenerBoy: Color(dexHex: "#202817")
         }
     }
 
@@ -537,6 +570,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .wineOS: Color(dexHex: "#1D3E9E").opacity(0.07)
         case .blueScreen: Color.white.opacity(0.06)
         case .starTrek: Color(dexHex: "#C983E8").opacity(0.08)
+        case .gruenerBoy: Color.black.opacity(0.06)
         }
     }
 
@@ -550,6 +584,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .wineOS: Color(dexHex: "#1D3E9E")
         case .blueScreen: Color(dexHex: "#4A5FE0")
         case .starTrek: Color(dexHex: "#7A4E9E")
+        case .gruenerBoy: Color(dexHex: "#3A4224")
         }
     }
 
@@ -557,7 +592,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     public var buttonWell: Color {
         switch self {
         case .dark, .amber, .terminal, .starTrek: .black.opacity(0.35)
-        case .light, .vintage, .wineOS: .white
+        case .light, .vintage, .wineOS, .gruenerBoy: .white
         case .blueScreen: Color(dexHex: "#0A1690")
         }
     }
@@ -572,6 +607,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .wineOS: Color(dexHex: "#D6DFEE")
         case .blueScreen: Color(dexHex: "#0E1CA8")
         case .starTrek: .black
+        case .gruenerBoy: Color(dexHex: "#DDE3C2")
         }
     }
 
@@ -584,6 +620,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .wineOS: Color(dexHex: "#E9EEF6")
         case .blueScreen: Color(dexHex: "#1F31CE")
         case .starTrek: Color(dexHex: "#191022")
+        case .gruenerBoy: Color(dexHex: "#EFF2DE")
         }
     }
 
@@ -595,6 +632,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .wineOS: Color(dexHex: "#8598B8")
         case .blueScreen: Color(dexHex: "#5D74E8")
         case .starTrek: Color(dexHex: "#5C3E78")
+        case .gruenerBoy: Color(dexHex: "#7A8258")
         }
     }
 
@@ -605,8 +643,9 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .light: Color(dexHex: "#5A5A54")
         case .vintage: Color(dexHex: "#42423C")
         case .wineOS: Color(dexHex: "#465578")
-        case .blueScreen: Color(dexHex: "#B8C4F8")
+        case .blueScreen: Color(dexHex: "#8FB0F0")
         case .starTrek: Color(dexHex: "#C2915C")
+        case .gruenerBoy: Color(dexHex: "#455030")
         }
     }
 
@@ -616,6 +655,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .dark, .amber, .terminal, .starTrek: .black
         case .light, .vintage, .wineOS: Color(dexHex: "#FFFFFF")
         case .blueScreen: Color(dexHex: "#0A1690")
+        case .gruenerBoy: Color(dexHex: "#F4F6E8")
         }
     }
 
@@ -633,6 +673,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .wineOS: Color(dexHex: "#9FACC6")
         case .blueScreen: Color(dexHex: "#6272D4")
         case .starTrek: Color(dexHex: "#6D5A49")
+        case .gruenerBoy: Color(dexHex: "#939B78")
         }
     }
 
@@ -644,7 +685,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     public var onAccent: Color {
         switch self {
         case .dark, .amber, .terminal, .starTrek: .black
-        case .light, .vintage, .wineOS: .white
+        case .light, .vintage, .wineOS, .gruenerBoy: .white
         case .blueScreen: Color(dexHex: "#0A1690")
         }
     }
@@ -668,6 +709,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .wineOS: Color(dexHex: "#8598B8")
         case .blueScreen: Color(dexHex: "#4A5FE0")
         case .starTrek: Color(dexHex: "#3A2C1E")
+        case .gruenerBoy: Color(dexHex: "#7A8258")
         }
     }
 
@@ -678,6 +720,76 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .dark, .amber, .terminal: Dex.screen
         default: page
+        }
+    }
+
+    // MARK: Chrome
+    //
+    // v0.5.3: the chassis controls follow the screen *mode*, not the skin —
+    // Back, Home, Saved, the cog, the master-search button and the settings
+    // tiles all take the mode's livery, so switching the LCD re-dresses the
+    // whole instrument. The skin keeps the moulding, orb and marquee. These
+    // sit outside the LCD's grayscale-and-tint pass, so the monochrome modes
+    // spell their colours out literally.
+
+    /// The powered controls' six-stop ramp — Home, the search button, the
+    /// settings tiles. Same vocabulary as `ChassisAccent` for the same
+    /// reason: the stops are only ever used together.
+    public var controlAccent: ChassisAccent {
+        switch self {
+        // The house amber, exactly what the classic chassis always wore.
+        case .dark:
+            ChassisAccent(pale: "#fef3c7", light: "#fde68a", bright: "#fbbf24",
+                          mid: "#f59e0b", edge: "#b45309", ink: "#78350f")
+        case .light:
+            ChassisAccent(pale: "#E8F5EC", light: "#BFE3CB", bright: "#4FA76F",
+                          mid: "#1B6B3A", edge: "#0F4224", ink: "#0B2E18")
+        case .vintage:
+            ChassisAccent(pale: "#F2F2EA", light: "#D8D8CC", bright: "#8A8A7C",
+                          mid: "#4A4A40", edge: "#26261F", ink: "#111110")
+        case .amber:
+            ChassisAccent(pale: "#FFF4D6", light: "#FFE29A", bright: "#FFB300",
+                          mid: "#D18F00", edge: "#7A5200", ink: "#3A2600")
+        case .wineOS:
+            ChassisAccent(pale: "#EAF0FA", light: "#C2D2EC", bright: "#5B7FD4",
+                          mid: "#1D3E9E", edge: "#0E2258", ink: "#0A1A40")
+        case .terminal:
+            ChassisAccent(pale: "#E8FFE8", light: "#A8FFA8", bright: "#4DFF4D",
+                          mid: "#1FBF3F", edge: "#0A5A1E", ink: "#06300F")
+        case .blueScreen:
+            ChassisAccent(pale: "#E4F7FF", light: "#A6DBFF", bright: "#7DF9FF",
+                          mid: "#2FA8D8", edge: "#0A4A70", ink: "#062A40")
+        case .starTrek:
+            ChassisAccent(pale: "#FFE9C7", light: "#FFC98A", bright: "#FFA94D",
+                          mid: "#E08A20", edge: "#7A4A08", ink: "#341F04")
+        case .gruenerBoy:
+            ChassisAccent(pale: "#E6EBCF", light: "#C2CE9A", bright: "#8BAC0F",
+                          mid: "#566A18", edge: "#24300C", ink: "#0F1A0A")
+        }
+    }
+
+    /// The moulded caps — Back and Saved — plus what the cog is machined from.
+    public var controlCaps: ChassisControl {
+        switch self {
+        // The classic stone caps.
+        case .dark:
+            ChassisControl(top: "#44403c", bottom: "#0c0a09", edge: "#a8a29e", glyph: "#ffffff")
+        case .light:
+            ChassisControl(top: "#D8D8D2", bottom: "#8A8A82", edge: "#5F5F59", glyph: "#262622")
+        case .vintage:
+            ChassisControl(top: "#C9C9BD", bottom: "#77776C", edge: "#55554C", glyph: "#1A1A16")
+        case .amber:
+            ChassisControl(top: "#52401E", bottom: "#171006", edge: "#B98A2E", glyph: "#FFD98A")
+        case .wineOS:
+            ChassisControl(top: "#C2CCDE", bottom: "#6C7A96", edge: "#4A5878", glyph: "#10265C")
+        case .terminal:
+            ChassisControl(top: "#1E3A22", bottom: "#06120A", edge: "#3FA85C", glyph: "#A8FFA8")
+        case .blueScreen:
+            ChassisControl(top: "#2440D0", bottom: "#060F60", edge: "#7DA0FF", glyph: "#A6DBFF")
+        case .starTrek:
+            ChassisControl(top: "#6A4A8E", bottom: "#1E1030", edge: "#C983E8", glyph: "#F2CD9A")
+        case .gruenerBoy:
+            ChassisControl(top: "#7A8258", bottom: "#2A3018", edge: "#A2AB80", glyph: "#E6EBCF")
         }
     }
 
@@ -789,6 +901,15 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     /// Pine shell, snow panel, red caps and gold lights. Seasonal in theme
     /// only — a skin that vanished in January would read as a bug, not a gift.
     case christmas = "CHRISTMAS"
+    /// Atomic-purple clear shell — the second translucent colourway. Grape-
+    /// juice gloss for everything powered, the guts faintly visible through it.
+    case nouveau = "NOUVEAU"
+    /// Walnut woodgrain deck, cream faceplate, brass for the powered parts.
+    case oaked = "OAKED"
+    /// Glow-in-the-dark pale luminous green with a softly glowing rim.
+    case nocturne = "NOCTURNE"
+    /// Brushed aluminium: mirror highlights, crisp dark seams.
+    case steel = "STEEL"
 
     public static let storageKey = "chassisSkin"
 
@@ -797,7 +918,14 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     /// Whether the shell is see-through — `DeviceChassis`'s cue to mount the
     /// mock internals behind it. A flag rather than sniffing alpha out of a
     /// `Color`, which SwiftUI does not expose anyway.
-    public var isTranslucent: Bool { self == .glouglou }
+    public var isTranslucent: Bool { self == .glouglou || self == .nouveau }
+
+    /// A soft halo around the screen housing — NOCTURNE's glow-in-the-dark
+    /// charge. Nil everywhere else; the chassis applies it as a shadow, so
+    /// an absent glow costs nothing.
+    public var rimGlow: Color? {
+        self == .nocturne ? Color(dexHex: "#A8FF96") : nil
+    }
 
     /// What sits behind the shell: the shell itself for opaque skins, a
     /// near-black base under GLOUGLOU so the smoke plastic has something to be
@@ -830,14 +958,24 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .smartGrape: "SMART GRAPE"
         case .champagne: "CHAMPAGNE GOLD"
         case .christmas: "WINE XMAS"
+        case .nouveau: "NOUVEAU"
+        case .oaked: "OAKED"
+        case .nocturne: "NOCTURNE"
+        case .steel: "STEEL"
         }
     }
 
     /// A tileable pixel-art pattern drawn over the shell colour, or nil for a
-    /// plain moulding. WINE XMAS wraps the chassis in wrapping paper; the
-    /// pattern sits under the panel and footer wash like any other body.
+    /// plain moulding. WINE XMAS wraps the chassis in wrapping paper, OAKED
+    /// in walnut grain, STEEL in brushed aluminium; the pattern sits under
+    /// the panel and footer wash like any other body.
     public var bodyPatternAsset: String? {
-        self == .christmas ? "xmas-wrap" : nil
+        switch self {
+        case .christmas: "xmas-wrap"
+        case .oaked: "oak-grain"
+        case .steel: "steel-brush"
+        default: nil
+        }
     }
 
     /// Overrides the three status lamps' red/yellow/green when a skin wants
@@ -863,6 +1001,13 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .smartGrape: Color(dexHex: "#1C1C1E")
         case .champagne: Color(dexHex: "#E8D5A6")
         case .christmas: Color(dexHex: "#1B4332")
+        // Atomic-purple smoke — translucent, like GLOUGLOU; see `underlay`.
+        case .nouveau: Color(dexHex: "rgba(147,51,234,0.42)")
+        // The walnut base the grain pattern sits over.
+        case .oaked: Color(dexHex: "#5C4028")
+        case .nocturne: Color(dexHex: "#C9F2BE")
+        // The aluminium base the brush pattern sits over.
+        case .steel: Color(dexHex: "#C7CBD1")
         }
     }
 
@@ -879,6 +1024,10 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .smartGrape: Color(dexHex: "#1C1C1E").opacity(0.75)
         case .champagne: Color(dexHex: "#E8D5A6").opacity(0.75)
         case .christmas: Color(dexHex: "#1B4332").opacity(0.75)
+        case .nouveau: Color(dexHex: "rgba(147,51,234,0.30)")
+        case .oaked: Color(dexHex: "#5C4028").opacity(0.75)
+        case .nocturne: Color(dexHex: "#C9F2BE").opacity(0.75)
+        case .steel: Color(dexHex: "#B8BCC2").opacity(0.8)
         }
     }
 
@@ -895,6 +1044,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .smartGrape: Color(dexHex: "#2C2A28")
         case .champagne: Color(dexHex: "#F6EEDC")
         case .christmas: Color(dexHex: "#F4F7F2")
+        case .nouveau: Color(dexHex: "rgba(216,180,254,0.50)")
+        // The cream faceplate against the walnut deck.
+        case .oaked: Color(dexHex: "#F2E8D5")
+        case .nocturne: Color(dexHex: "#E9FBE0")
+        case .steel: Color(dexHex: "#DDE0E4")
         }
     }
 
@@ -910,6 +1064,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .smartGrape: Color(dexHex: "#5A5148")
         case .champagne: Color(dexHex: "#B49B62")
         case .christmas: Color(dexHex: "#9CAF9C")
+        case .nouveau: Color(dexHex: "rgba(233,213,255,0.90)")
+        // A hint of brass around the cream.
+        case .oaked: Color(dexHex: "#B5892E")
+        case .nocturne: Color(dexHex: "#8FCB7C")
+        case .steel: Color(dexHex: "#6B7078")
         }
     }
 
@@ -928,6 +1087,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .smartGrape: Color(dexHex: "#5A5148")
         case .champagne: Color(dexHex: "#B49B62")
         case .christmas: Color(dexHex: "#9CAF9C")
+        // Opaque over the internals, like GLOUGLOU's.
+        case .nouveau: Color(dexHex: "#7C3AED")
+        case .oaked: Color(dexHex: "#8A6B45")
+        case .nocturne: Color(dexHex: "#8FCB7C")
+        case .steel: Color(dexHex: "#6B7078")
         }
     }
 
@@ -963,6 +1127,14 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // The warm fairy-light gold, not the caps' red — red-on-pine is the
         // moulding's job.
         case .christmas: Color(dexHex: "#FFD166")
+        // Grape juice under gloss.
+        case .nouveau: Color(dexHex: "#A855F7")
+        // A brass lamp on the walnut.
+        case .oaked: Color(dexHex: "#E8C15A")
+        // The one part that is *always* charged.
+        case .nocturne: Color(dexHex: "#7CFC9A")
+        // Ice on silver.
+        case .steel: Color(dexHex: "#E8F1FF")
         }
     }
 
@@ -980,6 +1152,10 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .smartGrape: Color(dexHex: "#C97800")
         case .champagne: Color(dexHex: "#D4A017")
         case .christmas: Color(dexHex: "#D9962B")
+        case .nouveau: Color(dexHex: "#7C3AED")
+        case .oaked: Color(dexHex: "#B5892E")
+        case .nocturne: Color(dexHex: "#3EE06C")
+        case .steel: Color(dexHex: "#9FB8D8")
         }
     }
 
@@ -1031,6 +1207,22 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .christmas:
             ChassisAccent(pale: "#FFE7E7", light: "#FFB3B3", bright: "#F25454",
                           mid: "#D32F2F", edge: "#7A1010", ink: "#3D0000")
+        // Glossy grape juice — the whole powered set runs one purple.
+        case .nouveau:
+            ChassisAccent(pale: "#F3E8FF", light: "#D8B4FE", bright: "#A855F7",
+                          mid: "#7C3AED", edge: "#4C1D95", ink: "#2E1065")
+        // Polished brass on the cream faceplate.
+        case .oaked:
+            ChassisAccent(pale: "#F8EFD8", light: "#EFD9A0", bright: "#D9AE55",
+                          mid: "#B5892E", edge: "#7A5A14", ink: "#3D2B05")
+        // The charged phosphor itself, lit.
+        case .nocturne:
+            ChassisAccent(pale: "#EFFFE8", light: "#C9F9B8", bright: "#8DF06A",
+                          mid: "#57D63E", edge: "#2E8A20", ink: "#0F3D08")
+        // Cool steel-blue — powered, but restrained like the livery.
+        case .steel:
+            ChassisAccent(pale: "#F2F6FA", light: "#D7DEE6", bright: "#AEB9C6",
+                          mid: "#7E8A98", edge: "#454C56", ink: "#14181D")
         }
     }
 
@@ -1077,6 +1269,19 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // The holly-berry caps.
         case .christmas:
             ChassisControl(top: "#C93B3B", bottom: "#5C1010", edge: "#E88A8A", glyph: "#ffffff")
+        // Clear purple caps, moulded from the same smoke as the shell.
+        case .nouveau:
+            ChassisControl(top: "rgba(216,180,254,0.55)", bottom: "rgba(76,29,149,0.60)",
+                           edge: "rgba(233,213,255,0.90)", glyph: "#2E1065")
+        // Walnut caps with a cream glyph, like inlay.
+        case .oaked:
+            ChassisControl(top: "#7A5A3A", bottom: "#2E2014", edge: "#A8865E", glyph: "#F2E8D5")
+        // Moulded from the luminous shell, one register deeper.
+        case .nocturne:
+            ChassisControl(top: "#A9D89A", bottom: "#4E7A42", edge: "#6FA75E", glyph: "#123B0C")
+        // Machined caps with a dark glyph, per the Blanc de Blancs precedent.
+        case .steel:
+            ChassisControl(top: "#B9BEC6", bottom: "#5E646C", edge: "#3E434B", glyph: "#14181D")
         }
     }
 
@@ -1095,6 +1300,10 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .smartGrape: Color(dexHex: "#FF9F0A")
         case .champagne: Color(dexHex: "#F2C14E")
         case .christmas: Color(dexHex: "#FF6B6B")
+        case .nouveau: Color(dexHex: "#C084FC")
+        case .oaked: Color(dexHex: "#FFB84D")
+        case .nocturne: Color(dexHex: "#86FF7E")
+        case .steel: Color(dexHex: "#9FD4FF")
         }
     }
 
@@ -1112,6 +1321,10 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .smartGrape: Color(dexHex: "#E08600")
         case .champagne: Color(dexHex: "#D4A017")
         case .christmas: Color(dexHex: "#E03131")
+        case .nouveau: Color(dexHex: "#A855F7")
+        case .oaked: Color(dexHex: "#E69A28")
+        case .nocturne: Color(dexHex: "#57D63E")
+        case .steel: Color(dexHex: "#5FA8E8")
         }
     }
 
@@ -1129,6 +1342,10 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .smartGrape: Color(dexHex: "#331F04")
         case .champagne: Color(dexHex: "#33240A")
         case .christmas: Color(dexHex: "#240808")
+        case .nouveau: Color(dexHex: "#22083B")
+        case .oaked: Color(dexHex: "#33200A")
+        case .nocturne: Color(dexHex: "#0E2E0C")
+        case .steel: Color(dexHex: "#0A1A2A")
         }
     }
 

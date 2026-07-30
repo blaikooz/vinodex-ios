@@ -59,7 +59,7 @@ CLEAR SAVED DATA button that puts all of it back to a fresh install. The paywall
 machinery you can see in the ACCESS panel is a test harness — off by default,
 there so the locked experience stays testable rather than hypothetical.
 
-## Ten devices, not one device in ten colours
+## Fourteen devices, not one device in fourteen colours
 
 Each chassis skin carries its own **orb**, its own **buttons** and its own
 **marquee phosphor** — the parts that look powered — on top of its moulding. The
@@ -77,12 +77,17 @@ LCD never changes with the skin, so a colourway can never hurt legibility.
 | **Smart Grape** | Calculator black | Calculator orange | Orange |
 | **Champagne Gold** | Pale champagne | Gold leaf | Gold |
 | **Wine Xmas** | Pixel wrapping paper on pine | Fairy-light gold | Holly red |
+| **Nouveau** | Atomic-purple smoke over mock internals | Grape purple | Lilac |
+| **Oaked** | Walnut woodgrain, cream faceplate | Brass | Amber |
+| **Nocturne** | Glow-in-the-dark green, glowing rim | Charged green | Green |
+| **Steel** | Brushed aluminium, crisp dark seams | Ice | Ice blue |
 
-Plus eight screen modes — dark, light, monochrome VINTAGE (black on grey-green
-like an old organiser) and AMBER and TERMINAL phosphors that render the whole
-LCD like a CRT tube, an early-GUI WINE OS, a BLUE SCREEN, and a STAR TREK
-console — two text sizes, a haptics switch, and a single synthesized chiptune
-ping (off by default) with its own switch.
+Plus ten screen modes — dark, light, monochrome VINTAGE (black on grey-green
+like an old organiser), AMBER and TERMINAL phosphors, the GRÜNER BOY dot-matrix,
+an early-GUI WINE OS, the VINOFD blue tube, and a STAR TREK console — and the
+chassis controls re-dress to match whichever mode is active. Two text sizes, a
+haptics switch, and a single synthesized chiptune ping (off by default) with
+its own switch.
 
 ## The web app is the sibling, not the source
 

@@ -554,17 +554,17 @@ const FLAG_PATHS: Record<string, string> = {
   India: 'Asia/india/india.png',
 };
 
-/// Continents all carried `icon: 'globe'`, so all six resolved to the same
-/// `lucide:globe` — a generic mark that told you nothing and made the globe
-/// search look like six copies of one row. Outline glyphs where game-icons has
-/// the landmass; a recognisable stand-in where it does not.
+/// The web app's region-globe glyphs (`continentIconName` in
+/// `entryIconVisuals.tsx`), so the two siblings show the same three globes.
+/// Was a per-continent grab-bag (coliseum, pagoda, landmass outlines) — a
+/// mismatch with the web and with itself.
 const CONTINENT_ICONS: Record<string, string> = {
-  CONT_AFRICA: 'game-icons:africa',
-  CONT_SOUTH_AMERICA: 'game-icons:south-america',
-  CONT_OCEANIA: 'game-icons:australia',
+  CONT_AFRICA: 'game-icons:earth-africa-europe',
+  CONT_EUROPE: 'game-icons:earth-africa-europe',
+  CONT_ASIA: 'game-icons:earth-asia-oceania',
+  CONT_OCEANIA: 'game-icons:earth-asia-oceania',
   CONT_NORTH_AMERICA: 'game-icons:earth-america',
-  CONT_EUROPE: 'game-icons:coliseum',
-  CONT_ASIA: 'game-icons:pagoda',
+  CONT_SOUTH_AMERICA: 'game-icons:earth-america',
 };
 
 /**

@@ -40,6 +40,22 @@ public struct DeviceBackPlate: View {
             }
             screws
             engraving
+
+            // Factory leavings (v0.5.3): a faded barcode sticker and half a
+            // price tag someone tried to peel. Decoration in the plate's own
+            // fiction — a device that has been on a shelf, not in a renderer.
+            BarcodeSticker()
+                .rotationEffect(.degrees(-4))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                .padding(.leading, 30)
+                .padding(.bottom, 96)
+                .allowsHitTesting(false)
+            RippedPriceTag()
+                .rotationEffect(.degrees(8))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .padding(.trailing, 34)
+                .padding(.top, 104)
+                .allowsHitTesting(false)
         }
         // A dark edge all the way round. Without it the plate's pale metal ran
         // straight into the chassis behind it and the underside read as a
@@ -183,42 +199,21 @@ public struct DeviceBackPlate: View {
             )
             .engraved()
 
-            // The credit and the serial block share a second recessed panel —
-            // the nameplate's treatment, one register lighter, so the plate
-            // reads as two stamped plaques rather than one plaque and loose
-            // engraving.
-            VStack(spacing: 22) {
-                Text("CREATED BY \(Self.creator)")
-                    .font(DexFont.mono(25))
-                    .tracking(6)
-                    .foregroundStyle(Dex.stone700)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.55)
-                    .engraved()
-
-                Rectangle()
-                    .fill(
-                        LinearGradient(
-                            colors: [.clear, Dex.stone800.opacity(0.4), .clear],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .frame(height: 2)
-                    .padding(.horizontal, 20)
-
-                VStack(spacing: 10) {
-                    Text("SN: VDX-\(String(year))-001")
-                    Text("© \(String(year)) \(Self.creator)")
-                    Text("ALL RIGHTS RESERVED")
-                }
-                .font(DexFont.mono(22))
-                .tracking(4)
-                .lineLimit(1)
-                .minimumScaleFactor(0.55)
-                .foregroundStyle(Dex.stone700)
-                .engraved()
+            // The serial block keeps its recessed panel — the nameplate's
+            // treatment, one register lighter. The "CREATED BY" line is gone
+            // (v0.5.3): the maker's mark lives in the © line, and the plate
+            // carries factory stickers now rather than more engraving.
+            VStack(spacing: 10) {
+                Text("SN: VDX-\(String(year))-001")
+                Text("© \(String(year)) \(Self.creator)")
+                Text("ALL RIGHTS RESERVED")
             }
+            .font(DexFont.mono(22))
+            .tracking(4)
+            .lineLimit(1)
+            .minimumScaleFactor(0.55)
+            .foregroundStyle(Dex.stone700)
+            .engraved()
             .padding(.horizontal, 26)
             .padding(.vertical, 18)
             .background(
@@ -284,6 +279,105 @@ private extension View {
         self
             .shadow(color: .white.opacity(0.55), radius: 0, x: 0, y: 1)
             .shadow(color: .black.opacity(0.45), radius: 0, x: 0, y: -1)
+    }
+}
+
+/// A sun-faded barcode sticker. The bars are a fixed pattern, not data — a
+/// deterministic sequence so the plate looks identical on every launch.
+private struct BarcodeSticker: View {
+    /// Bar widths, in points at the sticker's own scale. Hand-picked to read
+    /// as EAN-ish without pretending to encode anything.
+    private static let bars: [CGFloat] = [
+        2, 1, 3, 1, 1, 2, 1, 4, 1, 2, 2, 1, 1, 3, 2, 1, 2, 1, 1, 4, 1, 2, 1, 3, 1, 1, 2, 2,
+    ]
+
+    var body: some View {
+        VStack(spacing: 3) {
+            Canvas { context, size in
+                var x: CGFloat = 0
+                let unit = size.width / Self.bars.reduce(0, +) / 1.9
+                for (index, width) in Self.bars.enumerated() {
+                    let w = width * unit
+                    if index.isMultiple(of: 2) {
+                        context.fill(
+                            Path(CGRect(x: x, y: 0, width: w, height: size.height)),
+                            with: .color(.black.opacity(0.78))
+                        )
+                    }
+                    x += w * 1.9
+                }
+            }
+            .frame(width: 108, height: 30)
+
+            Text("4 71332 90815")
+                .font(DexFont.mono(13))
+                .tracking(2)
+                .foregroundStyle(.black.opacity(0.7))
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 7)
+        .background(RoundedRectangle(cornerRadius: 3).fill(Color(dexHex: "#E9E6DA")))
+        .overlay(
+            // A worn top edge, as if the lamination has yellowed.
+            RoundedRectangle(cornerRadius: 3)
+                .fill(
+                    LinearGradient(
+                        colors: [Color(dexHex: "#C9C2A8").opacity(0.5), .clear],
+                        startPoint: .top,
+                        endPoint: .center
+                    )
+                )
+        )
+        // Faded: the sticker sits *under* years of handling.
+        .opacity(0.68)
+        .shadow(color: .black.opacity(0.25), radius: 1, y: 1)
+    }
+}
+
+/// The pink price tag someone tried to peel — the left half survives, the
+/// right edge is torn into a jagged profile.
+private struct RippedPriceTag: View {
+    /// The tear, as fractions of the tag's bounds: straight edges everywhere
+    /// except the right side, which staggers inward and back out.
+    private struct TornEdge: Shape {
+        func path(in rect: CGRect) -> Path {
+            var p = Path()
+            p.move(to: CGPoint(x: rect.minX, y: rect.minY))
+            p.addLine(to: CGPoint(x: rect.maxX * 0.92, y: rect.minY))
+            // The rip.
+            let steps: [(CGFloat, CGFloat)] = [
+                (0.84, 0.18), (0.95, 0.32), (0.78, 0.45),
+                (0.90, 0.60), (0.74, 0.74), (0.86, 0.88), (0.70, 1.0),
+            ]
+            for (fx, fy) in steps {
+                p.addLine(to: CGPoint(x: rect.maxX * fx, y: rect.minY + rect.height * fy))
+            }
+            p.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+            p.closeSubpath()
+            return p
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("SALE")
+                .font(DexFont.retro(10))
+                .tracking(2)
+                .foregroundStyle(Color(dexHex: "#8F2D56"))
+            Text("$4.99")
+                .font(DexFont.mono(24))
+                .foregroundStyle(Color(dexHex: "#6B1D40"))
+        }
+        .padding(.leading, 10)
+        .padding(.trailing, 26)
+        .padding(.vertical, 8)
+        .background(TornEdge().fill(Color(dexHex: "#F5A8C4")))
+        .overlay(
+            // The tear's raw paper edge — lighter, like exposed stock.
+            TornEdge().stroke(Color(dexHex: "#FBD3E2"), lineWidth: 1.5)
+        )
+        .opacity(0.9)
+        .shadow(color: .black.opacity(0.25), radius: 1, y: 1)
     }
 }
 #endif

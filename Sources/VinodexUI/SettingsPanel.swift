@@ -55,11 +55,7 @@ public struct SettingsPanel: View {
                 // and does not yet know what it is — and that person will not
                 // scroll past four settings groups to find it. It is worthless
                 // to everyone else, who will never tap it twice.
-                featureTile(
-                    title: "BEGIN",
-                    symbol: "flag.checkered",
-                    face: "#22c55e", shadow: "#15803d"
-                ) {
+                featureTile(title: "BEGIN", symbol: "flag.checkered") {
                     offeringTour = true
                 }
 
@@ -69,19 +65,13 @@ public struct SettingsPanel: View {
                 featureTile(
                     title: "TOOLS",
                     symbol: "wrench.and.screwdriver.fill",
-                    face: "#FACC15", shadow: "#ca8a04", ink: Dex.amber900,
                     action: onMinigames
                 )
 
                 // DEV is deliberately absent from the grid — it lives as a
                 // button inside SETTINGS now, where developer plumbing belongs.
                 ForEach(SettingsSection.allCases.filter { $0 != .dev }) { section in
-                    let style = tileStyle(for: section)
-                    featureTile(
-                        title: section.rawValue,
-                        symbol: section.symbol,
-                        face: style.face, shadow: style.shadow, ink: style.ink
-                    ) {
+                    featureTile(title: section.rawValue, symbol: section.symbol) {
                         onSection(section)
                     }
                 }
@@ -109,46 +99,34 @@ public struct SettingsPanel: View {
         .animation(.easeOut(duration: 0.15), value: offeringTour)
     }
 
-    private func tileStyle(for section: SettingsSection) -> (face: String, shadow: String, ink: Color) {
-        switch section {
-        case .customization: ("#ef4444", "#991b1b", .white)
-        case .settings: ("#f97316", "#9a3412", .white)
-        case .data: ("#2AB5FF", "#136A99", .white)
-        // Yellow tiles take a dark ink, like the main menu's search button —
-        // white on yellow is unreadable.
-        case .access: ("#FACC15", "#ca8a04", Dex.amber900)
-        case .dev: ("#57534e", "#292524", .white)
-        }
-    }
-
     /// Square by construction — `aspectRatio(1, contentMode: .fit)` inside a
     /// flexible grid column — so the grid stays square whatever the device width.
     ///
-    /// Styled exactly like the main menu's tiles — filled face, 6pt bottom
-    /// extrusion, top-left sheen — so the two grids read as the same furniture.
-    /// They used to be outline tiles on `lcd.surface`, which made settings look
-    /// like a different app from the screen it is reached from.
+    /// Styled like the main menu's tiles — filled face, 6pt bottom extrusion,
+    /// top-left sheen — but dressed in the mode's control livery rather than
+    /// per-tile hues (v0.5.3): the settings grid follows the screen mode with
+    /// the rest of the chrome, and the glyphs carry the identity the colours
+    /// used to.
     private func featureTile(
         title: String,
         symbol: String,
-        face: String,
-        shadow: String,
-        ink: Color = .white,
         action: @escaping () -> Void
     ) -> some View {
-        Button {
+        let ramp = lcd.controlAccent
+
+        return Button {
             Haptics.tap()
             action()
         } label: {
             VStack(spacing: 12) {
                 Image(systemName: symbol)
                     .font(.system(size: 44, weight: .semibold))
-                    .foregroundStyle(ink)
+                    .foregroundStyle(ramp.ink)
                     .shadow(color: .black.opacity(0.3), radius: 0, x: 1, y: 2)
                 Text(title)
                     .font(DexFont.retro(13))
                     .tracking(1)
-                    .foregroundStyle(ink)
+                    .foregroundStyle(ramp.ink)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                     .shadow(color: .black.opacity(0.35), radius: 0, x: 1, y: 1)
@@ -157,10 +135,10 @@ public struct SettingsPanel: View {
             .aspectRatio(1, contentMode: .fit)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(dexHex: face))
+                    .fill(ramp.bright)
                     .overlay(alignment: .bottom) {
                         // The same 6pt fake extrusion the menu tiles carry.
-                        Color(dexHex: shadow).frame(height: 6)
+                        ramp.mid.frame(height: 6)
                     }
                     .clipShape(RoundedRectangle(cornerRadius: 10))
             )
@@ -532,9 +510,12 @@ public struct SettingsSectionPanel: View {
     ///
     /// Everything past the default is gated on `.skins`, which is what makes a
     /// cosmetic bundle a testable paywall case rather than a hypothetical one.
+    /// The same three-column card grid the screen modes use, so the two
+    /// cosmetic pickers read as one instrument. Was a vertical list — at
+    /// fourteen skins the rows pushed everything below them off screen.
     private var skinTesting: some View {
         settingsSection("CHASSIS SKINS") {
-            VStack(spacing: 8) {
+            LazyVGrid(columns: pickerColumns, spacing: 8) {
                 ForEach(ChassisSkin.allCases) { option in
                     let locked = option != .classic && !access.isUnlocked(.skins)
 
@@ -546,72 +527,71 @@ public struct SettingsSectionPanel: View {
                             skinRaw = option.rawValue
                         }
                     } label: {
-                        HStack(spacing: 12) {
-                            // Body over panel, so the pair reads as the actual
-                            // shell rather than one flat swatch — plus the orb
-                            // and the lit button, which are what a skin now
-                            // actually varies. Without those two the picker
-                            // showed five rows that differed only in moulding
-                            // and the colourway looked like a paint job.
-                            // The dark base under the body is for GLOUGLOU,
-                            // whose translucent shell needs something to be
-                            // smoke over; opaque skins cover it entirely.
-                            RoundedRectangle(cornerRadius: 4)
+                        VStack(spacing: 8) {
+                            // Body over panel, so the swatch reads as the
+                            // actual shell — plus the orb and the lit button,
+                            // which are what a skin actually varies. The dark
+                            // base under the body is for the translucent
+                            // skins, whose smoke needs something to be over.
+                            RoundedRectangle(cornerRadius: 5)
                                 .fill(Color(dexHex: "#1B1D21"))
-                                .overlay(RoundedRectangle(cornerRadius: 4).fill(option.body))
-                                .frame(width: 44, height: 34)
+                                .overlay(RoundedRectangle(cornerRadius: 5).fill(option.body))
+                                .frame(height: 50)
+                                .frame(maxWidth: .infinity)
                                 .overlay(alignment: .topLeading) {
                                     Circle()
                                         .fill(option.orb)
-                                        .frame(width: 9, height: 9)
-                                        .padding(4)
+                                        .frame(width: 10, height: 10)
+                                        .padding(5)
                                 }
                                 .overlay(alignment: .topTrailing) {
                                     Circle()
                                         .fill(option.accent.bright)
-                                        .frame(width: 9, height: 9)
-                                        .padding(4)
+                                        .frame(width: 10, height: 10)
+                                        .padding(5)
                                 }
                                 .overlay(alignment: .bottom) {
                                     Rectangle()
                                         .fill(option.panel)
-                                        .frame(height: 12)
+                                        .frame(height: 16)
                                         .overlay {
                                             Capsule()
                                                 .fill(option.marqueeText)
-                                                .frame(width: 20, height: 3)
+                                                .frame(width: 24, height: 3)
                                         }
                                 }
-                                .clipShape(RoundedRectangle(cornerRadius: 4))
+                                .clipShape(RoundedRectangle(cornerRadius: 5))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 4)
+                                    RoundedRectangle(cornerRadius: 5)
                                         .strokeBorder(option.panelEdge, lineWidth: 1)
                                 )
                                 .opacity(locked ? 0.45 : 1)
-                            Text(option.displayName)
-                                .font(DexFont.retro(13))
-                                .tracking(1)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.55)
-                            Spacer(minLength: 0)
-                            if locked {
-                                Image(systemName: "lock.fill")
-                                    .font(.system(size: 16, weight: .bold))
-                            } else if skin == option {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 17, weight: .bold))
+
+                            HStack(spacing: 4) {
+                                if locked {
+                                    Image(systemName: "lock.fill")
+                                        .font(.system(size: 10, weight: .bold))
+                                } else if skin == option {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 11, weight: .bold))
+                                }
+                                Text(option.displayName)
+                                    .font(DexFont.retro(10))
+                                    .tracking(1)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.5)
                             }
                         }
                         .foregroundStyle(skin == option ? lcd.onAccent : lcd.subtext)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 16)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 12)
                         .frame(maxWidth: .infinity)
                         .background(
                             RoundedRectangle(cornerRadius: 6)
                                 .fill(skin == option ? lcd.accent : lcd.surface)
                         )
                     }
-                    .buttonStyle(DexPressStyle(scale: 0.98))
+                    .buttonStyle(DexPressStyle(scale: 0.97))
                 }
             }
         }
@@ -620,9 +600,9 @@ public struct SettingsSectionPanel: View {
     /// Separate from the chassis skin on purpose: the shell and the screen are
     /// independent choices, and a light screen in the red shell is a perfectly
     /// good combination.
-    /// A horizontal shelf of mode cards, one per `LcdMode` — the same
-    /// swatch-plus-label pattern the chassis-skins rows use, laid sideways
-    /// because eight modes stacked would bury the skins below them.
+    /// A three-column grid of mode cards, one per `LcdMode`. Was a horizontal
+    /// shelf for one release — at ten modes the shelf hid most of them off the
+    /// right edge, and a grid shows the whole range at once.
     ///
     /// Each card is a miniature LCD in the mode's own colours: glyph, a text
     /// line, a caption line. The monochrome modes run the real grayscale-and-
@@ -630,74 +610,78 @@ public struct SettingsSectionPanel: View {
     /// the green its raw tokens would show.
     private var screenMode: some View {
         settingsSection("SCREEN MODE") {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(LcdMode.allCases) { option in
-                        // Every mode past the default gates on the same cosmetic
-                        // bundle — a paywall case that costs nothing to test and
-                        // touches every screen.
-                        let locked = option != .dark && !access.isUnlocked(.lightMode)
+            LazyVGrid(columns: pickerColumns, spacing: 8) {
+                ForEach(LcdMode.allCases) { option in
+                    // Every mode past the default gates on the same cosmetic
+                    // bundle — a paywall case that costs nothing to test and
+                    // touches every screen.
+                    let locked = option != .dark && !access.isUnlocked(.lightMode)
 
-                        Button {
-                            Haptics.select()
-                            if locked {
-                                lockedBundle = .lightMode
-                            } else {
-                                lcdRaw = option.rawValue
-                            }
-                        } label: {
-                            VStack(spacing: 8) {
-                                RoundedRectangle(cornerRadius: 5)
-                                    .fill(option.screen)
-                                    .frame(width: 76, height: 50)
-                                    .overlay {
-                                        VStack(spacing: 4) {
-                                            Image(systemName: option.symbol)
-                                                .font(.system(size: 15, weight: .semibold))
-                                                .foregroundStyle(option.accent)
-                                            RoundedRectangle(cornerRadius: 1)
-                                                .fill(option.text.opacity(0.85))
-                                                .frame(width: 34, height: 3)
-                                            RoundedRectangle(cornerRadius: 1)
-                                                .fill(option.subtext.opacity(0.8))
-                                                .frame(width: 24, height: 3)
-                                        }
-                                    }
-                                    .grayscale(option.monochromeTint == nil ? 0 : 1)
-                                    .colorMultiply(option.monochromeTint ?? .white)
-                                    .clipShape(RoundedRectangle(cornerRadius: 5))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 5)
-                                            .strokeBorder(option.surfaceEdge, lineWidth: 1)
-                                    )
-                                    .opacity(locked ? 0.45 : 1)
-
-                                HStack(spacing: 4) {
-                                    if locked {
-                                        Image(systemName: "lock.fill")
-                                            .font(.system(size: 10, weight: .bold))
-                                    }
-                                    Text(option.rawValue)
-                                        .font(DexFont.retro(10))
-                                        .tracking(1)
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(0.55)
-                                }
-                            }
-                            .foregroundStyle(lcd == option ? lcd.onAccent : lcd.subtext)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 12)
-                            .frame(width: 104)
-                            .background(
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(lcd == option ? lcd.accent : lcd.surface)
-                            )
+                    Button {
+                        Haptics.select()
+                        if locked {
+                            lockedBundle = .lightMode
+                        } else {
+                            lcdRaw = option.rawValue
                         }
-                        .buttonStyle(DexPressStyle(scale: 0.97))
+                    } label: {
+                        VStack(spacing: 8) {
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(option.screen)
+                                .frame(height: 50)
+                                .frame(maxWidth: .infinity)
+                                .overlay {
+                                    VStack(spacing: 4) {
+                                        Image(systemName: option.symbol)
+                                            .font(.system(size: 15, weight: .semibold))
+                                            .foregroundStyle(option.accent)
+                                        RoundedRectangle(cornerRadius: 1)
+                                            .fill(option.text.opacity(0.85))
+                                            .frame(width: 34, height: 3)
+                                        RoundedRectangle(cornerRadius: 1)
+                                            .fill(option.subtext.opacity(0.8))
+                                            .frame(width: 24, height: 3)
+                                    }
+                                }
+                                .grayscale(option.monochromeTint == nil ? 0 : 1)
+                                .colorMultiply(option.monochromeTint ?? .white)
+                                .clipShape(RoundedRectangle(cornerRadius: 5))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 5)
+                                        .strokeBorder(option.surfaceEdge, lineWidth: 1)
+                                )
+                                .opacity(locked ? 0.45 : 1)
+
+                            HStack(spacing: 4) {
+                                if locked {
+                                    Image(systemName: "lock.fill")
+                                        .font(.system(size: 10, weight: .bold))
+                                }
+                                Text(option.displayName)
+                                    .font(DexFont.retro(10))
+                                    .tracking(1)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.55)
+                            }
+                        }
+                        .foregroundStyle(lcd == option ? lcd.onAccent : lcd.subtext)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(lcd == option ? lcd.accent : lcd.surface)
+                        )
                     }
+                    .buttonStyle(DexPressStyle(scale: 0.97))
                 }
             }
         }
+    }
+
+    /// The shared three-column layout both cosmetic pickers use.
+    private var pickerColumns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
     }
 
     private var textSize: some View {

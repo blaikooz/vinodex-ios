@@ -42,7 +42,7 @@ public struct WalkthroughScreen: View {
             VStack(spacing: 14) {
                 progress
 
-                DeviceDiagram(highlight: step.highlight, skin: skin, lcd: lcd)
+                DeviceDiagram(highlight: step.highlight, isolated: step.isolated, skin: skin, lcd: lcd)
                     .frame(height: 230)
                     // Redrawn per step so the lit part animates rather than
                     // cutting, which is what makes it read as "look here".
@@ -144,13 +144,16 @@ public struct WalkthroughScreen: View {
 /// which is the whole job.
 struct DeviceDiagram: View {
     let highlight: WalkthroughStep.Highlight
+    /// See `WalkthroughStep.isolated`: the opening step hides everything
+    /// that is not its subject instead of dimming it.
+    var isolated: Bool = false
     let skin: ChassisSkin
     let lcd: LcdMode
 
     /// Whether a part is the subject of this step. `.device` lights everything,
-    /// which is how the first and last steps say "this whole object". The
-    /// tools step lights the cog too — TOOLS lives behind it, and the step's
-    /// whole point is showing that path.
+    /// which is how the last step says "this whole object". The tools step
+    /// lights the cog too — TOOLS lives behind it, and the step's whole point
+    /// is showing that path.
     private func lit(_ part: WalkthroughStep.Highlight) -> Bool {
         highlight == .device || highlight == part
             || (part == .settings && highlight == .tools)
@@ -159,7 +162,9 @@ struct DeviceDiagram: View {
     private func dim(_ part: WalkthroughStep.Highlight) -> Double {
         // 0.38, up from 0.25 — at the old value the unlit parts vanished
         // entirely on the dark skins and the diagram read as one floating dot.
-        lit(part) ? 1 : 0.38
+        // Isolated steps do want them vanished; that is their whole point.
+        if lit(part) { return 1 }
+        return isolated ? 0 : 0.38
     }
 
     /// One of the main menu's category buttons, at diagram scale — the same
@@ -174,6 +179,55 @@ struct DeviceDiagram: View {
                     .foregroundStyle(ink)
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// The entry step's little LCD: a mocked-up entry page — icon well and
+    /// title, the three-tile link row, then section rules with rows — so the
+    /// copy about "one shape" has the shape right there to point at.
+    private func miniEntryMock(control: CGFloat, spacing: CGFloat) -> some View {
+        VStack(spacing: spacing * 2) {
+            // Hero: icon well + name bar.
+            VStack(spacing: spacing) {
+                RoundedRectangle(cornerRadius: control * 0.18)
+                    .fill(Color(dexHex: "#8B0000"))
+                    .frame(width: control * 0.8, height: control * 0.8)
+                    .overlay(
+                        Image(systemName: "leaf.fill")
+                            .font(.system(size: control * 0.4, weight: .semibold))
+                            .foregroundStyle(Color(dexHex: "#E03131"))
+                    )
+                Capsule()
+                    .fill(lcd.text.opacity(0.9))
+                    .frame(width: control * 1.7, height: 4)
+            }
+            // The three link tiles.
+            HStack(spacing: spacing) {
+                miniMenuTile("wineglass.fill", "#7f1d1d", control: control)
+                miniMenuTile("scalemass.fill", "#78350f", control: control)
+                miniMenuTile("flag.fill", "#1e3a8a", control: control)
+            }
+            .frame(height: control * 0.7)
+            // Two sections: an accent rule, then rows.
+            VStack(alignment: .leading, spacing: spacing) {
+                Capsule().fill(lcd.accent).frame(width: control * 1.2, height: 3)
+                ForEach(0..<2, id: \.self) { _ in
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(lcd.surface)
+                        .frame(height: control * 0.28)
+                        .overlay(alignment: .trailing) {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: control * 0.16, weight: .bold))
+                                .foregroundStyle(lcd.subtext)
+                                .padding(.trailing, 3)
+                        }
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 2)
+                                .strokeBorder(lcd.surfaceEdge, lineWidth: 0.5)
+                        )
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 
     /// The tools step's little LCD: a mock of the settings grid, with the
@@ -214,6 +268,9 @@ struct DeviceDiagram: View {
                         RoundedRectangle(cornerRadius: h * 0.1)
                             .strokeBorder(skin.panelEdge.opacity(0.6), lineWidth: 2)
                     )
+                    // Isolated steps hide the parts; the shell fades to a
+                    // ghost so the one lit control still has somewhere to be.
+                    .opacity(isolated && highlight != .device ? 0.15 : 1)
 
                 VStack(spacing: h * 0.035) {
                     // Island strip: orb + lights on the left, cog on the right.
@@ -238,14 +295,21 @@ struct DeviceDiagram: View {
 
                         Spacer(minLength: 0)
 
+                        // The cog wears the mode's caps, like the real one
+                        // does since v0.5.3.
                         Circle()
-                            .fill(Dex.stone700)
+                            .fill(
+                                LinearGradient(
+                                    colors: [lcd.controlCaps.top, lcd.controlCaps.bottom],
+                                    startPoint: .top, endPoint: .bottom
+                                )
+                            )
                             .frame(width: control, height: control)
-                            .overlay(Circle().strokeBorder(Dex.stone400, lineWidth: 1.5))
+                            .overlay(Circle().strokeBorder(lcd.controlCaps.edge, lineWidth: 1.5))
                             .overlay(
                                 Image(systemName: "gearshape.fill")
                                     .font(.system(size: control * 0.5))
-                                    .foregroundStyle(Dex.stone200)
+                                    .foregroundStyle(lcd.controlAccent.bright)
                             )
                             .opacity(dim(.settings))
                             .shadow(color: lcd.accent.opacity(lit(.settings) ? 0.8 : 0), radius: 6)
@@ -269,6 +333,9 @@ struct DeviceDiagram: View {
                                 // mock of the settings grid — see
                                 // `miniSettingsGrid`.
                                 miniSettingsGrid(control: control, spacing: h * 0.016)
+                                    .padding(h * 0.05)
+                            } else if highlight == .entry {
+                                miniEntryMock(control: control, spacing: h * 0.016)
                                     .padding(h * 0.05)
                             } else {
                                 VStack(spacing: h * 0.016) {
@@ -305,10 +372,13 @@ struct DeviceDiagram: View {
                                 .padding(h * 0.022)
                         )
                         .frame(width: w * 0.88)
-                        // The search and tools steps light a part *inside* the
-                        // housing — dimming the housing would dim its own
-                        // subject.
-                        .opacity(highlight == .search || highlight == .tools ? 1 : dim(.screen))
+                        // The search, tools and entry steps light a part
+                        // *inside* the housing — dimming the housing would dim
+                        // its own subject.
+                        .opacity(
+                            highlight == .search || highlight == .tools || highlight == .entry
+                                ? 1 : dim(.screen)
+                        )
                         .shadow(color: lcd.accent.opacity(lit(.screen) ? 0.7 : 0), radius: 8)
 
                     // Footer: back, saved, marquee, home — the actual buttons.
@@ -321,16 +391,16 @@ struct DeviceDiagram: View {
                         Circle()
                             .fill(
                                 LinearGradient(
-                                    colors: [skin.control.top, skin.control.bottom],
+                                    colors: [lcd.controlCaps.top, lcd.controlCaps.bottom],
                                     startPoint: .top, endPoint: .bottom
                                 )
                             )
                             .frame(width: control, height: control)
-                            .overlay(Circle().strokeBorder(skin.control.edge, lineWidth: 1.5))
+                            .overlay(Circle().strokeBorder(lcd.controlCaps.edge, lineWidth: 1.5))
                             .overlay(
                                 Image(systemName: "chevron.left")
                                     .font(.system(size: control * 0.5, weight: .bold))
-                                    .foregroundStyle(skin.control.glyph)
+                                    .foregroundStyle(lcd.controlCaps.glyph)
                             )
                             .opacity(dim(.back))
                             .shadow(color: lcd.accent.opacity(lit(.back) ? 0.8 : 0), radius: 6)
@@ -338,16 +408,16 @@ struct DeviceDiagram: View {
                         Circle()
                             .fill(
                                 LinearGradient(
-                                    colors: [skin.control.top, skin.control.bottom],
+                                    colors: [lcd.controlCaps.top, lcd.controlCaps.bottom],
                                     startPoint: .top, endPoint: .bottom
                                 )
                             )
                             .frame(width: control, height: control)
-                            .overlay(Circle().strokeBorder(skin.control.edge, lineWidth: 1.5))
+                            .overlay(Circle().strokeBorder(lcd.controlCaps.edge, lineWidth: 1.5))
                             .overlay(
                                 Image(systemName: "person.crop.circle")
                                     .font(.system(size: control * 0.5, weight: .bold))
-                                    .foregroundStyle(skin.control.glyph)
+                                    .foregroundStyle(lcd.controlCaps.glyph)
                             )
                             .opacity(dim(.saved))
                             .shadow(color: lcd.accent.opacity(lit(.saved) ? 0.8 : 0), radius: 6)
@@ -366,16 +436,16 @@ struct DeviceDiagram: View {
                         Circle()
                             .fill(
                                 LinearGradient(
-                                    colors: [skin.accent.light, skin.accent.mid],
+                                    colors: [lcd.controlAccent.light, lcd.controlAccent.mid],
                                     startPoint: .top, endPoint: .bottom
                                 )
                             )
                             .frame(width: control, height: control)
-                            .overlay(Circle().strokeBorder(skin.accent.edge, lineWidth: 1.5))
+                            .overlay(Circle().strokeBorder(lcd.controlAccent.edge, lineWidth: 1.5))
                             .overlay(
                                 Image(systemName: "house.fill")
                                     .font(.system(size: control * 0.45, weight: .bold))
-                                    .foregroundStyle(skin.accent.ink)
+                                    .foregroundStyle(lcd.controlAccent.ink)
                             )
                             .opacity(dim(.home))
                             .shadow(color: lcd.accent.opacity(lit(.home) ? 0.8 : 0), radius: 6)

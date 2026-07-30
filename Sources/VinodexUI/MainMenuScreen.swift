@@ -109,20 +109,23 @@ public struct MainMenuScreen: View {
         .buttonStyle(DexPressStyle(scale: 0.97))
     }
 
+    /// v0.5.3: the search button wears the mode's control livery, like the
+    /// chassis buttons around it — in DARK that resolves to the same amber
+    /// it has always been.
     private var searchButton: some View {
         Button {
             Haptics.tap()
             onSelect(.masterSearch)
         } label: {
             ZStack {
-                Circle().fill(Dex.yellow)
-                Circle().strokeBorder(Dex.yellow600, lineWidth: 6)
+                Circle().fill(mode.controlAccent.bright)
+                Circle().strokeBorder(mode.controlAccent.mid, lineWidth: 6)
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 36, weight: .bold))
-                    .foregroundStyle(Dex.amber900)
+                    .foregroundStyle(mode.controlAccent.ink)
             }
             .frame(width: 92, height: 92)
-            .shadow(color: Dex.yellow.opacity(0.4), radius: 12)
+            .shadow(color: mode.controlAccent.bright.opacity(0.4), radius: 12)
         }
         .buttonStyle(DexPressStyle(scale: 0.95))
         // Tight to the 92pt circle; the extra 4pt was dead space between rows.

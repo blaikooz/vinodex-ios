@@ -64,21 +64,29 @@ struct ContinentTests {
         )
     }
 
-    /// All six continents used to resolve to the same `lucide:globe`, which
-    /// told a reader nothing and made the world search look like six copies of
-    /// one row. They also reach a tile listing now, so they need chips.
-    @Test("each continent has its own glyph and tile chips")
+    /// v0.5.3: continents wear the web app's three region-globe glyphs — the
+    /// hemisphere each pair shares — rather than six per-continent marks
+    /// (`continentIconName` in the web's `entryIconVisuals.tsx`). Pinned as
+    /// exact pairs so a regeneration cannot silently drift the mapping, and
+    /// so the two siblings keep showing the same globes.
+    @Test("continents wear the three shared region-globe glyphs")
     func continentPresentation() throws {
         let db = WineDatabase.shared
-        var glyphs: Set<String> = []
+        let expected: [String: String] = [
+            "CONT_AFRICA": "game-icons:earth-africa-europe",
+            "CONT_EUROPE": "game-icons:earth-africa-europe",
+            "CONT_ASIA": "game-icons:earth-asia-oceania",
+            "CONT_OCEANIA": "game-icons:earth-asia-oceania",
+            "CONT_NORTH_AMERICA": "game-icons:earth-america",
+            "CONT_SOUTH_AMERICA": "game-icons:earth-america",
+        ]
 
         for entry in db.entries(in: .continents) {
             let icon = db.iconID(for: entry)
-            #expect(icon != db.icons.fallback, "\(entry.name) falls back to the placeholder glyph")
-            #expect(glyphs.insert(icon).inserted, "\(entry.name) reuses glyph \(icon)")
+            #expect(icon == expected[entry.id], "\(entry.name) wears \(icon)")
             #expect(!entry.tileChips.isEmpty, "\(entry.name) would render as a bare row in search")
         }
-        #expect(glyphs.count == 6)
+        #expect(Set(expected.values).count == 3)
     }
 
     @Test("hasRegions is true for a country with regions in the selection")
