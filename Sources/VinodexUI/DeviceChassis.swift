@@ -243,6 +243,8 @@ public struct DeviceChassis<Content: View>: View {
     /// decoration — nobody expects a logo to be tappable. A cog states what it
     /// does. Same diameter as the footer controls, so every button on the
     /// chassis is one size.
+    /// v0.5.3: machined from the mode's caps rather than fixed silver, so
+    /// the cog re-dresses with the rest of the controls.
     private func settingsButton(size: CGFloat) -> some View {
         Button {
             Haptics.tap()
@@ -253,9 +255,9 @@ public struct DeviceChassis<Content: View>: View {
                 .foregroundStyle(
                     LinearGradient(
                         colors: [
-                            Color(dexHex: "#f4f5f6"),
-                            Color(dexHex: "#c3c6ca"),
-                            Color(dexHex: "#8b8f95"),
+                            lcd.controlAccent.pale,
+                            lcd.controlAccent.light,
+                            lcd.controlAccent.bright,
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -266,7 +268,7 @@ public struct DeviceChassis<Content: View>: View {
                 .background(
                     Circle().fill(
                         LinearGradient(
-                            colors: [Dex.stone700, Dex.stone900],
+                            colors: [lcd.controlCaps.top, lcd.controlCaps.bottom],
                             startPoint: .top,
                             endPoint: .bottom
                         )
@@ -274,7 +276,7 @@ public struct DeviceChassis<Content: View>: View {
                 )
                 .overlay(
                     Circle().strokeBorder(
-                        Dex.stone400,
+                        lcd.controlCaps.edge,
                         lineWidth: 2
                     )
                 )
@@ -350,6 +352,11 @@ public struct DeviceChassis<Content: View>: View {
                 topTrailingRadius: DexMetrics.screenPanelCorner
             )
             .strokeBorder(skin.panelEdge, lineWidth: DexMetrics.screenPanelBorder)
+            // NOCTURNE's charge: the housing rim glows softly. Two stacked
+            // shadows — a tight one and a wide one — read as phosphor rather
+            // than as a drop shadow.
+            .shadow(color: skin.rimGlow?.opacity(0.9) ?? .clear, radius: 6)
+            .shadow(color: skin.rimGlow?.opacity(0.5) ?? .clear, radius: 16)
         }
         .padding(.horizontal, DexMetrics.screenPanelInset)
         .frame(maxHeight: .infinity)
@@ -527,11 +534,14 @@ public struct ChassisButton: View {
     let action: () -> Void
 
     /// Read here rather than passed down, the same way `DexToggle` reads the
-    /// screen mode: the footer builds these, and threading a skin through would
+    /// screen mode: the footer builds these, and threading it through would
     /// mean every future caller had to remember to.
-    @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
+    ///
+    /// v0.5.3: the mode, not the skin — the controls follow the screen. See
+    /// the Chrome note on `LcdMode`.
+    @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
 
-    private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
+    private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
     public init(kind: Kind, enabled: Bool = true, action: @escaping () -> Void) {
         self.kind = kind
@@ -571,16 +581,16 @@ public struct ChassisButton: View {
     private var gradient: LinearGradient {
         switch kind {
         case .back, .bookmarks:
-            LinearGradient(colors: [skin.control.top, skin.control.bottom], startPoint: .top, endPoint: .bottom)
+            LinearGradient(colors: [lcd.controlCaps.top, lcd.controlCaps.bottom], startPoint: .top, endPoint: .bottom)
         case .home:
-            LinearGradient(colors: [skin.accent.light, skin.accent.mid], startPoint: .top, endPoint: .bottom)
+            LinearGradient(colors: [lcd.controlAccent.light, lcd.controlAccent.mid], startPoint: .top, endPoint: .bottom)
         }
     }
 
     private var borderColor: Color {
         switch kind {
-        case .back, .bookmarks: skin.control.edge
-        case .home: skin.accent.edge
+        case .back, .bookmarks: lcd.controlCaps.edge
+        case .home: lcd.controlAccent.edge
         }
     }
 
@@ -593,20 +603,20 @@ public struct ChassisButton: View {
         case .back:
             Image(systemName: "chevron.left")
                 .font(.system(size: DexMetrics.footerControl * 0.47, weight: .heavy))
-                .foregroundStyle(skin.control.glyph)
+                .foregroundStyle(lcd.controlCaps.glyph)
         case .bookmarks:
             Image(systemName: "person.crop.circle")
                 .font(.system(size: DexMetrics.footerControl * 0.44, weight: .semibold))
-                .foregroundStyle(skin.control.glyph)
+                .foregroundStyle(lcd.controlCaps.glyph)
         case .home:
             Circle()
-                .fill(LinearGradient(colors: [skin.accent.pale, skin.accent.bright], startPoint: .top, endPoint: .bottom))
-                .overlay(Circle().strokeBorder(skin.accent.mid, lineWidth: 1))
+                .fill(LinearGradient(colors: [lcd.controlAccent.pale, lcd.controlAccent.bright], startPoint: .top, endPoint: .bottom))
+                .overlay(Circle().strokeBorder(lcd.controlAccent.mid, lineWidth: 1))
                 .padding(2)
                 .overlay {
                     Image(systemName: "house.fill")
                         .font(.system(size: DexMetrics.footerControl * 0.41, weight: .bold))
-                        .foregroundStyle(skin.accent.ink)
+                        .foregroundStyle(lcd.controlAccent.ink)
                 }
         }
     }

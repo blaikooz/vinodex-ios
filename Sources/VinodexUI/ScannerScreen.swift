@@ -293,7 +293,11 @@ public struct ScannerScreen: View {
 
     private var bodyStep: some View {
         question("HOW IS THE BODY?", "How much of it is there, from a wisp to a mouthful.") {
-            HStack(spacing: 8) {
+            // Stacked, not side by side: three abreast squeezed LIGHT/MEDIUM/
+            // FULL to a width where the labels shrank, and a vertical run
+            // also reads as the scale it is — a wisp at the top, a mouthful
+            // at the bottom.
+            VStack(spacing: 8) {
                 ForEach(GrapeBody.allCases) { option in
                     chip(
                         label: option.label,

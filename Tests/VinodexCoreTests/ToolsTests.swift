@@ -557,12 +557,25 @@ struct WalkthroughTests {
         #expect(Set(ids).count == ids.count)
     }
 
-    /// The tour opens and closes on the whole device, which is what makes the
-    /// first and last steps read as "here is the thing" and "off you go".
-    @Test("the tour opens and closes on the whole device")
+    /// v0.5.3's opening move: one control, alone on the diagram, then Back,
+    /// then a mocked-up entry — a first move rather than nine things at once.
+    /// The tour still closes on the whole device ("off you go").
+    @Test("the tour opens on the user button alone and closes on the device")
     func bookends() {
-        #expect(Walkthrough.steps.first?.highlight == .device)
+        let first = Walkthrough.steps.first
+        #expect(first?.highlight == .saved)
+        #expect(first?.isolated == true)
+        #expect(Walkthrough.steps.dropFirst().first?.highlight == .back)
         #expect(Walkthrough.steps.last?.highlight == .device)
+    }
+
+    /// Only the opening step isolates — a mid-tour step that hid the rest of
+    /// the device would read as the diagram breaking.
+    @Test("no step after the first isolates the diagram")
+    func isolationIsTheOpeningMove() {
+        for step in Walkthrough.steps.dropFirst() {
+            #expect(!step.isolated, "\(step.id) isolates mid-tour")
+        }
     }
 
     /// Every control the tour claims to explain must actually get a step, or the
@@ -570,7 +583,7 @@ struct WalkthroughTests {
     @Test("the controls the diagram can light are all covered")
     func coversTheControls() {
         let used = Set(Walkthrough.steps.map(\.highlight))
-        for required: WalkthroughStep.Highlight in [.screen, .search, .orb, .settings, .back, .home, .saved] {
+        for required: WalkthroughStep.Highlight in [.screen, .search, .orb, .settings, .back, .home, .saved, .entry] {
             #expect(used.contains(required), "no step highlights \(required.rawValue)")
         }
     }
