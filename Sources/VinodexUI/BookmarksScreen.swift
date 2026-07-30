@@ -27,6 +27,10 @@ public struct BookmarksScreen: View {
     @State private var bookmarks = BookmarkStore.shared
     @State private var confirmingClear = false
     @State private var pendingDelete: SavedItem?
+    /// The tried entry whose rating is being edited, driving a `RatingPrompt`
+    /// overlay — the journal is editable where it is read, not only back on
+    /// the entry's own screen.
+    @State private var editingRating: WineEntry?
     @State private var access = AccessStore.shared
     @State private var streak = StreakStore.shared
     /// Scroll position outlives the view — see `ScreenStateStore`.
@@ -176,8 +180,25 @@ public struct BookmarksScreen: View {
                 )
             }
         }
+        .overlay {
+            if let entry = editingRating {
+                RatingPrompt(
+                    entryName: entry.name,
+                    initial: bookmarks.rating(for: entry.id),
+                    onSave: { stars, note in
+                        bookmarks.setRating(
+                            TriedRating(rating: stars, note: note, day: DailyPick.dayIndex()),
+                            for: entry.id
+                        )
+                        editingRating = nil
+                    },
+                    onSkip: { editingRating = nil }
+                )
+            }
+        }
         .animation(.easeOut(duration: 0.15), value: confirmingClear)
         .animation(.easeOut(duration: 0.15), value: pendingDelete?.id)
+        .animation(.easeOut(duration: 0.15), value: editingRating?.id)
     }
 
     /// The shelf switch, in the settings panel's equal-width segment idiom.
@@ -369,7 +390,7 @@ public struct BookmarksScreen: View {
                 Haptics.select()
                 withAnimation(.easeOut(duration: 0.15)) { editingName.toggle() }
             } label: {
-                Image(systemName: editingName ? "checkmark" : "pencil")
+                Image(systemName: editingName ? "checkmark" : "square.and.pencil")
                     .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(lcd.accent)
                     .frame(width: 38, height: 38)
@@ -443,24 +464,42 @@ public struct BookmarksScreen: View {
                     onSelect(entry)
                 }
 
-                if shelf == .tried, let rating = bookmarks.rating(for: entry.id) {
+                // The journal line renders for every tried row — rated or not —
+                // because it now carries the pencil: an unrated tasting used
+                // to have no way into the prompt from this screen at all.
+                if shelf == .tried {
+                    let rating = bookmarks.rating(for: entry.id)
                     HStack(spacing: 6) {
                         ForEach(1...5, id: \.self) { star in
-                            Image(systemName: star <= rating.rating ? "star.fill" : "star")
+                            Image(systemName: star <= (rating?.rating ?? 0) ? "star.fill" : "star")
                                 .font(.system(size: 11))
-                                .foregroundStyle(star <= rating.rating ? Dex.yellow : lcd.disabledText)
+                                .foregroundStyle(star <= (rating?.rating ?? 0) ? Dex.yellow : lcd.disabledText)
                         }
-                        if !rating.note.isEmpty {
-                            Text(rating.note)
+                        if let note = rating?.note, !note.isEmpty {
+                            Text(note)
                                 .font(DexFont.mono(16))
                                 .foregroundStyle(lcd.subtext)
                                 .lineLimit(1)
                                 .truncationMode(.tail)
                         }
                         Spacer(minLength: 0)
+                        Button {
+                            Haptics.select()
+                            editingRating = entry
+                        } label: {
+                            Image(systemName: "square.and.pencil")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundStyle(lcd.accent)
+                                // 44pt target around the 13pt glyph, same rule
+                                // as the remove button above it.
+                                .frame(width: 40, height: 32)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(DexPressStyle(scale: 0.9))
+                        .accessibilityLabel("Edit your rating for \(entry.name)")
                     }
                     .padding(.horizontal, 10)
-                    .padding(.vertical, 7)
+                    .padding(.vertical, 4)
                     .background(lcd.well)
                     .overlay(
                         RoundedRectangle(cornerRadius: 4)

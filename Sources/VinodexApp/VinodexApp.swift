@@ -193,7 +193,7 @@ struct RootView: View {
             )
 
         case .settingsSection(let section):
-            SettingsSectionPanel(section: section)
+            SettingsSectionPanel(section: section, onDev: { push(.settingsSection(.dev)) })
 
         case .minigames:
             ToolsScreen(

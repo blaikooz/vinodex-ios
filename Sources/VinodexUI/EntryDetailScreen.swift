@@ -49,7 +49,7 @@ public struct EntryDetailScreen: View {
 
     private let db = WineDatabase.shared
     @State private var bookmarks = BookmarkStore.shared
-    /// Raised when TRIED turns on, and again from MY TASTING's EDIT.
+    /// Raised when TRIED turns on, and again from MY RATING's EDIT.
     @State private var showingRating = false
     /// Scroll position outlives the view — see `ScreenStateStore`.
     @State private var screens = ScreenStateStore.shared
@@ -155,7 +155,7 @@ public struct EntryDetailScreen: View {
     /// rarity row's three small read-only ones — two star rows on one screen
     /// must not read as the same instrument.
     private var myTasting: some View {
-        section("MY TASTING", symbol: "star.fill") {
+        section("MY RATING", symbol: "star.fill") {
             let rating = bookmarks.rating(for: entry.id)
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 6) {
@@ -169,16 +169,24 @@ public struct EntryDetailScreen: View {
                         Haptics.select()
                         showingRating = true
                     } label: {
-                        Text(rating == nil ? "RATE" : "EDIT")
-                            .font(DexFont.retro(10))
-                            .tracking(1.5)
-                            .foregroundStyle(lcd.accent)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(Capsule().fill(lcd.buttonWell))
-                            .overlay(Capsule().strokeBorder(lcd.accent, lineWidth: 2))
+                        HStack(spacing: 6) {
+                            // The edit pencil — the same glyph the profile's
+                            // name row wears, so "change this" is one symbol
+                            // everywhere.
+                            Image(systemName: "square.and.pencil")
+                                .font(.system(size: 13, weight: .bold))
+                            Text(rating == nil ? "RATE" : "EDIT")
+                                .font(DexFont.retro(10))
+                                .tracking(1.5)
+                        }
+                        .foregroundStyle(lcd.accent)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(Capsule().fill(lcd.buttonWell))
+                        .overlay(Capsule().strokeBorder(lcd.accent, lineWidth: 2))
                     }
                     .buttonStyle(DexPressStyle(scale: 0.94))
+                    .accessibilityLabel(rating == nil ? "Rate this entry" : "Edit your rating")
                 }
 
                 if let note = rating?.note, !note.isEmpty {
@@ -392,7 +400,10 @@ public struct EntryDetailScreen: View {
                     }
                     tile(
                         label: "SUBCLASS",
-                        chip: chip(EntryDisplay.humanize(f.details.subclass).uppercased(), .flavorSubclass, key: f.details.subclass)
+                        chip: chip(EntryDisplay.humanize(f.details.subclass).uppercased(), .flavorSubclass, key: f.details.subclass),
+                        // A cross-link like CLASS above it: tapping runs a
+                        // filter search over the subclass's own flavours.
+                        destination: .list(category: .flavors, filter: .flavorSubclass(f.details.subclass))
                     ) { tint in
                         DexIcon(iconID: db.icons.flavorSubclassIcon(f.details.subclass), size: 32, color: tint)
                     }
@@ -630,28 +641,44 @@ public struct EntryDetailScreen: View {
         }
     }
 
+    /// The rarity readout, at display size rather than row size. The chip and
+    /// the stars were list-row furniture (11pt chip, 11pt stars) on a screen
+    /// where rarity is one of the two things a collector opens the scan for —
+    /// it read as a footnote next to the CHARACTERISTICS bars above it.
     private func raritySection(_ g: GrapeEntry) -> some View {
-        section("RARITY", symbol: "star") {
+        let chip = db.palette.rarityChips[g.rarity.rawValue]
+            ?? Palette.Chip(bg: "#3f3f46", border: "#52525b", text: "#e4e4e7")
+
+        return section("RARITY", symbol: "star") {
             HStack(spacing: 8) {
-                ChipView(
-                    label: g.rarity.rawValue,
-                    chip: db.palette.rarityChips[g.rarity.rawValue]
-                        ?? Palette.Chip(bg: "#3f3f46", border: "#52525b", text: "#e4e4e7")
-                )
+                Text(g.rarity.rawValue)
+                    .font(DexFont.retro(16))
+                    .tracking(1.5)
+                    .foregroundStyle(Color(dexHex: chip.text))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6).fill(Color(dexHex: chip.bg))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .strokeBorder(Color(dexHex: chip.border), lineWidth: 2)
+                    )
                 Spacer()
-                HStack(spacing: 4) {
+                HStack(spacing: 7) {
                     // NOBLE is a crown on its own, not a crown capping three
                     // stars — the stars implied it was simply one rank above
                     // RARE rather than a different kind of thing.
                     if g.rarity == .noble {
                         Image(systemName: "crown.fill")
-                            .font(.system(size: 15))
+                            .font(.system(size: 26))
                             .foregroundStyle(Dex.yellow)
+                            .shadow(color: Dex.yellow.opacity(0.55), radius: 4)
                     } else {
                         let filled = rarityRank(g.rarity)
                         ForEach(0..<3, id: \.self) { index in
                             Image(systemName: index < filled ? "star.fill" : "star")
-                                .font(.system(size: 11))
+                                .font(.system(size: 20))
                                 .foregroundStyle(index < filled ? Dex.yellow : Dex.stone700)
                         }
                     }

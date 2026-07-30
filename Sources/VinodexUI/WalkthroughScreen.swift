@@ -148,9 +148,12 @@ struct DeviceDiagram: View {
     let lcd: LcdMode
 
     /// Whether a part is the subject of this step. `.device` lights everything,
-    /// which is how the first and last steps say "this whole object".
+    /// which is how the first and last steps say "this whole object". The
+    /// tools step lights the cog too — TOOLS lives behind it, and the step's
+    /// whole point is showing that path.
     private func lit(_ part: WalkthroughStep.Highlight) -> Bool {
         highlight == .device || highlight == part
+            || (part == .settings && highlight == .tools)
     }
 
     private func dim(_ part: WalkthroughStep.Highlight) -> Double {
@@ -162,15 +165,37 @@ struct DeviceDiagram: View {
     /// One of the main menu's category buttons, at diagram scale — the same
     /// glyph and face colour as `MainMenuScreen`'s tile, so the miniature is
     /// recognisably the real menu.
-    private func miniMenuTile(_ symbol: String, _ hex: String, control: CGFloat) -> some View {
+    private func miniMenuTile(_ symbol: String, _ hex: String, control: CGFloat, ink: Color = .white) -> some View {
         RoundedRectangle(cornerRadius: control * 0.18)
             .fill(Color(dexHex: hex))
             .overlay(
                 Image(systemName: symbol)
                     .font(.system(size: control * 0.42, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(ink)
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// The tools step's little LCD: a mock of the settings grid, with the
+    /// TOOLS tile glowing. The other three tiles are the grid's real
+    /// neighbours (BEGIN, CUSTOMIZE, SETTINGS), so the drawing points at
+    /// where TOOLS actually sits rather than at a made-up menu.
+    private func miniSettingsGrid(control: CGFloat, spacing: CGFloat) -> some View {
+        VStack(spacing: spacing) {
+            HStack(spacing: spacing) {
+                miniMenuTile("flag.checkered", "#22c55e", control: control)
+                miniMenuTile("wrench.and.screwdriver.fill", "#FACC15", control: control, ink: Dex.amber900)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: control * 0.18)
+                            .strokeBorder(.white, lineWidth: 2)
+                    )
+                    .shadow(color: Dex.yellow.opacity(0.9), radius: 6)
+            }
+            HStack(spacing: spacing) {
+                miniMenuTile("paintpalette.fill", "#ef4444", control: control)
+                miniMenuTile("slider.horizontal.3", "#f97316", control: control)
+            }
+        }
     }
 
     var body: some View {
@@ -235,46 +260,55 @@ struct DeviceDiagram: View {
                         .fill(skin.panel)
                         .overlay(
                             RoundedRectangle(cornerRadius: h * 0.04)
-                                .fill(lcd.isLight ? lcd.screen : Dex.screen)
+                                .fill(lcd.ground)
                                 .padding(h * 0.022)
                         )
-                        .overlay(
-                            VStack(spacing: h * 0.016) {
-                                HStack(spacing: h * 0.016) {
-                                    miniMenuTile("circle.grid.3x3.fill", "#a855f7", control: control)
-                                    miniMenuTile("globe.americas.fill", "#22c55e", control: control)
+                        .overlay {
+                            if highlight == .tools {
+                                // The tools step swaps the little LCD to a
+                                // mock of the settings grid — see
+                                // `miniSettingsGrid`.
+                                miniSettingsGrid(control: control, spacing: h * 0.016)
+                                    .padding(h * 0.05)
+                            } else {
+                                VStack(spacing: h * 0.016) {
+                                    HStack(spacing: h * 0.016) {
+                                        miniMenuTile("circle.grid.3x3.fill", "#a855f7", control: control)
+                                        miniMenuTile("globe.americas.fill", "#22c55e", control: control)
+                                    }
+                                    // The master-search button sits between the
+                                    // rows, exactly where the real menu puts it.
+                                    ZStack {
+                                        Circle().fill(Dex.yellow)
+                                        Circle().strokeBorder(Dex.yellow600, lineWidth: 2)
+                                        Image(systemName: "magnifyingglass")
+                                            .font(.system(size: control * 0.4, weight: .bold))
+                                            .foregroundStyle(Dex.amber900)
+                                    }
+                                    .frame(width: control * 0.8, height: control * 0.8)
+                                    // No opacity of its own — the housing already
+                                    // dims everything on the little LCD together,
+                                    // and stacking a second dim made this button
+                                    // darker than its neighbours.
+                                    .shadow(color: Dex.yellow.opacity(lit(.search) ? 0.9 : 0), radius: 6)
+                                    HStack(spacing: h * 0.016) {
+                                        miniMenuTile("wineglass.fill", "#f97316", control: control)
+                                        miniMenuTile("leaf.fill", "#10b981", control: control)
+                                    }
                                 }
-                                // The master-search button sits between the
-                                // rows, exactly where the real menu puts it.
-                                ZStack {
-                                    Circle().fill(Dex.yellow)
-                                    Circle().strokeBorder(Dex.yellow600, lineWidth: 2)
-                                    Image(systemName: "magnifyingglass")
-                                        .font(.system(size: control * 0.4, weight: .bold))
-                                        .foregroundStyle(Dex.amber900)
-                                }
-                                .frame(width: control * 0.8, height: control * 0.8)
-                                // No opacity of its own — the housing already
-                                // dims everything on the little LCD together,
-                                // and stacking a second dim made this button
-                                // darker than its neighbours.
-                                .shadow(color: Dex.yellow.opacity(lit(.search) ? 0.9 : 0), radius: 6)
-                                HStack(spacing: h * 0.016) {
-                                    miniMenuTile("wineglass.fill", "#f97316", control: control)
-                                    miniMenuTile("leaf.fill", "#10b981", control: control)
-                                }
+                                .padding(h * 0.05)
                             }
-                            .padding(h * 0.05)
-                        )
+                        }
                         .overlay(
                             RoundedRectangle(cornerRadius: h * 0.04)
                                 .strokeBorder(lcd.accent, lineWidth: lit(.screen) ? 2.5 : 0)
                                 .padding(h * 0.022)
                         )
                         .frame(width: w * 0.88)
-                        // The search step lights a part *inside* the housing —
-                        // dimming the housing would dim its own subject.
-                        .opacity(highlight == .search ? 1 : dim(.screen))
+                        // The search and tools steps light a part *inside* the
+                        // housing — dimming the housing would dim its own
+                        // subject.
+                        .opacity(highlight == .search || highlight == .tools ? 1 : dim(.screen))
                         .shadow(color: lcd.accent.opacity(lit(.screen) ? 0.7 : 0), radius: 8)
 
                     // Footer: back, saved, marquee, home — the actual buttons.
