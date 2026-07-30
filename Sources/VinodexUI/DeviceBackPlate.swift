@@ -14,7 +14,7 @@ import VinodexCore
 /// stay: fasteners are real parts, and the maker's mark is etched into the
 /// plastic instead of the metal.
 public struct DeviceBackPlate: View {
-    private static let creator = "HORIZON"
+    private static let creator = "HORIZON/GODOT"
 
     private var year: Int { Calendar.current.component(.year, from: Date()) }
 
@@ -183,31 +183,58 @@ public struct DeviceBackPlate: View {
             )
             .engraved()
 
-            Text("CREATED BY \(Self.creator)")
-                .font(DexFont.mono(25))
-                .tracking(6)
+            // The credit and the serial block share a second recessed panel —
+            // the nameplate's treatment, one register lighter, so the plate
+            // reads as two stamped plaques rather than one plaque and loose
+            // engraving.
+            VStack(spacing: 22) {
+                Text("CREATED BY \(Self.creator)")
+                    .font(DexFont.mono(25))
+                    .tracking(6)
+                    .foregroundStyle(Dex.stone700)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.55)
+                    .engraved()
+
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            colors: [.clear, Dex.stone800.opacity(0.4), .clear],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(height: 2)
+                    .padding(.horizontal, 20)
+
+                VStack(spacing: 10) {
+                    Text("SN: VDX-\(String(year))-001")
+                    Text("© \(String(year)) \(Self.creator)")
+                    Text("ALL RIGHTS RESERVED")
+                }
+                .font(DexFont.mono(22))
+                .tracking(4)
+                .lineLimit(1)
+                .minimumScaleFactor(0.55)
                 .foregroundStyle(Dex.stone700)
                 .engraved()
-
-            Rectangle()
-                .fill(
-                    LinearGradient(
-                        colors: [.clear, Dex.stone800.opacity(0.4), .clear],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .frame(height: 2)
-                .padding(.horizontal, 40)
-
-            VStack(spacing: 10) {
-                Text("SN: VDX-\(String(year))-001")
-                Text("© \(String(year)) \(Self.creator)")
-                Text("ALL RIGHTS RESERVED")
             }
-            .font(DexFont.mono(22))
-            .tracking(4)
-            .foregroundStyle(Dex.stone700)
+            .padding(.horizontal, 26)
+            .padding(.vertical, 18)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(
+                        LinearGradient(
+                            colors: [Dex.stone600.opacity(0.22), Dex.stone800.opacity(0.22)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(Dex.stone700.opacity(0.4), lineWidth: 2)
+            )
             .engraved()
 
             swipeHint

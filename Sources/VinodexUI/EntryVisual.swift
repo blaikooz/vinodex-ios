@@ -24,6 +24,10 @@ public struct EntryVisual {
     public var ringColor: Color?
     /// Glyph scale relative to the well, matching the web app's per-category sizes.
     public var iconScale: CGFloat = 0.62
+    /// Full-colour pixel-art portrait stem (Resources/FlavorArt). When set and
+    /// the asset resolves, it replaces the tinted glyph — the art carries its
+    /// own colours and outline, so no tint or `PixelOutline` applies.
+    public var artName: String? = nil
 
     public static func resolve(_ entry: WineEntry, db: WineDatabase = .shared) -> EntryVisual {
         switch entry {
@@ -247,7 +251,11 @@ public struct EntryVisual {
             iconID: db.iconID(for: .flavor(f)),
             iconColor: subclassColor,
             ringColor: subclassColor,
-            iconScale: 0.72
+            iconScale: 0.72,
+            // The pixel-art portrait, when the set has one for this flavour.
+            // The glyph above stays resolved as the fallback — and as what
+            // grapes borrow for their primary-note icon.
+            artName: db.icons.flavorArtStem(for: f.common.name)
         )
     }
 }
@@ -273,6 +281,25 @@ public final class EntryVisualCache {
         let resolved = EntryVisual.resolve(entry)
         cache[entry.id] = resolved
         return resolved
+    }
+}
+
+/// Loads the bundled flavour pixel-art, cached — mirrors `FlagLoader`, with
+/// misses recorded so an absent asset is not re-probed every render.
+@MainActor
+public final class FlavorArtLoader {
+    public static let shared = FlavorArtLoader()
+
+    private var cache: [String: UIImage?] = [:]
+
+    private init() {}
+
+    public func image(_ stem: String) -> UIImage? {
+        if let hit = cache[stem] { return hit }
+        let loaded = DexResources.url(named: stem, ext: "png", subdirectory: "Resources/FlavorArt")
+            .flatMap { UIImage(contentsOfFile: $0.path) }
+        cache[stem] = loaded
+        return loaded
     }
 }
 
@@ -322,7 +349,16 @@ public struct EntryIconWell: View {
         let v = visual
         ZStack {
             background(v)
-            if let iconID = v.iconID {
+            if let stem = v.artName, let art = FlavorArtLoader.shared.image(stem) {
+                // The portrait ships its own colours and chunky outline, so it
+                // renders as-is — tinting or outlining it would double up.
+                // Slightly larger than the glyph scale: the art's transparent
+                // margins are part of the canvas.
+                Image(uiImage: art)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: size * 0.82, height: size * 0.82)
+            } else if let iconID = v.iconID {
                 DexIcon(iconID: iconID, size: size * v.iconScale, color: v.iconColor)
             }
         }

@@ -64,14 +64,18 @@ public struct SettingsPanel: View {
                 }
 
                 // Then the tools: the only other tile here anyone opens for fun.
+                // A wrench, not a gamepad — the hub holds more instruments
+                // than games now, and the tile should promise what it opens.
                 featureTile(
                     title: "TOOLS",
-                    symbol: "gamecontroller.fill",
+                    symbol: "wrench.and.screwdriver.fill",
                     face: "#FACC15", shadow: "#ca8a04", ink: Dex.amber900,
                     action: onMinigames
                 )
 
-                ForEach(SettingsSection.allCases) { section in
+                // DEV is deliberately absent from the grid — it lives as a
+                // button inside SETTINGS now, where developer plumbing belongs.
+                ForEach(SettingsSection.allCases.filter { $0 != .dev }) { section in
                     let style = tileStyle(for: section)
                     featureTile(
                         title: section.rawValue,
@@ -84,7 +88,7 @@ public struct SettingsPanel: View {
             }
             .padding(12)
         }
-        .background(lcd.isLight ? lcd.page : Dex.screen)
+        .background(lcd.panelGround)
         // In-LCD, like every other dialog in the app — a system alert would
         // slide up from the device and break the chassis metaphor.
         .overlay {
@@ -185,6 +189,10 @@ public struct SettingsPanel: View {
 /// a re-parenting, not a redesign of the switches.
 public struct SettingsSectionPanel: View {
     let section: SettingsSection
+    /// Opens the DEV panel. DEV lost its tile on the settings grid — it is
+    /// developer plumbing, not a setting — and lives behind a button at the
+    /// bottom of SETTINGS instead. A route push, so Back still works.
+    let onDev: () -> Void
 
     @State private var access = AccessStore.shared
     /// Set when a gated cosmetic is tapped; drives the same upgrade prompt a
@@ -195,7 +203,8 @@ public struct SettingsSectionPanel: View {
     /// undone by tapping it again.
     @State private var confirmingWipe = false
     @AppStorage(Haptics.storageKey) private var hapticsOn = true
-    @AppStorage(Sounds.storageKey) private var soundsOn = true
+    /// Off by default from v0.5.1 — sounds are opt-in. See `Sounds`.
+    @AppStorage(Sounds.storageKey) private var soundsOn = false
     /// Scroll position outlives the view — see `ScreenStateStore`. ACCESS and
     /// DATA are both taller than the LCD, so opening the upgrade prompt from a
     /// bundle row near the bottom used to bounce the panel back to the top.
@@ -211,8 +220,9 @@ public struct SettingsSectionPanel: View {
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
     private var totalCount: Int { db.entries.count }
 
-    public init(section: SettingsSection) {
+    public init(section: SettingsSection, onDev: @escaping () -> Void = {}) {
         self.section = section
+        self.onDev = onDev
     }
 
     private var screenKey: String { ScreenStateStore.settings(section.rawValue) }
@@ -248,7 +258,7 @@ public struct SettingsSectionPanel: View {
         .contentMargins(12, for: .scrollContent)
         .scrollPosition(id: anchorBinding)
         .scrollDismissesKeyboard(.interactively)
-        .background(lcd.isLight ? lcd.page : Dex.screen)
+        .background(lcd.panelGround)
         .overlay {
             if let lockedBundle {
                 UpgradePrompt(
@@ -456,7 +466,7 @@ public struct SettingsSectionPanel: View {
                     tint: soundsOn ? Dex.green : lcd.subtext,
                     title: "SOUNDS",
                     detail: soundsOn
-                        ? "Chiptune clicks, sweeps and stings."
+                        ? "One chiptune ping on every press."
                         : "The device is silent to the ear."
                 ) {
                     DexToggle(isOn: soundsOn, tint: Dex.green) { soundsOn.toggle() }
@@ -493,6 +503,25 @@ public struct SettingsSectionPanel: View {
                     .foregroundStyle(lcd.subtext)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        }
+
+        settingsSection("DEVELOPER") {
+            Button {
+                Haptics.tap()
+                onDev()
+            } label: {
+                settingRow(
+                    symbol: "ladybug.fill",
+                    tint: lcd.subtext,
+                    title: "DEV",
+                    detail: "Diagnostics, the component gallery and the icon sheet."
+                ) {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(lcd.subtext)
+                }
+            }
+            .buttonStyle(DexPressStyle(scale: 0.98))
         }
     }
 
@@ -591,50 +620,81 @@ public struct SettingsSectionPanel: View {
     /// Separate from the chassis skin on purpose: the shell and the screen are
     /// independent choices, and a light screen in the red shell is a perfectly
     /// good combination.
+    /// A horizontal shelf of mode cards, one per `LcdMode` — the same
+    /// swatch-plus-label pattern the chassis-skins rows use, laid sideways
+    /// because eight modes stacked would bury the skins below them.
+    ///
+    /// Each card is a miniature LCD in the mode's own colours: glyph, a text
+    /// line, a caption line. The monochrome modes run the real grayscale-and-
+    /// tint pass over their miniature, so AMBER previews amber rather than
+    /// the green its raw tokens would show.
     private var screenMode: some View {
         settingsSection("SCREEN MODE") {
-            HStack(spacing: 8) {
-                ForEach(LcdMode.allCases) { option in
-                    // Every mode past the default gates on the same cosmetic
-                    // bundle — a paywall case that costs nothing to test and
-                    // touches every screen.
-                    let locked = option != .dark && !access.isUnlocked(.lightMode)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(LcdMode.allCases) { option in
+                        // Every mode past the default gates on the same cosmetic
+                        // bundle — a paywall case that costs nothing to test and
+                        // touches every screen.
+                        let locked = option != .dark && !access.isUnlocked(.lightMode)
 
-                    Button {
-                        Haptics.select()
-                        if locked {
-                            lockedBundle = .lightMode
-                        } else {
-                            lcdRaw = option.rawValue
-                        }
-                    } label: {
-                        HStack(spacing: 8) {
-                            RoundedRectangle(cornerRadius: 3)
-                                .fill(option.screen)
-                                .frame(width: 22, height: 22)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 3)
-                                        .strokeBorder(option.accent, lineWidth: 1)
-                                )
-                            Text(option.rawValue)
-                                .font(DexFont.retro(13))
-                                .tracking(1)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.6)
+                        Button {
+                            Haptics.select()
                             if locked {
-                                Image(systemName: "lock.fill")
-                                    .font(.system(size: 13, weight: .bold))
+                                lockedBundle = .lightMode
+                            } else {
+                                lcdRaw = option.rawValue
                             }
+                        } label: {
+                            VStack(spacing: 8) {
+                                RoundedRectangle(cornerRadius: 5)
+                                    .fill(option.screen)
+                                    .frame(width: 76, height: 50)
+                                    .overlay {
+                                        VStack(spacing: 4) {
+                                            Image(systemName: option.symbol)
+                                                .font(.system(size: 15, weight: .semibold))
+                                                .foregroundStyle(option.accent)
+                                            RoundedRectangle(cornerRadius: 1)
+                                                .fill(option.text.opacity(0.85))
+                                                .frame(width: 34, height: 3)
+                                            RoundedRectangle(cornerRadius: 1)
+                                                .fill(option.subtext.opacity(0.8))
+                                                .frame(width: 24, height: 3)
+                                        }
+                                    }
+                                    .grayscale(option.monochromeTint == nil ? 0 : 1)
+                                    .colorMultiply(option.monochromeTint ?? .white)
+                                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 5)
+                                            .strokeBorder(option.surfaceEdge, lineWidth: 1)
+                                    )
+                                    .opacity(locked ? 0.45 : 1)
+
+                                HStack(spacing: 4) {
+                                    if locked {
+                                        Image(systemName: "lock.fill")
+                                            .font(.system(size: 10, weight: .bold))
+                                    }
+                                    Text(option.rawValue)
+                                        .font(DexFont.retro(10))
+                                        .tracking(1)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.55)
+                                }
+                            }
+                            .foregroundStyle(lcd == option ? lcd.onAccent : lcd.subtext)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 12)
+                            .frame(width: 104)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(lcd == option ? lcd.accent : lcd.surface)
+                            )
                         }
-                        .foregroundStyle(lcd == option ? lcd.onAccent : lcd.subtext)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 17)
-                        .background(
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(lcd == option ? lcd.accent : lcd.surface)
-                        )
+                        .buttonStyle(DexPressStyle(scale: 0.97))
                     }
-                    .buttonStyle(DexPressStyle(scale: 0.97))
                 }
             }
         }

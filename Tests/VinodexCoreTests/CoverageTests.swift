@@ -252,6 +252,35 @@ struct CoverageTests {
         #expect(owners.count == levels.count, "glyphs and taxonomy levels are not 1:1")
     }
 
+    /// The pixel-art flavour portraits (v0.5.1). Every key in the map must
+    /// name a real flavour — an orphan key is a typo shipping dead weight —
+    /// and the lookup must land through the normalised accessor. Coverage is
+    /// deliberately *not* required to be total: flavours without convincing
+    /// art keep their tinted glyph by design, but the mapped share is pinned
+    /// so a regeneration cannot silently drop the table.
+    @Test("flavor art maps real flavours and resolves through the accessor")
+    func flavorArtWiring() {
+        let art = db.icons.flavorArt
+        #expect(art != nil, "manifest lost its flavorArt table")
+        guard let art else { return }
+
+        let names = Set(db.entries(in: .flavors).map { TextNormalize.label($0.name) })
+        for key in art.keys {
+            #expect(names.contains(key), "flavorArt key '\(key)' names no flavour")
+        }
+
+        let mapped = db.entries(in: .flavors).filter {
+            db.icons.flavorArtStem(for: $0.name) != nil
+        }
+        #expect(
+            Double(mapped.count) / Double(names.count) > 0.8,
+            "only \(mapped.count) of \(names.count) flavours have art"
+        )
+
+        // The accessor normalises: case must not matter.
+        #expect(db.icons.flavorArtStem(for: "BLACKCURRANT") != nil)
+    }
+
     /// Every soil the region screen can show must match a keyword. Falling
     /// through to the default mountain renders, but reads as a bug — six terms
     /// were silently doing exactly that.

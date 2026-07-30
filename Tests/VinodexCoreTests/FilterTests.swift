@@ -56,6 +56,27 @@ struct FilterTests {
         #expect(warm.allSatisfy { $0.climate == .warm })
     }
 
+    /// The SUBCLASS tile's cross-link (v0.5.1). `.tasting` cannot express
+    /// this — it matches notes and classifications — so the case is its own.
+    @Test("flavor subclass filter selects only that subclass")
+    func flavorSubclassFilter() {
+        let berries = db.entries.apply(.category(.flavors, filter: .flavorSubclass("BERRY")))
+        #expect(!berries.isEmpty)
+        #expect(berries.allSatisfy { entry in
+            guard case .flavor(let f) = entry else { return false }
+            return f.details.subclass == "BERRY"
+        })
+
+        // Normalised on both sides, so a display-cased value still filters.
+        #expect(
+            db.entries.apply(.category(.flavors, filter: .flavorSubclass("berry"))).count
+                == berries.count
+        )
+
+        // Non-flavours never match, whatever their tasting notes say.
+        #expect(db.entries.apply(.category(.grapes, filter: .flavorSubclass("BERRY"))).isEmpty)
+    }
+
     @Test("origin filter matches whole terms only")
     func originFilter() {
         let french = db.entries.apply(.category(.regions, filter: .origin("France")))

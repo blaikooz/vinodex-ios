@@ -141,7 +141,7 @@ public struct DeviceChassis<Content: View>: View {
             if skin.isTranslucent {
                 InternalsView()
             }
-            skin.body
+            ChassisShell(skin: skin)
 
             VStack(spacing: 0) {
                 Color.clear.frame(height: topStrip)
@@ -303,10 +303,14 @@ public struct DeviceChassis<Content: View>: View {
     }
 
     private func statusDots(size: CGFloat) -> some View {
-        HStack(spacing: DexMetrics.statusDotSpacing) {
-            statusDot(Dex.red600, border: Dex.red800, period: 6.1, size: size)
-            statusDot(Dex.yellow400, border: Dex.yellow600, period: 7.4, size: size)
-            statusDot(Dex.green500, border: Dex.green700, period: 4.8, size: size)
+        // WINE XMAS runs its lamps all red — see `statusLightOverride`.
+        let tints: [(Color, Color)] = skin.statusLightOverride.map { [($0.fill, $0.border), ($0.fill, $0.border), ($0.fill, $0.border)] }
+            ?? [(Dex.red600, Dex.red800), (Dex.yellow400, Dex.yellow600), (Dex.green500, Dex.green700)]
+
+        return HStack(spacing: DexMetrics.statusDotSpacing) {
+            statusDot(tints[0].0, border: tints[0].1, period: 6.1, size: size)
+            statusDot(tints[1].0, border: tints[1].1, period: 7.4, size: size)
+            statusDot(tints[2].0, border: tints[2].1, period: 4.8, size: size)
         }
     }
 
@@ -361,7 +365,10 @@ public struct DeviceChassis<Content: View>: View {
 
     private var innerBezel: some View {
         ZStack {
-            Dex.screen
+            // The panel ground rather than a fixed near-black: the themed
+            // modes (BLUE SCREEN especially) must not flash grey behind a
+            // screen that has not painted yet.
+            lcd.panelGround
             content()
 
             // Confined to the LCD, so the bezel, footer and island stay put and
@@ -460,6 +467,47 @@ public struct DeviceChassis<Content: View>: View {
         .padding(.bottom, DexMetrics.chassisEdgeInset)
         .frame(maxWidth: .infinity)
         .background(skin.footerWash)
+    }
+}
+
+// MARK: - Chassis shell
+
+/// The moulding itself: the skin's colour, plus its tileable pixel-art
+/// pattern when it carries one (WINE XMAS's wrapping paper). The colour stays
+/// underneath so a missing asset degrades to a plain shell, not a hole.
+private struct ChassisShell: View {
+    let skin: ChassisSkin
+
+    var body: some View {
+        ZStack {
+            skin.body
+            if let asset = skin.bodyPatternAsset,
+               let image = ChassisPatternLoader.shared.image(asset) {
+                Image(uiImage: image)
+                    .resizable(resizingMode: .tile)
+                    // Pixel art — filtering would smear the pattern.
+                    .interpolation(.none)
+            }
+        }
+    }
+}
+
+/// Loads bundled chassis patterns, cached — mirrors `FlagLoader`, misses
+/// recorded so an absent asset is not re-probed every render.
+@MainActor
+private final class ChassisPatternLoader {
+    static let shared = ChassisPatternLoader()
+
+    private var cache: [String: UIImage?] = [:]
+
+    private init() {}
+
+    func image(_ name: String) -> UIImage? {
+        if let hit = cache[name] { return hit }
+        let loaded = DexResources.url(named: name, ext: "png", subdirectory: "Resources/Chassis")
+            .flatMap { UIImage(contentsOfFile: $0.path) }
+        cache[name] = loaded
+        return loaded
     }
 }
 
@@ -614,10 +662,10 @@ public struct DexScreenBackground: View {
 
     public var body: some View {
         ZStack {
-            mode.isLight ? mode.screen : Dex.stone950
+            mode.ground
             DexGridBackground(
                 spacing: 10,
-                color: mode.isLight ? Dex.stone400 : Dex.stone700,
+                color: mode.gridLine,
                 opacity: 0.35
             )
         }

@@ -61,6 +61,10 @@ public enum EntryFilter: Sendable, Hashable {
     case region([String])
     case type(String)
     case tasting(String)
+    /// Flavours filed under one subclass (BERRY, SMOKY, …). `tasting` cannot
+    /// express this: it matches notes and classifications, and a flavour's
+    /// subclass is a third taxonomy level neither of those reach.
+    case flavorSubclass(String)
     case soil(String)
     case origin(String)
     case rarity(RarityLabel)
@@ -73,6 +77,7 @@ public enum EntryFilter: Sendable, Hashable {
         case .region: "SECTOR SCAN"
         case .type: "STYLE SCAN"
         case .tasting: "FLAVOR SCAN"
+        case .flavorSubclass: "FLAVOR SCAN"
         case .soil: "GEOLOGY SCAN"
         case .origin: "REGION SCAN"
         case .rarity: "RARITY SCAN"
@@ -87,6 +92,7 @@ public enum EntryFilter: Sendable, Hashable {
         case .region: "FILTER: REGIONAL SECTOR"
         case .type(let v): "FILTER: \(v.uppercased())"
         case .tasting(let v): "FILTER: \(v.uppercased())"
+        case .flavorSubclass(let v): "FILTER: \(v.replacingOccurrences(of: "_", with: " ").uppercased())"
         case .soil(let v): "FILTER: \(v.uppercased())"
         case .origin(let v): "FILTER: REGION \(v.uppercased())"
         case .rarity(let v): "FILTER: \(v.rawValue) RARITY"
@@ -125,6 +131,10 @@ public enum EntryFilter: Sendable, Hashable {
                 return TextNormalize.label(classification) == target
             }
             return false
+
+        case .flavorSubclass(let value):
+            guard case .flavor(let f) = entry else { return false }
+            return TextNormalize.label(f.details.subclass) == TextNormalize.label(value)
 
         case .soil(let value):
             guard case .region(let r) = entry, let soil = r.details.soilType else { return false }

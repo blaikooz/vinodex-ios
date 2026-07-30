@@ -67,7 +67,7 @@ public enum Entitlement: Hashable, Sendable {
         case .country(let name): "Every grape and region from \(name)."
         case .flavors: "All flavour entries and the full tasting wheel."
         case .skins: "All chassis colourways beyond the default."
-        case .lightMode: "The paper-white LCD, plus the vintage and amber phosphor modes."
+        case .lightMode: "Seven alternate LCDs — paper-white, phosphor, and four themed consoles."
         }
     }
 

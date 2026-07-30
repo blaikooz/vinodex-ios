@@ -425,6 +425,18 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// terminal. Same grayscale-and-tint pass as vintage, over the dark
     /// theme's tokens instead of the light ones.
     case amber = "AMBER"
+    /// Early-desktop GUI: a grey-blue desktop with navy ink and titlebar
+    /// blues. A *light* mode — the pale branch everywhere light takes it.
+    case wineOS = "WINE OS"
+    /// Green phosphor on black — the amber treatment with the other classic
+    /// tube. Same grayscale-and-tint pass, over the dark tokens.
+    case terminal = "TERMINAL"
+    /// The vintage CRT diagnostic screen: deep blue ground, white text, a
+    /// pale cyan for everything that would be green elsewhere.
+    case blueScreen = "BLUE SCREEN"
+    /// A vintage starship console: black glass, amber readouts, and purple
+    /// for the accents — the two colours those panels actually ran.
+    case starTrek = "STAR TREK"
 
     public static let storageKey = "lcdMode"
 
@@ -433,65 +445,98 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// Whether the screen ground is pale. An explicit list, not `!= .dark`:
     /// vintage is dark ink on a pale ground and wants every light branch, but
     /// amber is a *dark* mode — pale scrims and dark-on-accent ink on it would
-    /// be wrong in both directions.
-    public var isLight: Bool { self == .light || self == .vintage }
+    /// be wrong in both directions. WINE OS joins the pale side; the other
+    /// themed modes are dark glass.
+    public var isLight: Bool { self == .light || self == .vintage || self == .wineOS }
 
     /// The tint the chassis multiplies the grayscaled LCD by — nil renders in
     /// colour. This is what turns "black on white" into "black on grey-green"
-    /// (vintage) and "white on black" into "amber on black" (amber).
+    /// (vintage) and "white on black" into "amber on black" (amber) or
+    /// terminal green (terminal).
     public var monochromeTint: Color? {
         switch self {
-        case .dark, .light: nil
+        case .dark, .light, .wineOS, .blueScreen, .starTrek: nil
         case .vintage: Color(dexHex: "#C6CFB2")
         case .amber: Color(dexHex: "#FFB300")
+        case .terminal: Color(dexHex: "#4DFF4D")
+        }
+    }
+
+    /// Glyph for the screen-mode picker's preview cards.
+    public var symbol: String {
+        switch self {
+        case .dark: "moon.fill"
+        case .light: "sun.max.fill"
+        case .vintage: "hourglass"
+        case .amber: "lightbulb.fill"
+        case .wineOS: "macwindow"
+        case .terminal: "terminal.fill"
+        case .blueScreen: "pc"
+        case .starTrek: "atom"
         }
     }
 
     /// LCD ground.
     public var screen: Color {
         switch self {
-        case .dark, .amber: Dex.screen
+        case .dark, .amber, .terminal: Dex.screen
         case .light: Color(dexHex: "#E8E8E2")
         case .vintage: Color(dexHex: "#E4E4DC")
+        case .wineOS: Color(dexHex: "#C7D3E6")
+        case .blueScreen: Color(dexHex: "#1021B4")
+        case .starTrek: Color(dexHex: "#0B0910")
         }
     }
 
     /// Primary text on that ground.
     public var text: Color {
         switch self {
-        case .dark, .amber: .white
+        case .dark, .amber, .terminal: .white
         case .light: Color(dexHex: "#1F1F1C")
         case .vintage: Color(dexHex: "#101010")
+        case .wineOS: Color(dexHex: "#0E2258")
+        case .blueScreen: Color(dexHex: "#F4F7FF")
+        case .starTrek: Color(dexHex: "#FFA94D")
         }
     }
 
     /// Section rules, headers and glyph tints. The dark theme's #4ADE80 is
     /// invisible on white, so light mode drops to a deep bottle green that
     /// still reads as "the green" without disappearing. Vintage has no colour
-    /// to keep — its accent is simply ink.
+    /// to keep — its accent is simply ink. The themed modes each pick the one
+    /// colour their reference hardware used for emphasis.
     public var accent: Color {
         switch self {
-        case .dark, .amber: Dex.green
+        case .dark, .amber, .terminal: Dex.green
         case .light: Color(dexHex: "#1B6B3A")
         case .vintage: Color(dexHex: "#1A1A16")
+        case .wineOS: Color(dexHex: "#1D3E9E")
+        case .blueScreen: Color(dexHex: "#93DBFF")
+        case .starTrek: Color(dexHex: "#C983E8")
         }
     }
 
     /// Body copy inside INFO blocks — mint on black, near-black on paper.
     public var bodyText: Color {
         switch self {
-        case .dark, .amber: Color(dexHex: "#bbf7d0")
+        case .dark, .amber, .terminal: Color(dexHex: "#bbf7d0")
         case .light: Color(dexHex: "#23342A")
         case .vintage: Color(dexHex: "#20201C")
+        case .wineOS: Color(dexHex: "#22335E")
+        case .blueScreen: Color(dexHex: "#DCE4FF")
+        case .starTrek: Color(dexHex: "#F2CD9A")
         }
     }
 
     /// Hero panel wash behind an entry title.
     public var heroWash: Color {
         switch self {
-        case .dark, .amber: Color(dexHex: "#14532d").opacity(0.1)
+        case .dark, .amber, .terminal: Color(dexHex: "#14532d").opacity(0.1)
         case .light: Color(dexHex: "#1B6B3A").opacity(0.07)
         case .vintage: Color.black.opacity(0.06)
+        case .wineOS: Color(dexHex: "#1D3E9E").opacity(0.07)
+        case .blueScreen: Color.white.opacity(0.06)
+        case .starTrek: Color(dexHex: "#C983E8").opacity(0.08)
         }
     }
 
@@ -499,17 +544,21 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// on the light hero, so light mode lifts it toward the paper.
     public var heroGrid: Color {
         switch self {
-        case .dark, .amber: Color(dexHex: "#14532d")
+        case .dark, .amber, .terminal: Color(dexHex: "#14532d")
         case .light: Color(dexHex: "#1B6B3A")
         case .vintage: Color(dexHex: "#3A3A34")
+        case .wineOS: Color(dexHex: "#1D3E9E")
+        case .blueScreen: Color(dexHex: "#4A5FE0")
+        case .starTrek: Color(dexHex: "#7A4E9E")
         }
     }
 
     /// Filled-button ground (SAVE and friends) when *not* active.
     public var buttonWell: Color {
         switch self {
-        case .dark, .amber: .black.opacity(0.35)
-        case .light, .vintage: .white
+        case .dark, .amber, .terminal, .starTrek: .black.opacity(0.35)
+        case .light, .vintage, .wineOS: .white
+        case .blueScreen: Color(dexHex: "#0A1690")
         }
     }
 
@@ -517,43 +566,56 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// using `DexScreenBackground`.
     public var page: Color {
         switch self {
-        case .dark, .amber: .black
+        case .dark, .amber, .terminal: .black
         case .light: Color(dexHex: "#F2F2EC")
         case .vintage: Color(dexHex: "#EDEDE4")
+        case .wineOS: Color(dexHex: "#D6DFEE")
+        case .blueScreen: Color(dexHex: "#0E1CA8")
+        case .starTrek: .black
         }
     }
 
     /// Row and card fill.
     public var surface: Color {
         switch self {
-        case .dark, .amber: Dex.stone900
+        case .dark, .amber, .terminal: Dex.stone900
         case .light: Color(dexHex: "#FFFFFF")
         case .vintage: Color(dexHex: "#F6F6EF")
+        case .wineOS: Color(dexHex: "#E9EEF6")
+        case .blueScreen: Color(dexHex: "#1F31CE")
+        case .starTrek: Color(dexHex: "#191022")
         }
     }
 
     public var surfaceEdge: Color {
         switch self {
-        case .dark, .amber: Dex.stone700
+        case .dark, .amber, .terminal: Dex.stone700
         case .light: Color(dexHex: "#C9C9C1")
         case .vintage: Color(dexHex: "#84847A")
+        case .wineOS: Color(dexHex: "#8598B8")
+        case .blueScreen: Color(dexHex: "#5D74E8")
+        case .starTrek: Color(dexHex: "#5C3E78")
         }
     }
 
     /// Secondary text — captions, counts, placeholders.
     public var subtext: Color {
         switch self {
-        case .dark, .amber: Dex.stone400
+        case .dark, .amber, .terminal: Dex.stone400
         case .light: Color(dexHex: "#5A5A54")
         case .vintage: Color(dexHex: "#42423C")
+        case .wineOS: Color(dexHex: "#465578")
+        case .blueScreen: Color(dexHex: "#B8C4F8")
+        case .starTrek: Color(dexHex: "#C2915C")
         }
     }
 
     /// Fill behind search fields, which are black wells on the dark theme.
     public var well: Color {
         switch self {
-        case .dark, .amber: .black
-        case .light, .vintage: Color(dexHex: "#FFFFFF")
+        case .dark, .amber, .terminal, .starTrek: .black
+        case .light, .vintage, .wineOS: Color(dexHex: "#FFFFFF")
+        case .blueScreen: Color(dexHex: "#0A1690")
         }
     }
 
@@ -565,20 +627,57 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// grey is close enough to `text` to look like an ordinary enabled row.
     public var disabledText: Color {
         switch self {
-        case .dark, .amber: Dex.stone600
+        case .dark, .amber, .terminal: Dex.stone600
         case .light: Color(dexHex: "#A3A39B")
         case .vintage: Color(dexHex: "#96968C")
+        case .wineOS: Color(dexHex: "#9FACC6")
+        case .blueScreen: Color(dexHex: "#6272D4")
+        case .starTrek: Color(dexHex: "#6D5A49")
         }
     }
 
     /// Foreground for content sitting on an `accent` fill (selected settings
     /// options, active chips). Dark mode's accent is mint (#4ADE80) — white text
     /// on it is ~1.8:1 — so it takes black; light mode's accent is deep green and
-    /// takes white, as does vintage's ink-black.
+    /// takes white, as does vintage's ink-black. Blue Screen's accent is a pale
+    /// cyan, so it takes the deep well blue rather than plain black.
     public var onAccent: Color {
         switch self {
-        case .dark, .amber: .black
-        case .light, .vintage: .white
+        case .dark, .amber, .terminal, .starTrek: .black
+        case .light, .vintage, .wineOS: .white
+        case .blueScreen: Color(dexHex: "#0A1690")
+        }
+    }
+
+    /// The LCD's raw ground, behind every screen. The three stone-dark modes
+    /// keep the near-black CRT well; every themed mode grounds in its own
+    /// colour instead. `DexScreenBackground` reads this rather than branching
+    /// on `isLight`, which painted BLUE SCREEN's blue over with stone.
+    public var ground: Color {
+        switch self {
+        case .dark, .amber, .terminal: Dex.stone950
+        default: screen
+        }
+    }
+
+    /// The faint atmosphere grid drawn over `ground`.
+    public var gridLine: Color {
+        switch self {
+        case .dark, .amber, .terminal: Dex.stone700
+        case .light, .vintage: Dex.stone400
+        case .wineOS: Color(dexHex: "#8598B8")
+        case .blueScreen: Color(dexHex: "#4A5FE0")
+        case .starTrek: Color(dexHex: "#3A2C1E")
+        }
+    }
+
+    /// Ground for full-screen panels (settings and friends), which used to
+    /// paint `Dex.screen` on dark and `page` on light. One token so the
+    /// themed modes get their own colour in both directions.
+    public var panelGround: Color {
+        switch self {
+        case .dark, .amber, .terminal: Dex.screen
+        default: page
         }
     }
 
@@ -724,12 +823,30 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .original: "BLANC DE BLANCS"
         case .burgundy: "BURGUNDY VELOUR"
         case .riesling: "ELECTRIC RIESLING"
-        case .vinhoVerde: "VINHO VERDE"
-        case .glouglou: "GLOUGLOU"
+        // Renamed for v0.5.1 — labels only. The raw values are the persisted
+        // vocabulary and stay put, per the note above.
+        case .vinhoVerde: "BOX WINE"
+        case .glouglou: "EMPTY BOTTLE"
         case .smartGrape: "SMART GRAPE"
         case .champagne: "CHAMPAGNE GOLD"
-        case .christmas: "CUVÉE NOËL"
+        case .christmas: "WINE XMAS"
         }
+    }
+
+    /// A tileable pixel-art pattern drawn over the shell colour, or nil for a
+    /// plain moulding. WINE XMAS wraps the chassis in wrapping paper; the
+    /// pattern sits under the panel and footer wash like any other body.
+    public var bodyPatternAsset: String? {
+        self == .christmas ? "xmas-wrap" : nil
+    }
+
+    /// Overrides the three status lamps' red/yellow/green when a skin wants
+    /// its own signal colour. WINE XMAS runs all three red, like a string of
+    /// holly-berry fairy lights.
+    public var statusLightOverride: (fill: Color, border: Color)? {
+        self == .christmas
+            ? (Color(dexHex: "#FF4D4D"), Color(dexHex: "#8F1414"))
+            : nil
     }
 
     /// The moulding.
@@ -907,10 +1024,13 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .champagne:
             ChassisAccent(pale: "#FDF6E3", light: "#F5E3AE", bright: "#E3BC5F",
                           mid: "#C89B3C", edge: "#8A6820", ink: "#4A3510")
-        // The bauble gold, against the pine and the red caps.
+        // Holly-berry red, to match the caps and the lights — the whole
+        // powered set runs red on the wrapping paper. (Was bauble gold; the
+        // orb keeps the fairy-light gold so the shell still carries both
+        // Christmas colours.)
         case .christmas:
-            ChassisAccent(pale: "#FFF8E1", light: "#FFE9A8", bright: "#FFC94A",
-                          mid: "#E6A817", edge: "#9C6F0A", ink: "#4A3300")
+            ChassisAccent(pale: "#FFE7E7", light: "#FFB3B3", bright: "#F25454",
+                          mid: "#D32F2F", edge: "#7A1010", ink: "#3D0000")
         }
     }
 

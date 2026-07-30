@@ -2,12 +2,17 @@
 import AVFoundation
 import UIKit
 
-/// The device's voice: a synthesized chiptune sound pack.
+/// The device's voice — for v0.5.1, a single synthesized ping.
 ///
 /// Synthesized rather than bundled, deliberately — short square waves with a
 /// decay envelope *are* the period-correct sound for this hardware, they cost
 /// no asset files, and every parameter is a number in this file rather than a
 /// .wav somebody has to re-produce to tweak.
+///
+/// The full pack (boot arpeggio, page sweep, quiz stings) is deliberately
+/// parked: one interaction sound is the ship decision until the pack earns
+/// its way back note by note. The per-event entry points stay so the ~60
+/// call sites do not churn when it does.
 ///
 /// Gated at the choke point like `Haptics`, and for the same reason: a call
 /// site that checked the setting itself would be the one that forgets to.
@@ -15,28 +20,28 @@ import UIKit
 /// two systems share call sites but not a toggle.
 @MainActor
 public enum Sounds {
-    /// Missing key = on: the clicks are part of the device's character, so
-    /// only an explicit opt-out disables them. The mute switch still wins —
-    /// the audio session is `.ambient`.
+    /// Missing key = **off**: sounds are opt-in from v0.5.1 (they shipped
+    /// opt-out in 0.5.0 and the default was wrong). The mute switch still
+    /// wins — the audio session is `.ambient`.
     public static let storageKey = "soundsEnabled"
 
     private static var enabled: Bool {
-        let defaults = UserDefaults.standard
-        return defaults.object(forKey: storageKey) == nil || defaults.bool(forKey: storageKey)
+        UserDefaults.standard.bool(forKey: storageKey)
     }
 
-    /// The power-on arpeggio.
-    public static func boot() { play(.boot) }
+    /// Launch is not an interaction; the boot chime is parked with the rest
+    /// of the pack.
+    public static func boot() {}
     /// The percussive button click.
-    public static func tap() { play(.tap) }
+    public static func tap() { play(.ping) }
     /// The softer selection blip.
-    public static func select() { play(.select) }
+    public static func select() { play(.ping) }
     /// The screen-change sweep.
-    public static func page() { play(.page) }
+    public static func page() { play(.ping) }
     /// The quiz's right-answer sting.
-    public static func correct() { play(.correct) }
+    public static func correct() { play(.ping) }
     /// The quiz's wrong-answer buzz.
-    public static func wrong() { play(.wrong) }
+    public static func wrong() { play(.ping) }
 
     private static func play(_ kind: SoundEngine.Kind) {
         guard enabled else { return }
@@ -44,7 +49,7 @@ public enum Sounds {
     }
 }
 
-/// The machinery behind `Sounds`: one engine, a few pre-rendered buffers.
+/// The machinery behind `Sounds`: one engine, one pre-rendered buffer.
 ///
 /// Everything is lazy — nothing is created until the first enabled play — so
 /// the app's launch pays nothing for having a voice. Every AVFoundation call
@@ -55,7 +60,7 @@ private final class SoundEngine {
     static let shared = SoundEngine()
 
     enum Kind: CaseIterable {
-        case boot, tap, select, page, correct, wrong
+        case ping
     }
 
     private static let sampleRate = 44_100.0
@@ -130,29 +135,11 @@ private final class SoundEngine {
 
     private func score(_ kind: Kind) -> [Note] {
         switch kind {
-        case .tap:
-            [Note(frequency: 1100, duration: 0.03, decay: 0.008, sweepTo: nil)]
-        case .select:
+        // The slider ping — G6, short, with a fast decay. This was the pack's
+        // `select` blip, kept because it is the one that read as the device's
+        // own voice rather than as a sound effect.
+        case .ping:
             [Note(frequency: 1568, duration: 0.06, decay: 0.02, sweepTo: nil)]
-        case .boot:
-            // C5-E5-G5-C6, the classic power-on arpeggio.
-            [
-                Note(frequency: 523.25, duration: 0.09, decay: 0.06, sweepTo: nil),
-                Note(frequency: 659.25, duration: 0.09, decay: 0.06, sweepTo: nil),
-                Note(frequency: 783.99, duration: 0.09, decay: 0.06, sweepTo: nil),
-                Note(frequency: 1046.50, duration: 0.16, decay: 0.10, sweepTo: nil),
-            ]
-        case .page:
-            [Note(frequency: 1200, duration: 0.12, decay: 0.08, sweepTo: 300)]
-        case .correct:
-            // C6-E6-G6, a major sting.
-            [
-                Note(frequency: 1046.50, duration: 0.08, decay: 0.05, sweepTo: nil),
-                Note(frequency: 1318.51, duration: 0.08, decay: 0.05, sweepTo: nil),
-                Note(frequency: 1567.98, duration: 0.14, decay: 0.09, sweepTo: nil),
-            ]
-        case .wrong:
-            [Note(frequency: 110, duration: 0.25, decay: 0.18, sweepTo: nil)]
         }
     }
 

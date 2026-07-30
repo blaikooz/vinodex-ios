@@ -22,6 +22,10 @@ public struct WalkthroughStep: Sendable, Hashable, Identifiable {
         case orb
         case lights
         case settings
+        /// The TOOLS tile on the diagram's little settings grid — the tools
+        /// step swaps the mini LCD to a mock of the settings panel so it can
+        /// point at where TOOLS and the settings groups actually live.
+        case tools
         case back
         case saved
         case home
@@ -117,10 +121,10 @@ public enum Walkthrough {
             title: "MAKING IT YOURS",
             body: """
             The cog opens the system panel. CUSTOMIZE picks the screen mode — \
-            dark, light, vintage or amber — and swaps the chassis: ten \
-            colourways, each with its own lights and buttons. SETTINGS holds \
-            text size, haptics and sound. DATA shows you what is in the \
-            database.
+            eight of them, from paper-white to green terminal phosphor — and \
+            swaps the chassis: ten colourways, each with its own lights and \
+            buttons. SETTINGS holds text size, haptics and sound. DATA shows \
+            you what is in the database.
             """,
             highlight: .settings
         ),
@@ -128,13 +132,13 @@ public enum Walkthrough {
             id: "tools",
             title: "TOOLS",
             body: """
-            Also behind the cog: TOOLS. There's a scanner that identifies a \
-            grape from what's in your glass, filter search for narrowing the \
-            whole database, a tasting quiz with three levels, a daily \
-            challenge with a streak to keep, a daily guessing game, and the \
-            moon dial.
+            Also behind the cog: the screen shows where. Tap the cog, then the \
+            wrench tile. Inside is a scanner that identifies a grape from \
+            what's in your glass, filter search for narrowing the whole \
+            database, a tasting quiz with three levels, a daily challenge with \
+            a streak to keep, a daily guessing game, and the moon dial.
             """,
-            highlight: .screen
+            highlight: .tools
         ),
         WalkthroughStep(
             id: "orb",

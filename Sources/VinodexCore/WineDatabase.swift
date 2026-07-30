@@ -133,6 +133,12 @@ public struct IconManifest: Codable, Sendable {
     /// different picture for every entry in the same subclass.
     public let flavorClassIcons: [String: String]?
     public let flavorSubclassIcons: [String: String]?
+    /// Full-colour pixel-art portrait per flavour, keyed by the flavour's
+    /// *normalised name* (`TextNormalize.label`) rather than its id — the art
+    /// set is named by flavour, and ids would break the moment one is re-keyed.
+    /// Values are PNG stems under `Resources/FlavorArt`. Optional so an older
+    /// manifest still decodes; flavours without art keep their tinted glyph.
+    public let flavorArt: [String: String]?
     /// Country outline glyphs, used to mask a flag into the country's shape.
     public let countryShapeIcons: [String: String]
     /// Icon-well background per style classification.
@@ -208,6 +214,13 @@ public struct IconManifest: Codable, Sendable {
 
     public func flavorSubclassIcon(_ subclass: String) -> String {
         flavorSubclassIcons?[subclass] ?? fallback
+    }
+
+    /// Pixel-art stem for a flavour name, or nil when the set has no portrait
+    /// for it. Normalised on the way in so "Crème de Cassis"-style accents and
+    /// case differences cannot miss their art.
+    public func flavorArtStem(for name: String) -> String? {
+        flavorArt?[TextNormalize.label(name)]
     }
 
     /// Bundled flag stem for a country, e.g. `New Zealand` -> `new-zealand`.
@@ -375,6 +388,7 @@ public final class WineDatabase: Sendable {
                     styleClassIcons: [:],
                     flavorClassIcons: nil,
                     flavorSubclassIcons: nil,
+                    flavorArt: nil,
                     countryShapeIcons: [:],
                     styleClassBg: [:],
                     styleColorTypeColors: [:],

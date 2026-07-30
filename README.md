@@ -72,17 +72,17 @@ LCD never changes with the skin, so a colourway can never hurt legibility.
 | **Blanc de Blancs** | Bone | Champagne gold | Amber |
 | **Burgundy Velour** | Velvet purple | Deep purple | Rose |
 | **Electric Riesling** | Walkman yellow | Signal red | Green |
-| **Vinho Verde** | Forest green | Pea green | Pea green |
-| **Glouglou** | Clear smoke over mock internals, front and back | Orange | Orange |
+| **Box Wine** | Forest green | Pea green | Pea green |
+| **Empty Bottle** | Clear smoke over mock internals, front and back | Orange | Orange |
 | **Smart Grape** | Calculator black | Calculator orange | Orange |
 | **Champagne Gold** | Pale champagne | Gold leaf | Gold |
-| **Cuvée Noël** | Pine green | Bauble gold | Holly red |
+| **Wine Xmas** | Pixel wrapping paper on pine | Fairy-light gold | Holly red |
 
-Plus four screen modes — dark, light, a monochrome VINTAGE that renders the
-whole LCD as black on grey-green like an old organiser, and an AMBER phosphor
-that renders it like a CRT terminal — two text sizes, a haptics switch, and a
-synthesized chiptune sound pack (boot chime, clicks, page sweeps, quiz stings)
-with its own switch.
+Plus eight screen modes — dark, light, monochrome VINTAGE (black on grey-green
+like an old organiser) and AMBER and TERMINAL phosphors that render the whole
+LCD like a CRT tube, an early-GUI WINE OS, a BLUE SCREEN, and a STAR TREK
+console — two text sizes, a haptics switch, and a single synthesized chiptune
+ping (off by default) with its own switch.
 
 ## The web app is the sibling, not the source
 

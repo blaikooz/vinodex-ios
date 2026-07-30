@@ -24,6 +24,10 @@ public struct ScannerScreen: View {
     @State private var step: Step = .color
     @State private var criteria = GrapeScanCriteria()
     @State private var screens = ScreenStateStore.shared
+    /// The flavour step's search box. Session-local on purpose: the answers
+    /// persist across the trip to an entry, but a half-typed query is scaffolding,
+    /// not an answer.
+    @State private var flavorQuery = ""
 
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
@@ -435,13 +439,22 @@ public struct ScannerScreen: View {
     private var flavorStep: some View {
         question(
             "AROMAS AND FLAVORS?",
-            "Pick a family to browse. Up to \(GrapeScanCriteria.flavorLimit) go in the basket — fewer is fine, none is fine."
+            "Search, or pick a family to browse. Up to \(GrapeScanCriteria.flavorLimit) go in the basket — fewer is fine, none is fine."
         ) {
             VStack(alignment: .leading, spacing: 14) {
                 basketView
 
-                group("CLASSES", values: db.flavorClasses, kind: .classification)
-                group("SUBCLASSES", values: db.flavorSubclasses, kind: .subclass)
+                // Name a flavour directly rather than walking the taxonomy —
+                // someone who can already say "graphite" should not have to
+                // know which subclass files it.
+                DexSearchBar(text: $flavorQuery, placeholder: "SEARCH FLAVORS…")
+
+                if flavorQuery.trimmingCharacters(in: .whitespaces).isEmpty {
+                    group("CLASSES", values: db.flavorClasses, kind: .classification)
+                    group("SUBCLASSES", values: db.flavorSubclasses, kind: .subclass)
+                } else {
+                    flavorSearchResults
+                }
 
                 bigButton(
                     basket.isEmpty ? "CONTINUE WITHOUT FLAVORS" : "SCAN",
@@ -449,6 +462,31 @@ public struct ScannerScreen: View {
                     tint: Dex.yellow
                 ) {
                     advance(to: .reveal)
+                }
+            }
+        }
+    }
+
+    /// Search matches as toggle chips — the same affordance the subclass
+    /// lists use, minus the trip through the taxonomy.
+    @ViewBuilder
+    private var flavorSearchResults: some View {
+        let matches = db.entries.apply(EntryQuery(categories: [.flavors], search: flavorQuery))
+
+        if matches.isEmpty {
+            emptyNote("No flavor matches that.")
+        } else {
+            FlowLayout(spacing: 6) {
+                ForEach(matches) { flavor in
+                    let chosen = criteria.flavorIDs.contains(flavor.id)
+                    chip(
+                        label: flavor.name,
+                        chip: flavorChip(flavor),
+                        selected: chosen,
+                        fill: chosen
+                    ) {
+                        criteria.toggleFlavor(flavor.id)
+                    }
                 }
             }
         }
