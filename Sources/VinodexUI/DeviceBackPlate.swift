@@ -7,10 +7,19 @@ import VinodexCore
 ///
 /// Engraved nameplate, corner screws and a serial, on a diagonal metal
 /// gradient. The whole plate is tappable to flip back, matching the web app.
+///
+/// Under a translucent skin the metal is swapped for the same smoke plastic as
+/// the front, with the internals showing through — a clear device with a
+/// solid steel back would be two different products. The screws and engraving
+/// stay: fasteners are real parts, and the maker's mark is etched into the
+/// plastic instead of the metal.
 public struct DeviceBackPlate: View {
     private static let creator = "HORIZON"
 
     private var year: Int { Calendar.current.component(.year, from: Date()) }
+
+    @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
+    private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
 
     public init() {}
 
@@ -18,9 +27,17 @@ public struct DeviceBackPlate: View {
         // Dismissal is a swipe, owned by `DeviceChassis` — the plate is a
         // surface, not a button.
         ZStack {
-            metal
-            striations
-            highlight
+            if skin.isTranslucent {
+                InternalsView()
+                // A touch lighter than the front shell: the back of a clear
+                // device is one moulding further from the boards.
+                Color(dexHex: "rgba(204,216,224,0.34)")
+                highlight
+            } else {
+                metal
+                striations
+                highlight
+            }
             screws
             engraving
         }

@@ -49,6 +49,8 @@ public struct EntryDetailScreen: View {
 
     private let db = WineDatabase.shared
     @State private var bookmarks = BookmarkStore.shared
+    /// Raised when TRIED turns on, and again from MY TASTING's EDIT.
+    @State private var showingRating = false
     /// Scroll position outlives the view — see `ScreenStateStore`.
     @State private var screens = ScreenStateStore.shared
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
@@ -99,6 +101,9 @@ public struct EntryDetailScreen: View {
                 if !entry.entryDescription.isEmpty {
                     infoSection.id(Anchor.info)
                 }
+                if entry.isTastable, bookmarks.contains(entry.id, on: .tried) {
+                    myTasting
+                }
                 // Wrapped in a real container before being identified: the
                 // builder returns a tuple of sections, and putting `.id()`
                 // straight on that would collapse N stack children into one
@@ -126,6 +131,64 @@ public struct EntryDetailScreen: View {
         // down a screen you had never seen. Keying on the id gives each entry a
         // fresh scroll view, which starts at the top.
         .id(entry.id)
+        .overlay {
+            if showingRating {
+                RatingPrompt(
+                    entryName: entry.name,
+                    initial: bookmarks.rating(for: entry.id),
+                    onSave: { stars, note in
+                        bookmarks.setRating(
+                            TriedRating(rating: stars, note: note, day: DailyPick.dayIndex()),
+                            for: entry.id
+                        )
+                        showingRating = false
+                    },
+                    onSkip: { showingRating = false }
+                )
+            }
+        }
+        .animation(.easeOut(duration: 0.15), value: showingRating)
+    }
+
+    /// The journal line for a tried entry: your stars, your note, and the way
+    /// to change them. Five interactive-sized stars, deliberately unlike the
+    /// rarity row's three small read-only ones — two star rows on one screen
+    /// must not read as the same instrument.
+    private var myTasting: some View {
+        section("MY TASTING", symbol: "star.fill") {
+            let rating = bookmarks.rating(for: entry.id)
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 6) {
+                    ForEach(1...5, id: \.self) { star in
+                        Image(systemName: star <= (rating?.rating ?? 0) ? "star.fill" : "star")
+                            .font(.system(size: 18))
+                            .foregroundStyle(star <= (rating?.rating ?? 0) ? Dex.yellow : lcd.disabledText)
+                    }
+                    Spacer(minLength: 8)
+                    Button {
+                        Haptics.select()
+                        showingRating = true
+                    } label: {
+                        Text(rating == nil ? "RATE" : "EDIT")
+                            .font(DexFont.retro(10))
+                            .tracking(1.5)
+                            .foregroundStyle(lcd.accent)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(Capsule().fill(lcd.buttonWell))
+                            .overlay(Capsule().strokeBorder(lcd.accent, lineWidth: 2))
+                    }
+                    .buttonStyle(DexPressStyle(scale: 0.94))
+                }
+
+                if let note = rating?.note, !note.isEmpty {
+                    Text(note)
+                        .font(DexFont.mono(18))
+                        .foregroundStyle(lcd.bodyText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
     }
 
     // MARK: Hero
@@ -159,25 +222,70 @@ public struct EntryDetailScreen: View {
         .padding(.bottom, 16)
     }
 
-    /// Saved state lives on the entry screen rather than the list, so it is one
+    /// Shelf state lives on the entry screen rather than the list, so it is one
     /// tap from what you are reading and cannot be triggered by a mis-scroll.
+    ///
+    /// SAVE is universal; WANT and TRIED appear only on things you can drink a
+    /// glass of (`isTastable`). Marking TRIED raises the rating prompt — the
+    /// moment you say you drank it is the moment the note is freshest.
     private var bookmarkButton: some View {
-        let saved = bookmarks.contains(entry.id)
-        return Button {
-            Haptics.select()
-            bookmarks.toggle(entry.id)
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: saved ? "bookmark.fill" : "bookmark")
-                    .font(.system(size: 14, weight: .bold))
-                Text(saved ? "SAVED" : "SAVE")
-                    .font(DexFont.retro(10))
-                    .tracking(2)
+        HStack(spacing: 8) {
+            shelfCapsule(
+                active: bookmarks.contains(entry.id),
+                activeLabel: "SAVED", label: "SAVE",
+                activeSymbol: "bookmark.fill", symbol: "bookmark"
+            ) {
+                Haptics.select()
+                bookmarks.toggle(entry.id)
             }
-            .foregroundStyle(saved ? .white : lcd.accent)
-            .padding(.horizontal, 16)
+
+            if entry.isTastable {
+                shelfCapsule(
+                    active: bookmarks.contains(entry.id, on: .wantToTry),
+                    activeLabel: "WANTED", label: "WANT",
+                    activeSymbol: "plus.circle.fill", symbol: "plus.circle"
+                ) {
+                    Haptics.select()
+                    bookmarks.toggle(entry.id, on: .wantToTry)
+                }
+
+                shelfCapsule(
+                    active: bookmarks.contains(entry.id, on: .tried),
+                    activeLabel: "TRIED", label: "TRIED",
+                    activeSymbol: "checkmark.circle.fill", symbol: "checkmark.circle"
+                ) {
+                    Haptics.select()
+                    let added = bookmarks.toggle(entry.id, on: .tried)
+                    if added { showingRating = true }
+                }
+            }
+        }
+    }
+
+    private func shelfCapsule(
+        active: Bool,
+        activeLabel: String,
+        label: String,
+        activeSymbol: String,
+        symbol: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: active ? activeSymbol : symbol)
+                    .font(.system(size: 14, weight: .bold))
+                Text(active ? activeLabel : label)
+                    .font(DexFont.retro(10))
+                    .tracking(1.5)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            // `onAccent`, not white: white on the dark theme's mint accent is
+            // the contrast failure the chip screen documents.
+            .foregroundStyle(active ? lcd.onAccent : lcd.accent)
+            .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(Capsule().fill(saved ? lcd.accent : lcd.buttonWell))
+            .background(Capsule().fill(active ? lcd.accent : lcd.buttonWell))
             .overlay(Capsule().strokeBorder(lcd.accent, lineWidth: 2))
         }
         .buttonStyle(DexPressStyle(scale: 0.94))

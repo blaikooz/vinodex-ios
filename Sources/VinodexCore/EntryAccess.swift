@@ -78,6 +78,16 @@ public final class AccessStore {
         persist()
     }
 
+    /// Everything back to install state: tier off, no bundles, both stored
+    /// keys removed. `revokeAll` is the user-facing purchase reset; this one
+    /// exists for CLEAR SAVED DATA, which also unwinds the developer switch.
+    public func clearAll() {
+        starterOnly = false
+        granted.removeAll()
+        defaults.removeObject(forKey: Self.storageKey)
+        defaults.removeObject(forKey: Self.entitlementsKey)
+    }
+
     private func persist() {
         defaults.set(granted.map(\.id).sorted(), forKey: Self.entitlementsKey)
     }

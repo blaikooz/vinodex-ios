@@ -17,6 +17,8 @@ public struct WalkthroughStep: Sendable, Hashable, Identifiable {
         /// No single part — the whole device.
         case device
         case screen
+        /// The master-search button drawn on the diagram's little menu.
+        case search
         case orb
         case lights
         case settings
@@ -40,7 +42,7 @@ public struct WalkthroughStep: Sendable, Hashable, Identifiable {
 }
 
 public enum Walkthrough {
-    /// Nine steps, in the order someone actually meets the device: what it is,
+    /// Ten steps, in the order someone actually meets the device: what it is,
     /// what the screen does, then each control, then where to go first.
     ///
     /// Written to be read aloud — short sentences, second person, no jargon that
@@ -77,7 +79,7 @@ public enum Walkthrough {
             once. Type a few letters of a grape, a place, or even a flavour \
             you tasted, and it will find the entries that mention it.
             """,
-            highlight: .screen
+            highlight: .search
         ),
         WalkthroughStep(
             id: "saved",
@@ -114,10 +116,11 @@ public enum Walkthrough {
             id: "settings",
             title: "MAKING IT YOURS",
             body: """
-            The cog opens the system panel. CUSTOMIZE changes the screen \
-            between dark and light, sets the text size, and swaps the chassis — \
-            five colourways, each with its own lights and buttons. DATA shows \
-            you exactly what is in the database.
+            The cog opens the system panel. CUSTOMIZE picks the screen mode — \
+            dark, light, vintage or amber — and swaps the chassis: ten \
+            colourways, each with its own lights and buttons. SETTINGS holds \
+            text size, haptics and sound. DATA shows you what is in the \
+            database.
             """,
             highlight: .settings
         ),
@@ -126,9 +129,10 @@ public enum Walkthrough {
             title: "TOOLS",
             body: """
             Also behind the cog: TOOLS. There's a scanner that identifies a \
-            grape from what's in your glass, a chip filter for narrowing the \
-            whole database by colour, body or climate, a tasting quiz, a daily \
-            guessing game, and the moon dial.
+            grape from what's in your glass, filter search for narrowing the \
+            whole database, a tasting quiz with three levels, a daily \
+            challenge with a streak to keep, a daily guessing game, and the \
+            moon dial.
             """,
             highlight: .screen
         ),
@@ -136,9 +140,9 @@ public enum Walkthrough {
             id: "orb",
             title: "ONE LAST THING",
             body: """
-            Press and hold the blue orb for a second. The device turns over and \
-            shows you its back plate. There's nothing you need there — it's just \
-            nice. Swipe to come back.
+            Press and hold the blue orb for a second, and keep holding. We're \
+            not going to tell you what happens — it's nothing you need, and \
+            it's better found than explained.
             """,
             highlight: .orb
         ),

@@ -339,6 +339,13 @@ public enum WineEntry: Sendable, Hashable, Identifiable {
     public var color: String { common.color }
     public var tags: [String] { common.tags }
 
+    /// Whether the tried and want-to-try shelves apply: things you can drink
+    /// a glass of. Regions, flavours and continents are reference, not
+    /// tastings — the same grapes-and-styles pair that carries a rarity.
+    public var isTastable: Bool {
+        category == .grapes || category == .styles
+    }
+
     // Convenience accessors mirroring the web app's shared `details` reads.
 
     public var origin: String? {

@@ -63,11 +63,13 @@ public enum Dex {
     public static let velour = Color(dexHex: "#4B1D3F")
     public static let velourPanel = Color(dexHex: "#D3BBCE")
     public static let velourEdge = Color(dexHex: "#2C0F24")
-    /// Electric Riesling — the yellow of a 1980s sports Walkman, with the cream
-    /// panel those shells carried rather than white.
+    /// Electric Riesling — the yellow of a 1980s sports Walkman. The panel is a
+    /// dark grey with a light-grey edge: the pale panel it launched with sat so
+    /// close to the classic white that the skin read as unskinned around the
+    /// screen, and the pale-on-dark inversion is what the sports liveries did.
     public static let walkman = Color(dexHex: "#F2C11B")
-    public static let walkmanPanel = Color(dexHex: "#FBF0CC")
-    public static let walkmanEdge = Color(dexHex: "#9A7A0A")
+    public static let walkmanPanel = Color(dexHex: "#4A4F55")
+    public static let walkmanEdge = Color(dexHex: "#B9BEC4")
     public static let blue = Color(dexHex: "#2AB5FF")
     public static let yellow = Color(dexHex: "#FACC15")
     public static let green = Color(dexHex: "#4ADE80")
@@ -152,9 +154,10 @@ public enum DexMetrics {
     /// point here comes off the LCD — but non-zero so the housing does not butt
     /// straight into the controls.
     public static let housingGap: CGFloat = 4
-    /// Gap from the island controls down to the screen housing. Matches
-    /// `footerTopInset` so the housing sits the same distance from both rows.
-    public static let islandBottomInset: CGFloat = footerTopInset
+    /// Gap from the island controls down to the screen housing. Used to match
+    /// `footerTopInset` (6); tightened so the controls sit closer to the
+    /// housing while the raised `islandTopInset` gives them air above instead.
+    public static let islandBottomInset: CGFloat = 2
     /// Gap from the display's top edge down to the island controls.
     ///
     /// This was `chassisEdgeInset` (16), on the argument that the band should
@@ -163,14 +166,15 @@ public enum DexMetrics {
     /// it. There is no home indicator up here, so the same number bought
     /// nothing and simply pushed the orb and cog down into the LCD's height.
     ///
-    /// 8 rather than the footer's own 6, and that difference is load-bearing:
-    /// the display's 55pt corner arc cuts `55 - sqrt(55² - (55-h)²)` off each
-    /// side at height `h`, which at 8pt is ~26pt — exactly `cornerGuardH`. The
-    /// controls survive it because they are *circles*: the widest point of the
-    /// orb sits half a control lower, where the arc has closed to ~2pt. Going
-    /// much below 8 starts cutting the button's actual edge rather than the
-    /// empty corner of its bounding box.
-    public static let islandTopInset: CGFloat = 8
+    /// 12, and the floor below it is load-bearing: the display's 55pt corner
+    /// arc cuts `55 - sqrt(55² - (55-h)²)` off each side at height `h`, which
+    /// at 8pt is ~26pt — exactly `cornerGuardH`. The controls survive it
+    /// because they are *circles*: the widest point of the orb sits half a
+    /// control lower, where the arc has closed to ~2pt. Going below 8 starts
+    /// cutting the button's actual edge rather than the empty corner of its
+    /// bounding box; above it is always safe, and the breathing room above
+    /// the island controls is the whole point of the raise.
+    public static let islandTopInset: CGFloat = 18
     /// Floor for the island strip: the inset above, one control, then the small
     /// `islandBottomInset` against the screen housing.
     public static let islandStripMinHeight: CGFloat = islandTopInset + controlButton + islandBottomInset
@@ -186,8 +190,9 @@ public enum DexMetrics {
     /// larger orb rather than a spread-out row.
     public static let statusDotSpacing: CGFloat = 0.2 * rem
     /// Gap between the orb and the status-light cluster now that the lights sit
-    /// beside it rather than on its shoulder.
-    public static let statusDotsGap: CGFloat = 6
+    /// beside it rather than on its shoulder. Tightened from 6 to pull the
+    /// cluster in toward the orb.
+    public static let statusDotsGap: CGFloat = 3
     /// How far the status cluster rides above the orb's centre line.
     ///
     /// Centred, the three lights read as a continuation of the orb — one row of
@@ -195,7 +200,7 @@ public enum DexMetrics {
     /// chassis *above* the control, which is where a period device puts them.
     /// An offset rather than an alignment guide: this is decoration and must not
     /// change what the strip reserves.
-    public static let statusDotsRise: CGFloat = 7
+    public static let statusDotsRise: CGFloat = 12
     public static let titleSize: CGFloat = 0.9375 * rem
 
     /// Screen housing
@@ -411,52 +416,82 @@ public enum TextScale: String, CaseIterable, Identifiable, Sendable {
 public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     case dark = "DARK"
     case light = "LIGHT"
+    /// Monochrome — black pixels on a grey-green ground, like a vintage Palm
+    /// or e-ink screen. Colour is deliberately lost: the chassis applies a
+    /// grayscale-and-tint pass over the whole LCD (see `DeviceChassis`), so
+    /// the tokens below only have to be high-contrast, not tastefully hued.
+    case vintage = "VINTAGE"
+    /// Monochrome the other way up — amber phosphor on black, like a CRT
+    /// terminal. Same grayscale-and-tint pass as vintage, over the dark
+    /// theme's tokens instead of the light ones.
+    case amber = "AMBER"
 
     public static let storageKey = "lcdMode"
 
     public var id: String { rawValue }
 
-    public var isLight: Bool { self == .light }
+    /// Whether the screen ground is pale. An explicit list, not `!= .dark`:
+    /// vintage is dark ink on a pale ground and wants every light branch, but
+    /// amber is a *dark* mode — pale scrims and dark-on-accent ink on it would
+    /// be wrong in both directions.
+    public var isLight: Bool { self == .light || self == .vintage }
+
+    /// The tint the chassis multiplies the grayscaled LCD by — nil renders in
+    /// colour. This is what turns "black on white" into "black on grey-green"
+    /// (vintage) and "white on black" into "amber on black" (amber).
+    public var monochromeTint: Color? {
+        switch self {
+        case .dark, .light: nil
+        case .vintage: Color(dexHex: "#C6CFB2")
+        case .amber: Color(dexHex: "#FFB300")
+        }
+    }
 
     /// LCD ground.
     public var screen: Color {
         switch self {
-        case .dark: Dex.screen
+        case .dark, .amber: Dex.screen
         case .light: Color(dexHex: "#E8E8E2")
+        case .vintage: Color(dexHex: "#E4E4DC")
         }
     }
 
     /// Primary text on that ground.
     public var text: Color {
         switch self {
-        case .dark: .white
+        case .dark, .amber: .white
         case .light: Color(dexHex: "#1F1F1C")
+        case .vintage: Color(dexHex: "#101010")
         }
     }
 
     /// Section rules, headers and glyph tints. The dark theme's #4ADE80 is
     /// invisible on white, so light mode drops to a deep bottle green that
-    /// still reads as "the green" without disappearing.
+    /// still reads as "the green" without disappearing. Vintage has no colour
+    /// to keep — its accent is simply ink.
     public var accent: Color {
         switch self {
-        case .dark: Dex.green
+        case .dark, .amber: Dex.green
         case .light: Color(dexHex: "#1B6B3A")
+        case .vintage: Color(dexHex: "#1A1A16")
         }
     }
 
     /// Body copy inside INFO blocks — mint on black, near-black on paper.
     public var bodyText: Color {
         switch self {
-        case .dark: Color(dexHex: "#bbf7d0")
+        case .dark, .amber: Color(dexHex: "#bbf7d0")
         case .light: Color(dexHex: "#23342A")
+        case .vintage: Color(dexHex: "#20201C")
         }
     }
 
     /// Hero panel wash behind an entry title.
     public var heroWash: Color {
         switch self {
-        case .dark: Color(dexHex: "#14532d").opacity(0.1)
+        case .dark, .amber: Color(dexHex: "#14532d").opacity(0.1)
         case .light: Color(dexHex: "#1B6B3A").opacity(0.07)
+        case .vintage: Color.black.opacity(0.06)
         }
     }
 
@@ -464,16 +499,17 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// on the light hero, so light mode lifts it toward the paper.
     public var heroGrid: Color {
         switch self {
-        case .dark: Color(dexHex: "#14532d")
+        case .dark, .amber: Color(dexHex: "#14532d")
         case .light: Color(dexHex: "#1B6B3A")
+        case .vintage: Color(dexHex: "#3A3A34")
         }
     }
 
     /// Filled-button ground (SAVE and friends) when *not* active.
     public var buttonWell: Color {
         switch self {
-        case .dark: .black.opacity(0.35)
-        case .light: .white
+        case .dark, .amber: .black.opacity(0.35)
+        case .light, .vintage: .white
         }
     }
 
@@ -481,39 +517,43 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// using `DexScreenBackground`.
     public var page: Color {
         switch self {
-        case .dark: .black
+        case .dark, .amber: .black
         case .light: Color(dexHex: "#F2F2EC")
+        case .vintage: Color(dexHex: "#EDEDE4")
         }
     }
 
     /// Row and card fill.
     public var surface: Color {
         switch self {
-        case .dark: Dex.stone900
+        case .dark, .amber: Dex.stone900
         case .light: Color(dexHex: "#FFFFFF")
+        case .vintage: Color(dexHex: "#F6F6EF")
         }
     }
 
     public var surfaceEdge: Color {
         switch self {
-        case .dark: Dex.stone700
+        case .dark, .amber: Dex.stone700
         case .light: Color(dexHex: "#C9C9C1")
+        case .vintage: Color(dexHex: "#84847A")
         }
     }
 
     /// Secondary text — captions, counts, placeholders.
     public var subtext: Color {
         switch self {
-        case .dark: Dex.stone400
+        case .dark, .amber: Dex.stone400
         case .light: Color(dexHex: "#5A5A54")
+        case .vintage: Color(dexHex: "#42423C")
         }
     }
 
     /// Fill behind search fields, which are black wells on the dark theme.
     public var well: Color {
         switch self {
-        case .dark: .black
-        case .light: Color(dexHex: "#FFFFFF")
+        case .dark, .amber: .black
+        case .light, .vintage: Color(dexHex: "#FFFFFF")
         }
     }
 
@@ -525,19 +565,20 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// grey is close enough to `text` to look like an ordinary enabled row.
     public var disabledText: Color {
         switch self {
-        case .dark: Dex.stone600
+        case .dark, .amber: Dex.stone600
         case .light: Color(dexHex: "#A3A39B")
+        case .vintage: Color(dexHex: "#96968C")
         }
     }
 
     /// Foreground for content sitting on an `accent` fill (selected settings
     /// options, active chips). Dark mode's accent is mint (#4ADE80) — white text
     /// on it is ~1.8:1 — so it takes black; light mode's accent is deep green and
-    /// takes white.
+    /// takes white, as does vintage's ink-black.
     public var onAccent: Color {
         switch self {
-        case .dark: .black
-        case .light: .white
+        case .dark, .amber: .black
+        case .light, .vintage: .white
         }
     }
 
@@ -634,10 +675,37 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     case burgundy = "BURGUNDY"
     /// Vintage Walkman yellow.
     case riesling = "RIESLING"
+    /// Forest-green DMG homage: pea-green screen tint, grey/black buttons,
+    /// dark brown accents.
+    case vinhoVerde = "VINHO VERDE"
+    /// The clear-technology shell — translucent smoke plastic over mock
+    /// internals, with bright orange for everything powered.
+    case glouglou = "GLOUGLOU"
+    /// The iPhone calculator's livery: near-black shell, warm dark-grey keys
+    /// with a brown cast, and calculator-orange for everything powered.
+    case smartGrape = "SMART GRAPE"
+    /// Pale champagne-gold shell with gold-leaf powered parts — elegant, not
+    /// garish; the dressing-table of the range.
+    case champagne = "CHAMPAGNE"
+    /// Pine shell, snow panel, red caps and gold lights. Seasonal in theme
+    /// only — a skin that vanished in January would read as a bug, not a gift.
+    case christmas = "CHRISTMAS"
 
     public static let storageKey = "chassisSkin"
 
     public var id: String { rawValue }
+
+    /// Whether the shell is see-through — `DeviceChassis`'s cue to mount the
+    /// mock internals behind it. A flag rather than sniffing alpha out of a
+    /// `Color`, which SwiftUI does not expose anyway.
+    public var isTranslucent: Bool { self == .glouglou }
+
+    /// What sits behind the shell: the shell itself for opaque skins, a
+    /// near-black base under GLOUGLOU so the smoke plastic has something to be
+    /// smoke over.
+    public var underlay: Color {
+        isTranslucent ? Color(dexHex: "#14161A") : body
+    }
 
     /// What the picker calls this skin.
     ///
@@ -656,6 +724,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .original: "BLANC DE BLANCS"
         case .burgundy: "BURGUNDY VELOUR"
         case .riesling: "ELECTRIC RIESLING"
+        case .vinhoVerde: "VINHO VERDE"
+        case .glouglou: "GLOUGLOU"
+        case .smartGrape: "SMART GRAPE"
+        case .champagne: "CHAMPAGNE GOLD"
+        case .christmas: "CUVÉE NOËL"
         }
     }
 
@@ -667,6 +740,12 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .original: Dex.bone
         case .burgundy: Dex.velour
         case .riesling: Dex.walkman
+        case .vinhoVerde: Color(dexHex: "#24402B")
+        // Smoke plastic — the only translucent body; see `underlay`.
+        case .glouglou: Color(dexHex: "rgba(204,216,224,0.40)")
+        case .smartGrape: Color(dexHex: "#1C1C1E")
+        case .champagne: Color(dexHex: "#E8D5A6")
+        case .christmas: Color(dexHex: "#1B4332")
         }
     }
 
@@ -678,6 +757,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .original: Dex.bone.opacity(0.75)
         case .burgundy: Dex.velour.opacity(0.75)
         case .riesling: Dex.walkman.opacity(0.7)
+        case .vinhoVerde: Color(dexHex: "#24402B").opacity(0.75)
+        case .glouglou: Color(dexHex: "rgba(204,216,224,0.28)")
+        case .smartGrape: Color(dexHex: "#1C1C1E").opacity(0.75)
+        case .champagne: Color(dexHex: "#E8D5A6").opacity(0.75)
+        case .christmas: Color(dexHex: "#1B4332").opacity(0.75)
         }
     }
 
@@ -689,6 +773,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .original: Dex.bonePanel
         case .burgundy: Dex.velourPanel
         case .riesling: Dex.walkmanPanel
+        case .vinhoVerde: Color(dexHex: "#2E4F36")
+        case .glouglou: Color(dexHex: "rgba(234,241,246,0.55)")
+        case .smartGrape: Color(dexHex: "#2C2A28")
+        case .champagne: Color(dexHex: "#F6EEDC")
+        case .christmas: Color(dexHex: "#F4F7F2")
         }
     }
 
@@ -699,6 +788,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .original: Dex.boneEdge
         case .burgundy: Dex.velourEdge
         case .riesling: Dex.walkmanEdge
+        case .vinhoVerde: Color(dexHex: "#16281B")
+        case .glouglou: Color(dexHex: "rgba(148,163,184,0.85)")
+        case .smartGrape: Color(dexHex: "#5A5148")
+        case .champagne: Color(dexHex: "#B49B62")
+        case .christmas: Color(dexHex: "#9CAF9C")
         }
     }
 
@@ -710,6 +804,13 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .original: Dex.stone400
         case .burgundy: Dex.velourEdge
         case .riesling: Dex.walkmanEdge
+        case .vinhoVerde: Color(dexHex: "#16281B")
+        // Opaque on purpose: the slats sit over the internals and would
+        // otherwise vanish into them.
+        case .glouglou: Color(dexHex: "#64748B")
+        case .smartGrape: Color(dexHex: "#5A5148")
+        case .champagne: Color(dexHex: "#B49B62")
+        case .christmas: Color(dexHex: "#9CAF9C")
         }
     }
 
@@ -729,12 +830,22 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .midnight: Color(dexHex: "#d8b4fe")
         // A champagne bead on the pale shell — cyan vanished against bone.
         case .original: Color(dexHex: "#ffd76e")
-        // Gold on velvet. Blue-on-purple was the one pairing with no contrast
-        // at all: the orb and the moulding sat two steps apart on the wheel.
-        case .burgundy: Color(dexHex: "#ffd166")
-        // Sports-electronics blue on the yellow shell, which is the livery the
-        // shell is quoting in the first place.
-        case .riesling: Color(dexHex: "#38bdf8")
+        // Deep purple, matching the buttons — the whole powered set on this
+        // shell now runs one colour, like a single dye lot.
+        case .burgundy: Color(dexHex: "#7c3aed")
+        // A red signal lamp on the yellow shell — the one saturated colour the
+        // grey-buttoned livery leaves room for.
+        case .riesling: Color(dexHex: "#ef4444")
+        // The DMG's own pea-green screen, reborn as a lamp.
+        case .vinhoVerde: Color(dexHex: "#9BBC0F")
+        case .glouglou: Color(dexHex: "#FB923C")
+        // Calculator-orange, the operator key.
+        case .smartGrape: Color(dexHex: "#FF9F0A")
+        // A gold bead in a gold shell — one dye lot, like burgundy's purple.
+        case .champagne: Color(dexHex: "#F5D97E")
+        // The warm fairy-light gold, not the caps' red — red-on-pine is the
+        // moulding's job.
+        case .christmas: Color(dexHex: "#FFD166")
         }
     }
 
@@ -745,8 +856,13 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .classic: Dex.blue
         case .midnight: Color(dexHex: "#a855f7")
         case .original: Color(dexHex: "#f0b429")
-        case .burgundy: Color(dexHex: "#f59e0b")
-        case .riesling: Color(dexHex: "#0284c7")
+        case .burgundy: Color(dexHex: "#5b21b6")
+        case .riesling: Color(dexHex: "#b91c1c")
+        case .vinhoVerde: Color(dexHex: "#8BAC0F")
+        case .glouglou: Color(dexHex: "#EA580C")
+        case .smartGrape: Color(dexHex: "#C97800")
+        case .champagne: Color(dexHex: "#D4A017")
+        case .christmas: Color(dexHex: "#D9962B")
         }
     }
 
@@ -760,16 +876,41 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .midnight:
             ChassisAccent(pale: "#f3e8ff", light: "#e9d5ff", bright: "#c084fc",
                           mid: "#a855f7", edge: "#6b21a8", ink: "#3b0764")
-        // Magenta, after the original handheld's own A/B buttons.
+        // Yellow — sunlight on the bone shell, and the one warm colour the
+        // pale moulding leaves room for. (Was magenta, after the original
+        // handheld's A/B buttons, which read as an error state on white.)
         case .original:
-            ChassisAccent(pale: "#ffe4e6", light: "#fecdd3", bright: "#fb7185",
-                          mid: "#e11d48", edge: "#9f1239", ink: "#4c0519")
+            ChassisAccent(pale: "#fefce8", light: "#fef08a", bright: "#facc15",
+                          mid: "#eab308", edge: "#a16207", ink: "#713f12")
+        // Deep purple, one shade brighter than the shell so Home still reads
+        // as the powered part rather than more upholstery.
         case .burgundy:
-            ChassisAccent(pale: "#fef3c7", light: "#fde68a", bright: "#fbbf24",
-                          mid: "#d97706", edge: "#92400e", ink: "#451a03")
+            ChassisAccent(pale: "#ede9fe", light: "#ddd6fe", bright: "#8b5cf6",
+                          mid: "#6d28d9", edge: "#4c1d95", ink: "#2e1065")
+        // Greys, to match the moulded caps — on this shell the red orb is the
+        // only powered colour, which is what makes it a signal lamp.
         case .riesling:
-            ChassisAccent(pale: "#fee2e2", light: "#fca5a5", bright: "#f87171",
-                          mid: "#dc2626", edge: "#7f1d1d", ink: "#450a0a")
+            ChassisAccent(pale: "#f4f5f6", light: "#d8dadd", bright: "#b6b9be",
+                          mid: "#8b8f95", edge: "#4b4f54", ink: "#1c1e21")
+        // Dark brown — the DMG's burgundy buttons aged into leather.
+        case .vinhoVerde:
+            ChassisAccent(pale: "#E7D8C9", light: "#C8A98B", bright: "#8B5E3C",
+                          mid: "#6B4226", edge: "#3E2417", ink: "#241207")
+        case .glouglou:
+            ChassisAccent(pale: "#FFEDD5", light: "#FED7AA", bright: "#FB923C",
+                          mid: "#F97316", edge: "#C2410C", ink: "#7C2D12")
+        // The operator key: calculator orange, lit.
+        case .smartGrape:
+            ChassisAccent(pale: "#FFE8C7", light: "#FFC66E", bright: "#FF9F0A",
+                          mid: "#E08600", edge: "#8F5600", ink: "#3D2400")
+        // Gold leaf, one register deeper than the shell.
+        case .champagne:
+            ChassisAccent(pale: "#FDF6E3", light: "#F5E3AE", bright: "#E3BC5F",
+                          mid: "#C89B3C", edge: "#8A6820", ink: "#4A3510")
+        // The bauble gold, against the pine and the red caps.
+        case .christmas:
+            ChassisAccent(pale: "#FFF8E1", light: "#FFE9A8", bright: "#FFC94A",
+                          mid: "#E6A817", edge: "#9C6F0A", ink: "#4A3300")
         }
     }
 
@@ -793,10 +934,29 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // Pale grey with a dark glyph — the original handheld's own d-pad.
         case .original:
             ChassisControl(top: "#c2c2ba", bottom: "#83837b", edge: "#5f5f59", glyph: "#262622")
+        // Deep purple caps, matching the accent ramp and the orb.
         case .burgundy:
-            ChassisControl(top: "#4a2440", bottom: "#150a12", edge: "#b58aab", glyph: "#ffffff")
+            ChassisControl(top: "#5b21b6", bottom: "#1e0a38", edge: "#a78bfa", glyph: "#ffffff")
+        // Neutral grey — the blue cast the caps used to carry fought the
+        // livery once the orb went red.
         case .riesling:
-            ChassisControl(top: "#3f4652", bottom: "#0b0e14", edge: "#9fb0c6", glyph: "#ffffff")
+            ChassisControl(top: "#5a6068", bottom: "#14171c", edge: "#a7adb5", glyph: "#ffffff")
+        case .vinhoVerde:
+            ChassisControl(top: "#4B4F54", bottom: "#111316", edge: "#8A9096", glyph: "#ffffff")
+        // Clear caps: the rgba stops are what makes the buttons read as
+        // moulded from the same smoke plastic as the shell.
+        case .glouglou:
+            ChassisControl(top: "rgba(203,213,225,0.55)", bottom: "rgba(51,65,85,0.60)",
+                           edge: "rgba(226,232,240,0.90)", glyph: "#0F172A")
+        // The number key: dark grey with the brown cast of the brief.
+        case .smartGrape:
+            ChassisControl(top: "#4A4239", bottom: "#151210", edge: "#8A7B6B", glyph: "#ffffff")
+        // Pale gold caps with a dark glyph, per the Blanc de Blancs precedent.
+        case .champagne:
+            ChassisControl(top: "#D8C48E", bottom: "#7A6535", edge: "#55431F", glyph: "#2E2410")
+        // The holly-berry caps.
+        case .christmas:
+            ChassisControl(top: "#C93B3B", bottom: "#5C1010", edge: "#E88A8A", glyph: "#ffffff")
         }
     }
 
@@ -809,7 +969,12 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .midnight: Color(dexHex: "#c084fc")
         case .original: Color(dexHex: "#fbbf24")
         case .burgundy: Color(dexHex: "#f9a8d4")
-        case .riesling: Color(dexHex: "#22d3ee")
+        case .riesling: Dex.green500
+        case .vinhoVerde: Color(dexHex: "#9BBC0F")
+        case .glouglou: Color(dexHex: "#FB923C")
+        case .smartGrape: Color(dexHex: "#FF9F0A")
+        case .champagne: Color(dexHex: "#F2C14E")
+        case .christmas: Color(dexHex: "#FF6B6B")
         }
     }
 
@@ -821,7 +986,12 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .midnight: Color(dexHex: "#a855f7")
         case .original: Color(dexHex: "#f59e0b")
         case .burgundy: Color(dexHex: "#ec4899")
-        case .riesling: Color(dexHex: "#06b6d4")
+        case .riesling: Color(dexHex: "#16a34a")
+        case .vinhoVerde: Color(dexHex: "#8BAC0F")
+        case .glouglou: Color(dexHex: "#F97316")
+        case .smartGrape: Color(dexHex: "#E08600")
+        case .champagne: Color(dexHex: "#D4A017")
+        case .christmas: Color(dexHex: "#E03131")
         }
     }
 
@@ -833,7 +1003,12 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .midnight: Color(dexHex: "#1e0b32")
         case .original: Color(dexHex: "#301a02")
         case .burgundy: Color(dexHex: "#3b0723")
-        case .riesling: Color(dexHex: "#04262c")
+        case .riesling: Color(dexHex: "#082010")
+        case .vinhoVerde: Color(dexHex: "#0F380F")
+        case .glouglou: Color(dexHex: "#33130A")
+        case .smartGrape: Color(dexHex: "#331F04")
+        case .champagne: Color(dexHex: "#33240A")
+        case .christmas: Color(dexHex: "#240808")
         }
     }
 

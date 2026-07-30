@@ -38,8 +38,11 @@ public struct DeviceChassis<Content: View>: View {
     /// Shared with `SettingsPanel` through `@AppStorage`, so toggling it there
     /// repaints the chassis without any state being threaded between them.
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
+    /// Read for VINTAGE mode's monochrome pass over the LCD — see `innerBezel`.
+    @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
 
     private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
+    private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
     public init(
         title: String,
@@ -125,11 +128,19 @@ public struct DeviceChassis<Content: View>: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
         }
-        .background(skin.body.ignoresSafeArea())
+        // The underlay, not the body: this layer never rotates with the flip,
+        // so it must not show internals — under a translucent skin it is the
+        // dark ground the smoke plastic needs, and elsewhere it is the body.
+        .background(skin.underlay.ignoresSafeArea())
     }
 
     private func frontFace(topStrip: CGFloat) -> some View {
         ZStack(alignment: .top) {
+            // The mock electronics sit behind the translucent shell and flip
+            // with the front face — the back plate is its own opaque part.
+            if skin.isTranslucent {
+                InternalsView()
+            }
             skin.body
 
             VStack(spacing: 0) {
@@ -359,6 +370,13 @@ public struct DeviceChassis<Content: View>: View {
                 .opacity(DexMetrics.scanlineOpacity)
                 .allowsHitTesting(false)
         }
+        // The monochrome modes: desaturate everything on the LCD, then tint
+        // the lot — grey-green for VINTAGE, amber phosphor for AMBER. Done
+        // here, over the whole display, because it is the only way entry art,
+        // chips and glyph tints — none of which read LcdMode — go monochrome
+        // too. Identity (grayscale 0, multiply white) in the colour modes.
+        .grayscale(lcd.monochromeTint == nil ? 0 : 1)
+        .colorMultiply(lcd.monochromeTint ?? .white)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipShape(RoundedRectangle(cornerRadius: DexMetrics.bezelCorner))
         // A thin stone frame, equal on every side so the LCD sits centred.

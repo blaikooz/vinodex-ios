@@ -18,6 +18,10 @@ import Foundation
 /// that had to shrink to fit its square.
 public enum SettingsSection: String, CaseIterable, Hashable, Sendable, Identifiable {
     case customization = "CUSTOMIZE"
+    /// Device behaviour rather than device looks: text size, haptics, and the
+    /// stored-data reset. Split from CUSTOMIZE so that panel stays purely
+    /// cosmetic — a wipe button between two colour pickers is a trap.
+    case settings = "SETTINGS"
     /// What the database actually holds. Read-only, unlike everything else
     /// here — it is a readout rather than a setting, but the settings grid is
     /// where a user goes looking for "what is in this thing".
@@ -32,6 +36,7 @@ public enum SettingsSection: String, CaseIterable, Hashable, Sendable, Identifia
     public var symbol: String {
         switch self {
         case .customization: "paintpalette.fill"
+        case .settings: "slider.horizontal.3"
         case .data: "chart.bar.fill"
         case .access: "lock.fill"
         case .dev: "ladybug.fill"
@@ -92,8 +97,13 @@ public enum DexRoute: Hashable, Sendable {
     /// climate — with a live count of what survives. See `ChipFilter`.
     case chipFilter
     /// The WSET-style tasting quiz: one question, four answers, then the entry
-    /// behind the right one.
+    /// behind the right one. Three tiers — see `QuizTier`.
     case wsetQuiz
+    /// The daily paper: five questions, everyone gets the same ones, one
+    /// sitting per day. What the streak hangs off — see `StreakStore`.
+    case dailyChallenge
+    /// The tried shelf's stats page — see `Passport`.
+    case passport
     /// The guided tour. Opt-in from the settings grid, never shown unasked.
     case walkthrough
     /// The continent info screen — INFO blurb plus a COUNTRIES list, each
@@ -131,9 +141,13 @@ public enum DexRoute: Hashable, Sendable {
         case .minigames:
             "TOOLS"
         case .chipFilter:
-            "CHIP FILTER"
+            "FILTER SEARCH"
         case .wsetQuiz:
             "TASTING QUIZ"
+        case .dailyChallenge:
+            "DAILY CHALLENGE"
+        case .passport:
+            "PASSPORT"
         case .walkthrough:
             "WALKTHROUGH"
         case .continent:

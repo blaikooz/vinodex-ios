@@ -3,24 +3,40 @@ import PhotosUI
 import SwiftUI
 import VinodexCore
 
-/// The user screen: who you are, and what you have saved.
+/// The profile's only stored field. A named constant so CLEAR SAVED DATA can
+/// name the key without spelling the literal twice.
+public enum UserProfile {
+    public static let displayNameKey = "userDisplayName"
+}
+
+/// The user screen: who you are, and your three shelves.
 ///
-/// Reuses `EntryTileView` for the saved rows so a bookmark looks exactly like
+/// SAVED is reference, WANT TO TRY is the wishlist, TRIED is the history —
+/// one segmented row switches between them, because three stacked lists would
+/// bury the third below the fold and three routes would be three screens
+/// pretending not to be one.
+///
+/// Reuses `EntryTileView` for the rows so a shelved entry looks exactly like
 /// the same entry in any list — it is a pointer, not a different kind of thing.
 public struct BookmarksScreen: View {
     let onSelect: (WineEntry) -> Void
     let onSelectCountry: (String) -> Void
     let onSelectState: (String) -> Void
+    let onPassport: () -> Void
 
     @State private var bookmarks = BookmarkStore.shared
     @State private var confirmingClear = false
     @State private var pendingDelete: SavedItem?
     @State private var access = AccessStore.shared
+    @State private var streak = StreakStore.shared
     /// Scroll position outlives the view — see `ScreenStateStore`.
     @State private var screens = ScreenStateStore.shared
+    /// The active shelf. Session state, like the scroll position: a cold
+    /// launch opens on SAVED.
+    @State private var shelfRaw = Shelf.saved.rawValue
     /// Local only, and deliberately so — there is no account, and inventing a
     /// backend for a display name would be the tail wagging the dog.
-    @AppStorage("userDisplayName") private var displayName = ""
+    @AppStorage(UserProfile.displayNameKey) private var displayName = ""
     /// The picture, which is local for the same reason. See `AvatarStore`.
     @State private var avatar = AvatarStore.shared
     @State private var pickedPhoto: PhotosPickerItem?
@@ -35,25 +51,44 @@ public struct BookmarksScreen: View {
     public init(
         onSelect: @escaping (WineEntry) -> Void,
         onSelectCountry: @escaping (String) -> Void = { _ in },
-        onSelectState: @escaping (String) -> Void = { _ in }
+        onSelectState: @escaping (String) -> Void = { _ in },
+        onPassport: @escaping () -> Void = {}
     ) {
         self.onSelect = onSelect
         self.onSelectCountry = onSelectCountry
         self.onSelectState = onSelectState
+        self.onPassport = onPassport
     }
 
-    /// Everything saved, including countries and states — those have no entry
-    /// to resolve against and were being dropped entirely.
-    private var items: [SavedItem] { bookmarks.saved(in: db) }
+    private var shelf: Shelf { Shelf(rawValue: shelfRaw) ?? .saved }
+
+    /// The active shelf's rows. Saved includes places; the tasting shelves
+    /// hold entries only, by construction.
+    private var items: [SavedItem] {
+        switch shelf {
+        case .saved: bookmarks.saved(in: db)
+        case .wantToTry, .tried: bookmarks.entries(on: shelf, in: db).map { .entry($0) }
+        }
+    }
+
+    private func title(of shelf: Shelf) -> String {
+        switch shelf {
+        case .saved: "SAVED"
+        case .wantToTry: "WANT"
+        case .tried: "TRIED"
+        }
+    }
 
     /// One screen, so one key — unlike the countries and entries, there is only
     /// ever a single saved list.
     private static let profileAnchor = "__profile__"
 
+    /// Keyed per shelf, so switching to TRIED and back does not try to restore
+    /// a row id the other shelf cannot resolve.
     private var anchorBinding: Binding<String?> {
         Binding(
-            get: { screens.anchor(for: ScreenStateStore.bookmarks) },
-            set: { screens.setAnchor($0, for: ScreenStateStore.bookmarks) }
+            get: { screens.anchor(for: ScreenStateStore.shelf(shelfRaw)) },
+            set: { screens.setAnchor($0, for: ScreenStateStore.shelf(shelfRaw)) }
         )
     }
 
@@ -68,7 +103,9 @@ public struct BookmarksScreen: View {
                     VStack(alignment: .leading, spacing: 8) {
                         profileSection
 
-                        savedHeader
+                        shelfPicker
+
+                        shelfHeader
                     }
                     .id(Self.profileAnchor)
 
@@ -97,18 +134,28 @@ public struct BookmarksScreen: View {
             // saved simply resolves to nothing and the list opens at the top.
             .scrollPosition(id: anchorBinding)
         }
-        // Clearing every bookmark is one tap from a scroll view and cannot be
+        .onAppear {
+            if let held = screens.value("shelf", for: ScreenStateStore.bookmarks) {
+                shelfRaw = held
+            }
+        }
+        .onChange(of: shelfRaw) { _, new in
+            screens.setValue(new, "shelf", for: ScreenStateStore.bookmarks)
+        }
+        // Clearing a whole shelf is one tap from a scroll view and cannot be
         // undone, so it asks first. Removing a single entry does not — that one
         // is cheap to redo. Rendered in-screen rather than as a system dialog,
         // which would slide up from the device and break the chassis metaphor.
         .overlay {
             if confirmingClear {
                 DexAlert(
-                    title: "CLEAR ALL SAVED?",
-                    message: "\(items.count) saved \(items.count == 1 ? "item" : "items") will be removed. This cannot be undone.",
+                    title: "CLEAR ALL \(title(of: shelf))?",
+                    message: shelf == .tried
+                        ? "\(items.count) tasting\(items.count == 1 ? "" : "s") will be removed — ratings and notes go with them."
+                        : "\(items.count) \(items.count == 1 ? "item" : "items") will be removed. This cannot be undone.",
                     confirmLabel: "CLEAR",
                     onConfirm: {
-                        bookmarks.removeAll()
+                        bookmarks.removeAll(on: shelf)
                         confirmingClear = false
                     },
                     onCancel: { confirmingClear = false }
@@ -118,11 +165,11 @@ public struct BookmarksScreen: View {
         .overlay {
             if let pendingDelete {
                 DexAlert(
-                    title: "REMOVE FROM SAVED?",
+                    title: "REMOVE FROM \(title(of: shelf))?",
                     message: pendingDelete.displayName.uppercased(),
                     confirmLabel: "REMOVE",
                     onConfirm: {
-                        bookmarks.remove(pendingDelete.storageID)
+                        bookmarks.remove(pendingDelete.storageID, on: shelf)
                         self.pendingDelete = nil
                     },
                     onCancel: { self.pendingDelete = nil }
@@ -133,17 +180,44 @@ public struct BookmarksScreen: View {
         .animation(.easeOut(duration: 0.15), value: pendingDelete?.id)
     }
 
-    /// The one section heading on this screen.
-    ///
-    /// It was 10pt retro — smaller than the body copy under it and smaller than
-    /// the same headings in the settings panels, which had already been lifted
-    /// to 14 over a 2pt rule for exactly this reason. A heading that is the
-    /// smallest type on its screen is not a heading. The count moved into the
-    /// profile card above, where it belongs with the rest of the who-you-are
-    /// readout and stops being printed twice.
-    private var savedHeader: some View {
+    /// The shelf switch, in the settings panel's equal-width segment idiom.
+    /// Counts ride in the labels so the other shelves advertise what they
+    /// hold before you visit them.
+    private var shelfPicker: some View {
+        HStack(spacing: 8) {
+            ForEach(Shelf.allCases, id: \.self) { option in
+                let active = shelf == option
+                Button {
+                    Haptics.select()
+                    withAnimation(.easeOut(duration: 0.15)) { shelfRaw = option.rawValue }
+                } label: {
+                    Text("\(title(of: option)) \(count(of: option))")
+                        .font(DexFont.retro(11))
+                        .tracking(1)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.55)
+                        .foregroundStyle(active ? lcd.onAccent : lcd.subtext)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(active ? lcd.accent : lcd.surface)
+                        )
+                }
+                .buttonStyle(DexPressStyle(scale: 0.97))
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    private func count(of shelf: Shelf) -> Int {
+        shelf == .saved ? bookmarks.saved(in: db).count : bookmarks.count(on: shelf)
+    }
+
+    /// The active shelf's heading and its clear-all.
+    private var shelfHeader: some View {
         HStack(alignment: .bottom) {
-            Text("SAVED")
+            Text(shelf == .wantToTry ? "WANT TO TRY" : title(of: shelf))
                 .font(DexFont.retro(14))
                 .tracking(2)
                 .foregroundStyle(lcd.accent)
@@ -175,12 +249,12 @@ public struct BookmarksScreen: View {
             }
         }
         .padding(.horizontal, 2)
-        .padding(.top, 10)
+        .padding(.top, 6)
         .padding(.bottom, 5)
         .overlay(alignment: .bottom) { lcd.accent.opacity(0.45).frame(height: 2) }
     }
 
-    /// Who you are. Placed above the saved list because it is the part that
+    /// Who you are. Placed above the shelves because it is the part that
     /// makes this feel like *your* screen rather than a second list.
     ///
     /// It used to be a 34pt system glyph, a name, and — below both — a labelled
@@ -198,7 +272,7 @@ public struct BookmarksScreen: View {
 
             VStack(alignment: .leading, spacing: 10) {
                 nameRow
-                savedStat
+                statRow
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -308,36 +382,91 @@ public struct BookmarksScreen: View {
         .frame(minHeight: 44)
     }
 
-    private var savedStat: some View {
+    /// The streak flame when one is alight, and the way into the passport.
+    private var statRow: some View {
         HStack(spacing: 8) {
-            Image(systemName: "bookmark.fill")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(lcd.accent)
-            Text("\(items.count) SAVED")
-                .font(DexFont.retro(12))
-                .tracking(1)
-                .foregroundStyle(lcd.subtext)
+            if streak.current > 0 {
+                HStack(spacing: 6) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(Dex.yellow)
+                    Text("\(streak.current) DAY\(streak.current == 1 ? "" : "S")")
+                        .font(DexFont.retro(11))
+                        .tracking(1)
+                        .foregroundStyle(lcd.subtext)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(Capsule().fill(lcd.well))
+                .overlay(Capsule().strokeBorder(lcd.surfaceEdge, lineWidth: 2))
+            }
+
+            Button {
+                Haptics.tap()
+                onPassport()
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "book.closed.fill")
+                        .font(.system(size: 13, weight: .bold))
+                    Text("PASSPORT")
+                        .font(DexFont.retro(11))
+                        .tracking(1)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+                .foregroundStyle(lcd.onAccent)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(Capsule().fill(lcd.accent))
+            }
+            .buttonStyle(DexPressStyle(scale: 0.95))
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 9)
-        .background(Capsule().fill(lcd.well))
-        .overlay(Capsule().strokeBorder(lcd.surfaceEdge, lineWidth: 2))
     }
 
     /// Rows are entries or places. Places carry a flag and route to their own
     /// screen; entries reuse the standard tile minus its chevron — a saved row
     /// is already a destination, and the arrow only fought the delete button.
+    /// Tried rows carry their journal line underneath.
     @ViewBuilder
     private func row(_ item: SavedItem) -> some View {
         switch item {
         case .entry(let entry):
-            EntryTileView(
-                entry: entry,
-                palette: db.palette,
-                locked: access.isLocked(entry, in: db),
-                showsChevron: false
-            ) {
-                onSelect(entry)
+            VStack(alignment: .leading, spacing: 0) {
+                EntryTileView(
+                    entry: entry,
+                    palette: db.palette,
+                    locked: access.isLocked(entry, in: db),
+                    showsChevron: false
+                ) {
+                    onSelect(entry)
+                }
+
+                if shelf == .tried, let rating = bookmarks.rating(for: entry.id) {
+                    HStack(spacing: 6) {
+                        ForEach(1...5, id: \.self) { star in
+                            Image(systemName: star <= rating.rating ? "star.fill" : "star")
+                                .font(.system(size: 11))
+                                .foregroundStyle(star <= rating.rating ? Dex.yellow : lcd.disabledText)
+                        }
+                        if !rating.note.isEmpty {
+                            Text(rating.note)
+                                .font(DexFont.mono(16))
+                                .foregroundStyle(lcd.subtext)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .background(lcd.well)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .strokeBorder(lcd.surfaceEdge, lineWidth: 1)
+                    )
+                }
             }
         case .country(let name):
             placeRow(name: name, kind: "COUNTRY") { onSelectCountry(name) }
@@ -397,24 +526,34 @@ public struct BookmarksScreen: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(DexPressStyle(scale: 0.9))
-        .accessibilityLabel("Remove \(item.displayName) from saved")
+        .accessibilityLabel("Remove \(item.displayName) from \(title(of: shelf).lowercased())")
     }
 
     private var emptyState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "bookmark")
+        let (glyph, headline, hint): (String, String, String) = switch shelf {
+        case .saved:
+            ("bookmark", "NOTHING SAVED", "Tap SAVE on any entry to keep it here.")
+        case .wantToTry:
+            ("plus.circle", "NOTHING ON THE WISHLIST", "Tap WANT on a grape or style you're curious about.")
+        case .tried:
+            ("checkmark.circle", "NOTHING TRIED YET", "Tap TRIED on a grape or style you've drunk — then rate it.")
+        }
+
+        return VStack(spacing: 12) {
+            Image(systemName: glyph)
                 .font(.system(size: 34, weight: .light))
                 .foregroundStyle(Dex.stone600)
-            Text("NOTHING SAVED")
+            Text(headline)
                 .font(DexFont.retro(12))
                 .tracking(2)
                 .foregroundStyle(lcd.subtext)
-            Text("Tap SAVE on any entry to keep it here.")
+            Text(hint)
                 .font(DexFont.mono(18))
                 .foregroundStyle(Dex.stone600)
                 .multilineTextAlignment(.center)
         }
         .padding(30)
+        .frame(maxWidth: .infinity)
     }
 }
 #endif

@@ -65,36 +65,45 @@ struct RootView: View {
             onBookmarks: { push(.bookmarks) },
             onSettings: { push(.settings) }
         ) {
-            screen
-                // Content swaps instantly; no push transition.
-                .transaction { $0.animation = nil }
-        }
-        .overlay {
-            if let entry = lockedAttempt {
-                // Offers the bundle the entry actually belongs to rather than
-                // Pro every time — a locked Bordeaux region prompts for the
-                // France bundle. See `Entitlement.offer(for:)`.
-                let offer = Entitlement.offer(for: entry)
-                UpgradePrompt(
-                    entitlement: offer,
-                    onUnlock: {
-                        // Grants for real, then continues to the entry the user
-                        // was trying to open. Stopping at "unlocked!" and making
-                        // them find their way back was the other half of why
-                        // this button felt broken.
-                        access.grant(offer)
-                        lockedAttempt = nil
-                        push(entry.destination)
-                    },
-                    onCancel: { lockedAttempt = nil }
-                )
+            // The prompt lives inside the LCD, like every other popup — an
+            // overlay on the chassis itself would dim the bezel, island and
+            // footer too, which reads as the device losing power.
+            ZStack {
+                screen
+                    // Content swaps instantly; no push transition.
+                    .transaction { $0.animation = nil }
+
+                if let entry = lockedAttempt {
+                    // Offers the bundle the entry actually belongs to rather than
+                    // Pro every time — a locked Bordeaux region prompts for the
+                    // France bundle. See `Entitlement.offer(for:)`.
+                    let offer = Entitlement.offer(for: entry)
+                    UpgradePrompt(
+                        entitlement: offer,
+                        onUnlock: {
+                            // Grants for real, then continues to the entry the user
+                            // was trying to open. Stopping at "unlocked!" and making
+                            // them find their way back was the other half of why
+                            // this button felt broken.
+                            access.grant(offer)
+                            lockedAttempt = nil
+                            push(entry.destination)
+                        },
+                        onCancel: { lockedAttempt = nil }
+                    )
+                }
             }
+            .animation(.easeOut(duration: 0.15), value: lockedAttempt?.id)
         }
-        .animation(.easeOut(duration: 0.15), value: lockedAttempt?.id)
         .id(scaleRaw)
         .preferredColorScheme(.dark)
         .statusBarHidden()
-        .onAppear { ScreenWake.keepAwake(true) }
+        .onAppear {
+            ScreenWake.keepAwake(true)
+            // The power-on chime, once per launch — this view appears exactly
+            // once, so no flag is needed.
+            Sounds.boot()
+        }
         .onDisappear { ScreenWake.keepAwake(false) }
         // The system panel (settings, diagnostics, catalog) is owned by
         // DeviceChassis so it can be confined to the LCD; the app module no
@@ -150,8 +159,12 @@ struct RootView: View {
             BookmarksScreen(
                 onSelect: { open($0) },
                 onSelectCountry: { push(.country(name: $0)) },
-                onSelectState: { push(.state(name: $0)) }
+                onSelectState: { push(.state(name: $0)) },
+                onPassport: { push(.passport) }
             )
+
+        case .passport:
+            PassportScreen()
 
         case .globeSearch:
             // Continents and regions between them carry country and state
@@ -188,14 +201,18 @@ struct RootView: View {
                 onScanner: { push(.scanner) },
                 onMoonDial: { push(.moonDial) },
                 onChipFilter: { push(.chipFilter) },
-                onQuiz: { push(.wsetQuiz) }
+                onQuiz: { push(.wsetQuiz) },
+                onDailyChallenge: { push(.dailyChallenge) }
             )
 
         case .chipFilter:
             ChipFilterScreen { open($0) }
 
         case .wsetQuiz:
-            TastingQuizScreen { open($0) }
+            TastingQuizScreen(onOpen: { open($0) }, onExit: { goBack() })
+
+        case .dailyChallenge:
+            TastingQuizScreen(mode: .daily, onOpen: { open($0) }, onExit: { goBack() })
 
         case .walkthrough:
             // FINISH goes Home rather than Back: the tour's last step tells you
@@ -230,6 +247,7 @@ struct RootView: View {
     }
 
     private func push(_ route: DexRoute) {
+        Sounds.page()
         var next = path
         next.append(route)
         path = next
@@ -246,6 +264,7 @@ struct RootView: View {
     /// because it is the only place that knows *which* screen you are leaving.
     private func goBack() {
         guard let leaving = path.last else { return }
+        Sounds.page()
         path.removeLast()
         if leaving == .dailyGrape {
             ScreenStateStore.shared.forget(ScreenStateStore.dailyGrape)
@@ -258,6 +277,7 @@ struct RootView: View {
     /// list from the main menu would silently open it pre-filtered by something
     /// you typed several screens ago, and a country would open halfway down.
     private func goHome() {
+        Sounds.page()
         path.removeAll()
         SearchStateStore.shared.clear()
         ScreenStateStore.shared.clear()

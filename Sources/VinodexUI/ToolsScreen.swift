@@ -7,18 +7,20 @@ import VinodexCore
 /// This began as MINIGAMES, when the daily reveal was promoted out of the
 /// settings list and needed a shelf of its own. It has since collected two
 /// things with no play in them at all — the scanner is an identification aid and
-/// the chip filter is a query builder — so the name was promising the wrong
+/// the filter search is a query builder — so the name was promising the wrong
 /// thing to anyone looking for either. TOOLS covers both; a game is a tool you
 /// use for fun.
 ///
-/// Tiles match the settings grid deliberately — square, glyph over label — so
-/// the two screens reachable from the cog read as one system.
+/// Tiles match the main menu's deliberately — filled faces with the fake
+/// extrusion, not outlines — so every grid of big square buttons in the app
+/// reads as the same furniture.
 public struct ToolsScreen: View {
     let onDailyGrape: () -> Void
     let onScanner: () -> Void
     let onMoonDial: () -> Void
     let onChipFilter: () -> Void
     let onQuiz: () -> Void
+    let onDailyChallenge: () -> Void
 
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
@@ -28,13 +30,15 @@ public struct ToolsScreen: View {
         onScanner: @escaping () -> Void = {},
         onMoonDial: @escaping () -> Void = {},
         onChipFilter: @escaping () -> Void = {},
-        onQuiz: @escaping () -> Void = {}
+        onQuiz: @escaping () -> Void = {},
+        onDailyChallenge: @escaping () -> Void = {}
     ) {
         self.onDailyGrape = onDailyGrape
         self.onScanner = onScanner
         self.onMoonDial = onMoonDial
         self.onChipFilter = onChipFilter
         self.onQuiz = onQuiz
+        self.onDailyChallenge = onDailyChallenge
     }
 
     private let columns = [
@@ -54,22 +58,31 @@ public struct ToolsScreen: View {
                     tile(
                         title: "SCANNER",
                         symbol: "sparkle.magnifyingglass",
-                        tint: Dex.green,
+                        face: "#22c55e", shadow: "#15803d",
                         action: onScanner
                     )
 
                     tile(
-                        title: "CHIP\nFILTER",
+                        title: "FILTER\nSEARCH",
                         symbol: "line.3.horizontal.decrease.circle.fill",
-                        tint: Dex.blue,
+                        face: "#2AB5FF", shadow: "#136A99",
                         action: onChipFilter
                     )
 
                     tile(
                         title: "TASTING\nQUIZ",
                         symbol: "checkmark.seal.fill",
-                        tint: Color(dexHex: "#a855f7"),
+                        face: "#a855f7", shadow: "#6b21a8",
                         action: onQuiz
+                    )
+
+                    // The quiz family sits together: the practice ladder, then
+                    // the one paper a day that keeps the streak.
+                    tile(
+                        title: "DAILY\nCHALLENGE",
+                        symbol: "flame.fill",
+                        face: "#ef4444", shadow: "#991b1b",
+                        action: onDailyChallenge
                     )
 
                     // Named for the question it asks rather than for its pick:
@@ -78,14 +91,14 @@ public struct ToolsScreen: View {
                     tile(
                         title: "WHAT'S\nTHAT…?",
                         symbol: "sparkles",
-                        tint: Dex.yellow,
+                        face: "#FACC15", shadow: "#ca8a04", ink: Dex.amber900,
                         action: onDailyGrape
                     )
 
                     tile(
                         title: "MOON DIAL",
                         symbol: "moon.stars.fill",
-                        tint: Color(dexHex: "#67e8f9"),
+                        face: "#67e8f9", shadow: "#155e75", ink: Color(dexHex: "#164e63"),
                         action: onMoonDial
                     )
                 }
@@ -94,42 +107,60 @@ public struct ToolsScreen: View {
         }
     }
 
+    /// The main menu's tile, at tools scale: filled face, 6pt bottom
+    /// extrusion, top-left sheen. Yellow and cyan faces take a dark ink —
+    /// white on either is unreadable, the same rule the menu's search button
+    /// follows.
     private func tile(
         title: String,
         symbol: String,
-        tint: Color,
+        face: String,
+        shadow: String,
+        ink: Color = .white,
         action: @escaping () -> Void
     ) -> some View {
         Button {
             Haptics.tap()
             action()
         } label: {
-            tileFace(title: title, symbol: symbol, tint: tint)
+            VStack(spacing: 12) {
+                Image(systemName: symbol)
+                    .font(.system(size: 44, weight: .semibold))
+                    .foregroundStyle(ink)
+                    .shadow(color: .black.opacity(0.3), radius: 0, x: 1, y: 2)
+                Text(title)
+                    .font(DexFont.retro(13))
+                    .tracking(1)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(ink)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.5)
+                    .shadow(color: .black.opacity(0.35), radius: 0, x: 1, y: 1)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .aspectRatio(1, contentMode: .fit)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(dexHex: face))
+                    .overlay(alignment: .bottom) {
+                        // The same 6pt fake extrusion the menu tiles carry.
+                        Color(dexHex: shadow).frame(height: 6)
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(
+                        LinearGradient(
+                            colors: [.white.opacity(0.12), .clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .allowsHitTesting(false)
+            )
         }
         .buttonStyle(DexPressStyle(scale: 0.97))
-    }
-
-    private func tileFace(title: String, symbol: String, tint: Color) -> some View {
-        VStack(spacing: 10) {
-            Image(systemName: symbol)
-                .font(.system(size: 32, weight: .semibold))
-                .foregroundStyle(tint)
-                .shadow(color: .black.opacity(0.3), radius: 0, x: 1, y: 2)
-            Text(title)
-                .font(DexFont.retro(10))
-                .tracking(1)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(lcd.text)
-                .lineLimit(2)
-                .minimumScaleFactor(0.6)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .aspectRatio(1, contentMode: .fit)
-        .background(RoundedRectangle(cornerRadius: 10).fill(lcd.surface))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .strokeBorder(tint.opacity(0.5), lineWidth: 2)
-        )
     }
 }
 #endif

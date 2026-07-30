@@ -58,7 +58,7 @@ public struct SettingsPanel: View {
                 featureTile(
                     title: "BEGIN",
                     symbol: "flag.checkered",
-                    tint: Dex.green
+                    face: "#22c55e", shadow: "#15803d"
                 ) {
                     offeringTour = true
                 }
@@ -67,15 +67,16 @@ public struct SettingsPanel: View {
                 featureTile(
                     title: "TOOLS",
                     symbol: "gamecontroller.fill",
-                    tint: Dex.yellow,
+                    face: "#FACC15", shadow: "#ca8a04", ink: Dex.amber900,
                     action: onMinigames
                 )
 
                 ForEach(SettingsSection.allCases) { section in
+                    let style = tileStyle(for: section)
                     featureTile(
                         title: section.rawValue,
                         symbol: section.symbol,
-                        tint: tint(for: section)
+                        face: style.face, shadow: style.shadow, ink: style.ink
                     ) {
                         onSection(section)
                     }
@@ -104,50 +105,71 @@ public struct SettingsPanel: View {
         .animation(.easeOut(duration: 0.15), value: offeringTour)
     }
 
-    private func tint(for section: SettingsSection) -> Color {
+    private func tileStyle(for section: SettingsSection) -> (face: String, shadow: String, ink: Color) {
         switch section {
-        case .customization: Dex.red500
-        case .data: Dex.blue
-        case .access: Dex.yellow
-        case .dev: Dex.stone400
+        case .customization: ("#ef4444", "#991b1b", .white)
+        case .settings: ("#f97316", "#9a3412", .white)
+        case .data: ("#2AB5FF", "#136A99", .white)
+        // Yellow tiles take a dark ink, like the main menu's search button —
+        // white on yellow is unreadable.
+        case .access: ("#FACC15", "#ca8a04", Dex.amber900)
+        case .dev: ("#57534e", "#292524", .white)
         }
     }
 
     /// Square by construction — `aspectRatio(1, contentMode: .fit)` inside a
     /// flexible grid column — so the grid stays square whatever the device width.
+    ///
+    /// Styled exactly like the main menu's tiles — filled face, 6pt bottom
+    /// extrusion, top-left sheen — so the two grids read as the same furniture.
+    /// They used to be outline tiles on `lcd.surface`, which made settings look
+    /// like a different app from the screen it is reached from.
     private func featureTile(
         title: String,
         symbol: String,
-        tint: Color,
+        face: String,
+        shadow: String,
+        ink: Color = .white,
         action: @escaping () -> Void
     ) -> some View {
         Button {
             Haptics.tap()
             action()
         } label: {
-            // Glyph and label both up a size: these tiles are square and mostly
-            // empty, so the artwork was floating in the middle of a lot of
-            // nothing and the caption underneath it was the smallest type on
-            // the screen. The tile geometry did not need to change — only what
-            // is drawn in it.
             VStack(spacing: 12) {
                 Image(systemName: symbol)
                     .font(.system(size: 44, weight: .semibold))
-                    .foregroundStyle(tint)
+                    .foregroundStyle(ink)
                     .shadow(color: .black.opacity(0.3), radius: 0, x: 1, y: 2)
                 Text(title)
                     .font(DexFont.retro(13))
                     .tracking(1)
-                    .foregroundStyle(lcd.text)
+                    .foregroundStyle(ink)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
+                    .shadow(color: .black.opacity(0.35), radius: 0, x: 1, y: 1)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .aspectRatio(1, contentMode: .fit)
-            .background(RoundedRectangle(cornerRadius: 10).fill(lcd.surface))
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(dexHex: face))
+                    .overlay(alignment: .bottom) {
+                        // The same 6pt fake extrusion the menu tiles carry.
+                        Color(dexHex: shadow).frame(height: 6)
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+            )
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
-                    .strokeBorder(tint.opacity(0.5), lineWidth: 2)
+                    .fill(
+                        LinearGradient(
+                            colors: [.white.opacity(0.12), .clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .allowsHitTesting(false)
             )
         }
         .buttonStyle(DexPressStyle(scale: 0.97))
@@ -169,6 +191,11 @@ public struct SettingsSectionPanel: View {
     /// locked entry raises, so a paywalled *setting* behaves like a paywalled
     /// page rather than being a dead control.
     @State private var lockedBundle: Entitlement?
+    /// CLEAR SAVED DATA asks first — it is the one control here that cannot be
+    /// undone by tapping it again.
+    @State private var confirmingWipe = false
+    @AppStorage(Haptics.storageKey) private var hapticsOn = true
+    @AppStorage(Sounds.storageKey) private var soundsOn = true
     /// Scroll position outlives the view — see `ScreenStateStore`. ACCESS and
     /// DATA are both taller than the LCD, so opening the upgrade prompt from a
     /// bundle row near the bottom used to bounce the panel back to the top.
@@ -202,6 +229,7 @@ public struct SettingsSectionPanel: View {
             VStack(alignment: .leading, spacing: 18) {
                 switch section {
                 case .customization: customization
+                case .settings: systemSettings
                 case .data: dataReadout
                 case .access: paywallTesting
                 case .dev: dev
@@ -231,9 +259,21 @@ public struct SettingsSectionPanel: View {
                     },
                     onCancel: { self.lockedBundle = nil }
                 )
+            } else if confirmingWipe {
+                DexAlert(
+                    title: "CLEAR SAVED DATA?",
+                    message: "Everything stored on this device — bookmarks, tastings and ratings, quiz progress, streak, profile, purchases and appearance — goes back to a fresh install. This cannot be undone.",
+                    confirmLabel: "ERASE",
+                    onConfirm: {
+                        confirmingWipe = false
+                        SavedDataReset.wipeAll()
+                    },
+                    onCancel: { confirmingWipe = false }
+                )
             }
         }
         .animation(.easeOut(duration: 0.15), value: lockedBundle)
+        .animation(.easeOut(duration: 0.15), value: confirmingWipe)
     }
 
     /// Free-tier switch, then the individual bundles.
@@ -380,24 +420,91 @@ public struct SettingsSectionPanel: View {
         )
     }
 
-    /// Screen mode, then text size, then the shell — the three questions that
-    /// used to be three tiles, in the order you answer them: the screen is what
-    /// you read, the text is how big, the shell is the frame around both.
+    /// Screen mode, then the shell — what the device looks like. Text size
+    /// lived here too until SETTINGS existed; it is a comfort setting, not a
+    /// colour choice, and it moved out with the other device behaviour.
     @ViewBuilder
     private var customization: some View {
         screenMode
-        textSize
         skinTesting
     }
 
-    /// "CHASSIS SKIN", not "SHELL SKIN": the rest of the app calls this part of
-    /// the device the chassis — `DeviceChassis`, `ChassisSkin`, `ChassisButton`
-    /// — and the settings panel was the one place using a second word for it.
+    /// Device behaviour: text size, haptics, and the stored-data reset.
+    @ViewBuilder
+    private var systemSettings: some View {
+        textSize
+
+        settingsSection("HAPTICS") {
+            VStack(alignment: .leading, spacing: 10) {
+                settingRow(
+                    symbol: "iphone.radiowaves.left.and.right",
+                    tint: hapticsOn ? Dex.green : lcd.subtext,
+                    title: "HAPTICS",
+                    detail: hapticsOn
+                        ? "Every chassis button clicks in your hand."
+                        : "The buttons are silent to the hand."
+                ) {
+                    DexToggle(isOn: hapticsOn, tint: Dex.green) { hapticsOn.toggle() }
+                }
+            }
+        }
+
+        settingsSection("SOUNDS") {
+            VStack(alignment: .leading, spacing: 10) {
+                settingRow(
+                    symbol: "speaker.wave.2.fill",
+                    tint: soundsOn ? Dex.green : lcd.subtext,
+                    title: "SOUNDS",
+                    detail: soundsOn
+                        ? "Chiptune clicks, sweeps and stings."
+                        : "The device is silent to the ear."
+                ) {
+                    DexToggle(isOn: soundsOn, tint: Dex.green) { soundsOn.toggle() }
+                }
+                Text("The ring/silent switch always wins — sounds never interrupt your music.")
+                    .font(DexFont.mono(17))
+                    .foregroundStyle(lcd.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+
+        settingsSection("STORED DATA") {
+            VStack(alignment: .leading, spacing: 10) {
+                Button {
+                    Haptics.select()
+                    confirmingWipe = true
+                } label: {
+                    Text("CLEAR SAVED DATA")
+                        .font(DexFont.retro(11))
+                        .tracking(1)
+                        .foregroundStyle(Dex.red500)
+                        .padding(.vertical, 14)
+                        .frame(maxWidth: .infinity)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .strokeBorder(Dex.red500.opacity(0.55), lineWidth: 2)
+                        )
+                }
+                .buttonStyle(DexPressStyle(scale: 0.98))
+
+                Text("Erases bookmarks, tastings and ratings, quiz progress, the daily streak, name and photo, purchases, skin, screen and text settings. The encyclopedia itself is untouched.")
+                    .font(DexFont.mono(17))
+                    .foregroundStyle(lcd.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    /// "CHASSIS SKINS", not "SHELL SKINS": the rest of the app calls this part
+    /// of the device the chassis — `DeviceChassis`, `ChassisSkin`,
+    /// `ChassisButton` — and the settings panel was the one place using a
+    /// second word for it.
     ///
     /// Everything past the default is gated on `.skins`, which is what makes a
     /// cosmetic bundle a testable paywall case rather than a hypothetical one.
     private var skinTesting: some View {
-        settingsSection("CHASSIS SKIN") {
+        settingsSection("CHASSIS SKINS") {
             VStack(spacing: 8) {
                 ForEach(ChassisSkin.allCases) { option in
                     let locked = option != .classic && !access.isUnlocked(.skins)
@@ -417,8 +524,12 @@ public struct SettingsSectionPanel: View {
                             // actually varies. Without those two the picker
                             // showed five rows that differed only in moulding
                             // and the colourway looked like a paint job.
+                            // The dark base under the body is for GLOUGLOU,
+                            // whose translucent shell needs something to be
+                            // smoke over; opaque skins cover it entirely.
                             RoundedRectangle(cornerRadius: 4)
-                                .fill(option.body)
+                                .fill(Color(dexHex: "#1B1D21"))
+                                .overlay(RoundedRectangle(cornerRadius: 4).fill(option.body))
                                 .frame(width: 44, height: 34)
                                 .overlay(alignment: .topLeading) {
                                     Circle()
@@ -484,9 +595,10 @@ public struct SettingsSectionPanel: View {
         settingsSection("SCREEN MODE") {
             HStack(spacing: 8) {
                 ForEach(LcdMode.allCases) { option in
-                    // Light mode is a cosmetic bundle, so it is a paywall case
-                    // that costs nothing to test and touches every screen.
-                    let locked = option.isLight && !access.isUnlocked(.lightMode)
+                    // Every mode past the default gates on the same cosmetic
+                    // bundle — a paywall case that costs nothing to test and
+                    // touches every screen.
+                    let locked = option != .dark && !access.isUnlocked(.lightMode)
 
                     Button {
                         Haptics.select()
@@ -959,5 +1071,51 @@ private func dataWaveValue(at f: Double, in points: [Int]) -> Double {
     let a = Double(points[index])
     let b = Double(points[index + 1])
     return a + (b - a) * eased
+}
+
+// MARK: - Clear saved data
+
+/// CLEAR SAVED DATA. Lives in UI because half of what it clears (skin, LCD
+/// mode, text scale, haptics, avatar) is UI-owned; the Core stores expose
+/// their own resets and are called rather than reached into.
+///
+/// No relaunch needed: the `@AppStorage` reads are KVO-backed, so removing a
+/// key snaps every view back to its declared default, and the stores are all
+/// `@Observable` and mutated in memory here — removing their defaults keys
+/// alone would leave stale state cached until the next launch.
+@MainActor
+enum SavedDataReset {
+    static func wipeAll() {
+        BookmarkStore.shared.removeEverything()
+        RevealCursor.shared.reset()
+        AccessStore.shared.clearAll()
+        AvatarStore.shared.clear()
+        QuizProgress.shared.reset()
+        StreakStore.shared.reset()
+        ScreenStateStore.shared.clear()
+        SearchStateStore.shared.clear()
+
+        let defaults = UserDefaults.standard
+        for key in [
+            // Belt and braces after each store's own reset.
+            Shelf.saved.storageKey,
+            Shelf.wantToTry.storageKey,
+            Shelf.tried.storageKey,
+            BookmarkStore.ratingsKey,
+            RevealCursor.storageKey,
+            QuizProgress.storageKey,
+            StreakStore.streakKey,
+            StreakStore.lastDayKey,
+            StreakStore.bestKey,
+            LcdMode.storageKey,
+            TextScale.storageKey,
+            ChassisSkin.storageKey,
+            UserProfile.displayNameKey,
+            Haptics.storageKey,
+            Sounds.storageKey,
+        ] {
+            defaults.removeObject(forKey: key)
+        }
+    }
 }
 #endif
