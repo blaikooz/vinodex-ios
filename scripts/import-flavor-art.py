@@ -50,10 +50,13 @@ def source_dir():
 def source_file(src, stem):
     # Stems are the source basenames with spaces kebabed, so try both ways —
     # "orange-blossom" is a real hyphen, "red-apple" was "red apple.png".
-    for name in (stem + ".png", stem.replace("-", " ") + ".png"):
-        path = os.path.join(src, name)
-        if os.path.exists(path):
-            return path
+    # Wave 2 (0.5.4) arrives in a `1new/` subfolder; later waves can add
+    # their own drop folders here.
+    for folder in ("", "1new"):
+        for name in (stem + ".png", stem.replace("-", " ") + ".png"):
+            path = os.path.join(src, folder, name)
+            if os.path.exists(path):
+                return path
     return None
 
 

@@ -68,7 +68,16 @@ public struct EntryVisual {
             tint = Color(dexHex: primary?.color ?? "#e5e7eb")
         }
 
-        return EntryVisual(well: .color(well), iconID: iconID, iconColor: tint, ringColor: nil)
+        return EntryVisual(
+            well: .color(well),
+            iconID: iconID,
+            iconColor: tint,
+            ringColor: nil,
+            // The bunch sprite (0.5.4): colour, depth, blend and leaf derived
+            // from the grape itself — see `GrapeArt`. The tasting-note glyph
+            // above stays resolved as the fallback.
+            artName: db.icons.grapeArtStem(forKey: GrapeArt.key(for: g))
+        )
     }
 
     /// `getGrapeIconColor`: the style tone palette first, then colour/body
@@ -284,11 +293,15 @@ public final class EntryVisualCache {
     }
 }
 
-/// Loads the bundled flavour pixel-art, cached — mirrors `FlagLoader`, with
-/// misses recorded so an absent asset is not re-probed every render.
+/// Loads the bundled pixel-art portraits — flavour art and grape bunches —
+/// cached, with misses recorded so an absent asset is not re-probed every
+/// render. Mirrors `FlagLoader`. One loader for both sets because the well
+/// only carries one `artName` and the stems do not collide.
 @MainActor
-public final class FlavorArtLoader {
-    public static let shared = FlavorArtLoader()
+public final class PixelArtLoader {
+    public static let shared = PixelArtLoader()
+
+    private static let subdirectories = ["Resources/FlavorArt", "Resources/GrapeArt"]
 
     private var cache: [String: UIImage?] = [:]
 
@@ -296,8 +309,13 @@ public final class FlavorArtLoader {
 
     public func image(_ stem: String) -> UIImage? {
         if let hit = cache[stem] { return hit }
-        let loaded = DexResources.url(named: stem, ext: "png", subdirectory: "Resources/FlavorArt")
-            .flatMap { UIImage(contentsOfFile: $0.path) }
+        var loaded: UIImage?
+        for subdirectory in Self.subdirectories {
+            if let url = DexResources.url(named: stem, ext: "png", subdirectory: subdirectory) {
+                loaded = UIImage(contentsOfFile: url.path)
+                break
+            }
+        }
         cache[stem] = loaded
         return loaded
     }
@@ -349,7 +367,7 @@ public struct EntryIconWell: View {
         let v = visual
         ZStack {
             background(v)
-            if let stem = v.artName, let art = FlavorArtLoader.shared.image(stem) {
+            if let stem = v.artName, let art = PixelArtLoader.shared.image(stem) {
                 // The portrait ships its own colours and chunky outline, so it
                 // renders as-is — tinting or outlining it would double up.
                 // Slightly larger than the glyph scale: the art's transparent

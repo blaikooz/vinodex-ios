@@ -259,8 +259,9 @@ public enum DexMetrics {
     /// The banner matches the control buttons so the footer reads as one row.
     public static let marqueeHeight: CGFloat = footerControl
     /// One size for every screen: the main screen's longer banner scrolls,
-    /// so it does not need to shrink to fit. Scaled with `footerControl`.
-    public static let marqueeTextSize: CGFloat = 1.45 * rem
+    /// so it does not need to shrink to fit. Trimmed from 1.45rem (v0.5.4)
+    /// — at that size the strip read louder than the buttons beside it.
+    public static let marqueeTextSize: CGFloat = 1.2 * rem
 
     /// How long the device takes to turn over.
     ///
@@ -459,6 +460,8 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .blueScreen: "VINOFD"
         case .gruenerBoy: "GRÜNER BOY"
+        // Picard's family runs a vineyard; the mode was always his console.
+        case .starTrek: "CHÂTEAU PICARD"
         default: rawValue
         }
     }
@@ -725,14 +728,15 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
 
     // MARK: Chrome
     //
-    // v0.5.3: the chassis controls follow the screen *mode*, not the skin —
-    // Back, Home, Saved, the cog, the master-search button and the settings
-    // tiles all take the mode's livery, so switching the LCD re-dresses the
-    // whole instrument. The skin keeps the moulding, orb and marquee. These
-    // sit outside the LCD's grayscale-and-tint pass, so the monochrome modes
-    // spell their colours out literally.
+    // On-LCD chrome only (narrowed in v0.5.4): the master-search button and
+    // the settings tiles follow the screen mode, because they are pixels on
+    // the screen. The physical chassis controls — Back, Home, Saved, the cog
+    // — belong to the skin again; 0.5.3 briefly tied them to the mode, and
+    // every colourway read as the same device the moment the LCD changed.
+    // These ramps sit outside the LCD's grayscale-and-tint pass, so the
+    // monochrome modes spell their colours out literally.
 
-    /// The powered controls' six-stop ramp — Home, the search button, the
+    /// The on-LCD powered chrome's six-stop ramp — the search button, the
     /// settings tiles. Same vocabulary as `ChassisAccent` for the same
     /// reason: the stops are only ever used together.
     public var controlAccent: ChassisAccent {
@@ -765,31 +769,6 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .gruenerBoy:
             ChassisAccent(pale: "#E6EBCF", light: "#C2CE9A", bright: "#8BAC0F",
                           mid: "#566A18", edge: "#24300C", ink: "#0F1A0A")
-        }
-    }
-
-    /// The moulded caps — Back and Saved — plus what the cog is machined from.
-    public var controlCaps: ChassisControl {
-        switch self {
-        // The classic stone caps.
-        case .dark:
-            ChassisControl(top: "#44403c", bottom: "#0c0a09", edge: "#a8a29e", glyph: "#ffffff")
-        case .light:
-            ChassisControl(top: "#D8D8D2", bottom: "#8A8A82", edge: "#5F5F59", glyph: "#262622")
-        case .vintage:
-            ChassisControl(top: "#C9C9BD", bottom: "#77776C", edge: "#55554C", glyph: "#1A1A16")
-        case .amber:
-            ChassisControl(top: "#52401E", bottom: "#171006", edge: "#B98A2E", glyph: "#FFD98A")
-        case .wineOS:
-            ChassisControl(top: "#C2CCDE", bottom: "#6C7A96", edge: "#4A5878", glyph: "#10265C")
-        case .terminal:
-            ChassisControl(top: "#1E3A22", bottom: "#06120A", edge: "#3FA85C", glyph: "#A8FFA8")
-        case .blueScreen:
-            ChassisControl(top: "#2440D0", bottom: "#060F60", edge: "#7DA0FF", glyph: "#A6DBFF")
-        case .starTrek:
-            ChassisControl(top: "#6A4A8E", bottom: "#1E1030", edge: "#C983E8", glyph: "#F2CD9A")
-        case .gruenerBoy:
-            ChassisControl(top: "#7A8258", bottom: "#2A3018", edge: "#A2AB80", glyph: "#E6EBCF")
         }
     }
 
@@ -949,10 +928,12 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .classic: "VINODEX CLASSIC"
         case .midnight: "CÔTE DE NUITS"
         case .original: "BLANC DE BLANCS"
-        case .burgundy: "BURGUNDY VELOUR"
+        case .burgundy: "BURGUNDY"
         case .riesling: "ELECTRIC RIESLING"
-        // Renamed for v0.5.1 — labels only. The raw values are the persisted
-        // vocabulary and stay put, per the note above.
+        // Renamed labels only — the raw values are the persisted vocabulary
+        // and stay put, per the note above. "VINHO VERDE" moved houses in
+        // two steps: the forest-green skin became BOX WINE in 0.5.1, which
+        // freed the name for the glow-green skin in 0.5.4.
         case .vinhoVerde: "BOX WINE"
         case .glouglou: "EMPTY BOTTLE"
         case .smartGrape: "SMART GRAPE"
@@ -960,8 +941,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .christmas: "WINE XMAS"
         case .nouveau: "NOUVEAU"
         case .oaked: "OAKED"
-        case .nocturne: "NOCTURNE"
-        case .steel: "STEEL"
+        case .nocturne: "VINHO VERDE"
+        case .steel: "STAINLESS STEEL"
         }
     }
 
@@ -1124,9 +1105,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .smartGrape: Color(dexHex: "#FF9F0A")
         // A gold bead in a gold shell — one dye lot, like burgundy's purple.
         case .champagne: Color(dexHex: "#F5D97E")
-        // The warm fairy-light gold, not the caps' red — red-on-pine is the
-        // moulding's job.
-        case .christmas: Color(dexHex: "#FFD166")
+        // Holly red, completing the set: caps, Home, lamps and orb all run
+        // red on the wrapping paper (was fairy-light gold through 0.5.3).
+        case .christmas: Color(dexHex: "#FF4D4D")
         // Grape juice under gloss.
         case .nouveau: Color(dexHex: "#A855F7")
         // A brass lamp on the walnut.
@@ -1151,7 +1132,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .glouglou: Color(dexHex: "#EA580C")
         case .smartGrape: Color(dexHex: "#C97800")
         case .champagne: Color(dexHex: "#D4A017")
-        case .christmas: Color(dexHex: "#D9962B")
+        case .christmas: Color(dexHex: "#A61E1E")
         case .nouveau: Color(dexHex: "#7C3AED")
         case .oaked: Color(dexHex: "#B5892E")
         case .nocturne: Color(dexHex: "#3EE06C")

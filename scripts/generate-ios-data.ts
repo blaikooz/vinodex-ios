@@ -302,14 +302,20 @@ const FLAVOR_ART: Record<string, string> = {
   'blackcurrant': 'blackcurrant',
   'blueberry': 'blueberry',
   'cedar': 'cedar',
+  'brioche': 'brioche',
+  'butter': 'butter',
+  'chalk': 'chalk',
+  'chamomile': 'chamomile',
   'cherry': 'cherry',
-  'chocolate': 'chocolate',
+  // The two bars shipped swapped in 0.5.1: chocolate.png *is* the dark bar.
+  'chocolate': 'chocolate2',
   'cinnamon': 'cinnamon',
   'citrus': 'lemon',
+  'clove': 'clove',
   'cocoa': 'cocoa',
-  'dark chocolate': 'chocolate2',
+  'dark chocolate': 'chocolate',
   'dill': 'dill',
-  'dried fig': 'fig',
+  'dried fig': 'driedfig',
   'dried herbs': 'driedherbs',
   'earth': 'earth',
   'espresso': 'coffee',
@@ -318,12 +324,16 @@ const FLAVOR_ART: Record<string, string> = {
   'floral': 'whiteblossom',
   'fresh herbs': 'mint',
   'game': 'game',
+  'ginger': 'ginger',
+  'gooseberry': 'gooseberry',
   'grapefruit': 'grapefruit',
   'graphite': 'graphite',
   'grass': 'grass',
   'green apple': 'green-apple',
+  'green pea': 'greenpea',
   'green pepper': 'greenbellpepper',
   'green peppercorn': 'greenpeppercorn',
+  'hazelnut': 'hazelnut',
   'herb': 'driedherbs',
   'herbal tea': 'tealeaf',
   'herbs': 'driedherbs',
@@ -337,6 +347,7 @@ const FLAVOR_ART: Record<string, string> = {
   'lemon zest': 'lemon',
   'licorice': 'licorice',
   'lilac': 'lilac',
+  'lime': 'lime',
   'liquorice': 'licorice',
   'lychee': 'lychee',
   'mango': 'mango',
@@ -352,6 +363,7 @@ const FLAVOR_ART: Record<string, string> = {
   'pineapple': 'pineapple',
   'plum': 'plum',
   'pomegranate': 'pomegranate',
+  'quince': 'quince',
   'raspberry': 'raspberry',
   'red apple': 'red-apple',
   'red cherry': 'cherry',
@@ -370,15 +382,17 @@ const FLAVOR_ART: Record<string, string> = {
   'strawberry': 'strawberry',
   'strawberry candy': 'strawberry',
   'tangerine': 'orange',
+  'tar': 'tar',
   'tea leaf': 'tealeaf',
   'tobacco': 'tobaccoleaf',
+  'tomato': 'tomato',
   'tomato leaf': 'tomatoleaf',
   'vanilla': 'vanilla',
   'violet': 'violet',
   'volcanic ash': 'volcanicash',
   'white blossom': 'whiteblossom',
   'white flower': 'whiteblossom',
-  'white peach': 'peach',
+  'white peach': 'white-peach',
   'white pepper': 'whitepepper',
   'yuzu citrus': 'yuzu',
 };
@@ -554,6 +568,45 @@ const FLAG_PATHS: Record<string, string> = {
   India: 'Asia/india/india.png',
 };
 
+/**
+ * Grape bunch sprites (0.5.4): one bunch recoloured across colour x depth x
+ * blend, leaf coloured by rarity — see `GrapeArt` on the Swift side, which
+ * derives the keys. The sprite set covers the combos that occur in practice;
+ * this fills the full 2x3x3x3 grid with the nearest available sprite so every
+ * derivable key resolves. Stems are PNGs under Resources/GrapeArt, written by
+ * scripts/import-grape-art.py.
+ */
+function buildGrapeArt(): Record<string, string> {
+  const stemFor = (color: string, depth: string, blend: string, leaf: string): string => {
+    if (blend === 'none') {
+      // The one depthless source: the plain green common bunch.
+      if (color === 'green' && depth === 'light' && leaf === 'common') return 'green-common';
+      return `${color}-${depth}-${leaf}`;
+    }
+    // The blends ship at one depth each; depth falls back to what exists.
+    if (color === 'green' && blend === 'amber') return `green-amber-${leaf}`;
+    if (color === 'red' && blend === 'amber') return `red-amber-medium-${leaf}`;
+    if (color === 'red' && blend === 'pink') return `red-pink-${leaf}`;
+    // Green pink is the patchy corner: light common + two rares, no noble —
+    // a noble gris falls back to the unblended bunch at its depth.
+    if (leaf === 'common') return 'green-pink-light-common';
+    if (leaf === 'rare') return depth === 'light' ? 'green-pink-light-rare' : 'green-pink-rare';
+    return stemFor(color, depth, 'none', leaf);
+  };
+
+  const out: Record<string, string> = {};
+  for (const color of ['green', 'red']) {
+    for (const depth of ['light', 'medium', 'full']) {
+      for (const blend of ['none', 'pink', 'amber']) {
+        for (const leaf of ['common', 'rare', 'noble']) {
+          out[`${color}-${depth}-${blend}-${leaf}`] = stemFor(color, depth, blend, leaf);
+        }
+      }
+    }
+  }
+  return out;
+}
+
 /// The web app's region-globe glyphs (`continentIconName` in
 /// `entryIconVisuals.tsx`), so the two siblings show the same three globes.
 /// Was a per-continent grab-bag (coliseum, pagoda, landmass outlines) — a
@@ -682,6 +735,7 @@ function buildIconManifest(entries: readonly WineEntry[]) {
     flavorClassIcons,
     flavorSubclassIcons,
     flavorArt: FLAVOR_ART,
+    grapeArt: buildGrapeArt(),
     countryShapeIcons: shapeIcons,
     styleClassBg: STYLE_CLASS_BG,
     styleColorTypeColors: STYLE_COLOR_TYPE_COLORS,

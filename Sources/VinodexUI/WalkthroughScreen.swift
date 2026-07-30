@@ -295,21 +295,20 @@ struct DeviceDiagram: View {
 
                         Spacer(minLength: 0)
 
-                        // The cog wears the mode's caps, like the real one
-                        // does since v0.5.3.
+                        // The skin's caps, like the real cog (v0.5.4).
                         Circle()
                             .fill(
                                 LinearGradient(
-                                    colors: [lcd.controlCaps.top, lcd.controlCaps.bottom],
+                                    colors: [skin.control.top, skin.control.bottom],
                                     startPoint: .top, endPoint: .bottom
                                 )
                             )
                             .frame(width: control, height: control)
-                            .overlay(Circle().strokeBorder(lcd.controlCaps.edge, lineWidth: 1.5))
+                            .overlay(Circle().strokeBorder(skin.control.edge, lineWidth: 1.5))
                             .overlay(
                                 Image(systemName: "gearshape.fill")
                                     .font(.system(size: control * 0.5))
-                                    .foregroundStyle(lcd.controlAccent.bright)
+                                    .foregroundStyle(Dex.stone200)
                             )
                             .opacity(dim(.settings))
                             .shadow(color: lcd.accent.opacity(lit(.settings) ? 0.8 : 0), radius: 6)
@@ -391,16 +390,16 @@ struct DeviceDiagram: View {
                         Circle()
                             .fill(
                                 LinearGradient(
-                                    colors: [lcd.controlCaps.top, lcd.controlCaps.bottom],
+                                    colors: [skin.control.top, skin.control.bottom],
                                     startPoint: .top, endPoint: .bottom
                                 )
                             )
                             .frame(width: control, height: control)
-                            .overlay(Circle().strokeBorder(lcd.controlCaps.edge, lineWidth: 1.5))
+                            .overlay(Circle().strokeBorder(skin.control.edge, lineWidth: 1.5))
                             .overlay(
                                 Image(systemName: "chevron.left")
                                     .font(.system(size: control * 0.5, weight: .bold))
-                                    .foregroundStyle(lcd.controlCaps.glyph)
+                                    .foregroundStyle(skin.control.glyph)
                             )
                             .opacity(dim(.back))
                             .shadow(color: lcd.accent.opacity(lit(.back) ? 0.8 : 0), radius: 6)
@@ -408,16 +407,16 @@ struct DeviceDiagram: View {
                         Circle()
                             .fill(
                                 LinearGradient(
-                                    colors: [lcd.controlCaps.top, lcd.controlCaps.bottom],
+                                    colors: [skin.control.top, skin.control.bottom],
                                     startPoint: .top, endPoint: .bottom
                                 )
                             )
                             .frame(width: control, height: control)
-                            .overlay(Circle().strokeBorder(lcd.controlCaps.edge, lineWidth: 1.5))
+                            .overlay(Circle().strokeBorder(skin.control.edge, lineWidth: 1.5))
                             .overlay(
                                 Image(systemName: "person.crop.circle")
                                     .font(.system(size: control * 0.5, weight: .bold))
-                                    .foregroundStyle(lcd.controlCaps.glyph)
+                                    .foregroundStyle(skin.control.glyph)
                             )
                             .opacity(dim(.saved))
                             .shadow(color: lcd.accent.opacity(lit(.saved) ? 0.8 : 0), radius: 6)
@@ -436,16 +435,16 @@ struct DeviceDiagram: View {
                         Circle()
                             .fill(
                                 LinearGradient(
-                                    colors: [lcd.controlAccent.light, lcd.controlAccent.mid],
+                                    colors: [skin.accent.light, skin.accent.mid],
                                     startPoint: .top, endPoint: .bottom
                                 )
                             )
                             .frame(width: control, height: control)
-                            .overlay(Circle().strokeBorder(lcd.controlAccent.edge, lineWidth: 1.5))
+                            .overlay(Circle().strokeBorder(skin.accent.edge, lineWidth: 1.5))
                             .overlay(
                                 Image(systemName: "house.fill")
                                     .font(.system(size: control * 0.45, weight: .bold))
-                                    .foregroundStyle(lcd.controlAccent.ink)
+                                    .foregroundStyle(skin.accent.ink)
                             )
                             .opacity(dim(.home))
                             .shadow(color: lcd.accent.opacity(lit(.home) ? 0.8 : 0), radius: 6)

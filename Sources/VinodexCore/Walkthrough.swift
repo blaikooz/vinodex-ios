@@ -54,59 +54,18 @@ public struct WalkthroughStep: Sendable, Hashable, Identifiable {
 }
 
 public enum Walkthrough {
-    /// Ten steps. The order changed in v0.5.3: the tour now opens on a single
-    /// control — the person button, alone on the diagram — then Back, then a
-    /// mocked-up entry, and only then widens out to the screen and the rest
-    /// of the chassis. Starting with the whole device gave a new user nine
-    /// things to look at and no first move.
-    ///
-    /// Written to be read aloud — short sentences, second person, no jargon that
-    /// the app has not already introduced. The one piece of vocabulary it does
-    /// teach is "chassis", because the settings panel uses that word.
+    /// Eight steps. The tour opens on the main screen — the whole app is up
+    /// there — then search, an entry, and the
+    /// controls. Rewritten terse in v0.5.4: the old copy read well aloud but
+    /// nobody reads a tour aloud; two sentences a page is the budget. The orb
+    /// step is gone — an easter egg you are told about is not an easter egg.
     public static let steps: [WalkthroughStep] = [
         WalkthroughStep(
-            id: "saved",
+            id: "screen",
             title: "START HERE",
             body: """
-            This is a wine encyclopedia dressed as a handheld console, and \
-            this is the one button to remember: the person. It opens your \
-            shelf — everything you save, want to try, or have tried lands \
-            there — and it is where you set your name and photo, so the \
-            device feels like yours.
-            """,
-            highlight: .saved,
-            isolated: true
-        ),
-        WalkthroughStep(
-            id: "back",
-            title: "GOING BACK",
-            body: """
-            Back steps you one screen at a time, and it remembers where you \
-            were — the same scroll position, the same sections open. Nothing \
-            you were reading gets lost because you followed a link.
-            """,
-            highlight: .back
-        ),
-        WalkthroughStep(
-            id: "entry",
-            title: "WHAT AN ENTRY LOOKS LIKE",
-            body: """
-            Everything you look up is an entry, and they all share one shape: \
-            the picture and name up top, three tiles that link onward — to a \
-            colour, a place, a family — then the readouts underneath. Anything \
-            in a row with an arrow is a link; tap it and you are reading the \
-            next entry.
-            """,
-            highlight: .entry
-        ),
-        WalkthroughStep(
-            id: "screen",
-            title: "THE SCREEN",
-            body: """
-            Grapes, regions, styles and flavours all appear here. Four tiles on \
-            the main menu open the four tables, and every entry links to the \
-            others — open a grape and it names its regions; open one of those \
-            and it names its grapes right back.
+            A wine encyclopedia on a handheld. Four tiles — grapes, regions, \
+            styles, flavours — and everything links to everything.
             """,
             highlight: .screen
         ),
@@ -114,20 +73,36 @@ public enum Walkthrough {
             id: "search",
             title: "SEARCH ANYTHING",
             body: """
-            The button in the middle of the main menu searches all of it at \
-            once. Type a few letters of a grape, a place, or even a flavour \
-            you tasted, and it will find the entries that mention it.
+            The middle button searches all of it at once. A grape, a place, \
+            a flavour — a few letters is enough.
             """,
             highlight: .search
+        ),
+        WalkthroughStep(
+            id: "entry",
+            title: "WHAT AN ENTRY LOOKS LIKE",
+            body: """
+            Every entry has the same shape: picture and name, three tiles \
+            that link onward, then the readouts. A row with an arrow opens \
+            the next entry.
+            """,
+            highlight: .entry
+        ),
+        WalkthroughStep(
+            id: "back",
+            title: "GOING BACK",
+            body: """
+            Back steps one screen at a time and remembers where you were — \
+            scroll position, open sections, all of it.
+            """,
+            highlight: .back
         ),
         WalkthroughStep(
             id: "home",
             title: "STARTING OVER",
             body: """
-            Home returns to the main menu and clears the trail behind you: \
-            searches, scroll positions, half-finished games. If you ever feel \
-            lost, this is the button that resets everything without losing \
-            anything you saved.
+            Home returns to the main menu and clears the trail. Feeling \
+            lost? This one resets everything you didn't save.
             """,
             highlight: .home
         ),
@@ -135,11 +110,8 @@ public enum Walkthrough {
             id: "settings",
             title: "MAKING IT YOURS",
             body: """
-            The cog opens the system panel. CUSTOMIZE picks the screen mode — \
-            ten of them, from paper-white to green dot-matrix — and swaps the \
-            chassis: fourteen colourways, each with its own moulding and \
-            lights. SETTINGS holds text size, haptics and sound. DATA shows \
-            you what is in the database.
+            The cog: screen modes, chassis skins, text size, haptics, sound. \
+            The person button beside Back keeps your shelf and profile.
             """,
             highlight: .settings
         ),
@@ -147,32 +119,17 @@ public enum Walkthrough {
             id: "tools",
             title: "TOOLS",
             body: """
-            Also behind the cog: the screen shows where. Tap the cog, then the \
-            wrench tile. Inside is a scanner that identifies a grape from \
-            what's in your glass, filter search for narrowing the whole \
-            database, a tasting quiz with three levels, a daily challenge with \
-            a streak to keep, a daily guessing game, and the moon dial.
+            Also behind the cog: the wrench tile. Scanner, filter search, \
+            tasting quiz, the daily challenge, and the moon dial.
             """,
             highlight: .tools
         ),
         WalkthroughStep(
-            id: "orb",
-            title: "ONE LAST THING",
-            body: """
-            Press and hold the blue orb for a second, and keep holding. We're \
-            not going to tell you what happens — it's nothing you need, and \
-            it's better found than explained.
-            """,
-            highlight: .orb
-        ),
-        WalkthroughStep(
             id: "done",
-            title: "THAT'S IT",
+            title: "THAT'S IT.",
             body: """
-            Press Home and pick a tile. If you only do one thing, open GRAPES \
-            and read something you have drunk before — it is much more \
-            interesting than reading about one you haven't. You can run this \
-            tour again any time from BEGIN in settings.
+            Press Home and pick a tile. Rerun this tour any time from BEGIN \
+            in settings.
             """,
             highlight: .device
         ),

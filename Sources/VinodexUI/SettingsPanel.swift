@@ -533,31 +533,33 @@ public struct SettingsSectionPanel: View {
                             // which are what a skin actually varies. The dark
                             // base under the body is for the translucent
                             // skins, whose smoke needs something to be over.
+                            // Tall enough to be the tile's subject rather
+                            // than a colour chip beside a label.
                             RoundedRectangle(cornerRadius: 5)
                                 .fill(Color(dexHex: "#1B1D21"))
                                 .overlay(RoundedRectangle(cornerRadius: 5).fill(option.body))
-                                .frame(height: 50)
+                                .frame(height: 76)
                                 .frame(maxWidth: .infinity)
                                 .overlay(alignment: .topLeading) {
                                     Circle()
                                         .fill(option.orb)
-                                        .frame(width: 10, height: 10)
-                                        .padding(5)
+                                        .frame(width: 13, height: 13)
+                                        .padding(6)
                                 }
                                 .overlay(alignment: .topTrailing) {
                                     Circle()
                                         .fill(option.accent.bright)
-                                        .frame(width: 10, height: 10)
-                                        .padding(5)
+                                        .frame(width: 13, height: 13)
+                                        .padding(6)
                                 }
                                 .overlay(alignment: .bottom) {
                                     Rectangle()
                                         .fill(option.panel)
-                                        .frame(height: 16)
+                                        .frame(height: 24)
                                         .overlay {
                                             Capsule()
                                                 .fill(option.marqueeText)
-                                                .frame(width: 24, height: 3)
+                                                .frame(width: 32, height: 4)
                                         }
                                 }
                                 .clipShape(RoundedRectangle(cornerRadius: 5))
@@ -565,21 +567,32 @@ public struct SettingsSectionPanel: View {
                                     RoundedRectangle(cornerRadius: 5)
                                         .strokeBorder(option.panelEdge, lineWidth: 1)
                                 )
+                                .overlay(alignment: .bottomTrailing) {
+                                    // Lock/tick rides the preview so the name
+                                    // below keeps the tile's full width.
+                                    if locked {
+                                        Image(systemName: "lock.fill")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .padding(4)
+                                    } else if skin == option {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 11, weight: .bold))
+                                            .padding(4)
+                                    }
+                                }
                                 .opacity(locked ? 0.45 : 1)
 
-                            HStack(spacing: 4) {
-                                if locked {
-                                    Image(systemName: "lock.fill")
-                                        .font(.system(size: 10, weight: .bold))
-                                } else if skin == option {
-                                    Image(systemName: "checkmark")
-                                        .font(.system(size: 11, weight: .bold))
+                            // Word-over-word, so BLANC DE BLANCS and
+                            // STAINLESS STEEL read at full size instead of
+                            // shrinking to fit one line.
+                            VStack(spacing: 2) {
+                                ForEach(option.displayName.split(separator: " "), id: \.self) { word in
+                                    Text(word)
+                                        .font(DexFont.retro(10))
+                                        .tracking(1)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.6)
                                 }
-                                Text(option.displayName)
-                                    .font(DexFont.retro(10))
-                                    .tracking(1)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.5)
                             }
                         }
                         .foregroundStyle(skin == option ? lcd.onAccent : lcd.subtext)
