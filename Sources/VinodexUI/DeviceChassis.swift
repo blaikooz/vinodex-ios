@@ -198,6 +198,10 @@ public struct DeviceChassis<Content: View>: View {
             // sized off the orb so the pair stays proportional.
             Color.clear.frame(width: DexMetrics.statusDotsGap)
             statusDots(size: dot)
+                // Lifted off the orb's centre line so they read as indicator
+                // lamps above the control rather than as more of the orb — see
+                // `DexMetrics.statusDotsRise`.
+                .offset(y: -DexMetrics.statusDotsRise)
                 // Decoration only, and never a touch target sitting next to one.
                 .allowsHitTesting(false)
                 .fixedSize()
@@ -489,23 +493,16 @@ public struct ChassisButton: View {
 
     private var gradient: LinearGradient {
         switch kind {
-        case .back:
-            LinearGradient(colors: [Dex.stone700, Dex.stone950], startPoint: .top, endPoint: .bottom)
+        case .back, .bookmarks:
+            LinearGradient(colors: [skin.control.top, skin.control.bottom], startPoint: .top, endPoint: .bottom)
         case .home:
             LinearGradient(colors: [skin.accent.light, skin.accent.mid], startPoint: .top, endPoint: .bottom)
-        case .bookmarks:
-            LinearGradient(colors: [Dex.stone700, Dex.stone950], startPoint: .top, endPoint: .bottom)
         }
     }
 
     private var borderColor: Color {
         switch kind {
-        // Brushed silver, matching the settings cog — the three dark controls
-        // read as one family that way, against Home's lit ramp. Deliberately
-        // *not* skinned: the dark pair are the mechanical controls and stay the
-        // same part on every shell, which is what makes Home read as the one
-        // button that is powered.
-        case .back, .bookmarks: Dex.stone400
+        case .back, .bookmarks: skin.control.edge
         case .home: skin.accent.edge
         }
     }
@@ -519,11 +516,11 @@ public struct ChassisButton: View {
         case .back:
             Image(systemName: "chevron.left")
                 .font(.system(size: DexMetrics.footerControl * 0.47, weight: .heavy))
-                .foregroundStyle(.white)
+                .foregroundStyle(skin.control.glyph)
         case .bookmarks:
             Image(systemName: "person.crop.circle")
                 .font(.system(size: DexMetrics.footerControl * 0.44, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(skin.control.glyph)
         case .home:
             Circle()
                 .fill(LinearGradient(colors: [skin.accent.pale, skin.accent.bright], startPoint: .top, endPoint: .bottom))

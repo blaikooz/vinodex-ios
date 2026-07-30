@@ -86,8 +86,11 @@ public struct BookmarksScreen: View {
                     }
                 }
                 .scrollTargetLayout()
-                .padding(10)
             }
+            // A content margin, not padding around the target layout — see the
+            // note in `EncyclopediaListScreen`. Padding here moved the list
+            // left by its own leading inset on every restore.
+            .contentMargins(10, for: .scrollContent)
             .scrollDismissesKeyboard(.interactively)
             // Row-level, since the rows carry stable ids: coming back from a
             // saved entry lands on the row you tapped. An id that is no longer

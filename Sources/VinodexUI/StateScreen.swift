@@ -56,9 +56,12 @@ public struct StateScreen: View {
                 regionsSection.id(Anchor.regions)
             }
             .scrollTargetLayout()
-            .padding(.horizontal, 14)
-            .padding(.bottom, 72)
         }
+        // Content margins rather than padding around the target layout — see
+        // the note in `EncyclopediaListScreen`. The generous tail keeps the
+        // last section clear of the footer, matching pb-20.
+        .contentMargins(.horizontal, 14, for: .scrollContent)
+        .contentMargins(.bottom, 72, for: .scrollContent)
         .scrollPosition(id: anchorBinding)
         .background(lcd.page)
         .id(state)

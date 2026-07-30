@@ -173,6 +173,8 @@ public final class ScreenStateStore {
     public static let scanner = "scanner"
     public static let dailyGrape = "dailyGrape"
     public static let globe = "globe"
+    public static let chipFilter = "chipFilter"
+    public static let wsetQuiz = "wsetQuiz"
     /// The settings panels are one screen per section, so they key like the
     /// countries do rather than sharing a scroll position between DATA and DEV.
     public static func settings(_ section: String) -> String { "settings:" + section }

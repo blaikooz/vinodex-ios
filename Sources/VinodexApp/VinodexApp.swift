@@ -175,18 +175,33 @@ struct RootView: View {
             SettingsPanel(
                 onClose: { goBack() },
                 onSection: { push(.settingsSection($0)) },
-                onMinigames: { push(.minigames) }
+                onMinigames: { push(.minigames) },
+                onWalkthrough: { push(.walkthrough) }
             )
 
         case .settingsSection(let section):
             SettingsSectionPanel(section: section)
 
         case .minigames:
-            MinigamesScreen(
+            ToolsScreen(
                 onDailyGrape: { push(.dailyGrape) },
                 onScanner: { push(.scanner) },
-                onMoonDial: { push(.moonDial) }
+                onMoonDial: { push(.moonDial) },
+                onChipFilter: { push(.chipFilter) },
+                onQuiz: { push(.wsetQuiz) }
             )
+
+        case .chipFilter:
+            ChipFilterScreen { open($0) }
+
+        case .wsetQuiz:
+            TastingQuizScreen { open($0) }
+
+        case .walkthrough:
+            // FINISH goes Home rather than Back: the tour's last step tells you
+            // to press Home and pick a tile, and landing back in the settings
+            // grid you started from would contradict it.
+            WalkthroughScreen { goHome() }
 
         case .scanner:
             ScannerScreen { open($0) }

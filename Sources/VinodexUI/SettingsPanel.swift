@@ -19,6 +19,13 @@ public struct SettingsPanel: View {
     let onClose: () -> Void
     let onSection: (SettingsSection) -> Void
     let onMinigames: () -> Void
+    let onWalkthrough: () -> Void
+
+    /// Set when BEGIN is tapped. The tour is a few minutes of someone's time, so
+    /// it asks before it takes them — and asking is also what makes it findable
+    /// without being imposed: the tile says what it is, the prompt says what it
+    /// will do, and NO costs one tap.
+    @State private var offeringTour = false
 
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
@@ -26,11 +33,13 @@ public struct SettingsPanel: View {
     public init(
         onClose: @escaping () -> Void,
         onSection: @escaping (SettingsSection) -> Void = { _ in },
-        onMinigames: @escaping () -> Void = {}
+        onMinigames: @escaping () -> Void = {},
+        onWalkthrough: @escaping () -> Void = {}
     ) {
         self.onClose = onClose
         self.onSection = onSection
         self.onMinigames = onMinigames
+        self.onWalkthrough = onWalkthrough
     }
 
     private let columns = [
@@ -41,11 +50,22 @@ public struct SettingsPanel: View {
     public var body: some View {
         ScrollView {
             LazyVGrid(columns: columns, spacing: 10) {
-                // Games first: it is the only tile here anyone opens for fun,
-                // and burying it under the toggles is what it was already
-                // suffering from as a row in the old list.
+                // BEGIN first, and deliberately so: it is the tile that matters
+                // to exactly one person — someone who has just opened this thing
+                // and does not yet know what it is — and that person will not
+                // scroll past four settings groups to find it. It is worthless
+                // to everyone else, who will never tap it twice.
                 featureTile(
-                    title: "MINIGAMES",
+                    title: "BEGIN",
+                    symbol: "flag.checkered",
+                    tint: Dex.green
+                ) {
+                    offeringTour = true
+                }
+
+                // Then the tools: the only other tile here anyone opens for fun.
+                featureTile(
+                    title: "TOOLS",
                     symbol: "gamecontroller.fill",
                     tint: Dex.yellow,
                     action: onMinigames
@@ -64,6 +84,24 @@ public struct SettingsPanel: View {
             .padding(12)
         }
         .background(lcd.isLight ? lcd.page : Dex.screen)
+        // In-LCD, like every other dialog in the app — a system alert would
+        // slide up from the device and break the chassis metaphor.
+        .overlay {
+            if offeringTour {
+                DexAlert(
+                    title: "TAKE THE TOUR?",
+                    message: "A quick walk round the device — what each button does and where things live. About a minute, and you can leave at any point.",
+                    confirmLabel: "YES, SHOW ME",
+                    cancelLabel: "NOT NOW",
+                    onConfirm: {
+                        offeringTour = false
+                        onWalkthrough()
+                    },
+                    onCancel: { offeringTour = false }
+                )
+            }
+        }
+        .animation(.easeOut(duration: 0.15), value: offeringTour)
     }
 
     private func tint(for section: SettingsSection) -> Color {
@@ -174,10 +212,12 @@ public struct SettingsSectionPanel: View {
             // above emits `settingsSection`s as direct children, which is what
             // makes them the scroll targets; each carries its own title as its
             // id, so an anchor names a heading rather than an offset.
-            .scrollTargetLayout()
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
+            .scrollTargetLayout()
         }
+        // Content margins rather than padding around the target layout — see
+        // the note in `EncyclopediaListScreen`.
+        .contentMargins(12, for: .scrollContent)
         .scrollPosition(id: anchorBinding)
         .scrollDismissesKeyboard(.interactively)
         .background(lcd.isLight ? lcd.page : Dex.screen)

@@ -2,18 +2,23 @@
 import SwiftUI
 import VinodexCore
 
-/// The minigames hub.
+/// The tools hub.
 ///
-/// Grape of the day used to be a row in the settings list, which was the wrong
-/// home for it twice over: it is not a setting, and it was the only game so it
-/// had nowhere else to go. With the moon dial coming it needs a shelf.
+/// This began as MINIGAMES, when the daily reveal was promoted out of the
+/// settings list and needed a shelf of its own. It has since collected two
+/// things with no play in them at all — the scanner is an identification aid and
+/// the chip filter is a query builder — so the name was promising the wrong
+/// thing to anyone looking for either. TOOLS covers both; a game is a tool you
+/// use for fun.
 ///
 /// Tiles match the settings grid deliberately — square, glyph over label — so
 /// the two screens reachable from the cog read as one system.
-public struct MinigamesScreen: View {
+public struct ToolsScreen: View {
     let onDailyGrape: () -> Void
     let onScanner: () -> Void
     let onMoonDial: () -> Void
+    let onChipFilter: () -> Void
+    let onQuiz: () -> Void
 
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
@@ -21,11 +26,15 @@ public struct MinigamesScreen: View {
     public init(
         onDailyGrape: @escaping () -> Void,
         onScanner: @escaping () -> Void = {},
-        onMoonDial: @escaping () -> Void = {}
+        onMoonDial: @escaping () -> Void = {},
+        onChipFilter: @escaping () -> Void = {},
+        onQuiz: @escaping () -> Void = {}
     ) {
         self.onDailyGrape = onDailyGrape
         self.onScanner = onScanner
         self.onMoonDial = onMoonDial
+        self.onChipFilter = onChipFilter
+        self.onQuiz = onQuiz
     }
 
     private let columns = [
@@ -39,6 +48,30 @@ public struct MinigamesScreen: View {
 
             ScrollView {
                 LazyVGrid(columns: columns, spacing: 10) {
+                    // The two that answer a question about a specific glass go
+                    // first — they are the reason to open this screen while
+                    // actually drinking something.
+                    tile(
+                        title: "SCANNER",
+                        symbol: "sparkle.magnifyingglass",
+                        tint: Dex.green,
+                        action: onScanner
+                    )
+
+                    tile(
+                        title: "CHIP\nFILTER",
+                        symbol: "line.3.horizontal.decrease.circle.fill",
+                        tint: Dex.blue,
+                        action: onChipFilter
+                    )
+
+                    tile(
+                        title: "TASTING\nQUIZ",
+                        symbol: "checkmark.seal.fill",
+                        tint: Color(dexHex: "#a855f7"),
+                        action: onQuiz
+                    )
+
                     // Named for the question it asks rather than for its pick:
                     // the reveal rotates through regions and styles as well as
                     // grapes, so "grape of the day" was wrong two days in three.
@@ -50,16 +83,9 @@ public struct MinigamesScreen: View {
                     )
 
                     tile(
-                        title: "SCANNER",
-                        symbol: "sparkle.magnifyingglass",
-                        tint: Dex.green,
-                        action: onScanner
-                    )
-
-                    tile(
                         title: "MOON DIAL",
                         symbol: "moon.stars.fill",
-                        tint: Dex.blue,
+                        tint: Color(dexHex: "#67e8f9"),
                         action: onMoonDial
                     )
                 }

@@ -80,9 +80,22 @@ public enum DexRoute: Hashable, Sendable {
     /// so the chassis Back button returns to the settings grid instead of
     /// dropping the user out of settings entirely.
     case settingsSection(SettingsSection)
-    /// The minigames hub. Grape of the day used to hang off the settings list;
-    /// it is a game, not a setting, and there is now more than one of them.
+    /// The tools hub — games *and* instruments.
+    ///
+    /// Called MINIGAMES while everything on it was a game. It now also holds the
+    /// chip filter, which is a search tool with no play in it at all, and
+    /// "minigames" was the wrong promise for a shelf you go to in order to get
+    /// work done. The case keeps its name because nothing persists it; only the
+    /// label moved.
     case minigames
+    /// Filter the whole database by tapping chips — colour, body, rarity, type,
+    /// climate — with a live count of what survives. See `ChipFilter`.
+    case chipFilter
+    /// The WSET-style tasting quiz: one question, four answers, then the entry
+    /// behind the right one.
+    case wsetQuiz
+    /// The guided tour. Opt-in from the settings grid, never shown unasked.
+    case walkthrough
     /// The continent info screen — INFO blurb plus a COUNTRIES list, each
     /// linking to that country's regions. Reached from the globe markers.
     case continent(entryID: String)
@@ -116,7 +129,13 @@ public enum DexRoute: Hashable, Sendable {
         case .settingsSection(let section):
             section.rawValue
         case .minigames:
-            "MINIGAMES"
+            "TOOLS"
+        case .chipFilter:
+            "CHIP FILTER"
+        case .wsetQuiz:
+            "TASTING QUIZ"
+        case .walkthrough:
+            "WALKTHROUGH"
         case .continent:
             "CONTINENT SCAN"
         }

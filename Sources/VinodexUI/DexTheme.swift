@@ -155,16 +155,25 @@ public enum DexMetrics {
     /// Gap from the island controls down to the screen housing. Matches
     /// `footerTopInset` so the housing sits the same distance from both rows.
     public static let islandBottomInset: CGFloat = footerTopInset
-    /// Floor for the island strip, built the same way the footer band is but
-    /// mirrored: `chassisEdgeInset` against the display edge, one control, then
-    /// the small `islandBottomInset` against the screen housing.
+    /// Gap from the display's top edge down to the island controls.
     ///
-    /// It used to be `controlButton + 2 * chassisEdgeInset`, i.e. symmetric — so
-    /// the gap from the orb down to the housing was 16pt while the matching gap
-    /// from the housing down to the footer row was 6pt, and the chassis read as
-    /// top-heavy. The two bands are now mirror images: the big inset faces the
-    /// display edge at both ends, the small one faces the screen.
-    public static let islandStripMinHeight: CGFloat = chassisEdgeInset + controlButton + islandBottomInset
+    /// This was `chassisEdgeInset` (16), on the argument that the band should
+    /// mirror the footer — big inset against the display edge, small one against
+    /// the screen. The footer earns its 16 because the home indicator lands in
+    /// it. There is no home indicator up here, so the same number bought
+    /// nothing and simply pushed the orb and cog down into the LCD's height.
+    ///
+    /// 8 rather than the footer's own 6, and that difference is load-bearing:
+    /// the display's 55pt corner arc cuts `55 - sqrt(55² - (55-h)²)` off each
+    /// side at height `h`, which at 8pt is ~26pt — exactly `cornerGuardH`. The
+    /// controls survive it because they are *circles*: the widest point of the
+    /// orb sits half a control lower, where the arc has closed to ~2pt. Going
+    /// much below 8 starts cutting the button's actual edge rather than the
+    /// empty corner of its bounding box.
+    public static let islandTopInset: CGFloat = 8
+    /// Floor for the island strip: the inset above, one control, then the small
+    /// `islandBottomInset` against the screen housing.
+    public static let islandStripMinHeight: CGFloat = islandTopInset + controlButton + islandBottomInset
     public static let islandClearance: CGFloat = 138
     /// Matches `footerPaddingH` so the orb sits directly above the Back button
     /// and the cog above Home — the four chassis controls share two columns.
@@ -179,6 +188,14 @@ public enum DexMetrics {
     /// Gap between the orb and the status-light cluster now that the lights sit
     /// beside it rather than on its shoulder.
     public static let statusDotsGap: CGFloat = 6
+    /// How far the status cluster rides above the orb's centre line.
+    ///
+    /// Centred, the three lights read as a continuation of the orb — one row of
+    /// four round things. Lifted, they read as indicator lamps set into the
+    /// chassis *above* the control, which is where a period device puts them.
+    /// An offset rather than an alignment guide: this is decoration and must not
+    /// change what the strip reserves.
+    public static let statusDotsRise: CGFloat = 7
     public static let titleSize: CGFloat = 0.9375 * rem
 
     /// Screen housing
@@ -538,6 +555,34 @@ public struct ChassisAccent: Sendable {
     }
 }
 
+/// The moulded (unlit) chassis buttons: Back and the user/saved button.
+///
+/// Separate from `ChassisAccent` because these are a different *kind* of part.
+/// The accent ramp describes something that looks powered — six stops, an inner
+/// disc, a glow. This is a moulded cap: a face, a shadow under it, a rim, and
+/// whatever colour the glyph has to be to sit on it.
+///
+/// `glyph` is here rather than assumed white because one skin needs it dark.
+/// Blanc de Blancs' buttons are the original handheld's pale grey, and white on
+/// pale grey is unreadable.
+public struct ChassisControl: Sendable {
+    /// Top of the cap's gradient.
+    public let top: Color
+    /// Bottom of it.
+    public let bottom: Color
+    /// The rim.
+    public let edge: Color
+    /// The chevron or person glyph.
+    public let glyph: Color
+
+    public init(top: String, bottom: String, edge: String, glyph: String) {
+        self.top = Color(dexHex: top)
+        self.bottom = Color(dexHex: bottom)
+        self.edge = Color(dexHex: edge)
+        self.glyph = Color(dexHex: glyph)
+    }
+}
+
 /// Chassis colourway. The LCD itself never changes — only the moulding around
 /// it — so a skin swap cannot affect legibility of the content.
 ///
@@ -700,6 +745,33 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .riesling:
             ChassisAccent(pale: "#fee2e2", light: "#fca5a5", bright: "#f87171",
                           mid: "#dc2626", edge: "#7f1d1d", ink: "#450a0a")
+        }
+    }
+
+    /// Back and the user button.
+    ///
+    /// These were one dark cap on all five shells, on the argument that the
+    /// mechanical controls should stay the same part across the range while only
+    /// Home looked powered. In practice a near-black button reads as a hole
+    /// punched in a bone or yellow shell — the two pale skins were the ones it
+    /// suited least, and they are the ones whose real-world references had
+    /// *light* buttons. The cap is moulded from the shell now, like the rest of
+    /// the plastic; Home still reads as the lit one because it is the only thing
+    /// on the chassis carrying a six-stop ramp and an inner disc.
+    public var control: ChassisControl {
+        switch self {
+        // Stone, exactly as before.
+        case .classic:
+            ChassisControl(top: "#44403c", bottom: "#0c0a09", edge: "#a8a29e", glyph: "#ffffff")
+        case .midnight:
+            ChassisControl(top: "#3b3746", bottom: "#0b0a10", edge: "#8b86a3", glyph: "#ffffff")
+        // Pale grey with a dark glyph — the original handheld's own d-pad.
+        case .original:
+            ChassisControl(top: "#c2c2ba", bottom: "#83837b", edge: "#5f5f59", glyph: "#262622")
+        case .burgundy:
+            ChassisControl(top: "#4a2440", bottom: "#150a12", edge: "#b58aab", glyph: "#ffffff")
+        case .riesling:
+            ChassisControl(top: "#3f4652", bottom: "#0b0e14", edge: "#9fb0c6", glyph: "#ffffff")
         }
     }
 

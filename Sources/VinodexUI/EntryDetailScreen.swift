@@ -110,10 +110,12 @@ public struct EntryDetailScreen: View {
                 .id(Anchor.sections)
             }
             .scrollTargetLayout()
-            .padding(.horizontal, 14)
-            // Generous tail so the last section clears the footer, matching pb-20.
-            .padding(.bottom, 72)
         }
+        // Content margins rather than padding around the target layout — see
+        // the note in `EncyclopediaListScreen`. The generous tail keeps the
+        // last section clear of the footer, matching pb-20.
+        .contentMargins(.horizontal, 14, for: .scrollContent)
+        .contentMargins(.bottom, 72, for: .scrollContent)
         // Restores where this entry was left, and starts a never-seen entry at
         // the top — the stored anchor is keyed per entry id, so a cross-link to
         // a new entry has none. See `ScreenStateStore`.

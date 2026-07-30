@@ -131,20 +131,6 @@ public struct DeviceBackPlate: View {
     /// one thing the plate exists to show.
     private var engraving: some View {
         VStack(spacing: 28) {
-            // The only instruction on the plate, and it was the last thing on
-            // it: set in engraved grey at the very bottom edge, below a serial
-            // number and a copyright line, in the part of a full-screen surface
-            // the eye reaches last. On brushed silver that treatment is close to
-            // invisible — the plate looked like a dead end, and the way out of
-            // it was the one thing you could not find.
-            //
-            // Now above the nameplate, held clear of the screw line, and drawn
-            // as a recessed dark chip rather than as engraving: the same recess
-            // the nameplate uses, so it still belongs to the object, but with
-            // light lettering in it so it is the highest-contrast thing here.
-            swipeHint
-                .padding(.top, 64)
-
             Spacer(minLength: 0)
 
             // Recessed nameplate.
@@ -207,6 +193,8 @@ public struct DeviceBackPlate: View {
             .foregroundStyle(Dex.stone700)
             .engraved()
 
+            swipeHint
+
             Spacer(minLength: 0)
         }
         .multilineTextAlignment(.center)
@@ -214,37 +202,34 @@ public struct DeviceBackPlate: View {
         .allowsHitTesting(false)
     }
 
+    /// The way out, engraved directly under the middle block.
+    ///
+    /// It has moved twice. It began in engraved grey at the very bottom edge,
+    /// below the serial and the copyright, where nobody found it. It was then
+    /// tried as a dark chip above the nameplate, which solved the contrast by
+    /// putting a *button* on a plate that has no buttons — the one element here
+    /// that did not look machined.
+    ///
+    /// This is the version that keeps both: it stays engraved, in the plate's
+    /// own language, but sits directly under the centred block rather than at
+    /// the bottom edge, and is set larger and darker than the serial lines
+    /// around it. Position and weight carry the emphasis instead of colour.
+    ///
     /// VT323 rather than the retro face: `SWIPE TO RETURN` is fifteen tracked
     /// characters, and Press Start 2P at a size worth reading overruns the
-    /// plate on a phone at the LARGE text scale. The scale factor is the floor
-    /// under that anyway.
+    /// plate on a phone at the LARGE text scale.
     private var swipeHint: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 14) {
             Image(systemName: "hand.draw")
-                .font(.system(size: 22, weight: .semibold))
+                .font(.system(size: 26, weight: .semibold))
             Text("SWIPE TO RETURN")
-                .font(DexFont.mono(26))
-                .tracking(6)
+                .font(DexFont.mono(30))
+                .tracking(7)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
         }
-        .foregroundStyle(Dex.stone200)
-        .padding(.horizontal, 24)
-        .padding(.vertical, 13)
-        .background(
-            Capsule().fill(
-                LinearGradient(
-                    colors: [Dex.stone800, Dex.stone950],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
-        )
-        .overlay(Capsule().strokeBorder(Dex.stone600, lineWidth: 2))
-        // A light lip below the recess, the same trick `engraved()` uses — it
-        // is what makes the chip read as sunk into the plate rather than laid
-        // on top of it.
-        .shadow(color: .white.opacity(0.5), radius: 0, x: 0, y: 1)
+        .foregroundStyle(Dex.stone800)
+        .engraved()
     }
 }
 

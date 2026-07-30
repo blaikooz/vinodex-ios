@@ -16,15 +16,15 @@ import Foundation
 public enum AppVersion {
     /// Bump with the batch. This is the single source of truth until the build
     /// stamps one into the bundle.
-    static let fallback = "0.4.2.1"
+    static let fallback = "0.4.2.1.1"
 
-    /// Bare version, no prefix — e.g. `0.4.2.1`.
+    /// Bare version, no prefix — e.g. `0.4.2.1.1`.
     public static var current: String {
         let bundled = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
         guard let bundled, !bundled.isEmpty, bundled != "1.0" else { return fallback }
         return bundled
     }
 
-    /// Display form, e.g. `v0.4.2.1`.
+    /// Display form, e.g. `v0.4.2.1.1`.
     public static var display: String { "v" + current }
 }
