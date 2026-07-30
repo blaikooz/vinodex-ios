@@ -489,6 +489,17 @@ public struct ChassisButton: View {
         .buttonStyle(DexPressStyle())
         .disabled(!enabled)
         .opacity(enabled ? 1 : 0.35)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    /// VoiceOver reads the SF Symbol otherwise — Saved announces as "person",
+    /// and Back/Home are unlabeled. (audit H10)
+    private var accessibilityLabel: String {
+        switch kind {
+        case .back: "Back"
+        case .home: "Home"
+        case .bookmarks: "Saved entries"
+        }
     }
 
     private var gradient: LinearGradient {

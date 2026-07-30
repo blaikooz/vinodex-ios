@@ -101,11 +101,4 @@ struct PixelOutline: ViewModifier {
     }
 }
 
-public extension WineEntry {
-    /// Icon tint for this entry — its authored colour, lightened enough to stay
-    /// legible against the dark icon well.
-    var iconTint: Color {
-        Color(dexHex: color)
-    }
-}
 #endif

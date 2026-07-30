@@ -96,12 +96,10 @@ public struct Palette: Codable, Sendable {
     public let flavorClassChips: [String: Chip]
     public let flavorSubclassChips: [String: Chip]
     public let namedChips: [String: Chip]
-    public let appellationChips: [Chip]
     public let styleTones: [String: StyleTone]
     public let climates: [String: ClimateMeta]
     public let regionClassificationIconColors: [String: String]
     public let flavorSubclassIconColors: [String: String]
-    public let continentColors: [String: String]
     public let continentCountries: [String: [String]]
 
     public func chip(country: String?) -> Chip? {
@@ -331,8 +329,24 @@ public final class WineDatabase: Sendable {
             let entries: [WineEntry] = try Self.decode("entries")
             let palette: Palette = try Self.decode("palette")
             let icons: IconManifest = try Self.decode("icons")
-            // Optional on purpose: a build without it is fully unlocked.
-            let tiers: EntryTiers? = try? Self.decode("tiers")
+
+            var loadErrors: [String] = []
+
+            // Tiers: a *missing* manifest means "everything free" (a build with no
+            // paywall), which is the only safe fallback that can't lock a build out
+            // of its own data. But a *present-but-corrupt* manifest must not take
+            // that same silent unlock — record it so it reaches decodeErrors and
+            // the DEV panel instead of quietly opening the whole catalogue. (M1)
+            var freeIDs: Set<String> = []
+            do {
+                let tiers: EntryTiers = try Self.decode("tiers")
+                freeIDs = Set(tiers.free)
+            } catch let error as CocoaError where error.code == .fileNoSuchFile {
+                // No tiers file — fully unlocked, by design.
+            } catch {
+                loadErrors.append("tiers.json failed to decode; paywall left open — \(error)")
+            }
+
             // Also optional: without it a country page falls back to the
             // derived summary sentence, which is worse but not broken.
             let countries: [String: CountryInfo] = (try? Self.decode("countries")) ?? [:]
@@ -341,7 +355,8 @@ public final class WineDatabase: Sendable {
                 palette: palette,
                 icons: icons,
                 countries: countries,
-                freeIDs: Set(tiers?.free ?? [])
+                freeIDs: freeIDs,
+                decodeErrors: loadErrors
             )
         } catch {
             // A failed load is a build problem, not a runtime condition to paper
@@ -391,9 +406,9 @@ public final class WineDatabase: Sendable {
     private static let emptyPalette = Palette(
         countryChips: [:], classificationChips: [:], wineTypeChips: [:], rarityChips: [:],
         colorTypeChips: [:], styleClassChips: [:], flavorClassChips: [:], flavorSubclassChips: [:],
-        namedChips: [:], appellationChips: [], styleTones: [:], climates: [:],
+        namedChips: [:], styleTones: [:], climates: [:],
         regionClassificationIconColors: [:], flavorSubclassIconColors: [:],
-        continentColors: [:], continentCountries: [:]
+        continentCountries: [:]
     )
 
     // MARK: - Queries
@@ -408,8 +423,8 @@ public final class WineDatabase: Sendable {
 
     /// Resolves a free-text name (or synonym) to an entry, for detail cross-links.
     ///
-    /// Returning `nil` is expected and common in the starter dataset: most linked
-    /// names point outside the 30-entry selection. Callers must render those as
+    /// Returning `nil` is expected: some linked names point outside the shipped
+    /// selection. Callers must render those as
     /// non-tappable labels rather than dead buttons — matching `isLinkable` in
     /// `EntryDetail.tsx`.
     /// Resolved through `byName`, built once at load — see its declaration for

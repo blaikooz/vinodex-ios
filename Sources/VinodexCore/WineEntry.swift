@@ -86,9 +86,10 @@ public struct EntryCommon: Codable, Sendable, Hashable {
     public let description: String
     public let color: String
     public let tags: [String]
-    public let icon: String?
-    public let iconCallback: String?
-    public let tileCallback: String?
+    // `icon`, `iconCallback` and `tileCallback` were carried from the web schema
+    // but never read (the icon system resolves through `IconManifest`). Dropped
+    // from both the generator output and here to shrink the launch-time parse
+    // (audit M4).
 }
 
 // MARK: - Variants

@@ -154,9 +154,16 @@ public struct BookmarksScreen: View {
                     confirmingClear = true
                 } label: {
                     Text("CLEAR ALL")
+                        // Merge of two passes that both had a point: the size and
+                        // padding are v0.4.2.1's enlargement (this is a
+                        // destructive action and was a 9pt target), and the ink is
+                        // audit M14's contrast fix — `Dex.stone400` is a hardcoded
+                        // ~2.3:1 grey that also ignores light mode, where
+                        // `lcd.subtext` adapts. Neither side needed the other's
+                        // regression.
                         .font(DexFont.retro(11))
                         .tracking(1)
-                        .foregroundStyle(Dex.stone400)
+                        .foregroundStyle(lcd.subtext)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
                         .overlay(
@@ -381,13 +388,15 @@ public struct BookmarksScreen: View {
         } label: {
             Image(systemName: "xmark")
                 .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(Dex.stone400)
+                .foregroundStyle(lcd.subtext)
                 .frame(width: 26, height: 26)
                 .background(Circle().fill(Dex.stone900))
                 .overlay(Circle().strokeBorder(lcd.surfaceEdge, lineWidth: 1))
+                // 44pt hit target around the 26pt visual (audit M25).
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(DexPressStyle(scale: 0.9))
-        .padding(6)
         .accessibilityLabel("Remove \(item.displayName) from saved")
     }
 
@@ -399,7 +408,7 @@ public struct BookmarksScreen: View {
             Text("NOTHING SAVED")
                 .font(DexFont.retro(12))
                 .tracking(2)
-                .foregroundStyle(Dex.stone400)
+                .foregroundStyle(lcd.subtext)
             Text("Tap SAVE on any entry to keep it here.")
                 .font(DexFont.mono(18))
                 .foregroundStyle(Dex.stone600)

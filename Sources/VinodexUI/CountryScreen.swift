@@ -127,7 +127,7 @@ public struct CountryScreen: View {
         .background(
             ZStack {
                 lcd.heroWash
-                DexGridBackground(spacing: 34, color: Color(dexHex: "#14532d"), opacity: 0.5)
+                DexGridBackground(spacing: 34, color: lcd.heroGrid, opacity: 0.5)
             }
         )
         .overlay(alignment: .bottom) { lcd.accent.frame(height: 4) }
@@ -283,7 +283,7 @@ public struct CountryScreen: View {
                         )
                         Text(EntryDisplay.appellationName(classification: system, country: country))
                             .font(DexFont.mono(17))
-                            .foregroundStyle(Dex.stone400)
+                            .foregroundStyle(lcd.subtext)
                             .fixedSize(horizontal: false, vertical: true)
                         Spacer(minLength: 0)
                     }
@@ -315,7 +315,7 @@ public struct CountryScreen: View {
                             Spacer()
                             Text("\(regionCount(in: state))")
                                 .font(DexFont.mono(18))
-                                .foregroundStyle(Dex.stone400)
+                                .foregroundStyle(lcd.subtext)
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 13, weight: .bold))
                                 .foregroundStyle(Dex.stone600)

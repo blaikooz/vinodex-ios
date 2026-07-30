@@ -312,20 +312,25 @@ public enum DexFont {
         return out
     }()
 
+    /// Font availability resolved once. A face's registration state cannot change
+    /// at runtime, so probing `UIFont(name:)` on every `retro`/`mono` call (which
+    /// happens per glyph, per render) was pure waste. The initialiser forces
+    /// `registration` first so the probe runs after the fonts are registered.
+    public static let retroAvailable: Bool = { _ = registration; return isAvailable(names.retro) }()
+    public static let monoAvailable: Bool = { _ = registration; return isAvailable(names.mono) }()
+
     /// Pixel display face — titles, category labels, chips.
     public static func retro(_ size: CGFloat) -> Font {
-        _ = registration
         let size = size * TextScale.current.factor
-        return isAvailable(names.retro)
+        return retroAvailable
             ? .custom(names.retro, size: size)
             : .system(size: size, weight: .bold, design: .monospaced)
     }
 
     /// CRT terminal face — body copy and readouts.
     public static func mono(_ size: CGFloat) -> Font {
-        _ = registration
         let size = size * TextScale.current.factor
-        return isAvailable(names.mono)
+        return monoAvailable
             ? .custom(names.mono, size: size)
             : .system(size: size, design: .monospaced)
     }
@@ -455,6 +460,15 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// Grid lines drawn over the hero wash. Dark mode's deep #14532d reads heavy
+    /// on the light hero, so light mode lifts it toward the paper.
+    public var heroGrid: Color {
+        switch self {
+        case .dark: Color(dexHex: "#14532d")
+        case .light: Color(dexHex: "#1B6B3A")
+        }
+    }
+
     /// Filled-button ground (SAVE and friends) when *not* active.
     public var buttonWell: Color {
         switch self {
@@ -487,7 +501,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Secondary text â€” captions, counts, placeholders.
+    /// Secondary text — captions, counts, placeholders.
     public var subtext: Color {
         switch self {
         case .dark: Dex.stone400
@@ -513,6 +527,17 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .dark: Dex.stone600
         case .light: Color(dexHex: "#A3A39B")
+        }
+    }
+
+    /// Foreground for content sitting on an `accent` fill (selected settings
+    /// options, active chips). Dark mode's accent is mint (#4ADE80) — white text
+    /// on it is ~1.8:1 — so it takes black; light mode's accent is deep green and
+    /// takes white.
+    public var onAccent: Color {
+        switch self {
+        case .dark: .black
+        case .light: .white
         }
     }
 

@@ -462,7 +462,7 @@ public struct SettingsSectionPanel: View {
                                     .font(.system(size: 17, weight: .bold))
                             }
                         }
-                        .foregroundStyle(skin == option ? .white : lcd.subtext)
+                        .foregroundStyle(skin == option ? lcd.onAccent : lcd.subtext)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 16)
                         .frame(maxWidth: .infinity)
@@ -514,7 +514,7 @@ public struct SettingsSectionPanel: View {
                                     .font(.system(size: 13, weight: .bold))
                             }
                         }
-                        .foregroundStyle(lcd == option ? .white : lcd.subtext)
+                        .foregroundStyle(lcd == option ? lcd.onAccent : lcd.subtext)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 17)
                         .background(
@@ -540,7 +540,7 @@ public struct SettingsSectionPanel: View {
                             Text(option.rawValue)
                                 .font(DexFont.retro(13))
                                 .tracking(1)
-                                .foregroundStyle(scale == option ? .white : lcd.subtext)
+                                .foregroundStyle(scale == option ? lcd.onAccent : lcd.subtext)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 17)
                                 .background(

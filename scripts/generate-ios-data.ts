@@ -25,7 +25,7 @@ import {
   resolveFlavorClassIcon,
   resolveFlavorSubclassIcon,
 } from '../shared/services/flavorIcon.ts';
-import { existsSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -707,6 +707,101 @@ function assertCoverage(entries: readonly WineEntry[], palette: ReturnType<typeo
 
 // ---------------------------------------------------------------------------
 
+// AUDIT M4 / L18 — fields the Swift app never decodes, stripped from the shipped
+// JSON to shrink the launch-time parse. The matching Swift properties were
+// deleted alongside this (EntryCommon.icon/iconCallback/tileCallback and
+// Palette.appellationChips/continentColors), so these keys are now unknown to
+// every Codable type; grapeCard/grapeRarityTier/flagGradients/flavorClassMeta
+// never had a Swift property at all.
+const STRIP_ENTRY_FIELDS = ['grapeCard', 'grapeRarityTier', 'icon', 'iconCallback', 'tileCallback'];
+const STRIP_PALETTE_FIELDS = ['flagGradients', 'flavorClassMeta', 'appellationChips', 'continentColors'];
+
+// AUDIT L19 — ship minified JSON (the app decodes it identically) to drop ~⅓ of
+// the on-disk/bundle size that 2-space pretty-printing added. Pass --pretty (or
+// PRETTY=1) to emit readable JSON when eyeballing a data change.
+const PRETTY = process.argv.includes('--pretty') || process.env.PRETTY === '1';
+const serialize = (value: unknown): string =>
+  (PRETTY ? JSON.stringify(value, null, 2) : JSON.stringify(value)) + '\n';
+
+function omitKeys<T>(value: T, keys: string[]): T {
+  if (Array.isArray(value)) return value.map((v) => omitKeys(v, keys)) as unknown as T;
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (!keys.includes(k)) out[k] = v;
+    }
+    return out as T;
+  }
+  return value;
+}
+
+// AUDIT M3 — generator-side decode smoke test. The Swift Codable structs decode
+// all-or-nothing, so a TS rename that drops a required key ships as a whole-app
+// decode failure with no earlier signal. This re-reads what was just written and
+// asserts the shape the Swift structs require (non-optional keys only), failing
+// the generate step — and therefore CI — before the drift ever reaches a device.
+// The matching schemaVersion-asserted-at-load lives on the Swift side (held).
+const ENTRY_CATEGORIES = new Set(['GRAPES', 'REGIONS', 'STYLES', 'FLAVORS', 'CONTINENTS']);
+const PALETTE_REQUIRED = [
+  'countryChips', 'classificationChips', 'wineTypeChips', 'rarityChips', 'colorTypeChips',
+  'styleClassChips', 'flavorClassChips', 'flavorSubclassChips', 'namedChips',
+  'styleTones', 'climates', 'regionClassificationIconColors', 'flavorSubclassIconColors',
+  'continentCountries',
+];
+const ICONS_REQUIRED = [
+  'byEntry', 'unique', 'fallback', 'bodyIcons', 'climateIcons', 'colorIcons', 'styleClassIcons',
+  'countryShapeIcons', 'styleClassBg', 'styleColorTypeColors', 'soilIcons', 'climateSoilFallback',
+  'defaultSoils', 'flags',
+];
+
+function validateOutputs(dir: string): void {
+  const problems: string[] = [];
+  const read = (name: string): unknown => JSON.parse(readFileSync(resolve(dir, name), 'utf8'));
+  const has = (obj: unknown, key: string): boolean =>
+    !!obj && typeof obj === 'object' && key in (obj as Record<string, unknown>);
+
+  const entries = read('entries.json');
+  if (!Array.isArray(entries) || entries.length === 0) {
+    problems.push('entries.json is not a non-empty array');
+  } else {
+    entries.forEach((e, i) => {
+      const rec = e as Record<string, unknown>;
+      if (typeof rec.id !== 'string') problems.push(`entries[${i}].id missing/!string`);
+      if (typeof rec.name !== 'string') problems.push(`entries[${i}].name missing/!string`);
+      if (typeof rec.category !== 'string' || !ENTRY_CATEGORIES.has(rec.category as string)) {
+        problems.push(`entries[${i}].category invalid: ${String(rec.category)}`);
+      }
+      if (!has(rec, 'details')) problems.push(`entries[${i}] (${String(rec.id)}) missing details`);
+    });
+  }
+
+  const palette = read('palette.json');
+  for (const key of PALETTE_REQUIRED) {
+    if (!has(palette, key)) problems.push(`palette.json missing required key: ${key}`);
+  }
+
+  const icons = read('icons.json');
+  for (const key of ICONS_REQUIRED) {
+    if (!has(icons, key)) problems.push(`icons.json missing required key: ${key}`);
+  }
+
+  const tiers = read('tiers.json');
+  if (!has(tiers, 'free') || !Array.isArray((tiers as { free?: unknown }).free)) {
+    problems.push('tiers.json missing free[]');
+  }
+
+  const countries = read('countries.json');
+  if (!countries || typeof countries !== 'object') {
+    problems.push('countries.json is not an object');
+  }
+
+  if (problems.length > 0) {
+    throw new Error(
+      `schema self-check failed — the Swift structs would not decode:\n  - ${problems.join('\n  - ')}`,
+    );
+  }
+}
+
 function main() {
   const full = buildWineEntries();
   // COUNTRY_GATE entries are the web app's country drill-down nodes (country ->
@@ -757,11 +852,17 @@ function main() {
 
   const countries = buildCountryInfo(entries);
 
-  writeFileSync(resolve(OUT_DIR, 'entries.json'), JSON.stringify(entries, null, 2) + '\n');
-  writeFileSync(resolve(OUT_DIR, 'tiers.json'), JSON.stringify(tiers, null, 2) + '\n');
-  writeFileSync(resolve(OUT_DIR, 'palette.json'), JSON.stringify(palette, null, 2) + '\n');
-  writeFileSync(resolve(OUT_DIR, 'icons.json'), JSON.stringify(icons, null, 2) + '\n');
-  writeFileSync(resolve(OUT_DIR, 'countries.json'), JSON.stringify(countries, null, 2) + '\n');
+  const leanEntries = omitKeys(entries, STRIP_ENTRY_FIELDS);
+  const leanPalette = omitKeys(palette, STRIP_PALETTE_FIELDS);
+
+  writeFileSync(resolve(OUT_DIR, 'entries.json'), serialize(leanEntries));
+  writeFileSync(resolve(OUT_DIR, 'tiers.json'), serialize(tiers));
+  writeFileSync(resolve(OUT_DIR, 'palette.json'), serialize(leanPalette));
+  writeFileSync(resolve(OUT_DIR, 'icons.json'), serialize(icons));
+  writeFileSync(resolve(OUT_DIR, 'countries.json'), serialize(countries));
+
+  // AUDIT M3 — fail loudly here (and in CI) if the emitted JSON would not decode.
+  validateOutputs(OUT_DIR);
 
   const hexes = new Set(JSON.stringify(palette).match(/#[0-9a-fA-F]{6}/g) ?? []);
 
