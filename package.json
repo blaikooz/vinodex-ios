@@ -9,7 +9,8 @@
     "icons": "bash scripts/rasterize-icons.sh",
     "flavor-art": "python3 scripts/import-flavor-art.py",
     "grape-art": "python3 scripts/import-grape-art.py",
-    "style-art": "python3 scripts/import-style-art.py"
+    "style-art": "python3 scripts/import-style-art.py",
+    "class-art": "python3 scripts/import-class-art.py"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

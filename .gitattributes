@@ -30,3 +30,7 @@ Sources/VinodexCore/Resources/*.json text eol=lf
 *.woff2 binary
 *.zip binary
 *.pdf binary
+
+# Shell scripts run in WSL bash - a CRLF checkout breaks 'set -euo pipefail'
+# on line one. Always LF, like the generated JSON.
+*.sh text eol=lf

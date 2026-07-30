@@ -25,8 +25,15 @@ public enum Sounds {
         UserDefaults.standard.bool(forKey: storageKey)
     }
 
-    /// Launch is not an interaction; no authored boot chime yet.
-    public static func boot() {}
+    /// Launch is not an interaction; no authored boot chime yet. But launch
+    /// *is* where the engine warms up (v0.5.7, F1): the first enabled play
+    /// used to pay session activation + decoding all four files + engine
+    /// start, synchronously, which landed the first click audibly after its
+    /// tap. Priming here moves that cost to the splash moment.
+    public static func boot() {
+        guard enabled else { return }
+        SoundEngine.shared.prime()
+    }
     /// The percussive button click.
     public static func tap() { play(.tap) }
     /// The softer selection blip — the warm ping.
@@ -73,6 +80,12 @@ private final class SoundEngine {
     private var nextPlayer = 0
     private var buffers: [Kind: AVAudioPCMBuffer] = [:]
     private var broken = false
+
+    /// Builds the engine ahead of the first play — see `Sounds.boot()`.
+    func prime() {
+        guard !broken, engine == nil else { return }
+        start()
+    }
 
     func play(_ kind: Kind) {
         guard !broken else { return }

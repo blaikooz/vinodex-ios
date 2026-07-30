@@ -34,7 +34,15 @@ public final class IconLoader {
     }
 }
 
-/// An entry's glyph, tinted and outlined.
+/// An entry's glyph, tinted and outlined — or, for `art:` ids, the
+/// full-colour pixel art drawn as-is.
+///
+/// The `art:` namespace (v0.5.7, B1) routes an icon id at a bundled PNG in
+/// `Resources/ClassArt` instead of a rasterised Iconify glyph: `art:soil-chalk`
+/// loads `soil-chalk.png`. Handled here, at the one place every icon id passes
+/// through, so the taxonomy tables could move to drawn art without touching a
+/// single call site. The art ships its own colours and outline, so `color` and
+/// `PixelOutline` do not apply to it.
 public struct DexIcon: View {
     let iconID: String
     var size: CGFloat
@@ -48,9 +56,18 @@ public struct DexIcon: View {
         self.outlined = outlined
     }
 
+    private var artStem: String? {
+        iconID.hasPrefix("art:") ? String(iconID.dropFirst(4)) : nil
+    }
+
     public var body: some View {
+        let art = artStem.flatMap { PixelArtLoader.shared.image($0) }
         Group {
-            if let image = IconLoader.shared.image(iconID) {
+            if let art {
+                Image(uiImage: art)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+            } else if artStem == nil, let image = IconLoader.shared.image(iconID) {
                 Image(uiImage: image)
                     .renderingMode(.template)
                     .resizable()
@@ -66,7 +83,7 @@ public struct DexIcon: View {
             }
         }
         .frame(width: size, height: size)
-        .modifier(PixelOutline(enabled: outlined))
+        .modifier(PixelOutline(enabled: outlined && art == nil))
     }
 }
 

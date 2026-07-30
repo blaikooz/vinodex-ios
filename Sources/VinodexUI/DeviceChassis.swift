@@ -11,6 +11,9 @@ import VinodexCore
 /// the `md:` breakpoint, so a phone sees the same layout the web app gives it.
 public struct DeviceChassis<Content: View>: View {
     let title: String
+    /// The page's marquee glyph, stamped between the banner's repetitions —
+    /// see `MarqueeBanner.symbol`. Routed from `DexRoute.marqueeSymbol`.
+    var marqueeSymbol: String?
     var showsBack: Bool = false
     var onBack: (() -> Void)?
     var onHome: (() -> Void)?
@@ -46,6 +49,7 @@ public struct DeviceChassis<Content: View>: View {
 
     public init(
         title: String,
+        marqueeSymbol: String? = nil,
         showsBack: Bool = false,
         onBack: (() -> Void)? = nil,
         onHome: (() -> Void)? = nil,
@@ -54,6 +58,7 @@ public struct DeviceChassis<Content: View>: View {
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.title = title
+        self.marqueeSymbol = marqueeSymbol
         self.showsBack = showsBack
         self.onBack = onBack
         self.onHome = onHome
@@ -64,8 +69,14 @@ public struct DeviceChassis<Content: View>: View {
 
     private var isMainScreen: Bool { title == "VINODEX" }
 
-    private var footerTitle: String {
-        isMainScreen ? "CHEERS!SANTE!SALUTE!PROST!KANPAI!" : title
+    /// The main screen cycles its toasts as separate words — the banner gives
+    /// every boundary between them the same gap it gives the wrap seam.
+    private var footerSegments: [String] {
+        isMainScreen ? ["CHEERS!", "SANTE!", "SALUTE!", "PROST!", "KANPAI!"] : [title]
+    }
+
+    private var footerSymbol: String? {
+        isMainScreen ? "wineglass.fill" : marqueeSymbol
     }
 
     public var body: some View {
@@ -454,7 +465,8 @@ public struct DeviceChassis<Content: View>: View {
             }
 
             MarqueeBanner(
-                text: footerTitle,
+                segments: footerSegments,
+                symbol: footerSymbol,
                 fontSize: DexMetrics.marqueeTextSize
             )
             .frame(maxWidth: DexMetrics.marqueeMaxWidth)
@@ -745,7 +757,14 @@ struct PulseGlow: ViewModifier {
 /// the label is measured by a background reader, so at `onAppear` the width is
 /// still zero and the animation would never run.
 public struct MarqueeBanner: View {
-    let text: String
+    /// The words the strip cycles. Most screens pass one segment — their
+    /// title; the main screen passes its five toasts. Segments, not a single
+    /// string, so every word boundary gets the same `gap` the wrap seam does
+    /// (v0.5.7, E1) instead of whatever spacing was baked into the text.
+    let segments: [String]
+    /// SF Symbol stamped between repetitions — `SYSTEM ⟨gear⟩ SYSTEM ⟨gear⟩`
+    /// (v0.5.7, E2). Nil runs text-only.
+    let symbol: String?
     let fontSize: CGFloat
     var pointsPerSecond: Double = 34
 
@@ -771,8 +790,14 @@ public struct MarqueeBanner: View {
 
     private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
 
-    public init(text: String, fontSize: CGFloat, pointsPerSecond: Double = 34) {
-        self.text = text
+    public init(
+        segments: [String],
+        symbol: String? = nil,
+        fontSize: CGFloat,
+        pointsPerSecond: Double = 34
+    ) {
+        self.segments = segments
+        self.symbol = symbol
         self.fontSize = fontSize
         self.pointsPerSecond = pointsPerSecond
     }
@@ -834,13 +859,27 @@ public struct MarqueeBanner: View {
         .frame(height: DexMetrics.marqueeHeight)
     }
 
+    /// One full cycle of content: every segment, `gap` apart, with the page
+    /// glyph closing it. Two copies of this sit `gap` apart in the strip, so
+    /// the seam between them is indistinguishable from any internal boundary
+    /// — which is what makes the loop read as endless.
     private var label: some View {
-        Text(text)
-            .font(DexFont.retro(fontSize))
-            .foregroundStyle(skin.marqueeText)
-            .lineLimit(1)
-            .fixedSize()
-            .shadow(color: skin.marqueeShadow.opacity(0.65), radius: 0, x: 1, y: 1)
+        HStack(spacing: gap) {
+            ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
+                Text(segment)
+                    .font(DexFont.retro(fontSize))
+                    .foregroundStyle(skin.marqueeText)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .shadow(color: skin.marqueeShadow.opacity(0.65), radius: 0, x: 1, y: 1)
+            }
+            if let symbol {
+                Image(systemName: symbol)
+                    .font(.system(size: fontSize * TextScale.current.factor * 0.8, weight: .bold))
+                    .foregroundStyle(skin.marqueeText)
+                    .shadow(color: skin.marqueeShadow.opacity(0.65), radius: 0, x: 1, y: 1)
+            }
+        }
     }
 }
 

@@ -51,7 +51,9 @@ struct CoverageTests {
         let sum = stats.grapes + stats.regions + stats.styles + stats.flavors + stats.continents
         #expect(sum == stats.total, "categories do not account for every entry")
 
-        #expect(stats.total == 284)
+        // 282 since 0.5.7: Liquorice merged into Licorice (G2) and the
+        // umbrella Citrus flavour removed in favour of its members (G3).
+        #expect(stats.total == 282)
         #expect(stats.countries == 18)
         #expect(stats.categoryLines.count == 6)
     }
@@ -185,8 +187,11 @@ struct CoverageTests {
 
     /// Flavour INFO is only worth showing while the blurbs are specific. They
     /// were hidden originally because every one was the same sentence with the
-    /// nouns swapped; each should now name the grapes it derives from.
-    @Test("flavor descriptions are distinct and name their grapes")
+    /// nouns swapped. Since 0.5.7 (G1) the copy describes the aroma itself and
+    /// must *not* fall back to naming grapes — the wine framing ("carried here
+    /// by Barbera…") described the database, not the flavour, and the grapes
+    /// already appear in NOTABLE GRAPES.
+    @Test("flavor descriptions are distinct and about the flavor itself")
     func flavorDescriptions() {
         let flavors = db.entries(in: .flavors)
         #expect(!flavors.isEmpty)
@@ -196,12 +201,10 @@ struct CoverageTests {
             let text = entry.entryDescription
             #expect(!text.isEmpty, "\(entry.name) has no description")
             #expect(seen.insert(text).inserted, "duplicate blurb: \(text)")
-
-            // Each flavour is derived from at least one grape, so the sentence
-            // should be able to name one.
-            if let grape = entry.notableGrapes.first {
-                #expect(text.contains(grape), "\(entry.name) does not mention \(grape)")
-            }
+            #expect(
+                !text.contains("carried here by"),
+                "\(entry.name) still carries the wine framing"
+            )
         }
     }
 

@@ -3,8 +3,8 @@
 
 Sources are the 29 individual style PNGs in shared/newicons/2new (the two
 `stylesicons*.png` contact sheets there are references, not sources). Same
-treatment as the flavour importer: background removed via the shared pass in
-art_common.py (border flood + enclosed-gap clearing, speculars preserved),
+treatment as the flavour importer: background removed via the shared
+border-flood pass in art_common.py (interior white preserved — 0.5.7 B2),
 palette-quantised, written to Sources/VinodexUI/Resources/StyleArt.
 
 Which stems exist is decided by the generator's STYLE_ART table (it feeds

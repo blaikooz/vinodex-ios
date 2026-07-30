@@ -154,6 +154,70 @@ public enum DexRoute: Hashable, Sendable {
             "CONTINENT SCAN"
         }
     }
+
+    /// SF Symbol shown between the marquee's text repetitions (v0.5.7) —
+    /// `SYSTEM ⟨gear⟩ SYSTEM ⟨gear⟩ …`. Sits beside `title` because the two
+    /// travel together into the footer. All iOS 17-safe — see KNOWN-ISSUES on
+    /// symbols with a later OS floor rendering blank rather than failing.
+    public var marqueeSymbol: String {
+        switch self {
+        case .list(let category, _):
+            category.marqueeSymbol
+        case .masterSearch:
+            "magnifyingglass"
+        // A fallback: detail titles come from the entry, and so does the
+        // symbol — see `WineEntry.scanSymbol`.
+        case .detail:
+            "viewfinder"
+        case .globe:
+            "globe.americas.fill"
+        case .globeSearch:
+            "magnifyingglass"
+        case .bookmarks:
+            "bookmark.fill"
+        case .country:
+            "map.fill"
+        case .state:
+            "mappin.and.ellipse"
+        case .dailyGrape:
+            "questionmark.diamond.fill"
+        case .scanner:
+            "viewfinder"
+        case .moonDial:
+            "moon.stars.fill"
+        case .settings:
+            "gearshape.fill"
+        case .settingsSection(let section):
+            section.symbol
+        case .minigames:
+            "wrench.and.screwdriver.fill"
+        case .chipFilter:
+            "line.3.horizontal.decrease.circle.fill"
+        case .wsetQuiz:
+            "graduationcap.fill"
+        case .dailyChallenge:
+            "calendar"
+        case .passport:
+            "book.closed.fill"
+        case .walkthrough:
+            "figure.walk"
+        case .continent:
+            "globe.americas.fill"
+        }
+    }
+}
+
+public extension EntryCategory {
+    /// The category's marquee glyph — see `DexRoute.marqueeSymbol`.
+    var marqueeSymbol: String {
+        switch self {
+        case .grapes: "leaf.fill"
+        case .regions: "map.fill"
+        case .styles: "wineglass.fill"
+        case .flavors: "sparkles"
+        case .continents: "globe.americas.fill"
+        }
+    }
 }
 
 public extension WineEntry {
@@ -176,6 +240,18 @@ public extension WineEntry {
         case .flavor: "FLAVOR SCAN"
         case .style: "STYLE SCAN"
         case .continent: "CONTINENT SCAN"
+        }
+    }
+
+    /// Marquee glyph for the detail screen — the entry-level counterpart of
+    /// `scanTitle`, same reasoning as `DexRoute.marqueeSymbol`.
+    var scanSymbol: String {
+        switch self {
+        case .grape: EntryCategory.grapes.marqueeSymbol
+        case .region: EntryCategory.regions.marqueeSymbol
+        case .flavor: EntryCategory.flavors.marqueeSymbol
+        case .style: EntryCategory.styles.marqueeSymbol
+        case .continent: EntryCategory.continents.marqueeSymbol
         }
     }
 }

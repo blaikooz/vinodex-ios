@@ -6,7 +6,7 @@
 
 ### A wine encyclopedia that looks like a 90s handheld.
 
-**284 grapes, regions, styles and flavours** — colour-coded, cross-linked, and
+**282 grapes, regions, styles and flavours** — colour-coded, cross-linked, and
 wrapped in a plastic shell you can re-skin ten different ways.
 
 ### **[Build it → `xtool dev run`](#running-it)**
@@ -43,7 +43,7 @@ wrapped in a plastic shell you can re-skin ten different ways.
 | **The dex** | Grapes, regions, styles, flavours and continents. Every entry cross-links to the others, and every link resolves — the tests pin that. |
 | **Globe scan** | A drag-to-spin globe. Continent markers open a continent screen, then its countries, then their regions. Where you spun it to survives the trip into a region. |
 | **Scanner** | Colour, body, origin, flavours — then a deduction. Flavours are ANDed, capped at three, because a fourth specific note reliably matches nothing. |
-| **Filter search** | Narrow all 284 entries by colour, body, rarity and climate at once. Every chip shows the count it would produce *before* you tap it. |
+| **Filter search** | Narrow all 282 entries by colour, body, rarity and climate at once. Every chip shows the count it would produce *before* you tap it. |
 | **Tasting quiz** | Three tiers — NOVICE, ENTHUSIAST, SOMMELIER — each a ten-question round, 8/10 to pass, and a pass unlocks the next. Generated from the data, so a question can never contradict the entry behind it. |
 | **Daily challenge** | One five-question paper per day, the same paper for everyone, 4/5 to pass. Passing keeps the streak alive; there is no retry, because the retry would be the same paper. |
 | **Tried & Passport** | Mark grapes and styles TRIED (with a 1–5 rating and a one-line note) or WANT TO TRY. The passport turns the tried shelf into progress — n of 80 grapes, countries visited, milestone stamps. |

@@ -4,8 +4,9 @@
 Sources are the hand-drawn PNGs in the monorepo's shared/newicons. They ship
 on a near-white opaque ground, so this pass:
 
-  1. removes the background via the shared pass in art_common.py — border
-     flood plus enclosed-gap clearing, speculars preserved (0.5.6 item B);
+  1. removes the background via the shared pass in art_common.py — the
+     border-connected flood only, so interior/subject white survives
+     (0.5.7 item B2);
   2. palette-quantises (flat cel shading, so 256 colours is lossless in
      practice and the files drop to a fraction of the size);
   3. writes each as <stem>.png into Sources/VinodexUI/Resources/FlavorArt.
@@ -47,9 +48,9 @@ def source_dir():
 def source_file(src, stem):
     # Stems are the source basenames with spaces kebabed, so try both ways —
     # "orange-blossom" is a real hyphen, "red-apple" was "red apple.png".
-    # Wave 2 (0.5.4) arrives in a `1new/` subfolder; later waves can add
-    # their own drop folders here.
-    for folder in ("", "1new"):
+    # Wave 2 (0.5.4) arrives in a `1new/` subfolder; wave 3 (0.5.7) dropped
+    # its four portraits in with the taxonomy art in `classes/`.
+    for folder in ("", "1new", "classes"):
         for name in (stem + ".png", stem.replace("-", " ") + ".png"):
             path = os.path.join(src, folder, name)
             if os.path.exists(path):

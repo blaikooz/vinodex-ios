@@ -13,8 +13,10 @@ import VinodexCore
 public struct EntryVisual {
     public enum Well {
         case color(Color)
-        /// Country flag, optionally masked into that country's outline.
-        case flag(country: String, shapeIcon: String?)
+        /// Country flag, filling the well. The 0.5.6 shaped-flag treatment
+        /// (flag masked into an Iconify country outline) is gone — regions
+        /// carry the drawn outline art as their glyph instead (v0.5.7, B3).
+        case flag(country: String)
     }
 
     public var well: Well
@@ -149,46 +151,27 @@ public struct EntryVisual {
 
     // MARK: - Regions
     //
-    // The well *is* the country flag, ringed in the region's climate colour.
-    // Where a country outline glyph exists the flag is masked into that shape;
-    // otherwise it fills the well.
+    // The well *is* the country flag, ringed in the region's climate colour,
+    // with the country's drawn outline art on top (v0.5.7, B3). Both the
+    // borrowed key-grape glyph and the masked-flag outline treatment are gone
+    // — the outline art says "place" more plainly than either did.
 
     private static func regionVisual(_ r: RegionEntry, db: WineDatabase) -> EntryVisual {
         let origin = r.details.origin.isEmpty ? r.common.name : r.details.origin
-        let shape = db.icons.countryShapeIcons[TextNormalize.label(origin)]
-
-        // Tint follows the region's key grape when it resolves, else its
-        // appellation classification.
-        var tint = Color(
-            dexHex: db.palette.regionClassificationIconColors[r.details.classification] ?? "#e5e7eb"
-        )
-        if let keyGrape = r.details.notableGrapes.first,
-           let grape = db.entry(named: keyGrape, category: .grapes),
-           case .grape(let g) = grape {
-            tint = grapeVisual(g, db: db).iconColor
-        }
 
         let ring = r.climate.flatMap { db.palette.climates[$0.rawValue]?.colors.border }
 
-        // Regions had no glyph at all — a flag well and nothing on it, the only
-        // category rendering bare. The key grape's own glyph is the most
-        // telling thing available (Bordeaux reads as blackcurrant, Burgundy as
-        // cherry) and needs no new assets; climate is the fallback when the
-        // grape does not resolve, which is the other thing a region *is*.
-        var iconID: String?
-        if let keyGrape = r.details.notableGrapes.first,
-           let grape = db.entry(named: keyGrape, category: .grapes) {
-            iconID = db.iconID(for: grape)
-        }
-        if iconID == nil || iconID == db.icons.fallback {
-            iconID = db.icons.climateIcon(r.climate)
-        }
+        // The country-outline art, via the manifest's shape table — climate
+        // stays the fallback for any origin without one.
+        let iconID = db.icons.countryShapeIcons[TextNormalize.label(origin)]
+            ?? db.icons.climateIcon(r.climate)
 
         return EntryVisual(
-            well: .flag(country: origin, shapeIcon: shape),
+            well: .flag(country: origin),
             iconID: iconID,
-            iconColor: tint,
-            ringColor: ring.map { Color(dexHex: $0) }
+            iconColor: .white,
+            ringColor: ring.map { Color(dexHex: $0) },
+            iconScale: 0.78
         )
     }
 
@@ -216,7 +199,7 @@ public struct EntryVisual {
 
         if hasRealOrigin {
             return EntryVisual(
-                well: .flag(country: origin, shapeIcon: nil),
+                well: .flag(country: origin),
                 iconID: iconID,
                 iconColor: tint,
                 ringColor: .white,
@@ -307,7 +290,15 @@ public final class EntryVisualCache {
 public final class PixelArtLoader {
     public static let shared = PixelArtLoader()
 
-    private static let subdirectories = ["Resources/FlavorArt", "Resources/GrapeArt", "Resources/StyleArt"]
+    private static let subdirectories = [
+        "Resources/FlavorArt",
+        "Resources/GrapeArt",
+        "Resources/StyleArt",
+        // Taxonomy + outline art (v0.5.7): classes, subclasses, colour, body,
+        // climate, soils, style classes and country outlines, reached through
+        // `art:` icon ids — see `DexIcon`.
+        "Resources/ClassArt",
+    ]
 
     private var cache: [String: UIImage?] = [:]
 
@@ -407,20 +398,8 @@ public struct EntryIconWell: View {
         switch v.well {
         case .color(let color):
             color
-        case .flag(let country, let shapeIcon):
-            if let shapeIcon {
-                // Flag masked into the country's outline, over a blurred copy —
-                // the shaped-flag treatment from the web app. One `FlagImage`
-                // reused via `background`, not two: the same flag was previously
-                // constructed twice here.
-                FlagImage(country: country)
-                    .mask(DexIcon(iconID: shapeIcon, size: size * 0.86, color: .white, outlined: false))
-                    .background {
-                        FlagImage(country: country).opacity(0.25).blur(radius: 2)
-                    }
-            } else {
-                FlagImage(country: country)
-            }
+        case .flag(let country):
+            FlagImage(country: country)
         }
     }
 }

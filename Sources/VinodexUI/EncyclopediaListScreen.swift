@@ -76,14 +76,41 @@ public struct EncyclopediaListScreen: View {
     /// re-render re-filtered and re-sorted all 284 entries — which is why
     /// master search, the one screen with every category selected, was slow to
     /// appear. `task(id:)` runs it once per query instead.
-    @State private var results: [WineEntry] = []
-    @State private var countryResults: [String] = []
+    @State private var rows: [SearchRow] = []
+
+    /// One list, two kinds of row. Countries used to lead as a block, which
+    /// read as a separate screen bolted on top — merged into name order they
+    /// are just results (v0.5.7).
+    private enum SearchRow: Identifiable {
+        case entry(WineEntry)
+        case country(String)
+
+        var id: String {
+            switch self {
+            case .entry(let entry): entry.id
+            // Prefixed so it can never collide with an entry id.
+            case .country(let name): "__country__\(name)"
+            }
+        }
+
+        var sortName: String {
+            switch self {
+            case .entry(let entry): entry.name
+            case .country(let name): name
+            }
+        }
+    }
 
     private func recompute() {
-        results = db.entries.apply(
+        let entries = db.entries.apply(
             EntryQuery(categories: categories, filter: filter, search: search)
-        )
-        countryResults = showsCountries ? db.countries(matching: search) : []
+        ).map(SearchRow.entry)
+        let countries = showsCountries
+            ? db.countries(matching: search).map(SearchRow.country)
+            : []
+        rows = (entries + countries).sorted {
+            $0.sortName.localizedCaseInsensitiveCompare($1.sortName) == .orderedAscending
+        }
     }
 
     /// `task(id:)` alone covers first appearance. The `onAppear` that used to sit
@@ -122,23 +149,21 @@ public struct EncyclopediaListScreen: View {
                                 .id(Self.searchBarAnchor)
                         }
 
-                        if results.isEmpty && countryResults.isEmpty {
+                        if rows.isEmpty {
                             emptyState
                         } else {
-                            // Countries lead: there are at most a couple of
-                            // dozen, they answer place-shaped queries, and a
-                            // country buried under 200 entries is a country
-                            // nobody finds.
-                            ForEach(countryResults, id: \.self) { country in
-                                countryRow(country)
-                            }
-                            ForEach(results) { entry in
-                                EntryTileView(
-                                    entry: entry,
-                                    palette: db.palette,
-                                    locked: access.isLocked(entry, in: db)
-                                ) {
-                                    onSelect(entry)
+                            ForEach(rows) { row in
+                                switch row {
+                                case .country(let country):
+                                    countryRow(country)
+                                case .entry(let entry):
+                                    EntryTileView(
+                                        entry: entry,
+                                        palette: db.palette,
+                                        locked: access.isLocked(entry, in: db)
+                                    ) {
+                                        onSelect(entry)
+                                    }
                                 }
                             }
                         }
@@ -193,16 +218,24 @@ public struct EncyclopediaListScreen: View {
         DexSearchBar(text: searchBinding)
     }
 
-    /// A country result: flag, name, kind chip — the same shape the saved
-    /// screen's place rows use, so a country looks like a country everywhere.
+    /// A country result, in the entry-tile shape — same well size, spacing,
+    /// chevron and minimum height as `EntryTileView`, so a country reads as
+    /// one more row in the results rather than a different kind of thing.
     private func countryRow(_ name: String) -> some View {
         Button {
             Haptics.select()
             onSelectCountry(name)
         } label: {
             HStack(spacing: 12) {
-                FlagSwatch(country: name, width: 60, height: 38)
-                VStack(alignment: .leading, spacing: 5) {
+                // The flag filling the same 48pt well the entry rows use.
+                FlagImage(country: name)
+                    .frame(width: 48, height: 48)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .strokeBorder(.black.opacity(0.25), lineWidth: 1)
+                    )
+                VStack(alignment: .leading, spacing: 6) {
                     Text(name.uppercased())
                         .font(DexFont.retro(13))
                         .foregroundStyle(lcd.text)
@@ -213,13 +246,13 @@ public struct EncyclopediaListScreen: View {
                         chip: Palette.Chip(bg: "#1c1917", border: "#57534e", text: "#e7e5e4")
                     )
                 }
-                Spacer(minLength: 4)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(lcd.subtext)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(Dex.stone600)
             }
             .padding(8)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(minHeight: 72)
             .background(lcd.surface)
             .overlay(
                 RoundedRectangle(cornerRadius: 4)

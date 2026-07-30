@@ -59,6 +59,7 @@ struct RootView: View {
     var body: some View {
         DeviceChassis(
             title: currentTitle,
+            marqueeSymbol: currentMarqueeSymbol,
             showsBack: !path.isEmpty,
             onBack: path.isEmpty ? nil : { goBack() },
             onHome: { goHome() },
@@ -116,6 +117,17 @@ struct RootView: View {
             return entry.scanTitle
         }
         return route.title
+    }
+
+    /// The glyph between the marquee's repetitions — resolved the same way
+    /// `currentTitle` is, so the pair can never disagree about which page
+    /// they describe. Nil on the main screen: the chassis supplies its own.
+    private var currentMarqueeSymbol: String? {
+        guard let route = path.last else { return nil }
+        if case .detail(let id) = route, let entry = db.entry(id: id) {
+            return entry.scanSymbol
+        }
+        return route.marqueeSymbol
     }
 
     @ViewBuilder

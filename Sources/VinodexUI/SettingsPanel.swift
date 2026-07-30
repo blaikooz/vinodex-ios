@@ -593,6 +593,9 @@ public struct SettingsSectionPanel: View {
                                         .font(.system(size: 17, weight: .semibold))
                                         .foregroundStyle(option.accent.pale)
                                         .shadow(color: .black.opacity(0.55), radius: 0, x: 1, y: 1)
+                                        // Centred in the deck, not the tile —
+                                        // the bottom 14pt is the panel strip.
+                                        .offset(y: -7)
                                 }
                                 .overlay(alignment: .bottom) {
                                     Rectangle()
