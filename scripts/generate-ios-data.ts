@@ -1,7 +1,7 @@
 /**
  * Generates the iOS app's bundled data from the shared data + colour tables.
  *
- * Emits five files into the VinodexCore resource directory:
+ * Emits six files into the VinodexCore resource directory:
  *   entries.json   — the WineEntry set for the current selection
  *   tiers.json     — which entry ids the free tier unlocks
  *   palette.json   — the full colour tables, materialised by probing the
@@ -10,8 +10,10 @@
  *   countries.json — authored INFO prose for the country pages, which are
  *                    assembled from region fields and so have no entry of
  *                    their own to carry a description
+ *   schema.json    — the SCHEMA_VERSION stamp, asserted at load on the Swift
+ *                    side (0.6.3, item 1 — AUDIT M3)
  *
- * All five are committed so a Swift build never needs Node. Scaling the starter
+ * All six are committed so a Swift build never needs Node. Scaling the starter
  * to the full database is a matter of setting STARTER_SELECTION to `undefined`.
  *
  * Everything this reads lives under `shared/`, a sibling of `scripts/` in this
@@ -1036,12 +1038,16 @@ function omitKeys<T>(value: T, keys: string[]): T {
   return value;
 }
 
-// AUDIT M3 — generator-side decode smoke test. The Swift Codable structs decode
-// all-or-nothing, so a TS rename that drops a required key ships as a whole-app
-// decode failure with no earlier signal. This re-reads what was just written and
-// asserts the shape the Swift structs require (non-optional keys only), failing
-// the generate step — and therefore CI — before the drift ever reaches a device.
-// The matching schemaVersion-asserted-at-load lives on the Swift side (held).
+// AUDIT M3 — generator-side decode smoke test. The Swift Codable structs used to
+// decode all-or-nothing (entries are element-wise since 0.6.3), so a TS rename
+// that drops a required key shipped as a whole-app decode failure with no earlier
+// signal. This re-reads what was just written and asserts the shape the Swift
+// structs require (non-optional keys only), failing the generate step — and
+// therefore CI — before the drift ever reaches a device. The matching
+// schemaVersion-asserted-at-load is `WineDatabase.expectedSchemaVersion`
+// (0.6.3, item 1); bump BOTH constants together when the emitted shape changes
+// incompatibly.
+const SCHEMA_VERSION = 1;
 const ENTRY_CATEGORIES = new Set(['GRAPES', 'REGIONS', 'STYLES', 'FLAVORS', 'CONTINENTS']);
 const PALETTE_REQUIRED = [
   'countryChips', 'classificationChips', 'wineTypeChips', 'rarityChips', 'colorTypeChips',
@@ -1094,6 +1100,11 @@ function validateOutputs(dir: string): void {
   const countries = read('countries.json');
   if (!countries || typeof countries !== 'object') {
     problems.push('countries.json is not an object');
+  }
+
+  const schema = read('schema.json');
+  if (!has(schema, 'schemaVersion') || (schema as { schemaVersion?: unknown }).schemaVersion !== SCHEMA_VERSION) {
+    problems.push(`schema.json missing/wrong schemaVersion (expected ${SCHEMA_VERSION})`);
   }
 
   if (problems.length > 0) {
@@ -1161,6 +1172,7 @@ function main() {
   writeFileSync(resolve(OUT_DIR, 'palette.json'), serialize(leanPalette));
   writeFileSync(resolve(OUT_DIR, 'icons.json'), serialize(icons));
   writeFileSync(resolve(OUT_DIR, 'countries.json'), serialize(countries));
+  writeFileSync(resolve(OUT_DIR, 'schema.json'), serialize({ schemaVersion: SCHEMA_VERSION }));
 
   // AUDIT M3 — fail loudly here (and in CI) if the emitted JSON would not decode.
   validateOutputs(OUT_DIR);

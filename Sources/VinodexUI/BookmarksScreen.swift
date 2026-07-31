@@ -25,6 +25,9 @@ public struct BookmarksScreen: View {
     let onPassport: () -> Void
 
     @State private var bookmarks = BookmarkStore.shared
+    /// The recent trail (0.6.3, item 3) — read-only here; the entry screen
+    /// writes it.
+    @State private var recents = RecentlyViewedStore.shared
     @State private var confirmingClear = false
     @State private var pendingDelete: SavedItem?
     /// The tried entry whose rating is being edited, driving a `RatingPrompt`
@@ -106,6 +109,15 @@ public struct BookmarksScreen: View {
                     // between them, so an anchor pointing here means "the top".
                     VStack(alignment: .leading, spacing: 8) {
                         profileSection
+
+                        // Between the profile and the shelves: recents are
+                        // *yours* but not *kept* — a trail, not a shelf — so
+                        // they sit above the deliberate lists without joining
+                        // them. Hidden entirely when empty; an empty state for
+                        // a passive record would be a nag. (0.6.3, item 3)
+                        if !recents.isEmpty {
+                            recentStrip
+                        }
 
                         shelfPicker
 
@@ -273,6 +285,50 @@ public struct BookmarksScreen: View {
         .padding(.top, 6)
         .padding(.bottom, 5)
         .overlay(alignment: .bottom) { lcd.accent.opacity(0.45).frame(height: 2) }
+    }
+
+    /// The recently-viewed trail: a horizontal strip of icon wells, newest
+    /// first. Wells rather than full tiles because this is a scent trail, not
+    /// a list — a tap reopens the entry (through the same access gate as any
+    /// other row), and the full tile treatment belongs to things deliberately
+    /// shelved. Stale ids are already dropped by `entries(in:)`.
+    private var recentStrip: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("RECENTLY VIEWED")
+                .font(DexFont.retro(11))
+                .tracking(2)
+                .foregroundStyle(lcd.subtext)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: 10) {
+                    ForEach(recents.entries(in: db)) { entry in
+                        Button {
+                            Haptics.select()
+                            onSelect(entry)
+                        } label: {
+                            VStack(spacing: 4) {
+                                EntryIconWell(entry: entry, size: 56, cornerRadius: 8)
+                                Text(entry.name.uppercased())
+                                    .font(DexFont.retro(8))
+                                    .foregroundStyle(lcd.subtext)
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                                    .frame(width: 64)
+                            }
+                        }
+                        .buttonStyle(DexPressStyle(scale: 0.95))
+                        .accessibilityLabel("Recently viewed: \(entry.name)")
+                    }
+                }
+            }
+        }
+        .padding(12)
+        .background(lcd.surface)
+        .overlay(
+            RoundedRectangle(cornerRadius: 4)
+                .strokeBorder(lcd.surfaceEdge, lineWidth: 2)
+        )
+        .padding(.bottom, 2)
     }
 
     /// Who you are. Placed above the shelves because it is the part that

@@ -288,7 +288,7 @@ public struct SettingsSectionPanel: View {
             } else if confirmingWipe {
                 DexAlert(
                     title: "CLEAR SAVED DATA?",
-                    message: "Everything stored on this device — bookmarks, tastings and ratings, quiz progress, streak, profile, purchases and appearance — goes back to a fresh install. This cannot be undone.",
+                    message: "Everything stored on this device — bookmarks, recents, tastings and ratings, quiz progress, streak, profile, purchases and appearance — goes back to a fresh install. This cannot be undone.",
                     confirmLabel: "ERASE",
                     onConfirm: {
                         confirmingWipe = false
@@ -1226,6 +1226,7 @@ private func dataWaveValue(at f: Double, in points: [Int]) -> Double {
 enum SavedDataReset {
     static func wipeAll() {
         BookmarkStore.shared.removeEverything()
+        RecentlyViewedStore.shared.clear()
         RevealCursor.shared.reset()
         AccessStore.shared.clearAll()
         AvatarStore.shared.clear()

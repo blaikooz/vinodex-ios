@@ -20,6 +20,12 @@ struct RootView: View {
     @State private var path: [DexRoute] = []
     /// Set when a locked entry is tapped; drives the upgrade prompt.
     @State private var lockedAttempt: WineEntry?
+    /// Raised once per launch when the database reported load errors (0.6.3,
+    /// item 1 — AUDIT H2). Seeded here rather than checked in `body` so
+    /// dismissing it sticks: the errors themselves are immutable for the life
+    /// of the process, and re-raising a permanent condition on every render
+    /// would make the alert un-dismissable. Detail stays in the DEV panel.
+    @State private var showingDataAlert = !WineDatabase.shared.decodeErrors.isEmpty
     @State private var access = AccessStore.shared
     /// DexFont and DexMetrics read their scales from defaults, which SwiftUI
     /// cannot observe. Keying the chassis on both forces a rebuild so a
@@ -94,8 +100,25 @@ struct RootView: View {
                         onCancel: { lockedAttempt = nil }
                     )
                 }
+
+                // The data-health notice, above everything else in the LCD: a
+                // partially (or wholly) missing database changes what every
+                // other screen means, so it cannot wait to be discovered via
+                // an oddly short list. One button — this is a notice, not a
+                // choice. (0.6.3, item 1 — AUDIT H2)
+                if showingDataAlert {
+                    DexAlert(
+                        title: "DATA LOAD ERROR",
+                        message: dataAlertMessage,
+                        confirmLabel: "OK",
+                        cancelLabel: nil,
+                        onConfirm: { showingDataAlert = false },
+                        onCancel: { showingDataAlert = false }
+                    )
+                }
             }
             .animation(.easeOut(duration: 0.15), value: lockedAttempt?.id)
+            .animation(.easeOut(duration: 0.15), value: showingDataAlert)
         }
         .id(scaleRaw + "|" + uiScaleRaw)
         .preferredColorScheme(.dark)
@@ -110,6 +133,16 @@ struct RootView: View {
         // The system panel (settings, diagnostics, catalog) is owned by
         // DeviceChassis so it can be confined to the LCD; the app module no
         // longer presents it.
+    }
+
+    /// Counts, not the raw error strings — those are developer diagnostics
+    /// (decode paths, type names) and belong in the DEV panel this points to.
+    private var dataAlertMessage: String {
+        let failures = db.decodeErrors.count
+        if db.entries.isEmpty {
+            return "The wine database failed to load. See SETTINGS > DEV for details."
+        }
+        return "\(failures) problem\(failures == 1 ? "" : "s") loading the wine database — some entries may be missing. See SETTINGS > DEV for details."
     }
 
     private var currentTitle: String {
