@@ -817,6 +817,44 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// The globe screen's sphere tint per *screen mode* (0.6.4, F1 — the redo).
+    ///
+    /// 0.6.2's F1 keyed the tint on `ChassisSkin`, but the modes the user
+    /// switches between on the LCD are `LcdMode`s — so flipping L-WINES or
+    /// VINOFD on left the globe unchanged, which is why the feature read as
+    /// not having gone through. The mode now owns the colour; DARK alone
+    /// returns nil and defers to the skin's tint, keeping the per-skin
+    /// behaviour as the default mode's flavour rather than losing it.
+    ///
+    /// Pale on purpose, like the skin table: the tint multiplies over the map
+    /// texture, and a saturated dark would swallow the coastlines. The
+    /// monochrome modes still pass through the chassis grayscale-and-tint, so
+    /// their values only need the right luminance.
+    public var globeTint: Color? {
+        switch self {
+        case .dark: nil
+        // LIGHT inverts the texture instead (see `invertsGlobeTexture`); the
+        // tint stays neutral so the inversion reads clean.
+        case .light: Color.white
+        case .vintage: Color(dexHex: "#C6CFB2")
+        case .amber: Color(dexHex: "#FFD27A")
+        case .wineOS: Color(dexHex: "#C2D2EC")
+        case .terminal: Color(dexHex: "#A8FFA8")
+        // VINOFD: the vacuum-fluorescent light blue.
+        case .blueScreen: Color(dexHex: "#A6DBFF")
+        // L-WINES: the console's accent purple.
+        case .starTrek: Color(dexHex: "#C983E8")
+        case .gruenerBoy: Color(dexHex: "#C2CE9A")
+        }
+    }
+
+    /// LIGHT mode's globe is the *inverted-colour* globe (0.6.4, F1): the map
+    /// texture runs through a colour inversion before it reaches the sphere,
+    /// so dark oceans become paper and the globe reads as printed rather than
+    /// glowing. Only LIGHT — the other pale modes keep the normal texture
+    /// under their own tints.
+    public var invertsGlobeTexture: Bool { self == .light }
+
     public static var current: LcdMode {
         LcdMode(rawValue: UserDefaults.standard.string(forKey: storageKey) ?? "") ?? .dark
     }

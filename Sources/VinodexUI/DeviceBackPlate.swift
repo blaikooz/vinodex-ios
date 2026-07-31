@@ -21,6 +21,10 @@ public struct DeviceBackPlate: View {
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
     private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
 
+    /// The stamp whose info sheet is open (0.6.4, F2) — tapping a stamp is
+    /// the one interaction the plate has beyond the flip.
+    @State private var openStamp: BackPlateStamp?
+
     public init() {}
 
     public var body: some View {
@@ -55,14 +59,39 @@ public struct DeviceBackPlate: View {
                 .padding(.trailing, 34)
                 .padding(.top, 104)
                 .allowsHitTesting(false)
-            // Passport stamps (0.6.2, F2 — replacing the 0.5.6 skin badge):
-            // each stamp earned in the Passport inks itself somewhere on the
-            // plate, so the underside accumulates a travel record. Rendered
-            // in the barcode sticker's fiction — worn ink on a handled
-            // surface, not UI chrome.
-            stampField
+
+            // The skin's own aged sticker (0.6.4, F3) — the per-skin artifact
+            // the 0.6.2 stamp field displaced, back in the plate's fiction:
+            // something a previous owner stuck on. One per skin, so swapping
+            // shells swaps the sticker with it.
+            SkinStickerView(skin: skin)
+                .rotationEffect(.degrees(-7))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(.leading, 36)
+                .padding(.top, 190)
                 .allowsHitTesting(false)
+
+            // Postage stamps (0.6.4, F2 — the redo of 0.6.2's rubber-ink
+            // blocks): each Passport unlock sticks another paper stamp
+            // somewhere else on the plate, and tapping one opens its story.
+            // Hit-testable on purpose, unlike every other leaving — the
+            // stamps are the plate's collection, and the info tap is F2's
+            // point.
+            stampField
         }
+        .overlay {
+            if let stamp = openStamp {
+                DexAlert(
+                    title: stamp.title,
+                    message: stamp.info,
+                    confirmLabel: "OK",
+                    cancelLabel: nil,
+                    onConfirm: { openStamp = nil },
+                    onCancel: { openStamp = nil }
+                )
+            }
+        }
+        .animation(.easeOut(duration: 0.15), value: openStamp)
         // A dark edge all the way round. Without it the plate's pale metal ran
         // straight into the chassis behind it and the underside read as a
         // lighting change rather than as a separate part that has been turned
@@ -77,10 +106,11 @@ public struct DeviceBackPlate: View {
         .accessibilityLabel("Device back plate. Swipe to return.")
     }
 
-    /// One ink stamp per earned Passport badge, each in its own fixed spot —
+    /// One paper stamp per earned Passport badge, each in its own fixed spot —
     /// "somewhere else on the back plate" that stays put between launches.
     /// Recomputed on each flip; `Passport.compute` is cheap and the plate is
-    /// rebuilt on flip anyway.
+    /// rebuilt on flip anyway. What renders in the slot is data-driven
+    /// (`StampCatalog`) — the slot table below only says *where*.
     private var stampField: some View {
         let passport = Passport.compute(
             tried: BookmarkStore.shared.ids(on: .tried),
@@ -89,16 +119,23 @@ public struct DeviceBackPlate: View {
             highestTier: QuizProgress.shared.highestUnlocked
         )
         return ZStack {
-            ForEach(passport.badges.filter(\.earned)) { badge in
-                let slot = Self.stampSlots[badge.id]
-                    ?? StampSlot(alignment: .center, dx: 0, dy: 0, rotation: 0, ink: "#A63838")
-                PassportStamp(title: badge.title, ink: Color(dexHex: slot.ink))
-                    .rotationEffect(.degrees(slot.rotation))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: slot.alignment)
-                    .padding(.leading, slot.dx > 0 ? slot.dx : 0)
-                    .padding(.trailing, slot.dx < 0 ? -slot.dx : 0)
-                    .padding(.top, slot.dy > 0 ? slot.dy : 0)
-                    .padding(.bottom, slot.dy < 0 ? -slot.dy : 0)
+            ForEach(StampCatalog.unlocked(from: passport)) { stamp in
+                let slot = Self.stampSlots[stamp.id]
+                    ?? StampSlot(alignment: .center, dx: 0, dy: 0, rotation: 0)
+                Button {
+                    Haptics.select()
+                    openStamp = stamp
+                } label: {
+                    BackPlateStampView(stamp: stamp)
+                        .rotationEffect(.degrees(slot.rotation))
+                }
+                .buttonStyle(DexPressStyle(scale: 0.95))
+                .accessibilityLabel("\(stamp.title) stamp. Opens its story.")
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: slot.alignment)
+                .padding(.leading, slot.dx > 0 ? slot.dx : 0)
+                .padding(.trailing, slot.dx < 0 ? -slot.dx : 0)
+                .padding(.top, slot.dy > 0 ? slot.dy : 0)
+                .padding(.bottom, slot.dy < 0 ? -slot.dy : 0)
             }
         }
     }
@@ -110,19 +147,19 @@ public struct DeviceBackPlate: View {
         /// Positive = from top, negative = from bottom.
         let dy: CGFloat
         let rotation: Double
-        let ink: String
     }
 
-    /// Fixed home per badge, scattered clear of the engraving block, the
-    /// screws, the barcode (bottom-leading) and the price tag (top-trailing).
-    /// Stamp-pad inks, one colour per office.
+    /// Fixed home per stamp, scattered clear of the engraving block, the
+    /// screws, the barcode (bottom-leading), the price tag (top-trailing)
+    /// and the skin sticker (leading, above the barcode). Colours moved into
+    /// `StampCatalog` with the rest of the stamp's identity (0.6.4, F2).
     private static let stampSlots: [String: StampSlot] = [
-        "firstSip": StampSlot(alignment: .topLeading, dx: 34, dy: 128, rotation: -12, ink: "#A63838"),
-        "tenBottles": StampSlot(alignment: .topTrailing, dx: -38, dy: 196, rotation: 8, ink: "#33518F"),
-        "allNoble": StampSlot(alignment: .bottomTrailing, dx: -34, dy: -168, rotation: -7, ink: "#6E4F8F"),
-        "regionComplete": StampSlot(alignment: .bottomLeading, dx: 40, dy: -224, rotation: 10, ink: "#2F6E4F"),
-        "streakWeek": StampSlot(alignment: .bottomTrailing, dx: -128, dy: -96, rotation: -15, ink: "#8F5A33"),
-        "sommelier": StampSlot(alignment: .topLeading, dx: 128, dy: 168, rotation: 5, ink: "#2F6E6E"),
+        "firstSip": StampSlot(alignment: .topLeading, dx: 34, dy: 96, rotation: -12),
+        "tenBottles": StampSlot(alignment: .topTrailing, dx: -38, dy: 208, rotation: 8),
+        "allNoble": StampSlot(alignment: .bottomTrailing, dx: -34, dy: -168, rotation: -7),
+        "regionComplete": StampSlot(alignment: .bottomLeading, dx: 46, dy: -230, rotation: 10),
+        "streakWeek": StampSlot(alignment: .bottomTrailing, dx: -128, dy: -84, rotation: -15),
+        "sommelier": StampSlot(alignment: .topLeading, dx: 132, dy: 150, rotation: 5),
     ]
 
     private var metal: some View {
@@ -389,55 +426,6 @@ private struct BarcodeSticker: View {
         // text inks composite against the opaque label stock, so the sun-faded
         // look survives while the sticker itself stays solid.
         .shadow(color: .black.opacity(0.25), radius: 1, y: 1)
-    }
-}
-
-/// A stylised passport stamp (0.6.2, F2): worn stamp-pad ink, a double
-/// border, the badge's name as the issuing office. Like the barcode sticker,
-/// it is decoration that has *happened to* the device — slightly uneven
-/// opacity so the ink reads pressed, not printed.
-private struct PassportStamp: View {
-    let title: String
-    let ink: Color
-
-    var body: some View {
-        VStack(spacing: 3) {
-            Text("· VINODEX PASSPORT ·")
-                .font(DexFont.mono(10))
-                .tracking(1.5)
-            Rectangle()
-                .frame(height: 1.5)
-                .padding(.horizontal, 2)
-                .opacity(0.7)
-            Text(title)
-                .font(DexFont.retro(10))
-                .tracking(1)
-                .lineLimit(2)
-                .multilineTextAlignment(.center)
-            Text("★ ADMITTED ★")
-                .font(DexFont.mono(9))
-                .tracking(2)
-                .opacity(0.85)
-        }
-        .foregroundStyle(ink)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(ink, lineWidth: 2.5))
-        .overlay(
-            RoundedRectangle(cornerRadius: 5)
-                .strokeBorder(ink.opacity(0.65), lineWidth: 1)
-                .padding(3.5)
-        )
-        // The press: heavier at one corner, thinner at the other, like a
-        // stamp that met the plate at a slight angle.
-        .opacity(0.85)
-        .mask(
-            LinearGradient(
-                colors: [.black, .black.opacity(0.72)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
     }
 }
 

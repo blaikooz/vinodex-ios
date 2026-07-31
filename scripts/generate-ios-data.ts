@@ -662,7 +662,10 @@ const STYLE_ART: Record<string, string> = {
   'chillable red': 'freshchillablered',
   'full-body red': 'fullbodyred',
   'full-body white': 'fullbodywhite',
-  'gsm blend': 'gsmblend',
+  // GSM Blend deliberately has NO portrait (0.6.4, D1). The 0.6.2 swap to the
+  // BLEND class glyph landed in `byEntry` but was invisible: `EntryIconWell`
+  // draws `artName` over `iconID`, so the portrait covered the glyph
+  // everywhere. Dropping the portrait is what makes the swap actually render.
   'ice wine': 'icewine',
   'late harvest': 'lateharvest',
   'light-body red': 'chillablered',
@@ -850,6 +853,11 @@ function buildIconManifest(entries: readonly WineEntry[]) {
         ...Object.values(shapeIcons),
         ...Object.values(SOIL_ICONS).map((v) => v.icon),
         'game-icons:fluffy-cloud', // climate fallback
+        // The GODFORSAKEN rarity emblem (0.6.4, D3) — the entry screen's
+        // rarity readout wears a skull instead of the 0.6.2 flame. Referenced
+        // by id from Swift (EntryDetailScreen), listed here so the rasteriser
+        // ships it.
+        'game-icons:death-skull',
         FALLBACK_ICON,
       ].filter((id) => !id.startsWith('art:')),
     ),

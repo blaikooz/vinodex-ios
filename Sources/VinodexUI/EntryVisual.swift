@@ -304,6 +304,10 @@ public final class PixelArtLoader {
         // climate, soils, style classes and country outlines, reached through
         // `art:` icon ids — see `DexIcon`.
         "Resources/ClassArt",
+        // Back-plate stamp and sticker glyphs (0.6.4, F2/F3), imported from
+        // art/icons/stamps/ — the directory ships empty-of-art until the
+        // glyphs are authored; a miss falls through to the SF stand-ins.
+        "Resources/StampArt",
     ]
 
     private var cache: [String: UIImage?] = [:]

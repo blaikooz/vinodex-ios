@@ -1,4 +1,5 @@
 #if canImport(SwiftUI) && canImport(UIKit)
+import CoreImage
 import SwiftUI
 import SceneKit
 import UIKit
@@ -25,9 +26,15 @@ public struct RetroGlobeScreen: View {
     @State private var model = GlobeModel()
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
-    /// The globe wears the chassis skin's own colour (0.6.2, F1).
+    /// The skin's tint is the DARK-mode fallback (0.6.2, F1); every other
+    /// screen mode brings its own globe colour (0.6.4, F1) — see
+    /// `LcdMode.globeTint` for why the mode outranks the skin here.
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
     private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
+
+    /// Mode first, skin as the DARK fallback — the resolution 0.6.4 F1 exists
+    /// to establish.
+    private var globeTint: Color { lcd.globeTint ?? skin.globeTint }
 
 
     public init(
@@ -57,9 +64,14 @@ public struct RetroGlobeScreen: View {
                 }
 
                 ZStack {
-                    GlobeSceneView(model: model, isLight: lcd.isLight, tint: UIColor(skin.globeTint))
+                    GlobeSceneView(
+                        model: model,
+                        isLight: lcd.isLight,
+                        tint: UIColor(globeTint),
+                        invertsTexture: lcd.invertsGlobeTexture
+                    )
                         .gesture(dragGesture)
-                        // The scene's lighting, emission and skin tint are
+                        // The scene's lighting, emission and tint are
                         // baked in `buildScene`, which only runs in
                         // `makeUIView` — so a mode or skin switch has to
                         // rebuild the view to take effect. Keyed on both, it
@@ -169,13 +181,15 @@ struct GlobeSceneView: UIViewRepresentable {
     let model: GlobeModel
     var isLight: Bool
     var tint: UIColor
+    /// LIGHT mode's inverted-colour globe (0.6.4, F1).
+    var invertsTexture: Bool = false
 
     func makeUIView(context: Context) -> SCNView {
         let view = SCNView()
         view.backgroundColor = .clear
         view.antialiasingMode = .multisampling2X
         view.isUserInteractionEnabled = false   // gestures are handled in SwiftUI
-        view.scene = model.buildScene(isLight: isLight, tint: tint)
+        view.scene = model.buildScene(isLight: isLight, tint: tint, invertsTexture: invertsTexture)
         view.pointOfView = model.cameraNode
         model.attach(to: view)
         return view
@@ -276,7 +290,7 @@ final class GlobeModel {
     /// the wireframe — is a green CRT glow tuned against a black ground. Left
     /// alone on the light screen it read as a hole punched in the page, which
     /// is why the globe was the one screen the setting appeared not to touch.
-    func buildScene(isLight: Bool, tint: UIColor = .white) -> SCNScene {
+    func buildScene(isLight: Bool, tint: UIColor = .white, invertsTexture: Bool = false) -> SCNScene {
         let scene = SCNScene()
         scene.background.contents = UIColor.clear
 
@@ -287,7 +301,10 @@ final class GlobeModel {
         material.lightingModel = .physicallyBased
         if let url = DexResources.url(named: "updatedglobemap", ext: "jpg", subdirectory: "Resources/Maps"),
            let image = UIImage(contentsOfFile: url.path) {
-            material.diffuse.contents = image
+            // LIGHT mode's inverted-colour globe (0.6.4, F1). Done to the
+            // texture once at build rather than per frame — `buildScene` runs
+            // only from `makeUIView`, so the cost is one filter per rebuild.
+            material.diffuse.contents = invertsTexture ? Self.inverted(image) ?? image : image
         } else {
             material.diffuse.contents = UIColor(Dex.green)
         }
@@ -509,6 +526,21 @@ final class GlobeModel {
     func endDrag() {
         dragging = false
         lastTranslation = .zero
+    }
+
+    /// The map texture with its colours inverted (0.6.4, F1) — LIGHT mode's
+    /// globe. Core Image over a hand-rolled pixel loop for the obvious
+    /// reasons; a nil from any stage falls back to the original texture at
+    /// the call site rather than to a blank sphere.
+    private static func inverted(_ image: UIImage) -> UIImage? {
+        guard let input = CIImage(image: image),
+              let filter = CIFilter(name: "CIColorInvert")
+        else { return nil }
+        filter.setValue(input, forKey: kCIInputImageKey)
+        guard let output = filter.outputImage else { return nil }
+        let context = CIContext()
+        guard let cg = context.createCGImage(output, from: output.extent) else { return nil }
+        return UIImage(cgImage: cg)
     }
 
     /// Ported verbatim from the web app so markers land in the same places.

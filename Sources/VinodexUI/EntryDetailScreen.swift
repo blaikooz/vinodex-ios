@@ -460,10 +460,13 @@ public struct EntryDetailScreen: View {
         let chipData = chip((name ?? "N/A").uppercased(), .wineType, key: name ?? "")
         let resolved = db.palette.resolve(chipData)
         HStack(spacing: 10) {
+            // 56, up from 34 (0.6.4, D2): at row-icon size the bunch sprite
+            // read as a chip decoration; the bar is the region's headline
+            // fact, so its hero earns hero scale.
             if let keyGrapeEntry {
-                EntryIconWell(entry: keyGrapeEntry, size: 34, cornerRadius: 6)
+                EntryIconWell(entry: keyGrapeEntry, size: 56, cornerRadius: 8)
             } else {
-                DexIcon(iconID: db.icons.fallback, size: 30, color: Dex.stone600)
+                DexIcon(iconID: db.icons.fallback, size: 44, color: Dex.stone600)
             }
             VStack(alignment: .leading, spacing: 3) {
                 Text("KEY GRAPE")
@@ -517,28 +520,52 @@ public struct EntryDetailScreen: View {
     /// row look inert next to the coloured chips directly beneath it.
     /// `destination` makes the tile a cross-link. Nil leaves it inert rather
     /// than tappable-but-dead.
+    ///
+    /// Icon and label share **one** coloured chip (0.6.4, C1): the icon used
+    /// to float bare above a text-only `ChipView`, so each tile read as two
+    /// parts — a loose glyph and a pill. The glyph keeps its position, above
+    /// the text, but the chip's fill and border now wrap the pair.
     private func tile<C: View>(
         label: String,
         chip: TileChip,
         destination: DexRoute? = nil,
         @ViewBuilder icon: (Color) -> C
     ) -> some View {
-        let tint = Color(dexHex: db.palette.resolve(chip).text)
+        let resolved = db.palette.resolve(chip)
+        let tint = Color(dexHex: resolved.text)
         return VStack(spacing: 5) {
             Text(label)
                 .font(DexFont.retro(8))
                 .foregroundStyle(lcd.accent)
-            icon(tint)
-                .frame(height: 40)
-            // Wrap rather than shrink. `minimumScaleFactor` let each tile pick
-            // its own effective size, so the three sat at three different
-            // scales — the row read as inconsistent even though every label
-            // was nominally 11pt. Chip labels carry soft hyphens (see
-            // `EntryDisplay.hyphenated`), so even a single long word has
-            // somewhere legal to break, at any screen width.
-            ChipView(label: chip.label, chip: db.palette.resolve(chip))
-                .lineLimit(3)
-                .multilineTextAlignment(.center)
+            VStack(spacing: 6) {
+                icon(tint)
+                    .frame(height: 40)
+                // Wrap rather than shrink. `minimumScaleFactor` let each tile
+                // pick its own effective size, so the three sat at three
+                // different scales — the row read as inconsistent even though
+                // every label was nominally 11pt. Chip labels carry soft
+                // hyphens (see `EntryDisplay.hyphenated`), so even a single
+                // long word has somewhere legal to break, at any screen width.
+                Text(
+                    EntryDisplay.hyphenated(
+                        chip.label.replacingOccurrences(of: "_", with: " ").uppercased()
+                    )
+                )
+                    .font(DexFont.retro(11))
+                    .foregroundStyle(tint)
+                    .lineLimit(3)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 6).fill(Color(dexHex: resolved.bg))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .strokeBorder(Color(dexHex: resolved.border), lineWidth: 1)
+            )
         }
         .frame(maxWidth: .infinity, alignment: .top)
         .modifier(TileLink(destination: destination, onOpen: onOpenRoute))
@@ -743,13 +770,19 @@ public struct EntryDetailScreen: View {
                     // NOBLE is a crown on its own, not a crown capping three
                     // stars — the stars implied it was simply one rank above
                     // RARE rather than a different kind of thing. GODFORSAKEN
-                    // (0.6.2, A1) sits above even that: a cursed-gold flame,
-                    // because nobility is fame and this is the opposite.
+                    // (0.6.2, A1) sits above even that. Its emblem is a
+                    // cursed-gold skull (0.6.4, D3, was a flame) — a drawn
+                    // glyph via the icon pipeline, since SF Symbols carries no
+                    // skull at the iOS 17 target; the id ships in the
+                    // manifest's rasterisation list.
                     if g.rarity == .godforsaken {
-                        Image(systemName: "flame.fill")
-                            .font(.system(size: 26))
-                            .foregroundStyle(Color(dexHex: "#ca8a04"))
-                            .shadow(color: Color(dexHex: "#ca8a04").opacity(0.6), radius: 4)
+                        DexIcon(
+                            iconID: "game-icons:death-skull",
+                            size: 28,
+                            color: Color(dexHex: "#ca8a04"),
+                            outlined: false
+                        )
+                        .shadow(color: Color(dexHex: "#ca8a04").opacity(0.6), radius: 4)
                     } else if g.rarity == .noble {
                         Image(systemName: "crown.fill")
                             .font(.system(size: 26))

@@ -55,7 +55,11 @@ import Foundation
 public enum AppVersion {
     /// Bump with the batch. This is the single source of truth until the build
     /// stamps one into the bundle.
-    static let fallback = "0.6.3"
+    ///
+    /// 0.6.4: the spec was authored as "0.6.3", but that number shipped with
+    /// the robustness/audit batch and is already tagged — a version that names
+    /// two different builds names neither, so this batch takes the next patch.
+    static let fallback = "0.6.4"
 
     /// Versions no build deliberately chose.
     ///

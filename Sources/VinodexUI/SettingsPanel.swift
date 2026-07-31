@@ -132,8 +132,10 @@ public struct SettingsPanel: View {
         }
         return switch title {
         case "TUTORIAL": ("#22C55E", "#15803D", .white)
-        // Yellow takes a dark ink, like the main menu's search button.
-        case "TOOLS": ("#FACC15", "#CA8A04", Dex.amber900)
+        // White ink like every other tile (0.6.4, E1) — the dark-amber ink
+        // made TOOLS the odd one out on the grid. The face deepens a step so
+        // white still clears it, rather than sitting white-on-yellow.
+        case "TOOLS": ("#EAB308", "#A16207", .white)
         case "CUSTOMIZE": ("#EF4444", "#991B1B", .white)
         case "SETTINGS": ("#F97316", "#9A3412", .white)
         case "DATA": ("#2AB5FF", "#136A99", .white)
@@ -251,30 +253,8 @@ public struct SettingsSectionPanel: View {
     }
 
     public var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                switch section {
-                case .customization: customization
-                case .settings: systemSettings
-                case .data: dataReadout
-                case .access: paywallTesting
-                case .dev: dev
-                }
-            }
-            // Pairs with `scrollPosition(id:)` — without it nothing in this
-            // column is addressable and the anchor is ignored. Every branch
-            // above emits `settingsSection`s as direct children, which is what
-            // makes them the scroll targets; each carries its own title as its
-            // id, so an anchor names a heading rather than an offset.
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .scrollTargetLayout()
-        }
-        // Content margins rather than padding around the target layout — see
-        // the note in `EncyclopediaListScreen`.
-        .contentMargins(12, for: .scrollContent)
-        .scrollPosition(id: anchorBinding)
-        .scrollDismissesKeyboard(.interactively)
-        .background(lcd.panelGround)
+        panelContent
+            .background(lcd.panelGround)
         .overlay {
             if let lockedBundle {
                 UpgradePrompt(
@@ -300,6 +280,46 @@ public struct SettingsSectionPanel: View {
         }
         .animation(.easeOut(duration: 0.15), value: lockedBundle)
         .animation(.easeOut(duration: 0.15), value: confirmingWipe)
+    }
+
+    /// DATA is a fixed page (0.6.4, C2) — everything else scrolls.
+    ///
+    /// The readout is three short blocks and was the only panel whose scroll
+    /// existed purely because the growth graph sat at a fixed 96pt with dead
+    /// space beneath it. The graph absorbs the leftover height instead, so
+    /// the page fits the LCD exactly and the scroll machinery (and its
+    /// anchor restoration) has nothing left to do here.
+    @ViewBuilder
+    private var panelContent: some View {
+        if section == .data {
+            dataReadout
+        } else {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    switch section {
+                    case .customization: customization
+                    case .settings: systemSettings
+                    // Handled by the fixed branch above; unreachable here,
+                    // kept so the switch stays exhaustive.
+                    case .data: EmptyView()
+                    case .access: paywallTesting
+                    case .dev: dev
+                    }
+                }
+                // Pairs with `scrollPosition(id:)` — without it nothing in this
+                // column is addressable and the anchor is ignored. Every branch
+                // above emits `settingsSection`s as direct children, which is what
+                // makes them the scroll targets; each carries its own title as its
+                // id, so an anchor names a heading rather than an offset.
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .scrollTargetLayout()
+            }
+            // Content margins rather than padding around the target layout — see
+            // the note in `EncyclopediaListScreen`.
+            .contentMargins(12, for: .scrollContent)
+            .scrollPosition(id: anchorBinding)
+            .scrollDismissesKeyboard(.interactively)
+        }
     }
 
     /// Free-tier switch, then the individual bundles.
@@ -817,52 +837,51 @@ public struct SettingsSectionPanel: View {
     /// Counts come from `WineDatabase.databaseStats` rather than being counted
     /// here, so `CoverageTests` can pin them — `VinodexUI` has no test target.
     ///
-    /// Emitted as loose sections rather than wrapped in a `VStack`, like every
-    /// other branch: the wrapper made all three DATA sections one scroll target
-    /// between them, so this was the panel whose position could not be restored.
-    @ViewBuilder
+    /// A fixed page since 0.6.4 (C2): one `VStack` sized by the LCD, the
+    /// growth graph absorbing whatever height the two count blocks leave, and
+    /// the explanatory caption under the graph gone with the scroll. (The
+    /// loose-sections layout this replaces existed for scroll-anchor
+    /// addressability, which a non-scrolling page no longer needs.)
     private var dataReadout: some View {
         let stats = db.databaseStats
 
-        settingsSection("DATABASE") {
-            LazyVGrid(columns: statColumns, spacing: 8) {
-                ForEach(stats.categoryLines) { line in
-                    statTile(label: line.label, count: line.count)
+        return VStack(alignment: .leading, spacing: 18) {
+            settingsSection("DATABASE") {
+                LazyVGrid(columns: statColumns, spacing: 8) {
+                    ForEach(stats.categoryLines) { line in
+                        statTile(label: line.label, count: line.count)
+                    }
                 }
             }
-        }
 
-        settingsSection("TOTAL ENTRIES") {
-            HStack(spacing: 12) {
-                Image(systemName: "square.stack.3d.up.fill")
-                    .font(.system(size: 26, weight: .semibold))
-                    .foregroundStyle(lcd.accent)
-                Text("\(stats.total)")
-                    .font(DexFont.retro(24))
-                    .foregroundStyle(lcd.text)
-                Spacer(minLength: 0)
-                Text("ACROSS \(stats.categoryLines.count) TABLES")
-                    .font(DexFont.mono(16))
-                    .foregroundStyle(lcd.subtext)
+            settingsSection("TOTAL ENTRIES") {
+                // Centred (0.6.4, C3) — the "ACROSS 6 TABLES" tail is gone;
+                // the number is the fact, so it holds the middle.
+                HStack(spacing: 12) {
+                    Image(systemName: "square.stack.3d.up.fill")
+                        .font(.system(size: 26, weight: .semibold))
+                        .foregroundStyle(lcd.accent)
+                    Text("\(stats.total)")
+                        .font(DexFont.retro(24))
+                        .foregroundStyle(lcd.text)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 14)
+                .frame(maxWidth: .infinity)
+                .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6).strokeBorder(lcd.surfaceEdge, lineWidth: 1)
+                )
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 14)
-            .frame(maxWidth: .infinity)
-            .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
-            .overlay(
-                RoundedRectangle(cornerRadius: 6).strokeBorder(lcd.surfaceEdge, lineWidth: 1)
-            )
-        }
 
-        settingsSection("GROWTH") {
-            VStack(alignment: .leading, spacing: 8) {
+            settingsSection("GROWTH") {
                 DataWave(milestones: stats.waveMilestones, lcd: lcd)
-                Text("Entries shipped, from the first starter selection to the current build.")
-                    .font(DexFont.mono(15))
-                    .foregroundStyle(lcd.subtext)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxHeight: .infinity)
             }
+            .frame(maxHeight: .infinity)
         }
+        .padding(12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     private var statColumns: [GridItem] {
@@ -1164,7 +1183,10 @@ private struct DataWave: View {
                 with: .color(lcd.accent)
             )
         }
-        .frame(height: 96)
+        // Flexible since 0.6.4 (C2): the DATA page is fixed-height now and
+        // the wave is what soaks up the LCD's leftover space. The floor is
+        // the old fixed height, so the curve can never collapse.
+        .frame(minHeight: 96, maxHeight: .infinity)
     }
 
     /// Milestone values under the curve, pinned to the ends so the first and

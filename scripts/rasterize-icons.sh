@@ -175,7 +175,7 @@ fi
 # ---------------------------------------------------------------------------
 
 if [ "${SKIP_ART:-0}" != "1" ]; then
-  for importer in import-flavor-art.py import-grape-art.py import-style-art.py import-class-art.py; do
+  for importer in import-flavor-art.py import-grape-art.py import-style-art.py import-class-art.py import-stamp-art.py; do
     if ! python3 "$HERE/$importer"; then
       echo "  FAIL $importer"
       failed=$((failed + 1))

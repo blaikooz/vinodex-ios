@@ -85,16 +85,23 @@ public struct ToolsScreen: View {
                     // Named for the question it asks rather than for its pick:
                     // the reveal rotates through regions and styles as well as
                     // grapes, so "grape of the day" was wrong two days in three.
+                    //
+                    // Both run white ink now (0.6.4, E1), matching the other
+                    // four tiles — the dark inks made this row read as a
+                    // different kind of button. Their faces deepen a step each
+                    // (yellow → amber, pale cyan → cyan) so white still
+                    // clears them; the old pale faces were the whole reason
+                    // for the dark ink.
                     tile(
                         title: "WHAT'S\nTHAT…?",
                         symbol: "sparkles",
-                        face: "#FACC15", shadow: "#ca8a04", ink: Dex.amber900,
+                        face: "#EAB308", shadow: "#a16207",
                         action: onDailyGrape
                     )
                     tile(
                         title: "MOON DIAL",
                         symbol: "moon.stars.fill",
-                        face: "#67e8f9", shadow: "#155e75", ink: Color(dexHex: "#164e63"),
+                        face: "#0891B2", shadow: "#155e75",
                         action: onMoonDial
                     )
                 }

@@ -323,6 +323,16 @@ struct RootView: View {
     /// because it is the only place that knows *which* screen you are leaving.
     private func goBack() {
         guard let leaving = path.last else { return }
+        // The scanner gets first refusal (0.6.4, B2): its questionnaire
+        // persists across route pops, so popping it from question three just
+        // meant re-entering on question three — the chassis Back button
+        // looked dead on scanner pages. Stepping the questionnaire back is
+        // what "back" means there; the route only pops once the scanner says
+        // there is nothing left to unwind.
+        if leaving == .scanner, ScannerBackRouter.shared.handleBack() {
+            Sounds.page()
+            return
+        }
         Sounds.page()
         path.removeLast()
         if leaving == .dailyGrape {

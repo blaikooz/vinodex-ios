@@ -9,10 +9,14 @@ import VinodexCore
 /// The whole flow lives in one view with a `Step` cursor rather than as pushed
 /// `DexRoute`s. That is the opposite of the choice made for the settings
 /// sections, and for the opposite reason: settings panels are independent
-/// destinations, whereas these steps share one accumulating answer. Pushing
-/// routes would put `GrapeScanCriteria` somewhere global and make the chassis
-/// Back button unwind the questionnaire one answer at a time — here Back means
-/// "leave the scanner", and the in-screen back arrow steps between questions.
+/// destinations, whereas these steps share one accumulating answer.
+///
+/// The chassis Back button steps between questions too (0.6.4, B2), via
+/// `ScannerBackRouter`. It used to mean "leave the scanner" — but the
+/// questionnaire persists across the pop, so leaving from question three and
+/// re-entering landed you back on question three, and the main Back button
+/// read as broken on every scanner page. It now unwinds the cursor like the
+/// in-screen arrow, and only pops the route from question one.
 public struct ScannerScreen: View {
     let onOpen: (WineEntry) -> Void
 
@@ -203,7 +207,20 @@ public struct ScannerScreen: View {
                 }
             }
         }
-        .onAppear { restore() }
+        .onAppear {
+            restore()
+            // The chassis Back button routes here first (0.6.4, B2): consume
+            // the press by stepping back a question, or decline from question
+            // one so the app pops the route. Registered on appear and cleared
+            // on disappear — a trip into an entry from the reveal unmounts
+            // this view, and a stale handler would eat the entry's Back.
+            ScannerBackRouter.shared.handler = {
+                if step == .color { return false }
+                back()
+                return true
+            }
+        }
+        .onDisappear { ScannerBackRouter.shared.handler = nil }
         // Mirrored on change rather than at each of the dozen call sites that
         // move the cursor or amend an answer — one of those would eventually be
         // added without its matching save.
@@ -234,6 +251,10 @@ public struct ScannerScreen: View {
             Spacer(minLength: 0)
 
             if !criteria.isEmpty {
+                // A real red button (0.6.4, B3), not bare text: RESET throws
+                // away answers, and the destructive controls elsewhere (CLEAR
+                // SAVED DATA, REVOKE ALL) already speak this red-on-outline
+                // dialect — the scanner's was the only one whispering.
                 Button {
                     Haptics.select()
                     withAnimation(.easeOut(duration: 0.2)) {
@@ -242,9 +263,16 @@ public struct ScannerScreen: View {
                     }
                 } label: {
                     Text("RESET")
-                        .font(DexFont.retro(12))
+                        .font(DexFont.retro(11))
                         .tracking(1)
-                        .foregroundStyle(lcd.subtext)
+                        .foregroundStyle(Dex.red500)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 9)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .strokeBorder(Dex.red500.opacity(0.65), lineWidth: 2)
+                        )
                 }
                 .buttonStyle(DexPressStyle(scale: 0.94))
             }
@@ -473,8 +501,9 @@ public struct ScannerScreen: View {
         }
     }
 
-    /// Search matches as toggle chips — the same affordance the subclass
-    /// lists use, minus the trip through the taxonomy.
+    /// Search matches as the same hero-icon tiles the subclass lists use
+    /// (0.6.4, B1) — one affordance for "a pickable flavour", wherever it was
+    /// found, and the drawn portraits reach the search path too.
     @ViewBuilder
     private var flavorSearchResults: some View {
         let matches = db.entries.apply(EntryQuery(categories: [.flavors], search: flavorQuery))
@@ -482,19 +511,12 @@ public struct ScannerScreen: View {
         if matches.isEmpty {
             emptyNote("No flavor matches that.")
         } else {
-            FlowLayout(spacing: 6) {
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3),
+                spacing: 8
+            ) {
                 ForEach(matches) { flavor in
-                    let chosen = criteria.flavorIDs.contains(flavor.id)
-                    chip(
-                        label: flavor.name,
-                        chip: flavorChip(flavor),
-                        selected: chosen,
-                        fill: chosen,
-                        iconID: db.iconID(for: flavor),
-                        iconSize: 22
-                    ) {
-                        criteria.toggleFlavor(flavor.id)
-                    }
+                    flavorTile(flavor)
                 }
             }
         }
@@ -639,22 +661,19 @@ public struct ScannerScreen: View {
                 if matches.isEmpty {
                     emptyNote("Nothing filed under this one.")
                 } else {
-                    FlowLayout(spacing: 6) {
+                    // Hero-icon + name tiles (0.6.4, B1), matching the class
+                    // and subclass doorways one step up. These were text chips
+                    // with a 22pt *tinted glyph* — the note's generic
+                    // game-icons mark, flattened to the chip's ink — so the
+                    // drawn flavour portraits never appeared on this step at
+                    // all. The tile's `EntryIconWell` resolves the same
+                    // full-colour art the list rows and reveal wear.
+                    LazyVGrid(
+                        columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3),
+                        spacing: 8
+                    ) {
                         ForEach(matches) { flavor in
-                            let chosen = criteria.flavorIDs.contains(flavor.id)
-                            chip(
-                                label: flavor.name,
-                                chip: flavorChip(flavor),
-                                selected: chosen,
-                                fill: chosen,
-                                iconID: db.iconID(for: flavor),
-                                iconSize: 22
-                            ) {
-                                // The cap is enforced in `toggleFlavor`, so a
-                                // tap past the limit is a no-op rather than a
-                                // silent replacement of someone's first pick.
-                                criteria.toggleFlavor(flavor.id)
-                            }
+                            flavorTile(flavor)
                         }
                     }
                 }
@@ -664,6 +683,52 @@ public struct ScannerScreen: View {
                 }
             }
         }
+    }
+
+    /// One pickable flavour as a tile: its own pixel-art portrait over its
+    /// name, in its subclass's chip colours — a choice, so selection fills it
+    /// in and badges a checkmark, unlike the doorway tiles it sits beside.
+    private func flavorTile(_ flavor: WineEntry) -> some View {
+        let chosen = criteria.flavorIDs.contains(flavor.id)
+        let resolved = flavorChip(flavor)
+
+        return Button {
+            Haptics.select()
+            // The cap is enforced in `toggleFlavor`, so a tap past the limit
+            // is a no-op rather than a silent replacement of someone's first
+            // pick.
+            criteria.toggleFlavor(flavor.id)
+        } label: {
+            VStack(spacing: 6) {
+                EntryIconWell(entry: flavor, size: 44, cornerRadius: 8)
+                Text(EntryDisplay.hyphenated(flavor.name.uppercased()))
+                    .font(DexFont.retro(9))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.6)
+                    .foregroundStyle(Color(dexHex: resolved.text))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .padding(.horizontal, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color(dexHex: resolved.bg).opacity(chosen ? 1 : 0.75))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .strokeBorder(Color(dexHex: resolved.border), lineWidth: chosen ? 3 : 1)
+            )
+            .overlay(alignment: .topTrailing) {
+                if chosen {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(Color(dexHex: resolved.text))
+                        .padding(4)
+                }
+            }
+        }
+        .buttonStyle(DexPressStyle(scale: 0.95))
     }
 
     // MARK: 5 — reveal

@@ -295,21 +295,36 @@ struct CoverageTests {
     /// and — unlike flavours, where partial coverage is by design — the set
     /// covers *all* of them, so the styles screen is never a mix of art and
     /// tinted glyphs.
+    ///
+    /// One deliberate exception (0.6.4, D1): GSM Blend renders the BLEND
+    /// class glyph rather than a portrait — `EntryIconWell` draws a portrait
+    /// *over* the entry glyph, so the 0.6.2 icon swap could only land by
+    /// removing the portrait from the table.
     @Test("every style has a portrait, and every portrait names a style")
     func styleArtWiring() {
         let art = db.icons.styleArt
         #expect(art != nil, "manifest lost its styleArt table")
         guard let art else { return }
 
+        let portraitless: Set<String> = ["gsm blend"]
+
         let names = Set(db.entries(in: .styles).map { TextNormalize.label($0.name) })
         for key in art.keys {
             #expect(names.contains(key), "styleArt key '\(key)' names no style")
         }
         for entry in db.entries(in: .styles) {
-            #expect(
-                db.icons.styleArtStem(for: entry.name) != nil,
-                "\(entry.name) has no style art"
-            )
+            let key = TextNormalize.label(entry.name)
+            if portraitless.contains(key) {
+                #expect(
+                    db.icons.styleArtStem(for: entry.name) == nil,
+                    "\(entry.name) grew a portrait back — it should wear its class glyph (0.6.4, D1)"
+                )
+            } else {
+                #expect(
+                    db.icons.styleArtStem(for: entry.name) != nil,
+                    "\(entry.name) has no style art"
+                )
+            }
         }
     }
 
