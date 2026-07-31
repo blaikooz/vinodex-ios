@@ -305,6 +305,27 @@ quoted symbol instead.
 
 ## Update log
 
+**2026-07-30 — position check @ v0.6.2.** Five feature batches
+(v0.5.8 → v0.6.2) landed since the last reconciliation; none deliberately
+targeted audit IDs, so **the open set is unchanged at 52** — but line numbers
+have drifted far from `fb5dcf2` (search the quoted symbols, per the note
+above). Context that touches open items:
+
+- **M12 (won't-fix)** still stands, but the tuning moved: 0.6.2 doubled
+  `PixelOutline`'s shadow offsets to a full point and trimmed AA fringe on the
+  rasterized glyphs — the runtime-tintable approach is still the keeper.
+- **M37** — CHANGELOG.md remains open; tag annotations still carry the notes.
+  Tags now run through v0.6.2.
+- **M30** grew: `EntryDetailScreen` and `DeviceChassis` gained more types
+  (key-grape bar, title bump, stamps). The split is more worthwhile, not less.
+- **M33** narrowed slightly: `.type`'s DUAL branch and `.system`'s
+  style-class inference gained behavior in 0.6.2 and are still untested.
+- New surfaces worth an a11y/perf glance when their workstreams run:
+  `GrapeSpriteLoader` (per-sprite pixel pass, cached), `OutlineDotPlacer`
+  hints, the chip-filter countries rows, and the scanner taxonomy tiles.
+- The prioritized next-sittings pick from this set now lives in
+  [../PLAN.md](../PLAN.md).
+
 **2026-07-29 — Swift batches on `audit-fixes`.** Landed the low-risk Swift work
 (reviewed for compile-safety by a Swift-savvy pass, since the working environment
 had no toolchain; CI `swift test` is the gate). Resolved: **M4 + L18** (finished —

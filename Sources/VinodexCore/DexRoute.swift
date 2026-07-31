@@ -124,8 +124,11 @@ public enum DexRoute: Hashable, Sendable {
             "WORLD SEARCH"
         case .bookmarks:
             "SAVED"
-        case .country(let name):
-            name.uppercased()
+        // The scan-family label (v0.5.8, D3) — the page's own hero already
+        // names the country, so the marquee names the *kind* of page, like
+        // every other scan screen.
+        case .country:
+            "COUNTRY SCAN"
         case .state(let name):
             name.uppercased()
         case .dailyGrape:
@@ -143,7 +146,9 @@ public enum DexRoute: Hashable, Sendable {
         case .chipFilter:
             "FILTER SEARCH"
         case .wsetQuiz:
-            "TASTING QUIZ"
+            // Renamed from TASTING QUIZ (v0.5.9, D1); the case keeps its name
+            // — `wsetQuiz` is woven into `ScreenStateStore` keys.
+            "WINE EXAM"
         case .dailyChallenge:
             "DAILY CHALLENGE"
         case .passport:

@@ -3,9 +3,9 @@ export type EntryCategory = 'GRAPES' | 'REGIONS' | 'STYLES' | 'FLAVORS' | 'MASTE
 
 export type DataCategory = 'GRAPES' | 'REGIONS' | 'STYLES' | 'FLAVORS' | 'CONTINENTS' | 'COUNTRY_GATE';
 
-export type RarityTier = 'common' | 'uncommon' | 'rare' | 'epic' | 'noble';
+export type RarityTier = 'common' | 'uncommon' | 'rare' | 'epic' | 'noble' | 'godforsaken';
 
-export type RarityLabel = 'COMMON' | 'UNCOMMON' | 'RARE' | 'NOBLE';
+export type RarityLabel = 'COMMON' | 'UNCOMMON' | 'RARE' | 'NOBLE' | 'GODFORSAKEN';
 
 export type ClimateClass = 'maritime' | 'continental' | 'cool' | 'warm' | 'mediterranean';
 
@@ -114,6 +114,13 @@ export interface RegionDetails {
   appellations?: string[];
   soilType?: string;
   synonyms?: string[];
+  /// Where this region actually sits on its outline art (0.6.x), as fractions
+  /// of the PNG canvas — x from the left, y from the top. The art in question
+  /// is the one the region's icon resolves to (state outline first for US
+  /// regions, country otherwise). Approximate: renderers snap the point to
+  /// the nearest land pixel. Omit it and placement falls back to the seeded
+  /// hash walk, which guarantees land but knows no geography.
+  mapPosition?: { x: number; y: number };
 }
 
 export interface RegionEntry extends BaseEntry {

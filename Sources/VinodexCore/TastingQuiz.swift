@@ -255,7 +255,8 @@ public enum TastingQuiz {
         switch tier {
         case .novice: { $0.rarity == .noble || $0.rarity == .common }
         case .enthusiast: { _ in true }
-        case .sommelier: { $0.rarity == .uncommon || $0.rarity == .rare }
+        // GODFORSAKEN is the backest corner there is (0.6.2, A1).
+        case .sommelier: { $0.rarity == .uncommon || $0.rarity == .rare || $0.rarity == .godforsaken }
         }
     }
 
@@ -265,7 +266,7 @@ public enum TastingQuiz {
         switch tier {
         case .novice: { $0.rarity == nil || $0.rarity == .noble || $0.rarity == .common }
         case .enthusiast: { _ in true }
-        case .sommelier: { $0.rarity == .uncommon || $0.rarity == .rare }
+        case .sommelier: { $0.rarity == .uncommon || $0.rarity == .rare || $0.rarity == .godforsaken }
         }
     }
 

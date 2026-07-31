@@ -96,6 +96,17 @@ public struct TastingQuizScreen: View {
         }
         .onAppear(perform: restore)
         .onChange(of: session) { _, _ in persist() }
+        // The verdict as a popup over the question (v0.5.9, D2), not a panel
+        // appended below the options — inline, it landed off-screen exactly
+        // when the question was long enough to scroll, and NEXT QUESTION with
+        // it. Same in-LCD overlay language as `DexAlert`; no scrim-tap
+        // dismissal, because the only ways on are the card's own buttons.
+        .overlay {
+            if answered, let session, !session.isComplete, let question {
+                answerOverlay(question, session: session)
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: answered)
         .overlay {
             if let lockedTier, let previous = previousTier(of: lockedTier) {
                 DexAlert(
@@ -218,7 +229,7 @@ public struct TastingQuizScreen: View {
     private var tierPicker: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("PICK YOUR PAPER")
+                Text("CHOOSE YOUR EXAM")
                     .font(DexFont.retro(14))
                     .tracking(1.5)
                     .foregroundStyle(lcd.accent)
@@ -335,10 +346,6 @@ public struct TastingQuizScreen: View {
             header(question, session: session)
             prompt(question)
             options(question)
-
-            if answered {
-                reveal(question, session: session)
-            }
         }
     }
 
@@ -426,6 +433,31 @@ public struct TastingQuizScreen: View {
         .disabled(answered)
     }
 
+    /// The reveal's modal shell: `DexAlert`'s scrim with the card scrollable,
+    /// since the entry tile and its buttons outgrow a small phone's LCD. The
+    /// answered rows stay visible behind the scrim, greens and reds intact.
+    private func answerOverlay(_ question: QuizQuestion, session: QuizSession) -> some View {
+        ZStack {
+            // A power cut over the paper LCD reads wrong, so light mode dims
+            // more gently — the same split DexAlert uses.
+            Color.black.opacity(lcd.isLight ? 0.35 : 0.72)
+                .contentShape(Rectangle())
+            GeometryReader { geo in
+                ScrollView {
+                    reveal(question, session: session)
+                        .frame(maxWidth: .infinity)
+                        .padding(16)
+                        .frame(minHeight: geo.size.height, alignment: .center)
+                }
+            }
+        }
+        // Trap VoiceOver focus in the card rather than the scrimmed question,
+        // per DexAlert's precedent.
+        .accessibilityElement(children: .contain)
+        .accessibilityAddTraits(.isModal)
+        .transition(.opacity)
+    }
+
     /// The verdict, the entry itself, and the way into it.
     @ViewBuilder
     private func reveal(_ question: QuizQuestion, session: QuizSession) -> some View {
@@ -472,7 +504,9 @@ public struct TastingQuizScreen: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 6).fill(lcd.heroWash))
+        // A solid plate, not the hero wash: as a modal the card sits on the
+        // scrim, and a tenth-opacity wash there is a hole, not a card.
+        .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
         .overlay(
             RoundedRectangle(cornerRadius: 6)
                 .strokeBorder((gotIt ? Dex.green : Dex.yellow).opacity(0.5), lineWidth: 2)

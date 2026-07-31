@@ -161,9 +161,11 @@ public struct EntryVisual {
 
         let ring = r.climate.flatMap { db.palette.climates[$0.rawValue]?.colors.border }
 
-        // The country-outline art, via the manifest's shape table — climate
-        // stays the fallback for any origin without one.
-        let iconID = db.icons.countryShapeIcons[TextNormalize.label(origin)]
+        // The outline art, via the manifest's shape table. State first
+        // (v0.5.8, D2): a Willamette row should read as Oregon, not as the
+        // whole USA. Climate stays the fallback for a place with no outline.
+        let iconID = r.details.state.flatMap { db.icons.countryShapeIcons[TextNormalize.label($0)] }
+            ?? db.icons.countryShapeIcons[TextNormalize.label(origin)]
             ?? db.icons.climateIcon(r.climate)
 
         return EntryVisual(
@@ -231,7 +233,11 @@ public struct EntryVisual {
             well: .color(Color(dexHex: c.common.color)),
             iconID: db.iconID(for: .continent(c)),
             iconColor: .white,
-            ringColor: nil
+            ringColor: nil,
+            // The drawn globes (v0.5.9, B1): at the default 0.62 the sphere
+            // floated small in its well, because the canvas's transparent
+            // margins are part of the art. Near-full-bleed reads right.
+            iconScale: 0.9
         )
     }
 
@@ -355,14 +361,26 @@ public struct EntryIconWell: View {
     /// false (v0.5.6): at hero size the flag well is the picture, and a
     /// glyph stamped on it read as a badge on a flag. Rows keep theirs.
     var showsGlyph: Bool
+    /// Whether a region's outline glyph carries its red location dot
+    /// (v0.5.9, C1) — the country-scan treatment, at well size. On by
+    /// default since 0.6 (B1): list rows carry it too, scaled to the row
+    /// icon, so a region reads as a *place on its map* everywhere it appears.
+    var showsRegionDot: Bool
 
     private var visual: EntryVisual { EntryVisualCache.shared.visual(for: entry) }
 
-    public init(entry: WineEntry, size: CGFloat = 48, cornerRadius: CGFloat = 8, showsGlyph: Bool = true) {
+    public init(
+        entry: WineEntry,
+        size: CGFloat = 48,
+        cornerRadius: CGFloat = 8,
+        showsGlyph: Bool = true,
+        showsRegionDot: Bool = true
+    ) {
         self.entry = entry
         self.size = size
         self.cornerRadius = cornerRadius
         self.showsGlyph = showsGlyph
+        self.showsRegionDot = showsRegionDot
     }
 
     public var body: some View {
@@ -372,7 +390,11 @@ public struct EntryIconWell: View {
             if !showsGlyph {
                 // The well alone — see `showsGlyph`.
                 EmptyView()
-            } else if let stem = v.artName, let art = PixelArtLoader.shared.image(stem) {
+            } else if showsRegionDot, case .region(let r) = entry,
+                      let iconID = v.iconID, iconID.hasPrefix("art:"),
+                      let art = PixelArtLoader.shared.image(String(iconID.dropFirst(4))) {
+                dottedOutline(art, stem: String(iconID.dropFirst(4)), region: r, visual: v)
+            } else if let stem = v.artName, let art = artImage(stem) {
                 // The portrait ships its own colours and chunky outline, so it
                 // renders as-is — tinting or outlining it would double up.
                 // Slightly larger than the glyph scale: the art's transparent
@@ -391,6 +413,49 @@ public struct EntryIconWell: View {
             RoundedRectangle(cornerRadius: cornerRadius)
                 .strokeBorder(v.ringColor ?? .black.opacity(0.25), lineWidth: v.ringColor == nil ? 1 : 2)
         )
+    }
+
+    /// The portrait for an art stem. Grape bunches route through
+    /// `GrapeSpriteLoader` (0.6.2, A2) so their leaf is re-inked to the
+    /// rarity's colour; everything else loads as drawn.
+    private func artImage(_ stem: String) -> UIImage? {
+        if case .grape(let g) = entry {
+            return GrapeSpriteLoader.shared.image(stem: stem, rarity: g.rarity)
+        }
+        return PixelArtLoader.shared.image(stem)
+    }
+
+    /// The region's outline glyph with its red location dot (v0.5.9, C1) —
+    /// `CountryOutlineMap`'s treatment, at well size. Geographic where the
+    /// region carries a `mapPosition` (0.6.x), snapped to land; the seeded
+    /// walk stays as the fallback. Sized off the well (v0.6, B1) so one rule
+    /// serves both registers: ~14pt on a hero, ~5pt in a list row.
+    private func dottedOutline(
+        _ art: UIImage,
+        stem: String,
+        region r: RegionEntry,
+        visual v: EntryVisual
+    ) -> some View {
+        let box = size * v.iconScale
+        let scale = min(box / art.size.width, box / art.size.height)
+        let fitted = CGSize(width: art.size.width * scale, height: art.size.height * scale)
+        let dotSize = max(5, size * 0.095)
+        return ZStack {
+            Image(uiImage: art)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+            if let dot = OutlineDotPlacer.shared.dots(
+                stem: stem,
+                specs: [.init(name: r.common.name, hint: r.details.mapPosition)]
+            ).first {
+                Circle()
+                    .fill(Dex.red500)
+                    .overlay(Circle().strokeBorder(.black.opacity(0.7), lineWidth: max(1, dotSize * 0.11)))
+                    .frame(width: dotSize, height: dotSize)
+                    .position(x: dot.x * scale, y: dot.y * scale)
+            }
+        }
+        .frame(width: fitted.width, height: fitted.height)
     }
 
     @ViewBuilder

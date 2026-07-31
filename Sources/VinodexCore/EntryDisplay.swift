@@ -133,15 +133,37 @@ public enum EntryDisplay {
 
         switch (system.uppercased(), place) {
         case ("AOC", _):   return "Appellation d'Origine Contrôlée"
+        case ("AOP", _):   return "Appellation d'Origine Protégée"
+        case ("IGP", _):   return "Indication Géographique Protégée"
+        case ("IGT", _):   return "Indicazione Geografica Tipica"
         case ("AVA", _):   return "American Viticultural Area"
         case ("DAC", _):   return "Districtus Austriae Controllatus"
         case ("DHC", _):   return "Districtus Hungaricus Controllatus"
         case ("GI", _):    return "Geographical Indication"
         case ("PDO", _):   return "Protected Designation of Origin"
+        case ("PGI", _):   return "Protected Geographical Indication"
         case ("WO", _):    return "Wine of Origin"
+        // The 0.6.2 code-chip pass: every abbreviated tag on a country page
+        // gets its plain-text expansion beside the chip.
+        case ("VR", _):        return "Vinho Regional"
+        case ("PAGO", _):      return "Vino de Pago"
+        case ("VP", _):        return "Vino de Pago"
+        case ("PRÄDIKAT", _):  return "Prädikatswein"
+        case ("QBA", _):       return "Qualitätswein bestimmter Anbaugebiete"
+        case ("VDP", _):       return "Verband Deutscher Prädikatsweingüter"
+        case ("PUTTONYOS", _): return "Tokaji Aszú puttonyos scale"
+        case ("VCP", _):       return "Vino de Calidad Preferente"
         case ("DOCG", _):  return "Denominazione di Origine Controllata e Garantita"
         case ("DOCA", _):  return "Denominación de Origen Calificada"
+        // Priorat's Catalan form of DOCa (0.6, A2).
+        case ("DOQ", _):   return "Denominació d'Origen Qualificada"
         case ("DO", _):    return "Denominación de Origen"
+        // The 0.6 catalog boost's new systems: Canada, Croatia, Morocco, and
+        // the Spanish-American IG countries (Argentina, Uruguay).
+        case ("VQA", _):   return "Vintners Quality Alliance"
+        case ("ZOI", _):   return "Zaštićena Oznaka Izvornosti"
+        case ("AOG", _):   return "Appellation d'Origine Garantie"
+        case ("IG", _):    return "Indicación Geográfica"
 
         // The genuinely ambiguous one: same abbreviation, three languages.
         case ("DOC", "italy"):    return "Denominazione di Origine Controllata"

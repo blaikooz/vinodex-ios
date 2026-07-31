@@ -6,14 +6,11 @@ const CONTINENTS_BASE: ContinentEntry[] = [
     name: "North America",
     description: "The birthplace of New World wine, North America combines Old World traditions with innovative winemaking. From California's sun-drenched valleys to Canada's cool-climate vineyards, the continent produces a diverse range of styles that have revolutionized global wine production.",
     category: "CONTINENTS",
-    // v0.5.6: continent colours ARE the globe-marker colours (supersedes
-    // 0.5.4's separate hue set) — the icon well and the marker must agree,
-    // and the globe now reads these values rather than its own table.
-    color: "#E53935",
+    color: "#722F37",
     icon: "globe",
     tags: ["Continent"],
     details: {
-      keyRegions: ["USA", "Canada"]
+      keyRegions: ["USA", "Canada", "Mexico"]
     }
   },
   {
@@ -21,11 +18,11 @@ const CONTINENTS_BASE: ContinentEntry[] = [
     name: "Europe",
     description: "The cradle of viticulture, Europe has shaped wine culture for millennia. From France's prestigious appellations to Italy's ancient vineyards, Europe's diverse climates and terroirs produce wines of unparalleled complexity and tradition.",
     category: "CONTINENTS",
-    color: "#1E88E5",
+    color: "#9B2335",
     icon: "globe",
     tags: ["Continent"],
     details: {
-      keyRegions: ["France", "Italy", "Spain", "Germany", "Portugal", "Hungary", "Austria", "Greece", "Georgia", "Switzerland", "Romania"]
+      keyRegions: ["France", "Italy", "Spain", "Germany", "Portugal", "Hungary", "Austria", "Greece", "Georgia", "Switzerland", "Romania", "Croatia"]
     }
   },
   {
@@ -33,7 +30,7 @@ const CONTINENTS_BASE: ContinentEntry[] = [
     name: "Asia",
     description: "An emerging wine frontier blending ancient traditions with modern innovation. From China's high-altitude vineyards to Japan's delicate whites, Asia's diverse landscapes are producing increasingly sophisticated wines that reflect both heritage and contemporary winemaking.",
     category: "CONTINENTS",
-    color: "#FDD835",
+    color: "#C9A227",
     icon: "globe",
     tags: ["Continent"],
     details: {
@@ -45,7 +42,7 @@ const CONTINENTS_BASE: ContinentEntry[] = [
     name: "South America",
     description: "A continent of extremes, from Andean foothills to coastal plains, producing bold, expressive wines. Argentina's Malbec and Chile's Cabernet Sauvignon have become global benchmarks for value and quality in the New World.",
     category: "CONTINENTS",
-    color: "#8E24AA",
+    color: "#73343A",
     icon: "globe",
     tags: ["Continent"],
     details: {
@@ -57,7 +54,7 @@ const CONTINENTS_BASE: ContinentEntry[] = [
     name: "Africa",
     description: "Africa's wine heritage spans from ancient Egyptian traditions to modern innovations. South Africa's Cape region produces world-class wines that blend Old World elegance with New World vibrancy, while other regions are rapidly developing their vinicultural potential.",
     category: "CONTINENTS",
-    color: "#8D6E63",
+    color: "#C48B8B",
     icon: "globe",
     tags: ["Continent"],
     details: {
@@ -69,7 +66,7 @@ const CONTINENTS_BASE: ContinentEntry[] = [
     name: "Oceania",
     description: "The southernmost wine regions of the world, where maritime climates and diverse terroirs create distinctive wines. Australia's bold Shiraz and New Zealand's aromatic Sauvignon Blanc have redefined international wine styles.",
     category: "CONTINENTS",
-    color: "#43A047",
+    color: "#D4A5A5",
     icon: "globe",
     tags: ["Continent"],
     details: {

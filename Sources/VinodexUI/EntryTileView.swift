@@ -88,7 +88,7 @@ public struct EntryTileView: View {
     }
 
     private var iconSlot: some View {
-        EntryIconWell(entry: entry, size: 48, cornerRadius: 8)
+        EntryIconWell(entry: entry, size: DexMetrics.iconWell, cornerRadius: 8)
     }
 }
 

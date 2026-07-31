@@ -11,6 +11,10 @@
 # at runtime with stacked zero-radius `.shadow()` modifiers, which compose the
 # same way — baking it here would prevent tinting.
 #
+# Also runs the drawn-art importers over art/icons/** (see the final section),
+# so this script is the single icons entry point: Iconify glyphs + flags +
+# pixel art, source to bundle.
+#
 # Usage: bash rasterize-icons.sh [manifest] [outdir]
 
 set -euo pipefail
@@ -159,6 +163,24 @@ else
   # L24). Fail unless the skip is explicit.
   echo "  pixelflags dir not found at $PIXELFLAGS — set SKIP_FLAGS=1 to skip intentionally"
   failed=$((failed + 1))
+fi
+
+# ---------------------------------------------------------------------------
+# The drawn pixel art (0.5.8, A1): everything under art/icons/** — flavour
+# portraits, grape bunches, style portraits, and the taxonomy/outline/globe
+# set — imported by the Python passes into their Resources/*Art directories.
+# Chained here so `npm run icons` is the one entry point that takes the whole
+# icon surface from source to bundle. Requires Pillow (apt: python3-pil).
+# SKIP_ART=1 runs the Iconify/flag half alone.
+# ---------------------------------------------------------------------------
+
+if [ "${SKIP_ART:-0}" != "1" ]; then
+  for importer in import-flavor-art.py import-grape-art.py import-style-art.py import-class-art.py; do
+    if ! python3 "$HERE/$importer"; then
+      echo "  FAIL $importer"
+      failed=$((failed + 1))
+    fi
+  done
 fi
 
 [ "$failed" -eq 0 ] || exit 1

@@ -176,8 +176,9 @@ public enum DexMetrics {
     /// the island controls is the whole point of the raise.
     public static let islandTopInset: CGFloat = 18
     /// Floor for the island strip: the inset above, one control, then the small
-    /// `islandBottomInset` against the screen housing.
-    public static let islandStripMinHeight: CGFloat = islandTopInset + controlButton + islandBottomInset
+    /// `islandBottomInset` against the screen housing. Computed — it follows
+    /// `controlButton`, which follows `UIScale`.
+    public static var islandStripMinHeight: CGFloat { islandTopInset + controlButton + islandBottomInset }
     public static let islandClearance: CGFloat = 138
     /// Matches `footerPaddingH` so the orb sits directly above the Back button
     /// and the cog above Home — the four chassis controls share two columns.
@@ -219,8 +220,8 @@ public enum DexMetrics {
     /// `bezelTopMargin` rather than matched to it: this one has to seat the vent
     /// dot and the three grill slats, and at 1rem they were crowding its edges.
     /// The top margin holds nothing, so it stays thin.
-    public static let ventStripHeight: CGFloat = 1.75 * rem
-    public static let ventDot: CGFloat = 0.5 * rem            // w-2
+    public static var ventStripHeight: CGFloat { 1.75 * rem * UIScale.current.factor }
+    public static var ventDot: CGFloat { 0.5 * rem * UIScale.current.factor }   // w-2
 
     /// Footer
     ///
@@ -239,7 +240,7 @@ public enum DexMetrics {
     /// inset: that inset alone is 34pt and made the bottom chrome nearly twice
     /// the top. The indicator falls in the `chassisEdgeInset` of bare chassis
     /// below the row rather than over a control.
-    public static let footerHeight: CGFloat = footerTopInset + footerControl + chassisEdgeInset
+    public static var footerHeight: CGFloat { footerTopInset + footerControl + chassisEdgeInset }
     /// Gap between the screen housing and the footer row. Much tighter than the
     /// inset below the row — see `footerHeight`.
     public static let footerTopInset: CGFloat = 6
@@ -251,17 +252,26 @@ public enum DexMetrics {
     /// argument that the footer buttons are the ones in constant use. Sitting in
     /// the same two columns at two different sizes just read as a mistake, so
     /// they are all `footerControl` now and the strip is sized to seat it.
-    public static let controlButton: CGFloat = footerControl
-    public static let footerControl: CGFloat = 4 * rem
+    public static var controlButton: CGFloat { footerControl }
+    /// Computed, not stored: the chrome members follow `UIScale.current`
+    /// (v0.5.8, F1), and a stored `let` would freeze whatever the factor was
+    /// at first touch. Text sizes deliberately do not scale here — they have
+    /// their own axis in `TextScale`.
+    public static var footerControl: CGFloat { 4 * rem * UIScale.current.factor }
     public static let marqueeMaxWidth: CGFloat = 16.5 * rem
     public static let marqueeCorner: CGFloat = 0.8 * rem
     public static let marqueeInnerCorner: CGFloat = 0.6 * rem
     /// The banner matches the control buttons so the footer reads as one row.
-    public static let marqueeHeight: CGFloat = footerControl
+    public static var marqueeHeight: CGFloat { footerControl }
     /// One size for every screen: the main screen's longer banner scrolls,
     /// so it does not need to shrink to fit. Trimmed from 1.45rem (v0.5.4)
     /// — at that size the strip read louder than the buttons beside it.
     public static let marqueeTextSize: CGFloat = 1.2 * rem
+
+    /// Icon wells (v0.5.8, F1): the list-row well and the detail-hero well,
+    /// scaled with the chrome so LARGE grows the pictures, not the words.
+    public static var iconWell: CGFloat { 48 * UIScale.current.factor }
+    public static var heroWell: CGFloat { 148 * UIScale.current.factor }
 
     /// How long the device takes to turn over.
     ///
@@ -410,6 +420,39 @@ public enum TextScale: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+/// Chrome scale (v0.5.8, F1) — a second axis, independent of `TextScale`.
+///
+/// Scales the *furniture*: footer controls, marquee band, vents, icon wells.
+/// Text keeps its own setting, so a user can have big controls with small
+/// type, or the reverse. SMALL is exactly the pre-0.5.8 layout.
+///
+/// Applied inside `DexMetrics`' computed members rather than at call sites,
+/// for the same reason `TextScale` lives inside `DexFont`: the call site that
+/// threads a factor through by hand is the one that forgets to.
+public enum UIScale: String, CaseIterable, Identifiable, Sendable {
+    case small = "SMALL"
+    case large = "LARGE"
+
+    public static let storageKey = "uiScale"
+
+    public var id: String { rawValue }
+
+    /// 1.15 is as far as the chassis stretches before the footer trio starts
+    /// squeezing the marquee on a compact-width phone.
+    public var factor: CGFloat {
+        switch self {
+        case .small: 1.0
+        case .large: 1.15
+        }
+    }
+
+    /// Mirrors `TextScale.current` — defaults-read, rebuild forced by
+    /// `RootView` keying on the raw value.
+    public static var current: UIScale {
+        UIScale(rawValue: UserDefaults.standard.string(forKey: storageKey) ?? "") ?? .small
+    }
+}
+
 /// Whether the LCD renders dark-on-black or the original handheld's dark-on-
 /// light-grey. Independent of `ChassisSkin`: the shell and the screen are
 /// separate choices, and pairing a light screen with the red shell is a
@@ -460,8 +503,9 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .blueScreen: "VINOFD"
         case .gruenerBoy: "GRÜNERBOY"
-        // Lowercase on purpose — the one label styled like a file name.
-        case .wineOS: "wine.os"
+        // Capitalized like the rest of the roster since 0.5.8 (E1); the dot
+        // keeps the file-name conceit.
+        case .wineOS: "WINE.OS"
         case .starTrek: "L-WINES"
         default: rawValue
         }
@@ -890,6 +934,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     case nocturne = "NOCTURNE"
     /// Brushed aluminium: mirror highlights, crisp dark seams.
     case steel = "STEEL"
+    /// Rose-pink shell with a pale blush faceplate and pearl-pink lights —
+    /// unapologetically pink and girly (v0.6, D1).
+    case blush = "BLUSH"
 
     public static let storageKey = "chassisSkin"
 
@@ -907,11 +954,45 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         self == .nocturne ? Color(dexHex: "#A8FF96") : nil
     }
 
+    /// The globe screen's sphere tint (0.6.2, F1) — every skin sees the world
+    /// through its own colour. Pale on purpose: the tint multiplies over the
+    /// map texture, so a saturated dark here would swallow the coastlines.
+    public var globeTint: Color {
+        switch self {
+        case .classic: Color(dexHex: "#B8FFD6")
+        case .midnight: Color(dexHex: "#D6B8FF")
+        case .original: Color(dexHex: "#FFEDBB")
+        case .burgundy: Color(dexHex: "#E4C0FF")
+        case .riesling: Color(dexHex: "#FFF4A8")
+        case .vinhoVerde: Color(dexHex: "#D9FFB8")
+        case .glouglou: Color(dexHex: "#FFD9B0")
+        case .smartGrape: Color(dexHex: "#FFCB79")
+        case .champagne: Color(dexHex: "#FFF0C8")
+        case .christmas: Color(dexHex: "#FFC2C2")
+        case .nouveau: Color(dexHex: "#DDBBFF")
+        case .oaked: Color(dexHex: "#FFDDAF")
+        case .nocturne: Color(dexHex: "#CCFFB8")
+        case .steel: Color(dexHex: "#CDE7FF")
+        case .blush: Color(dexHex: "#FFCCDD")
+        }
+    }
+
     /// What sits behind the shell: the shell itself for opaque skins, a
     /// near-black base under GLOUGLOU so the smoke plastic has something to be
     /// smoke over.
     public var underlay: Color {
         isTranslucent ? Color(dexHex: "#14161A") : body
+    }
+
+    /// The clear back moulding, laid over the internals — a touch lighter than
+    /// the front shell, since the back of a clear device is one moulding
+    /// further from the boards. Meaningful only for translucent skins.
+    /// RETROVIN's back is its own atomic purple (v0.5.9, A2): the plate used
+    /// one hardcoded grey smoke, so the purple shell turned grey from behind.
+    public var backSmoke: Color {
+        self == .nouveau
+            ? Color(dexHex: "rgba(147,51,234,0.34)")
+            : Color(dexHex: "rgba(204,216,224,0.34)")
     }
 
     /// What the picker calls this skin.
@@ -930,7 +1011,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .midnight: "CÔTE DE NUITS"
         case .original: "BLANC DE BLANCS"
         case .burgundy: "BURGUNDY"
-        case .riesling: "ELECTRIC RIESLING"
+        // Renamed from ELECTRIC RIESLING (0.6.x) — label only, per the note
+        // above; the yellow Walkman shell suits Jura's yellow wine as well.
+        case .riesling: "VIN JAUNE"
         // Renamed labels only — the raw values are the persisted vocabulary
         // and stay put, per the note above. "VINHO VERDE" moved houses in
         // two steps: the forest-green skin became BOX WINE in 0.5.1, which
@@ -940,10 +1023,12 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .smartGrape: "SMART GRAPE"
         case .champagne: "CHAMPAGNE GOLD"
         case .christmas: "WINE XMAS"
-        case .nouveau: "NOUVEAU"
+        // Renamed from NOUVEAU (v0.5.9, A1) — label only, per the note above.
+        case .nouveau: "RETROVIN"
         case .oaked: "OAKED"
         case .nocturne: "VINHO VERDE"
         case .steel: "STAINLESS STEEL"
+        case .blush: "BLUSH"
         }
     }
 
@@ -978,6 +1063,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .oaked: "tree.fill"
         case .nocturne: "moon.zzz.fill"
         case .steel: "gearshape.2.fill"
+        case .blush: "heart.fill"
         }
     }
 
@@ -1019,6 +1105,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
             return trio(("#B9FFAB", "#57D63E"), ("#8DF06A", "#2E8A20"), ("#57D63E", "#1E6A14"))
         case .steel:
             return trio(("#E8F1FF", "#9FB8D8"), ("#C7CBD1", "#6B7078"), ("#9FD4FF", "#5FA8E8"))
+        // Pearl-pink fairy trio, light to deep.
+        case .blush:
+            return trio(("#FDA4AF", "#E11D48"), ("#F9A8D4", "#DB2777"), ("#F472B6", "#9D174D"))
         }
     }
 
@@ -1043,6 +1132,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .nocturne: Color(dexHex: "#C9F2BE")
         // The aluminium base the brush pattern sits over.
         case .steel: Color(dexHex: "#C7CBD1")
+        // Soft rose-pink moulding.
+        case .blush: Color(dexHex: "#EEA7B6")
         }
     }
 
@@ -1060,9 +1151,14 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .champagne: Color(dexHex: "#E8D5A6").opacity(0.75)
         case .christmas: Color(dexHex: "#1B4332").opacity(0.75)
         case .nouveau: Color(dexHex: "rgba(147,51,234,0.30)")
-        case .oaked: Color(dexHex: "#5C4028").opacity(0.75)
+        // No wash at all (v0.5.9, A4). 0.5.8's frosted-pan fix swapped the
+        // translucent wash for a solid deeper walnut, which traded the haze
+        // for a solid bar — still a bar. The walnut grain runs uninterrupted
+        // behind the footer now; the buttons sit directly on the deck.
+        case .oaked: Color.clear
         case .nocturne: Color(dexHex: "#C9F2BE").opacity(0.75)
         case .steel: Color(dexHex: "#B8BCC2").opacity(0.8)
+        case .blush: Color(dexHex: "#EEA7B6").opacity(0.75)
         }
     }
 
@@ -1084,6 +1180,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .oaked: Color(dexHex: "#F2E8D5")
         case .nocturne: Color(dexHex: "#E9FBE0")
         case .steel: Color(dexHex: "#DDE0E4")
+        // The pale blush faceplate against the rose shell.
+        case .blush: Color(dexHex: "#FBE9EC")
         }
     }
 
@@ -1104,6 +1202,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .oaked: Color(dexHex: "#B5892E")
         case .nocturne: Color(dexHex: "#8FCB7C")
         case .steel: Color(dexHex: "#6B7078")
+        case .blush: Color(dexHex: "#D2718A")
         }
     }
 
@@ -1127,6 +1226,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .oaked: Color(dexHex: "#8A6B45")
         case .nocturne: Color(dexHex: "#8FCB7C")
         case .steel: Color(dexHex: "#6B7078")
+        case .blush: Color(dexHex: "#C8879A")
         }
     }
 
@@ -1164,12 +1264,15 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .christmas: Color(dexHex: "#FF4D4D")
         // Grape juice under gloss.
         case .nouveau: Color(dexHex: "#A855F7")
-        // A brass lamp on the walnut.
-        case .oaked: Color(dexHex: "#E8C15A")
+        // A polished chestnut knob on the walnut (v0.5.8, C1 — was brass).
+        // Lighter than the #5C4028 body so it still reads as a lamp.
+        case .oaked: Color(dexHex: "#B06A32")
         // The one part that is *always* charged.
         case .nocturne: Color(dexHex: "#7CFC9A")
         // Ice on silver.
         case .steel: Color(dexHex: "#E8F1FF")
+        // A pearl-pink bead — the one saturated light on the pastel shell.
+        case .blush: Color(dexHex: "#FF7FA8")
         }
     }
 
@@ -1188,9 +1291,10 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .champagne: Color(dexHex: "#D4A017")
         case .christmas: Color(dexHex: "#A61E1E")
         case .nouveau: Color(dexHex: "#7C3AED")
-        case .oaked: Color(dexHex: "#B5892E")
+        case .oaked: Color(dexHex: "#7A4218")
         case .nocturne: Color(dexHex: "#3EE06C")
         case .steel: Color(dexHex: "#9FB8D8")
+        case .blush: Color(dexHex: "#E1447E")
         }
     }
 
@@ -1258,6 +1362,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .steel:
             ChassisAccent(pale: "#F2F6FA", light: "#D7DEE6", bright: "#AEB9C6",
                           mid: "#7E8A98", edge: "#454C56", ink: "#14181D")
+        // Hot-pink ramp on the pastel shell — the powered parts get the
+        // saturation the moulding deliberately holds back.
+        case .blush:
+            ChassisAccent(pale: "#FFF1F4", light: "#FBCFE0", bright: "#F472B6",
+                          mid: "#DB2777", edge: "#9D174D", ink: "#500724")
         }
     }
 
@@ -1317,6 +1426,10 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // Machined caps with a dark glyph, per the Blanc de Blancs precedent.
         case .steel:
             ChassisControl(top: "#B9BEC6", bottom: "#5E646C", edge: "#3E434B", glyph: "#14181D")
+        // Pink caps one register deeper than the shell, dark glyph like the
+        // other pale skins.
+        case .blush:
+            ChassisControl(top: "#F5BBC9", bottom: "#C97F94", edge: "#8F4A5E", glyph: "#4A1220")
         }
     }
 
@@ -1339,6 +1452,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .oaked: Color(dexHex: "#FFB84D")
         case .nocturne: Color(dexHex: "#86FF7E")
         case .steel: Color(dexHex: "#9FD4FF")
+        // Pink phosphor — period LED strips never came in pink, but this is
+        // the one skin allowed to care more about the look than the period.
+        case .blush: Color(dexHex: "#FF9EC0")
         }
     }
 
@@ -1360,6 +1476,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .oaked: Color(dexHex: "#E69A28")
         case .nocturne: Color(dexHex: "#57D63E")
         case .steel: Color(dexHex: "#5FA8E8")
+        case .blush: Color(dexHex: "#F472B6")
         }
     }
 
@@ -1381,6 +1498,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .oaked: Color(dexHex: "#33200A")
         case .nocturne: Color(dexHex: "#0E2E0C")
         case .steel: Color(dexHex: "#0A1A2A")
+        case .blush: Color(dexHex: "#3B0A1E")
         }
     }
 

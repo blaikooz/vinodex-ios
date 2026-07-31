@@ -636,11 +636,19 @@ public struct DatabaseStats: Sendable, Hashable {
     }
 
     /// Milestones the DATA panel's wave sweeps through: empty, the original
-    /// starter selection, the first full import, and wherever the data stands
-    /// now. Fixed history plus a live tail, so the graph keeps meaning as the
-    /// dataset grows.
+    /// starter selection, the first full import, then each release total the
+    /// database has stood at. Fixed history plus a live tail — **append the
+    /// outgoing total here whenever a data change moves it** (0.6.x), so the
+    /// graph keeps a running record of how the catalog has grown.
     public var waveMilestones: [Int] {
-        [0, 25, 186, total]
+        [
+            0,
+            25,   // the curated starter selection
+            186,  // the first full import
+            281,  // 0.5.8
+            342,  // 0.6.1
+            total,
+        ]
     }
 }
 
@@ -656,8 +664,13 @@ public struct EntryTiers: Codable, Sendable {
 /// path — the country page has more room than it currently uses.
 public struct CountryInfo: Codable, Sendable, Hashable {
     public let description: String
+    /// The country's canonical appellation system(s) (0.6, A2) — e.g.
+    /// ["DOCG", "DOC", "IGT"]. Optional so a pre-0.6 countries.json still
+    /// decodes; the INFO section simply omits the line.
+    public let appellationSystem: [String]?
 
-    public init(description: String) {
+    public init(description: String, appellationSystem: [String]? = nil) {
         self.description = description
+        self.appellationSystem = appellationSystem
     }
 }

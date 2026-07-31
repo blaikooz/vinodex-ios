@@ -171,6 +171,8 @@ public struct CountryScreen: View {
     private var infoSection: some View {
         section("INFO", symbol: "book") {
             VStack(alignment: .leading, spacing: 8) {
+                // The blurb alone — the appellation system has its own
+                // section below; a chip row here too said it twice (0.6.x).
                 if let info = db.countryInfo(country) {
                     Text(info.description)
                         .font(DexFont.mono(18))
@@ -259,8 +261,13 @@ public struct CountryScreen: View {
         .buttonStyle(DexPressStyle(scale: 0.98))
     }
 
-    /// Every appellation system in use here.
+    /// The country's appellation systems (0.6, A2): the authored canonical
+    /// list from `countries.json` when it exists, else the systems its
+    /// regions actually carry — the pre-0.6 derivation, kept as the fallback.
     private var appellations: [String] {
+        if let system = db.countryInfo(country)?.appellationSystem, !system.isEmpty {
+            return system
+        }
         var seen: Set<String> = []
         for entry in regions {
             if case .region(let r) = entry, !r.details.classification.isEmpty {
@@ -271,9 +278,10 @@ public struct CountryScreen: View {
     }
 
     private var appellationsSection: some View {
-        section("APPELLATION SYSTEMS", symbol: "shield") {
+        section("APPELLATION SYSTEM", symbol: "shield") {
             VStack(alignment: .leading, spacing: 6) {
                 ForEach(appellations, id: \.self) { system in
+                    let full = EntryDisplay.appellationName(classification: system, country: country)
                     HStack(alignment: .top, spacing: 8) {
                         ChipView(
                             label: system,
@@ -281,10 +289,15 @@ public struct CountryScreen: View {
                                 TileChip(label: system, key: system, table: .classification)
                             )
                         )
-                        Text(EntryDisplay.appellationName(classification: system, country: country))
-                            .font(DexFont.mono(17))
-                            .foregroundStyle(lcd.subtext)
-                            .fixedSize(horizontal: false, vertical: true)
+                        // The spelled-out form, when there is one — a name
+                        // the authored list already writes in full ("Vinho
+                        // Regional") would just repeat its own chip.
+                        if full != system {
+                            Text(full)
+                                .font(DexFont.mono(17))
+                                .foregroundStyle(lcd.subtext)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                         Spacer(minLength: 0)
                     }
                 }
@@ -351,6 +364,10 @@ public struct CountryScreen: View {
         let shown = showsAllRegions ? all : Array(all.prefix(3))
         return section("REGIONS", symbol: "mappin.and.ellipse") {
             VStack(spacing: 8) {
+                // One red dot per region, geographically placed where the
+                // data carries a `mapPosition` (0.6.x) — see `CountryOutlineMap`.
+                CountryOutlineMap(country: country, regions: all)
+                    .padding(.bottom, 6)
                 ForEach(shown) { entry in
                     EntryTileView(
                         entry: entry,

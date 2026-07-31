@@ -6,7 +6,7 @@
 
 ### A wine encyclopedia that looks like a 90s handheld.
 
-**282 grapes, regions, styles and flavours** — colour-coded, cross-linked, and
+**281 grapes, regions, styles and flavours** — colour-coded, cross-linked, and
 wrapped in a plastic shell you can re-skin ten different ways.
 
 ### **[Build it → `xtool dev run`](#running-it)**
@@ -43,7 +43,7 @@ wrapped in a plastic shell you can re-skin ten different ways.
 | **The dex** | Grapes, regions, styles, flavours and continents. Every entry cross-links to the others, and every link resolves — the tests pin that. |
 | **Globe scan** | A drag-to-spin globe. Continent markers open a continent screen, then its countries, then their regions. Where you spun it to survives the trip into a region. |
 | **Scanner** | Colour, body, origin, flavours — then a deduction. Flavours are ANDed, capped at three, because a fourth specific note reliably matches nothing. |
-| **Filter search** | Narrow all 282 entries by colour, body, rarity and climate at once. Every chip shows the count it would produce *before* you tap it. |
+| **Filter search** | Narrow all 281 entries by colour, body, rarity and climate at once. Every chip shows the count it would produce *before* you tap it. |
 | **Tasting quiz** | Three tiers — NOVICE, ENTHUSIAST, SOMMELIER — each a ten-question round, 8/10 to pass, and a pass unlocks the next. Generated from the data, so a question can never contradict the entry behind it. |
 | **Daily challenge** | One five-question paper per day, the same paper for everyone, 4/5 to pass. Passing keeps the streak alive; there is no retry, because the retry would be the same paper. |
 | **Tried & Passport** | Mark grapes and styles TRIED (with a 1–5 rating and a one-line note) or WANT TO TRY. The passport turns the tried shelf into progress — n of 80 grapes, countries visited, milestone stamps. |
@@ -78,13 +78,13 @@ LCD never changes with the skin, so a colourway can never hurt legibility.
 | **Champagne Gold** | Pale champagne | Gold leaf | Gold |
 | **Wine Xmas** | Pixel wrapping paper on pine | Holly red | Holly red |
 | **Nouveau** | Atomic-purple smoke over mock internals | Grape purple | Lilac |
-| **Oaked** | Walnut woodgrain, cream faceplate | Brass | Amber |
+| **Oaked** | Walnut woodgrain, cream faceplate | Chestnut | Amber |
 | **Vinho Verde** | Glow-in-the-dark green, glowing rim | Charged green | Green |
 | **Stainless Steel** | Brushed aluminium, crisp dark seams | Ice | Ice blue |
 
 Plus ten screen modes — dark, light, monochrome VINTAGE (black on grey-green
 like an old organiser), AMBER and TERMINAL phosphors, the GRÜNERBOY dot-matrix,
-the early-GUI wine.os, the VINOFD blue tube, and the L-WINES console. Two text
+the early-GUI WINE.OS, the VINOFD blue tube, and the L-WINES console. Two text
 sizes, a haptics switch, and an authored SFX pack — clicks, pings and stings,
 off by default — with its own switch.
 
@@ -170,6 +170,7 @@ vinodex-ios/
   Tests/
     VinodexCoreTests/      Tests for VinodexCore — the only target with coverage
   shared/                  The data + colour tables, as TypeScript. Source of truth for the JSON.
+  art/icons/               Drawn icon source art, one folder per use (flavors, soil, countries, …)
   scripts/                 Data generator and icon rasteriser
   pixelflags/              Pixel-art country/state flags, the source for Resources/Flags
   xtool.yml                Bundle ID and icon path for xtool

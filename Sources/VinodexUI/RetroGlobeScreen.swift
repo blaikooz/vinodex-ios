@@ -25,6 +25,9 @@ public struct RetroGlobeScreen: View {
     @State private var model = GlobeModel()
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
+    /// The globe wears the chassis skin's own colour (0.6.2, F1).
+    @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
+    private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
 
 
     public init(
@@ -54,14 +57,15 @@ public struct RetroGlobeScreen: View {
                 }
 
                 ZStack {
-                    GlobeSceneView(model: model, isLight: lcd.isLight)
+                    GlobeSceneView(model: model, isLight: lcd.isLight, tint: UIColor(skin.globeTint))
                         .gesture(dragGesture)
-                        // The scene's lighting and emission are baked in
-                        // `buildScene`, which only runs in `makeUIView` — so a
-                        // mode switch has to rebuild the view to take effect.
-                        // Keyed on the mode alone, it costs one rebuild per
-                        // toggle rather than one per render.
-                        .id(lcd)
+                        // The scene's lighting, emission and skin tint are
+                        // baked in `buildScene`, which only runs in
+                        // `makeUIView` — so a mode or skin switch has to
+                        // rebuild the view to take effect. Keyed on both, it
+                        // costs one rebuild per toggle rather than one per
+                        // render.
+                        .id("\(lcd.rawValue)|\(skinRaw)")
 
                     markerLayer
                 }
@@ -97,8 +101,14 @@ public struct RetroGlobeScreen: View {
                     Haptics.tap()
                     onSelectContinent(marker.continent)
                 } label: {
+                    // Text-only on purpose. 0.5.9 briefly put the drawn globe
+                    // icons on these plates; a globe pinned onto the globe
+                    // read as clutter and came back off in 0.6.x — the icon
+                    // set lives on the scanner's choice tiles instead.
+                    // Bigger type, tighter plate (0.6.2, E2): the fixed
+                    // 108x62 box left the two-line labels swimming in scrim.
                     Text(marker.continent.markerLabel)
-                        .font(DexFont.retro(11))
+                        .font(DexFont.retro(15))
                         .multilineTextAlignment(.center)
                         // Always light, in both LCD modes. A marker does not sit
                         // on the screen background — it sits on the *globe*,
@@ -106,7 +116,9 @@ public struct RetroGlobeScreen: View {
                         // `lcd.text` turned the label near-black over a dark
                         // sphere and made it unreadable in light mode.
                         .foregroundStyle(.white)
-                        .frame(width: 108, height: 62)
+                        .fixedSize()
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
                         // The plate carries the contrast instead: a black scrim
                         // under the continent tint, deepened in light mode where
                         // the surrounding page is pale and the marker would
@@ -156,13 +168,14 @@ public struct RetroGlobeScreen: View {
 struct GlobeSceneView: UIViewRepresentable {
     let model: GlobeModel
     var isLight: Bool
+    var tint: UIColor
 
     func makeUIView(context: Context) -> SCNView {
         let view = SCNView()
         view.backgroundColor = .clear
         view.antialiasingMode = .multisampling2X
         view.isUserInteractionEnabled = false   // gestures are handled in SwiftUI
-        view.scene = model.buildScene(isLight: isLight)
+        view.scene = model.buildScene(isLight: isLight, tint: tint)
         view.pointOfView = model.cameraNode
         model.attach(to: view)
         return view
@@ -263,7 +276,7 @@ final class GlobeModel {
     /// the wireframe — is a green CRT glow tuned against a black ground. Left
     /// alone on the light screen it read as a hole punched in the page, which
     /// is why the globe was the one screen the setting appeared not to touch.
-    func buildScene(isLight: Bool) -> SCNScene {
+    func buildScene(isLight: Bool, tint: UIColor = .white) -> SCNScene {
         let scene = SCNScene()
         scene.background.contents = UIColor.clear
 
@@ -280,6 +293,9 @@ final class GlobeModel {
         }
         material.diffuse.wrapS = .repeat
         material.diffuse.wrapT = .clamp
+        // The skin's tint, multiplied over the map texture (0.6.2, F1) —
+        // pale colours shift the hue without drowning the coastlines.
+        material.multiply.contents = tint
         material.roughness.contents = 0.92
         material.metalness.contents = 0.08
         // Self-illumination is what makes the dark globe glow. On paper it only

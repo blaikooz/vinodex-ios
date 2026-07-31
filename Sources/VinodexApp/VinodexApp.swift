@@ -21,10 +21,11 @@ struct RootView: View {
     /// Set when a locked entry is tapped; drives the upgrade prompt.
     @State private var lockedAttempt: WineEntry?
     @State private var access = AccessStore.shared
-    /// DexFont reads the scale from defaults, which SwiftUI cannot observe.
-    /// Keying the chassis on it forces a rebuild so a change takes effect
-    /// immediately rather than on the next navigation.
+    /// DexFont and DexMetrics read their scales from defaults, which SwiftUI
+    /// cannot observe. Keying the chassis on both forces a rebuild so a
+    /// change takes effect immediately rather than on the next navigation.
     @AppStorage(TextScale.storageKey) private var scaleRaw = TextScale.small.rawValue
+    @AppStorage(UIScale.storageKey) private var uiScaleRaw = UIScale.small.rawValue
 
     private let db = WineDatabase.shared
 
@@ -96,7 +97,7 @@ struct RootView: View {
             }
             .animation(.easeOut(duration: 0.15), value: lockedAttempt?.id)
         }
-        .id(scaleRaw)
+        .id(scaleRaw + "|" + uiScaleRaw)
         .preferredColorScheme(.dark)
         .statusBarHidden()
         .onAppear {
@@ -228,7 +229,10 @@ struct RootView: View {
             )
 
         case .chipFilter:
-            ChipFilterScreen { open($0) }
+            ChipFilterScreen(
+                onSelect: { open($0) },
+                onSelectCountry: { push(.country(name: $0)) }
+            )
 
         case .wsetQuiz:
             TastingQuizScreen(onOpen: { open($0) }, onExit: { goBack() })

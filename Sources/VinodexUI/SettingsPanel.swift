@@ -225,12 +225,14 @@ public struct SettingsSectionPanel: View {
     @State private var screens = ScreenStateStore.shared
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
     @AppStorage(TextScale.storageKey) private var scaleRaw = TextScale.small.rawValue
+    @AppStorage(UIScale.storageKey) private var uiScaleRaw = UIScale.small.rawValue
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
 
     private let db = WineDatabase.shared
 
     private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
     private var scale: TextScale { TextScale(rawValue: scaleRaw) ?? .small }
+    private var uiScale: UIScale { UIScale(rawValue: uiScaleRaw) ?? .small }
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
     private var totalCount: Int { db.entries.count }
 
@@ -453,10 +455,11 @@ public struct SettingsSectionPanel: View {
         skinTesting
     }
 
-    /// Device behaviour: text size, haptics, and the stored-data reset.
+    /// Device behaviour: text size, UI size, haptics, and the stored-data reset.
     @ViewBuilder
     private var systemSettings: some View {
         textSize
+        uiSize
 
         settingsSection("HAPTICS") {
             VStack(alignment: .leading, spacing: 10) {
@@ -627,18 +630,19 @@ public struct SettingsSectionPanel: View {
                                 }
                                 .opacity(locked ? 0.45 : 1)
 
-                            // Word-over-word, so BLANC DE BLANCS and
-                            // STAINLESS STEEL read at full size instead of
-                            // shrinking to fit one line.
-                            VStack(spacing: 2) {
-                                ForEach(option.displayName.split(separator: " "), id: \.self) { word in
-                                    Text(word)
-                                        .font(DexFont.retro(10))
-                                        .tracking(1)
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(0.6)
-                                }
-                            }
+                            // A fixed two-line box (v0.5.8, C2). The old
+                            // word-per-line stack gave every tile its own
+                            // height — three-word names ran a line taller and
+                            // one-word tiles floated short in their grid row.
+                            // Reserving two lines makes all fourteen tiles
+                            // congruent; long names wrap, short ones centre.
+                            Text(option.displayName)
+                                .font(DexFont.retro(10))
+                                .tracking(1)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.center)
+                                .minimumScaleFactor(0.6)
+                                .frame(height: 28)
                         }
                         .foregroundStyle(skin == option ? lcd.onAccent : lcd.subtext)
                         .padding(.horizontal, 8)
@@ -766,6 +770,39 @@ public struct SettingsSectionPanel: View {
                     }
                 }
                 Text("Applies everywhere. Capped so the retro face still fits its tiles.")
+                    .font(DexFont.mono(17))
+                    .foregroundStyle(lcd.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    /// The chrome axis (v0.5.8, F1) — same two-button shape as TEXT SIZE so
+    /// the pair reads as siblings, one per axis.
+    private var uiSize: some View {
+        settingsSection("UI SIZE") {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    ForEach(UIScale.allCases) { option in
+                        Button {
+                            Haptics.select()
+                            uiScaleRaw = option.rawValue
+                        } label: {
+                            Text(option.rawValue)
+                                .font(DexFont.retro(13))
+                                .tracking(1)
+                                .foregroundStyle(uiScale == option ? lcd.onAccent : lcd.subtext)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 17)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(uiScale == option ? lcd.accent : lcd.surface)
+                                )
+                        }
+                        .buttonStyle(DexPressStyle(scale: 0.97))
+                    }
+                }
+                Text("Buttons, wells and chassis chrome — the text keeps its own size above.")
                     .font(DexFont.mono(17))
                     .foregroundStyle(lcd.subtext)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1211,6 +1248,7 @@ enum SavedDataReset {
             StreakStore.bestKey,
             LcdMode.storageKey,
             TextScale.storageKey,
+            UIScale.storageKey,
             ChassisSkin.storageKey,
             UserProfile.displayNameKey,
             Haptics.storageKey,

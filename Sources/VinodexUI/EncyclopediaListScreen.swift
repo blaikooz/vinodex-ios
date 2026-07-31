@@ -227,14 +227,10 @@ public struct EncyclopediaListScreen: View {
             onSelectCountry(name)
         } label: {
             HStack(spacing: 12) {
-                // The flag filling the same 48pt well the entry rows use.
-                FlagImage(country: name)
-                    .frame(width: 48, height: 48)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .strokeBorder(.black.opacity(0.25), lineWidth: 1)
-                    )
+                // Rectangular, not the square entry well (v0.5.8, D4): a
+                // cropped-square flag stops looking like a flag. Same swatch
+                // size as the saved screen's place rows.
+                FlagSwatch(country: name, width: 60, height: 38)
                 VStack(alignment: .leading, spacing: 6) {
                     Text(name.uppercased())
                         .font(DexFont.retro(13))

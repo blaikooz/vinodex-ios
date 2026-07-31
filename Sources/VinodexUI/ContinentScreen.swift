@@ -92,7 +92,7 @@ public struct ContinentScreen: View {
 
     private var hero: some View {
         VStack(spacing: 14) {
-            EntryIconWell(entry: .continent(continent), size: 148, cornerRadius: 20)
+            EntryIconWell(entry: .continent(continent), size: DexMetrics.heroWell, cornerRadius: 20)
 
             Text(continent.common.name.uppercased())
                 .font(DexFont.retro(21))

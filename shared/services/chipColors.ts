@@ -60,12 +60,25 @@ export const getClassificationChipColors = (classification?: string): ChipColorS
 
 export const getWineTypeChipColors = (wineType?: string): ChipColorStyle => {
   const t = (wineType || '').toLowerCase();
-  if (t.includes('red') || t.includes('bold'))        return { bg: '#7f1d1d', border: '#b91c1c', text: '#fca5a5' };
-  if (t.includes('white') || t.includes('aromatic'))  return { bg: '#92400e', border: '#d97706', text: '#fde68a' };
-  if (t.includes('rosé') || t.includes('rose'))       return { bg: '#9d174d', border: '#db2777', text: '#fbcfe8' };
-  if (t.includes('sparkling'))                         return { bg: '#a16207', border: '#eab308', text: '#fef9c3' };
-  if (t.includes('sweet'))                             return { bg: '#9a3412', border: '#ea580c', text: '#fed7aa' };
-  if (t.includes('orange'))                            return { bg: '#7c2d12', border: '#ea580c', text: '#fed7aa' };
+
+  // Type chips shade with body (0.6.x): reds run light -> dark red and whites
+  // light -> dark green, so the chip alone carries the weight axis. Sweet and
+  // aromatic keep colours of their own — they are about the nose, not weight.
+  if (t.includes('red') || t.includes('bold')) {
+    if (t.includes('light')) return { bg: '#8a3242', border: '#e0525f', text: '#ffd6da' };
+    if (t.includes('full'))  return { bg: '#450a0a', border: '#991b1b', text: '#f87171' };
+    return { bg: '#701a1a', border: '#c02626', text: '#fca5a5' };
+  }
+  if (t.includes('sweet'))    return { bg: '#9a3412', border: '#ea580c', text: '#fed7aa' };
+  if (t.includes('aromatic')) return { bg: '#274a1e', border: '#65a30d', text: '#d9f99d' };
+  if (t.includes('white')) {
+    if (t.includes('light')) return { bg: '#3e661a', border: '#a3e635', text: '#f0fdf4' };
+    if (t.includes('full'))  return { bg: '#0f2a15', border: '#166534', text: '#86efac' };
+    return { bg: '#1f4416', border: '#4d7c0f', text: '#bef264' };
+  }
+  if (t.includes('rosé') || t.includes('rose')) return { bg: '#9d174d', border: '#db2777', text: '#fbcfe8' };
+  if (t.includes('sparkling'))                  return { bg: '#a16207', border: '#eab308', text: '#fef9c3' };
+  if (t.includes('orange'))                     return { bg: '#7c2d12', border: '#ea580c', text: '#fed7aa' };
   return { bg: '#57534e', border: '#78716c', text: '#e7e5e4' };
 };
 
@@ -75,6 +88,8 @@ export const getRarityChipColors = (rarity?: string): ChipColorStyle => {
     case 'UNCOMMON': return { bg: '#064e3b', border: '#16a34a', text: '#d1fae5' };
     case 'RARE':     return { bg: '#111827', border: '#2563eb', text: '#dbeafe' };
     case 'NOBLE':    return { bg: '#3b0764', border: '#9333ea', text: '#f3e8ff' };
+    // Above NOBLE (0.6.2): cursed gold on near-black.
+    case 'GODFORSAKEN': return { bg: '#292010', border: '#ca8a04', text: '#fde047' };
     default:         return { bg: '#3f3f46', border: '#52525b', text: '#e4e4e7' };
   }
 };

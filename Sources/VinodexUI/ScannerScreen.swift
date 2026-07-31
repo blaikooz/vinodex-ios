@@ -278,7 +278,8 @@ public struct ScannerScreen: View {
                         label: option.rawValue.uppercased(),
                         chip: db.palette.colorTypeChips[option.rawValue.uppercased()],
                         selected: criteria.color == option,
-                        fill: true
+                        fill: true,
+                        iconID: db.icons.colorIcon(option.rawValue.uppercased())
                     ) {
                         criteria.color = criteria.color == option ? nil : option
                         advance(to: .body)
@@ -303,7 +304,8 @@ public struct ScannerScreen: View {
                         label: option.label,
                         chip: bodyChip(option),
                         selected: criteria.body == option,
-                        fill: true
+                        fill: true,
+                        iconID: db.icons.bodyIcon(option.rawValue)
                     ) {
                         criteria.body = criteria.body == option ? nil : option
                         advance(to: .origin)
@@ -487,7 +489,9 @@ public struct ScannerScreen: View {
                         label: flavor.name,
                         chip: flavorChip(flavor),
                         selected: chosen,
-                        fill: chosen
+                        fill: chosen,
+                        iconID: db.iconID(for: flavor),
+                        iconSize: 22
                     ) {
                         criteria.toggleFlavor(flavor.id)
                     }
@@ -496,6 +500,9 @@ public struct ScannerScreen: View {
         }
     }
 
+    /// The class and subclass doorways as little tiles — hero icon over name
+    /// (0.6.2, B2). These finally wear the drawn taxonomy glyphs; as chips
+    /// they had nowhere to put one.
     private func group(_ title: String, values: [String], kind: FlavorKind) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
@@ -503,21 +510,51 @@ public struct ScannerScreen: View {
                 .tracking(1)
                 .foregroundStyle(lcd.accent)
 
-            FlowLayout(spacing: 6) {
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3),
+                spacing: 8
+            ) {
                 ForEach(values, id: \.self) { value in
-                    chip(
-                        label: value,
-                        chip: kind == .classification
-                            ? db.palette.flavorClassChips[value]
-                            : db.palette.flavorSubclassChips[value],
-                        selected: false,
-                        fill: false
-                    ) {
-                        advance(to: .flavorList(kind: kind, value: value))
-                    }
+                    taxonomyTile(value, kind: kind)
                 }
             }
         }
+    }
+
+    private func taxonomyTile(_ value: String, kind: FlavorKind) -> some View {
+        let paletteChip = kind == .classification
+            ? db.palette.flavorClassChips[value]
+            : db.palette.flavorSubclassChips[value]
+        let resolved = paletteChip ?? Palette.Chip(bg: "#1c1917", border: "#57534e", text: "#e7e5e4")
+        let iconID = kind == .classification
+            ? db.icons.flavorClassIcon(value)
+            : db.icons.flavorSubclassIcon(value)
+
+        return Button {
+            Haptics.select()
+            advance(to: .flavorList(kind: kind, value: value))
+        } label: {
+            VStack(spacing: 6) {
+                DexIcon(iconID: iconID, size: 44, color: Color(dexHex: resolved.text))
+                Text(EntryDisplay.hyphenated(value.replacingOccurrences(of: "_", with: " ").uppercased()))
+                    .font(DexFont.retro(9))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.6)
+                    .foregroundStyle(Color(dexHex: resolved.text))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .padding(.horizontal, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 6).fill(Color(dexHex: resolved.bg).opacity(0.75))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .strokeBorder(Color(dexHex: resolved.border), lineWidth: 1)
+            )
+        }
+        .buttonStyle(DexPressStyle(scale: 0.95))
     }
 
     @ViewBuilder
@@ -609,7 +646,9 @@ public struct ScannerScreen: View {
                                 label: flavor.name,
                                 chip: flavorChip(flavor),
                                 selected: chosen,
-                                fill: chosen
+                                fill: chosen,
+                                iconID: db.iconID(for: flavor),
+                                iconSize: 22
                             ) {
                                 // The cap is enforced in `toggleFlavor`, so a
                                 // tap past the limit is a no-op rather than a
@@ -838,11 +877,20 @@ public struct ScannerScreen: View {
     /// themselves in when picked, while the class and subclass tiles stay
     /// outlined because tapping them opens a list rather than answering
     /// anything.
+    ///
+    /// `iconID` puts the taxonomy's own drawn glyph on the choice (v0.6, C2):
+    /// the colour and body answers carry the same `art:` icons their tiles
+    /// wear on the entry screen, so the choice and the fact it sets are
+    /// recognisably the same thing. The flavour chips carry their note's own
+    /// glyph too (0.6.x), at `iconSize` 22 — big enough to read as the note,
+    /// small enough that a flow of them stays a flow.
     private func chip(
         label: String,
         chip: Palette.Chip?,
         selected: Bool,
         fill: Bool,
+        iconID: String? = nil,
+        iconSize: CGFloat = 30,
         action: @escaping () -> Void
     ) -> some View {
         let resolved = chip ?? Palette.Chip(bg: "#1c1917", border: "#57534e", text: "#e7e5e4")
@@ -853,6 +901,9 @@ public struct ScannerScreen: View {
             action()
         } label: {
             HStack(spacing: 6) {
+                if let iconID {
+                    DexIcon(iconID: iconID, size: iconSize, color: Color(dexHex: resolved.text))
+                }
                 Text(EntryDisplay.hyphenated(label.replacingOccurrences(of: "_", with: " ").uppercased()))
                     .font(DexFont.retro(14))
                     .multilineTextAlignment(.center)

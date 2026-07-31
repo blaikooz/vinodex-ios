@@ -64,21 +64,21 @@ struct ContinentTests {
         )
     }
 
-    /// v0.5.3: continents wear the web app's three region-globe glyphs — the
-    /// hemisphere each pair shares — rather than six per-continent marks
-    /// (`continentIconName` in the web's `entryIconVisuals.tsx`). Pinned as
-    /// exact pairs so a regeneration cannot silently drift the mapping, and
-    /// so the two siblings keep showing the same globes.
-    @Test("continents wear the three shared region-globe glyphs")
+    /// v0.5.8 (B1): every continent wears its own drawn globe — `art:` ids
+    /// into ClassArt, replacing the three shared Iconify hemispheres v0.5.3
+    /// borrowed from the web app (which left Africa and Europe identical).
+    /// Pinned as exact pairs so a regeneration cannot silently drift the
+    /// mapping.
+    @Test("continents wear their own drawn globes")
     func continentPresentation() throws {
         let db = WineDatabase.shared
         let expected: [String: String] = [
-            "CONT_AFRICA": "game-icons:earth-africa-europe",
-            "CONT_EUROPE": "game-icons:earth-africa-europe",
-            "CONT_ASIA": "game-icons:earth-asia-oceania",
-            "CONT_OCEANIA": "game-icons:earth-asia-oceania",
-            "CONT_NORTH_AMERICA": "game-icons:earth-america",
-            "CONT_SOUTH_AMERICA": "game-icons:earth-america",
+            "CONT_AFRICA": "art:globe-africa",
+            "CONT_EUROPE": "art:globe-europe",
+            "CONT_ASIA": "art:globe-asia",
+            "CONT_OCEANIA": "art:globe-oceania",
+            "CONT_NORTH_AMERICA": "art:globe-north-america",
+            "CONT_SOUTH_AMERICA": "art:globe-south-america",
         ]
 
         for entry in db.entries(in: .continents) {
@@ -86,7 +86,8 @@ struct ContinentTests {
             #expect(icon == expected[entry.id], "\(entry.name) wears \(icon)")
             #expect(!entry.tileChips.isEmpty, "\(entry.name) would render as a bare row in search")
         }
-        #expect(Set(expected.values).count == 3)
+        // Six continents, six different faces — no globe is shared any more.
+        #expect(Set(expected.values).count == 6)
     }
 
     @Test("hasRegions is true for a country with regions in the selection")

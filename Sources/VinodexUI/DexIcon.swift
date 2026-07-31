@@ -87,12 +87,15 @@ public struct DexIcon: View {
     }
 }
 
-/// Reproduces the web app's 1px black icon outline.
+/// Reproduces the web app's black icon outline.
 ///
-/// `entryIconVisuals.tsx:41` stacks eight `drop-shadow(±0.5px ±0.5px 0 #000)`
-/// filters. SwiftUI's `.shadow(radius: 0, x:, y:)` is the direct analogue and
-/// composes the same way, so the eight offsets port across literally — no need
-/// to bake the outline into the PNGs, which would have blocked runtime tinting.
+/// `entryIconVisuals.tsx:41` stacks eight `drop-shadow` filters. SwiftUI's
+/// `.shadow(radius: 0, x:, y:)` is the direct analogue and composes the same
+/// way, so the eight offsets port across literally — no need to bake the
+/// outline into the PNGs, which would have blocked runtime tinting.
+/// The offsets run at a full point (0.6.x — they were 0.5): half-pixel
+/// shadows anti-alias into a grey fuzz ring rather than a black line, which
+/// was most of why the outlines read as weak.
 /// The eight offsets are applied literally rather than folded in a loop. The
 /// loop needed an `AnyView` per step to keep one return type, and eight nested
 /// `AnyView`s per glyph — thousands across a list — defeat SwiftUI's structural
@@ -104,14 +107,14 @@ struct PixelOutline: ViewModifier {
     func body(content: Content) -> some View {
         if enabled {
             content
-                .shadow(color: .black, radius: 0, x: 0.5, y: 0)
-                .shadow(color: .black, radius: 0, x: -0.5, y: 0)
-                .shadow(color: .black, radius: 0, x: 0, y: 0.5)
-                .shadow(color: .black, radius: 0, x: 0, y: -0.5)
-                .shadow(color: .black, radius: 0, x: 0.5, y: 0.5)
-                .shadow(color: .black, radius: 0, x: -0.5, y: 0.5)
-                .shadow(color: .black, radius: 0, x: 0.5, y: -0.5)
-                .shadow(color: .black, radius: 0, x: -0.5, y: -0.5)
+                .shadow(color: .black, radius: 0, x: 1, y: 0)
+                .shadow(color: .black, radius: 0, x: -1, y: 0)
+                .shadow(color: .black, radius: 0, x: 0, y: 1)
+                .shadow(color: .black, radius: 0, x: 0, y: -1)
+                .shadow(color: .black, radius: 0, x: 1, y: 1)
+                .shadow(color: .black, radius: 0, x: -1, y: 1)
+                .shadow(color: .black, radius: 0, x: 1, y: -1)
+                .shadow(color: .black, radius: 0, x: -1, y: -1)
         } else {
             content
         }

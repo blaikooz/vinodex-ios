@@ -51,6 +51,9 @@ public struct EntryDetailScreen: View {
     @State private var bookmarks = BookmarkStore.shared
     /// Raised when TRIED turns on, and again from MY RATING's EDIT.
     @State private var showingRating = false
+    /// Which expandable sections are open (0.6.2, C2). Session-local:
+    /// an expanded list is browsing state, not an answer.
+    @State private var expandedSections: Set<String> = []
     /// Scroll position outlives the view — see `ScreenStateStore`.
     @State private var screens = ScreenStateStore.shared
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
@@ -204,13 +207,14 @@ public struct EntryDetailScreen: View {
     /// Centred icon above a centred wordmark, on a faintly gridded green panel.
     ///
     /// The well is the scan's portrait now (v0.5.6) — nearly double its old
-    /// 80pt, because the pixel art earns the space. Regions drop the glyph at
-    /// this size: the flag *is* the picture.
+    /// 80pt, because the pixel art earns the space. Regions show the drawn
+    /// country outline over the flag here too (v0.5.8, D1): 0.5.7 dropped the
+    /// hero glyph while the glyph was still a borrowed badge, but the outline
+    /// art *is* the place, so the hero wants it back — and it carries the
+    /// region's red location dot (v0.5.9, C1), same as the country scan page.
     private var hero: some View {
-        let isRegion: Bool = { if case .region = entry { return true }; return false }()
-
-        return VStack(spacing: 14) {
-            EntryIconWell(entry: entry, size: 148, cornerRadius: 20, showsGlyph: !isRegion)
+        VStack(spacing: 14) {
+            EntryIconWell(entry: entry, size: DexMetrics.heroWell, cornerRadius: 20, showsRegionDot: true)
 
             Text(entry.name.uppercased())
                 .font(DexFont.retro(21))
@@ -349,23 +353,25 @@ public struct EntryDetailScreen: View {
                 }
 
             case .region(let r):
-                HStack(alignment: .top, spacing: 8) {
+                // KEY GRAPE rides alone on a full-width bar (0.6.x): grape
+                // names are the longest strings in this row by far, and three
+                // abreast they wrapped to three lines. Climate and country
+                // keep the two-tile row below.
+                VStack(spacing: 10) {
                     let keyGrape = r.details.notableGrapes.first
                     let keyGrapeEntry = keyGrape.flatMap { db.entry(named: $0) }
-                    tile(label: "KEY GRAPE",
-                         chip: chip((keyGrape ?? "N/A").uppercased(), .wineType, key: keyGrape ?? ""),
-                         destination: keyGrapeEntry.map { .detail(entryID: $0.id) }) { _ in
-                        keyGrapeIcon(keyGrape)
-                    }
-                    tile(label: "CLIMATE",
-                         chip: chip((r.climate?.rawValue ?? "N/A").uppercased(), .climate, key: r.climate?.rawValue ?? ""),
-                         destination: r.climate.map { .list(category: .regions, filter: .climate($0)) }) { tint in
-                        DexIcon(iconID: db.icons.climateIcon(r.climate), size: 32, color: tint)
-                    }
-                    tile(label: "COUNTRY",
-                         chip: chip(r.details.origin.uppercased(), .country, key: r.details.origin),
-                         destination: .country(name: r.details.origin)) { _ in
-                        FlagSwatch(country: r.details.origin)
+                    keyGrapeBar(name: keyGrape, entry: keyGrapeEntry)
+                    HStack(alignment: .top, spacing: 8) {
+                        tile(label: "CLIMATE",
+                             chip: chip((r.climate?.rawValue ?? "N/A").uppercased(), .climate, key: r.climate?.rawValue ?? ""),
+                             destination: r.climate.map { .list(category: .regions, filter: .climate($0)) }) { tint in
+                            DexIcon(iconID: db.icons.climateIcon(r.climate), size: 32, color: tint)
+                        }
+                        tile(label: "COUNTRY",
+                             chip: chip(r.details.origin.uppercased(), .country, key: r.details.origin),
+                             destination: .country(name: r.details.origin)) { _ in
+                            FlagSwatch(country: r.details.origin)
+                        }
                     }
                 }
 
@@ -379,9 +385,20 @@ public struct EntryDetailScreen: View {
                         DexIcon(iconID: db.icons.colorIcon(color.rawValue), size: 32, color: tint)
                     }
                     tile(label: "CLASS",
+                         // The *inferred* class, not the raw classification
+                         // field (0.6.x): filtering on the raw "STYLE" string
+                         // opened a stale near-everything list, where the chip
+                         // plainly names ORIGIN/TYPE/METHOD/BLEND.
                          chip: chip(cls.rawValue, .styleClass, key: cls.rawValue),
-                         destination: .list(category: .styles, filter: .system(s.details.classification))) { tint in
-                        DexIcon(iconID: db.iconID(for: entry), size: 32, color: tint)
+                         destination: .list(category: .styles, filter: .system(cls.rawValue))) { tint in
+                        // The class's own glyph (v0.5.8, B2) — this drew the
+                        // entry's generic glyph, which left the drawn
+                        // styleclass art with no place to render at all: in
+                        // rows the style portrait covers the glyph, so this
+                        // tile is where the class icon lives. Drawn at 40
+                        // (0.6.x): at 32 the blend art's transparent margins
+                        // left it reading smaller than its siblings.
+                        DexIcon(iconID: db.icons.styleClassIcons[cls.rawValue] ?? db.icons.fallback, size: 40, color: tint)
                     }
                     if s.details.origin.lowercased() != "various" {
                         tile(label: "ORIGIN",
@@ -429,6 +446,47 @@ public struct EntryDetailScreen: View {
         .padding(.bottom, 16)
     }
 
+    /// KEY GRAPE as a full-width flat bar (0.6.x) — see the region header
+    /// note. Same chip palette as the old tile, but the name gets a whole
+    /// line, so "Cabernet Sauvignon" no longer wraps to three.
+    @ViewBuilder
+    private func keyGrapeBar(name: String?, entry keyGrapeEntry: WineEntry?) -> some View {
+        let chipData = chip((name ?? "N/A").uppercased(), .wineType, key: name ?? "")
+        let resolved = db.palette.resolve(chipData)
+        HStack(spacing: 10) {
+            if let keyGrapeEntry {
+                EntryIconWell(entry: keyGrapeEntry, size: 34, cornerRadius: 6)
+            } else {
+                DexIcon(iconID: db.icons.fallback, size: 30, color: Dex.stone600)
+            }
+            VStack(alignment: .leading, spacing: 3) {
+                Text("KEY GRAPE")
+                    .font(DexFont.retro(8))
+                    .foregroundStyle(lcd.accent)
+                Text(chipData.label)
+                    .font(DexFont.retro(13))
+                    .foregroundStyle(Color(dexHex: resolved.text))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            Spacer(minLength: 4)
+            if keyGrapeEntry != nil {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(lcd.subtext)
+            }
+        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 4)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        // No box (0.6.2, C3): the icon well and chip-coloured name carry the
+        // bar; a filled plate behind them read as a grey slab over the hero.
+        .modifier(TileLink(
+            destination: keyGrapeEntry.map { .detail(entryID: $0.id) },
+            onOpen: onOpenRoute
+        ))
+    }
+
     @ViewBuilder
     private func keyGrapeIcon(_ name: String?) -> some View {
         if let name, let target = db.entry(named: name) {
@@ -465,7 +523,7 @@ public struct EntryDetailScreen: View {
                 .font(DexFont.retro(8))
                 .foregroundStyle(lcd.accent)
             icon(tint)
-                .frame(height: 34)
+                .frame(height: 40)
             // Wrap rather than shrink. `minimumScaleFactor` let each tile pick
             // its own effective size, so the three sat at three different
             // scales — the row read as inconsistent even though every label
@@ -546,14 +604,14 @@ public struct EntryDetailScreen: View {
 
         switch cls {
         case .method:
-            linkedSection("KEY GRAPES", symbol: "list.bullet", names: s.details.notableGrapes, limit: 6)
+            linkedSection("KEY GRAPES", symbol: "list.bullet", names: s.details.notableGrapes, expandable: true)
         case .style, .origin, .type:
-            linkedSection("NOTABLE GRAPES", symbol: "list.bullet", names: s.details.notableGrapes, limit: 6)
+            linkedSection("NOTABLE GRAPES", symbol: "list.bullet", names: s.details.notableGrapes, expandable: true)
         case .blend:
             EmptyView()
         }
 
-        linkedSection("KEY REGIONS", symbol: "mappin.and.ellipse", names: s.details.keyRegions, limit: 6)
+        linkedSection("KEY REGIONS", symbol: "mappin.and.ellipse", names: s.details.keyRegions, expandable: true)
     }
 
     /// A single large chip carrying the climate's display name and colours.
@@ -594,11 +652,13 @@ public struct EntryDetailScreen: View {
                 ForEach(soils, id: \.self) { soil in
                     let visual = db.icons.soilIcon(soil)
                     VStack(spacing: 8) {
+                        // Sized up (0.6.x): at 46/24 the drawn soil art was
+                        // mostly margin — the square is the tile's whole point.
                         RoundedRectangle(cornerRadius: 8)
                             .fill(Color(dexHex: "#0b0f19"))
-                            .frame(width: 46, height: 46)
+                            .frame(width: 68, height: 68)
                             .overlay(
-                                DexIcon(iconID: visual.icon, size: 24, color: Color(dexHex: visual.color))
+                                DexIcon(iconID: visual.icon, size: 52, color: Color(dexHex: visual.color))
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
@@ -676,8 +736,15 @@ public struct EntryDetailScreen: View {
                 HStack(spacing: 7) {
                     // NOBLE is a crown on its own, not a crown capping three
                     // stars — the stars implied it was simply one rank above
-                    // RARE rather than a different kind of thing.
-                    if g.rarity == .noble {
+                    // RARE rather than a different kind of thing. GODFORSAKEN
+                    // (0.6.2, A1) sits above even that: a cursed-gold flame,
+                    // because nobility is fame and this is the opposite.
+                    if g.rarity == .godforsaken {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 26))
+                            .foregroundStyle(Color(dexHex: "#ca8a04"))
+                            .shadow(color: Color(dexHex: "#ca8a04").opacity(0.6), radius: 4)
+                    } else if g.rarity == .noble {
                         Image(systemName: "crown.fill")
                             .font(.system(size: 26))
                             .foregroundStyle(Dex.yellow)
@@ -701,6 +768,9 @@ public struct EntryDetailScreen: View {
         case .uncommon: 2
         case .rare: 3
         case .noble: 4
+        // Never reaches the star row — godforsaken has its own emblem — but
+        // the ladder should still rank it truthfully.
+        case .godforsaken: 5
         }
     }
 
@@ -775,13 +845,48 @@ public struct EntryDetailScreen: View {
         _ title: String,
         symbol: String,
         names: [String],
-        limit: Int = linkedRowLimit
+        limit: Int = linkedRowLimit,
+        expandable: Bool = false
     ) -> some View {
         if !names.isEmpty {
             section(title, symbol: symbol) {
                 VStack(spacing: 8) {
-                    ForEach(names.prefix(limit), id: \.self) { name in
+                    // Expandable sections (0.6.2, C2) show three and offer
+                    // the rest behind a tab; capped ones keep the hard limit.
+                    let expanded = expandedSections.contains(title)
+                    let shown = expandable
+                        ? (expanded ? names : Array(names.prefix(3)))
+                        : Array(names.prefix(limit))
+                    ForEach(shown, id: \.self) { name in
                         linkedRow(name)
+                    }
+                    if expandable && names.count > 3 {
+                        Button {
+                            Haptics.select()
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                if expanded {
+                                    expandedSections.remove(title)
+                                } else {
+                                    expandedSections.insert(title)
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                                    .font(.system(size: 13, weight: .bold))
+                                Text(expanded ? "SHOW FEWER" : "EXPAND ALL (\(names.count))")
+                                    .font(DexFont.retro(10))
+                                    .tracking(1)
+                                Spacer(minLength: 0)
+                            }
+                            .foregroundStyle(lcd.accent)
+                            .padding(.horizontal, 12)
+                            .frame(height: 42)
+                            .frame(maxWidth: .infinity)
+                            .background(Capsule().fill(lcd.well))
+                            .overlay(Capsule().strokeBorder(lcd.surfaceEdge, lineWidth: 2))
+                        }
+                        .buttonStyle(DexPressStyle(scale: 0.98))
                     }
                 }
             }

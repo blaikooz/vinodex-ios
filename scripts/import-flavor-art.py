@@ -16,8 +16,9 @@ the source of truth (it feeds icons.json), and this script converts exactly
 the stems that table names. Run `npm run generate` first if you changed it.
 
 Usage: python3 scripts/import-flavor-art.py [source-dir]
-Source defaults to ../shared/newicons relative to the repo root, falling back
-to the monorepo sibling (../../shared/newicons). Requires Pillow.
+Source defaults to the repo's art/icons/flavors — the flat, per-use layout
+that replaced the drop-folder waves under shared/newicons (0.5.8, A1).
+Requires Pillow.
 """
 import json
 import os
@@ -36,25 +37,19 @@ DST = os.path.join(ROOT, "Sources", "VinodexUI", "Resources", "FlavorArt")
 def source_dir():
     if len(sys.argv) > 1:
         return sys.argv[1]
-    for candidate in (
-        os.path.join(ROOT, "shared", "newicons"),
-        os.path.join(os.path.dirname(ROOT), "shared", "newicons"),
-    ):
-        if os.path.isdir(candidate):
-            return candidate
+    candidate = os.path.join(ROOT, "art", "icons", "flavors")
+    if os.path.isdir(candidate):
+        return candidate
     sys.exit("no source dir found; pass it explicitly")
 
 
 def source_file(src, stem):
     # Stems are the source basenames with spaces kebabed, so try both ways —
     # "orange-blossom" is a real hyphen, "red-apple" was "red apple.png".
-    # Wave 2 (0.5.4) arrives in a `1new/` subfolder; wave 3 (0.5.7) dropped
-    # its four portraits in with the taxonomy art in `classes/`.
-    for folder in ("", "1new", "classes"):
-        for name in (stem + ".png", stem.replace("-", " ") + ".png"):
-            path = os.path.join(src, folder, name)
-            if os.path.exists(path):
-                return path
+    for name in (stem + ".png", stem.replace("-", " ") + ".png"):
+        path = os.path.join(src, name)
+        if os.path.exists(path):
+            return path
     return None
 
 

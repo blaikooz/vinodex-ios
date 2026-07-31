@@ -69,7 +69,7 @@ public struct ToolsScreen: View {
                 // the one paper a day that keeps the streak.
                 HStack(spacing: 10) {
                     tile(
-                        title: "TASTING\nQUIZ",
+                        title: "WINE\nEXAM",
                         symbol: "checkmark.seal.fill",
                         face: "#a855f7", shadow: "#6b21a8",
                         action: onQuiz

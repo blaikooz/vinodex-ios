@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Imports the pixel-art style portraits into the app bundle.
 
-Sources are the 29 individual style PNGs in shared/newicons/2new (the two
-`stylesicons*.png` contact sheets there are references, not sources). Same
+Sources are the 29 individual style PNGs in art/icons/styles (contact sheets
+live in art/icons/reference, not here — 0.5.8, A1). Same
 treatment as the flavour importer: background removed via the shared
 border-flood pass in art_common.py (interior white preserved — 0.5.7 B2),
 palette-quantised, written to Sources/VinodexUI/Resources/StyleArt.
@@ -31,12 +31,9 @@ DST = os.path.join(ROOT, "Sources", "VinodexUI", "Resources", "StyleArt")
 def source_dir():
     if len(sys.argv) > 1:
         return sys.argv[1]
-    for candidate in (
-        os.path.join(ROOT, "shared", "newicons", "2new"),
-        os.path.join(os.path.dirname(ROOT), "shared", "newicons", "2new"),
-    ):
-        if os.path.isdir(candidate):
-            return candidate
+    candidate = os.path.join(ROOT, "art", "icons", "styles")
+    if os.path.isdir(candidate):
+        return candidate
     sys.exit("no source dir found; pass it explicitly")
 
 

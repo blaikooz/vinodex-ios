@@ -118,6 +118,8 @@ public struct PassportScreen: View {
         case .uncommon: Dex.blue
         case .rare: Color(dexHex: "#a855f7")
         case .noble: Dex.yellow
+        // Cursed gold — the tier above nobility (0.6.2, A1).
+        case .godforsaken: Color(dexHex: "#ca8a04")
         }
     }
 

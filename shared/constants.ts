@@ -76,6 +76,7 @@ const GRAPE_ENTRIES: GrapeEntry[] = GRAPE_CARDS.map((card) => {
     rare: 'RARE',
     epic: 'RARE',
     noble: 'NOBLE',
+    godforsaken: 'GODFORSAKEN',
   };
   return {
     id: card.id,

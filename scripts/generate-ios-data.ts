@@ -187,7 +187,7 @@ function collectKeyDomain(all: readonly WineEntry[]) {
 function buildPalette(full: readonly WineEntry[]) {
   const domain = collectKeyDomain(full);
 
-  const rarities = ['COMMON', 'UNCOMMON', 'RARE', 'NOBLE'] as const;
+  const rarities = ['COMMON', 'UNCOMMON', 'RARE', 'NOBLE', 'GODFORSAKEN'] as const;
   const colorTypes = ['RED', 'WHITE', 'ROSÉ', 'ORANGE', 'DUAL'] as const;
   const styleClasses = ['STYLE', 'METHOD', 'ORIGIN', 'TYPE', 'BLEND'] as const;
   const flavorClasses = ['SWEET', 'SOUR', 'SALTY', 'BITTER', 'UMAMI'] as const;
@@ -288,7 +288,6 @@ const FALLBACK_ICON = 'mdi:help-circle-outline';
 const FLAVOR_ART: Record<string, string> = {
   'almond': 'almond',
   'alpine herbs': 'alpineherbs',
-  'apple': 'red-apple',
   'apricot': 'apricot',
   'banana': 'banana',
   'beeswax': 'beeswax',
@@ -346,7 +345,8 @@ const FLAVOR_ART: Record<string, string> = {
   'leather': 'leather',
   'lemon': 'lemon',
   'lemon curd': 'lemoncurd',
-  'lemon zest': 'lemon',
+  // Own portrait since 0.5.8 — borrowed lemon.png before.
+  'lemon zest': 'lemonzest',
   'licorice': 'licorice',
   'lilac': 'lilac',
   'lime': 'lime',
@@ -629,6 +629,7 @@ const FLAG_PATHS: Record<string, string> = {
   Morocco: 'Africa/morocco/morocco.png',
   USA: 'North America/united_states/united_states.png',
   Canada: 'North America/canada/canada.png',
+  Mexico: 'North America/mexico/mexico.png',
   Argentina: 'South America/argentina/argentina.png',
   Chile: 'South America/chile/chile.png',
   Uruguay: 'South America/uruguay/uruguay.png',
@@ -641,8 +642,11 @@ const FLAG_PATHS: Record<string, string> = {
 
 // Full-colour pixel-art portraits for styles (0.5.6), keyed by normalised
 // style name. Values are PNG stems under Sources/VinodexUI/Resources/StyleArt,
-// imported from shared/newicons/2new by scripts/import-style-art.py. All 29
+// imported from shared/newicons/2new by scripts/import-style-art.py. All 32
 // shipped styles are covered; `crubeaujolas` preserves the artist's spelling.
+// The three 0.6 styles carry portraits derived from their nearest siblings
+// (recolour passes over fullbodywhite/mediumbodyred/dessertwine) — distinct
+// stems on purpose, so the artist can redraw them without touching the map.
 const STYLE_ART: Record<string, string> = {
   'aromatic white': 'aromaticwhite',
   'bordeaux blend': 'bordeauxblend',
@@ -652,7 +656,8 @@ const STYLE_ART: Record<string, string> = {
   'cru beaujolais': 'crubeaujolas',
   'dessert wine': 'dessertwine',
   'fortified wine': 'fortifiedwine',
-  'fresh chillable red': 'freshchillablered',
+  // Renamed from Fresh Chillable Red (0.6.x); the stem keeps the old name.
+  'chillable red': 'freshchillablered',
   'full-body red': 'fullbodyred',
   'full-body white': 'fullbodywhite',
   'gsm blend': 'gsmblend',
@@ -661,6 +666,8 @@ const STYLE_ART: Record<string, string> = {
   'light-body red': 'chillablered',
   'light-body white': 'lightbodywhite',
   'medium-body red': 'mediumbodyred',
+  'medium-body white': 'mediumbodywhite',
+  'sweet white': 'sweetwhite',
   'natural wine': 'naturalwine',
   'noble grapes': 'noblegrape',
   'orange wine': 'orangewine',
@@ -684,47 +691,43 @@ const STYLE_ART: Record<string, string> = {
  * scripts/import-grape-art.py.
  */
 function buildGrapeArt(): Record<string, string> {
-  const stemFor = (color: string, depth: string, blend: string, leaf: string): string => {
-    if (blend === 'none') {
-      // The one depthless source: the plain green common bunch.
-      if (color === 'green' && depth === 'light' && leaf === 'common') return 'green-common';
-      return `${color}-${depth}-${leaf}`;
-    }
+  // Keys are `<color>-<depth>-<blend>` — no leaf since 0.6.2 (A2): the leaf
+  // is recoloured per rarity in code (`GrapeSpriteLoader`), so every key
+  // resolves to ONE base sprite. The `-rare` files are the bases on purpose:
+  // their leaf is the one part drawn in yellow, which is what makes it
+  // separable from green berries at recolour time.
+  const stemFor = (color: string, depth: string, blend: string): string => {
+    if (blend === 'none') return `${color}-${depth}-rare`;
+    const blendColor = color === 'gold' ? 'green' : color;
     // The blends ship at one depth each; depth falls back to what exists.
-    if (color === 'green' && blend === 'amber') return `green-amber-${leaf}`;
-    if (color === 'red' && blend === 'amber') return `red-amber-medium-${leaf}`;
-    if (color === 'red' && blend === 'pink') return `red-pink-${leaf}`;
-    // Green pink is the patchy corner: light common + two rares, no noble —
-    // a noble gris falls back to the unblended bunch at its depth.
-    if (leaf === 'common') return 'green-pink-light-common';
-    if (leaf === 'rare') return depth === 'light' ? 'green-pink-light-rare' : 'green-pink-rare';
-    return stemFor(color, depth, 'none', leaf);
+    if (blendColor === 'green' && blend === 'amber') return 'green-amber-rare';
+    if (blendColor === 'red' && blend === 'amber') return 'red-amber-medium-rare';
+    if (blendColor === 'red' && blend === 'pink') return 'red-pink-rare';
+    // Green pink: the light rare is the cleaner of the two sources.
+    return depth === 'light' ? 'green-pink-light-rare' : 'green-pink-rare';
   };
 
   const out: Record<string, string> = {};
-  for (const color of ['green', 'red']) {
+  for (const color of ['green', 'red', 'gold']) {
     for (const depth of ['light', 'medium', 'full']) {
       for (const blend of ['none', 'pink', 'amber']) {
-        for (const leaf of ['common', 'rare', 'noble']) {
-          out[`${color}-${depth}-${blend}-${leaf}`] = stemFor(color, depth, blend, leaf);
-        }
+        out[`${color}-${depth}-${blend}`] = stemFor(color, depth, blend);
       }
     }
   }
   return out;
 }
 
-/// The web app's region-globe glyphs (`continentIconName` in
-/// `entryIconVisuals.tsx`), so the two siblings show the same three globes.
-/// Was a per-continent grab-bag (coliseum, pagoda, landmass outlines) — a
-/// mismatch with the web and with itself.
+/// Drawn per-continent globes (v0.5.8, B1) — art/icons/continents via
+/// import-class-art.py. Each continent finally gets its own face; the three
+/// shared Iconify globes they replaced left Africa and Europe identical.
 const CONTINENT_ICONS: Record<string, string> = {
-  CONT_AFRICA: 'game-icons:earth-africa-europe',
-  CONT_EUROPE: 'game-icons:earth-africa-europe',
-  CONT_ASIA: 'game-icons:earth-asia-oceania',
-  CONT_OCEANIA: 'game-icons:earth-asia-oceania',
-  CONT_NORTH_AMERICA: 'game-icons:earth-america',
-  CONT_SOUTH_AMERICA: 'game-icons:earth-america',
+  CONT_AFRICA: 'art:globe-africa',
+  CONT_EUROPE: 'art:globe-europe',
+  CONT_ASIA: 'art:globe-asia',
+  CONT_OCEANIA: 'art:globe-oceania',
+  CONT_NORTH_AMERICA: 'art:globe-north-america',
+  CONT_SOUTH_AMERICA: 'art:globe-south-america',
 };
 
 /**
@@ -753,11 +756,17 @@ function buildCountryInfo(entries: readonly WineEntry[]) {
     }
   }
 
-  const info: Record<string, { description: string }> = {};
+  const info: Record<string, { description: string; appellationSystem?: string[] }> = {};
   for (const country of COUNTRIES) {
     if (!reachable.has(country.name)) continue;
     if (!country.description) continue;
-    info[country.name] = { description: country.description };
+    // The country's appellation system (0.6, A2) rides in the entry's tags
+    // alongside the COUNTRY marker — strip the marker, ship the system.
+    const system = (country.tags ?? []).filter((t) => t !== 'COUNTRY');
+    info[country.name] = {
+      description: country.description,
+      ...(system.length > 0 ? { appellationSystem: system } : {}),
+    };
   }
   return info;
 }
@@ -787,6 +796,10 @@ function buildIconManifest(entries: readonly WineEntry[]) {
       byEntry[entry.id] = resolveFlavorIcon(entry.name, entry.details.subclass) as string;
     } else if (CONTINENT_ICONS[entry.id]) {
       byEntry[entry.id] = CONTINENT_ICONS[entry.id]!;
+    } else if (entry.id === 'S020') {
+      // GSM Blend wears the BLEND class glyph (0.6.2, E1) — its authored
+      // lucide circle said nothing a blend tile needed saying.
+      byEntry[entry.id] = 'art:styleclass-blend';
     } else {
       byEntry[entry.id] = LUCIDE_ICONIFY[entry.icon ?? 'default'] ?? LUCIDE_ICONIFY.default!;
     }
@@ -884,7 +897,7 @@ function assertCoverage(entries: readonly WineEntry[], palette: ReturnType<typeo
 
   // Rarity tiers
   const tiers = new Set(grapes.map((g) => (g.category === 'GRAPES' ? g.rarity : undefined)));
-  for (const tier of ['COMMON', 'UNCOMMON', 'RARE', 'NOBLE']) {
+  for (const tier of ['COMMON', 'UNCOMMON', 'RARE', 'NOBLE', 'GODFORSAKEN']) {
     check(`rarity tier ${tier} missing`, tiers.has(tier as never));
   }
 

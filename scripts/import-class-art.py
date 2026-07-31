@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Imports the taxonomy + outline pixel art into the app bundle (0.5.7, B1/B3).
+"""Imports the taxonomy + outline + globe pixel art into the app bundle.
 
-Sources are the individual PNGs in shared/newicons/classes — flavour classes
-and subclasses, wine colour, body, climate, soils, style classes and the
-country/state outlines (the `classesicons*.png` contact sheets there are
-references, not sources). Same treatment as the other importers: background
-removed via the shared border-flood pass in art_common.py (interior white is
-subject and survives — item B2), palette-quantised, written to
-Sources/VinodexUI/Resources/ClassArt.
+Sources are the individual PNGs under art/icons/ (0.5.8, A1), organised by
+use — flavour classes and subclasses, wine colour, body, climate, soils,
+style classes, the country/state outlines and the continent globes (contact
+sheets live in art/icons/reference, not here). Same treatment as the other
+importers: background removed via the shared pass in art_common.py (chroma
+key when present, else border flood — interior white survives), palette-
+quantised, written to Sources/VinodexUI/Resources/ClassArt.
 
 Which stems exist is decided by the generator's `art:` ids (they feed
 icons.json); this script converts exactly the stems those ids name, resolved
@@ -32,111 +32,114 @@ ROOT = os.path.dirname(HERE)
 MANIFEST = os.path.join(ROOT, "Sources", "VinodexCore", "Resources", "icons.json")
 DST = os.path.join(ROOT, "Sources", "VinodexUI", "Resources", "ClassArt")
 
-# Stem -> source basename in shared/newicons/classes. The stems are namespaced
-# by table (class-, subclass-, color-, body-, climate-, soil-, styleclass-,
-# outline-) so one flat ClassArt directory cannot collide with itself or with
-# the flavour/style/grape art the shared PixelArtLoader also searches.
+# Stem -> source path relative to art/icons. The stems are namespaced by
+# table (class-, subclass-, color-, body-, climate-, soil-, styleclass-,
+# outline-, globe-) so one flat ClassArt directory cannot collide with itself
+# or with the flavour/style/grape art the shared PixelArtLoader also searches.
 SOURCE_FOR = {
-    "class-sweet": "sweet.png",
-    "class-sour": "sour.png",
-    "class-bitter": "bitter.png",
-    "class-umami": "umami.png",
-    "class-salty": "saltyclass.png",
-    "subclass-berry": "berry.png",
-    "subclass-citrus": "citrus.png",
-    "subclass-tropical": "tropical.png",
-    "subclass-orchard-fruit": "orchardfruit.png",
-    "subclass-stone-fruit": "stonefruit.png",
-    "subclass-red-fruit": "redfruit.png",
-    "subclass-dark-fruit": "darkfruit.png",
-    "subclass-herbal": "herbal.png",
-    "subclass-vegetal": "vegetal.png",
-    "subclass-nut": "nut.png",
-    "subclass-baking": "baking.png",
-    "subclass-bread": "bread.png",
-    "subclass-wax": "wax.png",
-    "subclass-earth": "earth.png",
-    "subclass-smoky": "smoky.png",
-    "subclass-spice": "spice.png",
-    "subclass-savory": "savory.png",
-    "subclass-briny": "briny.png",
-    "subclass-salty": "saltysublcass.png",
-    "subclass-floral": "floral.png",
-    "subclass-game": "game.png",
-    "subclass-wood": "wood.png",
-    "color-red": "red.png",
-    "color-white": "white.png",
-    "color-rose": "rosecolor.png",
-    "color-orange": "orange.png",
-    "color-dual": "dual.png",
-    "body-light": "light.png",
-    "body-medium": "medium.png",
-    "body-full": "full.png",
-    "climate-maritime": "maritime.png",
-    "climate-continental": "continental.png",
-    "climate-cool": "cool.png",
-    "climate-warm": "warm.png",
-    "climate-mediterranean": "mediterrean.png",
-    "styleclass-type": "type.png",
-    "styleclass-blend": "blend.png",
-    "styleclass-origin": "origin.png",
-    "styleclass-method": "method.png",
-    "soil-volcanic": "volcanic.png",
-    "soil-basalt": "basalt.png",
-    "soil-clay": "clay.png",
-    "soil-loam": "loam.png",
-    "soil-sand": "sand.png",
-    "soil-limestone": "limestone.png",
-    "soil-chalk": "chalk.png",
-    "soil-slate": "slate.png",
-    "soil-shale": "shale.png",
-    "soil-schist": "schist.png",
-    "soil-granite": "granite.png",
-    "soil-gravel": "gravel.png",
-    "soil-alluvial": "alluvial.png",
-    "soil-loess": "loess.png",
-    "soil-laterite": "laterite.png",
-    "soil-default": "default soil.png",
-    "outline-france": "france.png",
-    "outline-germany": "germany.png",
-    "outline-italy": "italy.png",
-    "outline-greece": "greece.png",
-    "outline-portugal": "portugal.png",
-    "outline-spain": "spain.png",
-    "outline-hungary": "hungary.png",
-    "outline-austria": "austria.png",
-    "outline-croatia": "croatia.png",
-    "outline-california": "california.png",
-    "outline-oregon": "oregon.png",
-    "outline-washington": "washingtonstate.png",
-    "outline-new-york": "newyorkstate.png",
-    "outline-georgia": "georgiacountry.png",
-    "outline-switzerland": "switzerland.png",
-    "outline-romania": "romania.png",
-    "outline-south-africa": "southafrica.png",
-    "outline-morocco": "morocco.png",
-    "outline-usa": "usa.png",
-    "outline-canada": "canada.png",
-    "outline-argentina": "argentina.png",
-    "outline-chile": "chile.png",
-    "outline-uruguay": "uruguay.png",
-    "outline-new-zealand": "new zealand.png",
-    "outline-australia": "australia.png",
-    "outline-japan": "japan.png",
-    "outline-china": "china.png",
-    "outline-india": "india.png",
+    "class-sweet": "classes/sweet.png",
+    "class-sour": "classes/sour.png",
+    "class-bitter": "classes/bitter.png",
+    "class-umami": "classes/umami.png",
+    "class-salty": "classes/saltyclass.png",
+    "subclass-berry": "subclasses/berry.png",
+    "subclass-citrus": "subclasses/citrus.png",
+    "subclass-tropical": "subclasses/tropical.png",
+    "subclass-orchard-fruit": "subclasses/orchardfruit.png",
+    "subclass-stone-fruit": "subclasses/stonefruit.png",
+    "subclass-red-fruit": "subclasses/redfruit.png",
+    "subclass-dark-fruit": "subclasses/darkfruit.png",
+    "subclass-herbal": "subclasses/herbal.png",
+    "subclass-vegetal": "subclasses/vegetal.png",
+    "subclass-nut": "subclasses/nut.png",
+    "subclass-baking": "subclasses/baking.png",
+    "subclass-bread": "subclasses/bread.png",
+    "subclass-wax": "subclasses/wax.png",
+    "subclass-earth": "subclasses/earth.png",
+    "subclass-smoky": "subclasses/smoky.png",
+    "subclass-spice": "subclasses/spice.png",
+    "subclass-savory": "subclasses/savory.png",
+    "subclass-briny": "subclasses/briny.png",
+    "subclass-salty": "subclasses/saltysublcass.png",
+    "subclass-floral": "subclasses/floral.png",
+    "subclass-game": "subclasses/game.png",
+    "subclass-wood": "subclasses/wood.png",
+    "color-red": "color/red.png",
+    "color-white": "color/white.png",
+    "color-rose": "color/rosecolor.png",
+    "color-orange": "color/orange.png",
+    "color-dual": "color/dual.png",
+    "body-light": "body/light.png",
+    "body-medium": "body/medium.png",
+    "body-full": "body/full.png",
+    "climate-maritime": "climate/maritime.png",
+    "climate-continental": "climate/continental.png",
+    "climate-cool": "climate/cool.png",
+    "climate-warm": "climate/warm.png",
+    "climate-mediterranean": "climate/mediterrean.png",
+    "styleclass-type": "styleclasses/type.png",
+    "styleclass-blend": "styleclasses/blend.png",
+    "styleclass-origin": "styleclasses/origin.png",
+    "styleclass-method": "styleclasses/method.png",
+    "soil-volcanic": "soil/volcanic.png",
+    "soil-basalt": "soil/basalt.png",
+    "soil-clay": "soil/clay.png",
+    "soil-loam": "soil/loam.png",
+    "soil-sand": "soil/sand.png",
+    "soil-limestone": "soil/limestone.png",
+    "soil-chalk": "soil/chalk.png",
+    "soil-slate": "soil/slate.png",
+    "soil-shale": "soil/shale.png",
+    "soil-schist": "soil/schist.png",
+    "soil-granite": "soil/granite.png",
+    "soil-gravel": "soil/gravel.png",
+    "soil-alluvial": "soil/alluvial.png",
+    "soil-loess": "soil/loess.png",
+    "soil-laterite": "soil/laterite.png",
+    "soil-default": "soil/default soil.png",
+    "outline-france": "countries/france.png",
+    "outline-germany": "countries/germany.png",
+    "outline-italy": "countries/italy.png",
+    "outline-greece": "countries/greece.png",
+    "outline-portugal": "countries/portugal.png",
+    "outline-spain": "countries/spain.png",
+    "outline-hungary": "countries/hungary.png",
+    "outline-austria": "countries/austria.png",
+    "outline-croatia": "countries/croatia.png",
+    "outline-california": "countries/california.png",
+    "outline-oregon": "countries/oregon.png",
+    "outline-washington": "countries/washingtonstate.png",
+    "outline-new-york": "countries/newyorkstate.png",
+    "outline-georgia": "countries/georgiacountry.png",
+    "outline-switzerland": "countries/switzerland.png",
+    "outline-romania": "countries/romania.png",
+    "outline-south-africa": "countries/southafrica.png",
+    "outline-morocco": "countries/morocco.png",
+    "outline-usa": "countries/usa.png",
+    "outline-canada": "countries/canada.png",
+    "outline-argentina": "countries/argentina.png",
+    "outline-chile": "countries/chile.png",
+    "outline-uruguay": "countries/uruguay.png",
+    "outline-new-zealand": "countries/new zealand.png",
+    "outline-australia": "countries/australia.png",
+    "outline-japan": "countries/japan.png",
+    "outline-china": "countries/china.png",
+    "outline-india": "countries/india.png",
+    "globe-africa": "continents/africa.png",
+    "globe-asia": "continents/asia.png",
+    "globe-europe": "continents/europe.png",
+    "globe-north-america": "continents/northamerica.png",
+    "globe-oceania": "continents/oceania.png",
+    "globe-south-america": "continents/southamerica.png",
 }
 
 
 def source_dir():
     if len(sys.argv) > 1:
         return sys.argv[1]
-    for candidate in (
-        os.path.join(ROOT, "shared", "newicons", "classes"),
-        os.path.join(os.path.dirname(ROOT), "shared", "newicons", "classes"),
-    ):
-        if os.path.isdir(candidate):
-            return candidate
+    candidate = os.path.join(ROOT, "art", "icons")
+    if os.path.isdir(candidate):
+        return candidate
     sys.exit("no source dir found; pass it explicitly")
 
 
@@ -151,6 +154,9 @@ def art_stems(manifest):
     ids.update((manifest.get("flavorSubclassIcons") or {}).values())
     ids.update(manifest.get("countryShapeIcons", {}).values())
     ids.update(v["icon"] for v in manifest.get("soilIcons", {}).values())
+    # Continents live in the per-entry table (the globes, 0.5.8 B1) — only
+    # its art: ids are ours; Iconify ids stay with rasterize-icons.sh.
+    ids.update(manifest.get("byEntry", {}).values())
     return sorted(i[len("art:"):] for i in ids if i.startswith("art:"))
 
 

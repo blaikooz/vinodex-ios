@@ -120,7 +120,7 @@ public enum Walkthrough {
             title: "TOOLS",
             body: """
             Also behind the cog: the wrench tile. Scanner, filter search, \
-            tasting quiz, the daily challenge, and the moon dial.
+            wine exam, the daily challenge, and the moon dial.
             """,
             highlight: .tools
         ),

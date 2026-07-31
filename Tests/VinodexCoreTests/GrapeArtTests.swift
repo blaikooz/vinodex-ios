@@ -37,12 +37,33 @@ struct GrapeArtTests {
                 "orange in the *name* is a muscat, not a skin-contact style")
     }
 
-    @Test("the leaf marks rarity, the two lower tiers sharing green")
+    /// The 0.6.2 code-driven leaf palette: every tier has a colour of its
+    /// own, and no two share one — a merge here would silently erase a tier's
+    /// identity on every list in the app.
+    @Test("every rarity tier has its own leaf colour")
     func leaves() {
-        #expect(GrapeArt.leaf(rarity: .common) == .common)
-        #expect(GrapeArt.leaf(rarity: .uncommon) == .common)
-        #expect(GrapeArt.leaf(rarity: .rare) == .rare)
-        #expect(GrapeArt.leaf(rarity: .noble) == .noble)
+        let hexes = RarityLabel.allCases.map { GrapeArt.leafHex(rarity: $0) }
+        #expect(Set(hexes).count == RarityLabel.allCases.count, "leaf colours collide: \(hexes)")
+        for hex in hexes {
+            #expect(hex.hasPrefix("#") && hex.count == 7, "malformed leaf hex \(hex)")
+        }
+    }
+
+    @Test("sweet whites carry gold berries, other whites green")
+    func goldBerries() throws {
+        let moscato = try #require(db.entry(named: "Moscato"))
+        guard case .grape(let g) = moscato else {
+            Issue.record("Moscato is not a grape entry")
+            return
+        }
+        #expect(GrapeArt.key(for: g).hasPrefix("gold-"))
+
+        let chardonnay = try #require(db.entry(named: "Chardonnay"))
+        guard case .grape(let c) = chardonnay else {
+            Issue.record("Chardonnay is not a grape entry")
+            return
+        }
+        #expect(GrapeArt.key(for: c).hasPrefix("green-"))
     }
 
     @Test("every grape in the database resolves to shipped art")
@@ -56,17 +77,16 @@ struct GrapeArtTests {
         }
     }
 
-    /// The generator fills the whole 2x3x3x3 grid with fallbacks, so a key
-    /// no current grape produces still resolves when a future one does.
+    /// The generator fills the whole 3x3x3 grid with fallbacks, so a key no
+    /// current grape produces still resolves when a future one does. No leaf
+    /// axis since 0.6.2 — the leaf is recoloured in code per rarity.
     @Test("the manifest grid is exhaustive over every derivable key")
     func gridIsExhaustive() {
-        for color in ["green", "red"] {
+        for color in ["green", "red", "gold"] {
             for depth in GrapeArt.Depth.allCases {
                 for blend in GrapeArt.Blend.allCases {
-                    for leaf in GrapeArt.Leaf.allCases {
-                        let key = "\(color)-\(depth.rawValue)-\(blend.rawValue)-\(leaf.rawValue)"
-                        #expect(db.icons.grapeArtStem(forKey: key) != nil, "no stem for \(key)")
-                    }
+                    let key = "\(color)-\(depth.rawValue)-\(blend.rawValue)"
+                    #expect(db.icons.grapeArtStem(forKey: key) != nil, "no stem for \(key)")
                 }
             }
         }

@@ -29,9 +29,8 @@ public struct DeviceBackPlate: View {
         ZStack {
             if skin.isTranslucent {
                 InternalsView()
-                // A touch lighter than the front shell: the back of a clear
-                // device is one moulding further from the boards.
-                Color(dexHex: "rgba(204,216,224,0.34)")
+                // The skin's own smoke, not a fixed grey — see `backSmoke`.
+                skin.backSmoke
                 highlight
             } else {
                 metal
@@ -56,14 +55,12 @@ public struct DeviceBackPlate: View {
                 .padding(.trailing, 34)
                 .padding(.top, 104)
                 .allowsHitTesting(false)
-            // The skin's enamel badge (v0.5.6): every colourway pins its own
-            // emblem to the plate, so turning the device over answers "which
-            // one is this" the way a console's model badge does.
-            SkinBadge(skin: skin)
-                .rotationEffect(.degrees(-7))
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .padding(.leading, 36)
-                .padding(.top, 108)
+            // Passport stamps (0.6.2, F2 — replacing the 0.5.6 skin badge):
+            // each stamp earned in the Passport inks itself somewhere on the
+            // plate, so the underside accumulates a travel record. Rendered
+            // in the barcode sticker's fiction — worn ink on a handled
+            // surface, not UI chrome.
+            stampField
                 .allowsHitTesting(false)
         }
         // A dark edge all the way round. Without it the plate's pale metal ran
@@ -79,6 +76,54 @@ public struct DeviceBackPlate: View {
         }
         .accessibilityLabel("Device back plate. Swipe to return.")
     }
+
+    /// One ink stamp per earned Passport badge, each in its own fixed spot —
+    /// "somewhere else on the back plate" that stays put between launches.
+    /// Recomputed on each flip; `Passport.compute` is cheap and the plate is
+    /// rebuilt on flip anyway.
+    private var stampField: some View {
+        let passport = Passport.compute(
+            tried: BookmarkStore.shared.ids(on: .tried),
+            in: WineDatabase.shared,
+            bestStreak: StreakStore.shared.best,
+            highestTier: QuizProgress.shared.highestUnlocked
+        )
+        return ZStack {
+            ForEach(passport.badges.filter(\.earned)) { badge in
+                let slot = Self.stampSlots[badge.id]
+                    ?? StampSlot(alignment: .center, dx: 0, dy: 0, rotation: 0, ink: "#A63838")
+                PassportStamp(title: badge.title, ink: Color(dexHex: slot.ink))
+                    .rotationEffect(.degrees(slot.rotation))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: slot.alignment)
+                    .padding(.leading, slot.dx > 0 ? slot.dx : 0)
+                    .padding(.trailing, slot.dx < 0 ? -slot.dx : 0)
+                    .padding(.top, slot.dy > 0 ? slot.dy : 0)
+                    .padding(.bottom, slot.dy < 0 ? -slot.dy : 0)
+            }
+        }
+    }
+
+    private struct StampSlot {
+        let alignment: Alignment
+        /// Positive = from leading, negative = from trailing.
+        let dx: CGFloat
+        /// Positive = from top, negative = from bottom.
+        let dy: CGFloat
+        let rotation: Double
+        let ink: String
+    }
+
+    /// Fixed home per badge, scattered clear of the engraving block, the
+    /// screws, the barcode (bottom-leading) and the price tag (top-trailing).
+    /// Stamp-pad inks, one colour per office.
+    private static let stampSlots: [String: StampSlot] = [
+        "firstSip": StampSlot(alignment: .topLeading, dx: 34, dy: 128, rotation: -12, ink: "#A63838"),
+        "tenBottles": StampSlot(alignment: .topTrailing, dx: -38, dy: 196, rotation: 8, ink: "#33518F"),
+        "allNoble": StampSlot(alignment: .bottomTrailing, dx: -34, dy: -168, rotation: -7, ink: "#6E4F8F"),
+        "regionComplete": StampSlot(alignment: .bottomLeading, dx: 40, dy: -224, rotation: 10, ink: "#2F6E4F"),
+        "streakWeek": StampSlot(alignment: .bottomTrailing, dx: -128, dy: -96, rotation: -15, ink: "#8F5A33"),
+        "sommelier": StampSlot(alignment: .topLeading, dx: 128, dy: 168, rotation: 5, ink: "#2F6E6E"),
+    ]
 
     private var metal: some View {
         LinearGradient(
@@ -310,7 +355,7 @@ private struct BarcodeSticker: View {
                     if index.isMultiple(of: 2) {
                         context.fill(
                             Path(CGRect(x: x, y: 0, width: w, height: size.height)),
-                            with: .color(.black.opacity(0.78))
+                            with: .color(.black.opacity(0.55))
                         )
                     }
                     x += w * 1.9
@@ -321,7 +366,7 @@ private struct BarcodeSticker: View {
             Text("4 71332 90815")
                 .font(DexFont.mono(13))
                 .tracking(2)
-                .foregroundStyle(.black.opacity(0.7))
+                .foregroundStyle(.black.opacity(0.55))
         }
         .padding(.horizontal, 9)
         .padding(.vertical, 7)
@@ -337,34 +382,62 @@ private struct BarcodeSticker: View {
                     )
                 )
         )
-        // Faded: the sticker sits *under* years of handling.
-        .opacity(0.68)
+        // The fade is baked into the inks above rather than applied to the
+        // whole view (v0.5.9, A3): a view-level opacity let the internals show
+        // *through* the sticker under the translucent skins, and a sticker is
+        // an opaque thing stuck on top of whatever it is stuck to. The bar and
+        // text inks composite against the opaque label stock, so the sun-faded
+        // look survives while the sticker itself stays solid.
         .shadow(color: .black.opacity(0.25), radius: 1, y: 1)
     }
 }
 
-/// The skin's enamel badge: the emblem glyph on the accent ramp, ringed like
-/// a pin pressed into the plate. Colour and glyph both come off the skin, so
-/// each colourway leaves a different mark.
-private struct SkinBadge: View {
-    let skin: ChassisSkin
+/// A stylised passport stamp (0.6.2, F2): worn stamp-pad ink, a double
+/// border, the badge's name as the issuing office. Like the barcode sticker,
+/// it is decoration that has *happened to* the device — slightly uneven
+/// opacity so the ink reads pressed, not printed.
+private struct PassportStamp: View {
+    let title: String
+    let ink: Color
 
     var body: some View {
-        Image(systemName: skin.symbol)
-            .font(.system(size: 22, weight: .bold))
-            .foregroundStyle(skin.accent.ink)
-            .frame(width: 52, height: 52)
-            .background(
-                Circle().fill(
-                    LinearGradient(
-                        colors: [skin.accent.light, skin.accent.bright],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
+        VStack(spacing: 3) {
+            Text("· VINODEX PASSPORT ·")
+                .font(DexFont.mono(10))
+                .tracking(1.5)
+            Rectangle()
+                .frame(height: 1.5)
+                .padding(.horizontal, 2)
+                .opacity(0.7)
+            Text(title)
+                .font(DexFont.retro(10))
+                .tracking(1)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+            Text("★ ADMITTED ★")
+                .font(DexFont.mono(9))
+                .tracking(2)
+                .opacity(0.85)
+        }
+        .foregroundStyle(ink)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(ink, lineWidth: 2.5))
+        .overlay(
+            RoundedRectangle(cornerRadius: 5)
+                .strokeBorder(ink.opacity(0.65), lineWidth: 1)
+                .padding(3.5)
+        )
+        // The press: heavier at one corner, thinner at the other, like a
+        // stamp that met the plate at a slight angle.
+        .opacity(0.85)
+        .mask(
+            LinearGradient(
+                colors: [.black, .black.opacity(0.72)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
             )
-            .overlay(Circle().strokeBorder(skin.accent.edge, lineWidth: 3))
-            .shadow(color: .black.opacity(0.35), radius: 2, y: 2)
+        )
     }
 }
 

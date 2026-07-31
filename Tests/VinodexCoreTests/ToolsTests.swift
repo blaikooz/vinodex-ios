@@ -320,7 +320,9 @@ struct TastingQuizTests {
             for number in 0..<QuizSession.length {
                 for (tier, allowed) in [
                     (QuizTier.novice, Set<RarityLabel>([.noble, .common])),
-                    (QuizTier.sommelier, Set<RarityLabel>([.uncommon, .rare])),
+                    // GODFORSAKEN joined the sommelier band in 0.6.2 — the
+                    // backest corner of the cellar there is.
+                    (QuizTier.sommelier, Set<RarityLabel>([.uncommon, .rare, .godforsaken])),
                 ] {
                     guard let q = TastingQuiz.question(number: number, sessionSeed: sessionSeed, tier: tier, in: db),
                           q.kind == .grapes,

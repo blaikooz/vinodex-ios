@@ -25,9 +25,12 @@ struct CoverageTests {
         //
         // Update these deliberately when the data changes; a change you did not
         // intend is exactly what this is here to catch.
-        #expect(db.entries(in: .grapes).count == 80)
-        #expect(db.entries(in: .regions).count == 60)
-        #expect(db.entries(in: .styles).count == 29)
+        // 0.6 catalog boost (A1): +21 grapes, +38 regions, +3 styles — every
+        // cross-reference now resolves; see scripts/find-missing-refs.mjs.
+        #expect(db.entries(in: .grapes).count == 128)
+        #expect(db.entries(in: .regions).count == 104)
+        // 31 since 0.6.x: Medium-Full Red removed, its grapes now Full-Body.
+        #expect(db.entries(in: .styles).count == 31)
         #expect(db.entries(in: .continents).count == 6)
     }
 
@@ -51,10 +54,14 @@ struct CoverageTests {
         let sum = stats.grapes + stats.regions + stats.styles + stats.flavors + stats.continents
         #expect(sum == stats.total, "categories do not account for every entry")
 
-        // 282 since 0.5.7: Liquorice merged into Licorice (G2) and the
-        // umbrella Citrus flavour removed in favour of its members (G3).
-        #expect(stats.total == 282)
-        #expect(stats.countries == 18)
+        // 282 since 0.5.7 (Liquorice→Licorice merge, umbrella Citrus removed);
+        // 281 since 0.5.8: generic Apple merged into Red Apple (E2);
+        // 343 since 0.6: the catalog boost, with flavours unchanged at 106 —
+        // every new grape reuses existing tasting notes on purpose;
+        // 342 since 0.6.1: Medium-Full Red folded into Full-Body Red;
+        // 375 since 0.6.2: the rare-grape push (+27 grapes, +6 regions).
+        #expect(stats.total == 375)
+        #expect(stats.countries == 25)
         #expect(stats.categoryLines.count == 6)
     }
 
@@ -131,7 +138,7 @@ struct CoverageTests {
     func palette() {
         #expect(db.palette.continentCountries.count == 6)
         #expect(db.palette.climates.count == 5)
-        #expect(db.palette.rarityChips.count == 4)
+        #expect(db.palette.rarityChips.count == 5)
         #expect(!db.palette.countryChips.isEmpty)
         #expect(!db.palette.styleTones.isEmpty)
     }

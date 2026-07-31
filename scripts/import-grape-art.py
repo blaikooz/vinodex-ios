@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Imports the grape bunch sprites into the app bundle.
 
-Sources are the recoloured bunch set in shared/newicons/1new/grapes — one
+Sources are the recoloured bunch set in art/icons/grapes (0.5.8, A1) — one
 identical bunch per file, recoloured across colour/depth/blend with the leaf
 coloured by rarity. This pass canonicalises the artist's file names into the
 `<color>-<depth>[-<blend>]-<leaf>` stems the generator's `grapeArt` table
@@ -15,12 +15,32 @@ either side, and keep SOURCE_TO_STEM in step with the table's expectations.
 Usage: python3 scripts/import-grape-art.py [source-dir]
 Requires Pillow.
 """
+import colorsys
 import os
 import sys
 
 from PIL import Image
 
 from art_common import strip_background
+
+
+def darken_reds(img):
+    """0.6.2 (E3): the light and medium red bunches read as cherry-red berries;
+    pull their red hues down to a darker, wine-dark tone. Applied here so the
+    correction survives every re-import from the artist's masters."""
+    img = img.convert("RGBA")
+    px = img.load()
+    w, h = img.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a == 0:
+                continue
+            hh, ss, vv = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+            if (hh < 0.06 or hh > 0.92) and ss > 0.4 and vv > 0.2:
+                rr, gg, bb = colorsys.hsv_to_rgb(hh, min(1.0, ss * 1.05), vv * 0.68)
+                px[x, y] = (int(rr * 255), int(gg * 255), int(bb * 255), a)
+    return img
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -67,12 +87,9 @@ SOURCE_TO_STEM = {
 def source_dir():
     if len(sys.argv) > 1:
         return sys.argv[1]
-    for candidate in (
-        os.path.join(ROOT, "shared", "newicons", "1new", "grapes"),
-        os.path.join(os.path.dirname(ROOT), "shared", "newicons", "1new", "grapes"),
-    ):
-        if os.path.isdir(candidate):
-            return candidate
+    candidate = os.path.join(ROOT, "art", "icons", "grapes")
+    if os.path.isdir(candidate):
+        return candidate
     sys.exit("no source dir found; pass it explicitly")
 
 
@@ -91,6 +108,8 @@ def main():
             missing.append(name)
             continue
         img = strip_background(Image.open(path))
+        if stem.startswith("red-light") or stem.startswith("red-medium"):
+            img = darken_reds(img)
         out = os.path.join(DST, stem + ".png")
         img.quantize(colors=256).save(out, optimize=True)
         converted += 1

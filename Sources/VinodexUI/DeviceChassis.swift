@@ -156,6 +156,7 @@ public struct DeviceChassis<Content: View>: View {
 
             VStack(spacing: 0) {
                 Color.clear.frame(height: topStrip)
+                titleBump
                 screenHousing
                     // Minimal, equal gap to both bands.
                     .padding(.vertical, DexMetrics.housingGap)
@@ -164,6 +165,57 @@ public struct DeviceChassis<Content: View>: View {
 
             islandFlank(height: topStrip)
         }
+    }
+
+    // MARK: Title bump
+
+    /// A soft trapezoid swelling out of the moulding above the screen housing
+    /// (0.6.2, F3), carrying an engraved metal nameplate — the one place the
+    /// front of the device says what it is. Moulded from the skin's own body
+    /// colour so it reads as part of the shell, not a sticker on it.
+    private var titleBump: some View {
+        ZStack {
+            TrapezoidBump()
+                .fill(skin.body)
+            // A dark seat line and a light top catch — what makes a flat
+            // fill read as a raised bump.
+            TrapezoidBump()
+                .stroke(.black.opacity(0.22), lineWidth: 1.5)
+            TrapezoidBump()
+                .stroke(.white.opacity(0.14), lineWidth: 1)
+                .offset(y: -1)
+                .clipShape(TrapezoidBump())
+
+            RoundedRectangle(cornerRadius: 4)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(dexHex: "#cdcfd2"),
+                            Color(dexHex: "#9ea1a5"),
+                            Color(dexHex: "#b8babd"),
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 172, height: 24)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .strokeBorder(Color(dexHex: "#5f6368"), lineWidth: 1)
+                )
+                .overlay(
+                    // The back plate's two-shadow engraving, at nameplate size.
+                    Text("VINODEX")
+                        .font(DexFont.retro(13))
+                        .tracking(5)
+                        .foregroundStyle(Color(dexHex: "#3a3d42"))
+                        .shadow(color: .white.opacity(0.5), radius: 0, x: 0, y: 1)
+                        .shadow(color: .black.opacity(0.45), radius: 0, x: 0, y: -1)
+                )
+                .shadow(color: .black.opacity(0.25), radius: 1, y: 1)
+        }
+        .frame(width: 248, height: 34)
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: Island flank
@@ -486,6 +538,27 @@ public struct DeviceChassis<Content: View>: View {
         .padding(.bottom, DexMetrics.chassisEdgeInset)
         .frame(maxWidth: .infinity)
         .background(skin.footerWash)
+    }
+}
+
+/// The title bump's silhouette: a trapezoid with softened shoulders — wider
+/// at the seat, curving in toward the flat top.
+private struct TrapezoidBump: Shape {
+    func path(in rect: CGRect) -> Path {
+        let shoulder = rect.width * 0.14
+        var p = Path()
+        p.move(to: CGPoint(x: rect.minX, y: rect.maxY))
+        p.addQuadCurve(
+            to: CGPoint(x: rect.minX + shoulder, y: rect.minY),
+            control: CGPoint(x: rect.minX + shoulder * 0.3, y: rect.minY + rect.height * 0.18)
+        )
+        p.addLine(to: CGPoint(x: rect.maxX - shoulder, y: rect.minY))
+        p.addQuadCurve(
+            to: CGPoint(x: rect.maxX, y: rect.maxY),
+            control: CGPoint(x: rect.maxX - shoulder * 0.3, y: rect.minY + rect.height * 0.18)
+        )
+        p.closeSubpath()
+        return p
     }
 }
 

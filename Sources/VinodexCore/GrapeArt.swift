@@ -17,7 +17,6 @@ import Foundation
 public enum GrapeArt {
     public enum Depth: String, CaseIterable { case light, medium, full }
     public enum Blend: String, CaseIterable { case none, pink, amber }
-    public enum Leaf: String, CaseIterable { case common, rare, noble }
 
     /// `Light`/`Light-Medium` → light; `Medium-Full`/`Full` → full; the
     /// middle and anything unrecognised sit at medium.
@@ -44,22 +43,36 @@ public enum GrapeArt {
         return .none
     }
 
-    /// COMMON and UNCOMMON share the green leaf — the leaf marks the top two
-    /// tiers, not all four.
-    public static func leaf(rarity: RarityLabel) -> Leaf {
+    /// The leaf colour per rarity tier (0.6.2, A2) — code-driven, not baked
+    /// into sprite variants. `GrapeSpriteLoader` recolours the base sprite's
+    /// leaf to this at load time, which is how GODFORSAKEN got a leaf without
+    /// anyone drawing one. Hex here rather than SwiftUI `Color` so the rule
+    /// is testable from Linux.
+    public static func leafHex(rarity: RarityLabel) -> String {
         switch rarity {
-        case .common, .uncommon: .common
-        case .rare: .rare
-        case .noble: .noble
+        case .common: "#A8E34B"       // lime green
+        case .uncommon: "#3E9B2F"     // regular green
+        case .rare: "#E8A23C"         // amber
+        case .noble: "#9455D4"        // purple
+        case .godforsaken: "#CFC63B"  // yellowing
         }
     }
 
-    /// The manifest key: `<green|red>-<depth>-<blend>-<leaf>`.
+    /// The manifest key: `<green|red|gold>-<depth>-<blend>` — no leaf
+    /// component since 0.6.2; the leaf is recoloured in code per rarity.
+    ///
+    /// Gold berries (0.6.x) mark the sweet whites — Moscato, PX, Vidal — the
+    /// grapes whose fruit genuinely hangs golden by picking time.
     public static func key(for grape: GrapeEntry) -> String {
-        let color = grape.grapeType == .white ? "green" : "red"
+        let color: String
+        if grape.grapeType == .white {
+            let s = TextNormalize.label(grape.grapeStyle + " " + (grape.wineType ?? ""))
+            color = s.contains("sweet") ? "gold" : "green"
+        } else {
+            color = "red"
+        }
         let d = depth(bodyClass: grape.grapeBodyClass)
         let b = blend(name: grape.common.name, style: grape.grapeStyle, wineType: grape.wineType)
-        let l = leaf(rarity: grape.rarity)
-        return "\(color)-\(d.rawValue)-\(b.rawValue)-\(l.rawValue)"
+        return "\(color)-\(d.rawValue)-\(b.rawValue)"
     }
 }
