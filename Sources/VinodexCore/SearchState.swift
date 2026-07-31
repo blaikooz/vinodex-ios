@@ -94,6 +94,7 @@ public extension EntryFilter {
         case .region(let countries): "region:" + countries.sorted().joined(separator: ",")
         case .type(let value): "type:" + value
         case .tasting(let value): "tasting:" + value
+        case .flavorSubclass(let value): "flavorSubclass:" + value
         case .soil(let value): "soil:" + value
         case .origin(let value): "origin:" + value
         case .rarity(let value): "rarity:" + value.rawValue

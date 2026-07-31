@@ -56,6 +56,27 @@ struct FilterTests {
         #expect(warm.allSatisfy { $0.climate == .warm })
     }
 
+    /// The SUBCLASS tile's cross-link (v0.5.1). `.tasting` cannot express
+    /// this — it matches notes and classifications — so the case is its own.
+    @Test("flavor subclass filter selects only that subclass")
+    func flavorSubclassFilter() {
+        let berries = db.entries.apply(.category(.flavors, filter: .flavorSubclass("BERRY")))
+        #expect(!berries.isEmpty)
+        #expect(berries.allSatisfy { entry in
+            guard case .flavor(let f) = entry else { return false }
+            return f.details.subclass == "BERRY"
+        })
+
+        // Normalised on both sides, so a display-cased value still filters.
+        #expect(
+            db.entries.apply(.category(.flavors, filter: .flavorSubclass("berry"))).count
+                == berries.count
+        )
+
+        // Non-flavours never match, whatever their tasting notes say.
+        #expect(db.entries.apply(.category(.grapes, filter: .flavorSubclass("BERRY"))).isEmpty)
+    }
+
     @Test("origin filter matches whole terms only")
     func originFilter() {
         let french = db.entries.apply(.category(.regions, filter: .origin("France")))
@@ -74,15 +95,16 @@ struct FilterTests {
         let europe = db.regions(in: .europe)
         #expect(europe.count >= 4, "expected several European regions, got \(europe.count)")
 
+        // Hebei, Shandong, Yamagata and Guerrouane joined in the 0.6 boost.
         let asia = db.regions(in: .asia)
         #expect(
-            asia.map(\.name) == ["Helan Mountain", "Nandi Hills", "Nashik", "Shangri-La", "Yamanashi"],
+            asia.map(\.name) == ["Hebei", "Helan Mountain", "Nandi Hills", "Nashik", "Shandong", "Shangri-La", "Yamagata", "Yamanashi"],
             "got \(asia.map(\.name))"
         )
 
         let africa = db.regions(in: .africa)
         #expect(
-            africa.map(\.name) == ["Paarl & Franschhoek", "Stellenbosch", "Swartland", "Walker Bay"],
+            africa.map(\.name) == ["Guerrouane", "Paarl & Franschhoek", "Stellenbosch", "Swartland", "Walker Bay"],
             "got \(africa.map(\.name))"
         )
     }
@@ -97,6 +119,27 @@ struct FilterTests {
     @Test("no filter matches everything in the category")
     func noFilter() {
         #expect(db.entries.apply(.category(.styles)).count == db.entries(in: .styles).count)
+    }
+
+    /// v0.5.6: master search must span the whole database — every category,
+    /// nothing silently excluded — and countries ride alongside as rows of
+    /// their own, since a country is assembled from regions rather than
+    /// being an entry.
+    @Test("master search spans every entry, and countries search alongside")
+    func masterSearchIsTotal() {
+        #expect(db.entries.apply(.masterSearch("")).count == db.entries.count)
+
+        #expect(!db.searchableCountries.isEmpty)
+        #expect(db.searchableCountries.contains("France"))
+        // Every searchable country has regions behind it — a hit must open
+        // a page with something on it.
+        for country in db.searchableCountries {
+            #expect(db.hasRegions(inCountry: country), "\(country) has no regions")
+        }
+
+        #expect(db.countries(matching: "fra") == ["France"])
+        #expect(db.countries(matching: "") == db.searchableCountries)
+        #expect(db.countries(matching: "zzz").isEmpty)
     }
 }
 

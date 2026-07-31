@@ -18,6 +18,10 @@ import Foundation
 /// that had to shrink to fit its square.
 public enum SettingsSection: String, CaseIterable, Hashable, Sendable, Identifiable {
     case customization = "CUSTOMIZE"
+    /// Device behaviour rather than device looks: text size, haptics, and the
+    /// stored-data reset. Split from CUSTOMIZE so that panel stays purely
+    /// cosmetic — a wipe button between two colour pickers is a trap.
+    case settings = "SETTINGS"
     /// What the database actually holds. Read-only, unlike everything else
     /// here — it is a readout rather than a setting, but the settings grid is
     /// where a user goes looking for "what is in this thing".
@@ -32,6 +36,7 @@ public enum SettingsSection: String, CaseIterable, Hashable, Sendable, Identifia
     public var symbol: String {
         switch self {
         case .customization: "paintpalette.fill"
+        case .settings: "slider.horizontal.3"
         case .data: "chart.bar.fill"
         case .access: "lock.fill"
         case .dev: "ladybug.fill"
@@ -92,8 +97,13 @@ public enum DexRoute: Hashable, Sendable {
     /// climate — with a live count of what survives. See `ChipFilter`.
     case chipFilter
     /// The WSET-style tasting quiz: one question, four answers, then the entry
-    /// behind the right one.
+    /// behind the right one. Three tiers — see `QuizTier`.
     case wsetQuiz
+    /// The daily paper: five questions, everyone gets the same ones, one
+    /// sitting per day. What the streak hangs off — see `StreakStore`.
+    case dailyChallenge
+    /// The tried shelf's stats page — see `Passport`.
+    case passport
     /// The guided tour. Opt-in from the settings grid, never shown unasked.
     case walkthrough
     /// The continent info screen — INFO blurb plus a COUNTRIES list, each
@@ -114,8 +124,11 @@ public enum DexRoute: Hashable, Sendable {
             "WORLD SEARCH"
         case .bookmarks:
             "SAVED"
-        case .country(let name):
-            name.uppercased()
+        // The scan-family label (v0.5.8, D3) — the page's own hero already
+        // names the country, so the marquee names the *kind* of page, like
+        // every other scan screen.
+        case .country:
+            "COUNTRY SCAN"
         case .state(let name):
             name.uppercased()
         case .dailyGrape:
@@ -131,13 +144,83 @@ public enum DexRoute: Hashable, Sendable {
         case .minigames:
             "TOOLS"
         case .chipFilter:
-            "CHIP FILTER"
+            "FILTER SEARCH"
         case .wsetQuiz:
-            "TASTING QUIZ"
+            // Renamed from TASTING QUIZ (v0.5.9, D1); the case keeps its name
+            // — `wsetQuiz` is woven into `ScreenStateStore` keys.
+            "WINE EXAM"
+        case .dailyChallenge:
+            "DAILY CHALLENGE"
+        case .passport:
+            "PASSPORT"
         case .walkthrough:
             "WALKTHROUGH"
         case .continent:
             "CONTINENT SCAN"
+        }
+    }
+
+    /// SF Symbol shown between the marquee's text repetitions (v0.5.7) —
+    /// `SYSTEM ⟨gear⟩ SYSTEM ⟨gear⟩ …`. Sits beside `title` because the two
+    /// travel together into the footer. All iOS 17-safe — see KNOWN-ISSUES on
+    /// symbols with a later OS floor rendering blank rather than failing.
+    public var marqueeSymbol: String {
+        switch self {
+        case .list(let category, _):
+            category.marqueeSymbol
+        case .masterSearch:
+            "magnifyingglass"
+        // A fallback: detail titles come from the entry, and so does the
+        // symbol — see `WineEntry.scanSymbol`.
+        case .detail:
+            "viewfinder"
+        case .globe:
+            "globe.americas.fill"
+        case .globeSearch:
+            "magnifyingglass"
+        case .bookmarks:
+            "bookmark.fill"
+        case .country:
+            "map.fill"
+        case .state:
+            "mappin.and.ellipse"
+        case .dailyGrape:
+            "questionmark.diamond.fill"
+        case .scanner:
+            "viewfinder"
+        case .moonDial:
+            "moon.stars.fill"
+        case .settings:
+            "gearshape.fill"
+        case .settingsSection(let section):
+            section.symbol
+        case .minigames:
+            "wrench.and.screwdriver.fill"
+        case .chipFilter:
+            "line.3.horizontal.decrease.circle.fill"
+        case .wsetQuiz:
+            "graduationcap.fill"
+        case .dailyChallenge:
+            "calendar"
+        case .passport:
+            "book.closed.fill"
+        case .walkthrough:
+            "figure.walk"
+        case .continent:
+            "globe.americas.fill"
+        }
+    }
+}
+
+public extension EntryCategory {
+    /// The category's marquee glyph — see `DexRoute.marqueeSymbol`.
+    var marqueeSymbol: String {
+        switch self {
+        case .grapes: "leaf.fill"
+        case .regions: "map.fill"
+        case .styles: "wineglass.fill"
+        case .flavors: "sparkles"
+        case .continents: "globe.americas.fill"
         }
     }
 }
@@ -162,6 +245,18 @@ public extension WineEntry {
         case .flavor: "FLAVOR SCAN"
         case .style: "STYLE SCAN"
         case .continent: "CONTINENT SCAN"
+        }
+    }
+
+    /// Marquee glyph for the detail screen — the entry-level counterpart of
+    /// `scanTitle`, same reasoning as `DexRoute.marqueeSymbol`.
+    var scanSymbol: String {
+        switch self {
+        case .grape: EntryCategory.grapes.marqueeSymbol
+        case .region: EntryCategory.regions.marqueeSymbol
+        case .flavor: EntryCategory.flavors.marqueeSymbol
+        case .style: EntryCategory.styles.marqueeSymbol
+        case .continent: EntryCategory.continents.marqueeSymbol
         }
     }
 }

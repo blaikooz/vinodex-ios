@@ -9,7 +9,7 @@ import Foundation
 ///
 /// **Opt-in, always.** Nothing here runs unasked — there is no first-launch
 /// flag, no "3 of 7" dots ambushing a new user, and no dismissal state to
-/// remember. It is reached by choosing BEGIN in settings, which means everyone
+/// remember. It is reached by choosing TUTORIAL in settings, which means everyone
 /// who sees it asked for it, and it can be replayed as often as you like.
 public struct WalkthroughStep: Sendable, Hashable, Identifiable {
     /// Which part of the device the diagram lights up for this step.
@@ -17,9 +17,18 @@ public struct WalkthroughStep: Sendable, Hashable, Identifiable {
         /// No single part — the whole device.
         case device
         case screen
+        /// The master-search button drawn on the diagram's little menu.
+        case search
         case orb
         case lights
         case settings
+        /// The TOOLS tile on the diagram's little settings grid — the tools
+        /// step swaps the mini LCD to a mock of the settings panel so it can
+        /// point at where TOOLS and the settings groups actually live.
+        case tools
+        /// A mocked-up entry page on the diagram's little LCD, so the step
+        /// about entries has an actual entry to point at.
+        case entry
         case back
         case saved
         case home
@@ -30,42 +39,33 @@ public struct WalkthroughStep: Sendable, Hashable, Identifiable {
     public let title: String
     public let body: String
     public let highlight: Highlight
+    /// When set, the diagram *hides* everything that is not the subject
+    /// rather than dimming it — the opening step shows one button and
+    /// nothing else, so there is exactly one thing to look at.
+    public let isolated: Bool
 
-    public init(id: String, title: String, body: String, highlight: Highlight) {
+    public init(id: String, title: String, body: String, highlight: Highlight, isolated: Bool = false) {
         self.id = id
         self.title = title
         self.body = body
         self.highlight = highlight
+        self.isolated = isolated
     }
 }
 
 public enum Walkthrough {
-    /// Nine steps, in the order someone actually meets the device: what it is,
-    /// what the screen does, then each control, then where to go first.
-    ///
-    /// Written to be read aloud — short sentences, second person, no jargon that
-    /// the app has not already introduced. The one piece of vocabulary it does
-    /// teach is "chassis", because the settings panel uses that word.
+    /// Eight steps. The tour opens on the main screen — the whole app is up
+    /// there — then search, an entry, and the
+    /// controls. Rewritten terse in v0.5.4: the old copy read well aloud but
+    /// nobody reads a tour aloud; two sentences a page is the budget. The orb
+    /// step is gone — an easter egg you are told about is not an easter egg.
     public static let steps: [WalkthroughStep] = [
         WalkthroughStep(
-            id: "welcome",
-            title: "WELCOME",
-            body: """
-            This is a wine encyclopedia dressed as a handheld console. \
-            Everything lives inside the device — the screen shows what you look \
-            up, and the buttons around it get you there. It takes about a minute \
-            to learn. Let's walk round it.
-            """,
-            highlight: .device
-        ),
-        WalkthroughStep(
             id: "screen",
-            title: "THE SCREEN",
+            title: "START HERE",
             body: """
-            Grapes, regions, styles and flavours all appear here. Four tiles on \
-            the main menu open the four tables, and every entry links to the \
-            others — open a grape and it names its regions; open one of those \
-            and it names its grapes right back.
+            A wine encyclopedia on a handheld. Four tiles — grapes, regions, \
+            styles, flavours — and everything links to everything.
             """,
             highlight: .screen
         ),
@@ -73,29 +73,27 @@ public enum Walkthrough {
             id: "search",
             title: "SEARCH ANYTHING",
             body: """
-            The button in the middle of the main menu searches all of it at \
-            once. Type a few letters of a grape, a place, or even a flavour \
-            you tasted, and it will find the entries that mention it.
+            The middle button searches all of it at once. A grape, a place, \
+            a flavour — a few letters is enough.
             """,
-            highlight: .screen
+            highlight: .search
         ),
         WalkthroughStep(
-            id: "saved",
-            title: "YOUR SHELF",
+            id: "entry",
+            title: "WHAT AN ENTRY LOOKS LIKE",
             body: """
-            The person button opens your saved entries. Tap SAVE on anything \
-            worth coming back to and it lands there. That screen is also where \
-            you set your name and add a photo, so it feels like yours.
+            Every entry has the same shape: picture and name, three tiles \
+            that link onward, then the readouts. A row with an arrow opens \
+            the next entry.
             """,
-            highlight: .saved
+            highlight: .entry
         ),
         WalkthroughStep(
             id: "back",
             title: "GOING BACK",
             body: """
-            Back steps you one screen at a time, and it remembers where you \
-            were — the same scroll position, the same sections open. Nothing \
-            you were reading gets lost because you followed a link.
+            Back steps one screen at a time and remembers where you were — \
+            scroll position, open sections, all of it.
             """,
             highlight: .back
         ),
@@ -103,10 +101,8 @@ public enum Walkthrough {
             id: "home",
             title: "STARTING OVER",
             body: """
-            Home returns to the main menu and clears the trail behind you: \
-            searches, scroll positions, half-finished games. If you ever feel \
-            lost, this is the button that resets everything without losing \
-            anything you saved.
+            Home returns to the main menu and clears the trail. Feeling \
+            lost? This one resets everything you didn't save.
             """,
             highlight: .home
         ),
@@ -114,10 +110,8 @@ public enum Walkthrough {
             id: "settings",
             title: "MAKING IT YOURS",
             body: """
-            The cog opens the system panel. CUSTOMIZE changes the screen \
-            between dark and light, sets the text size, and swaps the chassis — \
-            five colourways, each with its own lights and buttons. DATA shows \
-            you exactly what is in the database.
+            The cog: screen modes, chassis skins, text size, haptics, sound. \
+            The person button beside Back keeps your shelf and profile.
             """,
             highlight: .settings
         ),
@@ -125,31 +119,17 @@ public enum Walkthrough {
             id: "tools",
             title: "TOOLS",
             body: """
-            Also behind the cog: TOOLS. There's a scanner that identifies a \
-            grape from what's in your glass, a chip filter for narrowing the \
-            whole database by colour, body or climate, a tasting quiz, a daily \
-            guessing game, and the moon dial.
+            Also behind the cog: the wrench tile. Scanner, filter search, \
+            wine exam, the daily challenge, and the moon dial.
             """,
-            highlight: .screen
-        ),
-        WalkthroughStep(
-            id: "orb",
-            title: "ONE LAST THING",
-            body: """
-            Press and hold the blue orb for a second. The device turns over and \
-            shows you its back plate. There's nothing you need there — it's just \
-            nice. Swipe to come back.
-            """,
-            highlight: .orb
+            highlight: .tools
         ),
         WalkthroughStep(
             id: "done",
-            title: "THAT'S IT",
+            title: "THAT'S IT.",
             body: """
-            Press Home and pick a tile. If you only do one thing, open GRAPES \
-            and read something you have drunk before — it is much more \
-            interesting than reading about one you haven't. You can run this \
-            tour again any time from BEGIN in settings.
+            Press Home and pick a tile. Rerun this tour any time from \
+            TUTORIAL in settings.
             """,
             highlight: .device
         ),

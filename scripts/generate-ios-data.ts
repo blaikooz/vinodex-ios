@@ -187,7 +187,7 @@ function collectKeyDomain(all: readonly WineEntry[]) {
 function buildPalette(full: readonly WineEntry[]) {
   const domain = collectKeyDomain(full);
 
-  const rarities = ['COMMON', 'UNCOMMON', 'RARE', 'NOBLE'] as const;
+  const rarities = ['COMMON', 'UNCOMMON', 'RARE', 'NOBLE', 'GODFORSAKEN'] as const;
   const colorTypes = ['RED', 'WHITE', 'ROSÉ', 'ORANGE', 'DUAL'] as const;
   const styleClasses = ['STYLE', 'METHOD', 'ORIGIN', 'TYPE', 'BLEND'] as const;
   const flavorClasses = ['SWEET', 'SOUR', 'SALTY', 'BITTER', 'UMAMI'] as const;
@@ -279,33 +279,198 @@ const LUCIDE_ICONIFY: Record<string, string> = {
 
 const FALLBACK_ICON = 'mdi:help-circle-outline';
 
+// Full-colour pixel-art portraits for flavours, keyed by normalised flavour
+// name. Values are PNG stems under Sources/VinodexUI/Resources/FlavorArt —
+// the art itself is imported from shared/newicons by a one-off pass (see
+// v0.5.1), not rasterised here; this table only keeps the wiring stable
+// across regenerations. Names with no convincing art are deliberately absent
+// and keep their tinted glyph.
+const FLAVOR_ART: Record<string, string> = {
+  'almond': 'almond',
+  'alpine herbs': 'alpineherbs',
+  'apricot': 'apricot',
+  'banana': 'banana',
+  'beeswax': 'beeswax',
+  'bell pepper': 'greenbellpepper',
+  'black cherry': 'blackcherry',
+  'black fruit': 'blackberry',
+  'black pepper': 'peppercorn',
+  'black plum': 'blackplum',
+  'blackberry': 'blackberry',
+  // Own portrait since 0.5.7 — shared blackberry.png before.
+  'blackberry jam': 'blackberry-jam',
+  'blackcurrant': 'blackcurrant',
+  'blueberry': 'blueberry',
+  'cedar': 'cedar',
+  'brioche': 'brioche',
+  'butter': 'butter',
+  'chalk': 'chalk',
+  'chamomile': 'chamomile',
+  'cherry': 'cherry',
+  // The two bars shipped swapped in 0.5.1: chocolate.png *is* the dark bar.
+  'chocolate': 'chocolate2',
+  'cinnamon': 'cinnamon',
+  'clove': 'clove',
+  'cocoa': 'cocoa',
+  'dark chocolate': 'chocolate',
+  'dill': 'dill',
+  'dried fig': 'driedfig',
+  'dried herbs': 'driedherbs',
+  'earth': 'earth',
+  'espresso': 'coffee',
+  'fennel': 'fennel',
+  'fig': 'fig',
+  'floral': 'whiteblossom',
+  'fresh herbs': 'mint',
+  'game': 'game',
+  'ginger': 'ginger',
+  'gooseberry': 'gooseberry',
+  'grapefruit': 'grapefruit',
+  'graphite': 'graphite',
+  'grass': 'grass',
+  'green apple': 'green-apple',
+  'green pea': 'greenpea',
+  'green pepper': 'greenbellpepper',
+  'green peppercorn': 'greenpeppercorn',
+  'hazelnut': 'hazelnut',
+  'herb': 'driedherbs',
+  'herbal tea': 'tealeaf',
+  'herbs': 'driedherbs',
+  'honey': 'honey',
+  'honeysuckle': 'honeysuckle',
+  // First art for this note (0.5.7) — it was the one flavour with none.
+  'jammy berry': 'jammyberry',
+  'jasmine': 'jasmine',
+  'lanolin': 'lanolin',
+  'leather': 'leather',
+  'lemon': 'lemon',
+  'lemon curd': 'lemoncurd',
+  // Own portrait since 0.5.8 — borrowed lemon.png before.
+  'lemon zest': 'lemonzest',
+  'licorice': 'licorice',
+  'lilac': 'lilac',
+  'lime': 'lime',
+  'lychee': 'lychee',
+  'mango': 'mango',
+  'marzipan': 'marzipan',
+  'mineral': 'mineral',
+  'nutmeg': 'nutmeg',
+  'olive': 'olive',
+  'orange blossom': 'orange-blossom',
+  'peach': 'peach',
+  'pear': 'pear',
+  'pepper': 'peppercorn',
+  'petrol': 'petrol',
+  'pineapple': 'pineapple',
+  'plum': 'plum',
+  'pomegranate': 'pomegranate',
+  'quince': 'quince',
+  'raspberry': 'raspberry',
+  'red apple': 'red-apple',
+  'red cherry': 'cherry',
+  'rose': 'redrose',
+  'rose petal': 'rosepetal',
+  'sage': 'sage',
+  'saline': 'saline',
+  'sea breeze': 'seabreeze',
+  'sea salt': 'seasalt',
+  'sea spray': 'seaspray',
+  'smoke': 'smoke',
+  // Own portrait since 0.5.7 — shared smoke.png before.
+  'smoky spice': 'smokyspice',
+  'sour cherry': 'sour-cherry',
+  'spice': 'peppercorn',
+  'stone': 'stone',
+  'strawberry': 'strawberry',
+  // Own portrait since 0.5.7 — shared strawberry.png before.
+  'strawberry candy': 'strawberrycandy',
+  'tangerine': 'orange',
+  'tar': 'tar',
+  'tea leaf': 'tealeaf',
+  'tobacco': 'tobaccoleaf',
+  'tomato': 'tomato',
+  'tomato leaf': 'tomatoleaf',
+  'vanilla': 'vanilla',
+  'violet': 'violet',
+  'volcanic ash': 'volcanicash',
+  'white blossom': 'whiteblossom',
+  'white flower': 'whiteblossom',
+  'white peach': 'white-peach',
+  'white pepper': 'whitepepper',
+  'yuzu citrus': 'yuzu',
+};
+
 // Fixed icon sets used by the detail screen's three-tile header, transcribed
 // from EntryDetail.tsx and climateDisplay.tsx.
-// NOTE: two names referenced by the web app do not exist in the game-icons set,
-// so Iconify renders nothing for them there — `scales-tipped` (Light-Medium
-// body) and `cloud` (climate fallback). Substituted with real icons here.
+//
+// `art:` ids (v0.5.7, B1) name drawn pixel art rather than Iconify glyphs:
+// `art:<stem>` loads `<stem>.png` from Resources/ClassArt, imported from
+// shared/newicons/classes by scripts/import-class-art.py. The Swift side
+// branches on the prefix in `DexIcon`; these ids never reach the Iconify
+// rasteriser (`unique` excludes them below).
+//
+// Light-Medium and Medium-Full keep their tinted glyphs — the drawn set
+// covers only the three anchor weights so far.
 const BODY_ICONS: Record<string, string> = {
-  Light: 'game-icons:feather',
+  Light: 'art:body-light',
   'Light-Medium': 'game-icons:weight-scale',
-  Medium: 'game-icons:scales',
+  Medium: 'art:body-medium',
   'Medium-Full': 'game-icons:weight-lifting-up',
-  Full: 'game-icons:weight',
+  Full: 'art:body-full',
 };
 
 const CLIMATE_ICONS: Record<string, string> = {
-  maritime: 'game-icons:big-wave',
-  continental: 'game-icons:mountains',
-  cool: 'game-icons:snowflake-2',
-  warm: 'game-icons:sun',
-  mediterranean: 'game-icons:olive',
+  maritime: 'art:climate-maritime',
+  continental: 'art:climate-continental',
+  cool: 'art:climate-cool',
+  warm: 'art:climate-warm',
+  mediterranean: 'art:climate-mediterranean',
 };
 
 const COLOR_ICONS: Record<string, string> = {
-  RED: 'game-icons:wine-bottle',
-  WHITE: 'game-icons:wine-glass',
-  ROSE: 'game-icons:rose',
-  ORANGE: 'game-icons:sun',
-  DUAL: 'game-icons:two-shadows',
+  RED: 'art:color-red',
+  WHITE: 'art:color-white',
+  ROSE: 'art:color-rose',
+  ORANGE: 'art:color-orange',
+  DUAL: 'art:color-dual',
+};
+
+/// Drawn glyphs for the flavour taxonomy (v0.5.7, B1) — used ahead of the
+/// web app's Iconify resolvers in `buildIconManifest`, which stay as the
+/// fallback so a future class/subclass still renders something while its art
+/// is pending (and trips the duplicate-glyph assertion, which is the signal
+/// to draw it).
+const FLAVOR_CLASS_ART: Record<string, string> = {
+  SWEET: 'art:class-sweet',
+  SOUR: 'art:class-sour',
+  BITTER: 'art:class-bitter',
+  UMAMI: 'art:class-umami',
+  SALTY: 'art:class-salty',
+};
+
+const FLAVOR_SUBCLASS_ART: Record<string, string> = {
+  BERRY: 'art:subclass-berry',
+  CITRUS: 'art:subclass-citrus',
+  TROPICAL: 'art:subclass-tropical',
+  ORCHARD_FRUIT: 'art:subclass-orchard-fruit',
+  STONE_FRUIT: 'art:subclass-stone-fruit',
+  RED_FRUIT: 'art:subclass-red-fruit',
+  DARK_FRUIT: 'art:subclass-dark-fruit',
+  HERBAL: 'art:subclass-herbal',
+  VEGETAL: 'art:subclass-vegetal',
+  NUT: 'art:subclass-nut',
+  BAKING: 'art:subclass-baking',
+  BREAD: 'art:subclass-bread',
+  WAX: 'art:subclass-wax',
+  EARTH: 'art:subclass-earth',
+  SMOKY: 'art:subclass-smoky',
+  SPICE: 'art:subclass-spice',
+  SAVORY: 'art:subclass-savory',
+  BRINY: 'art:subclass-briny',
+  SALTY: 'art:subclass-salty',
+  FLORAL: 'art:subclass-floral',
+  GAME: 'art:subclass-game',
+  WOOD: 'art:subclass-wood',
 };
 
 // Per-category visual tables, transcribed from entryIconVisuals.tsx. The rules
@@ -323,25 +488,49 @@ const COLOR_ICONS: Record<string, string> = {
 /// ported. `STYLE` is included here so all five classes resolve to something
 /// real even though no current entry reaches it.
 const STYLE_CLASS_ICONS: Record<string, string> = {
-  TYPE: 'game-icons:holy-grail',
-  BLEND: 'game-icons:pouring-chalice',
-  ORIGIN: 'game-icons:atlas',
-  METHOD: 'game-icons:cellar-barrels',
+  TYPE: 'art:styleclass-type',
+  BLEND: 'art:styleclass-blend',
+  ORIGIN: 'art:styleclass-origin',
+  METHOD: 'art:styleclass-method',
+  // Unreachable (see above) and unillustrated — the glyph survives so the
+  // table stays total.
   STYLE: 'game-icons:wine-glass',
 };
 
-/// Countries whose outline exists as a glyph, used to mask the flag into the
-/// country's shape rather than showing a plain rectangle.
+/// The drawn country/state outlines (v0.5.7, B3), keyed by normalised place
+/// name — the region rows' glyph, replacing both the borrowed key-grape glyph
+/// and the 0.5.6 masked-flag treatment. Covers every place in `FLAG_PATHS`,
+/// states included; `buildIconManifest` filters it to the places actually
+/// present, same as the flags.
 const COUNTRY_SHAPE_ICONS: Record<string, string> = {
-  france: 'game-icons:france',
-  australia: 'game-icons:australia',
-  hungary: 'game-icons:hungary',
-  italy: 'game-icons:italia',
-  japan: 'game-icons:japan',
-  portugal: 'game-icons:portugal',
-  'south africa': 'game-icons:south-africa',
-  spain: 'game-icons:spain',
-  switzerland: 'game-icons:switzerland',
+  france: 'art:outline-france',
+  germany: 'art:outline-germany',
+  italy: 'art:outline-italy',
+  greece: 'art:outline-greece',
+  portugal: 'art:outline-portugal',
+  spain: 'art:outline-spain',
+  hungary: 'art:outline-hungary',
+  austria: 'art:outline-austria',
+  croatia: 'art:outline-croatia',
+  california: 'art:outline-california',
+  oregon: 'art:outline-oregon',
+  washington: 'art:outline-washington',
+  'new york': 'art:outline-new-york',
+  georgia: 'art:outline-georgia',
+  switzerland: 'art:outline-switzerland',
+  romania: 'art:outline-romania',
+  'south africa': 'art:outline-south-africa',
+  morocco: 'art:outline-morocco',
+  usa: 'art:outline-usa',
+  canada: 'art:outline-canada',
+  argentina: 'art:outline-argentina',
+  chile: 'art:outline-chile',
+  uruguay: 'art:outline-uruguay',
+  'new zealand': 'art:outline-new-zealand',
+  australia: 'art:outline-australia',
+  japan: 'art:outline-japan',
+  china: 'art:outline-china',
+  india: 'art:outline-india',
 };
 
 /// Icon-well background per style classification.
@@ -374,22 +563,22 @@ const STYLE_COLOR_TYPE_COLORS: Record<string, string> = {
 // "clay loam" reads as clay. The order is exported as `soilKeywords` and the
 // Swift side iterates that, rather than keeping its own copy in sync.
 const SOIL_ICONS: Record<string, { icon: string; color: string }> = {
-  volcanic: { icon: 'game-icons:volcano', color: '#FF4500' },
-  basalt: { icon: 'game-icons:stone-pile', color: '#2F4F4F' },
-  clay: { icon: 'lucide:droplet', color: '#B5651D' },
-  loam: { icon: 'game-icons:plow', color: '#8B5A2B' },
-  sand: { icon: 'game-icons:salt-shaker', color: '#F4A460' },
-  limestone: { icon: 'game-icons:mountains', color: '#E0E0E0' },
-  chalk: { icon: 'lucide:triangle', color: '#EDEDED' },
-  slate: { icon: 'game-icons:rock', color: '#708090' },
-  shale: { icon: 'game-icons:flat-platform', color: '#6B7B8C' },
-  schist: { icon: 'lucide:mountain', color: '#5F7A8A' },
-  granite: { icon: 'game-icons:crystal-cluster', color: '#A9A9A9' },
-  gravel: { icon: 'lucide:circle', color: '#696969' },
-  alluvial: { icon: 'game-icons:river', color: '#6CA0DC' },
-  loess: { icon: 'game-icons:dust-cloud', color: '#C2B280' },
-  laterite: { icon: 'game-icons:ore', color: '#A0522D' },
-  default: { icon: 'lucide:mountain', color: '#8B4513' },
+  volcanic: { icon: 'art:soil-volcanic', color: '#FF4500' },
+  basalt: { icon: 'art:soil-basalt', color: '#2F4F4F' },
+  clay: { icon: 'art:soil-clay', color: '#B5651D' },
+  loam: { icon: 'art:soil-loam', color: '#8B5A2B' },
+  sand: { icon: 'art:soil-sand', color: '#F4A460' },
+  limestone: { icon: 'art:soil-limestone', color: '#E0E0E0' },
+  chalk: { icon: 'art:soil-chalk', color: '#EDEDED' },
+  slate: { icon: 'art:soil-slate', color: '#708090' },
+  shale: { icon: 'art:soil-shale', color: '#6B7B8C' },
+  schist: { icon: 'art:soil-schist', color: '#5F7A8A' },
+  granite: { icon: 'art:soil-granite', color: '#A9A9A9' },
+  gravel: { icon: 'art:soil-gravel', color: '#696969' },
+  alluvial: { icon: 'art:soil-alluvial', color: '#6CA0DC' },
+  loess: { icon: 'art:soil-loess', color: '#C2B280' },
+  laterite: { icon: 'art:soil-laterite', color: '#A0522D' },
+  default: { icon: 'art:soil-default', color: '#8B4513' },
 };
 
 /// Match order for `SOIL_ICONS`, minus the fallback. Exported so the Swift
@@ -440,6 +629,7 @@ const FLAG_PATHS: Record<string, string> = {
   Morocco: 'Africa/morocco/morocco.png',
   USA: 'North America/united_states/united_states.png',
   Canada: 'North America/canada/canada.png',
+  Mexico: 'North America/mexico/mexico.png',
   Argentina: 'South America/argentina/argentina.png',
   Chile: 'South America/chile/chile.png',
   Uruguay: 'South America/uruguay/uruguay.png',
@@ -450,17 +640,94 @@ const FLAG_PATHS: Record<string, string> = {
   India: 'Asia/india/india.png',
 };
 
-/// Continents all carried `icon: 'globe'`, so all six resolved to the same
-/// `lucide:globe` — a generic mark that told you nothing and made the globe
-/// search look like six copies of one row. Outline glyphs where game-icons has
-/// the landmass; a recognisable stand-in where it does not.
+// Full-colour pixel-art portraits for styles (0.5.6), keyed by normalised
+// style name. Values are PNG stems under Sources/VinodexUI/Resources/StyleArt,
+// imported from shared/newicons/2new by scripts/import-style-art.py. All 32
+// shipped styles are covered; `crubeaujolas` preserves the artist's spelling.
+// The three 0.6 styles carry portraits derived from their nearest siblings
+// (recolour passes over fullbodywhite/mediumbodyred/dessertwine) — distinct
+// stems on purpose, so the artist can redraw them without touching the map.
+const STYLE_ART: Record<string, string> = {
+  'aromatic white': 'aromaticwhite',
+  'bordeaux blend': 'bordeauxblend',
+  'botrytis wine': 'botrytiswine',
+  'champagne': 'champagne',
+  'cremant': 'cremant',
+  'cru beaujolais': 'crubeaujolas',
+  'dessert wine': 'dessertwine',
+  'fortified wine': 'fortifiedwine',
+  // Renamed from Fresh Chillable Red (0.6.x); the stem keeps the old name.
+  'chillable red': 'freshchillablered',
+  'full-body red': 'fullbodyred',
+  'full-body white': 'fullbodywhite',
+  'gsm blend': 'gsmblend',
+  'ice wine': 'icewine',
+  'late harvest': 'lateharvest',
+  'light-body red': 'chillablered',
+  'light-body white': 'lightbodywhite',
+  'medium-body red': 'mediumbodyred',
+  'medium-body white': 'mediumbodywhite',
+  'sweet white': 'sweetwhite',
+  'natural wine': 'naturalwine',
+  'noble grapes': 'noblegrape',
+  'orange wine': 'orangewine',
+  'petillant naturel': 'petnat',
+  'port': 'port',
+  'prosecco': 'prosecco',
+  'qvevri amber': 'qvevriamber',
+  'rose': 'rose',
+  'sherry': 'sherry',
+  'sparkling red': 'sparklingred',
+  'sparkling wine': 'sparklingwine',
+  'super tuscan': 'supertuscan',
+};
+
+/**
+ * Grape bunch sprites (0.5.4): one bunch recoloured across colour x depth x
+ * blend, leaf coloured by rarity — see `GrapeArt` on the Swift side, which
+ * derives the keys. The sprite set covers the combos that occur in practice;
+ * this fills the full 2x3x3x3 grid with the nearest available sprite so every
+ * derivable key resolves. Stems are PNGs under Resources/GrapeArt, written by
+ * scripts/import-grape-art.py.
+ */
+function buildGrapeArt(): Record<string, string> {
+  // Keys are `<color>-<depth>-<blend>` — no leaf since 0.6.2 (A2): the leaf
+  // is recoloured per rarity in code (`GrapeSpriteLoader`), so every key
+  // resolves to ONE base sprite. The `-rare` files are the bases on purpose:
+  // their leaf is the one part drawn in yellow, which is what makes it
+  // separable from green berries at recolour time.
+  const stemFor = (color: string, depth: string, blend: string): string => {
+    if (blend === 'none') return `${color}-${depth}-rare`;
+    const blendColor = color === 'gold' ? 'green' : color;
+    // The blends ship at one depth each; depth falls back to what exists.
+    if (blendColor === 'green' && blend === 'amber') return 'green-amber-rare';
+    if (blendColor === 'red' && blend === 'amber') return 'red-amber-medium-rare';
+    if (blendColor === 'red' && blend === 'pink') return 'red-pink-rare';
+    // Green pink: the light rare is the cleaner of the two sources.
+    return depth === 'light' ? 'green-pink-light-rare' : 'green-pink-rare';
+  };
+
+  const out: Record<string, string> = {};
+  for (const color of ['green', 'red', 'gold']) {
+    for (const depth of ['light', 'medium', 'full']) {
+      for (const blend of ['none', 'pink', 'amber']) {
+        out[`${color}-${depth}-${blend}`] = stemFor(color, depth, blend);
+      }
+    }
+  }
+  return out;
+}
+
+/// Drawn per-continent globes (v0.5.8, B1) — art/icons/continents via
+/// import-class-art.py. Each continent finally gets its own face; the three
+/// shared Iconify globes they replaced left Africa and Europe identical.
 const CONTINENT_ICONS: Record<string, string> = {
-  CONT_AFRICA: 'game-icons:africa',
-  CONT_SOUTH_AMERICA: 'game-icons:south-america',
-  CONT_OCEANIA: 'game-icons:australia',
-  CONT_NORTH_AMERICA: 'game-icons:earth-america',
-  CONT_EUROPE: 'game-icons:coliseum',
-  CONT_ASIA: 'game-icons:pagoda',
+  CONT_AFRICA: 'art:globe-africa',
+  CONT_EUROPE: 'art:globe-europe',
+  CONT_ASIA: 'art:globe-asia',
+  CONT_OCEANIA: 'art:globe-oceania',
+  CONT_NORTH_AMERICA: 'art:globe-north-america',
+  CONT_SOUTH_AMERICA: 'art:globe-south-america',
 };
 
 /**
@@ -489,11 +756,17 @@ function buildCountryInfo(entries: readonly WineEntry[]) {
     }
   }
 
-  const info: Record<string, { description: string }> = {};
+  const info: Record<string, { description: string; appellationSystem?: string[] }> = {};
   for (const country of COUNTRIES) {
     if (!reachable.has(country.name)) continue;
     if (!country.description) continue;
-    info[country.name] = { description: country.description };
+    // The country's appellation system (0.6, A2) rides in the entry's tags
+    // alongside the COUNTRY marker — strip the marker, ship the system.
+    const system = (country.tags ?? []).filter((t) => t !== 'COUNTRY');
+    info[country.name] = {
+      description: country.description,
+      ...(system.length > 0 ? { appellationSystem: system } : {}),
+    };
   }
   return info;
 }
@@ -510,8 +783,12 @@ function buildIconManifest(entries: readonly WineEntry[]) {
   for (const entry of entries) {
     if (entry.category !== 'FLAVORS') continue;
     const { classification, subclass } = entry.details;
-    flavorClassIcons[classification] = resolveFlavorClassIcon(classification);
-    flavorSubclassIcons[subclass] = resolveFlavorSubclassIcon(subclass);
+    // Drawn art first (0.5.7); the web app's Iconify resolvers remain the
+    // fallback for anything not yet illustrated.
+    flavorClassIcons[classification] =
+      FLAVOR_CLASS_ART[classification] ?? resolveFlavorClassIcon(classification);
+    flavorSubclassIcons[subclass] =
+      FLAVOR_SUBCLASS_ART[subclass] ?? resolveFlavorSubclassIcon(subclass);
   }
 
   for (const entry of entries) {
@@ -519,6 +796,10 @@ function buildIconManifest(entries: readonly WineEntry[]) {
       byEntry[entry.id] = resolveFlavorIcon(entry.name, entry.details.subclass) as string;
     } else if (CONTINENT_ICONS[entry.id]) {
       byEntry[entry.id] = CONTINENT_ICONS[entry.id]!;
+    } else if (entry.id === 'S020') {
+      // GSM Blend wears the BLEND class glyph (0.6.2, E1) — its authored
+      // lucide circle said nothing a blend tile needed saying.
+      byEntry[entry.id] = 'art:styleclass-blend';
     } else {
       byEntry[entry.id] = LUCIDE_ICONIFY[entry.icon ?? 'default'] ?? LUCIDE_ICONIFY.default!;
     }
@@ -551,20 +832,25 @@ function buildIconManifest(entries: readonly WineEntry[]) {
     ),
   );
 
+  // `unique` is the Iconify rasterisation list (rasterize-icons.sh fetches
+  // every id in it) — `art:` ids are bundled pixel art imported by
+  // scripts/import-class-art.py and must not reach the fetcher.
   const unique = [
-    ...new Set([
-      ...Object.values(byEntry),
-      ...Object.values(BODY_ICONS),
-      ...Object.values(CLIMATE_ICONS),
-      ...Object.values(COLOR_ICONS),
-      ...Object.values(STYLE_CLASS_ICONS),
-      ...Object.values(flavorClassIcons),
-      ...Object.values(flavorSubclassIcons),
-      ...Object.values(shapeIcons),
-      ...Object.values(SOIL_ICONS).map((v) => v.icon),
-      'game-icons:fluffy-cloud', // climate fallback
-      FALLBACK_ICON,
-    ]),
+    ...new Set(
+      [
+        ...Object.values(byEntry),
+        ...Object.values(BODY_ICONS),
+        ...Object.values(CLIMATE_ICONS),
+        ...Object.values(COLOR_ICONS),
+        ...Object.values(STYLE_CLASS_ICONS),
+        ...Object.values(flavorClassIcons),
+        ...Object.values(flavorSubclassIcons),
+        ...Object.values(shapeIcons),
+        ...Object.values(SOIL_ICONS).map((v) => v.icon),
+        'game-icons:fluffy-cloud', // climate fallback
+        FALLBACK_ICON,
+      ].filter((id) => !id.startsWith('art:')),
+    ),
   ].sort();
 
   return {
@@ -577,6 +863,9 @@ function buildIconManifest(entries: readonly WineEntry[]) {
     styleClassIcons: STYLE_CLASS_ICONS,
     flavorClassIcons,
     flavorSubclassIcons,
+    flavorArt: FLAVOR_ART,
+    grapeArt: buildGrapeArt(),
+    styleArt: STYLE_ART,
     countryShapeIcons: shapeIcons,
     styleClassBg: STYLE_CLASS_BG,
     styleColorTypeColors: STYLE_COLOR_TYPE_COLORS,
@@ -608,7 +897,7 @@ function assertCoverage(entries: readonly WineEntry[], palette: ReturnType<typeo
 
   // Rarity tiers
   const tiers = new Set(grapes.map((g) => (g.category === 'GRAPES' ? g.rarity : undefined)));
-  for (const tier of ['COMMON', 'UNCOMMON', 'RARE', 'NOBLE']) {
+  for (const tier of ['COMMON', 'UNCOMMON', 'RARE', 'NOBLE', 'GODFORSAKEN']) {
     check(`rarity tier ${tier} missing`, tiers.has(tier as never));
   }
 
@@ -673,9 +962,21 @@ function assertCoverage(entries: readonly WineEntry[], palette: ReturnType<typeo
   const flavorGlyphs = new Map<string, string>();
   for (const flavor of flavors) {
     if (flavor.category !== 'FLAVORS') continue;
+    // Resolved the same way `buildIconManifest` resolves them — art first,
+    // Iconify fallback — so this asserts on what actually ships.
     for (const [kind, value, icon] of [
-      ['class', flavor.details.classification, resolveFlavorClassIcon(flavor.details.classification)],
-      ['subclass', flavor.details.subclass, resolveFlavorSubclassIcon(flavor.details.subclass)],
+      [
+        'class',
+        flavor.details.classification,
+        FLAVOR_CLASS_ART[flavor.details.classification]
+          ?? resolveFlavorClassIcon(flavor.details.classification),
+      ],
+      [
+        'subclass',
+        flavor.details.subclass,
+        FLAVOR_SUBCLASS_ART[flavor.details.subclass]
+          ?? resolveFlavorSubclassIcon(flavor.details.subclass),
+      ],
     ] as const) {
       const level = `${kind} ${value}`;
       check(`flavor ${level} has no glyph`, icon !== FALLBACK_ICON);

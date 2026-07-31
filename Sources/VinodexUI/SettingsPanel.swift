@@ -21,7 +21,7 @@ public struct SettingsPanel: View {
     let onMinigames: () -> Void
     let onWalkthrough: () -> Void
 
-    /// Set when BEGIN is tapped. The tour is a few minutes of someone's time, so
+    /// Set when TUTORIAL is tapped. The tour is a few minutes of someone's time, so
     /// it asks before it takes them — and asking is also what makes it findable
     /// without being imposed: the tile says what it is, the prompt says what it
     /// will do, and NO costs one tap.
@@ -42,48 +42,59 @@ public struct SettingsPanel: View {
         self.onWalkthrough = onWalkthrough
     }
 
-    private let columns = [
-        GridItem(.flexible(), spacing: 10),
-        GridItem(.flexible(), spacing: 10),
-    ]
-
     public var body: some View {
-        ScrollView {
-            LazyVGrid(columns: columns, spacing: 10) {
-                // BEGIN first, and deliberately so: it is the tile that matters
-                // to exactly one person — someone who has just opened this thing
-                // and does not yet know what it is — and that person will not
-                // scroll past four settings groups to find it. It is worthless
-                // to everyone else, who will never tap it twice.
-                featureTile(
-                    title: "BEGIN",
-                    symbol: "flag.checkered",
-                    tint: Dex.green
-                ) {
+        // A fixed three-row grid that fills the LCD (v0.5.6) — six tiles, no
+        // scrolling: the panel is sized by the screen, not by its content.
+        // TUTORIAL first, deliberately: it is the tile that matters to
+        // exactly one person — someone who has just opened this thing — and
+        // that person must not have to hunt for it.
+        VStack(spacing: 10) {
+            HStack(spacing: 10) {
+                featureTile(title: "TUTORIAL", symbol: "flag.checkered") {
                     offeringTour = true
                 }
-
-                // Then the tools: the only other tile here anyone opens for fun.
+                // A wrench, not a gamepad — the hub holds more instruments
+                // than games, and the tile should promise what it opens.
                 featureTile(
                     title: "TOOLS",
-                    symbol: "gamecontroller.fill",
-                    tint: Dex.yellow,
+                    symbol: "wrench.and.screwdriver.fill",
                     action: onMinigames
                 )
-
-                ForEach(SettingsSection.allCases) { section in
-                    featureTile(
-                        title: section.rawValue,
-                        symbol: section.symbol,
-                        tint: tint(for: section)
-                    ) {
-                        onSection(section)
-                    }
+            }
+            // DEV is deliberately absent from the grid — it lives as a
+            // button inside SETTINGS, where developer plumbing belongs.
+            HStack(spacing: 10) {
+                featureTile(
+                    title: SettingsSection.customization.rawValue,
+                    symbol: SettingsSection.customization.symbol
+                ) {
+                    onSection(.customization)
+                }
+                featureTile(
+                    title: SettingsSection.settings.rawValue,
+                    symbol: SettingsSection.settings.symbol
+                ) {
+                    onSection(.settings)
                 }
             }
-            .padding(12)
+            HStack(spacing: 10) {
+                featureTile(
+                    title: SettingsSection.data.rawValue,
+                    symbol: SettingsSection.data.symbol
+                ) {
+                    onSection(.data)
+                }
+                featureTile(
+                    title: SettingsSection.access.rawValue,
+                    symbol: SettingsSection.access.symbol
+                ) {
+                    onSection(.access)
+                }
+            }
         }
-        .background(lcd.isLight ? lcd.page : Dex.screen)
+        .padding(12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(lcd.panelGround)
         // In-LCD, like every other dialog in the app — a system alert would
         // slide up from the device and break the chassis metaphor.
         .overlay {
@@ -91,7 +102,7 @@ public struct SettingsPanel: View {
                 DexAlert(
                     title: "TAKE THE TOUR?",
                     message: "A quick walk round the device — what each button does and where things live. About a minute, and you can leave at any point.",
-                    confirmLabel: "YES, SHOW ME",
+                    confirmLabel: "YES",
                     cancelLabel: "NOT NOW",
                     onConfirm: {
                         offeringTour = false
@@ -104,50 +115,79 @@ public struct SettingsPanel: View {
         .animation(.easeOut(duration: 0.15), value: offeringTour)
     }
 
-    private func tint(for section: SettingsSection) -> Color {
-        switch section {
-        case .customization: Dex.red500
-        case .data: Dex.blue
-        case .access: Dex.yellow
-        case .dev: Dex.stone400
+    /// Per-tile colours, tuned separately for the pale and dark grounds
+    /// (v0.5.6, reversing 0.5.3's uniform mode ramp): each tile is unique
+    /// again — the colour is half the identity — and light mode runs the
+    /// deeper cuts because the bright faces washed out on the pale page.
+    private func tileColors(_ title: String) -> (face: String, shadow: String, ink: Color) {
+        if lcd.isLight {
+            return switch title {
+            case "TUTORIAL": ("#15803D", "#0B4A24", .white)
+            case "TOOLS": ("#B45309", "#7A3606", .white)
+            case "CUSTOMIZE": ("#B91C1C", "#7A1010", .white)
+            case "SETTINGS": ("#C2410C", "#7C2D12", .white)
+            case "DATA": ("#1D6FA8", "#11486E", .white)
+            default: ("#7E22CE", "#4C1D95", .white)   // ACCESS
+            }
+        }
+        return switch title {
+        case "TUTORIAL": ("#22C55E", "#15803D", .white)
+        // Yellow takes a dark ink, like the main menu's search button.
+        case "TOOLS": ("#FACC15", "#CA8A04", Dex.amber900)
+        case "CUSTOMIZE": ("#EF4444", "#991B1B", .white)
+        case "SETTINGS": ("#F97316", "#9A3412", .white)
+        case "DATA": ("#2AB5FF", "#136A99", .white)
+        default: ("#A855F7", "#6B21A8", .white)       // ACCESS
         }
     }
 
-    /// Square by construction — `aspectRatio(1, contentMode: .fit)` inside a
-    /// flexible grid column — so the grid stays square whatever the device width.
+    /// Styled like the main menu's tiles — filled face, 6pt bottom extrusion,
+    /// top-left sheen. Stretches to fill its grid cell rather than squaring
+    /// off (v0.5.6): the grid fits the LCD, so the tiles absorb the height.
     private func featureTile(
         title: String,
         symbol: String,
-        tint: Color,
         action: @escaping () -> Void
     ) -> some View {
-        Button {
+        let style = tileColors(title)
+
+        return Button {
             Haptics.tap()
             action()
         } label: {
-            // Glyph and label both up a size: these tiles are square and mostly
-            // empty, so the artwork was floating in the middle of a lot of
-            // nothing and the caption underneath it was the smallest type on
-            // the screen. The tile geometry did not need to change — only what
-            // is drawn in it.
             VStack(spacing: 12) {
                 Image(systemName: symbol)
                     .font(.system(size: 44, weight: .semibold))
-                    .foregroundStyle(tint)
+                    .foregroundStyle(style.ink)
                     .shadow(color: .black.opacity(0.3), radius: 0, x: 1, y: 2)
                 Text(title)
                     .font(DexFont.retro(13))
                     .tracking(1)
-                    .foregroundStyle(lcd.text)
+                    .foregroundStyle(style.ink)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
+                    .shadow(color: .black.opacity(0.35), radius: 0, x: 1, y: 1)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .aspectRatio(1, contentMode: .fit)
-            .background(RoundedRectangle(cornerRadius: 10).fill(lcd.surface))
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(dexHex: style.face))
+                    .overlay(alignment: .bottom) {
+                        // The same 6pt fake extrusion the menu tiles carry.
+                        Color(dexHex: style.shadow).frame(height: 6)
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+            )
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
-                    .strokeBorder(tint.opacity(0.5), lineWidth: 2)
+                    .fill(
+                        LinearGradient(
+                            colors: [.white.opacity(0.12), .clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .allowsHitTesting(false)
             )
         }
         .buttonStyle(DexPressStyle(scale: 0.97))
@@ -163,29 +203,42 @@ public struct SettingsPanel: View {
 /// a re-parenting, not a redesign of the switches.
 public struct SettingsSectionPanel: View {
     let section: SettingsSection
+    /// Opens the DEV panel. DEV lost its tile on the settings grid — it is
+    /// developer plumbing, not a setting — and lives behind a button at the
+    /// bottom of SETTINGS instead. A route push, so Back still works.
+    let onDev: () -> Void
 
     @State private var access = AccessStore.shared
     /// Set when a gated cosmetic is tapped; drives the same upgrade prompt a
     /// locked entry raises, so a paywalled *setting* behaves like a paywalled
     /// page rather than being a dead control.
     @State private var lockedBundle: Entitlement?
+    /// CLEAR SAVED DATA asks first — it is the one control here that cannot be
+    /// undone by tapping it again.
+    @State private var confirmingWipe = false
+    @AppStorage(Haptics.storageKey) private var hapticsOn = true
+    /// Off by default from v0.5.1 — sounds are opt-in. See `Sounds`.
+    @AppStorage(Sounds.storageKey) private var soundsOn = false
     /// Scroll position outlives the view — see `ScreenStateStore`. ACCESS and
     /// DATA are both taller than the LCD, so opening the upgrade prompt from a
     /// bundle row near the bottom used to bounce the panel back to the top.
     @State private var screens = ScreenStateStore.shared
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
     @AppStorage(TextScale.storageKey) private var scaleRaw = TextScale.small.rawValue
+    @AppStorage(UIScale.storageKey) private var uiScaleRaw = UIScale.small.rawValue
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
 
     private let db = WineDatabase.shared
 
     private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
     private var scale: TextScale { TextScale(rawValue: scaleRaw) ?? .small }
+    private var uiScale: UIScale { UIScale(rawValue: uiScaleRaw) ?? .small }
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
     private var totalCount: Int { db.entries.count }
 
-    public init(section: SettingsSection) {
+    public init(section: SettingsSection, onDev: @escaping () -> Void = {}) {
         self.section = section
+        self.onDev = onDev
     }
 
     private var screenKey: String { ScreenStateStore.settings(section.rawValue) }
@@ -202,6 +255,7 @@ public struct SettingsSectionPanel: View {
             VStack(alignment: .leading, spacing: 18) {
                 switch section {
                 case .customization: customization
+                case .settings: systemSettings
                 case .data: dataReadout
                 case .access: paywallTesting
                 case .dev: dev
@@ -220,7 +274,7 @@ public struct SettingsSectionPanel: View {
         .contentMargins(12, for: .scrollContent)
         .scrollPosition(id: anchorBinding)
         .scrollDismissesKeyboard(.interactively)
-        .background(lcd.isLight ? lcd.page : Dex.screen)
+        .background(lcd.panelGround)
         .overlay {
             if let lockedBundle {
                 UpgradePrompt(
@@ -231,9 +285,21 @@ public struct SettingsSectionPanel: View {
                     },
                     onCancel: { self.lockedBundle = nil }
                 )
+            } else if confirmingWipe {
+                DexAlert(
+                    title: "CLEAR SAVED DATA?",
+                    message: "Everything stored on this device — bookmarks, tastings and ratings, quiz progress, streak, profile, purchases and appearance — goes back to a fresh install. This cannot be undone.",
+                    confirmLabel: "ERASE",
+                    onConfirm: {
+                        confirmingWipe = false
+                        SavedDataReset.wipeAll()
+                    },
+                    onCancel: { confirmingWipe = false }
+                )
             }
         }
         .animation(.easeOut(duration: 0.15), value: lockedBundle)
+        .animation(.easeOut(duration: 0.15), value: confirmingWipe)
     }
 
     /// Free-tier switch, then the individual bundles.
@@ -380,25 +446,115 @@ public struct SettingsSectionPanel: View {
         )
     }
 
-    /// Screen mode, then text size, then the shell — the three questions that
-    /// used to be three tiles, in the order you answer them: the screen is what
-    /// you read, the text is how big, the shell is the frame around both.
+    /// Screen mode, then the shell — what the device looks like. Text size
+    /// lived here too until SETTINGS existed; it is a comfort setting, not a
+    /// colour choice, and it moved out with the other device behaviour.
     @ViewBuilder
     private var customization: some View {
         screenMode
-        textSize
         skinTesting
     }
 
-    /// "CHASSIS SKIN", not "SHELL SKIN": the rest of the app calls this part of
-    /// the device the chassis — `DeviceChassis`, `ChassisSkin`, `ChassisButton`
-    /// — and the settings panel was the one place using a second word for it.
+    /// Device behaviour: text size, UI size, haptics, and the stored-data reset.
+    @ViewBuilder
+    private var systemSettings: some View {
+        textSize
+        uiSize
+
+        settingsSection("HAPTICS") {
+            VStack(alignment: .leading, spacing: 10) {
+                settingRow(
+                    symbol: "iphone.radiowaves.left.and.right",
+                    tint: hapticsOn ? Dex.green : lcd.subtext,
+                    title: "HAPTICS",
+                    detail: hapticsOn
+                        ? "Every chassis button clicks in your hand."
+                        : "The buttons are silent to the hand."
+                ) {
+                    DexToggle(isOn: hapticsOn, tint: Dex.green) { hapticsOn.toggle() }
+                }
+            }
+        }
+
+        settingsSection("SOUNDS") {
+            VStack(alignment: .leading, spacing: 10) {
+                settingRow(
+                    symbol: "speaker.wave.2.fill",
+                    tint: soundsOn ? Dex.green : lcd.subtext,
+                    title: "SOUNDS",
+                    detail: soundsOn
+                        ? "Clicks, pings and stings from the SFX pack."
+                        : "The device is silent to the ear."
+                ) {
+                    DexToggle(isOn: soundsOn, tint: Dex.green) { soundsOn.toggle() }
+                }
+                Text("The ring/silent switch always wins — sounds never interrupt your music.")
+                    .font(DexFont.mono(17))
+                    .foregroundStyle(lcd.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+
+        settingsSection("STORED DATA") {
+            VStack(alignment: .leading, spacing: 10) {
+                Button {
+                    Haptics.select()
+                    confirmingWipe = true
+                } label: {
+                    Text("CLEAR SAVED DATA")
+                        .font(DexFont.retro(11))
+                        .tracking(1)
+                        .foregroundStyle(Dex.red500)
+                        .padding(.vertical, 14)
+                        .frame(maxWidth: .infinity)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .strokeBorder(Dex.red500.opacity(0.55), lineWidth: 2)
+                        )
+                }
+                .buttonStyle(DexPressStyle(scale: 0.98))
+
+                Text("Erases bookmarks, tastings and ratings, quiz progress, the daily streak, name and photo, purchases, skin, screen and text settings. The encyclopedia itself is untouched.")
+                    .font(DexFont.mono(17))
+                    .foregroundStyle(lcd.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+
+        settingsSection("DEVELOPER") {
+            Button {
+                Haptics.tap()
+                onDev()
+            } label: {
+                settingRow(
+                    symbol: "ladybug.fill",
+                    tint: lcd.subtext,
+                    title: "DEV",
+                    detail: "Diagnostics, the component gallery and the icon sheet."
+                ) {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(lcd.subtext)
+                }
+            }
+            .buttonStyle(DexPressStyle(scale: 0.98))
+        }
+    }
+
+    /// "CHASSIS SKINS", not "SHELL SKINS": the rest of the app calls this part
+    /// of the device the chassis — `DeviceChassis`, `ChassisSkin`,
+    /// `ChassisButton` — and the settings panel was the one place using a
+    /// second word for it.
     ///
     /// Everything past the default is gated on `.skins`, which is what makes a
     /// cosmetic bundle a testable paywall case rather than a hypothetical one.
+    /// The same three-column card grid the screen modes use, so the two
+    /// cosmetic pickers read as one instrument. Was a vertical list — at
+    /// fourteen skins the rows pushed everything below them off screen.
     private var skinTesting: some View {
-        settingsSection("CHASSIS SKIN") {
-            VStack(spacing: 8) {
+        settingsSection("CHASSIS SKINS") {
+            LazyVGrid(columns: pickerColumns, spacing: 8) {
                 ForEach(ChassisSkin.allCases) { option in
                     let locked = option != .classic && !access.isUnlocked(.skins)
 
@@ -410,68 +566,94 @@ public struct SettingsSectionPanel: View {
                             skinRaw = option.rawValue
                         }
                     } label: {
-                        HStack(spacing: 12) {
-                            // Body over panel, so the pair reads as the actual
-                            // shell rather than one flat swatch — plus the orb
-                            // and the lit button, which are what a skin now
-                            // actually varies. Without those two the picker
-                            // showed five rows that differed only in moulding
-                            // and the colourway looked like a paint job.
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(option.body)
-                                .frame(width: 44, height: 34)
+                        VStack(spacing: 8) {
+                            // Body over panel, so the swatch reads as the
+                            // actual shell — with the skin's emblem glyph in
+                            // the middle, the way the screen-mode tiles carry
+                            // theirs, at the same 50pt so the two pickers
+                            // read as one instrument (v0.5.6). The dark base
+                            // under the body is for the translucent skins,
+                            // whose smoke needs something to be over.
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(Color(dexHex: "#1B1D21"))
+                                .overlay(RoundedRectangle(cornerRadius: 5).fill(option.body))
+                                .frame(height: 50)
+                                .frame(maxWidth: .infinity)
                                 .overlay(alignment: .topLeading) {
                                     Circle()
                                         .fill(option.orb)
-                                        .frame(width: 9, height: 9)
-                                        .padding(4)
+                                        .frame(width: 10, height: 10)
+                                        .padding(5)
                                 }
                                 .overlay(alignment: .topTrailing) {
                                     Circle()
                                         .fill(option.accent.bright)
-                                        .frame(width: 9, height: 9)
-                                        .padding(4)
+                                        .frame(width: 10, height: 10)
+                                        .padding(5)
+                                }
+                                .overlay {
+                                    Image(systemName: option.symbol)
+                                        .font(.system(size: 17, weight: .semibold))
+                                        .foregroundStyle(option.accent.pale)
+                                        .shadow(color: .black.opacity(0.55), radius: 0, x: 1, y: 1)
+                                        // Centred in the deck, not the tile —
+                                        // the bottom 14pt is the panel strip.
+                                        .offset(y: -7)
                                 }
                                 .overlay(alignment: .bottom) {
                                     Rectangle()
                                         .fill(option.panel)
-                                        .frame(height: 12)
+                                        .frame(height: 14)
                                         .overlay {
                                             Capsule()
                                                 .fill(option.marqueeText)
-                                                .frame(width: 20, height: 3)
+                                                .frame(width: 24, height: 3)
                                         }
                                 }
-                                .clipShape(RoundedRectangle(cornerRadius: 4))
+                                .clipShape(RoundedRectangle(cornerRadius: 5))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 4)
+                                    RoundedRectangle(cornerRadius: 5)
                                         .strokeBorder(option.panelEdge, lineWidth: 1)
                                 )
+                                .overlay(alignment: .bottomTrailing) {
+                                    // Lock/tick rides the preview so the name
+                                    // below keeps the tile's full width.
+                                    if locked {
+                                        Image(systemName: "lock.fill")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .padding(4)
+                                    } else if skin == option {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 11, weight: .bold))
+                                            .padding(4)
+                                    }
+                                }
                                 .opacity(locked ? 0.45 : 1)
+
+                            // A fixed two-line box (v0.5.8, C2). The old
+                            // word-per-line stack gave every tile its own
+                            // height — three-word names ran a line taller and
+                            // one-word tiles floated short in their grid row.
+                            // Reserving two lines makes all fourteen tiles
+                            // congruent; long names wrap, short ones centre.
                             Text(option.displayName)
-                                .font(DexFont.retro(13))
+                                .font(DexFont.retro(10))
                                 .tracking(1)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.55)
-                            Spacer(minLength: 0)
-                            if locked {
-                                Image(systemName: "lock.fill")
-                                    .font(.system(size: 16, weight: .bold))
-                            } else if skin == option {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 17, weight: .bold))
-                            }
+                                .lineLimit(2)
+                                .multilineTextAlignment(.center)
+                                .minimumScaleFactor(0.6)
+                                .frame(height: 28)
                         }
                         .foregroundStyle(skin == option ? lcd.onAccent : lcd.subtext)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 16)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 12)
                         .frame(maxWidth: .infinity)
                         .background(
                             RoundedRectangle(cornerRadius: 6)
                                 .fill(skin == option ? lcd.accent : lcd.surface)
                         )
                     }
-                    .buttonStyle(DexPressStyle(scale: 0.98))
+                    .buttonStyle(DexPressStyle(scale: 0.97))
                 }
             }
         }
@@ -480,13 +662,22 @@ public struct SettingsSectionPanel: View {
     /// Separate from the chassis skin on purpose: the shell and the screen are
     /// independent choices, and a light screen in the red shell is a perfectly
     /// good combination.
+    /// A three-column grid of mode cards, one per `LcdMode`. Was a horizontal
+    /// shelf for one release — at ten modes the shelf hid most of them off the
+    /// right edge, and a grid shows the whole range at once.
+    ///
+    /// Each card is a miniature LCD in the mode's own colours: glyph, a text
+    /// line, a caption line. The monochrome modes run the real grayscale-and-
+    /// tint pass over their miniature, so AMBER previews amber rather than
+    /// the green its raw tokens would show.
     private var screenMode: some View {
         settingsSection("SCREEN MODE") {
-            HStack(spacing: 8) {
+            LazyVGrid(columns: pickerColumns, spacing: 8) {
                 ForEach(LcdMode.allCases) { option in
-                    // Light mode is a cosmetic bundle, so it is a paywall case
-                    // that costs nothing to test and touches every screen.
-                    let locked = option.isLight && !access.isUnlocked(.lightMode)
+                    // Every mode past the default gates on the same cosmetic
+                    // bundle — a paywall case that costs nothing to test and
+                    // touches every screen.
+                    let locked = option != .dark && !access.isUnlocked(.lightMode)
 
                     Button {
                         Haptics.select()
@@ -496,27 +687,49 @@ public struct SettingsSectionPanel: View {
                             lcdRaw = option.rawValue
                         }
                     } label: {
-                        HStack(spacing: 8) {
-                            RoundedRectangle(cornerRadius: 3)
+                        VStack(spacing: 8) {
+                            RoundedRectangle(cornerRadius: 5)
                                 .fill(option.screen)
-                                .frame(width: 22, height: 22)
+                                .frame(height: 50)
+                                .frame(maxWidth: .infinity)
+                                .overlay {
+                                    VStack(spacing: 4) {
+                                        Image(systemName: option.symbol)
+                                            .font(.system(size: 15, weight: .semibold))
+                                            .foregroundStyle(option.accent)
+                                        RoundedRectangle(cornerRadius: 1)
+                                            .fill(option.text.opacity(0.85))
+                                            .frame(width: 34, height: 3)
+                                        RoundedRectangle(cornerRadius: 1)
+                                            .fill(option.subtext.opacity(0.8))
+                                            .frame(width: 24, height: 3)
+                                    }
+                                }
+                                .grayscale(option.monochromeTint == nil ? 0 : 1)
+                                .colorMultiply(option.monochromeTint ?? .white)
+                                .clipShape(RoundedRectangle(cornerRadius: 5))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 3)
-                                        .strokeBorder(option.accent, lineWidth: 1)
+                                    RoundedRectangle(cornerRadius: 5)
+                                        .strokeBorder(option.surfaceEdge, lineWidth: 1)
                                 )
-                            Text(option.rawValue)
-                                .font(DexFont.retro(13))
-                                .tracking(1)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.6)
-                            if locked {
-                                Image(systemName: "lock.fill")
-                                    .font(.system(size: 13, weight: .bold))
+                                .opacity(locked ? 0.45 : 1)
+
+                            HStack(spacing: 4) {
+                                if locked {
+                                    Image(systemName: "lock.fill")
+                                        .font(.system(size: 10, weight: .bold))
+                                }
+                                Text(option.displayName)
+                                    .font(DexFont.retro(10))
+                                    .tracking(1)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.55)
                             }
                         }
                         .foregroundStyle(lcd == option ? lcd.onAccent : lcd.subtext)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 12)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 17)
                         .background(
                             RoundedRectangle(cornerRadius: 6)
                                 .fill(lcd == option ? lcd.accent : lcd.surface)
@@ -526,6 +739,11 @@ public struct SettingsSectionPanel: View {
                 }
             }
         }
+    }
+
+    /// The shared three-column layout both cosmetic pickers use.
+    private var pickerColumns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
     }
 
     private var textSize: some View {
@@ -552,6 +770,39 @@ public struct SettingsSectionPanel: View {
                     }
                 }
                 Text("Applies everywhere. Capped so the retro face still fits its tiles.")
+                    .font(DexFont.mono(17))
+                    .foregroundStyle(lcd.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    /// The chrome axis (v0.5.8, F1) — same two-button shape as TEXT SIZE so
+    /// the pair reads as siblings, one per axis.
+    private var uiSize: some View {
+        settingsSection("UI SIZE") {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    ForEach(UIScale.allCases) { option in
+                        Button {
+                            Haptics.select()
+                            uiScaleRaw = option.rawValue
+                        } label: {
+                            Text(option.rawValue)
+                                .font(DexFont.retro(13))
+                                .tracking(1)
+                                .foregroundStyle(uiScale == option ? lcd.onAccent : lcd.subtext)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 17)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(uiScale == option ? lcd.accent : lcd.surface)
+                                )
+                        }
+                        .buttonStyle(DexPressStyle(scale: 0.97))
+                    }
+                }
+                Text("Buttons, wells and chassis chrome — the text keeps its own size above.")
                     .font(DexFont.mono(17))
                     .foregroundStyle(lcd.subtext)
                     .fixedSize(horizontal: false, vertical: true)
@@ -959,5 +1210,52 @@ private func dataWaveValue(at f: Double, in points: [Int]) -> Double {
     let a = Double(points[index])
     let b = Double(points[index + 1])
     return a + (b - a) * eased
+}
+
+// MARK: - Clear saved data
+
+/// CLEAR SAVED DATA. Lives in UI because half of what it clears (skin, LCD
+/// mode, text scale, haptics, avatar) is UI-owned; the Core stores expose
+/// their own resets and are called rather than reached into.
+///
+/// No relaunch needed: the `@AppStorage` reads are KVO-backed, so removing a
+/// key snaps every view back to its declared default, and the stores are all
+/// `@Observable` and mutated in memory here — removing their defaults keys
+/// alone would leave stale state cached until the next launch.
+@MainActor
+enum SavedDataReset {
+    static func wipeAll() {
+        BookmarkStore.shared.removeEverything()
+        RevealCursor.shared.reset()
+        AccessStore.shared.clearAll()
+        AvatarStore.shared.clear()
+        QuizProgress.shared.reset()
+        StreakStore.shared.reset()
+        ScreenStateStore.shared.clear()
+        SearchStateStore.shared.clear()
+
+        let defaults = UserDefaults.standard
+        for key in [
+            // Belt and braces after each store's own reset.
+            Shelf.saved.storageKey,
+            Shelf.wantToTry.storageKey,
+            Shelf.tried.storageKey,
+            BookmarkStore.ratingsKey,
+            RevealCursor.storageKey,
+            QuizProgress.storageKey,
+            StreakStore.streakKey,
+            StreakStore.lastDayKey,
+            StreakStore.bestKey,
+            LcdMode.storageKey,
+            TextScale.storageKey,
+            UIScale.storageKey,
+            ChassisSkin.storageKey,
+            UserProfile.displayNameKey,
+            Haptics.storageKey,
+            Sounds.storageKey,
+        ] {
+            defaults.removeObject(forKey: key)
+        }
+    }
 }
 #endif

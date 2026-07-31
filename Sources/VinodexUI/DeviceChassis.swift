@@ -11,6 +11,9 @@ import VinodexCore
 /// the `md:` breakpoint, so a phone sees the same layout the web app gives it.
 public struct DeviceChassis<Content: View>: View {
     let title: String
+    /// The page's marquee glyph, stamped between the banner's repetitions —
+    /// see `MarqueeBanner.symbol`. Routed from `DexRoute.marqueeSymbol`.
+    var marqueeSymbol: String?
     var showsBack: Bool = false
     var onBack: (() -> Void)?
     var onHome: (() -> Void)?
@@ -38,11 +41,15 @@ public struct DeviceChassis<Content: View>: View {
     /// Shared with `SettingsPanel` through `@AppStorage`, so toggling it there
     /// repaints the chassis without any state being threaded between them.
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
+    /// Read for VINTAGE mode's monochrome pass over the LCD — see `innerBezel`.
+    @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
 
     private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
+    private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
     public init(
         title: String,
+        marqueeSymbol: String? = nil,
         showsBack: Bool = false,
         onBack: (() -> Void)? = nil,
         onHome: (() -> Void)? = nil,
@@ -51,6 +58,7 @@ public struct DeviceChassis<Content: View>: View {
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.title = title
+        self.marqueeSymbol = marqueeSymbol
         self.showsBack = showsBack
         self.onBack = onBack
         self.onHome = onHome
@@ -61,8 +69,14 @@ public struct DeviceChassis<Content: View>: View {
 
     private var isMainScreen: Bool { title == "VINODEX" }
 
-    private var footerTitle: String {
-        isMainScreen ? "CHEERS!SANTE!SALUTE!PROST!KANPAI!" : title
+    /// The main screen cycles its toasts as separate words — the banner gives
+    /// every boundary between them the same gap it gives the wrap seam.
+    private var footerSegments: [String] {
+        isMainScreen ? ["CHEERS!", "SANTE!", "SALUTE!", "PROST!", "KANPAI!"] : [title]
+    }
+
+    private var footerSymbol: String? {
+        isMainScreen ? "wineglass.fill" : marqueeSymbol
     }
 
     public var body: some View {
@@ -125,15 +139,24 @@ public struct DeviceChassis<Content: View>: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
         }
-        .background(skin.body.ignoresSafeArea())
+        // The underlay, not the body: this layer never rotates with the flip,
+        // so it must not show internals — under a translucent skin it is the
+        // dark ground the smoke plastic needs, and elsewhere it is the body.
+        .background(skin.underlay.ignoresSafeArea())
     }
 
     private func frontFace(topStrip: CGFloat) -> some View {
         ZStack(alignment: .top) {
-            skin.body
+            // The mock electronics sit behind the translucent shell and flip
+            // with the front face — the back plate is its own opaque part.
+            if skin.isTranslucent {
+                InternalsView()
+            }
+            ChassisShell(skin: skin)
 
             VStack(spacing: 0) {
                 Color.clear.frame(height: topStrip)
+                titleBump
                 screenHousing
                     // Minimal, equal gap to both bands.
                     .padding(.vertical, DexMetrics.housingGap)
@@ -142,6 +165,57 @@ public struct DeviceChassis<Content: View>: View {
 
             islandFlank(height: topStrip)
         }
+    }
+
+    // MARK: Title bump
+
+    /// A soft trapezoid swelling out of the moulding above the screen housing
+    /// (0.6.2, F3), carrying an engraved metal nameplate — the one place the
+    /// front of the device says what it is. Moulded from the skin's own body
+    /// colour so it reads as part of the shell, not a sticker on it.
+    private var titleBump: some View {
+        ZStack {
+            TrapezoidBump()
+                .fill(skin.body)
+            // A dark seat line and a light top catch — what makes a flat
+            // fill read as a raised bump.
+            TrapezoidBump()
+                .stroke(.black.opacity(0.22), lineWidth: 1.5)
+            TrapezoidBump()
+                .stroke(.white.opacity(0.14), lineWidth: 1)
+                .offset(y: -1)
+                .clipShape(TrapezoidBump())
+
+            RoundedRectangle(cornerRadius: 4)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(dexHex: "#cdcfd2"),
+                            Color(dexHex: "#9ea1a5"),
+                            Color(dexHex: "#b8babd"),
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 172, height: 24)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .strokeBorder(Color(dexHex: "#5f6368"), lineWidth: 1)
+                )
+                .overlay(
+                    // The back plate's two-shadow engraving, at nameplate size.
+                    Text("VINODEX")
+                        .font(DexFont.retro(13))
+                        .tracking(5)
+                        .foregroundStyle(Color(dexHex: "#3a3d42"))
+                        .shadow(color: .white.opacity(0.5), radius: 0, x: 0, y: 1)
+                        .shadow(color: .black.opacity(0.45), radius: 0, x: 0, y: -1)
+                )
+                .shadow(color: .black.opacity(0.25), radius: 1, y: 1)
+        }
+        .frame(width: 248, height: 34)
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: Island flank
@@ -185,7 +259,7 @@ public struct DeviceChassis<Content: View>: View {
                     isFlipped = true
                 } onPressingChanged: { pressing in
                     orbHeld = pressing
-                    if pressing { Haptics.select() }
+                    if pressing { Haptics.orbPress() }
                 }
                 .fixedSize()
 
@@ -232,6 +306,9 @@ public struct DeviceChassis<Content: View>: View {
     /// decoration — nobody expects a logo to be tappable. A cog states what it
     /// does. Same diameter as the footer controls, so every button on the
     /// chassis is one size.
+    /// Back on the skin's caps (v0.5.4, reversing 0.5.3's mode livery) —
+    /// see the note on `ChassisButton`. The glyph keeps its brushed-silver
+    /// gradient: a machined part, whatever the shell.
     private func settingsButton(size: CGFloat) -> some View {
         Button {
             Haptics.tap()
@@ -255,7 +332,7 @@ public struct DeviceChassis<Content: View>: View {
                 .background(
                     Circle().fill(
                         LinearGradient(
-                            colors: [Dex.stone700, Dex.stone900],
+                            colors: [skin.control.top, skin.control.bottom],
                             startPoint: .top,
                             endPoint: .bottom
                         )
@@ -263,7 +340,7 @@ public struct DeviceChassis<Content: View>: View {
                 )
                 .overlay(
                     Circle().strokeBorder(
-                        Dex.stone400,
+                        skin.control.edge,
                         lineWidth: 2
                     )
                 )
@@ -292,10 +369,13 @@ public struct DeviceChassis<Content: View>: View {
     }
 
     private func statusDots(size: CGFloat) -> some View {
-        HStack(spacing: DexMetrics.statusDotSpacing) {
-            statusDot(Dex.red600, border: Dex.red800, period: 6.1, size: size)
-            statusDot(Dex.yellow400, border: Dex.yellow600, period: 7.4, size: size)
-            statusDot(Dex.green500, border: Dex.green700, period: 4.8, size: size)
+        // Every skin runs its own lamp trio — see `ChassisSkin.statusLights`.
+        let lights = skin.statusLights
+
+        return HStack(spacing: DexMetrics.statusDotSpacing) {
+            statusDot(lights[0].fill, border: lights[0].border, period: 6.1, size: size)
+            statusDot(lights[1].fill, border: lights[1].border, period: 7.4, size: size)
+            statusDot(lights[2].fill, border: lights[2].border, period: 4.8, size: size)
         }
     }
 
@@ -335,6 +415,11 @@ public struct DeviceChassis<Content: View>: View {
                 topTrailingRadius: DexMetrics.screenPanelCorner
             )
             .strokeBorder(skin.panelEdge, lineWidth: DexMetrics.screenPanelBorder)
+            // NOCTURNE's charge: the housing rim glows softly. Two stacked
+            // shadows — a tight one and a wide one — read as phosphor rather
+            // than as a drop shadow.
+            .shadow(color: skin.rimGlow?.opacity(0.9) ?? .clear, radius: 6)
+            .shadow(color: skin.rimGlow?.opacity(0.5) ?? .clear, radius: 16)
         }
         .padding(.horizontal, DexMetrics.screenPanelInset)
         .frame(maxHeight: .infinity)
@@ -350,7 +435,10 @@ public struct DeviceChassis<Content: View>: View {
 
     private var innerBezel: some View {
         ZStack {
-            Dex.screen
+            // The panel ground rather than a fixed near-black: the themed
+            // modes (BLUE SCREEN especially) must not flash grey behind a
+            // screen that has not painted yet.
+            lcd.panelGround
             content()
 
             // Confined to the LCD, so the bezel, footer and island stay put and
@@ -359,6 +447,13 @@ public struct DeviceChassis<Content: View>: View {
                 .opacity(DexMetrics.scanlineOpacity)
                 .allowsHitTesting(false)
         }
+        // The monochrome modes: desaturate everything on the LCD, then tint
+        // the lot — grey-green for VINTAGE, amber phosphor for AMBER. Done
+        // here, over the whole display, because it is the only way entry art,
+        // chips and glyph tints — none of which read LcdMode — go monochrome
+        // too. Identity (grayscale 0, multiply white) in the colour modes.
+        .grayscale(lcd.monochromeTint == nil ? 0 : 1)
+        .colorMultiply(lcd.monochromeTint ?? .white)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipShape(RoundedRectangle(cornerRadius: DexMetrics.bezelCorner))
         // A thin stone frame, equal on every side so the LCD sits centred.
@@ -422,7 +517,8 @@ public struct DeviceChassis<Content: View>: View {
             }
 
             MarqueeBanner(
-                text: footerTitle,
+                segments: footerSegments,
+                symbol: footerSymbol,
                 fontSize: DexMetrics.marqueeTextSize
             )
             .frame(maxWidth: DexMetrics.marqueeMaxWidth)
@@ -445,6 +541,68 @@ public struct DeviceChassis<Content: View>: View {
     }
 }
 
+/// The title bump's silhouette: a trapezoid with softened shoulders — wider
+/// at the seat, curving in toward the flat top.
+private struct TrapezoidBump: Shape {
+    func path(in rect: CGRect) -> Path {
+        let shoulder = rect.width * 0.14
+        var p = Path()
+        p.move(to: CGPoint(x: rect.minX, y: rect.maxY))
+        p.addQuadCurve(
+            to: CGPoint(x: rect.minX + shoulder, y: rect.minY),
+            control: CGPoint(x: rect.minX + shoulder * 0.3, y: rect.minY + rect.height * 0.18)
+        )
+        p.addLine(to: CGPoint(x: rect.maxX - shoulder, y: rect.minY))
+        p.addQuadCurve(
+            to: CGPoint(x: rect.maxX, y: rect.maxY),
+            control: CGPoint(x: rect.maxX - shoulder * 0.3, y: rect.minY + rect.height * 0.18)
+        )
+        p.closeSubpath()
+        return p
+    }
+}
+
+// MARK: - Chassis shell
+
+/// The moulding itself: the skin's colour, plus its tileable pixel-art
+/// pattern when it carries one (WINE XMAS's wrapping paper). The colour stays
+/// underneath so a missing asset degrades to a plain shell, not a hole.
+private struct ChassisShell: View {
+    let skin: ChassisSkin
+
+    var body: some View {
+        ZStack {
+            skin.body
+            if let asset = skin.bodyPatternAsset,
+               let image = ChassisPatternLoader.shared.image(asset) {
+                Image(uiImage: image)
+                    .resizable(resizingMode: .tile)
+                    // Pixel art — filtering would smear the pattern.
+                    .interpolation(.none)
+            }
+        }
+    }
+}
+
+/// Loads bundled chassis patterns, cached — mirrors `FlagLoader`, misses
+/// recorded so an absent asset is not re-probed every render.
+@MainActor
+private final class ChassisPatternLoader {
+    static let shared = ChassisPatternLoader()
+
+    private var cache: [String: UIImage?] = [:]
+
+    private init() {}
+
+    func image(_ name: String) -> UIImage? {
+        if let hit = cache[name] { return hit }
+        let loaded = DexResources.url(named: name, ext: "png", subdirectory: "Resources/Chassis")
+            .flatMap { UIImage(contentsOfFile: $0.path) }
+        cache[name] = loaded
+        return loaded
+    }
+}
+
 // MARK: - Chassis buttons
 
 /// The physical-looking Back and Home buttons.
@@ -461,8 +619,15 @@ public struct ChassisButton: View {
     let action: () -> Void
 
     /// Read here rather than passed down, the same way `DexToggle` reads the
-    /// screen mode: the footer builds these, and threading a skin through would
+    /// screen mode: the footer builds these, and threading it through would
     /// mean every future caller had to remember to.
+    ///
+    /// The *skin*, deliberately (v0.5.4, reversing 0.5.3): these are physical
+    /// parts of the chassis, and physical parts belong to the colourway. A
+    /// screen mode re-dressing the moulded buttons made every skin look like
+    /// the same device the moment the LCD changed. On-LCD chrome (the search
+    /// button, the settings tiles) still follows the mode — pixels on the
+    /// screen are the screen's business.
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
 
     private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
@@ -596,10 +761,10 @@ public struct DexScreenBackground: View {
 
     public var body: some View {
         ZStack {
-            mode.isLight ? mode.screen : Dex.stone950
+            mode.ground
             DexGridBackground(
                 spacing: 10,
-                color: mode.isLight ? Dex.stone400 : Dex.stone700,
+                color: mode.gridLine,
                 opacity: 0.35
             )
         }
@@ -665,36 +830,49 @@ struct PulseGlow: ViewModifier {
 /// the label is measured by a background reader, so at `onAppear` the width is
 /// still zero and the animation would never run.
 public struct MarqueeBanner: View {
-    let text: String
+    /// The words the strip cycles. Most screens pass one segment — their
+    /// title; the main screen passes its five toasts. Segments, not a single
+    /// string, so every word boundary gets the same `gap` the wrap seam does
+    /// (v0.5.7, E1) instead of whatever spacing was baked into the text.
+    let segments: [String]
+    /// SF Symbol stamped between repetitions — `SYSTEM ⟨gear⟩ SYSTEM ⟨gear⟩`
+    /// (v0.5.7, E2). Nil runs text-only.
+    let symbol: String?
     let fontSize: CGFloat
     var pointsPerSecond: Double = 34
+
+    /// The first copy's width, measured from its own laid-out geometry.
+    ///
+    /// Every previous version *predicted* this number — character count
+    /// times a `UIFont`-measured cell (0.5.1), then the same corrected for
+    /// the text-scale factor (0.5.4, audit M9) — and every prediction
+    /// disagreed with SwiftUI's actual layout by a point or two: `NSString`
+    /// metrics and SwiftUI `Text` rounding are not the same machinery, the
+    /// error scaled with the label's length, and the seam skipped by exactly
+    /// that error every lap. Measuring the rendered label itself cannot
+    /// disagree with the rendered label. Until the first measurement lands
+    /// the strip holds still (shift 0) rather than popping.
+    @State private var copyWidth: CGFloat = 0
+
+    /// Spacing between the two copies — part of the cycle geometry, scaled
+    /// like the glyphs.
+    private var gap: CGFloat { fontSize * TextScale.current.factor * 1.5 }
 
     /// The strip's phosphor follows the shell — see `ChassisSkin.marqueeText`.
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
 
     private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
 
-    public init(text: String, fontSize: CGFloat, pointsPerSecond: Double = 34) {
-        self.text = text
+    public init(
+        segments: [String],
+        symbol: String? = nil,
+        fontSize: CGFloat,
+        pointsPerSecond: Double = 34
+    ) {
+        self.segments = segments
+        self.symbol = symbol
         self.fontSize = fontSize
         self.pointsPerSecond = pointsPerSecond
-    }
-
-    /// Press Start 2P is monospaced, so the run width is simply the character
-    /// count times one cell. No layout pass, no attributed-string measuring, no
-    /// state — which is what kept getting this wrong: a measured width that
-    /// disagreed with the rendered width by a few points made the seam jump
-    /// every cycle, and a width that arrived a frame late made it pop in.
-    private var cell: CGFloat {
-        let font = UIFont(name: DexFont.names.retro, size: fontSize)
-            ?? .monospacedSystemFont(ofSize: fontSize, weight: .regular)
-        return ("0" as NSString).size(withAttributes: [.font: font]).width
-    }
-
-    /// One copy plus the gap. The second copy starts exactly here, so shifting
-    /// by this amount lands back where it began.
-    private var cycle: CGFloat {
-        max(CGFloat(text.count) * cell + fontSize * 1.5, 1)
     }
 
     public var body: some View {
@@ -711,11 +889,15 @@ public struct MarqueeBanner: View {
                 )
 
             // Offset is a pure function of the clock, so it cannot drift and
-            // cannot be restarted mid-run by a re-render.
+            // cannot be restarted mid-run by a re-render. The cycle is one
+            // measured copy plus the gap: the second copy starts exactly
+            // there, so a wrap lands on identical pixels.
             TimelineView(.animation) { context in
+                let cycle = copyWidth + gap
                 let elapsed = context.date.timeIntervalSinceReferenceDate
-                let shift = CGFloat((elapsed * pointsPerSecond)
-                    .truncatingRemainder(dividingBy: Double(cycle)))
+                let shift = copyWidth > 0
+                    ? CGFloat((elapsed * pointsPerSecond).truncatingRemainder(dividingBy: Double(cycle)))
+                    : 0
 
                 // The GeometryReader is load-bearing, not decoration: the
                 // `.fixedSize()` label pair is ~1500pt wide for the main-menu
@@ -723,8 +905,17 @@ public struct MarqueeBanner: View {
                 // ignores `maxWidth` entirely, renders full-bleed across the
                 // footer and squeezes the Back/user button out of the row.
                 GeometryReader { strip in
-                    HStack(spacing: fontSize * 1.5) {
+                    HStack(spacing: gap) {
                         label
+                            .background(
+                                GeometryReader { copy in
+                                    Color.clear
+                                        .onAppear { copyWidth = copy.size.width }
+                                        .onChange(of: copy.size.width) { _, new in
+                                            copyWidth = new
+                                        }
+                                }
+                            )
                         label
                     }
                     .offset(x: -shift)
@@ -741,13 +932,27 @@ public struct MarqueeBanner: View {
         .frame(height: DexMetrics.marqueeHeight)
     }
 
+    /// One full cycle of content: every segment, `gap` apart, with the page
+    /// glyph closing it. Two copies of this sit `gap` apart in the strip, so
+    /// the seam between them is indistinguishable from any internal boundary
+    /// — which is what makes the loop read as endless.
     private var label: some View {
-        Text(text)
-            .font(DexFont.retro(fontSize))
-            .foregroundStyle(skin.marqueeText)
-            .lineLimit(1)
-            .fixedSize()
-            .shadow(color: skin.marqueeShadow.opacity(0.65), radius: 0, x: 1, y: 1)
+        HStack(spacing: gap) {
+            ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
+                Text(segment)
+                    .font(DexFont.retro(fontSize))
+                    .foregroundStyle(skin.marqueeText)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .shadow(color: skin.marqueeShadow.opacity(0.65), radius: 0, x: 1, y: 1)
+            }
+            if let symbol {
+                Image(systemName: symbol)
+                    .font(.system(size: fontSize * TextScale.current.factor * 0.8, weight: .bold))
+                    .foregroundStyle(skin.marqueeText)
+                    .shadow(color: skin.marqueeShadow.opacity(0.65), radius: 0, x: 1, y: 1)
+            }
+        }
     }
 }
 

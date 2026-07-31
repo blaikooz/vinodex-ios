@@ -25,9 +25,12 @@ struct CoverageTests {
         //
         // Update these deliberately when the data changes; a change you did not
         // intend is exactly what this is here to catch.
-        #expect(db.entries(in: .grapes).count == 80)
-        #expect(db.entries(in: .regions).count == 60)
-        #expect(db.entries(in: .styles).count == 29)
+        // 0.6 catalog boost (A1): +21 grapes, +38 regions, +3 styles — every
+        // cross-reference now resolves; see scripts/find-missing-refs.mjs.
+        #expect(db.entries(in: .grapes).count == 128)
+        #expect(db.entries(in: .regions).count == 104)
+        // 31 since 0.6.x: Medium-Full Red removed, its grapes now Full-Body.
+        #expect(db.entries(in: .styles).count == 31)
         #expect(db.entries(in: .continents).count == 6)
     }
 
@@ -51,8 +54,14 @@ struct CoverageTests {
         let sum = stats.grapes + stats.regions + stats.styles + stats.flavors + stats.continents
         #expect(sum == stats.total, "categories do not account for every entry")
 
-        #expect(stats.total == 284)
-        #expect(stats.countries == 18)
+        // 282 since 0.5.7 (Liquorice→Licorice merge, umbrella Citrus removed);
+        // 281 since 0.5.8: generic Apple merged into Red Apple (E2);
+        // 343 since 0.6: the catalog boost, with flavours unchanged at 106 —
+        // every new grape reuses existing tasting notes on purpose;
+        // 342 since 0.6.1: Medium-Full Red folded into Full-Body Red;
+        // 375 since 0.6.2: the rare-grape push (+27 grapes, +6 regions).
+        #expect(stats.total == 375)
+        #expect(stats.countries == 25)
         #expect(stats.categoryLines.count == 6)
     }
 
@@ -129,7 +138,7 @@ struct CoverageTests {
     func palette() {
         #expect(db.palette.continentCountries.count == 6)
         #expect(db.palette.climates.count == 5)
-        #expect(db.palette.rarityChips.count == 4)
+        #expect(db.palette.rarityChips.count == 5)
         #expect(!db.palette.countryChips.isEmpty)
         #expect(!db.palette.styleTones.isEmpty)
     }
@@ -185,8 +194,11 @@ struct CoverageTests {
 
     /// Flavour INFO is only worth showing while the blurbs are specific. They
     /// were hidden originally because every one was the same sentence with the
-    /// nouns swapped; each should now name the grapes it derives from.
-    @Test("flavor descriptions are distinct and name their grapes")
+    /// nouns swapped. Since 0.5.7 (G1) the copy describes the aroma itself and
+    /// must *not* fall back to naming grapes — the wine framing ("carried here
+    /// by Barbera…") described the database, not the flavour, and the grapes
+    /// already appear in NOTABLE GRAPES.
+    @Test("flavor descriptions are distinct and about the flavor itself")
     func flavorDescriptions() {
         let flavors = db.entries(in: .flavors)
         #expect(!flavors.isEmpty)
@@ -196,12 +208,10 @@ struct CoverageTests {
             let text = entry.entryDescription
             #expect(!text.isEmpty, "\(entry.name) has no description")
             #expect(seen.insert(text).inserted, "duplicate blurb: \(text)")
-
-            // Each flavour is derived from at least one grape, so the sentence
-            // should be able to name one.
-            if let grape = entry.notableGrapes.first {
-                #expect(text.contains(grape), "\(entry.name) does not mention \(grape)")
-            }
+            #expect(
+                !text.contains("carried here by"),
+                "\(entry.name) still carries the wine framing"
+            )
         }
     }
 
@@ -250,6 +260,57 @@ struct CoverageTests {
 
         #expect(!levels.isEmpty, "no flavor classes or subclasses were exercised")
         #expect(owners.count == levels.count, "glyphs and taxonomy levels are not 1:1")
+    }
+
+    /// The pixel-art flavour portraits (v0.5.1). Every key in the map must
+    /// name a real flavour — an orphan key is a typo shipping dead weight —
+    /// and the lookup must land through the normalised accessor. Coverage is
+    /// deliberately *not* required to be total: flavours without convincing
+    /// art keep their tinted glyph by design, but the mapped share is pinned
+    /// so a regeneration cannot silently drop the table.
+    @Test("flavor art maps real flavours and resolves through the accessor")
+    func flavorArtWiring() {
+        let art = db.icons.flavorArt
+        #expect(art != nil, "manifest lost its flavorArt table")
+        guard let art else { return }
+
+        let names = Set(db.entries(in: .flavors).map { TextNormalize.label($0.name) })
+        for key in art.keys {
+            #expect(names.contains(key), "flavorArt key '\(key)' names no flavour")
+        }
+
+        let mapped = db.entries(in: .flavors).filter {
+            db.icons.flavorArtStem(for: $0.name) != nil
+        }
+        #expect(
+            Double(mapped.count) / Double(names.count) > 0.8,
+            "only \(mapped.count) of \(names.count) flavours have art"
+        )
+
+        // The accessor normalises: case must not matter.
+        #expect(db.icons.flavorArtStem(for: "BLACKCURRANT") != nil)
+    }
+
+    /// The pixel-art style portraits (v0.5.6): every key names a real style,
+    /// and — unlike flavours, where partial coverage is by design — the set
+    /// covers *all* of them, so the styles screen is never a mix of art and
+    /// tinted glyphs.
+    @Test("every style has a portrait, and every portrait names a style")
+    func styleArtWiring() {
+        let art = db.icons.styleArt
+        #expect(art != nil, "manifest lost its styleArt table")
+        guard let art else { return }
+
+        let names = Set(db.entries(in: .styles).map { TextNormalize.label($0.name) })
+        for key in art.keys {
+            #expect(names.contains(key), "styleArt key '\(key)' names no style")
+        }
+        for entry in db.entries(in: .styles) {
+            #expect(
+                db.icons.styleArtStem(for: entry.name) != nil,
+                "\(entry.name) has no style art"
+            )
+        }
     }
 
     /// Every soil the region screen can show must match a keyword. Falling

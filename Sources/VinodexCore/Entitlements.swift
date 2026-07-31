@@ -54,7 +54,10 @@ public enum Entitlement: Hashable, Sendable {
         case .country(let name): "\(name.uppercased()) BUNDLE"
         case .flavors: "FLAVOR WHEEL"
         case .skins: "CHASSIS SKINS"
-        case .lightMode: "LIGHT MODE"
+        // The id stays "lightMode" — it is persisted, and renaming it would
+        // silently revoke the bundle. Only the shopfront copy widened when
+        // the vintage and amber modes joined the paper-white one.
+        case .lightMode: "SCREEN MODES"
         }
     }
 
@@ -64,7 +67,7 @@ public enum Entitlement: Hashable, Sendable {
         case .country(let name): "Every grape and region from \(name)."
         case .flavors: "All flavour entries and the full tasting wheel."
         case .skins: "All chassis colourways beyond the default."
-        case .lightMode: "The paper-white LCD, for reading in daylight."
+        case .lightMode: "Nine alternate LCDs — paper-white, three phosphors, and themed consoles."
         }
     }
 

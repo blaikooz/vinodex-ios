@@ -133,6 +133,21 @@ public struct IconManifest: Codable, Sendable {
     /// different picture for every entry in the same subclass.
     public let flavorClassIcons: [String: String]?
     public let flavorSubclassIcons: [String: String]?
+    /// Full-colour pixel-art portrait per flavour, keyed by the flavour's
+    /// *normalised name* (`TextNormalize.label`) rather than its id — the art
+    /// set is named by flavour, and ids would break the moment one is re-keyed.
+    /// Values are PNG stems under `Resources/FlavorArt`. Optional so an older
+    /// manifest still decodes; flavours without art keep their tinted glyph.
+    public let flavorArt: [String: String]?
+    /// Bunch-sprite stem per `GrapeArt` key (`green-light-none-common` …),
+    /// PNGs under `Resources/GrapeArt`. Generated over the full combo grid
+    /// with fallbacks, so every key the app can derive resolves. Optional so
+    /// an older manifest still decodes; grapes then keep their tinted glyph.
+    public let grapeArt: [String: String]?
+    /// Full-colour pixel-art portrait per style, keyed by *normalised name*
+    /// like `flavorArt`. PNGs under `Resources/StyleArt`. Optional so an
+    /// older manifest still decodes; styles then keep their class glyph.
+    public let styleArt: [String: String]?
     /// Country outline glyphs, used to mask a flag into the country's shape.
     public let countryShapeIcons: [String: String]
     /// Icon-well background per style classification.
@@ -210,6 +225,23 @@ public struct IconManifest: Codable, Sendable {
         flavorSubclassIcons?[subclass] ?? fallback
     }
 
+    /// Pixel-art stem for a flavour name, or nil when the set has no portrait
+    /// for it. Normalised on the way in so "Crème de Cassis"-style accents and
+    /// case differences cannot miss their art.
+    public func flavorArtStem(for name: String) -> String? {
+        flavorArt?[TextNormalize.label(name)]
+    }
+
+    /// Bunch-sprite stem for a `GrapeArt` key, or nil when no art shipped.
+    public func grapeArtStem(forKey key: String) -> String? {
+        grapeArt?[key]
+    }
+
+    /// Pixel-art stem for a style name, or nil when the set has no portrait.
+    public func styleArtStem(for name: String) -> String? {
+        styleArt?[TextNormalize.label(name)]
+    }
+
     /// Bundled flag stem for a country, e.g. `New Zealand` -> `new-zealand`.
     public func flagSlug(for country: String?) -> String? {
         guard let country, flags[country] != nil else { return nil }
@@ -268,6 +300,12 @@ public final class WineDatabase: Sendable {
     /// that pass `category: nil`.
     private let byNameAnyCategory: [String: WineEntry]
 
+    /// Countries, as searchable items (v0.5.6). Countries are not entries —
+    /// a country page is assembled from the regions that name it — so master
+    /// and world search list them from here. Only countries with regions in
+    /// the selection ship: a hit must open a page with something on it.
+    public let searchableCountries: [String]
+
     public init(
         entries: [WineEntry],
         palette: Palette,
@@ -282,6 +320,16 @@ public final class WineDatabase: Sendable {
         self.countries = countries
         self.freeIDs = freeIDs
         self.decodeErrors = decodeErrors
+
+        var countrySet = Set<String>()
+        for entry in entries {
+            if case .region(let r) = entry, !r.details.origin.isEmpty {
+                countrySet.insert(r.details.origin)
+            }
+        }
+        self.searchableCountries = countrySet.sorted {
+            $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
+        }
 
         var ids: [String: WineEntry] = [:]
         ids.reserveCapacity(entries.count)
@@ -375,6 +423,9 @@ public final class WineDatabase: Sendable {
                     styleClassIcons: [:],
                     flavorClassIcons: nil,
                     flavorSubclassIcons: nil,
+                    flavorArt: nil,
+                    grapeArt: nil,
+                    styleArt: nil,
                     countryShapeIcons: [:],
                     styleClassBg: [:],
                     styleColorTypeColors: [:],
@@ -415,6 +466,14 @@ public final class WineDatabase: Sendable {
 
     public func entries(in category: EntryCategory) -> [WineEntry] {
         entries.apply(.category(category))
+    }
+
+    /// The searchable countries matching a query — all of them for an empty
+    /// query, diacritic-insensitive substring otherwise, like `matchesSearch`.
+    public func countries(matching query: String) -> [String] {
+        let q = TextNormalize.label(query)
+        guard !q.isEmpty else { return searchableCountries }
+        return searchableCountries.filter { TextNormalize.label($0).contains(q) }
     }
 
     public func entry(id: String) -> WineEntry? {
@@ -577,11 +636,19 @@ public struct DatabaseStats: Sendable, Hashable {
     }
 
     /// Milestones the DATA panel's wave sweeps through: empty, the original
-    /// starter selection, the first full import, and wherever the data stands
-    /// now. Fixed history plus a live tail, so the graph keeps meaning as the
-    /// dataset grows.
+    /// starter selection, the first full import, then each release total the
+    /// database has stood at. Fixed history plus a live tail — **append the
+    /// outgoing total here whenever a data change moves it** (0.6.x), so the
+    /// graph keeps a running record of how the catalog has grown.
     public var waveMilestones: [Int] {
-        [0, 25, 186, total]
+        [
+            0,
+            25,   // the curated starter selection
+            186,  // the first full import
+            281,  // 0.5.8
+            342,  // 0.6.1
+            total,
+        ]
     }
 }
 
@@ -597,8 +664,13 @@ public struct EntryTiers: Codable, Sendable {
 /// path — the country page has more room than it currently uses.
 public struct CountryInfo: Codable, Sendable, Hashable {
     public let description: String
+    /// The country's canonical appellation system(s) (0.6, A2) — e.g.
+    /// ["DOCG", "DOC", "IGT"]. Optional so a pre-0.6 countries.json still
+    /// decodes; the INFO section simply omits the line.
+    public let appellationSystem: [String]?
 
-    public init(description: String) {
+    public init(description: String, appellationSystem: [String]? = nil) {
         self.description = description
+        self.appellationSystem = appellationSystem
     }
 }

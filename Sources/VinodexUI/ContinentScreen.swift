@@ -92,20 +92,7 @@ public struct ContinentScreen: View {
 
     private var hero: some View {
         VStack(spacing: 14) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(dexHex: continent.common.color))
-                DexIcon(
-                    iconID: WineDatabase.shared.iconID(for: .continent(continent)),
-                    size: 44,
-                    color: .white
-                )
-            }
-            .frame(width: 80, height: 80)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(.black.opacity(0.3), lineWidth: 2)
-            )
+            EntryIconWell(entry: .continent(continent), size: DexMetrics.heroWell, cornerRadius: 20)
 
             Text(continent.common.name.uppercased())
                 .font(DexFont.retro(21))

@@ -758,7 +758,7 @@ export const COUNTRIES: CountryGateEntry[] = [
     category: 'COUNTRY_GATE',
     color: '#1f3f99',
     icon: 'flag',
-    tags: ['AOP (Appellation d’Origine Protégée)', 'IGP (Indication Géographique Protégée)', 'VDF (Vin de France)', 'COUNTRY'],
+    tags: ['AOC', 'AOP', 'IGP', 'COUNTRY'],
     details: {
       origin: 'France',
       classification: 'COUNTRY',
@@ -788,11 +788,11 @@ export const COUNTRIES: CountryGateEntry[] = [
     category: 'COUNTRY_GATE',
     color: '#7f1d1d',
     icon: 'flag',
-    tags: ['DO', 'DOCa', 'COUNTRY'],
+    tags: ['DOCa', 'DOQ', 'DO', 'Pago', 'COUNTRY'],
     details: {
       origin: 'Spain',
       classification: 'COUNTRY',
-      keyRegions: ['Rioja', 'Ribiera del Duero', 'Priorat', 'Rias Baixas', 'Rueda', 'Jerez'],
+      keyRegions: ['Rioja', 'Ribera del Duero', 'Priorat', 'Rias Baixas', 'Rueda', 'Jerez'],
       notableGrapes: ['Tempranillo', 'Grenache', 'Carignan']
     }
   },
@@ -803,11 +803,11 @@ export const COUNTRIES: CountryGateEntry[] = [
     category: 'COUNTRY_GATE',
     color: '#422006',
     icon: 'flag',
-    tags: ['QbA', 'GG', 'COUNTRY'],
+    tags: ['Prädikat', 'QbA', 'VDP', 'COUNTRY'],
     details: {
       origin: 'Germany',
       classification: 'COUNTRY',
-      keyRegions: ['Mosel', 'Rheingau', 'Pfalz', 'Baden'],
+      keyRegions: ['Mosel', 'Rheingau', 'Franconia', 'Rheinhessen'],
       notableGrapes: ['Riesling', 'Spätburgunder', 'Müller-Thurgau']
     }
   },
@@ -822,8 +822,8 @@ export const COUNTRIES: CountryGateEntry[] = [
     details: {
       origin: 'Portugal',
       classification: 'COUNTRY',
-      keyRegions: ['Douro', 'Vinho Verde', 'Alentejo'],
-      notableGrapes: ['Touriga Nacional', 'Vinhão', 'Tinta Pinheira']
+      keyRegions: ['Douro', 'Vinho Verde', 'Alentejo', 'Dão', 'Bairrada', 'Madeira'],
+      notableGrapes: ['Touriga Nacional', 'Touriga Franca', 'Arinto']
     }
   },
   {
@@ -833,7 +833,7 @@ export const COUNTRIES: CountryGateEntry[] = [
     category: 'COUNTRY_GATE',
     color: '#365314',
     icon: 'flag',
-    tags: ['PDO', 'PGI', 'COUNTRY'],
+    tags: ['PDO', 'Puttonyos', 'COUNTRY'],
     details: {
       origin: 'Hungary',
       classification: 'COUNTRY',
@@ -848,11 +848,11 @@ export const COUNTRIES: CountryGateEntry[] = [
     category: 'COUNTRY_GATE',
     color: '#831843',
     icon: 'flag',
-    tags: ['DAC', 'COUNTRY'],
+    tags: ['DAC', 'Prädikat', 'COUNTRY'],
     details: {
       origin: 'Austria',
       classification: 'COUNTRY',
-      keyRegions: ['Wachau', 'Kamptal'],
+      keyRegions: ['Wachau', 'Burgenland', 'Niederösterreich'],
       notableGrapes: ['Grüner Veltliner', 'Riesling', 'Zweigelt']
     }
   },
@@ -867,8 +867,8 @@ export const COUNTRIES: CountryGateEntry[] = [
     details: {
       origin: 'Switzerland',
       classification: 'COUNTRY',
-      keyRegions: ['Valais', 'Vaud'],
-      notableGrapes: ['Chasselas', 'Pinot Noir', 'Gamay']
+      keyRegions: ['Valais'],
+      notableGrapes: ['Pinot Noir', 'Gamay', 'Merlot']
     }
   },
   {
@@ -883,7 +883,7 @@ export const COUNTRIES: CountryGateEntry[] = [
       origin: 'Romania',
       classification: 'COUNTRY',
       keyRegions: ['Dealu Mare'],
-      notableGrapes: ['Feteasca Neagra', 'Feteasca Alba', 'Cabernet Sauvignon']
+      notableGrapes: ['Cabernet Sauvignon', 'Merlot', 'Pinot Noir']
     }
   },
   {
@@ -897,7 +897,7 @@ export const COUNTRIES: CountryGateEntry[] = [
     details: {
       origin: 'Greece',
       classification: 'COUNTRY',
-      keyRegions: ['Santorini'],
+      keyRegions: ['Santorini', 'Nemea', 'Naoussa', 'Peloponnese'],
       notableGrapes: ['Assyrtiko', 'Agiorgitiko', 'Moschofilero']
     }
   },
@@ -942,7 +942,7 @@ export const COUNTRIES: CountryGateEntry[] = [
     details: {
       origin: 'Canada',
       classification: 'COUNTRY',
-      keyRegions: ['Niagara', 'Okanagan'],
+      keyRegions: ['Niagara Peninsula', 'Okanagan Valley'],
       notableGrapes: ['Vidal Blanc', 'Riesling', 'Chardonnay']
     }
   },
@@ -953,12 +953,12 @@ export const COUNTRIES: CountryGateEntry[] = [
     category: 'COUNTRY_GATE',
     color: '#0ea5e9',
     icon: 'flag',
-    tags: ['DOC', 'COUNTRY'],
+    tags: ['DOC', 'IG', 'COUNTRY'],
     details: {
       origin: 'Argentina',
       classification: 'COUNTRY',
-      keyRegions: ['Mendoza'],
-      notableGrapes: ['Malbec', 'Cabernet Sauvignon', 'Bonarda']
+      keyRegions: ['Mendoza', 'Salta'],
+      notableGrapes: ['Malbec', 'Cabernet Sauvignon', 'Torrontés']
     }
   },
   {
@@ -983,7 +983,7 @@ export const COUNTRIES: CountryGateEntry[] = [
     category: 'COUNTRY_GATE',
     color: '#312e81',
     icon: 'flag',
-    tags: ['DO', 'COUNTRY'],
+    tags: ['IG', 'VCP', 'COUNTRY'],
     details: {
       origin: 'Uruguay',
       classification: 'COUNTRY',
@@ -1088,12 +1088,42 @@ export const COUNTRIES: CountryGateEntry[] = [
     category: 'COUNTRY_GATE',
     color: '#ea580c',
     icon: 'flag',
-    tags: ['AOC', 'COUNTRY'],
+    tags: ['AOG', 'COUNTRY'],
     details: {
       origin: 'Morocco',
       classification: 'COUNTRY',
       keyRegions: ['Guerrouane'],
       notableGrapes: ['Syrah', 'Cabernet Sauvignon', 'Chardonnay']
+    }
+  },
+  {
+    id: 'C023',
+    name: 'Croatia',
+    description: 'Croatia is where Zinfandel comes from: the grape California made famous was traced in 2001 to Tribidrag, an old Dalmatian variety still growing on karst terraces above the Adriatic. Plavac Mali, its offspring, does the heavy, sun-dark reds of the coast, while inland Slavonia grows crisp Graševina whites. The ZOI system is Croatia’s implementation of the EU’s PDO.',
+    category: 'COUNTRY_GATE',
+    color: '#1e3a8a',
+    icon: 'flag',
+    tags: ['PDO', 'ZOI', 'COUNTRY'],
+    details: {
+      origin: 'Croatia',
+      classification: 'COUNTRY',
+      keyRegions: ['Dalmatia'],
+      notableGrapes: ['Zinfandel', 'Grenache', 'Syrah']
+    }
+  },
+  {
+    id: 'C024',
+    name: 'Mexico',
+    description: 'Mexico is the oldest wine country in the Americas — Casa Madero, founded in 1597, still operates — yet its modern chapter is barely thirty years old. Valle de Guadalupe in Baja California is the engine: Pacific fog over granite soils, Nebbiolo and Tempranillo alongside inventive blends, and a wine route that has become the country’s Napa. Producers work under GI-style geographic indications rather than a strict appellation law.',
+    category: 'COUNTRY_GATE',
+    color: '#166534',
+    icon: 'flag',
+    tags: ['GI', 'COUNTRY'],
+    details: {
+      origin: 'Mexico',
+      classification: 'COUNTRY',
+      keyRegions: ['Valle de Guadalupe'],
+      notableGrapes: ['Nebbiolo', 'Tempranillo', 'Cabernet Sauvignon']
     }
   }
 ];

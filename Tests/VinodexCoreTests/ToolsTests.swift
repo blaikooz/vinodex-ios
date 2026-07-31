@@ -135,10 +135,18 @@ struct ChipFilterTests {
 struct TastingQuizTests {
     private let db = WineDatabase.shared
 
-    @Test("a long run of seeds always produces a question")
+    /// Every slot of every session across a spread of seeds, negatives
+    /// included — a session that goes blank at question seven is a broken run,
+    /// not a degraded one.
+    @Test("every question of every session exists")
     func alwaysProducesAQuestion() {
-        for seed in 0..<200 {
-            #expect(TastingQuiz.question(seed: seed, in: db) != nil, "seed \(seed) produced nothing")
+        for sessionSeed in stride(from: -45, to: 255, by: 10) {
+            for number in 0..<QuizSession.length {
+                #expect(
+                    TastingQuiz.question(number: number, sessionSeed: sessionSeed, in: db) != nil,
+                    "seed \(sessionSeed) question \(number) produced nothing"
+                )
+            }
         }
     }
 
@@ -146,96 +154,389 @@ struct TastingQuizTests {
     /// candidates, the answer among them, and every candidate a real entry.
     @Test("every question is well formed")
     func questionsAreWellFormed() {
-        for seed in 0..<200 {
-            guard let q = TastingQuiz.question(seed: seed, in: db) else { continue }
-            #expect(q.optionIDs.count == TastingQuiz.optionCount, "seed \(seed)")
-            #expect(Set(q.optionIDs).count == q.optionIDs.count, "seed \(seed) repeats an option")
-            #expect(q.optionIDs.contains(q.answerID), "seed \(seed) omits its own answer")
-            #expect(!q.prompt.isEmpty)
-            for id in q.optionIDs {
-                #expect(db.entry(id: id) != nil, "seed \(seed) names a missing entry \(id)")
-            }
-        }
-    }
-
-    /// The failure that would make the quiz worthless: a distractor that is also
-    /// a correct answer. Checked against the same field the prompt was built
-    /// from, per kind.
-    @Test("no distractor is also a right answer")
-    func distractorsAreWrong() {
-        for seed in 0..<200 {
-            guard let q = TastingQuiz.question(seed: seed, in: db),
-                  case .grape(let answer)? = db.entry(id: q.answerID) else { continue }
-
-            for id in q.optionIDs where id != q.answerID {
-                guard case .grape(let other)? = db.entry(id: id) else { continue }
-                switch q.kind {
-                case .color:
-                    #expect(other.grapeType != answer.grapeType, "seed \(seed): two \(answer.grapeType) grapes")
-                case .body:
-                    #expect(
-                        TextNormalize.label(other.grapeBodyClass) != TextNormalize.label(answer.grapeBodyClass),
-                        "seed \(seed): two \(answer.grapeBodyClass) grapes"
-                    )
-                case .origin:
-                    #expect(
-                        TextNormalize.label(other.grapeCountryOfOrigin)
-                            != TextNormalize.label(answer.grapeCountryOfOrigin),
-                        "seed \(seed): two grapes from \(answer.grapeCountryOfOrigin)"
-                    )
-                case .region:
-                    // The region's grape list is not reachable from the options
-                    // alone; well-formedness above covers the rest.
-                    break
+        for sessionSeed in stride(from: 0, to: 200, by: 10) {
+            for number in 0..<QuizSession.length {
+                guard let q = TastingQuiz.question(number: number, sessionSeed: sessionSeed, in: db) else { continue }
+                let tag = "seed \(sessionSeed) q\(number)"
+                #expect(q.optionIDs.count == TastingQuiz.optionCount, "\(tag)")
+                #expect(Set(q.optionIDs).count == q.optionIDs.count, "\(tag) repeats an option")
+                #expect(q.optionIDs.contains(q.answerID), "\(tag) omits its own answer")
+                #expect(!q.prompt.isEmpty)
+                for id in q.optionIDs {
+                    #expect(db.entry(id: id) != nil, "\(tag) names a missing entry \(id)")
                 }
             }
         }
     }
 
-    /// A region question must not offer a second grape the region also names.
-    @Test("region questions have exactly one grape from that region")
-    func regionDistractorsAreNotInTheRegion() {
-        for seed in 0..<300 {
-            guard let q = TastingQuiz.question(kind: .region, seed: seed, in: db) else { continue }
-            // Recover the region from the prompt's own wording.
-            let name = q.prompt
-                .replacingOccurrences(of: "Which of these grapes is notable in ", with: "")
-                .replacingOccurrences(of: "?", with: "")
-            guard let region = db.entries(in: .regions).first(where: {
-                TextNormalize.label($0.name) == TextNormalize.label(name)
-            }) else { continue }
-
-            let named = Set(region.notableGrapes.map { TextNormalize.label($0) })
-            let hits = q.optionIDs.compactMap { db.entry(id: $0) }
-                .filter { named.contains(TextNormalize.label($0.name)) }
-            #expect(hits.count == 1, "seed \(seed): \(hits.count) options are notable in \(region.name)")
+    /// A run is a syllabus, not a single-subject drill: the rotation must give
+    /// every topic at least three of the ten questions.
+    @Test("a session mixes all three kinds")
+    func sessionsAreBalanced() {
+        for sessionSeed in stride(from: -20, to: 120, by: 7) {
+            var counts: [QuizQuestion.Kind: Int] = [:]
+            for number in 0..<QuizSession.length {
+                guard let q = TastingQuiz.question(number: number, sessionSeed: sessionSeed, in: db) else { continue }
+                counts[q.kind, default: 0] += 1
+            }
+            for kind in QuizQuestion.Kind.allCases {
+                #expect(counts[kind, default: 0] >= 3, "seed \(sessionSeed): \(kind.rawValue) appears \(counts[kind, default: 0]) times")
+            }
         }
     }
 
-    @Test("the same seed gives the same question")
+    /// The failure that would make the quiz worthless: a distractor that is
+    /// also a correct answer. Checked against the same fields the prompt was
+    /// built from, per kind.
+    @Test("no distractor is also a right answer")
+    func distractorsAreWrong() {
+        for sessionSeed in stride(from: 0, to: 200, by: 5) {
+            for number in 0..<QuizSession.length {
+                guard let q = TastingQuiz.question(number: number, sessionSeed: sessionSeed, in: db),
+                      let answer = db.entry(id: q.answerID) else { continue }
+                let tag = "seed \(sessionSeed) q\(number)"
+
+                switch q.kind {
+                case .grapes:
+                    guard case .grape(let right) = answer else {
+                        Issue.record("\(tag): grapes answer is not a grape")
+                        continue
+                    }
+                    for id in q.optionIDs where id != q.answerID {
+                        guard case .grape(let other)? = db.entry(id: id) else {
+                            Issue.record("\(tag): grapes distractor \(id) is not a grape")
+                            continue
+                        }
+                        let differs = other.grapeType != right.grapeType
+                            || TextNormalize.label(other.grapeBodyClass) != TextNormalize.label(right.grapeBodyClass)
+                            || TextNormalize.label(other.grapeCountryOfOrigin) != TextNormalize.label(right.grapeCountryOfOrigin)
+                        #expect(differs, "\(tag): \(other.common.name) matches every fact of \(right.common.name)")
+                    }
+                case .region, .style:
+                    // Recover the grape from the prompt's own wording; the
+                    // origin fallback form is checked via `origin` instead.
+                    if let grape = promptedGrape(in: q.prompt) {
+                        let key = TextNormalize.label(grape)
+                        for id in q.optionIDs where id != q.answerID {
+                            guard let other = db.entry(id: id) else { continue }
+                            let carries = other.notableGrapes.contains { TextNormalize.label($0) == key }
+                            #expect(!carries, "\(tag): \(other.name) also names \(grape)")
+                        }
+                    } else if let country = promptedOrigin(in: q.prompt) {
+                        let key = TextNormalize.label(country)
+                        for id in q.optionIDs where id != q.answerID {
+                            guard let other = db.entry(id: id) else { continue }
+                            #expect(
+                                TextNormalize.label(other.origin ?? "") != key,
+                                "\(tag): \(other.name) also originates in \(country)"
+                            )
+                        }
+                    } else {
+                        Issue.record("\(tag): unrecognised prompt \(q.prompt)")
+                    }
+                }
+            }
+        }
+    }
+
+    private func promptedGrape(in prompt: String) -> String? {
+        for prefix in ["Which of these regions is known for ", "Which of these styles features "] where prompt.hasPrefix(prefix) {
+            return String(prompt.dropFirst(prefix.count).dropLast())
+        }
+        return nil
+    }
+
+    private func promptedOrigin(in prompt: String) -> String? {
+        let prefix = "Which of these styles originates in "
+        guard prompt.hasPrefix(prefix) else { return nil }
+        return String(prompt.dropFirst(prefix.count).dropLast())
+    }
+
+    @Test("the same slot of the same session gives the same question")
     func deterministic() {
-        for seed in stride(from: 0, to: 100, by: 7) {
-            #expect(TastingQuiz.question(seed: seed, in: db) == TastingQuiz.question(seed: seed, in: db))
+        for sessionSeed in stride(from: 0, to: 100, by: 7) {
+            for number in 0..<QuizSession.length {
+                #expect(
+                    TastingQuiz.question(number: number, sessionSeed: sessionSeed, in: db)
+                        == TastingQuiz.question(number: number, sessionSeed: sessionSeed, in: db)
+                )
+            }
         }
     }
 
     /// Consecutive questions must differ, or NEXT appears not to work.
-    @Test("consecutive seeds rarely repeat a question")
-    func consecutiveSeedsDiffer() {
+    @Test("consecutive questions differ")
+    func consecutiveQuestionsDiffer() {
         var repeats = 0
-        for seed in 0..<100 {
-            let a = TastingQuiz.question(seed: seed, in: db)
-            let b = TastingQuiz.question(seed: seed + 1, in: db)
-            if a == b { repeats += 1 }
+        for sessionSeed in stride(from: 0, to: 100, by: 11) {
+            for number in 0..<(QuizSession.length - 1) {
+                let a = TastingQuiz.question(number: number, sessionSeed: sessionSeed, in: db)
+                let b = TastingQuiz.question(number: number + 1, sessionSeed: sessionSeed, in: db)
+                if a == b { repeats += 1 }
+            }
         }
-        #expect(repeats == 0, "\(repeats) consecutive seed pairs gave the same question")
+        #expect(repeats == 0, "\(repeats) consecutive question pairs were identical")
     }
 
-    @Test("a negative seed does not crash")
-    func negativeSeeds() {
-        for seed in -50..<0 {
-            #expect(TastingQuiz.question(seed: seed, in: db) != nil, "seed \(seed)")
+    // MARK: Tiers
+
+    /// A filtered pool must degrade to the full one, never to a blank screen —
+    /// every tier fills every slot.
+    @Test("every tier fills every slot of every session")
+    func tieredQuestionsAlwaysExist() {
+        for tier in QuizTier.allCases {
+            for sessionSeed in stride(from: -20, to: 160, by: 12) {
+                for number in 0..<QuizSession.length {
+                    #expect(
+                        TastingQuiz.question(number: number, sessionSeed: sessionSeed, tier: tier, in: db) != nil,
+                        "\(tier.rawValue) seed \(sessionSeed) q\(number) produced nothing"
+                    )
+                }
+            }
         }
+    }
+
+    @Test("tiered questions are deterministic")
+    func tieredQuestionsAreDeterministic() {
+        for tier in QuizTier.allCases {
+            for sessionSeed in stride(from: 0, to: 90, by: 13) {
+                for number in 0..<QuizSession.length {
+                    #expect(
+                        TastingQuiz.question(number: number, sessionSeed: sessionSeed, tier: tier, in: db)
+                            == TastingQuiz.question(number: number, sessionSeed: sessionSeed, tier: tier, in: db)
+                    )
+                }
+            }
+        }
+    }
+
+    /// The ladder's whole promise: novice grape answers are household names,
+    /// sommelier grape answers are the cellar's back corner. The grape pool is
+    /// large enough per rarity band that the tier filter must never need its
+    /// full-pool fallback here.
+    @Test("grape answers respect the tier's rarity band")
+    func grapeAnswersRespectTier() {
+        for sessionSeed in stride(from: 0, to: 200, by: 7) {
+            for number in 0..<QuizSession.length {
+                for (tier, allowed) in [
+                    (QuizTier.novice, Set<RarityLabel>([.noble, .common])),
+                    // GODFORSAKEN joined the sommelier band in 0.6.2 — the
+                    // backest corner of the cellar there is.
+                    (QuizTier.sommelier, Set<RarityLabel>([.uncommon, .rare, .godforsaken])),
+                ] {
+                    guard let q = TastingQuiz.question(number: number, sessionSeed: sessionSeed, tier: tier, in: db),
+                          q.kind == .grapes,
+                          case .grape(let answer)? = db.entry(id: q.answerID) else { continue }
+                    #expect(
+                        allowed.contains(answer.rarity),
+                        "\(tier.rawValue): answer \(answer.common.name) is \(answer.rarity.rawValue)"
+                    )
+                }
+            }
+        }
+    }
+
+    /// Novice region answers are places famous for several grapes, not one.
+    @Test("novice region answers name at least two resolvable grapes")
+    func noviceRegionAnswersAreBroad() {
+        let grapeKeys = Set(
+            db.entries(in: .grapes).map { TextNormalize.label($0.name) }
+        )
+        for sessionSeed in stride(from: 0, to: 200, by: 7) {
+            for number in 0..<QuizSession.length {
+                guard let q = TastingQuiz.question(number: number, sessionSeed: sessionSeed, tier: .novice, in: db),
+                      q.kind == .region,
+                      let answer = db.entry(id: q.answerID) else { continue }
+                let resolvable = answer.notableGrapes.filter { grapeKeys.contains(TextNormalize.label($0)) }
+                #expect(resolvable.count >= 2, "novice region \(answer.name) names \(resolvable.count)")
+            }
+        }
+    }
+}
+
+@Suite("Quiz session")
+struct QuizSessionTests {
+    private let db = WineDatabase.shared
+
+    private func someQuestion(for session: QuizSession) -> QuizQuestion {
+        TastingQuiz.question(number: session.index, sessionSeed: session.seed, in: db)!
+    }
+
+    @Test("a fresh session starts clean")
+    func freshSession() {
+        let session = QuizSession(seed: 3)
+        #expect(session.index == 0)
+        #expect(session.correct == 0)
+        #expect(session.chosenID == nil)
+        #expect(!session.answered)
+        #expect(!session.isComplete)
+        #expect(!session.passed)
+    }
+
+    @Test("choosing scores rights and not wrongs, and the first tap is final")
+    func choosingScores() {
+        var session = QuizSession(seed: 5)
+        let q = someQuestion(for: session)
+
+        let wrong = q.optionIDs.first { $0 != q.answerID }!
+        session.choose(wrong, in: q)
+        #expect(session.correct == 0)
+        #expect(session.chosenID == wrong)
+
+        // A second tap — even on the right answer — is ignored.
+        session.choose(q.answerID, in: q)
+        #expect(session.correct == 0)
+        #expect(session.chosenID == wrong)
+
+        session.advance()
+        let q2 = someQuestion(for: session)
+        session.choose(q2.answerID, in: q2)
+        #expect(session.correct == 1)
+    }
+
+    @Test("advance requires an answer, clears it, and completes at ten")
+    func advanceWalksTheRun() {
+        var session = QuizSession(seed: 9)
+
+        // Advancing an unanswered question is a no-op.
+        session.advance()
+        #expect(session.index == 0)
+
+        for number in 0..<QuizSession.length {
+            #expect(session.index == number)
+            let q = someQuestion(for: session)
+            session.choose(q.answerID, in: q)
+            #expect(session.answered)
+            session.advance()
+            #expect(!session.answered)
+        }
+        #expect(session.isComplete)
+        #expect(session.correct == QuizSession.length)
+        #expect(session.passed)
+
+        // A completed session is inert.
+        let done = session
+        session.advance()
+        #expect(session == done)
+    }
+
+    /// The 80% boundary: eight right passes, seven fails.
+    @Test("the pass mark sits at eight of ten")
+    func passBoundary() {
+        for target in [QuizSession.passMark - 1, QuizSession.passMark] {
+            var session = QuizSession(seed: 12)
+            for number in 0..<QuizSession.length {
+                let q = someQuestion(for: session)
+                let id = number < target ? q.answerID : q.optionIDs.first { $0 != q.answerID }!
+                session.choose(id, in: q)
+                session.advance()
+            }
+            #expect(session.correct == target)
+            #expect(session.passed == (target == QuizSession.passMark), "\(target) right")
+        }
+    }
+
+    @Test("retry starts a different paper from scratch")
+    func retryIsFresh() {
+        var session = QuizSession(seed: 21)
+        let q = someQuestion(for: session)
+        session.choose(q.answerID, in: q)
+        session.advance()
+
+        let next = session.retry()
+        #expect(next.seed != session.seed)
+        #expect(next.index == 0)
+        #expect(next.correct == 0)
+        #expect(next.chosenID == nil)
+    }
+
+    /// The screen persists the whole session as one JSON blob through
+    /// `ScreenStateStore.encode`/`decoded`; this is the round trip it relies on.
+    @Test("a session round-trips through JSON")
+    func codableRoundTrip() throws {
+        var session = QuizSession(seed: 33, tier: .sommelier)
+        let q = someQuestion(for: session)
+        session.choose(q.answerID, in: q)
+
+        let data = try JSONEncoder().encode(session)
+        let back = try JSONDecoder().decode(QuizSession.self, from: data)
+        #expect(back == session)
+        #expect(back.tier == .sommelier)
+    }
+
+    /// The daily challenge's paper: a shorter session with its own pass mark.
+    @Test("a custom-length session completes and grades on its own shape")
+    func customLengthSession() {
+        for target in [3, 4] {
+            var session = QuizSession(seed: 17, length: 5, passMark: 4)
+            for number in 0..<5 {
+                #expect(!session.isComplete, "complete early at q\(number)")
+                let q = TastingQuiz.question(number: session.index, sessionSeed: session.seed, in: db)!
+                let id = number < target ? q.answerID : q.optionIDs.first { $0 != q.answerID }!
+                session.choose(id, in: q)
+                session.advance()
+            }
+            #expect(session.isComplete)
+            #expect(session.correct == target)
+            #expect(session.passed == (target >= 4), "\(target) right on a 5/4 paper")
+        }
+    }
+
+    @Test("retry preserves the paper's shape and tier")
+    func retryKeepsShape() {
+        let session = QuizSession(seed: 9, length: 5, passMark: 4, tier: .novice)
+        let next = session.retry()
+        #expect(next.seed != session.seed)
+        #expect(next.length == 5)
+        #expect(next.passMark == 4)
+        #expect(next.tier == .novice)
+    }
+}
+
+@Suite("Quiz progress")
+struct QuizProgressTests {
+    private func makeDefaults() -> UserDefaults {
+        let name = UUID().uuidString
+        let defaults = UserDefaults(suiteName: name)!
+        defaults.removePersistentDomain(forName: name)
+        return defaults
+    }
+
+    @MainActor
+    @Test("a fresh ladder opens at novice only")
+    func freshLadder() {
+        let progress = QuizProgress(defaults: makeDefaults())
+        #expect(progress.unlocked(.novice))
+        #expect(!progress.unlocked(.enthusiast))
+        #expect(!progress.unlocked(.sommelier))
+    }
+
+    @MainActor
+    @Test("passes climb the ladder one rung at a time")
+    func passesClimb() {
+        let progress = QuizProgress(defaults: makeDefaults())
+        #expect(progress.recordPass(tier: .novice) == .enthusiast)
+        #expect(progress.unlocked(.enthusiast))
+        #expect(!progress.unlocked(.sommelier))
+        // A repeat pass opens nothing new.
+        #expect(progress.recordPass(tier: .novice) == nil)
+        #expect(progress.recordPass(tier: .enthusiast) == .sommelier)
+        #expect(progress.unlocked(.sommelier))
+        // The top of the ladder has nothing above it.
+        #expect(progress.recordPass(tier: .sommelier) == nil)
+    }
+
+    @MainActor
+    @Test("unlocks survive a reload and reset clears them")
+    func persistsAndResets() {
+        let defaults = makeDefaults()
+        QuizProgress(defaults: defaults).recordPass(tier: .novice)
+
+        let reloaded = QuizProgress(defaults: defaults)
+        #expect(reloaded.unlocked(.enthusiast))
+
+        reloaded.reset()
+        #expect(!QuizProgress(defaults: defaults).unlocked(.enthusiast))
     }
 }
 
@@ -258,20 +559,31 @@ struct WalkthroughTests {
         #expect(Set(ids).count == ids.count)
     }
 
-    /// The tour opens and closes on the whole device, which is what makes the
-    /// first and last steps read as "here is the thing" and "off you go".
-    @Test("the tour opens and closes on the whole device")
+    /// v0.5.4's flow: the main screen first — the whole app is up there —
+    /// and the tour closes on the whole device ("off you go"). The orb step
+    /// is deliberately gone: an easter egg you are told about is not one.
+    @Test("the tour opens on the screen and closes on the device")
     func bookends() {
-        #expect(Walkthrough.steps.first?.highlight == .device)
+        #expect(Walkthrough.steps.first?.highlight == .screen)
         #expect(Walkthrough.steps.last?.highlight == .device)
+        #expect(!Walkthrough.steps.contains { $0.highlight == .orb })
     }
 
-    /// Every control the tour claims to explain must actually get a step, or the
+    /// Terse is the contract now (v0.5.4): a step that grows past a couple
+    /// of sentences has stopped being a tour and started being a manual.
+    @Test("step copy stays terse")
+    func copyStaysTerse() {
+        for step in Walkthrough.steps {
+            #expect(step.body.count < 180, "\(step.id) body is \(step.body.count) chars")
+        }
+    }
+
+    /// Every part the tour claims to explain must actually get a step, or the
     /// diagram has a highlight nothing ever triggers.
-    @Test("the controls the diagram can light are all covered")
+    @Test("the parts the diagram can light are all covered")
     func coversTheControls() {
         let used = Set(Walkthrough.steps.map(\.highlight))
-        for required: WalkthroughStep.Highlight in [.screen, .orb, .settings, .back, .home, .saved] {
+        for required: WalkthroughStep.Highlight in [.screen, .search, .entry, .settings, .tools, .back, .home] {
             #expect(used.contains(required), "no step highlights \(required.rawValue)")
         }
     }

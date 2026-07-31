@@ -13,8 +13,10 @@ import VinodexCore
 public struct EntryVisual {
     public enum Well {
         case color(Color)
-        /// Country flag, optionally masked into that country's outline.
-        case flag(country: String, shapeIcon: String?)
+        /// Country flag, filling the well. The 0.5.6 shaped-flag treatment
+        /// (flag masked into an Iconify country outline) is gone — regions
+        /// carry the drawn outline art as their glyph instead (v0.5.7, B3).
+        case flag(country: String)
     }
 
     public var well: Well
@@ -24,6 +26,10 @@ public struct EntryVisual {
     public var ringColor: Color?
     /// Glyph scale relative to the well, matching the web app's per-category sizes.
     public var iconScale: CGFloat = 0.62
+    /// Full-colour pixel-art portrait stem (Resources/FlavorArt). When set and
+    /// the asset resolves, it replaces the tinted glyph — the art carries its
+    /// own colours and outline, so no tint or `PixelOutline` applies.
+    public var artName: String? = nil
 
     public static func resolve(_ entry: WineEntry, db: WineDatabase = .shared) -> EntryVisual {
         switch entry {
@@ -64,7 +70,16 @@ public struct EntryVisual {
             tint = Color(dexHex: primary?.color ?? "#e5e7eb")
         }
 
-        return EntryVisual(well: .color(well), iconID: iconID, iconColor: tint, ringColor: nil)
+        return EntryVisual(
+            well: .color(well),
+            iconID: iconID,
+            iconColor: tint,
+            ringColor: nil,
+            // The bunch sprite (0.5.4): colour, depth, blend and leaf derived
+            // from the grape itself — see `GrapeArt`. The tasting-note glyph
+            // above stays resolved as the fallback.
+            artName: db.icons.grapeArtStem(forKey: GrapeArt.key(for: g))
+        )
     }
 
     /// `getGrapeIconColor`: the style tone palette first, then colour/body
@@ -136,46 +151,29 @@ public struct EntryVisual {
 
     // MARK: - Regions
     //
-    // The well *is* the country flag, ringed in the region's climate colour.
-    // Where a country outline glyph exists the flag is masked into that shape;
-    // otherwise it fills the well.
+    // The well *is* the country flag, ringed in the region's climate colour,
+    // with the country's drawn outline art on top (v0.5.7, B3). Both the
+    // borrowed key-grape glyph and the masked-flag outline treatment are gone
+    // — the outline art says "place" more plainly than either did.
 
     private static func regionVisual(_ r: RegionEntry, db: WineDatabase) -> EntryVisual {
         let origin = r.details.origin.isEmpty ? r.common.name : r.details.origin
-        let shape = db.icons.countryShapeIcons[TextNormalize.label(origin)]
-
-        // Tint follows the region's key grape when it resolves, else its
-        // appellation classification.
-        var tint = Color(
-            dexHex: db.palette.regionClassificationIconColors[r.details.classification] ?? "#e5e7eb"
-        )
-        if let keyGrape = r.details.notableGrapes.first,
-           let grape = db.entry(named: keyGrape, category: .grapes),
-           case .grape(let g) = grape {
-            tint = grapeVisual(g, db: db).iconColor
-        }
 
         let ring = r.climate.flatMap { db.palette.climates[$0.rawValue]?.colors.border }
 
-        // Regions had no glyph at all — a flag well and nothing on it, the only
-        // category rendering bare. The key grape's own glyph is the most
-        // telling thing available (Bordeaux reads as blackcurrant, Burgundy as
-        // cherry) and needs no new assets; climate is the fallback when the
-        // grape does not resolve, which is the other thing a region *is*.
-        var iconID: String?
-        if let keyGrape = r.details.notableGrapes.first,
-           let grape = db.entry(named: keyGrape, category: .grapes) {
-            iconID = db.iconID(for: grape)
-        }
-        if iconID == nil || iconID == db.icons.fallback {
-            iconID = db.icons.climateIcon(r.climate)
-        }
+        // The outline art, via the manifest's shape table. State first
+        // (v0.5.8, D2): a Willamette row should read as Oregon, not as the
+        // whole USA. Climate stays the fallback for a place with no outline.
+        let iconID = r.details.state.flatMap { db.icons.countryShapeIcons[TextNormalize.label($0)] }
+            ?? db.icons.countryShapeIcons[TextNormalize.label(origin)]
+            ?? db.icons.climateIcon(r.climate)
 
         return EntryVisual(
-            well: .flag(country: origin, shapeIcon: shape),
+            well: .flag(country: origin),
             iconID: iconID,
-            iconColor: tint,
-            ringColor: ring.map { Color(dexHex: $0) }
+            iconColor: .white,
+            ringColor: ring.map { Color(dexHex: $0) },
+            iconScale: 0.78
         )
     }
 
@@ -197,12 +195,17 @@ public struct EntryVisual {
             && origin.lowercased() != "various"
             && db.icons.flagSlug(for: origin) != nil
 
+        // The pixel-art portrait (0.5.6), when the set has one — over the
+        // flag or the class-coloured well alike; the glyph stays the fallback.
+        let artName = db.icons.styleArtStem(for: s.common.name)
+
         if hasRealOrigin {
             return EntryVisual(
-                well: .flag(country: origin, shapeIcon: nil),
+                well: .flag(country: origin),
                 iconID: iconID,
                 iconColor: tint,
-                ringColor: .white
+                ringColor: .white,
+                artName: artName
             )
         }
 
@@ -210,7 +213,8 @@ public struct EntryVisual {
             well: .color(Color(dexHex: db.icons.styleClassBg[cls.rawValue] ?? s.common.color)),
             iconID: iconID,
             iconColor: tint,
-            ringColor: .white
+            ringColor: .white,
+            artName: artName
         )
     }
 
@@ -229,7 +233,11 @@ public struct EntryVisual {
             well: .color(Color(dexHex: c.common.color)),
             iconID: db.iconID(for: .continent(c)),
             iconColor: .white,
-            ringColor: nil
+            ringColor: nil,
+            // The drawn globes (v0.5.9, B1): at the default 0.62 the sphere
+            // floated small in its well, because the canvas's transparent
+            // margins are part of the art. Near-full-bleed reads right.
+            iconScale: 0.9
         )
     }
 
@@ -247,7 +255,11 @@ public struct EntryVisual {
             iconID: db.iconID(for: .flavor(f)),
             iconColor: subclassColor,
             ringColor: subclassColor,
-            iconScale: 0.72
+            iconScale: 0.72,
+            // The pixel-art portrait, when the set has one for this flavour.
+            // The glyph above stays resolved as the fallback — and as what
+            // grapes borrow for their primary-note icon.
+            artName: db.icons.flavorArtStem(for: f.common.name)
         )
     }
 }
@@ -273,6 +285,42 @@ public final class EntryVisualCache {
         let resolved = EntryVisual.resolve(entry)
         cache[entry.id] = resolved
         return resolved
+    }
+}
+
+/// Loads the bundled pixel-art portraits — flavour art and grape bunches —
+/// cached, with misses recorded so an absent asset is not re-probed every
+/// render. Mirrors `FlagLoader`. One loader for both sets because the well
+/// only carries one `artName` and the stems do not collide.
+@MainActor
+public final class PixelArtLoader {
+    public static let shared = PixelArtLoader()
+
+    private static let subdirectories = [
+        "Resources/FlavorArt",
+        "Resources/GrapeArt",
+        "Resources/StyleArt",
+        // Taxonomy + outline art (v0.5.7): classes, subclasses, colour, body,
+        // climate, soils, style classes and country outlines, reached through
+        // `art:` icon ids — see `DexIcon`.
+        "Resources/ClassArt",
+    ]
+
+    private var cache: [String: UIImage?] = [:]
+
+    private init() {}
+
+    public func image(_ stem: String) -> UIImage? {
+        if let hit = cache[stem] { return hit }
+        var loaded: UIImage?
+        for subdirectory in Self.subdirectories {
+            if let url = DexResources.url(named: stem, ext: "png", subdirectory: subdirectory) {
+                loaded = UIImage(contentsOfFile: url.path)
+                break
+            }
+        }
+        cache[stem] = loaded
+        return loaded
     }
 }
 
@@ -309,20 +357,53 @@ public struct EntryIconWell: View {
     let entry: WineEntry
     var size: CGFloat
     var cornerRadius: CGFloat
+    /// Whether the glyph/art layer draws at all. The region *hero* passes
+    /// false (v0.5.6): at hero size the flag well is the picture, and a
+    /// glyph stamped on it read as a badge on a flag. Rows keep theirs.
+    var showsGlyph: Bool
+    /// Whether a region's outline glyph carries its red location dot
+    /// (v0.5.9, C1) — the country-scan treatment, at well size. On by
+    /// default since 0.6 (B1): list rows carry it too, scaled to the row
+    /// icon, so a region reads as a *place on its map* everywhere it appears.
+    var showsRegionDot: Bool
 
     private var visual: EntryVisual { EntryVisualCache.shared.visual(for: entry) }
 
-    public init(entry: WineEntry, size: CGFloat = 48, cornerRadius: CGFloat = 8) {
+    public init(
+        entry: WineEntry,
+        size: CGFloat = 48,
+        cornerRadius: CGFloat = 8,
+        showsGlyph: Bool = true,
+        showsRegionDot: Bool = true
+    ) {
         self.entry = entry
         self.size = size
         self.cornerRadius = cornerRadius
+        self.showsGlyph = showsGlyph
+        self.showsRegionDot = showsRegionDot
     }
 
     public var body: some View {
         let v = visual
         ZStack {
             background(v)
-            if let iconID = v.iconID {
+            if !showsGlyph {
+                // The well alone — see `showsGlyph`.
+                EmptyView()
+            } else if showsRegionDot, case .region(let r) = entry,
+                      let iconID = v.iconID, iconID.hasPrefix("art:"),
+                      let art = PixelArtLoader.shared.image(String(iconID.dropFirst(4))) {
+                dottedOutline(art, stem: String(iconID.dropFirst(4)), region: r, visual: v)
+            } else if let stem = v.artName, let art = artImage(stem) {
+                // The portrait ships its own colours and chunky outline, so it
+                // renders as-is — tinting or outlining it would double up.
+                // Slightly larger than the glyph scale: the art's transparent
+                // margins are part of the canvas.
+                Image(uiImage: art)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: size * 0.82, height: size * 0.82)
+            } else if let iconID = v.iconID {
                 DexIcon(iconID: iconID, size: size * v.iconScale, color: v.iconColor)
             }
         }
@@ -334,25 +415,56 @@ public struct EntryIconWell: View {
         )
     }
 
+    /// The portrait for an art stem. Grape bunches route through
+    /// `GrapeSpriteLoader` (0.6.2, A2) so their leaf is re-inked to the
+    /// rarity's colour; everything else loads as drawn.
+    private func artImage(_ stem: String) -> UIImage? {
+        if case .grape(let g) = entry {
+            return GrapeSpriteLoader.shared.image(stem: stem, rarity: g.rarity)
+        }
+        return PixelArtLoader.shared.image(stem)
+    }
+
+    /// The region's outline glyph with its red location dot (v0.5.9, C1) —
+    /// `CountryOutlineMap`'s treatment, at well size. Geographic where the
+    /// region carries a `mapPosition` (0.6.x), snapped to land; the seeded
+    /// walk stays as the fallback. Sized off the well (v0.6, B1) so one rule
+    /// serves both registers: ~14pt on a hero, ~5pt in a list row.
+    private func dottedOutline(
+        _ art: UIImage,
+        stem: String,
+        region r: RegionEntry,
+        visual v: EntryVisual
+    ) -> some View {
+        let box = size * v.iconScale
+        let scale = min(box / art.size.width, box / art.size.height)
+        let fitted = CGSize(width: art.size.width * scale, height: art.size.height * scale)
+        let dotSize = max(5, size * 0.095)
+        return ZStack {
+            Image(uiImage: art)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+            if let dot = OutlineDotPlacer.shared.dots(
+                stem: stem,
+                specs: [.init(name: r.common.name, hint: r.details.mapPosition)]
+            ).first {
+                Circle()
+                    .fill(Dex.red500)
+                    .overlay(Circle().strokeBorder(.black.opacity(0.7), lineWidth: max(1, dotSize * 0.11)))
+                    .frame(width: dotSize, height: dotSize)
+                    .position(x: dot.x * scale, y: dot.y * scale)
+            }
+        }
+        .frame(width: fitted.width, height: fitted.height)
+    }
+
     @ViewBuilder
     private func background(_ v: EntryVisual) -> some View {
         switch v.well {
         case .color(let color):
             color
-        case .flag(let country, let shapeIcon):
-            if let shapeIcon {
-                // Flag masked into the country's outline, over a blurred copy —
-                // the shaped-flag treatment from the web app. One `FlagImage`
-                // reused via `background`, not two: the same flag was previously
-                // constructed twice here.
-                FlagImage(country: country)
-                    .mask(DexIcon(iconID: shapeIcon, size: size * 0.86, color: .white, outlined: false))
-                    .background {
-                        FlagImage(country: country).opacity(0.25).blur(radius: 2)
-                    }
-            } else {
-                FlagImage(country: country)
-            }
+        case .flag(let country):
+            FlagImage(country: country)
         }
     }
 }

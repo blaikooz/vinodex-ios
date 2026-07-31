@@ -64,21 +64,30 @@ struct ContinentTests {
         )
     }
 
-    /// All six continents used to resolve to the same `lucide:globe`, which
-    /// told a reader nothing and made the world search look like six copies of
-    /// one row. They also reach a tile listing now, so they need chips.
-    @Test("each continent has its own glyph and tile chips")
+    /// v0.5.8 (B1): every continent wears its own drawn globe — `art:` ids
+    /// into ClassArt, replacing the three shared Iconify hemispheres v0.5.3
+    /// borrowed from the web app (which left Africa and Europe identical).
+    /// Pinned as exact pairs so a regeneration cannot silently drift the
+    /// mapping.
+    @Test("continents wear their own drawn globes")
     func continentPresentation() throws {
         let db = WineDatabase.shared
-        var glyphs: Set<String> = []
+        let expected: [String: String] = [
+            "CONT_AFRICA": "art:globe-africa",
+            "CONT_EUROPE": "art:globe-europe",
+            "CONT_ASIA": "art:globe-asia",
+            "CONT_OCEANIA": "art:globe-oceania",
+            "CONT_NORTH_AMERICA": "art:globe-north-america",
+            "CONT_SOUTH_AMERICA": "art:globe-south-america",
+        ]
 
         for entry in db.entries(in: .continents) {
             let icon = db.iconID(for: entry)
-            #expect(icon != db.icons.fallback, "\(entry.name) falls back to the placeholder glyph")
-            #expect(glyphs.insert(icon).inserted, "\(entry.name) reuses glyph \(icon)")
+            #expect(icon == expected[entry.id], "\(entry.name) wears \(icon)")
             #expect(!entry.tileChips.isEmpty, "\(entry.name) would render as a bare row in search")
         }
-        #expect(glyphs.count == 6)
+        // Six continents, six different faces — no globe is shared any more.
+        #expect(Set(expected.values).count == 6)
     }
 
     @Test("hasRegions is true for a country with regions in the selection")

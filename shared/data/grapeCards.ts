@@ -7,6 +7,7 @@ const toRarityTier = (old?: string): RarityTier => {
     case 'UNCOMMON': return 'uncommon';
     case 'RARE': return 'rare';
     case 'NOBLE': return 'noble';
+    case 'GODFORSAKEN': return 'godforsaken';
     default: return 'uncommon';
   }
 };

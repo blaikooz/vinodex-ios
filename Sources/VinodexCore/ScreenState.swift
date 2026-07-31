@@ -175,7 +175,12 @@ public final class ScreenStateStore {
     public static let globe = "globe"
     public static let chipFilter = "chipFilter"
     public static let wsetQuiz = "wsetQuiz"
+    public static let dailyChallenge = "dailyChallenge"
     /// The settings panels are one screen per section, so they key like the
     /// countries do rather than sharing a scroll position between DATA and DEV.
     public static func settings(_ section: String) -> String { "settings:" + section }
+    /// The user panel's shelves each keep their own scroll position, so
+    /// switching from SAVED to TRIED and back does not land you at a row id
+    /// the other shelf cannot resolve.
+    public static func shelf(_ name: String) -> String { "bookmarks:" + name }
 }

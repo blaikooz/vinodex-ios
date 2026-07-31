@@ -27,11 +27,16 @@ public enum EntryCategory: String, Codable, Sendable, CaseIterable {
     }
 }
 
+/// The rarity ladder, lowest to highest — `allCases` order IS the ranking,
+/// so anything sorting or filtering by tier reads it from here.
 public enum RarityLabel: String, Codable, Sendable, CaseIterable {
     case common = "COMMON"
     case uncommon = "UNCOMMON"
     case rare = "RARE"
     case noble = "NOBLE"
+    /// Above NOBLE (0.6.2, A1): the ultra-rares you only ever really find in
+    /// one place — Châteauneuf's forgotten varieties, Verduno's Pelaverga.
+    case godforsaken = "GODFORSAKEN"
 }
 
 public enum ClimateClass: String, Codable, Sendable, CaseIterable {
@@ -167,6 +172,22 @@ public struct RegionDetails: Codable, Sendable, Hashable {
     public let appellations: [String]?
     public let soilType: String?
     public let synonyms: [String]?
+    /// Where the region sits on its outline art (0.6.x), as fractions of the
+    /// PNG canvas. Authored geography, replacing the hash walk that put Alto
+    /// Adige in Calabria; renderers snap it to the nearest land pixel, and a
+    /// region without one falls back to the seeded walk.
+    public let mapPosition: MapPosition?
+}
+
+/// A fractional point on an outline PNG — x from the left, y from the top.
+public struct MapPosition: Codable, Sendable, Hashable {
+    public let x: Double
+    public let y: Double
+
+    public init(x: Double, y: Double) {
+        self.x = x
+        self.y = y
+    }
 }
 
 public struct RegionEntry: Codable, Sendable, Hashable, Identifiable {
@@ -338,6 +359,13 @@ public enum WineEntry: Sendable, Hashable, Identifiable {
     public var entryDescription: String { common.description }
     public var color: String { common.color }
     public var tags: [String] { common.tags }
+
+    /// Whether the tried and want-to-try shelves apply: things you can drink
+    /// a glass of. Regions, flavours and continents are reference, not
+    /// tastings — the same grapes-and-styles pair that carries a rarity.
+    public var isTastable: Bool {
+        category == .grapes || category == .styles
+    }
 
     // Convenience accessors mirroring the web app's shared `details` reads.
 

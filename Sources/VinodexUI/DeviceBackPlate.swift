@@ -7,10 +7,19 @@ import VinodexCore
 ///
 /// Engraved nameplate, corner screws and a serial, on a diagonal metal
 /// gradient. The whole plate is tappable to flip back, matching the web app.
+///
+/// Under a translucent skin the metal is swapped for the same smoke plastic as
+/// the front, with the internals showing through — a clear device with a
+/// solid steel back would be two different products. The screws and engraving
+/// stay: fasteners are real parts, and the maker's mark is etched into the
+/// plastic instead of the metal.
 public struct DeviceBackPlate: View {
-    private static let creator = "HORIZON"
+    private static let creator = "HORIZON/GODOT"
 
     private var year: Int { Calendar.current.component(.year, from: Date()) }
+
+    @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
+    private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
 
     public init() {}
 
@@ -18,11 +27,41 @@ public struct DeviceBackPlate: View {
         // Dismissal is a swipe, owned by `DeviceChassis` — the plate is a
         // surface, not a button.
         ZStack {
-            metal
-            striations
-            highlight
+            if skin.isTranslucent {
+                InternalsView()
+                // The skin's own smoke, not a fixed grey — see `backSmoke`.
+                skin.backSmoke
+                highlight
+            } else {
+                metal
+                striations
+                highlight
+            }
             screws
             engraving
+
+            // Factory leavings (v0.5.3): a faded barcode sticker and half a
+            // price tag someone tried to peel. Decoration in the plate's own
+            // fiction — a device that has been on a shelf, not in a renderer.
+            BarcodeSticker()
+                .rotationEffect(.degrees(-4))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                .padding(.leading, 30)
+                .padding(.bottom, 96)
+                .allowsHitTesting(false)
+            RippedPriceTag()
+                .rotationEffect(.degrees(8))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .padding(.trailing, 34)
+                .padding(.top, 104)
+                .allowsHitTesting(false)
+            // Passport stamps (0.6.2, F2 — replacing the 0.5.6 skin badge):
+            // each stamp earned in the Passport inks itself somewhere on the
+            // plate, so the underside accumulates a travel record. Rendered
+            // in the barcode sticker's fiction — worn ink on a handled
+            // surface, not UI chrome.
+            stampField
+                .allowsHitTesting(false)
         }
         // A dark edge all the way round. Without it the plate's pale metal ran
         // straight into the chassis behind it and the underside read as a
@@ -37,6 +76,54 @@ public struct DeviceBackPlate: View {
         }
         .accessibilityLabel("Device back plate. Swipe to return.")
     }
+
+    /// One ink stamp per earned Passport badge, each in its own fixed spot —
+    /// "somewhere else on the back plate" that stays put between launches.
+    /// Recomputed on each flip; `Passport.compute` is cheap and the plate is
+    /// rebuilt on flip anyway.
+    private var stampField: some View {
+        let passport = Passport.compute(
+            tried: BookmarkStore.shared.ids(on: .tried),
+            in: WineDatabase.shared,
+            bestStreak: StreakStore.shared.best,
+            highestTier: QuizProgress.shared.highestUnlocked
+        )
+        return ZStack {
+            ForEach(passport.badges.filter(\.earned)) { badge in
+                let slot = Self.stampSlots[badge.id]
+                    ?? StampSlot(alignment: .center, dx: 0, dy: 0, rotation: 0, ink: "#A63838")
+                PassportStamp(title: badge.title, ink: Color(dexHex: slot.ink))
+                    .rotationEffect(.degrees(slot.rotation))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: slot.alignment)
+                    .padding(.leading, slot.dx > 0 ? slot.dx : 0)
+                    .padding(.trailing, slot.dx < 0 ? -slot.dx : 0)
+                    .padding(.top, slot.dy > 0 ? slot.dy : 0)
+                    .padding(.bottom, slot.dy < 0 ? -slot.dy : 0)
+            }
+        }
+    }
+
+    private struct StampSlot {
+        let alignment: Alignment
+        /// Positive = from leading, negative = from trailing.
+        let dx: CGFloat
+        /// Positive = from top, negative = from bottom.
+        let dy: CGFloat
+        let rotation: Double
+        let ink: String
+    }
+
+    /// Fixed home per badge, scattered clear of the engraving block, the
+    /// screws, the barcode (bottom-leading) and the price tag (top-trailing).
+    /// Stamp-pad inks, one colour per office.
+    private static let stampSlots: [String: StampSlot] = [
+        "firstSip": StampSlot(alignment: .topLeading, dx: 34, dy: 128, rotation: -12, ink: "#A63838"),
+        "tenBottles": StampSlot(alignment: .topTrailing, dx: -38, dy: 196, rotation: 8, ink: "#33518F"),
+        "allNoble": StampSlot(alignment: .bottomTrailing, dx: -34, dy: -168, rotation: -7, ink: "#6E4F8F"),
+        "regionComplete": StampSlot(alignment: .bottomLeading, dx: 40, dy: -224, rotation: 10, ink: "#2F6E4F"),
+        "streakWeek": StampSlot(alignment: .bottomTrailing, dx: -128, dy: -96, rotation: -15, ink: "#8F5A33"),
+        "sommelier": StampSlot(alignment: .topLeading, dx: 128, dy: 168, rotation: 5, ink: "#2F6E6E"),
+    ]
 
     private var metal: some View {
         LinearGradient(
@@ -166,23 +253,10 @@ public struct DeviceBackPlate: View {
             )
             .engraved()
 
-            Text("CREATED BY \(Self.creator)")
-                .font(DexFont.mono(25))
-                .tracking(6)
-                .foregroundStyle(Dex.stone700)
-                .engraved()
-
-            Rectangle()
-                .fill(
-                    LinearGradient(
-                        colors: [.clear, Dex.stone800.opacity(0.4), .clear],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .frame(height: 2)
-                .padding(.horizontal, 40)
-
+            // The serial block keeps its recessed panel — the nameplate's
+            // treatment, one register lighter. The "CREATED BY" line is gone
+            // (v0.5.3): the maker's mark lives in the © line, and the plate
+            // carries factory stickers now rather than more engraving.
             VStack(spacing: 10) {
                 Text("SN: VDX-\(String(year))-001")
                 Text("© \(String(year)) \(Self.creator)")
@@ -190,7 +264,26 @@ public struct DeviceBackPlate: View {
             }
             .font(DexFont.mono(22))
             .tracking(4)
+            .lineLimit(1)
+            .minimumScaleFactor(0.55)
             .foregroundStyle(Dex.stone700)
+            .engraved()
+            .padding(.horizontal, 26)
+            .padding(.vertical, 18)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(
+                        LinearGradient(
+                            colors: [Dex.stone600.opacity(0.22), Dex.stone800.opacity(0.22)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(Dex.stone700.opacity(0.4), lineWidth: 2)
+            )
             .engraved()
 
             swipeHint
@@ -240,6 +333,158 @@ private extension View {
         self
             .shadow(color: .white.opacity(0.55), radius: 0, x: 0, y: 1)
             .shadow(color: .black.opacity(0.45), radius: 0, x: 0, y: -1)
+    }
+}
+
+/// A sun-faded barcode sticker. The bars are a fixed pattern, not data — a
+/// deterministic sequence so the plate looks identical on every launch.
+private struct BarcodeSticker: View {
+    /// Bar widths, in points at the sticker's own scale. Hand-picked to read
+    /// as EAN-ish without pretending to encode anything.
+    private static let bars: [CGFloat] = [
+        2, 1, 3, 1, 1, 2, 1, 4, 1, 2, 2, 1, 1, 3, 2, 1, 2, 1, 1, 4, 1, 2, 1, 3, 1, 1, 2, 2,
+    ]
+
+    var body: some View {
+        VStack(spacing: 3) {
+            Canvas { context, size in
+                var x: CGFloat = 0
+                let unit = size.width / Self.bars.reduce(0, +) / 1.9
+                for (index, width) in Self.bars.enumerated() {
+                    let w = width * unit
+                    if index.isMultiple(of: 2) {
+                        context.fill(
+                            Path(CGRect(x: x, y: 0, width: w, height: size.height)),
+                            with: .color(.black.opacity(0.55))
+                        )
+                    }
+                    x += w * 1.9
+                }
+            }
+            .frame(width: 108, height: 30)
+
+            Text("4 71332 90815")
+                .font(DexFont.mono(13))
+                .tracking(2)
+                .foregroundStyle(.black.opacity(0.55))
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 7)
+        .background(RoundedRectangle(cornerRadius: 3).fill(Color(dexHex: "#E9E6DA")))
+        .overlay(
+            // A worn top edge, as if the lamination has yellowed.
+            RoundedRectangle(cornerRadius: 3)
+                .fill(
+                    LinearGradient(
+                        colors: [Color(dexHex: "#C9C2A8").opacity(0.5), .clear],
+                        startPoint: .top,
+                        endPoint: .center
+                    )
+                )
+        )
+        // The fade is baked into the inks above rather than applied to the
+        // whole view (v0.5.9, A3): a view-level opacity let the internals show
+        // *through* the sticker under the translucent skins, and a sticker is
+        // an opaque thing stuck on top of whatever it is stuck to. The bar and
+        // text inks composite against the opaque label stock, so the sun-faded
+        // look survives while the sticker itself stays solid.
+        .shadow(color: .black.opacity(0.25), radius: 1, y: 1)
+    }
+}
+
+/// A stylised passport stamp (0.6.2, F2): worn stamp-pad ink, a double
+/// border, the badge's name as the issuing office. Like the barcode sticker,
+/// it is decoration that has *happened to* the device — slightly uneven
+/// opacity so the ink reads pressed, not printed.
+private struct PassportStamp: View {
+    let title: String
+    let ink: Color
+
+    var body: some View {
+        VStack(spacing: 3) {
+            Text("· VINODEX PASSPORT ·")
+                .font(DexFont.mono(10))
+                .tracking(1.5)
+            Rectangle()
+                .frame(height: 1.5)
+                .padding(.horizontal, 2)
+                .opacity(0.7)
+            Text(title)
+                .font(DexFont.retro(10))
+                .tracking(1)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+            Text("★ ADMITTED ★")
+                .font(DexFont.mono(9))
+                .tracking(2)
+                .opacity(0.85)
+        }
+        .foregroundStyle(ink)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(ink, lineWidth: 2.5))
+        .overlay(
+            RoundedRectangle(cornerRadius: 5)
+                .strokeBorder(ink.opacity(0.65), lineWidth: 1)
+                .padding(3.5)
+        )
+        // The press: heavier at one corner, thinner at the other, like a
+        // stamp that met the plate at a slight angle.
+        .opacity(0.85)
+        .mask(
+            LinearGradient(
+                colors: [.black, .black.opacity(0.72)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+    }
+}
+
+/// The pink price tag someone tried to peel — the left half survives, the
+/// right edge is torn into a jagged profile.
+private struct RippedPriceTag: View {
+    /// The tear, as fractions of the tag's bounds: straight edges everywhere
+    /// except the right side, which staggers inward and back out.
+    private struct TornEdge: Shape {
+        func path(in rect: CGRect) -> Path {
+            var p = Path()
+            p.move(to: CGPoint(x: rect.minX, y: rect.minY))
+            p.addLine(to: CGPoint(x: rect.maxX * 0.92, y: rect.minY))
+            // The rip.
+            let steps: [(CGFloat, CGFloat)] = [
+                (0.84, 0.18), (0.95, 0.32), (0.78, 0.45),
+                (0.90, 0.60), (0.74, 0.74), (0.86, 0.88), (0.70, 1.0),
+            ]
+            for (fx, fy) in steps {
+                p.addLine(to: CGPoint(x: rect.maxX * fx, y: rect.minY + rect.height * fy))
+            }
+            p.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+            p.closeSubpath()
+            return p
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("SALE")
+                .font(DexFont.retro(10))
+                .tracking(2)
+                .foregroundStyle(Color(dexHex: "#8F2D56"))
+            Text("$4.99")
+                .font(DexFont.mono(24))
+                .foregroundStyle(Color(dexHex: "#6B1D40"))
+        }
+        .padding(.leading, 10)
+        .padding(.trailing, 26)
+        .padding(.vertical, 8)
+        .background(TornEdge().fill(Color(dexHex: "#F5A8C4")))
+        .overlay(
+            // The tear's raw paper edge — lighter, like exposed stock.
+            TornEdge().stroke(Color(dexHex: "#FBD3E2"), lineWidth: 1.5)
+        )
+        .opacity(0.9)
+        .shadow(color: .black.opacity(0.25), radius: 1, y: 1)
     }
 }
 #endif

@@ -18,6 +18,11 @@ public struct DexAlert: View {
     let onConfirm: () -> Void
     let onCancel: () -> Void
 
+    /// Popups follow the LCD's mode like every other screen; dark mode keeps
+    /// the exact colours this view always had.
+    @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
+    private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
+
     public init(
         title: String,
         message: String,
@@ -36,8 +41,9 @@ public struct DexAlert: View {
 
     public var body: some View {
         ZStack {
-            // Scrim doubles as a cancel target.
-            Color.black.opacity(0.72)
+            // Scrim doubles as a cancel target. A 0.72 black over the paper
+            // LCD reads as a power cut, so light mode dims more gently.
+            Color.black.opacity(lcd.isLight ? 0.35 : 0.72)
                 .contentShape(Rectangle())
                 .onTapGesture { onCancel() }
 
@@ -45,13 +51,13 @@ public struct DexAlert: View {
                 Text(title)
                     .font(DexFont.retro(12))
                     .tracking(1)
-                    .foregroundStyle(Dex.green)
+                    .foregroundStyle(lcd.accent)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Text(message)
                     .font(DexFont.mono(18))
-                    .foregroundStyle(Dex.stone400)
+                    .foregroundStyle(lcd.subtext)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -59,27 +65,27 @@ public struct DexAlert: View {
                     if let cancelLabel {
                         button(
                             cancelLabel,
-                            fill: Dex.stone800,
-                            border: Dex.stone600,
-                            text: Dex.stone200,
+                            fill: lcd.isLight ? lcd.page : Dex.stone800,
+                            border: lcd.isLight ? lcd.surfaceEdge : Dex.stone600,
+                            text: lcd.isLight ? lcd.subtext : Dex.stone200,
                             action: onCancel
                         )
                     }
                     button(
                         confirmLabel,
-                        fill: cancelLabel == nil ? Dex.green : Dex.red600,
-                        border: cancelLabel == nil ? Dex.green700 : Dex.red800,
-                        text: cancelLabel == nil ? .black : .white,
+                        fill: cancelLabel == nil ? lcd.accent : Dex.red600,
+                        border: cancelLabel == nil ? (lcd.isLight ? lcd.accent : Dex.green700) : Dex.red800,
+                        text: cancelLabel == nil ? lcd.onAccent : .white,
                         action: onConfirm
                     )
                 }
             }
             .padding(18)
             .frame(maxWidth: 320)
-            .background(RoundedRectangle(cornerRadius: 8).fill(Dex.stone900))
+            .background(RoundedRectangle(cornerRadius: 8).fill(lcd.surface))
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .strokeBorder(Dex.green.opacity(0.6), lineWidth: 2)
+                    .strokeBorder(lcd.accent.opacity(0.6), lineWidth: 2)
             )
             .padding(20)
             // Trap VoiceOver focus in the dialog instead of letting it wander

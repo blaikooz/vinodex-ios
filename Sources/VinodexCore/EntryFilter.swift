@@ -61,6 +61,10 @@ public enum EntryFilter: Sendable, Hashable {
     case region([String])
     case type(String)
     case tasting(String)
+    /// Flavours filed under one subclass (BERRY, SMOKY, …). `tasting` cannot
+    /// express this: it matches notes and classifications, and a flavour's
+    /// subclass is a third taxonomy level neither of those reach.
+    case flavorSubclass(String)
     case soil(String)
     case origin(String)
     case rarity(RarityLabel)
@@ -73,10 +77,13 @@ public enum EntryFilter: Sendable, Hashable {
         case .region: "SECTOR SCAN"
         case .type: "STYLE SCAN"
         case .tasting: "FLAVOR SCAN"
+        case .flavorSubclass: "FLAVOR SCAN"
         case .soil: "GEOLOGY SCAN"
         case .origin: "REGION SCAN"
         case .rarity: "RARITY SCAN"
-        case .system: "SYSTEM SCAN"
+        // The value, not the word SYSTEM (0.6.2, D1): a class filter opened
+        // from the ORIGIN chip must read "ORIGIN SCAN", not "SYSTEM SCAN".
+        case .system(let v): "\(v.uppercased()) SCAN"
         case .climate: "CLIMATE SCAN"
         }
     }
@@ -87,10 +94,11 @@ public enum EntryFilter: Sendable, Hashable {
         case .region: "FILTER: REGIONAL SECTOR"
         case .type(let v): "FILTER: \(v.uppercased())"
         case .tasting(let v): "FILTER: \(v.uppercased())"
+        case .flavorSubclass(let v): "FILTER: \(v.replacingOccurrences(of: "_", with: " ").uppercased())"
         case .soil(let v): "FILTER: \(v.uppercased())"
         case .origin(let v): "FILTER: REGION \(v.uppercased())"
         case .rarity(let v): "FILTER: \(v.rawValue) RARITY"
-        case .system(let v): "FILTER: \(v.uppercased()) SYSTEM"
+        case .system(let v): "FILTER: \(v.uppercased())"
         case .climate(let v): "FILTER: \(v.rawValue.uppercased()) CLIMATE"
         }
     }
@@ -114,6 +122,10 @@ public enum EntryFilter: Sendable, Hashable {
                 // that inference lives in the UI layer, so styles fall through here.
                 return false
             }
+            // DUAL is a style-side colour type — a style spanning both colours
+            // — that no single grape carries, so the chip returned nothing
+            // (0.6.2, D2). Dual-purpose means both colours qualify.
+            if target == "dual" { return true }
             if TextNormalize.label(g.grapeStyle) == target { return true }
             if let wineType = g.wineType, TextNormalize.label(wineType) == target { return true }
             return TextNormalize.label(g.grapeType.rawValue) == target
@@ -125,6 +137,10 @@ public enum EntryFilter: Sendable, Hashable {
                 return TextNormalize.label(classification) == target
             }
             return false
+
+        case .flavorSubclass(let value):
+            guard case .flavor(let f) = entry else { return false }
+            return TextNormalize.label(f.details.subclass) == TextNormalize.label(value)
 
         case .soil(let value):
             guard case .region(let r) = entry, let soil = r.details.soilType else { return false }
@@ -138,6 +154,18 @@ public enum EntryFilter: Sendable, Hashable {
             return entry.rarity == value
 
         case .system(let value):
+            // Styles compare through the same class inference the UI shows
+            // (0.6.x): their raw `classification` strings ("STYLE") predate
+            // the class system, so filtering on them from the CLASS tile
+            // landed on a stale near-everything list instead of the class
+            // the chip actually named.
+            if case .style(let s) = entry {
+                let cls = EntryDisplay.styleClass(
+                    name: s.common.name,
+                    classification: s.details.classification
+                )
+                return TextNormalize.label(cls.rawValue) == TextNormalize.label(value)
+            }
             guard let classification = entry.classification else { return false }
             return TextNormalize.label(classification) == TextNormalize.label(value)
 

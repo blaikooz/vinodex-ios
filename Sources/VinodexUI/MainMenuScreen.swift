@@ -72,13 +72,15 @@ public struct MainMenuScreen: View {
             Haptics.tap()
             action()
         } label: {
-            VStack(spacing: 12) {
+            // Sized up in 0.6.1, then eased back a notch (0.6.2, B1) — 64pt
+            // glyphs crowded the tile edges at the LARGE text scale.
+            VStack(spacing: 13) {
                 Image(systemName: symbol)
-                    .font(.system(size: 46, weight: .semibold))
+                    .font(.system(size: 56, weight: .semibold))
                     .foregroundStyle(.white)
                     .shadow(color: .black.opacity(0.3), radius: 0, x: 1, y: 2)
                 Text(title)
-                    .font(DexFont.retro(16))
+                    .font(DexFont.retro(19))
                     .foregroundStyle(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
@@ -109,24 +111,27 @@ public struct MainMenuScreen: View {
         .buttonStyle(DexPressStyle(scale: 0.97))
     }
 
+    /// v0.5.3: the search button wears the mode's control livery, like the
+    /// chassis buttons around it — in DARK that resolves to the same amber
+    /// it has always been.
     private var searchButton: some View {
         Button {
             Haptics.tap()
             onSelect(.masterSearch)
         } label: {
             ZStack {
-                Circle().fill(Dex.yellow)
-                Circle().strokeBorder(Dex.yellow600, lineWidth: 6)
+                Circle().fill(mode.controlAccent.bright)
+                Circle().strokeBorder(mode.controlAccent.mid, lineWidth: 6)
                 Image(systemName: "magnifyingglass")
-                    .font(.system(size: 36, weight: .bold))
-                    .foregroundStyle(Dex.amber900)
+                    .font(.system(size: 40, weight: .bold))
+                    .foregroundStyle(mode.controlAccent.ink)
             }
-            .frame(width: 92, height: 92)
-            .shadow(color: Dex.yellow.opacity(0.4), radius: 12)
+            .frame(width: 102, height: 102)
+            .shadow(color: mode.controlAccent.bright.opacity(0.4), radius: 12)
         }
         .buttonStyle(DexPressStyle(scale: 0.95))
-        // Tight to the 92pt circle; the extra 4pt was dead space between rows.
-        .frame(height: 92)
+        // Tight to the circle; extra height was dead space between rows.
+        .frame(height: 102)
     }
 }
 #endif

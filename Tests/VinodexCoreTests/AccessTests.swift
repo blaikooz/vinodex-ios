@@ -220,6 +220,30 @@ struct AccessTests {
         #expect(AccessStore(defaults: defaults).granted.isEmpty)
     }
 
+    /// CLEAR SAVED DATA's half of this store: unlike `revokeAll`, the tier
+    /// switch unwinds too and both stored keys vanish outright.
+    @Test("clearAll returns the store to install state")
+    func clearAllResets() {
+        let name = UUID().uuidString
+        let defaults = UserDefaults(suiteName: name)!
+        defaults.removePersistentDomain(forName: name)
+
+        let store = AccessStore(defaults: defaults)
+        store.starterOnly = true
+        store.grant(.flavors)
+        store.grant(.country("Italy"))
+
+        store.clearAll()
+        #expect(store.granted.isEmpty)
+        #expect(store.starterOnly == false)
+        #expect(defaults.object(forKey: AccessStore.storageKey) == nil)
+        #expect(defaults.object(forKey: AccessStore.entitlementsKey) == nil)
+
+        let fresh = AccessStore(defaults: defaults)
+        #expect(fresh.granted.isEmpty)
+        #expect(fresh.starterOnly == false)
+    }
+
     /// The ids are the persisted vocabulary, so they have to round-trip exactly.
     @Test("every entitlement round-trips through its id")
     func entitlementIDsRoundTrip() {

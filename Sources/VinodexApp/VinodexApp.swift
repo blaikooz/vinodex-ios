@@ -21,10 +21,11 @@ struct RootView: View {
     /// Set when a locked entry is tapped; drives the upgrade prompt.
     @State private var lockedAttempt: WineEntry?
     @State private var access = AccessStore.shared
-    /// DexFont reads the scale from defaults, which SwiftUI cannot observe.
-    /// Keying the chassis on it forces a rebuild so a change takes effect
-    /// immediately rather than on the next navigation.
+    /// DexFont and DexMetrics read their scales from defaults, which SwiftUI
+    /// cannot observe. Keying the chassis on both forces a rebuild so a
+    /// change takes effect immediately rather than on the next navigation.
     @AppStorage(TextScale.storageKey) private var scaleRaw = TextScale.small.rawValue
+    @AppStorage(UIScale.storageKey) private var uiScaleRaw = UIScale.small.rawValue
 
     private let db = WineDatabase.shared
 
@@ -59,42 +60,52 @@ struct RootView: View {
     var body: some View {
         DeviceChassis(
             title: currentTitle,
+            marqueeSymbol: currentMarqueeSymbol,
             showsBack: !path.isEmpty,
             onBack: path.isEmpty ? nil : { goBack() },
             onHome: { goHome() },
             onBookmarks: { push(.bookmarks) },
             onSettings: { push(.settings) }
         ) {
-            screen
-                // Content swaps instantly; no push transition.
-                .transaction { $0.animation = nil }
-        }
-        .overlay {
-            if let entry = lockedAttempt {
-                // Offers the bundle the entry actually belongs to rather than
-                // Pro every time — a locked Bordeaux region prompts for the
-                // France bundle. See `Entitlement.offer(for:)`.
-                let offer = Entitlement.offer(for: entry)
-                UpgradePrompt(
-                    entitlement: offer,
-                    onUnlock: {
-                        // Grants for real, then continues to the entry the user
-                        // was trying to open. Stopping at "unlocked!" and making
-                        // them find their way back was the other half of why
-                        // this button felt broken.
-                        access.grant(offer)
-                        lockedAttempt = nil
-                        push(entry.destination)
-                    },
-                    onCancel: { lockedAttempt = nil }
-                )
+            // The prompt lives inside the LCD, like every other popup — an
+            // overlay on the chassis itself would dim the bezel, island and
+            // footer too, which reads as the device losing power.
+            ZStack {
+                screen
+                    // Content swaps instantly; no push transition.
+                    .transaction { $0.animation = nil }
+
+                if let entry = lockedAttempt {
+                    // Offers the bundle the entry actually belongs to rather than
+                    // Pro every time — a locked Bordeaux region prompts for the
+                    // France bundle. See `Entitlement.offer(for:)`.
+                    let offer = Entitlement.offer(for: entry)
+                    UpgradePrompt(
+                        entitlement: offer,
+                        onUnlock: {
+                            // Grants for real, then continues to the entry the user
+                            // was trying to open. Stopping at "unlocked!" and making
+                            // them find their way back was the other half of why
+                            // this button felt broken.
+                            access.grant(offer)
+                            lockedAttempt = nil
+                            push(entry.destination)
+                        },
+                        onCancel: { lockedAttempt = nil }
+                    )
+                }
             }
+            .animation(.easeOut(duration: 0.15), value: lockedAttempt?.id)
         }
-        .animation(.easeOut(duration: 0.15), value: lockedAttempt?.id)
-        .id(scaleRaw)
+        .id(scaleRaw + "|" + uiScaleRaw)
         .preferredColorScheme(.dark)
         .statusBarHidden()
-        .onAppear { ScreenWake.keepAwake(true) }
+        .onAppear {
+            ScreenWake.keepAwake(true)
+            // The power-on chime, once per launch — this view appears exactly
+            // once, so no flag is needed.
+            Sounds.boot()
+        }
         .onDisappear { ScreenWake.keepAwake(false) }
         // The system panel (settings, diagnostics, catalog) is owned by
         // DeviceChassis so it can be confined to the LCD; the app module no
@@ -107,6 +118,17 @@ struct RootView: View {
             return entry.scanTitle
         }
         return route.title
+    }
+
+    /// The glyph between the marquee's repetitions — resolved the same way
+    /// `currentTitle` is, so the pair can never disagree about which page
+    /// they describe. Nil on the main screen: the chassis supplies its own.
+    private var currentMarqueeSymbol: String? {
+        guard let route = path.last else { return nil }
+        if case .detail(let id) = route, let entry = db.entry(id: id) {
+            return entry.scanSymbol
+        }
+        return route.marqueeSymbol
     }
 
     @ViewBuilder
@@ -123,7 +145,12 @@ struct RootView: View {
             ) { open($0) }
 
         case .masterSearch:
-            EncyclopediaListScreen(categories: Set(EntryCategory.allCases)) { open($0) }
+            EncyclopediaListScreen(
+                categories: Set(EntryCategory.allCases),
+                showsCountries: true,
+                onSelect: { open($0) },
+                onSelectCountry: { push(.country(name: $0)) }
+            )
 
         case .detail(let id):
             if let entry = db.entry(id: id) {
@@ -150,13 +177,22 @@ struct RootView: View {
             BookmarksScreen(
                 onSelect: { open($0) },
                 onSelectCountry: { push(.country(name: $0)) },
-                onSelectState: { push(.state(name: $0)) }
+                onSelectState: { push(.state(name: $0)) },
+                onPassport: { push(.passport) }
             )
+
+        case .passport:
+            PassportScreen()
 
         case .globeSearch:
             // Continents and regions between them carry country and state
-            // names, and `matchesSearch` already looks at origin and state.
-            EncyclopediaListScreen(categories: [.continents, .regions]) { open($0) }
+            // names; countries join as rows of their own (v0.5.6).
+            EncyclopediaListScreen(
+                categories: [.continents, .regions],
+                showsCountries: true,
+                onSelect: { open($0) },
+                onSelectCountry: { push(.country(name: $0)) }
+            )
 
         case .country(let name):
             CountryScreen(
@@ -180,7 +216,7 @@ struct RootView: View {
             )
 
         case .settingsSection(let section):
-            SettingsSectionPanel(section: section)
+            SettingsSectionPanel(section: section, onDev: { push(.settingsSection(.dev)) })
 
         case .minigames:
             ToolsScreen(
@@ -188,14 +224,21 @@ struct RootView: View {
                 onScanner: { push(.scanner) },
                 onMoonDial: { push(.moonDial) },
                 onChipFilter: { push(.chipFilter) },
-                onQuiz: { push(.wsetQuiz) }
+                onQuiz: { push(.wsetQuiz) },
+                onDailyChallenge: { push(.dailyChallenge) }
             )
 
         case .chipFilter:
-            ChipFilterScreen { open($0) }
+            ChipFilterScreen(
+                onSelect: { open($0) },
+                onSelectCountry: { push(.country(name: $0)) }
+            )
 
         case .wsetQuiz:
-            TastingQuizScreen { open($0) }
+            TastingQuizScreen(onOpen: { open($0) }, onExit: { goBack() })
+
+        case .dailyChallenge:
+            TastingQuizScreen(mode: .daily, onOpen: { open($0) }, onExit: { goBack() })
 
         case .walkthrough:
             // FINISH goes Home rather than Back: the tour's last step tells you
@@ -230,6 +273,7 @@ struct RootView: View {
     }
 
     private func push(_ route: DexRoute) {
+        Sounds.page()
         var next = path
         next.append(route)
         path = next
@@ -246,6 +290,7 @@ struct RootView: View {
     /// because it is the only place that knows *which* screen you are leaving.
     private func goBack() {
         guard let leaving = path.last else { return }
+        Sounds.page()
         path.removeLast()
         if leaving == .dailyGrape {
             ScreenStateStore.shared.forget(ScreenStateStore.dailyGrape)
@@ -258,6 +303,7 @@ struct RootView: View {
     /// list from the main menu would silently open it pre-filtered by something
     /// you typed several screens ago, and a country would open halfway down.
     private func goHome() {
+        Sounds.page()
         path.removeAll()
         SearchStateStore.shared.clear()
         ScreenStateStore.shared.clear()

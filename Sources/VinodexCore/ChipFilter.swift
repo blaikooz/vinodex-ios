@@ -11,6 +11,10 @@ public enum ChipFacet: String, CaseIterable, Codable, Sendable, Identifiable {
     case body
     case rarity
     case climate
+    /// Countries joined in 0.6.x — the closed-set rule above bent once the
+    /// catalog boost made "which country" the question the tool was most
+    /// often opened to answer. The row is long, but it wraps.
+    case country
 
     public var id: String { rawValue }
 
@@ -22,6 +26,7 @@ public enum ChipFacet: String, CaseIterable, Codable, Sendable, Identifiable {
         case .body: "BODY"
         case .rarity: "RARITY"
         case .climate: "CLIMATE"
+        case .country: "COUNTRY"
         }
     }
 
@@ -35,6 +40,7 @@ public enum ChipFacet: String, CaseIterable, Codable, Sendable, Identifiable {
         case .body: "Grapes only."
         case .rarity: "Grapes and styles carry a rarity."
         case .climate: "Regions only."
+        case .country: "Anything with an origin — flavors drop out."
         }
     }
 }
@@ -155,6 +161,12 @@ public struct ChipFilter: Codable, Sendable, Hashable {
         case .climate:
             guard let climate = entry.climate else { return false }
             return chosen.contains(climate.rawValue)
+
+        case .country:
+            // Normalised like BODY: origins are hand-authored strings.
+            guard let origin = entry.origin, !origin.isEmpty else { return false }
+            let actual = TextNormalize.label(origin)
+            return chosen.contains { TextNormalize.label($0) == actual }
         }
     }
 
@@ -164,12 +176,23 @@ public struct ChipFilter: Codable, Sendable, Hashable {
     ///
     /// Driven off the enums' own `allCases` so a value added to the data model
     /// appears here without anyone remembering to add a chip.
+    /// The category facet's one pseudo-value (0.6.2, B3). Countries are not
+    /// entries — their rows are synthesised by the screen — but they are a
+    /// thing worth filtering to, so the TYPE row offers them alongside the
+    /// real categories. `matches` never sees it: no entry can satisfy it.
+    public static let countriesCategoryValue = "COUNTRIES"
+
+    /// Whether the countries pseudo-category is lit.
+    public var includesCountries: Bool {
+        selected[ChipFacet.category.rawValue]?.contains(Self.countriesCategoryValue) ?? false
+    }
+
     public static func options(for facet: ChipFacet) -> [ChipOption] {
         switch facet {
         case .category:
             return EntryCategory.allCases.map {
                 ChipOption(facet: facet, value: $0.rawValue, label: $0.rawValue)
-            }
+            } + [ChipOption(facet: facet, value: countriesCategoryValue, label: countriesCategoryValue)]
         case .color:
             return [GrapeColor.red, .white].map {
                 ChipOption(facet: facet, value: $0.rawValue, label: $0.rawValue.uppercased())
@@ -185,6 +208,11 @@ public struct ChipFilter: Codable, Sendable, Hashable {
         case .climate:
             return ClimateClass.allCases.map {
                 ChipOption(facet: facet, value: $0.rawValue, label: $0.rawValue.uppercased())
+            }
+        case .country:
+            // The countries that actually have pages — same list search uses.
+            return WineDatabase.shared.searchableCountries.map {
+                ChipOption(facet: facet, value: $0, label: $0.uppercased())
             }
         }
     }
