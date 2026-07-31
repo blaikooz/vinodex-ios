@@ -1033,7 +1033,10 @@ new items.**
   `fb5dcf2` pin and should be read as history.
 - **Bookkeeping fixed:** the workstream table had lost **H6** entirely (its
   UI & UX row counted 14 but listed 13), and the v0.6.2 entry below links a
-  `../PLAN.md` that does not exist anywhere on disk.
+  `../PLAN.md` that could not be found from inside the repo. *(Correction,
+  0.6.5 batch 4: it did exist — at `HGapps\PLAN.md`, one level above the repo
+  and therefore outside any checkout. It has since been moved here as
+  [PLAN.md](PLAN.md) and is a real sibling of this file.)*
 - **Corrections to item text, for whoever takes them:** **M30**'s "each bundle
   8+ types" is wrong for EntryDetailScreen (4 types, one ~920-line View) and the
   two files it names are no longer the largest — `DexTheme.swift` (1512) and
@@ -1058,10 +1061,12 @@ above). Context that touches open items:
 - New surfaces worth an a11y/perf glance when their workstreams run:
   `GrapeSpriteLoader` (per-sprite pixel pass, cached), `OutlineDotPlacer`
   hints, the chip-filter countries rows, and the scanner taxonomy tiles.
-- ~~The prioritized next-sittings pick from this set now lives in
-  `../PLAN.md`.~~ **Dead link as of 2026-07-31** — no `PLAN.md` exists anywhere
-  under `/opt/projects`. Use the workstream and "worse than at the audit" tables
-  under Status instead.
+- The prioritized next-sittings pick from this set lives in [PLAN.md](PLAN.md).
+  *(Was marked "dead link as of 2026-07-31 — no PLAN.md exists anywhere under
+  `/opt/projects`". That verdict was wrong: the file lived at `HGapps\PLAN.md`,
+  one level above the repo, so it was outside the checkout the audit could
+  see rather than absent. Moved into this folder in 0.6.5 batch 4, at the
+  user's request, precisely so both collaborators can reach it.)*
 
 **2026-07-29 — Swift batches on `audit-fixes`.** Landed the low-risk Swift work
 (reviewed for compile-safety by a Swift-savvy pass, since the working environment
