@@ -627,6 +627,13 @@ const FLAG_PATHS: Record<string, string> = {
   Georgia: 'Europe/georgia_country/georgia_country_flag.png',
   Switzerland: 'Europe/switzerland/switzerland.png',
   Romania: 'Europe/romania/romania.png',
+  // The coming-soon gates (0.6.4, batch 2): flags ship because the continent
+  // rosters list them; no COUNTRY_SHAPE_ICONS on purpose — no outline art
+  // exists and the shape map degrades gracefully without an entry.
+  'United Kingdom': 'Europe/united_kingdom/united_kingdom.png',
+  Slovenia: 'Europe/slovenia/slovenia.png',
+  Bulgaria: 'Europe/bulgaria/bulgaria.png',
+  Lebanon: 'Asia/lebanon/lebanon.png',
   'South Africa': 'Africa/south_africa/south_africa.png',
   Morocco: 'Africa/morocco/morocco.png',
   USA: 'North America/united_states/united_states.png',

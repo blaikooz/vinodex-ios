@@ -21,6 +21,14 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const entries = JSON.parse(
   readFileSync(resolve(HERE, '..', 'Sources', 'VinodexCore', 'Resources', 'entries.json'), 'utf8'),
 );
+// The authored country blurbs. A continent may list a country with *zero*
+// regions on purpose — the coming-soon gates (0.6.4, batch 2) — and the mark
+// of "planned, not typo'd" is an authored blurb in countries.json: a
+// misspelled roster name has no blurb, a deliberate gate always does. The
+// continent check below accepts either a region origin or a blurb.
+const countryBlurbs = JSON.parse(
+  readFileSync(resolve(HERE, '..', 'Sources', 'VinodexCore', 'Resources', 'countries.json'), 'utf8'),
+);
 
 const norm = (s) =>
   String(s ?? '')
@@ -56,6 +64,9 @@ const regionKeys = index(regions);
 const styleKeys = index(styles);
 const flavorKeys = index(flavors);
 const regionOrigins = new Set(regions.map((r) => norm(r.details?.origin)));
+// See the countries.json load above: a blurbed, region-less country is a
+// deliberate coming-soon gate, not a dangling reference.
+const blurbedCountries = new Set(Object.keys(countryBlurbs).map(norm));
 
 const missing = { grapes: new Map(), regions: new Map(), styles: new Map(), countries: new Map(), flavors: new Map() };
 const record = (bucket, name, from) => {
@@ -97,8 +108,8 @@ for (const st of styles) {
 
 for (const c of continents) {
   for (const country of c.details?.keyRegions ?? []) {
-    if (!regionOrigins.has(norm(country))) {
-      record(missing.countries, country, `continent ${c.name} (no region originates there)`);
+    if (!regionOrigins.has(norm(country)) && !blurbedCountries.has(norm(country))) {
+      record(missing.countries, country, `continent ${c.name} (no region originates there, no authored blurb)`);
     }
   }
 }

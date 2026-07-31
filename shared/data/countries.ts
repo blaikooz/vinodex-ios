@@ -1125,5 +1125,69 @@ export const COUNTRIES: CountryGateEntry[] = [
       keyRegions: ['Valle de Guadalupe'],
       notableGrapes: ['Nebbiolo', 'Tempranillo', 'Cabernet Sauvignon']
     }
+  },
+  // Batch 2 (0.6.4): coming-soon country gates. Deliberately region-less —
+  // `keyRegions` stays empty until real region entries land, which is what
+  // the continent screen's COMING SOON treatment keys off. Teaser blurbs
+  // only; notableGrapes name grapes that already exist in data.
+  {
+    id: 'C025',
+    name: 'United Kingdom',
+    description: 'England\'s chalk downs share their geology with Champagne, and a warming climate has turned that from trivia into a sparkling-wine industry the French now invest in. Sussex and Kent lead with traditional-method fizz from Chardonnay, Pinot Noir and Pinot Meunier. Regions coming soon.',
+    category: 'COUNTRY_GATE',
+    color: '#1e3a8a',
+    icon: 'flag',
+    tags: ['PDO', 'COUNTRY'],
+    details: {
+      origin: 'United Kingdom',
+      classification: 'COUNTRY',
+      keyRegions: [],
+      notableGrapes: ['Chardonnay', 'Pinot Noir', 'Pinot Meunier']
+    }
+  },
+  {
+    id: 'C026',
+    name: 'Slovenia',
+    description: 'Slovenia sits where the Alps, the Adriatic and the Pannonian plain meet, and its wines have been quietly excellent for centuries — the world\'s oldest living grapevine grows in Maribor. Orange wine as a modern movement largely started here, on the Italian border. Regions coming soon.',
+    category: 'COUNTRY_GATE',
+    color: '#0e7490',
+    icon: 'flag',
+    tags: ['PDO', 'COUNTRY'],
+    details: {
+      origin: 'Slovenia',
+      classification: 'COUNTRY',
+      keyRegions: [],
+      notableGrapes: ['Sauvignon Blanc', 'Merlot']
+    }
+  },
+  {
+    id: 'C027',
+    name: 'Bulgaria',
+    description: 'Bulgaria was once the world\'s second-largest wine exporter, filling 1980s shelves with affordable Cabernet. The old bulk machine is gone; what remains are warm valleys, native reds like Mavrud and Melnik, and a new generation bottling them seriously. Regions coming soon.',
+    category: 'COUNTRY_GATE',
+    color: '#166534',
+    icon: 'flag',
+    tags: ['PDO', 'COUNTRY'],
+    details: {
+      origin: 'Bulgaria',
+      classification: 'COUNTRY',
+      keyRegions: [],
+      notableGrapes: ['Cabernet Sauvignon', 'Merlot']
+    }
+  },
+  {
+    id: 'C028',
+    name: 'Lebanon',
+    description: 'Lebanese wine has survived every century thrown at it: the Bekaa Valley has grown vines for five thousand years, and Chateau Musar\'s cedar-scented reds became a cult through a civil war. High-altitude Cinsault and Cabernet under relentless mountain sun. Regions coming soon.',
+    category: 'COUNTRY_GATE',
+    color: '#7f1d1d',
+    icon: 'flag',
+    tags: ['COUNTRY'],
+    details: {
+      origin: 'Lebanon',
+      classification: 'COUNTRY',
+      keyRegions: [],
+      notableGrapes: ['Cinsault', 'Cabernet Sauvignon']
+    }
   }
 ];

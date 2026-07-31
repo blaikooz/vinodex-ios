@@ -747,6 +747,7 @@ public struct DatabaseStats: Sendable, Hashable {
             186,  // the first full import
             281,  // 0.5.8
             342,  // 0.6.1
+            375,  // 0.6.2 — outgoing total, appended by 0.6.4 batch 2
             total,
         ]
     }

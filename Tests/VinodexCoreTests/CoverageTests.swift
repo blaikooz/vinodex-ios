@@ -27,8 +27,9 @@ struct CoverageTests {
         // intend is exactly what this is here to catch.
         // 0.6 catalog boost (A1): +21 grapes, +38 regions, +3 styles — every
         // cross-reference now resolves; see scripts/find-missing-refs.mjs.
-        #expect(db.entries(in: .grapes).count == 128)
-        #expect(db.entries(in: .regions).count == 104)
+        // 0.6.4 batch 2: +18 grapes, +12 regions (the FR/IT/ES expansion).
+        #expect(db.entries(in: .grapes).count == 146)
+        #expect(db.entries(in: .regions).count == 116)
         // 31 since 0.6.x: Medium-Full Red removed, its grapes now Full-Body.
         #expect(db.entries(in: .styles).count == 31)
         #expect(db.entries(in: .continents).count == 6)
@@ -59,8 +60,12 @@ struct CoverageTests {
         // 343 since 0.6: the catalog boost, with flavours unchanged at 106 —
         // every new grape reuses existing tasting notes on purpose;
         // 342 since 0.6.1: Medium-Full Red folded into Full-Body Red;
-        // 375 since 0.6.2: the rare-grape push (+27 grapes, +6 regions).
-        #expect(stats.total == 375)
+        // 375 since 0.6.2: the rare-grape push (+27 grapes, +6 regions);
+        // 405 since 0.6.4 batch 2: the FR/IT/ES expansion (+18 grapes,
+        // +12 regions), flavours again unchanged at 106 by note reuse.
+        #expect(stats.total == 405)
+        // Still 25: every new region originates in France, Italy or Spain, and
+        // the coming-soon gates deliberately have no regions to count.
         #expect(stats.countries == 25)
         #expect(stats.categoryLines.count == 6)
     }

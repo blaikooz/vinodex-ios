@@ -69,9 +69,13 @@ public struct ContinentScreen: View {
         .background(lcd.page)
         .overlay {
             if let comingSoon {
+                // The gate's authored teaser when one exists (0.6.4, batch 2 —
+                // the coming-soon countries ship blurbs), else the generic
+                // promise the 0.6.2 rows made.
                 DexAlert(
                     title: "COMING SOON",
-                    message: "\(comingSoon.uppercased()) has no regions in the database yet. It is on the list.",
+                    message: db.countryInfo(comingSoon)?.description
+                        ?? "\(comingSoon.uppercased()) has no regions in the database yet. It is on the list.",
                     confirmLabel: "OK",
                     cancelLabel: nil,
                     onConfirm: { self.comingSoon = nil },
@@ -205,24 +209,34 @@ public struct ContinentScreen: View {
                 Spacer(minLength: 4)
 
                 // Three distinct states, which used to be two. A country with
-                // no regions in the data (Morocco, say) is *unwritten*, not
-                // locked and not broken — it now says so with a question mark
-                // rather than just being a dead grey row indistinguishable
-                // from something the paywall is holding back.
+                // no regions in the data is *unwritten*, not locked and not
+                // broken — it says so in words now (0.6.4, batch 2: the
+                // coming-soon gates made this a designed state rather than a
+                // gap). The 0.6.2 question mark read as "something is wrong";
+                // COMING SOON reads as a promise.
                 if hasRegions {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(Dex.stone600)
                 } else {
-                    Image(systemName: "questionmark")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(Dex.stone600)
-                        .accessibilityLabel("No entries yet")
+                    HStack(spacing: 5) {
+                        Image(systemName: "hourglass")
+                            .font(.system(size: 10, weight: .bold))
+                        Text("COMING SOON")
+                            .font(DexFont.retro(8))
+                            .tracking(1)
+                    }
+                    .foregroundStyle(lcd.disabledText)
+                    .accessibilityLabel("Coming soon — no entries yet")
                 }
             }
             .padding(7)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(lcd.surface)
+            // The whole row dims, not just its label — flag included, so the
+            // gate reads as one muted object rather than a live flag on a
+            // dead row.
+            .opacity(hasRegions ? 1 : 0.6)
             .overlay(
                 RoundedRectangle(cornerRadius: 4)
                     .strokeBorder(hasRegions ? Dex.stone700 : Dex.stone800, lineWidth: 1)

@@ -22,7 +22,7 @@ const CONTINENTS_BASE: ContinentEntry[] = [
     icon: "globe",
     tags: ["Continent"],
     details: {
-      keyRegions: ["France", "Italy", "Spain", "Germany", "Portugal", "Hungary", "Austria", "Greece", "Georgia", "Switzerland", "Romania", "Croatia"]
+      keyRegions: ["France", "Italy", "Spain", "Germany", "Portugal", "Hungary", "Austria", "Greece", "Georgia", "Switzerland", "Romania", "Croatia", "United Kingdom", "Slovenia", "Bulgaria"]
     }
   },
   {
@@ -34,7 +34,7 @@ const CONTINENTS_BASE: ContinentEntry[] = [
     icon: "globe",
     tags: ["Continent"],
     details: {
-      keyRegions: ["China", "Japan", "India"]
+      keyRegions: ["China", "Japan", "India", "Lebanon"]
     }
   },
   {

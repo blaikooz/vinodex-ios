@@ -33,6 +33,17 @@ export const getCountryChipColors = (country?: string): ChipColorStyle => {
     georgia:       { bg: '#422006', border: '#f59e0b', text: '#fef3c7' },
     uruguay:       { bg: '#312e81', border: '#8b5cf6', text: '#ede9fe' },
     croatia:       { bg: '#1e293b', border: '#3b82f6', text: '#e0f2fe' },
+    // Batch 2 (0.6.4): the four countries that had been falling through to
+    // the grey fallback despite appearing in continent rosters...
+    mexico:        { bg: '#14532d', border: '#22c55e', text: '#dcfce7' },
+    morocco:       { bg: '#7f1d1d', border: '#16a34a', text: '#fee2e2' },
+    romania:       { bg: '#1e3a8a', border: '#facc15', text: '#fef9c3' },
+    switzerland:   { bg: '#7f1d1d', border: '#f8fafc', text: '#fee2e2' },
+    // ...and the coming-soon gates, so their rows chip in colour from day one.
+    'united kingdom': { bg: '#1e293b', border: '#dc2626', text: '#dbeafe' },
+    slovenia:      { bg: '#0f172a', border: '#0ea5e9', text: '#e0f2fe' },
+    bulgaria:      { bg: '#14532d', border: '#dc2626', text: '#dcfce7' },
+    lebanon:       { bg: '#450a0a', border: '#16a34a', text: '#fecdd3' },
   };
   const key = (country || '').toLowerCase();
   return map[key] || { bg: '#0b0f19', border: '#374151', text: '#e5e7eb' };
