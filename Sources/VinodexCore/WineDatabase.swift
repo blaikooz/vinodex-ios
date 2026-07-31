@@ -280,8 +280,8 @@ public final class WineDatabase: Sendable {
     /// rather than swallowed so a schema drift is visible instead of silent.
     public let decodeErrors: [String]
 
-    /// id -> entry, so `entry(id:)` is a hash lookup rather than a scan of all
-    /// 284 entries. Every navigation used to pay that scan.
+    /// id -> entry, so `entry(id:)` is a hash lookup rather than a scan of the
+    /// whole entry array. Every navigation used to pay that scan.
     private let byID: [String: WineEntry]
 
     /// (category, normalised name-or-synonym) -> entry.
@@ -372,13 +372,106 @@ public final class WineDatabase: Sendable {
         freeIDs.isEmpty || freeIDs.contains(id)
     }
 
+    /// The generated-data schema generation this build decodes (0.6.3, item 1 —
+    /// AUDIT M3's Swift half).
+    ///
+    /// Bumped in lockstep with `SCHEMA_VERSION` in `scripts/generate-ios-data.ts`
+    /// whenever the emitted shape changes incompatibly. Asserted at load: a
+    /// mismatch — or a missing stamp, which means the bundled data predates the
+    /// generator that this code expects — lands in `decodeErrors` and therefore
+    /// in the DEV panel, the launch alert, and `CoverageTests`, instead of
+    /// surfacing as an unexplained whole-app decode failure.
+    public static let expectedSchemaVersion = 1
+
+    /// The `schema.json` stamp emitted alongside the dataset.
+    struct SchemaStamp: Codable {
+        let schemaVersion: Int
+    }
+
+    /// One element of `entries.json`, decoded so that it can never throw
+    /// (0.6.3, item 1 — AUDIT H2).
+    ///
+    /// `JSONDecoder` aborts an array decode at the first failing element, so one
+    /// malformed entry used to empty the *whole* database with no user-facing
+    /// signal (it has happened — see the COUNTRY_GATE note in
+    /// `generate-ios-data.ts`). Decoding through this wrapper turns each failure
+    /// into a diagnostic instead: the good entries survive, and the reasons
+    /// reach `decodeErrors`.
+    private struct FailableEntry: Decodable {
+        let entry: WineEntry?
+        let failure: String?
+
+        /// For naming the culprit when the full decode has already failed.
+        private enum IdentityKeys: String, CodingKey {
+            case id, name
+        }
+
+        init(from decoder: any Decoder) {
+            do {
+                entry = try WineEntry(from: decoder)
+                failure = nil
+            } catch {
+                entry = nil
+                // Best-effort identification: a diagnostic that cannot say
+                // *which* entry broke sends whoever reads it back to a diff of
+                // the whole file.
+                var who = "<unidentified entry>"
+                if let c = try? decoder.container(keyedBy: IdentityKeys.self) {
+                    if let id = try? c.decode(String.self, forKey: .id) {
+                        who = id
+                    } else if let name = try? c.decode(String.self, forKey: .name) {
+                        who = name
+                    }
+                }
+                failure = "\(who): \(error)"
+            }
+        }
+    }
+
+    /// Element-wise entries decode (0.6.3, item 1 — AUDIT H2).
+    ///
+    /// Throws only when the data is not a JSON array at all — a file-level
+    /// problem the empty-database fallback below handles. A *per-entry* failure
+    /// never throws: it drops that entry and reports why, so a schema drift in
+    /// one record costs one record rather than all of them.
+    ///
+    /// `public` so the corrupt-fixture tests can exercise it directly; the
+    /// bundled-resource path goes through here too, so the tests test the code
+    /// the app runs.
+    public static func decodeEntries(from data: Data) throws -> (entries: [WineEntry], failures: [String]) {
+        let wrapped = try JSONDecoder().decode([FailableEntry].self, from: data)
+        return (
+            entries: wrapped.compactMap(\.entry),
+            failures: wrapped.compactMap(\.failure).map { "entries.json: \($0)" }
+        )
+    }
+
     private convenience init() {
         do {
-            let entries: [WineEntry] = try Self.decode("entries")
+            let (entries, entryFailures) = try Self.decodeEntries(from: Self.resourceData("entries"))
             let palette: Palette = try Self.decode("palette")
             let icons: IconManifest = try Self.decode("icons")
 
-            var loadErrors: [String] = []
+            var loadErrors: [String] = entryFailures
+
+            // The schema stamp, generated alongside the dataset. Checked before
+            // anything is *reported* healthy: entry failures above say what
+            // broke, this says why — usually "the data and the app are from
+            // different generations; run npm run generate". A missing stamp is
+            // the same condition wearing older clothes, so it gets the same
+            // treatment rather than a silent pass.
+            do {
+                let stamp: SchemaStamp = try Self.decode("schema")
+                if stamp.schemaVersion != Self.expectedSchemaVersion {
+                    loadErrors.append(
+                        "schema.json is generation \(stamp.schemaVersion); this build expects \(Self.expectedSchemaVersion) — regenerate (npm run generate)"
+                    )
+                }
+            } catch {
+                loadErrors.append(
+                    "schema.json missing or unreadable — bundled data predates the schema stamp; regenerate (npm run generate)"
+                )
+            }
 
             // Tiers: a *missing* manifest means "everything free" (a build with no
             // paywall), which is the only safe fallback that can't lock a build out
@@ -445,13 +538,20 @@ public final class WineDatabase: Sendable {
         icons.iconID(for: entry.id)
     }
 
-    private static func decode<T: Decodable>(_ resource: String) throws -> T {
+    /// Raw bytes of a bundled resource. Split from `decode` so entries can go
+    /// through the element-wise path above, which needs the data rather than a
+    /// finished value.
+    private static func resourceData(_ resource: String) throws -> Data {
         guard let url = Bundle.module.url(forResource: resource, withExtension: "json", subdirectory: "Resources")
             ?? Bundle.module.url(forResource: resource, withExtension: "json")
         else {
             throw CocoaError(.fileNoSuchFile, userInfo: [NSFilePathErrorKey: "\(resource).json"])
         }
-        return try JSONDecoder().decode(T.self, from: Data(contentsOf: url))
+        return try Data(contentsOf: url)
+    }
+
+    private static func decode<T: Decodable>(_ resource: String) throws -> T {
+        try JSONDecoder().decode(T.self, from: resourceData(resource))
     }
 
     private static let emptyPalette = Palette(

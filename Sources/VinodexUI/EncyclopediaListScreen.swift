@@ -150,7 +150,16 @@ public struct EncyclopediaListScreen: View {
                         }
 
                         if rows.isEmpty {
-                            emptyState
+                            // An empty list with an empty query cannot be a
+                            // no-results message — if the database also reported
+                            // load errors, say so instead of letting a broken
+                            // build read like a search that found nothing.
+                            // (0.6.3, item 1 — AUDIT M2)
+                            if !db.decodeErrors.isEmpty && search.isEmpty {
+                                dataLoadErrorState
+                            } else {
+                                emptyState
+                            }
                         } else {
                             ForEach(rows) { row in
                                 switch row {
@@ -272,6 +281,27 @@ public struct EncyclopediaListScreen: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 60)
         .opacity(0.6)
+    }
+
+    /// The truth when the database itself failed to load (0.6.3, item 1 —
+    /// AUDIT M2). "NO DATA FOUND" reads as a no-results message, which sent
+    /// anyone hitting a broken build hunting for a typo in their search; the
+    /// detail lives in the DEV panel, and this points there.
+    private var dataLoadErrorState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 40))
+                .foregroundStyle(Dex.red500)
+            Text("DATA LOAD ERROR")
+                .font(DexFont.retro(11))
+                .foregroundStyle(Dex.red500)
+            Text("The wine database failed to load. See SETTINGS > DEV for details.")
+                .font(DexFont.mono(16))
+                .foregroundStyle(lcd.subtext)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 60)
     }
 }
 #endif

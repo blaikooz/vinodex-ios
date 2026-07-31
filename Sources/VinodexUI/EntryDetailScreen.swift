@@ -151,6 +151,12 @@ public struct EntryDetailScreen: View {
             }
         }
         .animation(.easeOut(duration: 0.15), value: showingRating)
+        // The recent trail (0.6.3, item 3). Keyed on the id so a cross-link —
+        // which swaps the entry without tearing this view down — records the
+        // new entry too; a bare `.onAppear` would have credited only the first
+        // one of a chain. Coming *back* here re-fires it, which is correct: a
+        // return visit is still the most recent thing you looked at.
+        .task(id: entry.id) { RecentlyViewedStore.shared.record(entry.id) }
     }
 
     /// The journal line for a tried entry: your stars, your note, and the way
