@@ -357,7 +357,7 @@ a subdirectory. It owns everything it needs:
 |---|---|
 | `Sources/`, `Tests/`, `Package.swift`, `xtool.yml` | the app |
 | `shared/` | data + colour tables, pure TS, zero dependencies |
-| `shared/newicons/pixelflags/` | pixel-art flags (moved into the shared assets tree, 0.6.5), source for `Sources/VinodexUI/Resources/Flags` |
+| `shared/pixelflags/` | pixel-art flags — the one art asset both repos consume, so it lives in the cross-repo master (`HGapps\shared`, mirrored by `sync-shared.ps1`) rather than in `art/`. Source for `Sources/VinodexUI/Resources/Flags` |
 | `art/` | drawn icon source art + audio masters, one folder per use |
 | `scripts/` | `generate-ios-data.ts`, `rasterize-icons.sh`, the four art importers, `verify-art.py` |
 

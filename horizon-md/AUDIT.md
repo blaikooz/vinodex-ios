@@ -3,6 +3,12 @@
 A work order, not a report. Every item below is a specific, located defect with a
 proposed fix. Work through them in any order; check them off as they land.
 
+> **Path note (added 0.6.5, batch 4 — findings below are unchanged).** Read
+> `pixelflags/` references as **`shared/pixelflags/`** (the cross-repo master,
+> mirrored from `HGapps\shared`), and `shared/newicons/` as **`art/icons/`**
+> since H12 re-foldered the drawn-art masters. This file itself moved from the
+> repo root into `horizon-md/`.
+
 **IDs are permanent.** Reference them in commits and PRs as `H3`, `M12`, `L27` —
 they never get renumbered, even as items are resolved.
 

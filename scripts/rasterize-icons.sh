@@ -156,11 +156,14 @@ echo "failed: $failed"
 # ---------------------------------------------------------------------------
 
 FLAGDIR="$(dirname "$OUTDIR")/Flags"
-# Pixelflags live in the shared assets tree since 0.6.5 (batch 3, item 2):
-# shared/newicons/ is the icons folder that also carries sfx/, and the master
-# lives in HGapps\shared — this repo's copy arrives via sync-shared.ps1, so
-# the flags ride the same master->mirror path as the data.
-PIXELFLAGS="${PIXELFLAGS:-$REPO_ROOT/shared/newicons/pixelflags}"
+# Pixelflags live at shared/pixelflags since 0.6.5 (batch 4, phase 1). They sit
+# in the cross-repo master rather than in this repo's art/ tree because they are
+# the one art asset BOTH apps consume — here, and the web app's flagImages.ts —
+# and art/ is iOS-only. The master is HGapps\shared; this repo's copy arrives
+# via sync-shared.ps1, so the flags ride the same master->mirror path as the
+# data. (The old shared/newicons/ nesting went away with the drawn-art masters,
+# which now live in art/.)
+PIXELFLAGS="${PIXELFLAGS:-$REPO_ROOT/shared/pixelflags}"
 mkdir -p "$FLAGDIR"
 
 if [ -d "$PIXELFLAGS" ]; then

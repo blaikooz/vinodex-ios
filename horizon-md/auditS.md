@@ -2,6 +2,15 @@
 
 **Written 2026-07-29 against `fb5dcf2`. Re-verified 2026-07-31 against `b48ad20`.**
 
+> **Path note (added 0.6.5, batch 4 — findings below are unchanged).** Read
+> every `pixelflags/` reference in this document as **`shared/pixelflags/`**:
+> the flags moved into the cross-repo master (`HGapps\shared`, mirrored into
+> both repos by `sync-shared.ps1`) because the web app consumes the same set.
+> The relocation is a move, not a remediation — **H2** (provenance/licensing)
+> and **M5** (trademarked logos under `Other/`) remain exactly as open as they
+> are recorded below, and the `git rm -r pixelflags/Other` remedy now reads
+> `git rm -r shared/pixelflags/Other` **plus** the same removal from the master.
+
 Three-dimension audit (compliance, security, tests). The original 50 findings were
 produced by 8 finder agents with independent adversarial verification; the one
 critical item was confirmed by running `swift build`.

@@ -177,7 +177,7 @@ vinodex-ios/
   art/icons/attic/         Drawn but unreferenced; kept so nothing is lost
   art/sfx/                 Audio masters, the source for Resources/SFX
   scripts/                 Data generator and icon rasteriser
-  shared/newicons/pixelflags/  Pixel-art flags (shared assets tree, 0.6.5), source for Resources/Flags
+  shared/pixelflags/       Pixel-art flags — cross-repo master (web consumes them too), source for Resources/Flags
   xtool.yml                Bundle ID and icon path for xtool
   horizon-md/AUDIT.md      Standing work order — numbered, permanent IDs referenced in commits
   horizon-md/, godot-md/   Per-collaborator doc folders (0.6.5)

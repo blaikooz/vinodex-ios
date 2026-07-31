@@ -599,9 +599,11 @@ const CLIMATE_SOIL_FALLBACK: Record<string, string[]> = {
 
 const DEFAULT_SOILS = ['Alluvial', 'Clay', 'Limestone'];
 
-/// Pixel flags live in `shared/newicons/pixelflags/<Continent>/<slug>/<slug>.png`
-/// (moved into the shared assets tree in 0.6.5, batch 3 — the master is
-/// HGapps\shared, mirrored here by sync-shared.ps1).
+/// Pixel flags live in `shared/pixelflags/<Continent>/<slug>/<slug>.png` — the
+/// cross-repo master (HGapps\shared, mirrored here by sync-shared.ps1),
+/// because the web app consumes the same set. The values below are relative to
+/// that root and are shared with the web consumer, so they do not change when
+/// the root moves.
 ///
 /// Originally just the countries that appeared as a grape/region `origin` in
 /// the starter selection. Now also covers every country the continent info

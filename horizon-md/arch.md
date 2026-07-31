@@ -4,6 +4,14 @@
 Four parallel audits: git history & hygiene, GitHub & remote topology, Swift module
 architecture, build & data pipeline.
 
+> **Path note (added 0.6.5, batch 4 — findings below are unchanged).** Two
+> locations moved after this audit was written. Read every `pixelflags/`
+> reference below as **`shared/pixelflags/`** (the cross-repo master, mirrored
+> from `HGapps\shared`; both apps consume it), and the drawn-art masters that
+> were under `shared/newicons/` now live in **`art/icons/`**. Nothing in the
+> findings or verdicts has been rewritten — only this pointer added, so the
+> paths cited still lead somewhere real.
+
 Companion to [AUDIT.md](AUDIT.md), which covers code-level defects (97 findings, IDs
 `H1`–`H11`, `M1`–`M44`, `L1`–`L42`). This document covers the layer beneath it —
 the repository, the platform, the package structure, and the pipeline. Where a
