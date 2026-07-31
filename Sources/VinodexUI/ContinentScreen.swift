@@ -69,13 +69,13 @@ public struct ContinentScreen: View {
         .background(lcd.page)
         .overlay {
             if let comingSoon {
-                // The gate's authored teaser when one exists (0.6.4, batch 2 —
-                // the coming-soon countries ship blurbs), else the generic
-                // promise the 0.6.2 rows made.
+                // A deliberately generic notice (0.6.5, item 11 — reversing
+                // 0.6.4's teaser-blurb wiring): the popup is a status, not a
+                // country page, and the blurb read as one. The authored
+                // teasers stay in countries.json for the day the gates open.
                 DexAlert(
                     title: "COMING SOON",
-                    message: db.countryInfo(comingSoon)?.description
-                        ?? "\(comingSoon.uppercased()) has no regions in the database yet. It is on the list.",
+                    message: "\(comingSoon.uppercased()) is not in the database yet. Its regions are on the way — check back after an update.",
                     confirmLabel: "OK",
                     cancelLabel: nil,
                     onConfirm: { self.comingSoon = nil },
@@ -233,10 +233,10 @@ public struct ContinentScreen: View {
             .padding(7)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(lcd.surface)
-            // The whole row dims, not just its label — flag included, so the
-            // gate reads as one muted object rather than a live flag on a
-            // dead row.
-            .opacity(hasRegions ? 1 : 0.6)
+            // The text dims (`disabledText` + the COMING SOON label) but the
+            // flag stays at full strength (0.6.5, item 11 — reversing the
+            // whole-row dim): the flag is the row's identity, and washing it
+            // out read as a missing asset rather than a muted state.
             .overlay(
                 RoundedRectangle(cornerRadius: 4)
                     .strokeBorder(hasRegions ? Dex.stone700 : Dex.stone800, lineWidth: 1)

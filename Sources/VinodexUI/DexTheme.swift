@@ -975,6 +975,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     /// Rose-pink shell with a pale blush faceplate and pearl-pink lights —
     /// unapologetically pink and girly (v0.6, D1).
     case blush = "BLUSH"
+    /// The DualShock 2 livery (0.6.5, item 9): matte charcoal moulding, a
+    /// darker console-grey faceplate, and the four face-button colours doing
+    /// all the talking — lights run triangle/circle/cross, the powered parts
+    /// run the cross's blue. Subtle on purpose; the reference hardware was.
+    case psvino = "PSVINO"
 
     public static let storageKey = "chassisSkin"
 
@@ -1012,6 +1017,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .nocturne: Color(dexHex: "#CCFFB8")
         case .steel: Color(dexHex: "#CDE7FF")
         case .blush: Color(dexHex: "#FFCCDD")
+        // Console-boot blue — the cross button, paled for the multiply.
+        case .psvino: Color(dexHex: "#BBD4F5")
         }
     }
 
@@ -1067,6 +1074,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .nocturne: "VINHO VERDE"
         case .steel: "STAINLESS STEEL"
         case .blush: "BLUSH"
+        case .psvino: "PSVINO"
         }
     }
 
@@ -1102,6 +1110,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .nocturne: "moon.zzz.fill"
         case .steel: "gearshape.2.fill"
         case .blush: "heart.fill"
+        case .psvino: "playstation.logo"
         }
     }
 
@@ -1146,6 +1155,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // Pearl-pink fairy trio, light to deep.
         case .blush:
             return trio(("#FDA4AF", "#E11D48"), ("#F9A8D4", "#DB2777"), ("#F472B6", "#9D174D"))
+        // Triangle, circle, cross — the face buttons as indicator lamps.
+        case .psvino:
+            return trio(("#3AC4B4", "#0E7A6E"), ("#F0435C", "#8F0E20"), ("#6FA3E8", "#1B4470"))
         }
     }
 
@@ -1172,6 +1184,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .steel: Color(dexHex: "#C7CBD1")
         // Soft rose-pink moulding.
         case .blush: Color(dexHex: "#EEA7B6")
+        // DualShock matte charcoal — near-black with the plastic's warmth.
+        case .psvino: Color(dexHex: "#232427")
         }
     }
 
@@ -1197,6 +1211,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .nocturne: Color(dexHex: "#C9F2BE").opacity(0.75)
         case .steel: Color(dexHex: "#B8BCC2").opacity(0.8)
         case .blush: Color(dexHex: "#EEA7B6").opacity(0.75)
+        case .psvino: Color(dexHex: "#232427").opacity(0.75)
         }
     }
 
@@ -1220,6 +1235,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .steel: Color(dexHex: "#DDE0E4")
         // The pale blush faceplate against the rose shell.
         case .blush: Color(dexHex: "#FBE9EC")
+        // Console grey — the PS2's own two-tone: charcoal shell, grey deck.
+        case .psvino: Color(dexHex: "#3B3C41")
         }
     }
 
@@ -1241,6 +1258,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .nocturne: Color(dexHex: "#8FCB7C")
         case .steel: Color(dexHex: "#6B7078")
         case .blush: Color(dexHex: "#D2718A")
+        case .psvino: Color(dexHex: "#141517")
         }
     }
 
@@ -1265,6 +1283,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .nocturne: Color(dexHex: "#8FCB7C")
         case .steel: Color(dexHex: "#6B7078")
         case .blush: Color(dexHex: "#C8879A")
+        case .psvino: Color(dexHex: "#55575E")
         }
     }
 
@@ -1311,6 +1330,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .steel: Color(dexHex: "#E8F1FF")
         // A pearl-pink bead — the one saturated light on the pastel shell.
         case .blush: Color(dexHex: "#FF7FA8")
+        // The analog-stick LED: cross-button blue on the charcoal.
+        case .psvino: Color(dexHex: "#5B93D8")
         }
     }
 
@@ -1333,6 +1354,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .nocturne: Color(dexHex: "#3EE06C")
         case .steel: Color(dexHex: "#9FB8D8")
         case .blush: Color(dexHex: "#E1447E")
+        case .psvino: Color(dexHex: "#2E6DB4")
         }
     }
 
@@ -1405,6 +1427,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .blush:
             ChassisAccent(pale: "#FFF1F4", light: "#FBCFE0", bright: "#F472B6",
                           mid: "#DB2777", edge: "#9D174D", ink: "#500724")
+        // Cross-button blue, lit — one restrained colour on the matte black,
+        // the way the console itself wore it.
+        case .psvino:
+            ChassisAccent(pale: "#E3EEFA", light: "#B9D2F0", bright: "#5B93D8",
+                          mid: "#2E6DB4", edge: "#173D6B", ink: "#0A1F38")
         }
     }
 
@@ -1468,6 +1495,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // other pale skins.
         case .blush:
             ChassisControl(top: "#F5BBC9", bottom: "#C97F94", edge: "#8F4A5E", glyph: "#4A1220")
+        // The DualShock's own grey-black buttons.
+        case .psvino:
+            ChassisControl(top: "#3A3B40", bottom: "#101114", edge: "#6A6C72", glyph: "#ffffff")
         }
     }
 
@@ -1493,6 +1523,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // Pink phosphor — period LED strips never came in pink, but this is
         // the one skin allowed to care more about the look than the period.
         case .blush: Color(dexHex: "#FF9EC0")
+        // Boot-screen blue phosphor.
+        case .psvino: Color(dexHex: "#7DB2F0")
         }
     }
 
@@ -1515,6 +1547,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .nocturne: Color(dexHex: "#57D63E")
         case .steel: Color(dexHex: "#5FA8E8")
         case .blush: Color(dexHex: "#F472B6")
+        case .psvino: Color(dexHex: "#2E6DB4")
         }
     }
 
@@ -1537,6 +1570,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .nocturne: Color(dexHex: "#0E2E0C")
         case .steel: Color(dexHex: "#0A1A2A")
         case .blush: Color(dexHex: "#3B0A1E")
+        case .psvino: Color(dexHex: "#08182E")
         }
     }
 

@@ -1,9 +1,9 @@
-# Known issues & environment runbook
+﻿# Known issues & environment runbook
 
 Hard-won operational knowledge for this repo. Most of it is about getting a build
 onto the phone from Windows + WSL, which is where the time actually goes.
 
-- [Deploying to the iPhone](#deploying-to-the-iphone) — start here when a deploy fails
+- [Deploying to the iPhone](#deploying-to-the-iphone) â€” start here when a deploy fails
 - [Traps that produce false readings](#traps-that-produce-false-readings)
 - [Build & test gotchas](#build--test-gotchas)
 - [Open bugs](#open-bugs)
@@ -13,12 +13,12 @@ onto the phone from Windows + WSL, which is where the time actually goes.
 
 ## Deploying to the iPhone
 
-### The 27015 port race — recurs on every reboot *and mid-session*
+### The 27015 port race â€” recurs on every reboot *and mid-session*
 
 **The single most likely reason a deploy fails.**
 
 It is not only a boot-time race. `AppleMobileDeviceProcess` exits when the Apple
-Devices app is closed, and the portproxy then reclaims 27015 on its own — so a
+Devices app is closed, and the portproxy then reclaims 27015 on its own â€” so a
 deploy that worked an hour ago fails with `Operation not permitted` having
 changed nothing. Same symptom, same fix, no reboot involved. Check which side
 holds the port before assuming anything else:
@@ -36,34 +36,34 @@ Healthy is **two** lines: `127.0.0.1 <- AppleMobileDeviceProcess` and
 `AppleMobileDeviceProcess` also wants `127.0.0.1:27015`. **Whichever binds first
 at boot wins**, and there is no error either way:
 
-- Apple wins → everything works, both listeners coexist.
-- The proxy wins → Apple silently falls back to an **ephemeral** port, and the
+- Apple wins â†’ everything works, both listeners coexist.
+- The proxy wins â†’ Apple silently falls back to an **ephemeral** port, and the
   proxy forwards to a dead 27015. WSL connects fine and then speaks to nothing.
 
-Symptoms: `xtool devices` → `Error: Operation not permitted`, or
-`idevice_id -l` → `ERROR: Unable to retrieve device list!`, while raw TCP to
-`<gateway>:27015` reports **connected**. That combination — TCP OK, protocol
-dead — is this bug.
+Symptoms: `xtool devices` â†’ `Error: Operation not permitted`, or
+`idevice_id -l` â†’ `ERROR: Unable to retrieve device list!`, while raw TCP to
+`<gateway>:27015` reports **connected**. That combination â€” TCP OK, protocol
+dead â€” is this bug.
 
 **Fix, in this order.** Order is the whole point.
 
 ```powershell
-# 1. ELEVATED — free the port and stop Apple's processes
+# 1. ELEVATED â€” free the port and stop Apple's processes
 netsh interface portproxy delete v4tov4 listenport=27015 listenaddress=0.0.0.0
 Get-Process | Where-Object { $_.ProcessName -match 'Apple' } | Stop-Process -Force
 
-# 2. UNELEVATED — Store apps refuse to launch elevated
+# 2. UNELEVATED â€” Store apps refuse to launch elevated
 Start-Process 'shell:AppsFolder\AppleInc.AppleDevices_nzyj5cx40ttqa!App'
 # within ~6s this must appear, or step 3 will just steal the port again:
 Get-NetTCPConnection -LocalPort 27015 -State Listen |
   Where-Object { $_.LocalAddress -eq '127.0.0.1' }
 
-# 3. ELEVATED — put the proxy back in front of it
+# 3. ELEVATED â€” put the proxy back in front of it
 netsh interface portproxy add v4tov4 listenport=27015 listenaddress=0.0.0.0 `
   connectport=27015 connectaddress=127.0.0.1
 ```
 
-Healthy end state — **both** listeners present:
+Healthy end state â€” **both** listeners present:
 
 ```
 127.0.0.1:27015   AppleMobileDeviceProcess
@@ -73,19 +73,19 @@ Healthy end state — **both** listeners present:
 Then `idevice_id -l` returns the UDID and `xtool dev run` works.
 
 > The Store `AppleInc.AppleDevices` package **does** provide usbmuxd on 27015.
-> Classic iTunes / Apple Mobile Device Support is **not** required — only the
+> Classic iTunes / Apple Mobile Device Support is **not** required â€” only the
 > `AppleKmdfFilter` / `AppleLowerFilter` drivers, which are already installed.
 > Don't go installing desktop iTunes to "fix" this.
 
 ### Never split the fix across a UAC prompt
 
 Each elevation round-trip is ~10 s. When Apple's launcher is in its ephemeral-port
-state it respawns every ~30–60 s with a **new** port each time, so anything that
+state it respawns every ~30â€“60 s with a **new** port each time, so anything that
 discovers a port, prompts for UAC, then uses that port is guaranteed to lose the
-race. Do discover → `netsh` → verify inside **one** elevated script.
+race. Do discover â†’ `netsh` â†’ verify inside **one** elevated script.
 
 Also: chasing the ephemeral port is a dead end regardless. The port
-`AppleMobileDeviceLauncher` opens is its own IPC, not usbmuxd — you connect
+`AppleMobileDeviceLauncher` opens is its own IPC, not usbmuxd â€” you connect
 successfully and get the wrong protocol. Free 27015 instead.
 
 ### Free-profile App ID cap is 3
@@ -97,7 +97,7 @@ com.example.Hello, com.example.VinodexSpike }
 ```
 
 The cap is on **App IDs registered to the profile, not apps installed on the
-device.** `xtool uninstall` reports `Success!` and frees nothing — the App IDs
+device.** `xtool uninstall` reports `Success!` and frees nothing â€” the App IDs
 stay held.
 
 This is why `ios/xtool.yml` still uses `com.example.Vinodex`: reusing an
@@ -109,7 +109,7 @@ needs the quota to free up or a paid account.
 1. Phone plugged in, unlocked, trusted. Pairing record:
    `C:\ProgramData\Apple\Lockdown\<UDID>.plist`
 2. `127.0.0.1:27015` held by `AppleMobileDeviceProcess` (see above)
-3. rsync the WSL mirror — see [WSL mirror goes stale](#the-wsl-mirror-goes-stale)
+3. rsync the WSL mirror â€” see [WSL mirror goes stale](#the-wsl-mirror-goes-stale)
 4. `wsl -d xtool-ubuntu -- bash -lc "cd /root/projects/vinodex-native && xtool dev run"`
 
 Signed with a free profile, so **builds expire after 7 days.**
@@ -126,7 +126,7 @@ it exists. Always check from an elevated shell before concluding anything about
 the firewall.
 
 **`bash -lc` through `wsl.exe` mangles quoting.** Constructs like
-`$(ip route show default | cut -d" " -f3)` silently evaluate to empty — no error,
+`$(ip route show default | cut -d" " -f3)` silently evaluate to empty â€” no error,
 just an empty variable and a confusing downstream failure. Put the commands in a
 `.sh` file and run it. A `grep -E "a|b|c"` inside the same quoting is mangled the
 same way and comes back as `command not found`; redirect to a file and read it.
@@ -173,10 +173,10 @@ Re-check in a **separate** invocation before believing it.
 ### The WSL mirror goes stale
 
 Swift builds do **not** run against the checkout. `/root/projects/vinodex-ios`
-inside `xtool-ubuntu` is a plain rsync mirror with no `.git` — building over the
+inside `xtool-ubuntu` is a plain rsync mirror with no `.git` â€” building over the
 `/mnt/c` 9p mount is drastically slower, which is why it exists. It goes stale
 silently, so a green `swift test` can reflect old code. **Windows is the source
-of truth — never edit the WSL copy.**
+of truth â€” never edit the WSL copy.**
 
 ```bash
 rsync -a --delete --exclude ".build/" --exclude "xtool/" --exclude ".git/" \
@@ -187,7 +187,7 @@ rsync -a --delete --exclude ".build/" --exclude "xtool/" --exclude ".git/" \
 Excluding `.build/` preserves the incremental cache; excluding `xtool/` preserves
 the built `.app`; excluding `.git/` keeps the history off the copy.
 
-**Path history — check this first if a build compiles something you did not
+**Path history â€” check this first if a build compiles something you did not
 write.** The Windows source was `VINODEX/native/` before 2026-07-28,
 `VINODEX/ios/` until 2026-07-29, and is now this repo's root: the Swift package
 *is* the repo, so the whole tree syncs. The WSL target was `vinodex-native` over
@@ -196,7 +196,7 @@ that whole period and is now `vinodex-ios`.
 ### `swift test` cannot see any UI code
 
 `VinodexCoreTests` depends on `VinodexCore` alone, and `VinodexUI` is wrapped in
-`#if canImport(SwiftUI)` — on Linux it compiles to nothing. **A syntax error in
+`#if canImport(SwiftUI)` â€” on Linux it compiles to nothing. **A syntax error in
 `VinodexUI` will not fail `swift test`.** Only `xtool dev build` compiles it.
 
 Corollary: any `WineDatabase` helper defined in `VinodexUI` is invisible to its
@@ -218,7 +218,7 @@ error: missing required module 'SwiftShims'
 ```
 
 `.build` holds precompiled headers with **absolute** paths baked in. This repo was
-renamed `vinodex-swift` → `vinodex-ios`; the cache key was keyed only on
+renamed `vinodex-swift` â†’ `vinodex-ios`; the cache key was keyed only on
 `hashFiles('Package.swift', 'Package.resolved')`, which had not changed, so the
 run happily restored a `.build` built under the old checkout path and every
 compile failed.
@@ -228,7 +228,7 @@ locally, so it reads as a corrupt toolchain. **The repository name is now part o
 the cache key** (and of `restore-keys`, or the prefix fallback walks right back
 into the stale entry).
 
-If it happens again — any change to the checkout path will do it — clear the
+If it happens again â€” any change to the checkout path will do it â€” clear the
 cache and re-run:
 
 ```powershell
@@ -238,7 +238,7 @@ gh cache delete <id>        # or: gh cache delete --all
 
 ### `rethrows` methods cannot sit inside `#expect`
 
-`allSatisfy`, `contains(where:)`, `map`, `first(where:)` — anything `rethrows` —
+`allSatisfy`, `contains(where:)`, `map`, `first(where:)` â€” anything `rethrows` â€”
 fail to compile inside a swift-testing `#expect`, even with a non-throwing
 closure or key path:
 
@@ -253,7 +253,7 @@ bug. Hoist the call into a `let` and `#expect` the result:
 
 ```swift
 let allNumeric = part.allSatisfy(\.isNumber)   // not inside #expect
-#expect(allNumeric, "…")
+#expect(allNumeric, "â€¦")
 ```
 
 ### xtool stamps a fake version into every bundle
@@ -264,7 +264,7 @@ override either** (`version:` in that file is the config-schema version, not the
 app's). So anything reading the bundle for a version gets `1.0.0`.
 
 `AppVersion` therefore keeps a `placeholders` denylist and prefers its own
-constant over those values — without it the back plate reported `v1.0.0` on
+constant over those values â€” without it the back plate reported `v1.0.0` on
 every build ever made, which it silently did until 2026-07-29. **The day this app
 genuinely ships 1.0.0, that denylist has to change or the release under-reports
 itself.** `AppVersionTests` pins the behaviour.
@@ -275,7 +275,7 @@ real number can live until there is a signing pipeline that sets its own.
 
 ### Long jobs need an attached session
 
-WSL2 tears down the VM shortly after the last shell detaches — `nohup` and
+WSL2 tears down the VM shortly after the last shell detaches â€” `nohup` and
 `systemd-run` are both insufficient. Symptoms are misleading (truncated
 `gzip: unexpected end of file`, `tar: Cannot utime`) and look like corrupt
 downloads. Run long jobs inline in an attached session.
@@ -288,7 +288,7 @@ npm run generate          # rewrites the five JSON files under Sources/
 npm run icons             # needs rsvg-convert + network
 ```
 
-Generation is **deterministic** — a change scoped to the icon tables leaves
+Generation is **deterministic** â€” a change scoped to the icon tables leaves
 `entries.json` and `palette.json` byte-identical. Always `git diff --stat` the
 `Sources/VinodexCore/Resources/` directory afterwards; an unexpectedly large diff
 means the change was wider than intended. CI checks this too: the `generated data
@@ -308,7 +308,7 @@ missing icon with a text body rather than an error status. Check first:
 curl -s "https://api.iconify.design/<prefix>/<name>.svg" | head -c 60
 ```
 
-Several plausible names do not exist — `game-icons:europe`, `game-icons:asia`,
+Several plausible names do not exist â€” `game-icons:europe`, `game-icons:asia`,
 `game-icons:north-america`, `game-icons:raw-ore`.
 
 ### SF Symbols have OS floors the compiler will not check
@@ -316,13 +316,13 @@ Several plausible names do not exist — `game-icons:europe`, `game-icons:asia`,
 The deployment target is iOS 17, so an iOS 18+ symbol (anything
 `*.trianglehead.*`) compiles cleanly and renders **blank on device**. The same
 applies to SwiftUI API: `onGeometryChange(for:)` is iOS 18 and silently does
-nothing on 17 — use a `GeometryReader`.
+nothing on 17 â€” use a `GeometryReader`.
 
 ---
 
 ## Open bugs
 
-**Bundle ID is a placeholder.** `com.example.Vinodex` — see the App ID cap above.
+**Bundle ID is a placeholder.** `com.example.Vinodex` â€” see the App ID cap above.
 
 **`VinodexUI` and `VinodexApp` have no test coverage.** The test target depends
 on `VinodexCore` only, so every UI change is verified by eye on the device.
@@ -337,30 +337,30 @@ same latent mismatch. All of `VinodexUI` that touches `Haptics`, `DexIcon`,
 `#if canImport(SwiftUI) && canImport(UIKit)`.
 
 *Precedent:* `swift build --swift-sdk darwin` targets **macOS**, while
-`xtool dev build` targets iOS — so the two catch different errors. A green
+`xtool dev build` targets iOS â€” so the two catch different errors. A green
 `xtool dev build` does not mean the package builds for macOS.
 
 **Soil keyword list was duplicated** (fixed 2026-07-28). Match keywords lived in
 `WineDatabase.soilIcon(_:)` while the table lived in `SOIL_ICONS`; they drifted
 and six soils silently fell back to the default glyph. The generator now emits
-`soilKeywords` into `icons.json` and Swift iterates that. Order is significant —
+`soilKeywords` into `icons.json` and Swift iterates that. Order is significant â€”
 first substring wins, so `clay` must precede `loam`.
 
 ---
 
 ## Repo layout
 
-This repo **is** the Swift package — `Package.swift` sits at the root, not under
+This repo **is** the Swift package â€” `Package.swift` sits at the root, not under
 a subdirectory. It owns everything it needs:
 
 | Path | What it is |
 |---|---|
 | `Sources/`, `Tests/`, `Package.swift`, `xtool.yml` | the app |
 | `shared/` | data + colour tables, pure TS, zero dependencies |
-| `pixelflags/` | pixel-art flags, source for `Sources/VinodexUI/Resources/Flags` |
+| `shared/newicons/pixelflags/` | pixel-art flags (moved into the shared assets tree, 0.6.5), source for `Sources/VinodexUI/Resources/Flags` |
 | `scripts/` | `generate-ios-data.ts`, `rasterize-icons.sh` |
 
-One remote, `origin` → `blaikooz/vinodex-ios`. Commit and open PRs here.
+One remote, `origin` â†’ `blaikooz/vinodex-ios`. Commit and open PRs here.
 
 **Keep `shared/` dependency-free.** The generator runs it under plain `ts-node`
 where nothing else is installed; a single `react` import there breaks data
@@ -370,15 +370,15 @@ regeneration.
 
 Until 2026-07-29 this repo was assembled from `blaikooz/vinodex` (the web
 monorepo) by `scripts/publish-swift.mjs`. That script **emptied the tree and
-rebuilt it** on every publish, so anything living only here was deleted — which
+rebuilt it** on every publish, so anything living only here was deleted â€” which
 is how the merged PR #1 lost `AUDIT.md` on 2026-07-29 before it was restored.
 
 That path is gone: the script, the `swift` remote, the `swift-main` branch and
 the npm entry points were all deleted from the monorepo in the same change. The
 monorepo still contains frozen copies of `ios/`, `shared/`, `pixelflags/` and
-the two scripts — **nobody edits those**; they are leftovers the web pivot will
+the two scripts â€” **nobody edits those**; they are leftovers the web pivot will
 remove on its own schedule. Nothing copies between the two repos in either
 direction any more.
 
 If you ever find a script anywhere that writes into this repo from outside it,
-that is a bug — delete it.
+that is a bug â€” delete it.

@@ -598,7 +598,9 @@ const CLIMATE_SOIL_FALLBACK: Record<string, string[]> = {
 
 const DEFAULT_SOILS = ['Alluvial', 'Clay', 'Limestone'];
 
-/// Pixel flags live in `pixelflags/<Continent>/<slug>/<slug>.png`.
+/// Pixel flags live in `shared/newicons/pixelflags/<Continent>/<slug>/<slug>.png`
+/// (moved into the shared assets tree in 0.6.5, batch 3 — the master is
+/// HGapps\shared, mirrored here by sync-shared.ps1).
 ///
 /// Originally just the countries that appeared as a grape/region `origin` in
 /// the starter selection. Now also covers every country the continent info
@@ -665,8 +667,12 @@ const STYLE_ART: Record<string, string> = {
   'cru beaujolais': 'crubeaujolas',
   'dessert wine': 'dessertwine',
   'fortified wine': 'fortifiedwine',
-  // Renamed from Fresh Chillable Red (0.6.x); the stem keeps the old name.
-  'chillable red': 'freshchillablered',
+  // The 0.6.5 newpass masters untangled the chillable/light-body knot: each
+  // style finally owns a stem spelled like itself. Before this, 'light-body
+  // red' wore the stem `chillablered` and 'chillable red' wore
+  // `freshchillablered` — an artefact of the 0.6.x rename that made every
+  // art drop a puzzle. `freshchillablered` is orphaned and pruned.
+  'chillable red': 'chillablered',
   'full-body red': 'fullbodyred',
   'full-body white': 'fullbodywhite',
   // GSM Blend deliberately has NO portrait (0.6.4, D1). The 0.6.2 swap to the
@@ -675,7 +681,8 @@ const STYLE_ART: Record<string, string> = {
   // everywhere. Dropping the portrait is what makes the swap actually render.
   'ice wine': 'icewine',
   'late harvest': 'lateharvest',
-  'light-body red': 'chillablered',
+  // See the chillable-red note above: its own stem since 0.6.5.
+  'light-body red': 'lightbodyred',
   'light-body white': 'lightbodywhite',
   'medium-body red': 'mediumbodyred',
   'medium-body white': 'mediumbodywhite',

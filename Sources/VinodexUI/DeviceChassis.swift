@@ -168,12 +168,9 @@ public struct DeviceChassis<Content: View>: View {
 
     // MARK: Chassis title
 
-    /// The wordmark, in the chassis top itself (0.6.4, A1) — between the orb
-    /// and the cog, right below the notch. Replaces 0.6.2's trapezoid bump and
-    /// its metal nameplate, which cost the LCD a 34pt band; removing the bump
-    /// returns the screen housing to its pre-0.6.2 height. No plate: the
-    /// letters themselves are brushed metal — the cog's own gradient, larger
-    /// than the old engraving — set straight into the moulding.
+    /// The wordmark's brushed-metal letters (0.6.4, A1) — the cog's own
+    /// gradient, no plate behind them. Housed in `titleLip` since 0.6.5
+    /// (item 4): floating bare in the strip read as unfinished.
     private var chassisTitle: some View {
         Text("VINODEX")
             .font(DexFont.retro(16))
@@ -196,6 +193,39 @@ public struct DeviceChassis<Content: View>: View {
             .shadow(color: .black.opacity(0.55), radius: 0, x: 0, y: 1)
             .shadow(color: .white.opacity(0.18), radius: 0, x: 0, y: -1)
             .allowsHitTesting(false)
+    }
+
+    /// The trapezoidal lip the title sits in (0.6.5, item 4 — the redo of the
+    /// redo). A moulded piece protruding from the chassis top: wide where it
+    /// meets the top edge, shoulders curving in to a narrower foot, hanging
+    /// down through the island strip with the metal letters seated in its
+    /// lower band — below the hardware cutout, which punches through the
+    /// lip's upper half the way it punches through everything else up here.
+    /// Drawn in the strip's centre slot, so layout (not a fixed width) keeps
+    /// it clear of the orb and the cog; unlike 0.6.2's bump it lives entirely
+    /// on dead chassis and costs the LCD nothing.
+    private func titleLip(control: CGFloat) -> some View {
+        ZStack(alignment: .bottom) {
+            TitleLip()
+                .fill(skin.body)
+            // A dark seat line and a light catch — what makes a flat fill
+            // read as a raised piece, verbatim from the 0.6.2 bump.
+            TitleLip()
+                .stroke(.black.opacity(0.28), lineWidth: 1.5)
+            TitleLip()
+                .stroke(.white.opacity(0.14), lineWidth: 1)
+                .offset(y: 1)
+                .clipShape(TitleLip())
+
+            chassisTitle
+                .padding(.bottom, 9)
+                .padding(.horizontal, 18)
+        }
+        // Taller than the control row it sits in, bottom-aligned, so the lip
+        // runs from the row's foot up to the display's top edge.
+        .frame(height: DexMetrics.islandStripMinHeight)
+        .shadow(color: .black.opacity(0.3), radius: 2, y: 2)
+        .allowsHitTesting(false)
     }
 
     // MARK: Island flank
@@ -260,17 +290,16 @@ public struct DeviceChassis<Content: View>: View {
                 .allowsHitTesting(false)
                 .fixedSize()
 
-            // The wordmark holds the island's clearance open (0.6.4, A1),
-            // centred between the orb and the cog. Bottom-aligned against the
-            // control row rather than centred in it: the island's cutout
-            // reaches ~48pt into the strip and row-centred capitals would
-            // tuck their top half under the hardware — the seat at the row's
-            // foot is what "right below the notch" can actually mean here.
+            // The title lip holds the island's clearance open (0.6.5, item 4),
+            // centred between the orb and the cog. The lip is taller than the
+            // row and bottom-aligned in it, so it reaches the display's top
+            // edge; the letters keep to its lower band, below the ~48pt the
+            // hardware cutout claims.
             Spacer(minLength: 0)
-            chassisTitle
+            titleLip(control: control)
                 .frame(minWidth: DexMetrics.islandClearance)
                 .frame(height: control, alignment: .bottom)
-                .padding(.bottom, 4)
+                .offset(y: -DexMetrics.islandBottomInset)
             Spacer(minLength: 0)
 
             // Cog pinned right, directly above Home.
@@ -524,6 +553,29 @@ public struct DeviceChassis<Content: View>: View {
         .padding(.bottom, DexMetrics.chassisEdgeInset)
         .frame(maxWidth: .infinity)
         .background(skin.footerWash)
+    }
+}
+
+/// The title lip's silhouette (0.6.5, item 4): wide at the top edge where it
+/// leaves the chassis, shoulders curving in to a narrower flat foot — the
+/// 0.6.2 trapezoid bump turned upside down, hanging instead of rising.
+private struct TitleLip: Shape {
+    func path(in rect: CGRect) -> Path {
+        let shoulder = rect.width * 0.14
+        var p = Path()
+        p.move(to: CGPoint(x: rect.minX, y: rect.minY))
+        p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+        p.addQuadCurve(
+            to: CGPoint(x: rect.maxX - shoulder, y: rect.maxY),
+            control: CGPoint(x: rect.maxX - shoulder * 0.3, y: rect.maxY - rect.height * 0.18)
+        )
+        p.addLine(to: CGPoint(x: rect.minX + shoulder, y: rect.maxY))
+        p.addQuadCurve(
+            to: CGPoint(x: rect.minX, y: rect.minY),
+            control: CGPoint(x: rect.minX + shoulder * 0.3, y: rect.maxY - rect.height * 0.18)
+        )
+        p.closeSubpath()
+        return p
     }
 }
 

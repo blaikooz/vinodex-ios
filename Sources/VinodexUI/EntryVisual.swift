@@ -199,12 +199,20 @@ public struct EntryVisual {
         // flag or the class-coloured well alike; the glyph stays the fallback.
         let artName = db.icons.styleArtStem(for: s.common.name)
 
+        // A style with no portrait wears its class glyph as the picture
+        // (GSM Blend, deliberately portrait-less since 0.6.4 D1) — and at
+        // 0.95 rather than glyph scale (0.6.5, item 5): the drawn class art
+        // carries its own margins, so at 0.62 it floated small in the well,
+        // reading as an icon where its siblings show a portrait.
+        let glyphScale: CGFloat = artName == nil ? 0.95 : 0.62
+
         if hasRealOrigin {
             return EntryVisual(
                 well: .flag(country: origin),
                 iconID: iconID,
                 iconColor: tint,
                 ringColor: .white,
+                iconScale: glyphScale,
                 artName: artName
             )
         }
@@ -214,6 +222,7 @@ public struct EntryVisual {
             iconID: iconID,
             iconColor: tint,
             ringColor: .white,
+            iconScale: glyphScale,
             artName: artName
         )
     }

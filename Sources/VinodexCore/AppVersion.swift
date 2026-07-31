@@ -59,7 +59,10 @@ public enum AppVersion {
     /// 0.6.4: the spec was authored as "0.6.3", but that number shipped with
     /// the robustness/audit batch and is already tagged — a version that names
     /// two different builds names neither, so this batch takes the next patch.
-    static let fallback = "0.6.4"
+    ///
+    /// 0.6.5: the batch the user labelled "6.3.3" — same convention as above,
+    /// the label maps to the next patch after what the tree actually holds.
+    static let fallback = "0.6.5"
 
     /// Versions no build deliberately chose.
     ///

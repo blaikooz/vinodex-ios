@@ -401,10 +401,11 @@ public struct EntryDetailScreen: View {
                         // entry's generic glyph, which left the drawn
                         // styleclass art with no place to render at all: in
                         // rows the style portrait covers the glyph, so this
-                        // tile is where the class icon lives. Drawn at 40
-                        // (0.6.x): at 32 the blend art's transparent margins
-                        // left it reading smaller than its siblings.
-                        DexIcon(iconID: db.icons.styleClassIcons[cls.rawValue] ?? db.icons.fallback, size: 40, color: tint)
+                        // tile is where the class icon lives. 54 since 0.6.5
+                        // (item 5, was 40): the blend art's transparent
+                        // margins kept eating the gain, so the glyph goes as
+                        // large as the tile's icon band holds.
+                        DexIcon(iconID: db.icons.styleClassIcons[cls.rawValue] ?? db.icons.fallback, size: 54, color: tint)
                     }
                     if s.details.origin.lowercased() != "various" {
                         tile(label: "ORIGIN",
@@ -538,8 +539,10 @@ public struct EntryDetailScreen: View {
                 .font(DexFont.retro(8))
                 .foregroundStyle(lcd.accent)
             VStack(spacing: 6) {
+                // 54 since 0.6.5 (item 5): sized to seat the enlarged class
+                // glyph; the 32pt siblings centre in the band with more air.
                 icon(tint)
-                    .frame(height: 40)
+                    .frame(height: 54)
                 // Wrap rather than shrink. `minimumScaleFactor` let each tile
                 // pick its own effective size, so the three sat at three
                 // different scales — the row read as inconsistent even though

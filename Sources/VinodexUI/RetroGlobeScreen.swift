@@ -117,10 +117,10 @@ public struct RetroGlobeScreen: View {
                     // icons on these plates; a globe pinned onto the globe
                     // read as clutter and came back off in 0.6.x — the icon
                     // set lives on the scanner's choice tiles instead.
-                    // Bigger type, tighter plate (0.6.2, E2): the fixed
-                    // 108x62 box left the two-line labels swimming in scrim.
+                    // Bigger again (0.6.5, item 10, was 15): the markers are
+                    // the globe's only doorway and earn billboard size.
                     Text(marker.continent.markerLabel)
-                        .font(DexFont.retro(15))
+                        .font(DexFont.retro(18))
                         .multilineTextAlignment(.center)
                         // Always light, in both LCD modes. A marker does not sit
                         // on the screen background — it sits on the *globe*,
@@ -129,8 +129,8 @@ public struct RetroGlobeScreen: View {
                         // sphere and made it unreadable in light mode.
                         .foregroundStyle(.white)
                         .fixedSize()
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 7)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 9)
                         // The plate carries the contrast instead: a black scrim
                         // under the continent tint, deepened in light mode where
                         // the surrounding page is pale and the marker would
@@ -301,18 +301,23 @@ final class GlobeModel {
         material.lightingModel = .physicallyBased
         if let url = DexResources.url(named: "updatedglobemap", ext: "jpg", subdirectory: "Resources/Maps"),
            let image = UIImage(contentsOfFile: url.path) {
-            // LIGHT mode's inverted-colour globe (0.6.4, F1). Done to the
-            // texture once at build rather than per frame — `buildScene` runs
-            // only from `makeUIView`, so the cost is one filter per rebuild.
-            material.diffuse.contents = invertsTexture ? Self.inverted(image) ?? image : image
+            // Both treatments happen to the TEXTURE, once per rebuild
+            // (`buildScene` only runs from `makeUIView`): invert first
+            // (LIGHT's globe, 0.6.4), then the mode/skin tint multiplied
+            // into the pixels (0.6.5, item 7). The tint rode
+            // `SCNMaterial.multiply` for two releases and never visibly
+            // reached the device — under the physically-based lighting model
+            // the multiply layer is quietly ignored on hardware, which is why
+            // LIGHT (the one mode that rewrote the texture) was the only one
+            // that worked. Texture-space is the path proven to render, so
+            // every tint takes it now.
+            let base = invertsTexture ? Self.inverted(image) ?? image : image
+            material.diffuse.contents = Self.tinted(base, with: tint) ?? base
         } else {
             material.diffuse.contents = UIColor(Dex.green)
         }
         material.diffuse.wrapS = .repeat
         material.diffuse.wrapT = .clamp
-        // The skin's tint, multiplied over the map texture (0.6.2, F1) —
-        // pale colours shift the hue without drowning the coastlines.
-        material.multiply.contents = tint
         material.roughness.contents = 0.92
         material.metalness.contents = 0.08
         // Self-illumination is what makes the dark globe glow. On paper it only
@@ -472,8 +477,11 @@ final class GlobeModel {
     private func updateMarkers() {
         guard let view = sceneView, viewportSize.width > 0 else { return }
 
-        let hw: CGFloat = 54
-        let hh: CGFloat = 31
+        // Half-extents of a marker plate, used for the edge-of-viewport test.
+        // Grown with the 0.6.5 (item 10) size bump — an undersized box here
+        // lets a plate straddle the LCD edge before it hides.
+        let hw: CGFloat = 66
+        let hh: CGFloat = 38
 
         markers = markers.map { marker in
             var next = marker
@@ -526,6 +534,30 @@ final class GlobeModel {
     func endDrag() {
         dragging = false
         lastTranslation = .zero
+    }
+
+    /// The map texture multiplied by the mode/skin tint (0.6.5, item 7) —
+    /// channel-wise, via `CIColorMatrix`, so the coastline detail survives
+    /// and only the cast shifts. Near-white tints skip the filter entirely:
+    /// multiplying by white is the identity, and LIGHT deliberately passes
+    /// white so its inverted globe stays clean.
+    private static func tinted(_ image: UIImage, with tint: UIColor) -> UIImage? {
+        var r: CGFloat = 1, g: CGFloat = 1, b: CGFloat = 1, a: CGFloat = 1
+        tint.getRed(&r, green: &g, blue: &b, alpha: &a)
+        guard r < 0.98 || g < 0.98 || b < 0.98 else { return image }
+
+        guard let input = CIImage(image: image),
+              let filter = CIFilter(name: "CIColorMatrix")
+        else { return nil }
+        filter.setValue(input, forKey: kCIInputImageKey)
+        filter.setValue(CIVector(x: r, y: 0, z: 0, w: 0), forKey: "inputRVector")
+        filter.setValue(CIVector(x: 0, y: g, z: 0, w: 0), forKey: "inputGVector")
+        filter.setValue(CIVector(x: 0, y: 0, z: b, w: 0), forKey: "inputBVector")
+        filter.setValue(CIVector(x: 0, y: 0, z: 0, w: 1), forKey: "inputAVector")
+        guard let output = filter.outputImage else { return nil }
+        let context = CIContext()
+        guard let cg = context.createCGImage(output, from: output.extent) else { return nil }
+        return UIImage(cgImage: cg)
     }
 
     /// The map texture with its colours inverted (0.6.4, F1) — LIGHT mode's

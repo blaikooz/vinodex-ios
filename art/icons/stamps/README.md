@@ -28,7 +28,12 @@ chunky-pixel style like the flavour portraits, roughly square.
   `sticker-classic`, `sticker-midnight`, `sticker-original`,
   `sticker-burgundy`, `sticker-riesling`, `sticker-vinho-verde`,
   `sticker-glouglou`, `sticker-smart-grape`, `sticker-champagne`,
-  `sticker-nouveau`, `sticker-oaked`, `sticker-nocturne`, `sticker-steel`
+  `sticker-nouveau`, `sticker-oaked`, `sticker-nocturne`, `sticker-steel`,
+  `sticker-psvino` (0.6.5 — the DualShock skin; PS button glyphs territory)
+
+Since 0.6.5 (item 8) the per-skin piece renders as a postage stamp on the
+same perforated frame as the badge stamps — the stems above are unchanged;
+the glyph drops into the stamp's centre instead of a die-cut sticker.
 
 Stem names come from the *persisted* skin raw values
 (`ChassisSkin.stickerStem`), not the display names — renames never move them.

@@ -203,13 +203,14 @@ struct BackPlateStampView: View {
     }
 }
 
-// MARK: - The skin sticker
+// MARK: - The skin stamp
 
-/// The per-skin back-plate artifact, returned as an aged sticker (0.6.4,
-/// F3). The 0.5.6 enamel skin badge was removed when the 0.6.2 stamps took
-/// the plate; this is its replacement in the plate's own fiction — something
-/// a previous owner stuck on years ago. Die-cut white stock offset around
-/// the glyph (drawn in code), the shared worn pass, and a lifted peel corner.
+/// The per-skin back-plate artifact, as a postage stamp (0.6.5, item 8 —
+/// replacing 0.6.4's die-cut sticker outright). The Passport stamps set the
+/// plate's visual dialect and the skin piece now speaks it: the same
+/// perforated fringe, the same paper stock and keyline, the same worn pass —
+/// square where the badge stamps are portrait, so it still reads as its own
+/// issue. Per-skin identity survives in the glyph and the ink.
 ///
 /// Each skin brings its own art: `sticker-<skin>` through the stamps art
 /// pipeline once authored (Santa hat for WINE XMAS, the cat for BLUSH, a
@@ -217,33 +218,24 @@ struct BackPlateStampView: View {
 /// symbol standing in until then.
 struct SkinStickerView: View {
     let skin: ChassisSkin
-    var size: CGFloat = 62
+    var size: CGFloat = 70
 
     var body: some View {
+        let paper = Color(dexHex: "#E9E6DA")
+        let ink = skin.accent.mid
+
         ZStack {
-            // Die-cut stock: the thick offset outline around the art is the
-            // sticker's white margin, drawn as a shape rather than baked in.
-            RoundedRectangle(cornerRadius: size * 0.24)
-                .fill(Color(dexHex: "#F0EDE2"))
-                .overlay(
-                    RoundedRectangle(cornerRadius: size * 0.24)
-                        .strokeBorder(.white.opacity(0.9), lineWidth: 2.5)
-                )
+            PerforatedStampShape()
+                .fill(paper, style: FillStyle(eoFill: true))
 
             glyph
-                .frame(width: size * 0.6, height: size * 0.6)
-        }
-        .overlay(alignment: .bottomTrailing) {
-            PeelCorner()
-                .fill(
-                    LinearGradient(
-                        colors: [Color(dexHex: "#FFFDF4"), Color(dexHex: "#C9C2A8")],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: size * 0.28, height: size * 0.28)
-                .shadow(color: .black.opacity(0.3), radius: 1, x: -1, y: -1)
+                .frame(width: size * 0.52, height: size * 0.52)
+
+            // Thin inner keyline — the printed frame inside the perforation,
+            // exactly as the badge stamps wear it.
+            Rectangle()
+                .strokeBorder(ink.opacity(0.7), lineWidth: 1)
+                .padding(6)
         }
         .frame(width: size, height: size)
         .modifier(WornOverlay(seed: WornOverlay.seed(skin.rawValue)))
@@ -259,26 +251,9 @@ struct SkinStickerView: View {
                 .aspectRatio(contentMode: .fit)
         } else {
             Image(systemName: skin.stickerSymbol)
-                .font(.system(size: size * 0.42, weight: .semibold))
+                .font(.system(size: size * 0.36, weight: .semibold))
                 .foregroundStyle(skin.accent.mid)
         }
-    }
-}
-
-/// The lifted corner: a curved triangular flap, as if the sticker started
-/// peeling years ago.
-private struct PeelCorner: Shape {
-    func path(in rect: CGRect) -> Path {
-        var p = Path()
-        p.move(to: CGPoint(x: rect.maxX, y: rect.minY))
-        p.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-        p.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-        p.addQuadCurve(
-            to: CGPoint(x: rect.maxX, y: rect.minY),
-            control: CGPoint(x: rect.maxX * 0.72, y: rect.maxY * 0.72)
-        )
-        p.closeSubpath()
-        return p
     }
 }
 

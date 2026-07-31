@@ -132,8 +132,11 @@ echo "failed: $failed"
 # ---------------------------------------------------------------------------
 
 FLAGDIR="$(dirname "$OUTDIR")/Flags"
-# pixelflags/ is a repo-root sibling of scripts/.
-PIXELFLAGS="${PIXELFLAGS:-$REPO_ROOT/pixelflags}"
+# Pixelflags live in the shared assets tree since 0.6.5 (batch 3, item 2):
+# shared/newicons/ is the icons folder that also carries sfx/, and the master
+# lives in HGapps\shared — this repo's copy arrives via sync-shared.ps1, so
+# the flags ride the same master->mirror path as the data.
+PIXELFLAGS="${PIXELFLAGS:-$REPO_ROOT/shared/newicons/pixelflags}"
 mkdir -p "$FLAGDIR"
 
 if [ -d "$PIXELFLAGS" ]; then

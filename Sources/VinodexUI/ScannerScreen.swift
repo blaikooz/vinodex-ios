@@ -228,21 +228,12 @@ public struct ScannerScreen: View {
         .onChange(of: criteria) { _, _ in persist() }
     }
 
+    /// No in-screen back arrow since 0.6.5 (item 6): the chassis Back button
+    /// steps the questionnaire via `ScannerBackRouter` (0.6.4, B2), so the
+    /// header arrow was a second control doing the same thing — and the
+    /// device's own buttons are the ones that should do device things.
     private var header: some View {
         HStack(spacing: 10) {
-            if step != .color {
-                Button {
-                    back()
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundStyle(lcd.accent)
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 10)
-                }
-                .buttonStyle(DexPressStyle(scale: 0.9))
-            }
-
             Text(step == .reveal ? "RESULT" : "STEP \(questionNumber) OF 5")
                 .font(DexFont.retro(12))
                 .tracking(1)
