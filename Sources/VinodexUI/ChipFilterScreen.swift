@@ -45,20 +45,70 @@ public struct ChipFilterScreen: View {
     ) {
         self.onSelect = onSelect
         self.onSelectCountry = onSelectCountry
+
+        // Restored here rather than in `onAppear`, and the first answer seeded
+        // with it. `results` moved into `@State` (AUDIT M5), and a `task`
+        // cannot run before the first render — so without this the screen opens
+        // on "0 MATCHES / NOTHING MATCHES" and corrects itself a frame later,
+        // which on a screen whose whole subject is a live count is exactly the
+        // wrong first impression.
+        //
+        // A local `db`, not the property: `self` is not fully initialised until
+        // the `State` assignments below have all landed.
+        let db = WineDatabase.shared
+        let restored = ScreenStateStore.shared
+            .decoded(ChipFilter.self, "filter", for: ScreenStateStore.chipFilter) ?? ChipFilter()
+        _filter = State(initialValue: restored)
+        _results = State(initialValue: db.entriesInDisplayOrder.filter { restored.matches($0) })
+        _countryResults = State(
+            initialValue: restored.includesCountries ? db.searchableCountries : []
+        )
     }
 
     /// The chip-filtered set, narrowed again by the search box (v0.5.9, E1) —
     /// the summary's count reads off this, so it moves live under both.
-    private var results: [WineEntry] {
-        let base = db.entries(matching: filter)
+    ///
+    /// Held in `@State` and recomputed on change rather than computed in `body`
+    /// (AUDIT M5). As computed properties these ran on every *body pass*, not
+    /// merely every keystroke — and `body` reads `results` three times (the
+    /// summary's total, the empty check, the `ForEach`), so one re-render cost
+    /// three full filter-and-sort passes over the catalog.
+    @State private var results: [WineEntry] = []
+    /// Country rows, shown only while the COUNTRIES chip is lit (0.6.2, B3).
+    @State private var countryResults: [String] = []
+    /// What each chip's badge would read if tapped, costed once per filter
+    /// change. This is the screen's real expense: `count(withChip:added:)` is a
+    /// full pass over the catalog, and the chip rows hold three dozen chips.
+    /// It depends on the chips alone, so typing does not disturb it.
+    @State private var chipCounts: [ChipOption: Int] = [:]
+    /// The query the last `task` run started from — see `awaitSearchDebounce`.
+    @State private var debouncedFrom = ""
+
+    /// Every chip on the screen, in one flat list — the set `chipCounts` costs.
+    private static let allOptions: [ChipOption] =
+        ChipFacet.allCases.flatMap { ChipFilter.options(for: $0) }
+
+    private func recomputeResults() {
         let q = query.trimmingCharacters(in: .whitespaces)
-        return q.isEmpty ? base : base.apply(.masterSearch(q))
+        // One indexed pass (AUDIT M5): `entries(matching:)` walks the
+        // pre-sorted list against haystacks folded at load, and the chip
+        // predicate rides along on the survivors. The old shape ran the chip
+        // filter and then re-folded and re-sorted the result through
+        // `apply(.masterSearch(_:))`.
+        results = db.entries(matching: .masterSearch(q)).filter { filter.matches($0) }
+        countryResults = filter.includesCountries ? db.countries(matching: q) : []
     }
 
-    /// Country rows, shown only while the COUNTRIES chip is lit (0.6.2, B3).
-    private var countryResults: [String] {
-        guard filter.includesCountries else { return [] }
-        return db.countries(matching: query.trimmingCharacters(in: .whitespaces))
+    private func recomputeChipCounts() {
+        // Countries are not entries, so their share is added by hand (0.6.2, B3).
+        let countryShare = db.searchableCountries.count
+        var costed: [ChipOption: Int] = [:]
+        costed.reserveCapacity(Self.allOptions.count)
+        for option in Self.allOptions {
+            costed[option] = db.count(withChip: option, added: filter)
+                + (filter.toggling(option).includesCountries ? countryShare : 0)
+        }
+        chipCounts = costed
     }
 
     private var anchorBinding: Binding<String?> {
@@ -93,7 +143,10 @@ public struct ChipFilterScreen: View {
                     resultsHeader.id("__results__")
 
                     if results.isEmpty && countryResults.isEmpty {
-                        emptyState
+                        // "NOTHING MATCHES" blames the chips. On a database
+                        // that failed to load, nothing matches anything, and
+                        // the chips are innocent (AUDIT M2).
+                        DexEmptyState { emptyState }
                     } else {
                         // Synthesised country rows lead (0.6.2, B3): they are
                         // the few, the entries the many.
@@ -116,10 +169,18 @@ public struct ChipFilterScreen: View {
             .contentMargins(10, for: .scrollContent)
             .scrollPosition(id: anchorBinding)
         }
-        .onAppear {
-            if let saved = screens.decoded(ChipFilter.self, "filter", for: ScreenStateStore.chipFilter) {
-                filter = saved
-            }
+        // A chip tap is a discrete act, so it re-costs immediately; typing is a
+        // burst, so it is debounced — `task(id:)` cancels the pending run on the
+        // next keystroke, filtering once at the end of the burst (AUDIT M5).
+        .task(id: filter) {
+            recomputeChipCounts()
+            recomputeResults()
+        }
+        .task(id: query) {
+            let previous = debouncedFrom
+            debouncedFrom = query
+            guard await awaitSearchDebounce(from: previous, to: query) else { return }
+            recomputeResults()
         }
         .onChange(of: filter) { _, value in
             screens.encode(value.isEmpty ? nil : value, "filter", for: ScreenStateStore.chipFilter)
@@ -251,13 +312,15 @@ public struct ChipFilterScreen: View {
     private func chip(_ option: ChipOption) -> some View {
         let on = filter.isOn(option)
         // What the results would become. For a lit chip that is the count after
-        // turning it *off*, which is equally the useful number. Countries are
-        // not entries, so their share is added by hand (0.6.2, B3).
-        let count = db.count(withChip: option, added: filter)
-            + (filter.toggling(option).includesCountries ? db.searchableCountries.count : 0)
+        // turning it *off*, which is equally the useful number. Costed once per
+        // filter change in `recomputeChipCounts` rather than here, which is
+        // inside a `ForEach` inside a body pass (AUDIT M5).
+        let costed = chipCounts[option]
+        let count = costed ?? 0
         // A chip that leads nowhere is still tappable — it is a fact about the
-        // data worth being able to see — but it says so.
-        let dead = !on && count == 0
+        // data worth being able to see — but it says so. Keyed off `costed`,
+        // not `count`: an uncosted chip is unknown, not dead.
+        let dead = !on && costed == 0
 
         return Button {
             Haptics.select()

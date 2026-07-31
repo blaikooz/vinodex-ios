@@ -756,8 +756,14 @@ public struct SettingsSectionPanel: View {
                             scaleRaw = option.rawValue
                         } label: {
                             Text(option.rawValue)
+                                // No `.tracking(1)` since 0.6.4: a third option
+                                // splits the row into ~97pt columns, and the
+                                // retro face advances a full em, so six letters
+                                // plus tracking no longer clear it. The letter-
+                                // spacing is what gives, not the size.
                                 .font(DexFont.retro(13))
-                                .tracking(1)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
                                 .foregroundStyle(scale == option ? lcd.onAccent : lcd.subtext)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 17)
@@ -769,7 +775,7 @@ public struct SettingsSectionPanel: View {
                         .buttonStyle(DexPressStyle(scale: 0.97))
                     }
                 }
-                Text("Applies everywhere. Capped so the retro face still fits its tiles.")
+                Text("Vinodex sizes its own text — this is the control, not iOS Settings.")
                     .font(DexFont.mono(17))
                     .foregroundStyle(lcd.subtext)
                     .fixedSize(horizontal: false, vertical: true)

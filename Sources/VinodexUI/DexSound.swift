@@ -5,7 +5,7 @@ import UIKit
 /// The device's voice — the authored SFX pack (v0.5.6).
 ///
 /// The 0.5.3 single synthesized ping grew back into a small pack, but from
-/// *files* this time: the sounds are authored in `shared/newicons/sfx`,
+/// *files* this time: the sounds are authored in `art/sfx`,
 /// labeled by their intended use, and bundled under `Resources/SFX`. Events
 /// without an authored sound (page sweeps, the wrong-answer buzz, boot) stay
 /// deliberately silent until a labeled file arrives — their entry points

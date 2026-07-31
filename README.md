@@ -170,7 +170,12 @@ vinodex-ios/
   Tests/
     VinodexCoreTests/      Tests for VinodexCore — the only target with coverage
   shared/                  The data + colour tables, as TypeScript. Source of truth for the JSON.
-  art/icons/               Drawn icon source art, one folder per use (flavors, soil, countries, …)
+  art/icons/               Drawn icon source art, one folder per use (flavors, styles,
+                           grapes, classes, subclasses, color, body, climate, soil,
+                           countries, continents, styleclasses)
+  art/icons/reference/     Contact sheets — the artist's originals, not imported
+  art/icons/attic/         Drawn but unreferenced; kept so nothing is lost
+  art/sfx/                 Audio masters, the source for Resources/SFX
   scripts/                 Data generator and icon rasteriser
   pixelflags/              Pixel-art country/state flags, the source for Resources/Flags
   xtool.yml                Bundle ID and icon path for xtool
@@ -187,12 +192,25 @@ Regenerate only after changing something under `shared/`:
 ```bash
 npm install
 npm run generate           # rewrites the five JSON files
-npm run icons              # re-rasterises Icons/ and re-copies Flags/
+npm run icons              # Icons/ + Flags/ + the four drawn-art importers
+npm run icons:verify       # checks art/ still reproduces the committed art
 ```
 
-`npm run icons` needs `rsvg-convert` (`apt install librsvg2-bin`), `python3`, and
-network access to `api.iconify.design`. Verify any new Iconify id resolves before
-adding it — the API answers a miss with a non-SVG body rather than an error.
+`npm run icons` needs `rsvg-convert` (`apt install librsvg2-bin`), `python3`,
+Pillow (`pip install -r scripts/requirements.txt`), and network access to
+`api.iconify.design`. Verify any new Iconify id resolves before adding it — the
+API answers a miss with a non-SVG body rather than an error. `SKIP_ART=1` runs
+the Iconify/flag half alone; `SKIP_FLAGS=1` skips the flag copy. Both announce
+themselves in the log.
+
+The drawn half of the pipeline reads `art/icons/**` and writes
+`Sources/VinodexUI/Resources/{FlavorArt,GrapeArt,StyleArt,ClassArt}`.
+`npm run icons:verify` re-runs those four importers into a temp directory —
+never over your working copy — and compares pixels against what is committed.
+It is not byte-exact by design: the 256-colour quantise resolves its palette
+slightly differently across Pillow builds, so ten saturated sources land a few
+pixels off. Those ten carry a recorded budget in `scripts/verify-art.py`;
+anything else that moves is a real change.
 
 Generation is deterministic: a change scoped to one table leaves the other files
 byte-identical. Always check `git diff --stat Sources/VinodexCore/Resources/`

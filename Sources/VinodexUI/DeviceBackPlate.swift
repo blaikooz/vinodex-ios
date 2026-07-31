@@ -415,7 +415,7 @@ private struct PassportStamp: View {
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
             Text("★ ADMITTED ★")
-                .font(DexFont.mono(9))
+                .font(DexFont.mono(10))
                 .tracking(2)
                 .opacity(0.85)
         }

@@ -101,9 +101,14 @@ public struct EncyclopediaListScreen: View {
         }
     }
 
+    /// The query the last `task` run started from — see `awaitSearchDebounce`.
+    @State private var debouncedFrom = ""
+
     private func recompute() {
-        let entries = db.entries.apply(
-            EntryQuery(categories: categories, filter: filter, search: search)
+        // `db.entries(matching:)`, not `db.entries.apply(_:)`: the folding and
+        // the sort are done once at load rather than per keystroke (AUDIT M5).
+        let entries = db.entries(
+            matching: EntryQuery(categories: categories, filter: filter, search: search)
         ).map(SearchRow.entry)
         let countries = showsCountries
             ? db.countries(matching: search).map(SearchRow.country)
@@ -119,7 +124,12 @@ public struct EncyclopediaListScreen: View {
     /// `@State` assignment invalidates whether or not the value changed.
     public var body: some View {
         content
-            .task(id: search) { recompute() }
+            .task(id: search) {
+                let previous = debouncedFrom
+                debouncedFrom = search
+                guard await awaitSearchDebounce(from: previous, to: search) else { return }
+                recompute()
+            }
     }
 
     private var content: some View {
@@ -150,16 +160,13 @@ public struct EncyclopediaListScreen: View {
                         }
 
                         if rows.isEmpty {
-                            // An empty list with an empty query cannot be a
-                            // no-results message — if the database also reported
-                            // load errors, say so instead of letting a broken
-                            // build read like a search that found nothing.
-                            // (0.6.3, item 1 — AUDIT M2)
-                            if !db.decodeErrors.isEmpty && search.isEmpty {
-                                dataLoadErrorState
-                            } else {
-                                emptyState
-                            }
+                            // The query no longer decides whether an empty list
+                            // is a fault or an answer — `db.dataState` does. The
+                            // old `&& search.isEmpty` gate suppressed the error
+                            // on exactly the path that produced the reported
+                            // symptom, because the query survives navigation.
+                            // (AUDIT M2)
+                            DexEmptyState { emptyState }
                         } else {
                             ForEach(rows) { row in
                                 switch row {
@@ -281,27 +288,6 @@ public struct EncyclopediaListScreen: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 60)
         .opacity(0.6)
-    }
-
-    /// The truth when the database itself failed to load (0.6.3, item 1 —
-    /// AUDIT M2). "NO DATA FOUND" reads as a no-results message, which sent
-    /// anyone hitting a broken build hunting for a typo in their search; the
-    /// detail lives in the DEV panel, and this points there.
-    private var dataLoadErrorState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 40))
-                .foregroundStyle(Dex.red500)
-            Text("DATA LOAD ERROR")
-                .font(DexFont.retro(11))
-                .foregroundStyle(Dex.red500)
-            Text("The wine database failed to load. See SETTINGS > DEV for details.")
-                .font(DexFont.mono(16))
-                .foregroundStyle(lcd.subtext)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 60)
     }
 }
 #endif

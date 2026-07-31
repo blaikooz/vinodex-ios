@@ -20,10 +20,66 @@ white is the cheaper defect; art where it matters should re-export on a
 magenta key (path 1).
 
 Used by import-flavor-art.py, import-grape-art.py and import-style-art.py.
+
+Also holds `resolve_source_dir()`, the one place that knows where the drawn-art
+sources live. Four copies of that lookup are how the path assumption drifted
+away from the tree in the first place (AUDIT H12).
 """
+import os
+import shutil
+import sys
 from collections import deque
 
 WHITE_FLOOR = 240
+
+
+def resolve_source_dir(root, *parts):
+    """The drawn-art source directory, or a named exit.
+
+    `argv[1]` wins so a fresh artist drop can be imported without moving it in.
+    Otherwise it is `art/icons/<parts>` — a tracked tree, so a miss means the
+    checkout is wrong rather than that the caller forgot an argument. The old
+    message ("no source dir found; pass it explicitly") named neither the path
+    it wanted nor the remedy, which is what made H12 hard to diagnose.
+    """
+    if len(sys.argv) > 1:
+        candidate = sys.argv[1]
+        if not os.path.isdir(candidate):
+            sys.exit(f"source dir does not exist: {candidate}")
+        return candidate
+    candidate = os.path.join(root, "art", "icons", *parts)
+    if os.path.isdir(candidate):
+        return candidate
+    sys.exit(
+        f"no drawn-art source at {candidate}\n"
+        "  art/ is tracked in this repo — check out the branch, or pass a source dir:\n"
+        f"    python3 {os.path.basename(sys.argv[0])} <source-dir>"
+    )
+
+
+def output_dir(root, name):
+    """Where an importer writes. `ART_OUT` redirects the whole set.
+
+    Only `scripts/verify-art.py` sets it, so that a *verification* run can
+    regenerate into a temp tree instead of overwriting the working copy. A
+    command called `icons:verify` that silently rewrites 254 tracked binaries
+    would be a trap, not a check.
+    """
+    base = os.environ.get("ART_OUT") or os.path.join(root, "Sources", "VinodexUI", "Resources")
+    return os.path.join(base, name)
+
+
+def copy_master(path, out):
+    """Ship a hand-authored master verbatim.
+
+    A handful of assets never went through an importer: they are per-colour
+    recolours of a sibling, done by hand, with no generating script. They ship
+    as RGBA, and re-running `strip_background` + `quantize(colors=256)` over
+    them is *lossy* — measured at 49-62% of opaque pixels moved on the two
+    style portraits — so the pipeline copies them instead of reprocessing
+    them. Listed per importer in a `MASTERS` set (AUDIT H12).
+    """
+    shutil.copyfile(path, out)
 
 
 def _is_magenta(px):

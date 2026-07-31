@@ -285,7 +285,7 @@ downloads. Run long jobs inline in an attached session.
 ```bash
 npm install
 npm run generate          # rewrites the five JSON files under Sources/
-npm run icons             # needs rsvg-convert + network
+npm run icons             # needs rsvg-convert + Pillow + network
 ```
 
 Generation is **deterministic** — a change scoped to the icon tables leaves
@@ -358,7 +358,8 @@ a subdirectory. It owns everything it needs:
 | `Sources/`, `Tests/`, `Package.swift`, `xtool.yml` | the app |
 | `shared/` | data + colour tables, pure TS, zero dependencies |
 | `pixelflags/` | pixel-art flags, source for `Sources/VinodexUI/Resources/Flags` |
-| `scripts/` | `generate-ios-data.ts`, `rasterize-icons.sh` |
+| `art/` | drawn icon source art + audio masters, one folder per use |
+| `scripts/` | `generate-ios-data.ts`, `rasterize-icons.sh`, the four art importers, `verify-art.py` |
 
 One remote, `origin` → `blaikooz/vinodex-ios`. Commit and open PRs here.
 

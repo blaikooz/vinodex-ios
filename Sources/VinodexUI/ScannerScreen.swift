@@ -28,6 +28,21 @@ public struct ScannerScreen: View {
     /// persist across the trip to an entry, but a half-typed query is scaffolding,
     /// not an answer.
     @State private var flavorQuery = ""
+    /// What that box matches, recomputed on change rather than in `body`.
+    ///
+    /// It was resolved inside a `@ViewBuilder` property, so it re-ran on every
+    /// body pass of the whole scanner — not merely on every keystroke —
+    /// re-folding every searched field of every entry each time (AUDIT M5).
+    @State private var flavorMatches: [WineEntry] = []
+    /// Which query `flavorMatches` actually answers. `nil` until the first run.
+    ///
+    /// Load-bearing for the empty case: during the debounce the results belong
+    /// to the *previous* query, and an empty array then means "not asked yet",
+    /// not "nothing matches". Without this the first character typed produces
+    /// "No flavor matches that." for the length of the debounce.
+    @State private var matchedQuery: String?
+    /// The query the last `task` run started from — see `awaitSearchDebounce`.
+    @State private var debouncedFrom = ""
 
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
@@ -204,6 +219,17 @@ public struct ScannerScreen: View {
             }
         }
         .onAppear { restore() }
+        // Debounced (AUDIT M5): `task(id:)` cancels the pending run on the next
+        // keystroke, so a burst of typing queries once at the end of the burst.
+        .task(id: flavorQuery) {
+            let previous = debouncedFrom
+            debouncedFrom = flavorQuery
+            guard await awaitSearchDebounce(from: previous, to: flavorQuery) else { return }
+            flavorMatches = db.entries(
+                matching: EntryQuery(categories: [.flavors], search: flavorQuery)
+            )
+            matchedQuery = flavorQuery
+        }
         // Mirrored on change rather than at each of the dozen call sites that
         // move the cursor or amend an answer — one of those would eventually be
         // added without its matching save.
@@ -477,11 +503,11 @@ public struct ScannerScreen: View {
     /// lists use, minus the trip through the taxonomy.
     @ViewBuilder
     private var flavorSearchResults: some View {
-        let matches = db.entries.apply(EntryQuery(categories: [.flavors], search: flavorQuery))
-
-        if matches.isEmpty {
-            emptyNote("No flavor matches that.")
-        } else {
+        let matches = flavorMatches
+        if !matches.isEmpty {
+            // Held from the previous query while a new one debounces, which is
+            // what a search list is expected to do — the alternative is a blank
+            // beat between every pair of keystrokes.
             FlowLayout(spacing: 6) {
                 ForEach(matches) { flavor in
                     let chosen = criteria.flavorIDs.contains(flavor.id)
@@ -497,6 +523,10 @@ public struct ScannerScreen: View {
                     }
                 }
             }
+        } else if matchedQuery == flavorQuery {
+            // Only once the results are known to answer *this* query. Empty
+            // before that means unasked, not unmatched — see `matchedQuery`.
+            emptyNote("No flavor matches that.")
         }
     }
 
@@ -537,7 +567,7 @@ public struct ScannerScreen: View {
             VStack(spacing: 6) {
                 DexIcon(iconID: iconID, size: 44, color: Color(dexHex: resolved.text))
                 Text(EntryDisplay.hyphenated(value.replacingOccurrences(of: "_", with: " ").uppercased()))
-                    .font(DexFont.retro(9))
+                    .font(DexFont.retro(10))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .minimumScaleFactor(0.6)

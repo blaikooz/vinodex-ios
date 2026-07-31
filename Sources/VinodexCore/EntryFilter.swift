@@ -200,26 +200,53 @@ public struct EntryQuery: Sendable, Hashable {
 }
 
 extension WineEntry {
+    /// The fields free-text search scans, matching the web app's list.
+    ///
+    /// One definition, read by both the folded index and the unindexed match,
+    /// so the two cannot drift into searching different things.
+    var searchFields: [String] {
+        var fields: [String] = [name, entryDescription]
+        if let origin { fields.append(origin) }
+        if let classification { fields.append(classification) }
+        if case .region(let r) = self, let state = r.details.state { fields.append(state) }
+        fields.append(contentsOf: keyRegions)
+        fields.append(contentsOf: synonyms)
+        fields.append(contentsOf: tags)
+        return fields
+    }
+
+    /// `searchFields`, folded once and joined — the value `WineDatabase` builds
+    /// at load so a query costs one `contains` per entry instead of folding
+    /// every field of every entry again (AUDIT M5).
+    ///
+    /// The newline separator is load-bearing. A query cannot contain one (the
+    /// search bar is a single-line `UITextField`), so any newline-free
+    /// substring of the joined text lies wholly inside one field — the join
+    /// cannot manufacture a match that spans two of them, which is what makes
+    /// this exactly equivalent to the per-field scan below.
+    var searchHaystack: String {
+        searchFields.map(TextNormalize.label).joined(separator: "\n")
+    }
+
     /// Free-text match across the same fields the web app searches.
+    ///
+    /// The unindexed path: it folds every field of the entry on every call.
+    /// Prefer `WineDatabase.entries(matching:)`, which folds once at load; this
+    /// stays for `[WineEntry].apply(_:)`, which has no index to read.
     func matchesSearch(_ query: String) -> Bool {
         let q = TextNormalize.label(query)
         guard !q.isEmpty else { return true }
-
-        var haystacks: [String] = [name, entryDescription]
-        if let origin { haystacks.append(origin) }
-        if let classification { haystacks.append(classification) }
-        if case .region(let r) = self, let state = r.details.state { haystacks.append(state) }
-        haystacks.append(contentsOf: keyRegions)
-        haystacks.append(contentsOf: synonyms)
-        haystacks.append(contentsOf: tags)
-
-        return haystacks.contains { TextNormalize.label($0).contains(q) }
+        return searchFields.contains { TextNormalize.label($0).contains(q) }
     }
 }
 
 public extension Array where Element == WineEntry {
     /// Applies a query, returning entries sorted by name — the same order the
     /// web app's list uses (`localeCompare`).
+    ///
+    /// Unindexed, so it re-folds and re-sorts on every call. Screens should go
+    /// through `WineDatabase.entries(matching:)` instead (AUDIT M5); this is
+    /// for callers holding an arbitrary array rather than the database.
     func apply(_ query: EntryQuery) -> [WineEntry] {
         filter { entry in
             guard query.categories.contains(entry.category) else { return false }

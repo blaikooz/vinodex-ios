@@ -519,7 +519,12 @@ public struct DeviceChassis<Content: View>: View {
             MarqueeBanner(
                 segments: footerSegments,
                 symbol: footerSymbol,
-                fontSize: DexMetrics.marqueeTextSize
+                fontSize: DexMetrics.marqueeTextSize,
+                // `showsBackFace`, not `isFlipped`: the front face stays fully
+                // visible through the first half of the turn, and freezing a
+                // marquee that is still on screen reads as a hang. This is the
+                // exact instant the face goes to `opacity 0`. (AUDIT M8)
+                paused: showsBackFace
             )
             .frame(maxWidth: DexMetrics.marqueeMaxWidth)
             .frame(maxWidth: .infinity)
@@ -840,6 +845,10 @@ public struct MarqueeBanner: View {
     let symbol: String?
     let fontSize: CGFloat
     var pointsPerSecond: Double = 34
+    /// Stops the clock (AUDIT M8). The strip is inside the front face, which
+    /// the flip merely hides at `opacity 0` — without this it kept redrawing at
+    /// the display's refresh rate, forever, behind an opaque metal back plate.
+    var paused: Bool = false
 
     /// The first copy's width, measured from its own laid-out geometry.
     ///
@@ -856,7 +865,18 @@ public struct MarqueeBanner: View {
 
     /// Spacing between the two copies — part of the cycle geometry, scaled
     /// like the glyphs.
-    private var gap: CGFloat { fontSize * TextScale.current.factor * 1.5 }
+    ///
+    /// Resolved in `init`, not per access (AUDIT M8). It was a computed
+    /// property reading `TextScale.current`, which is a `UserDefaults` lookup,
+    /// and the `TimelineView` closure touches it four times per frame — so a
+    /// banner nobody is looking at was hitting the defaults store ~500×/s.
+    /// `DeviceChassis` is `.id`-keyed on the text scale, so a change rebuilds
+    /// this view rather than needing it re-read.
+    private let gap: CGFloat
+    /// Likewise: `DexFont.retro` reads `TextScale.current` on every call, and
+    /// `label` is rebuilt inside the timeline closure on every frame.
+    private let segmentFont: Font
+    private let symbolSize: CGFloat
 
     /// The strip's phosphor follows the shell — see `ChassisSkin.marqueeText`.
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
@@ -867,12 +887,25 @@ public struct MarqueeBanner: View {
         segments: [String],
         symbol: String? = nil,
         fontSize: CGFloat,
-        pointsPerSecond: Double = 34
+        pointsPerSecond: Double = 34,
+        paused: Bool = false
     ) {
         self.segments = segments
         self.symbol = symbol
         self.fontSize = fontSize
         self.pointsPerSecond = pointsPerSecond
+        self.paused = paused
+
+        // Through the resolver, not `fontSize * TextScale.current.factor`:
+        // since 0.6.4 a size floor sits between the two, so the hand-rolled
+        // form can disagree with what `DexFont.retro` actually drew. The gap
+        // and the symbol are laid out against the glyphs, and this file has
+        // already lost three rounds to a marquee seam that skipped by exactly
+        // such a disagreement (audit M8, M9).
+        let pt = DexFont.resolvedSize(fontSize)
+        self.gap = pt * 1.5
+        self.segmentFont = DexFont.retro(fontSize)
+        self.symbolSize = pt * 0.8
     }
 
     public var body: some View {
@@ -892,7 +925,12 @@ public struct MarqueeBanner: View {
             // cannot be restarted mid-run by a re-render. The cycle is one
             // measured copy plus the gap: the second copy starts exactly
             // there, so a wrap lands on identical pixels.
-            TimelineView(.animation) { context in
+            // `paused:` and not simply unmounting the strip: the measured
+            // `copyWidth` has to survive, or the flip back holds still at
+            // shift 0 until the geometry reader lands again. The offset is a
+            // pure function of the clock, so resuming needs no stored phase.
+            // (AUDIT M8)
+            TimelineView(.animation(paused: paused)) { context in
                 let cycle = copyWidth + gap
                 let elapsed = context.date.timeIntervalSinceReferenceDate
                 let shift = copyWidth > 0
@@ -940,7 +978,7 @@ public struct MarqueeBanner: View {
         HStack(spacing: gap) {
             ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
                 Text(segment)
-                    .font(DexFont.retro(fontSize))
+                    .font(segmentFont)
                     .foregroundStyle(skin.marqueeText)
                     .lineLimit(1)
                     .fixedSize()
@@ -948,7 +986,7 @@ public struct MarqueeBanner: View {
             }
             if let symbol {
                 Image(systemName: symbol)
-                    .font(.system(size: fontSize * TextScale.current.factor * 0.8, weight: .bold))
+                    .font(.system(size: symbolSize, weight: .bold))
                     .foregroundStyle(skin.marqueeText)
                     .shadow(color: skin.marqueeShadow.opacity(0.65), radius: 0, x: 1, y: 1)
             }

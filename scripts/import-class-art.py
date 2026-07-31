@@ -25,17 +25,25 @@ import sys
 
 from PIL import Image
 
-from art_common import strip_background
+from art_common import output_dir, resolve_source_dir, strip_background
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 MANIFEST = os.path.join(ROOT, "Sources", "VinodexCore", "Resources", "icons.json")
-DST = os.path.join(ROOT, "Sources", "VinodexUI", "Resources", "ClassArt")
+DST = output_dir(ROOT, "ClassArt")
 
 # Stem -> source path relative to art/icons. The stems are namespaced by
 # table (class-, subclass-, color-, body-, climate-, soil-, styleclass-,
 # outline-, globe-) so one flat ClassArt directory cannot collide with itself
 # or with the flavour/style/grape art the shared PixelArtLoader also searches.
+#
+# The per-use folder split on the SOURCE side is load-bearing too, and less
+# obvious: `chalk.png`, `earth.png`, `game.png` and `orange.png` each exist
+# twice under art/icons/ as genuinely different art — a taxonomy glyph and a
+# flavour portrait. Only the folder decides which one a stem gets. Flatten the
+# tree and soil-chalk / subclass-earth / subclass-game / color-orange silently
+# start shipping the flavour drawing instead. (This is why H12 was fixed by
+# re-foldering rather than by re-pointing the scripts at a flat directory.)
 SOURCE_FOR = {
     "class-sweet": "classes/sweet.png",
     "class-sour": "classes/sour.png",
@@ -134,14 +142,6 @@ SOURCE_FOR = {
 }
 
 
-def source_dir():
-    if len(sys.argv) > 1:
-        return sys.argv[1]
-    candidate = os.path.join(ROOT, "art", "icons")
-    if os.path.isdir(candidate):
-        return candidate
-    sys.exit("no source dir found; pass it explicitly")
-
 
 def art_stems(manifest):
     """Every `art:` id the manifest carries, as bare stems."""
@@ -161,7 +161,7 @@ def art_stems(manifest):
 
 
 def main():
-    src = source_dir()
+    src = resolve_source_dir(ROOT)
     with open(MANIFEST, encoding="utf-8") as fh:
         stems = art_stems(json.load(fh))
     if not stems:

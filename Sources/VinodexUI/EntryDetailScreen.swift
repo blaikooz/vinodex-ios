@@ -467,7 +467,7 @@ public struct EntryDetailScreen: View {
             }
             VStack(alignment: .leading, spacing: 3) {
                 Text("KEY GRAPE")
-                    .font(DexFont.retro(8))
+                    .font(DexFont.retro(10))
                     .foregroundStyle(lcd.accent)
                 Text(chipData.label)
                     .font(DexFont.retro(13))
@@ -526,7 +526,7 @@ public struct EntryDetailScreen: View {
         let tint = Color(dexHex: db.palette.resolve(chip).text)
         return VStack(spacing: 5) {
             Text(label)
-                .font(DexFont.retro(8))
+                .font(DexFont.retro(10))
                 .foregroundStyle(lcd.accent)
             icon(tint)
                 .frame(height: 40)
@@ -671,7 +671,7 @@ public struct EntryDetailScreen: View {
                                     .strokeBorder(Color(dexHex: visual.color), lineWidth: 2)
                             )
                         Text(soil.uppercased())
-                            .font(DexFont.retro(9))
+                            .font(DexFont.retro(10))
                             .foregroundStyle(lcd.text)
                             .multilineTextAlignment(.center)
                             .lineLimit(2)

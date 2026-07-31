@@ -1,0 +1,9 @@
+# Python side of `npm run icons` — the four drawn-art importers and
+# scripts/verify-art.py. The Iconify/flag half needs only rsvg-convert.
+#
+# The version is recorded rather than enforced. `Image.quantize(colors=256)`
+# resolves its palette slightly differently across Pillow builds, and PNG bytes
+# also depend on the deflate library the wheel links, so a different Pillow
+# produces visually identical art with different bytes. verify-art.py compares
+# pixels for exactly that reason; pinning here just keeps a team on one result.
+Pillow==12.3.0

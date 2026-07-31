@@ -120,7 +120,7 @@ public struct MoonDialScreen: View {
     private func row(_ label: String, _ value: String) -> some View {
         HStack(spacing: 10) {
             Text(label)
-                .font(DexFont.retro(9))
+                .font(DexFont.retro(10))
                 .tracking(1)
                 .foregroundStyle(lcd.subtext)
             Spacer(minLength: 8)

@@ -300,6 +300,22 @@ public final class WineDatabase: Sendable {
     /// that pass `category: nil`.
     private let byNameAnyCategory: [String: WineEntry]
 
+    /// Every entry, pre-sorted into the display order every listing uses, and
+    /// the folded search text for each — parallel arrays, built once at load
+    /// (AUDIT M5).
+    ///
+    /// `[WineEntry].apply(_:)` did both halves per call: it folded every
+    /// searched field of every entry against the query, then sorted the
+    /// survivors with `localizedCaseInsensitiveCompare`. On the list screen
+    /// that ran per keystroke; on the chip filter and the scanner it ran per
+    /// *body pass*. Sorting once and folding once is the same trick `byName`
+    /// already plays for `entry(named:)` — see the note there.
+    ///
+    /// Filtering a sorted array preserves its order, so `entries(matching:)`
+    /// needs no sort at all.
+    private let sortedEntries: [WineEntry]
+    private let searchHaystacks: [String]
+
     /// Countries, as searchable items (v0.5.6). Countries are not entries —
     /// a country page is assembled from the regions that name it — so master
     /// and world search list them from here. Only countries with regions in
@@ -359,6 +375,12 @@ public final class WineDatabase: Sendable {
         self.byID = ids
         self.byName = names
         self.byNameAnyCategory = anyName
+
+        let sorted = entries.sorted {
+            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
+        self.sortedEntries = sorted
+        self.searchHaystacks = sorted.map(\.searchHaystack)
     }
 
     /// Whether an entry is in the free tier.
@@ -564,8 +586,33 @@ public final class WineDatabase: Sendable {
 
     // MARK: - Queries
 
+    /// A listing, resolved against the load-time index (AUDIT M5).
+    ///
+    /// Prefer this to `entries.apply(_:)` anywhere the database is to hand:
+    /// entries are walked in display order against haystacks folded at load,
+    /// so a query costs one substring test per entry and no sort at all. The
+    /// filter, when there is one, is evaluated last — it is the only clause
+    /// that still normalises per call.
+    public func entries(matching query: EntryQuery) -> [WineEntry] {
+        let q = TextNormalize.label(query.search)
+        var out: [WineEntry] = []
+        for index in sortedEntries.indices {
+            let entry = sortedEntries[index]
+            guard query.categories.contains(entry.category) else { continue }
+            if !q.isEmpty, !searchHaystacks[index].contains(q) { continue }
+            if let filter = query.filter, !filter.matches(entry) { continue }
+            out.append(entry)
+        }
+        return out
+    }
+
+    /// Every entry in the display order every listing uses, sorted once at
+    /// load. Exposed so a listing narrowed by something that is not an
+    /// `EntryQuery` — the chip filter — also needs no sort of its own.
+    public var entriesInDisplayOrder: [WineEntry] { sortedEntries }
+
     public func entries(in category: EntryCategory) -> [WineEntry] {
-        entries.apply(.category(category))
+        entries(matching: .category(category))
     }
 
     /// The searchable countries matching a query — all of them for an empty
@@ -618,7 +665,7 @@ public final class WineDatabase: Sendable {
     }
 
     public func regions(in continent: Continent) -> [WineEntry] {
-        entries.apply(.category(.regions, filter: filter(for: continent)))
+        entries(matching: .category(.regions, filter: filter(for: continent)))
     }
 
     /// Whether at least one region in the current selection has this country

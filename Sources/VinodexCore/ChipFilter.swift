@@ -221,10 +221,10 @@ public struct ChipFilter: Codable, Sendable, Hashable {
 public extension WineDatabase {
     /// Everything surviving a chip selection, in the same name order every other
     /// listing uses.
+    /// Filtering the pre-sorted list rather than sorting the survivors: the
+    /// order is already right, and this ran per body pass (AUDIT M5).
     func entries(matching filter: ChipFilter) -> [WineEntry] {
-        entries
-            .filter { filter.matches($0) }
-            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        entriesInDisplayOrder.filter { filter.matches($0) }
     }
 
     /// What the result count *would be* if this chip were tapped.

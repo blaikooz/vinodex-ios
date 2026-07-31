@@ -9,11 +9,13 @@ name: CI
 # a green run does **not** mean the app builds; see the note in the summary step.
 # Closes AUDIT.md M34.
 
+# Every branch, not just main. Work happens on `audit` and on the `vN.N-batch`
+# branches, and scoping this to `[main]` meant a push to any of them ran nothing
+# at all — the batch that broke the macOS build was never checked by anything.
 on:
   push:
-    branches: [main]
+    branches: ['**']
   pull_request:
-    branches: [main]
 
 # A force-push or a quick follow-up commit should cancel the older run rather
 # than queue behind it.
@@ -59,10 +61,90 @@ jobs:
       - name: Test
         run: swift test --enable-code-coverage
 
+      # `TypeScale.nominalFloor` clamps at run time, so a sub-floor literal is
+      # not a *bug* — it just draws at 10 while claiming to draw at 8, which is
+      # how the app accumulated ten of them across six screens without anyone
+      # noticing. The unit tests cannot see VinodexUI (it compiles to nothing on
+      # Linux), so grep is the only thing that can hold this line. Closes the
+      # loop on AUDIT H11.
+      - name: Type floor (AUDIT H11)
+        run: |
+          bad=$(grep -rnE 'DexFont\.(retro|mono)\(([0-9]|[0-9]\.[0-9]+)\)' Sources/ || true)
+          if [ -n "$bad" ]; then
+            echo "$bad"
+            echo "::error title=Type floor::Below TypeScale.nominalFloor (10). The clamp will lift these to 10 anyway — write 10."
+            exit 1
+          fi
+          echo "no DexFont call site below the floor"
+
       - name: Note what this does not cover
         if: always()
         run: |
-          echo "::notice title=Scope::VinodexUI and VinodexApp are guarded behind canImport(SwiftUI) and compile to nothing on Linux. A syntax error in the UI layer cannot fail this job — only 'xtool dev build' catches those."
+          echo "::notice title=Scope::VinodexUI and VinodexApp are guarded behind canImport(UIKit) and compile to nothing on Linux. A *type* error in the UI layer cannot fail this job — the 'ios' job is what catches those. (A syntax error would fail here: inactive #if branches are still parsed.)"
+
+  # ── The only Xcode-grade type check this project has ─────────────────────────
+  #
+  # Neither maintainer can install Xcode, and xtool has no `test` subcommand and
+  # no simulator support — it builds and sideloads to a physical device only. So
+  # before this job, the only thing that ever type-checked the SwiftUI sources was
+  # someone plugging in a phone.
+  #
+  # That gap is not theoretical. Measured on 2026-07-31 with Swift 6.2.3: an
+  # undefined symbol injected inside `#if canImport(UIKit)` in Haptics.swift
+  # produced "Build complete!" from `swift build` on macOS and was invisible to
+  # `swift test` on Linux. Only an iOS compile sees it — and that is exactly the
+  # class of break that shipped as auditS C1.
+  #
+  # macOS runners are free on public repos. Note that a *macOS* build would not
+  # help: UIKit is unavailable there too, so VinodexUI compiles to nothing on
+  # macOS just as it does on Linux. `generic/platform=iOS` is the whole point.
+  ios:
+    name: iOS compile (Xcode)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      # No signing, no device, no simulator boot — a pure compile.
+      - name: Build for iOS
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -scheme Vinodex \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/dd" \
+            CODE_SIGNING_ALLOWED=NO
+
+  # ── iOS-hosted tests, on a runner instead of a Mac someone owns ──────────────
+  #
+  # This is what makes UIKit/SwiftUI-dependent tests writable at all. Today it
+  # runs the existing VinodexCoreTests in a real iOS environment, which is already
+  # worth something (Foundation differs from Linux). Its real purpose is to give
+  # a `VinodexUITests` target somewhere to run: guard every file in it with
+  # `#if canImport(SwiftUI) && canImport(UIKit)`, exactly as all 34 files in
+  # Sources/VinodexUI/ already are, and it compiles to an empty module on Linux
+  # while running for real here.
+  ios-test:
+    name: iOS tests (Simulator)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Available simulators
+        run: xcrun simctl list devices available
+
+      - name: Test on iOS Simulator
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -scheme Vinodex \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -derivedDataPath "$RUNNER_TEMP/dd" \
+            CODE_SIGNING_ALLOWED=NO
 
   # The generated data is committed, so a drifted checkout means someone edited
   # shared/ without regenerating. Cheap to catch here; confusing to find later.
