@@ -29,8 +29,34 @@ MANIFEST="${1:-$REPO_ROOT/Sources/VinodexCore/Resources/icons.json}"
 OUTDIR="${2:-$REPO_ROOT/Sources/VinodexUI/Resources/Icons}"
 BASE=64   # @1x edge in points; @2x and @3x are multiples
 
-command -v rsvg-convert >/dev/null || { echo "rsvg-convert not found (Linux: apt install librsvg2-bin  •  macOS: brew install librsvg)"; exit 1; }
 [ -f "$MANIFEST" ] || { echo "manifest not found: $MANIFEST"; exit 1; }
+
+total=0
+failed=0
+
+# Preflight the drawn-art half BEFORE the network rasterize, so a missing
+# prerequisite is named in the first second rather than after minutes of work
+# (audit H12). Deliberately does not exit here: a machine with rsvg-convert but
+# no Pillow should still regenerate every Iconify glyph and copy the flags —
+# that is the common case for anyone adding an icon id. It records the failure
+# and the run exits non-zero at the end, same as any other partial failure.
+art_ready=1
+if [ "${SKIP_ART:-0}" != "1" ]; then
+  if ! python3 -c 'import PIL' 2>/dev/null; then
+    echo "  Pillow not found — the drawn-art importers will be skipped."
+    echo "    pip install -r $HERE/requirements.txt   (or set SKIP_ART=1 to skip intentionally)"
+    art_ready=0
+    failed=$((failed + 1))
+  fi
+  if [ ! -d "$REPO_ROOT/art/icons" ]; then
+    echo "  drawn-art sources not found at $REPO_ROOT/art/icons — the importers will be skipped."
+    echo "    art/ is tracked in this repo; check out the branch, or set SKIP_ART=1."
+    art_ready=0
+    failed=$((failed + 1))
+  fi
+fi
+
+command -v rsvg-convert >/dev/null || { echo "rsvg-convert not found (Linux: apt install librsvg2-bin  •  macOS: brew install librsvg)"; exit 1; }
 
 mkdir -p "$OUTDIR"
 
@@ -41,8 +67,6 @@ with open(sys.argv[1]) as fh:
     print('\n'.join(json.load(fh)['unique']))
 " "$MANIFEST")
 
-total=0
-failed=0
 
 while IFS= read -r icon; do
   [ -z "$icon" ] && continue
@@ -177,7 +201,15 @@ fi
 # SKIP_ART=1 runs the Iconify/flag half alone.
 # ---------------------------------------------------------------------------
 
-if [ "${SKIP_ART:-0}" != "1" ]; then
+# Merged (testing): PR #10's preflight/skip arms (H12) around the 0.6.4
+# importer roster, which includes import-stamp-art.py.
+if [ "${SKIP_ART:-0}" = "1" ]; then
+  # SKIP_FLAGS echoes its acknowledgement; this arm used to be missing entirely,
+  # so an inherited SKIP_ART produced a log indistinguishable from a full run.
+  echo "  skipping drawn-art importers (SKIP_ART=1)"
+elif [ "$art_ready" -eq 0 ]; then
+  echo "  skipping drawn-art importers — see the preflight message above"
+else
   for importer in import-flavor-art.py import-grape-art.py import-style-art.py import-class-art.py import-stamp-art.py; do
     if ! python3 "$HERE/$importer"; then
       echo "  FAIL $importer"

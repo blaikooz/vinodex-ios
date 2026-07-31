@@ -335,20 +335,39 @@ public enum DexFont {
     public static let retroAvailable: Bool = { _ = registration; return isAvailable(names.retro) }()
     public static let monoAvailable: Bool = { _ = registration; return isAvailable(names.mono) }()
 
+    /// The point size a nominal size actually draws at — floor and step applied.
+    ///
+    /// Public because three places outside `DexFont` need the same number: the
+    /// marquee derives its glyph gap from it, and anything measuring a label has
+    /// to measure the size that was drawn. Every one of them used to re-derive
+    /// `size * TextScale.current.factor` by hand, which stopped being correct
+    /// the moment a floor existed.
+    public static func resolvedSize(_ nominal: CGFloat) -> CGFloat {
+        CGFloat(TypeScale.resolve(nominal: Double(nominal), step: TextScale.current))
+    }
+
     /// Pixel display face — titles, category labels, chips.
+    ///
+    /// `fixedSize:`, not `size:`, and that one token is half of AUDIT H11.
+    /// `Font.custom(_:size:)` auto-scales with the system text size while
+    /// `Font.system(size:...)` below does not, so the two branches of this
+    /// function used to have *different* accessibility behaviour — a failed font
+    /// registration silently froze the app's type. Both are fixed now, so the
+    /// fallback changes the typeface and nothing else, and `TextScale` is the
+    /// single axis. See VinodexCore/TypeScale.swift.
     public static func retro(_ size: CGFloat) -> Font {
-        let size = size * TextScale.current.factor
+        let pt = resolvedSize(size)
         return retroAvailable
-            ? .custom(names.retro, size: size)
-            : .system(size: size, weight: .bold, design: .monospaced)
+            ? .custom(names.retro, fixedSize: pt)
+            : .system(size: pt, weight: .bold, design: .monospaced)
     }
 
     /// CRT terminal face — body copy and readouts.
     public static func mono(_ size: CGFloat) -> Font {
-        let size = size * TextScale.current.factor
+        let pt = resolvedSize(size)
         return monoAvailable
-            ? .custom(names.mono, size: size)
-            : .system(size: size, design: .monospaced)
+            ? .custom(names.mono, fixedSize: pt)
+            : .system(size: pt, design: .monospaced)
     }
 
     /// Whether a face actually resolved. Distinguishes "registered" from
@@ -383,42 +402,9 @@ public enum DexResources {
     }
 }
 
-/// Main-screen text scale. Deliberately a small adjustment with a hard floor
-/// and ceiling: the retro face has no optical sizes, so a large jump breaks the
-/// tile layout and a small one stops being legible at arm's length.
-///
-/// Applies to the main menu only — entry screens carry long copy and already
-/// wrap, so scaling those is a different problem.
-public enum TextScale: String, CaseIterable, Identifiable, Sendable {
-    case small = "SMALL"
-    case large = "LARGE"
-
-    public static let storageKey = "textScale"
-
-    public var id: String { rawValue }
-
-    /// Both steps moved down one notch: LARGE is now what SMALL used to be
-    /// (1.0), and SMALL goes below it. The old pair ran 1.0/1.2, which meant
-    /// the *smallest* the app could be was already the size the tiles were
-    /// drawn against — there was headroom above the layout but none below it,
-    /// and LARGE was the one that crowded its tiles.
-    ///
-    /// 1.0 stays the ceiling for the same reason it was the old floor: the
-    /// retro face has no optical sizes and the tile metrics are tuned to it.
-    public var factor: CGFloat {
-        switch self {
-        case .small: 0.85
-        case .large: 1.0
-        }
-    }
-
-    /// Read straight from defaults so `DexFont` can apply it without every
-    /// call site threading it through. Views re-render because `RootView`
-    /// keys its content on the setting — see `VinodexApp`.
-    public static var current: TextScale {
-        TextScale(rawValue: UserDefaults.standard.string(forKey: storageKey) ?? "") ?? .small
-    }
-}
+// `TextScale` moved to VinodexCore/TypeScale.swift in 0.6.4 (AUDIT H11), along
+// with the size resolver it now goes through. It is re-exported by the
+// `import VinodexCore` every file here already carries.
 
 /// Chrome scale (v0.5.8, F1) — a second axis, independent of `TextScale`.
 ///

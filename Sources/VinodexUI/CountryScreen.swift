@@ -56,6 +56,33 @@ public struct CountryScreen: View {
         )
     }
 
+    /// Everything derived from the country's regions, resolved once (AUDIT M7).
+    ///
+    /// These were computed properties, and `regions` ran a full-database
+    /// filter — `.origin` normalises the origin and every tag of every entry —
+    /// then sorted the survivors. `body` reached it about ten times per pass:
+    /// the states section, the grapes section, the appellations fallback, the
+    /// regions list, and once more per state row for its count. Resolved in
+    /// `init` instead. The page is `.id(country)`-keyed and the database is
+    /// immutable for the life of the process, so there is nothing a later pass
+    /// could see that this one cannot.
+    private let regions: [WineEntry]
+    /// States that actually carry regions, in name order. Only the USA has any
+    /// in this data, so the section simply does not render elsewhere.
+    private let states: [String]
+    /// How many regions each state holds — the trailing number on a state row.
+    private let regionCounts: [String: Int]
+    /// Every grape this country's regions name, deduplicated and ordered by how
+    /// often they appear — the ones defining the country come first.
+    private let notableGrapes: [String]
+    /// The same list resolved to real entries, so the section is something you
+    /// can open rather than a row of chips that look tappable and are not.
+    private let grapeEntries: [WineEntry]
+    /// The country's appellation systems (0.6, A2): the authored canonical
+    /// list from `countries.json` when it exists, else the systems its
+    /// regions actually carry — the pre-0.6 derivation, kept as the fallback.
+    private let appellations: [String]
+
     public init(
         country: String,
         onSelectRegion: @escaping (WineEntry) -> Void,
@@ -64,21 +91,40 @@ public struct CountryScreen: View {
         self.country = country
         self.onSelectRegion = onSelectRegion
         self.onSelectState = onSelectState
-    }
 
-    private var regions: [WineEntry] {
-        db.entries.apply(EntryQuery(categories: [.regions], filter: .origin(country), search: ""))
-    }
+        // A local, not `self.db`: `self` is not fully initialised yet.
+        let db = WineDatabase.shared
+        let regions = db.entries(
+            matching: EntryQuery(categories: [.regions], filter: .origin(country), search: "")
+        )
+        self.regions = regions
 
-    /// States that actually carry regions, in name order. Only the USA has any
-    /// in this data, so the section simply does not render elsewhere.
-    private var states: [String] {
-        var seen: Set<String> = []
+        // One walk for all four derivations rather than one walk each.
+        var perState: [String: Int] = [:]
+        var grapeCounts: [String: Int] = [:]
+        var classifications: Set<String> = []
         for entry in regions {
-            guard case .region(let r) = entry, let state = r.details.state else { continue }
-            seen.insert(state)
+            for name in entry.notableGrapes { grapeCounts[name, default: 0] += 1 }
+            guard case .region(let r) = entry else { continue }
+            if let state = r.details.state { perState[state, default: 0] += 1 }
+            if !r.details.classification.isEmpty {
+                classifications.insert(r.details.classification)
+            }
         }
-        return seen.sorted()
+        self.regionCounts = perState
+        self.states = perState.keys.sorted()
+
+        let ranked = grapeCounts
+            .sorted { ($0.value, $1.key) > ($1.value, $0.key) }
+            .map(\.key)
+        self.notableGrapes = ranked
+        self.grapeEntries = ranked.compactMap { db.entry(named: $0, category: .grapes) }
+
+        if let system = db.countryInfo(country)?.appellationSystem, !system.isEmpty {
+            self.appellations = system
+        } else {
+            self.appellations = classifications.sorted()
+        }
     }
 
     public var body: some View {
@@ -192,22 +238,6 @@ public struct CountryScreen: View {
         }
     }
 
-    /// Every grape this country's regions name, deduplicated and ordered by how
-    /// often they appear — the ones defining the country come first.
-    private var notableGrapes: [String] {
-        var counts: [String: Int] = [:]
-        for entry in regions {
-            for name in entry.notableGrapes { counts[name, default: 0] += 1 }
-        }
-        return counts.sorted { ($0.value, $1.key) > ($1.value, $0.key) }.map(\.key)
-    }
-
-    /// Resolved to real entries so the section is a list you can open, not a
-    /// row of chips that look tappable and are not.
-    private var grapeEntries: [WineEntry] {
-        notableGrapes.compactMap { db.entry(named: $0, category: .grapes) }
-    }
-
     private var grapesSection: some View {
         let all = grapeEntries
         let shown = showsAllGrapes ? all : Array(all.prefix(3))
@@ -261,22 +291,6 @@ public struct CountryScreen: View {
         .buttonStyle(DexPressStyle(scale: 0.98))
     }
 
-    /// The country's appellation systems (0.6, A2): the authored canonical
-    /// list from `countries.json` when it exists, else the systems its
-    /// regions actually carry — the pre-0.6 derivation, kept as the fallback.
-    private var appellations: [String] {
-        if let system = db.countryInfo(country)?.appellationSystem, !system.isEmpty {
-            return system
-        }
-        var seen: Set<String> = []
-        for entry in regions {
-            if case .region(let r) = entry, !r.details.classification.isEmpty {
-                seen.insert(r.details.classification)
-            }
-        }
-        return seen.sorted()
-    }
-
     private var appellationsSection: some View {
         section("APPELLATION SYSTEM", symbol: "shield") {
             VStack(alignment: .leading, spacing: 6) {
@@ -326,7 +340,7 @@ public struct CountryScreen: View {
                                 .font(DexFont.retro(12))
                                 .foregroundStyle(lcd.text)
                             Spacer()
-                            Text("\(regionCount(in: state))")
+                            Text("\(regionCounts[state] ?? 0)")
                                 .font(DexFont.mono(18))
                                 .foregroundStyle(lcd.subtext)
                             Image(systemName: "chevron.right")
@@ -350,13 +364,6 @@ public struct CountryScreen: View {
                 }
             }
         }
-    }
-
-    private func regionCount(in state: String) -> Int {
-        regions.filter {
-            if case .region(let r) = $0 { return r.details.state == state }
-            return false
-        }.count
     }
 
     private var regionsSection: some View {

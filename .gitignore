@@ -10,6 +10,7 @@ xtool/
 # Only needed if you regenerate the bundled data; see README.
 node_modules/
 scripts/.generate.mjs
+scripts/__pycache__/
 
 .DS_Store
 *.log

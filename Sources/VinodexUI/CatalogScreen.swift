@@ -74,7 +74,7 @@ public struct CatalogScreen: View {
     private func label(_ text: String, ok: Bool) -> some View {
         HStack(spacing: 6) {
             Text(ok ? "OK" : "!!")
-                .font(DexFont.retro(9))
+                .font(DexFont.retro(10))
                 .foregroundStyle(ok ? Dex.green : Dex.red500)
             Text(text)
                 .font(DexFont.mono(18))

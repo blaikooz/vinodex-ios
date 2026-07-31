@@ -10,7 +10,8 @@
     "flavor-art": "python3 scripts/import-flavor-art.py",
     "grape-art": "python3 scripts/import-grape-art.py",
     "style-art": "python3 scripts/import-style-art.py",
-    "class-art": "python3 scripts/import-class-art.py"
+    "class-art": "python3 scripts/import-class-art.py",
+    "icons:verify": "python3 scripts/verify-art.py"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

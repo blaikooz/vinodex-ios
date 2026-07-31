@@ -60,9 +60,14 @@ public struct DailyGrapeScreen: View {
             if let pick {
                 content(pick)
             } else {
-                Text("NOTHING TODAY")
-                    .font(DexFont.retro(12))
-                    .foregroundStyle(Dex.stone400)
+                // "NOTHING TODAY" is a fact about the shuffle, and on an empty
+                // database it is a lie about the build — the game has nothing
+                // to pick *from*. `DexEmptyState` says which (AUDIT M2).
+                DexEmptyState {
+                    Text("NOTHING TODAY")
+                        .font(DexFont.retro(12))
+                        .foregroundStyle(Dex.stone400)
+                }
             }
         }
         // Advance once per visit, not once per render and not once per rebuild.

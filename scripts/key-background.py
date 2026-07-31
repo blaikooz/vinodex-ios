@@ -17,6 +17,23 @@ Run it only on icons whose enclosed white IS background, and eyeball the
 result: an icon with large enclosed white *subject* (Chalk, White Blossom)
 must never go through this — its ground is already handled by the flood pass.
 
+**Already keyed, and the only four that are** (0.6.4, AUDIT H12):
+
+    art/icons/flavors/cherry.png        ground 24193px + 3 pockets (3425px)
+    art/icons/flavors/blackcherry.png   ground 19054px + 3 pockets (2586px)
+    art/icons/body/full.png             ground  3756px + 1 pocket  (1063px)
+    art/icons/body/medium.png           ground 15259px + 2 pockets (2196px)
+
+Those four are exactly the assets that did not reproduce from an un-keyed
+source, so the list is load-bearing: re-importing them from a fresh artist
+drop without keying first silently brings the enclosed-white pockets back —
+the defect this file exists to fix — and `npm run icons:verify` is what
+catches it. Re-running on an already-keyed file is a no-op (the ground is
+magenta, so `is_white` never fires), so keying is safe to repeat.
+
+This rewrites the source **in place**; the un-keyed masters survive only in
+git history.
+
 Usage: python3 scripts/key-background.py <png> [<png> ...]
 Paths resolve as given, then relative to art/icons. Requires Pillow.
 """

@@ -471,7 +471,7 @@ public struct EntryDetailScreen: View {
             }
             VStack(alignment: .leading, spacing: 3) {
                 Text("KEY GRAPE")
-                    .font(DexFont.retro(8))
+                    .font(DexFont.retro(10))
                     .foregroundStyle(lcd.accent)
                 Text(chipData.label)
                     .font(DexFont.retro(13))
@@ -536,7 +536,7 @@ public struct EntryDetailScreen: View {
         let tint = Color(dexHex: resolved.text)
         return VStack(spacing: 5) {
             Text(label)
-                .font(DexFont.retro(8))
+                .font(DexFont.retro(10))
                 .foregroundStyle(lcd.accent)
             VStack(spacing: 6) {
                 // 54 since 0.6.5 (item 5): sized to seat the enlarged class
@@ -701,7 +701,7 @@ public struct EntryDetailScreen: View {
                                     .strokeBorder(Color(dexHex: visual.color), lineWidth: 2)
                             )
                         Text(soil.uppercased())
-                            .font(DexFont.retro(9))
+                            .font(DexFont.retro(10))
                             .foregroundStyle(lcd.text)
                             .multilineTextAlignment(.center)
                             .lineLimit(2)

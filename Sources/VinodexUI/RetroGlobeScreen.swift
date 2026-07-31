@@ -93,7 +93,7 @@ public struct RetroGlobeScreen: View {
                         .tracking(3)
                         .foregroundStyle(lcd.accent)
                     Text("TAP TO SELECT CONTINENT")
-                        .font(DexFont.retro(9))
+                        .font(DexFont.retro(10))
                         .tracking(2)
                         .foregroundStyle(lcd.subtext)
                 }

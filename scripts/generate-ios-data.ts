@@ -283,7 +283,7 @@ const FALLBACK_ICON = 'mdi:help-circle-outline';
 
 // Full-colour pixel-art portraits for flavours, keyed by normalised flavour
 // name. Values are PNG stems under Sources/VinodexUI/Resources/FlavorArt —
-// the art itself is imported from shared/newicons by a one-off pass (see
+// the art itself is imported from art/icons/flavors by a one-off pass (see
 // v0.5.1), not rasterised here; this table only keeps the wiring stable
 // across regenerations. Names with no convincing art are deliberately absent
 // and keep their tinted glyph.
@@ -407,7 +407,8 @@ const FLAVOR_ART: Record<string, string> = {
 //
 // `art:` ids (v0.5.7, B1) name drawn pixel art rather than Iconify glyphs:
 // `art:<stem>` loads `<stem>.png` from Resources/ClassArt, imported from
-// shared/newicons/classes by scripts/import-class-art.py. The Swift side
+// art/icons/{classes,subclasses,color,body,climate,soil,countries} by
+// scripts/import-class-art.py. The Swift side
 // branches on the prefix in `DexIcon`; these ids never reach the Iconify
 // rasteriser (`unique` excludes them below).
 //
@@ -653,7 +654,7 @@ const FLAG_PATHS: Record<string, string> = {
 
 // Full-colour pixel-art portraits for styles (0.5.6), keyed by normalised
 // style name. Values are PNG stems under Sources/VinodexUI/Resources/StyleArt,
-// imported from shared/newicons/2new by scripts/import-style-art.py. All 32
+// imported from art/icons/styles by scripts/import-style-art.py. All 32
 // shipped styles are covered; `crubeaujolas` preserves the artist's spelling.
 // The three 0.6 styles carry portraits derived from their nearest siblings
 // (recolour passes over fullbodywhite/mediumbodyred/dessertwine) — distinct
@@ -1082,6 +1083,63 @@ const ICONS_REQUIRED = [
   'countryShapeIcons', 'styleClassBg', 'styleColorTypeColors', 'soilIcons', 'climateSoilFallback',
   'defaultSoils', 'flags',
 ];
+// Optional on the Swift side — an older manifest still decodes without them —
+// which is exactly why they need asserting *here*. Rename one in this file and
+// nothing fails: `IconManifest.flavorArt` and friends just decode to `nil` and
+// every affected entry silently drops back to a tinted glyph. Required at
+// generation time, optional at decode time: forward compatibility for old data,
+// no silent degradation for new. (AUDIT M3)
+const ICONS_REQUIRED_NONEMPTY = [
+  'flavorClassIcons', 'flavorSubclassIcons', 'flavorArt', 'grapeArt', 'styleArt', 'soilKeywords',
+];
+
+// The non-optional properties of each Swift `*Entry` struct, by category. A key
+// missing here is a key whose disappearance the self-check would not catch, so
+// this list is the contract — keep it in step with `Sources/VinodexCore/WineEntry.swift`.
+//
+// `string`/`number` are checked by `typeof`; `array` and `object` by shape.
+// Anything the Swift side declares optional (`String?`, `decodeIfPresent`) is
+// deliberately absent: those are allowed to go missing.
+type FieldKind = 'string' | 'number' | 'array' | 'object';
+const ENTRY_COMMON_REQUIRED: Record<string, FieldKind> = {
+  id: 'string', name: 'string', description: 'string', color: 'string', tags: 'array',
+};
+const ENTRY_REQUIRED: Record<string, Record<string, FieldKind>> = {
+  GRAPES: {
+    grapeType: 'string', grapeStyle: 'string', grapeBodyClass: 'string',
+    grapeCharacteristics: 'object', grapeCountryOfOrigin: 'string', rarity: 'string',
+    details: 'object',
+  },
+  REGIONS: { details: 'object' },
+  STYLES: { details: 'object' },
+  FLAVORS: { details: 'object' },
+  CONTINENTS: { details: 'object' },
+};
+const DETAILS_REQUIRED: Record<string, Record<string, FieldKind>> = {
+  GRAPES: { origin: 'string', synonyms: 'array', keyRegions: 'array', body: 'string' },
+  REGIONS: { origin: 'string', notableGrapes: 'array', classification: 'string' },
+  STYLES: {
+    origin: 'string', keyRegions: 'array', notableGrapes: 'array', classification: 'string',
+  },
+  FLAVORS: { classification: 'string', subclass: 'string', notableGrapes: 'array' },
+  CONTINENTS: { keyRegions: 'array' },
+};
+// `GrapeCharacteristics` — every bar is a non-optional `Double`.
+const GRAPE_CHARACTERISTICS_REQUIRED: Record<string, FieldKind> = {
+  tannin: 'number', acid: 'number', colorIntensity: 'number', aromatics: 'number', body: 'number',
+};
+// `TastingNote` — optional as a whole, but every element of a present array
+// must carry all three, or the array's decode throws and takes the entry with it.
+const TASTING_NOTE_REQUIRED: Record<string, FieldKind> = {
+  note: 'string', icon: 'string', color: 'string',
+};
+// Enum-backed fields: Swift decodes these into `RawRepresentable` enums, so an
+// unlisted value is a decode failure, not a fallback.
+const ENTRY_ENUMS: Record<string, Set<string>> = {
+  grapeType: new Set(['red', 'white']),
+  rarity: new Set(['COMMON', 'UNCOMMON', 'RARE', 'NOBLE', 'GODFORSAKEN']),
+  climate: new Set(['maritime', 'continental', 'cool', 'warm', 'mediterranean']),
+};
 
 function validateOutputs(dir: string): void {
   const problems: string[] = [];
@@ -1089,18 +1147,95 @@ function validateOutputs(dir: string): void {
   const has = (obj: unknown, key: string): boolean =>
     !!obj && typeof obj === 'object' && key in (obj as Record<string, unknown>);
 
+  // Every non-optional key of the matching Swift struct, not a spot-check of
+  // four (AUDIT M3). Anything absent from the tables above is optional on the
+  // Swift side and is allowed to go missing.
+  const checkFields = (
+    where: string,
+    rec: Record<string, unknown>,
+    required: Record<string, FieldKind>,
+  ): void => {
+    for (const [key, kind] of Object.entries(required)) {
+      const value = rec[key];
+      const ok =
+        kind === 'array'
+          ? Array.isArray(value)
+          : kind === 'object'
+            ? !!value && typeof value === 'object' && !Array.isArray(value)
+            : typeof value === kind;
+      if (!ok) problems.push(`${where}.${key} missing or not ${kind}`);
+    }
+    // Enums are checked wherever they appear, required or not: Swift decodes
+    // them into a `RawRepresentable`, so an unlisted value throws rather than
+    // falling back.
+    for (const [key, allowed] of Object.entries(ENTRY_ENUMS)) {
+      const value = rec[key];
+      if (value !== undefined && value !== null && !allowed.has(String(value))) {
+        problems.push(`${where}.${key} not a known value: ${String(value)}`);
+      }
+    }
+  };
+
   const entries = read('entries.json');
   if (!Array.isArray(entries) || entries.length === 0) {
     problems.push('entries.json is not a non-empty array');
   } else {
     entries.forEach((e, i) => {
       const rec = e as Record<string, unknown>;
-      if (typeof rec.id !== 'string') problems.push(`entries[${i}].id missing/!string`);
-      if (typeof rec.name !== 'string') problems.push(`entries[${i}].name missing/!string`);
-      if (typeof rec.category !== 'string' || !ENTRY_CATEGORIES.has(rec.category as string)) {
-        problems.push(`entries[${i}].category invalid: ${String(rec.category)}`);
+      const category = rec.category;
+      if (typeof category !== 'string' || !ENTRY_CATEGORIES.has(category)) {
+        problems.push(`entries[${i}].category invalid: ${String(category)}`);
+        return;
       }
-      if (!has(rec, 'details')) problems.push(`entries[${i}] (${String(rec.id)}) missing details`);
+      // Named by id once it is known to be a string — `entries[214]` sends the
+      // reader counting through a 375-element file.
+      const where = typeof rec.id === 'string' ? `entries[${rec.id}]` : `entries[${i}]`;
+
+      // A category with no contract is itself the defect: someone added a
+      // `WineEntry` variant and left the self-check behind, so every field of
+      // every entry in it would go unchecked. Say so rather than skip it.
+      const required = ENTRY_REQUIRED[category];
+      const detailsRequired = DETAILS_REQUIRED[category];
+      if (!required || !detailsRequired) {
+        problems.push(`${where}: no schema contract for category ${category}`);
+        return;
+      }
+
+      checkFields(where, rec, ENTRY_COMMON_REQUIRED);
+      checkFields(where, rec, required);
+
+      const details = rec.details;
+      if (details && typeof details === 'object' && !Array.isArray(details)) {
+        checkFields(`${where}.details`, details as Record<string, unknown>, detailsRequired);
+      }
+
+      const chars = rec.grapeCharacteristics;
+      if (chars && typeof chars === 'object') {
+        checkFields(
+          `${where}.grapeCharacteristics`,
+          chars as Record<string, unknown>,
+          GRAPE_CHARACTERISTICS_REQUIRED,
+        );
+      }
+
+      // Optional as a whole; strict once present. One note missing its `icon`
+      // fails the array's decode, which fails the entry.
+      const profile = rec.tastingProfile;
+      if (Array.isArray(profile)) {
+        profile.forEach((note, n) => {
+          if (!note || typeof note !== 'object') {
+            problems.push(`${where}.tastingProfile[${n}] is not an object`);
+            return;
+          }
+          checkFields(
+            `${where}.tastingProfile[${n}]`,
+            note as Record<string, unknown>,
+            TASTING_NOTE_REQUIRED,
+          );
+        });
+      } else if (profile !== undefined && profile !== null) {
+        problems.push(`${where}.tastingProfile is not an array`);
+      }
     });
   }
 
@@ -1112,6 +1247,20 @@ function validateOutputs(dir: string): void {
   const icons = read('icons.json');
   for (const key of ICONS_REQUIRED) {
     if (!has(icons, key)) problems.push(`icons.json missing required key: ${key}`);
+  }
+  // Optional at decode time, required here — see `ICONS_REQUIRED_NONEMPTY`.
+  // Emptiness is the check that matters: a renamed *source* table would leave
+  // the key present and the object empty, which decodes cleanly and drops
+  // every entry back to a tinted glyph without a word of complaint.
+  for (const key of ICONS_REQUIRED_NONEMPTY) {
+    const value = (icons as Record<string, unknown> | null)?.[key];
+    const count = Array.isArray(value)
+      ? value.length
+      : value && typeof value === 'object'
+        ? Object.keys(value).length
+        : -1;
+    if (count < 0) problems.push(`icons.json missing required table: ${key}`);
+    else if (count === 0) problems.push(`icons.json table is empty: ${key}`);
   }
 
   const tiers = read('tiers.json');

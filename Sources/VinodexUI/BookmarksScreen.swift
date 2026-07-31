@@ -309,7 +309,7 @@ public struct BookmarksScreen: View {
                             VStack(spacing: 4) {
                                 EntryIconWell(entry: entry, size: 56, cornerRadius: 8)
                                 Text(entry.name.uppercased())
-                                    .font(DexFont.retro(8))
+                                    .font(DexFont.retro(10))
                                     .foregroundStyle(lcd.subtext)
                                     .lineLimit(1)
                                     .truncationMode(.tail)

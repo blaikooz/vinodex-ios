@@ -429,6 +429,9 @@ private struct BarcodeSticker: View {
     }
 }
 
+// PR #10 raised the old PassportStamp's mono(9) to mono(10) for H11; the
+// struct itself was replaced wholesale by the postage stamps (0.6.4, F2), so
+// the fix has nothing left to land on — the deletion stands.
 /// The pink price tag someone tried to peel — the left half survives, the
 /// right edge is torn into a jagged profile.
 private struct RippedPriceTag: View {

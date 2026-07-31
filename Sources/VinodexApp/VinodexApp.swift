@@ -1,4 +1,4 @@
-#if canImport(SwiftUI)
+#if canImport(SwiftUI) && canImport(UIKit)
 import SwiftUI
 import VinodexCore
 import VinodexUI
@@ -6,7 +6,26 @@ import VinodexUI
 @main
 struct VinodexApp: App {
     init() {
-        Diagnostics.emit()
+        // Nothing here blocks the first frame (AUDIT M6).
+        //
+        // `Diagnostics.emit()` used to run *synchronously, in release*: it
+        // forces the whole database decode and then runs six `regions(in:)`
+        // queries, each a filter + sort over every entry. That is seven full
+        // passes over the catalog before SwiftUI is allowed to build a scene,
+        // for output nobody but a maintainer tailing `idevicesyslog` ever
+        // reads. It is now DEBUG-only and off the main actor.
+        //
+        // The detached task still touches `WineDatabase.shared` in release, so
+        // the decode gets a head start on a background thread while the main
+        // actor builds the scene. `shared` is a `static let`, so whichever
+        // thread arrives second blocks on the same `swift_once` and sees the
+        // finished value — the work is never done twice.
+        Task.detached(priority: .userInitiated) {
+            _ = WineDatabase.shared
+            #if DEBUG
+            Diagnostics.emit()
+            #endif
+        }
     }
 
     var body: some Scene {
@@ -32,6 +51,11 @@ struct RootView: View {
     /// change takes effect immediately rather than on the next navigation.
     @AppStorage(TextScale.storageKey) private var scaleRaw = TextScale.small.rawValue
     @AppStorage(UIScale.storageKey) private var uiScaleRaw = UIScale.small.rawValue
+    /// The system text size, read *above* the pin below so it is the real
+    /// setting rather than the capped one. Used once, to seed TEXT SIZE for
+    /// someone who had already enlarged their system text — see
+    /// `TextScale.seedIfUnset`. (0.6.4, AUDIT H11)
+    @Environment(\.dynamicTypeSize) private var systemType
 
     private let db = WineDatabase.shared
 
@@ -121,9 +145,23 @@ struct RootView: View {
             .animation(.easeOut(duration: 0.15), value: showingDataAlert)
         }
         .id(scaleRaw + "|" + uiScaleRaw)
+        // The app's declared position on Dynamic Type (0.6.4, AUDIT H11):
+        // Vinodex sizes its own text and does not follow the system control.
+        // `DexFont` already builds every font at a fixed size, so this pin is a
+        // guard rather than the mechanism — it is here so that anything landing
+        // later with a stock SwiftUI font (an alert, a share sheet, a future
+        // system control) cannot quietly reintroduce the second axis. The
+        // user-facing axis is SETTINGS > TEXT SIZE, and the seed below is how
+        // someone who never opens it still gets a sensible starting step.
+        .dynamicTypeSize(.large)
         .preferredColorScheme(.dark)
         .statusBarHidden()
         .onAppear {
+            // Before anything reads TEXT SIZE. A no-op on every launch after the
+            // first, and on any device where the user has set it themselves.
+            TextScale.seedIfUnset(
+                systemOrdinal: DynamicTypeSize.allCases.firstIndex(of: systemType) ?? 3
+            )
             ScreenWake.keepAwake(true)
             // The power-on chime, once per launch — this view appears exactly
             // once, so no flag is needed.
@@ -356,6 +394,10 @@ struct RootView: View {
 /// Writes startup state to syslog. `idevicescreenshot` needs Developer Mode and
 /// the developer disk image; `idevicesyslog` needs neither, so this is the
 /// channel for confirming runtime facts from WSL.
+///
+/// DEBUG-only, and never on the main actor — the six `regions(in:)` queries
+/// below are a filter + sort over the whole catalog each (AUDIT M6). Call it
+/// from a detached task, not from `App.init`.
 enum Diagnostics {
     static func emit() {
         let db = WineDatabase.shared

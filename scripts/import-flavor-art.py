@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Imports the pixel-art flavour portraits into the app bundle.
 
-Sources are the hand-drawn PNGs in the monorepo's shared/newicons. They ship
+Sources are the hand-drawn PNGs in art/icons/flavors. They ship
 on a near-white opaque ground, so this pass:
 
   1. removes the background via the shared pass in art_common.py — the
@@ -17,7 +17,7 @@ the stems that table names. Run `npm run generate` first if you changed it.
 
 Usage: python3 scripts/import-flavor-art.py [source-dir]
 Source defaults to the repo's art/icons/flavors — the flat, per-use layout
-that replaced the drop-folder waves under shared/newicons (0.5.8, A1).
+the drop-folder waves were re-foldered into (0.5.8, A1; landed 0.6.4).
 Requires Pillow.
 """
 import json
@@ -26,21 +26,13 @@ import sys
 
 from PIL import Image
 
-from art_common import strip_background
+from art_common import output_dir, resolve_source_dir, strip_background
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 MANIFEST = os.path.join(ROOT, "Sources", "VinodexCore", "Resources", "icons.json")
-DST = os.path.join(ROOT, "Sources", "VinodexUI", "Resources", "FlavorArt")
+DST = output_dir(ROOT, "FlavorArt")
 
-
-def source_dir():
-    if len(sys.argv) > 1:
-        return sys.argv[1]
-    candidate = os.path.join(ROOT, "art", "icons", "flavors")
-    if os.path.isdir(candidate):
-        return candidate
-    sys.exit("no source dir found; pass it explicitly")
 
 
 def source_file(src, stem):
@@ -54,7 +46,7 @@ def source_file(src, stem):
 
 
 def main():
-    src = source_dir()
+    src = resolve_source_dir(ROOT, "flavors")
     with open(MANIFEST, encoding="utf-8") as fh:
         stems = sorted(set(json.load(fh).get("flavorArt", {}).values()))
     if not stems:
