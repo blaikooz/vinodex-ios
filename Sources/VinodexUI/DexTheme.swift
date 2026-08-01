@@ -190,18 +190,9 @@ public enum DexMetrics {
     /// Tightened so the three status lights read as one cluster next to the
     /// larger orb rather than a spread-out row.
     public static let statusDotSpacing: CGFloat = 0.2 * rem
-    /// Gap between the orb and the status-light cluster now that the lights sit
-    /// beside it rather than on its shoulder. Tightened from 6 to pull the
-    /// cluster in toward the orb.
-    public static let statusDotsGap: CGFloat = 3
-    /// How far the status cluster rides above the orb's centre line.
-    ///
-    /// Centred, the three lights read as a continuation of the orb — one row of
-    /// four round things. Lifted, they read as indicator lamps set into the
-    /// chassis *above* the control, which is where a period device puts them.
-    /// An offset rather than an alignment guide: this is decoration and must not
-    /// change what the strip reserves.
-    public static let statusDotsRise: CGFloat = 12
+    // `statusDotsGap` and `statusDotsRise` retired in 0.6.5 (C1): both measured
+    // the cluster's placement relative to the orb, and the cluster no longer
+    // sits beside the orb — it has the opposite corner of the strip to itself.
     public static let titleSize: CGFloat = 0.9375 * rem
 
     /// Screen housing
@@ -211,6 +202,12 @@ public enum DexMetrics {
     /// the panel colour takes.
     public static let screenPanelBorder: CGFloat = 4
     public static let screenPanelInset: CGFloat = 0.5 * rem   // m-2
+    /// The housing's keyed corner (0.6.5, C2): the bottom-left is a straight
+    /// diagonal cut rather than an arc, the way a moulded bezel is keyed so the
+    /// part only seats one way round. Sized a little larger than
+    /// `screenPanelCorner` — a chamfer the same size as the arcs beside it
+    /// reads as a rounding error rather than as a deliberate cut.
+    public static let screenPanelChamfer: CGFloat = 2.25 * rem
     public static let bezelCorner: CGFloat = 1.75 * rem
     public static let bezelInsetH: CGFloat = 0.75 * rem       // mx-3
     /// Thickness of the stone frame around the LCD. Kept small on purpose:
@@ -240,7 +237,9 @@ public enum DexMetrics {
     /// inset: that inset alone is 34pt and made the bottom chrome nearly twice
     /// the top. The indicator falls in the `chassisEdgeInset` of bare chassis
     /// below the row rather than over a control.
-    public static var footerHeight: CGFloat { footerTopInset + footerControl + chassisEdgeInset }
+    /// Two control rows since 0.6.5 — Back sits under Home — so the band is
+    /// `bandHeight` tall rather than one control.
+    public static var footerHeight: CGFloat { footerTopInset + bandHeight + chassisEdgeInset }
     /// Gap between the screen housing and the footer row. Much tighter than the
     /// inset below the row — see `footerHeight`.
     public static let footerTopInset: CGFloat = 6
@@ -261,12 +260,46 @@ public enum DexMetrics {
     public static let marqueeMaxWidth: CGFloat = 16.5 * rem
     public static let marqueeCorner: CGFloat = 0.8 * rem
     public static let marqueeInnerCorner: CGFloat = 0.6 * rem
-    /// The banner matches the control buttons so the footer reads as one row.
-    public static var marqueeHeight: CGFloat { footerControl }
+    /// Taller than the controls flanking it since 0.6.5 (B1): the marquee is
+    /// the band's centrepiece now, not a strip squeezed between two buttons,
+    /// and a panel that matched the button diameter read as the smallest thing
+    /// in the band rather than the largest.
+    public static var marqueeHeight: CGFloat { bandControl * 1.1 }
     /// One size for every screen: the main screen's longer banner scrolls,
     /// so it does not need to shrink to fit. Trimmed from 1.45rem (v0.5.4)
     /// — at that size the strip read louder than the buttons beside it.
     public static let marqueeTextSize: CGFloat = 1.2 * rem
+
+    /// Button band (0.6.5, A/B)
+    ///
+    /// Four physical controls — User, Settings, Home, Back — around the marquee
+    /// panel, in two rows: U / S / H across the top and B under H.
+    ///
+    /// `bandControl` deliberately breaks the "one diameter for every control on
+    /// the chassis" rule the island strip still follows. The marquee has to
+    /// hold roughly half the chassis width to read as the centrepiece, and four
+    /// full `footerControl` circles plus their gaps do not leave that much on a
+    /// compact phone. They remain one size *as a group*, which is what the rule
+    /// was actually protecting against; `bandControlSmall` is the one exception,
+    /// and the mockup calls Settings out as the small button on purpose.
+    public static var bandControl: CGFloat { footerControl * 0.78 }
+    public static var bandControlSmall: CGFloat { bandControl * 0.62 }
+    /// Gap between Home and the Back button beneath it. Wide enough that the
+    /// vertical pair cannot be mis-hit as one target, tight enough that they
+    /// still read as a pair rather than two unrelated buttons.
+    public static let bandNavGap: CGFloat = 10
+    /// Gap between the band's columns.
+    public static let bandSpacing: CGFloat = 10
+    /// The band's own height: the upper row of controls, the nav gap, and Back
+    /// below Home. Everything else in the band hangs from the top of this.
+    public static var bandHeight: CGFloat { bandControl * 2 + bandNavGap }
+    /// The two indicator pills above the marquee panel (0.6.5, B2).
+    public static let bandPillWidth: CGFloat = 18
+    public static let bandPillHeight: CGFloat = 7
+    public static let bandPillSpacing: CGFloat = 8
+    /// Gap from the pills down to the panel they belong to. Small — they have
+    /// to read as lamps *on* the marquee's housing, not as their own row.
+    public static let bandPillGap: CGFloat = 5
 
     /// Icon wells (v0.5.8, F1): the list-row well and the detail-hero well,
     /// scaled with the chrome so LARGE grows the pictures, not the words.
