@@ -1,4 +1,4 @@
-# HGapps plan — open issues, cleanup, and next batches
+﻿# HGapps plan — open issues, cleanup, and next batches
 
 *2026-07-30, written at iOS v0.6.2 (tagged, on main). This is the working
 plan that consolidates the open ends of AUDIT.md, KNOWN-ISSUES.md,
@@ -23,7 +23,7 @@ V1-ROADMAP.md and the archived shipping/port reviews. Run batches with the
   the 0.6.2 data but the web app has had no feature work since the split.
   This is now the widest gap in the product.
 - **Docs**: AUDIT.md (52 open items) and KNOWN-ISSUES.md (runbook) live in
-  vinodex-ios and are current. SHIPPING-REVIEW.md and PORT-TO-WEB.md are
+  vinodex-ios and are current. SHIPPING-REVIEW.md and PORT-TO-WEB.md (now in HGapps\archive\) are
   archived (banners point here). V1-ROADMAP.md carries a 2026-07-30 baseline
   correction. The 0.6 missing-data tracker (Downloads) is fully landed.
 
@@ -95,7 +95,7 @@ Ordered by risk-times-cheapness; IDs are AUDIT.md's, one row ≈ one sitting.
    sprinted; the highest-leverage next feature work is porting iOS 0.5–0.6
    wins to web with the Swift files as spec: chip filter tool (M1's facets),
    Wine Exam + Daily Challenge (M3), shelves/ratings (M2). Run as 2–3 dexbot
-   batches in vinodex-web, one feature each, PORT-TO-WEB.md's guardrails
+   batches in vinodex-web, one feature each, HGapps\archive\PORT-TO-WEB.md's guardrails
    (no new deps, no storage APIs beyond the agreed schema, typecheck+build
    as gates).
 2. **M0 ops** — hosting decision, web CI + branch protection, privacy/support
