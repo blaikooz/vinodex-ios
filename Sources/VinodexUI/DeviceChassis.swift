@@ -166,38 +166,6 @@ public struct DeviceChassis<Content: View>: View {
         }
     }
 
-    // MARK: Chassis title
-
-    /// The wordmark, in the chassis top itself (0.6.4, A1) — between the orb
-    /// and the cog, right below the notch. Replaces 0.6.2's trapezoid bump and
-    /// its metal nameplate, which cost the LCD a 34pt band; removing the bump
-    /// returns the screen housing to its pre-0.6.2 height. No plate: the
-    /// letters themselves are brushed metal — the cog's own gradient, larger
-    /// than the old engraving — set straight into the moulding.
-    private var chassisTitle: some View {
-        Text("VINODEX")
-            .font(DexFont.retro(16))
-            .tracking(4)
-            .lineLimit(1)
-            .minimumScaleFactor(0.5)
-            .foregroundStyle(
-                LinearGradient(
-                    colors: [
-                        Color(dexHex: "#f4f5f6"),
-                        Color(dexHex: "#c3c6ca"),
-                        Color(dexHex: "#8b8f95"),
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
-            // Seated, not floating: a light catch above and a dark cut below,
-            // the same two-shadow trick the back plate engraves with.
-            .shadow(color: .black.opacity(0.55), radius: 0, x: 0, y: 1)
-            .shadow(color: .white.opacity(0.18), radius: 0, x: 0, y: -1)
-            .allowsHitTesting(false)
-    }
-
     // MARK: Island flank
     //
     // Orb + status lights to the left of the Dynamic Island, cog to the
@@ -260,18 +228,19 @@ public struct DeviceChassis<Content: View>: View {
                 .allowsHitTesting(false)
                 .fixedSize()
 
-            // The wordmark holds the island's clearance open (0.6.4, A1),
-            // centred between the orb and the cog. Bottom-aligned against the
-            // control row rather than centred in it: the island's cutout
-            // reaches ~48pt into the strip and row-centred capitals would
-            // tuck their top half under the hardware — the seat at the row's
-            // foot is what "right below the notch" can actually mean here.
+            // The island's clearance is held open — the cutout reaches ~48pt
+            // into the strip and this space must stay clear of controls and
+            // large fonts lest they tuck under the hardware.
             Spacer(minLength: 0)
-            chassisTitle
+            Color.clear
                 .frame(minWidth: DexMetrics.islandClearance)
-                .frame(height: control, alignment: .bottom)
-                .padding(.bottom, 4)
             Spacer(minLength: 0)
+
+            // Red indicator lights, paired and centered in the island strip (0.6.4, B4).
+            HStack(spacing: 8) {
+                redStatusLight()
+                redStatusLight()
+            }
 
             // Cog pinned right, directly above Home.
             settingsButton(size: control)
@@ -419,6 +388,16 @@ public struct DeviceChassis<Content: View>: View {
             .shadow(color: Dex.red500.opacity(0.8), radius: 3)
     }
 
+    /// Red status light on the top island bar, matching the bottom vent light
+    /// (0.6.4, B2). Reuses the existing red-light appearance.
+    private func redStatusLight() -> some View {
+        Circle()
+            .fill(Dex.red500)
+            .frame(width: DexMetrics.ventDot, height: DexMetrics.ventDot)
+            .overlay(Circle().strokeBorder(Dex.red800, lineWidth: 1))
+            .shadow(color: Dex.red500.opacity(0.8), radius: 3)
+    }
+
     private var innerBezel: some View {
         ZStack {
             // The panel ground rather than a fixed near-black: the themed
@@ -456,25 +435,47 @@ public struct DeviceChassis<Content: View>: View {
     }
 
     private var bottomVents: some View {
-        ZStack {
+        HStack(spacing: 0) {
+            // Red indicator light on the left end (0.6.4, C2).
             Circle()
                 .fill(Dex.red500)
                 .frame(width: DexMetrics.ventDot, height: DexMetrics.ventDot)
                 .overlay(Circle().strokeBorder(Dex.red800, lineWidth: 1))
                 .shadow(color: Dex.red500.opacity(0.8), radius: 3)
+                .padding(.leading, DexMetrics.headerPaddingH)
 
-            HStack {
-                Spacer()
-                VStack(spacing: 2) {
-                    ForEach(0..<3, id: \.self) { _ in
-                        Capsule().fill(skin.grill).frame(width: 64, height: 2)
-                    }
+            // VINODEX wordmark etched between the light and grille (0.6.4, C2) —
+            // silkscreen label proportioned to fill the available width.
+            Text("VINODEX")
+                .font(DexFont.retro(9))
+                .tracking(2)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [
+                            Color(dexHex: "#f4f5f6"),
+                            Color(dexHex: "#c3c6ca"),
+                            Color(dexHex: "#8b8f95"),
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .shadow(color: .black.opacity(0.55), radius: 0, x: 0, y: 1)
+                .shadow(color: .white.opacity(0.18), radius: 0, x: 0, y: -1)
+                .frame(maxWidth: .infinity, alignment: .center)
+
+            // Three grille slats on the right end.
+            VStack(spacing: 2) {
+                ForEach(0..<3, id: \.self) { _ in
+                    Capsule().fill(skin.grill).frame(width: 64, height: 2)
                 }
-                .opacity(0.5)
-                // Pulled in off the panel's rounded corner, which the slats
-                // were running into at their right end.
-                .padding(.trailing, DexMetrics.headerPaddingH + DexMetrics.screenPanelCorner * 0.5)
             }
+            .opacity(0.5)
+            // Pulled in off the panel's rounded corner, which the slats
+            // were running into at their right end.
+            .padding(.trailing, DexMetrics.headerPaddingH + DexMetrics.screenPanelCorner * 0.5)
         }
         .frame(height: DexMetrics.ventStripHeight)
     }

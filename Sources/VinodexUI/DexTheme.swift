@@ -186,7 +186,8 @@ public enum DexMetrics {
     /// Matched to `ventStripHeight` so the white housing frames the LCD evenly
     /// top and bottom. Trimmed from 1.75rem: symmetric was right, but that much
     /// white read as a thick border and it was all LCD height.
-    public static let bezelTopMargin: CGFloat = rem
+    /// Further trimmed in 0.6.4 (B1) to extend the LCD upward.
+    public static let bezelTopMargin: CGFloat = 0.25 * rem
     /// Tightened so the three status lights read as one cluster next to the
     /// larger orb rather than a spread-out row.
     public static let statusDotSpacing: CGFloat = 0.2 * rem

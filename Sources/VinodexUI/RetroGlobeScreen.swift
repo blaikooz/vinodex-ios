@@ -304,15 +304,17 @@ final class GlobeModel {
             // LIGHT mode's inverted-colour globe (0.6.4, F1). Done to the
             // texture once at build rather than per frame — `buildScene` runs
             // only from `makeUIView`, so the cost is one filter per rebuild.
-            material.diffuse.contents = invertsTexture ? Self.inverted(image) ?? image : image
+            let base = invertsTexture ? Self.inverted(image) ?? image : image
+            // Mode/skin tint, multiplied over the map texture (0.6.2, F1; 0.6.4, A1 redo) —
+            // pale colours shift the hue without drowning the coastlines. Applied to the
+            // texture in Core Image rather than to `material.multiply`, which is silently
+            // ignored under the physically-based lighting model (0.6.4, A1).
+            material.diffuse.contents = Self.tinted(base, with: tint) ?? base
         } else {
             material.diffuse.contents = UIColor(Dex.green)
         }
         material.diffuse.wrapS = .repeat
         material.diffuse.wrapT = .clamp
-        // The skin's tint, multiplied over the map texture (0.6.2, F1) —
-        // pale colours shift the hue without drowning the coastlines.
-        material.multiply.contents = tint
         material.roughness.contents = 0.92
         material.metalness.contents = 0.08
         // Self-illumination is what makes the dark globe glow. On paper it only
@@ -537,6 +539,28 @@ final class GlobeModel {
               let filter = CIFilter(name: "CIColorInvert")
         else { return nil }
         filter.setValue(input, forKey: kCIInputImageKey)
+        guard let output = filter.outputImage else { return nil }
+        let context = CIContext()
+        guard let cg = context.createCGImage(output, from: output.extent) else { return nil }
+        return UIImage(cgImage: cg)
+    }
+
+    /// The map texture multiplied by the mode/skin tint (0.6.4, A1) — channel-wise
+    /// via `CIColorMatrix`, so the coastline detail survives and only the cast shifts.
+    /// Near-white tints skip the filter entirely: multiplying by white is the identity.
+    private static func tinted(_ image: UIImage, with tint: UIColor) -> UIImage? {
+        var r: CGFloat = 1, g: CGFloat = 1, b: CGFloat = 1, a: CGFloat = 1
+        tint.getRed(&r, green: &g, blue: &b, alpha: &a)
+        guard r < 0.98 || g < 0.98 || b < 0.98 else { return image }
+
+        guard let input = CIImage(image: image),
+              let filter = CIFilter(name: "CIColorMatrix")
+        else { return nil }
+        filter.setValue(input, forKey: kCIInputImageKey)
+        filter.setValue(CIVector(x: r, y: 0, z: 0, w: 0), forKey: "inputRVector")
+        filter.setValue(CIVector(x: 0, y: g, z: 0, w: 0), forKey: "inputGVector")
+        filter.setValue(CIVector(x: 0, y: 0, z: b, w: 0), forKey: "inputBVector")
+        filter.setValue(CIVector(x: 0, y: 0, z: 0, w: 1), forKey: "inputAVector")
         guard let output = filter.outputImage else { return nil }
         let context = CIContext()
         guard let cg = context.createCGImage(output, from: output.extent) else { return nil }
