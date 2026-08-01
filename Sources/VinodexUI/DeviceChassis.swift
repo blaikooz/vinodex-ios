@@ -166,165 +166,123 @@ public struct DeviceChassis<Content: View>: View {
         }
     }
 
-    // MARK: Chassis title
-
-    /// The wordmark's brushed-metal letters (0.6.4, A1) — the cog's own
-    /// gradient, no plate behind them. Housed in `titleLip` since 0.6.5
-    /// (item 4): floating bare in the strip read as unfinished.
-    private var chassisTitle: some View {
-        Text("VINODEX")
-            .font(DexFont.retro(16))
-            .tracking(4)
-            .lineLimit(1)
-            .minimumScaleFactor(0.5)
-            .foregroundStyle(
-                LinearGradient(
-                    colors: [
-                        Color(dexHex: "#f4f5f6"),
-                        Color(dexHex: "#c3c6ca"),
-                        Color(dexHex: "#8b8f95"),
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
-            // Seated, not floating: a light catch above and a dark cut below,
-            // the same two-shadow trick the back plate engraves with.
-            .shadow(color: .black.opacity(0.55), radius: 0, x: 0, y: 1)
-            .shadow(color: .white.opacity(0.18), radius: 0, x: 0, y: -1)
-            .allowsHitTesting(false)
-    }
-
-    /// The trapezoidal lip the title sits in (0.6.5, item 4 — the redo of the
-    /// redo). A moulded piece protruding from the chassis top: wide where it
-    /// meets the top edge, shoulders curving in to a narrower foot, hanging
-    /// down through the island strip with the metal letters seated in its
-    /// lower band — below the hardware cutout, which punches through the
-    /// lip's upper half the way it punches through everything else up here.
-    /// Drawn in the strip's centre slot, so layout (not a fixed width) keeps
-    /// it clear of the orb and the cog; unlike 0.6.2's bump it lives entirely
-    /// on dead chassis and costs the LCD nothing.
-    private func titleLip(control: CGFloat) -> some View {
-        ZStack(alignment: .bottom) {
-            TitleLip()
-                .fill(skin.body)
-            // A dark seat line and a light catch — what makes a flat fill
-            // read as a raised piece, verbatim from the 0.6.2 bump.
-            TitleLip()
-                .stroke(.black.opacity(0.28), lineWidth: 1.5)
-            TitleLip()
-                .stroke(.white.opacity(0.14), lineWidth: 1)
-                .offset(y: 1)
-                .clipShape(TitleLip())
-
-            chassisTitle
-                .padding(.bottom, 9)
-                .padding(.horizontal, 18)
-        }
-        // Taller than the control row it sits in, bottom-aligned, so the lip
-        // runs from the row's foot up to the display's top edge.
-        .frame(height: DexMetrics.islandStripMinHeight)
-        .shadow(color: .black.opacity(0.3), radius: 2, y: 2)
-        .allowsHitTesting(false)
-    }
-
     // MARK: Island flank
     //
-    // Orb in the left corner, the title lip centred under the Dynamic Island,
-    // the status-lamp cluster in the right corner. This band is otherwise dead
-    // chassis, so using it costs the LCD nothing — the bezel keeps none of it.
+    // Orb in the left corner, the status-lamp cluster in the right corner, both
+    // level with the hardware cutout — and the two red housing lamps on the bare
+    // chassis below it. This band is otherwise dead chassis, so using it costs
+    // the LCD nothing; what *did* cost the LCD was sizing the band itself.
     //
-    // The cog left this strip in 0.6.5: Settings is a band button now (A3), and
-    // the mockup's top bar carries no control on the right at all — just the
-    // three lamps in the corner (C1). Taking the cog out is also what makes
-    // room for them there.
+    // **The top branding is gone (0.6.6, D1).** The pixel wordmark and the
+    // trapezoidal lip it sat in — 0.6.5's item 4, itself the redo of a redo —
+    // are deleted. One device carries one wordmark and it belongs in the grille
+    // (D2), which is where the mockup always had it; the lip existed only
+    // because there was nothing else to seat the letters in up here. Deleting
+    // it is also what frees the slot the two red lamps needed: they had been
+    // squatting in the screen housing's top margin for want of anywhere else.
+    //
+    // **The row moved up into the notch band (0.6.6, E3).** The orb and lamps
+    // used to hang from the *bottom* of the strip at full control diameter,
+    // which forced `islandStripMinHeight` to 84pt on a device that only reserves
+    // 59 — 25pt of LCD spent on clearance nobody asked for. They sit level with
+    // the cutout now, the orb shrunk to a bead and the lamps grown to something
+    // legible, and the strip is sized to that instead.
+    //
+    // Rendering *in* the cutout is not an option, for the record: the island is
+    // hardware, the OS masks anything drawn under it, and putting content there
+    // means a Live Activity — ActivityKit plus a widget-extension target, which
+    // a SwiftPM/xtool project has no way to add. Flanking it is the whole
+    // available move.
 
     private func islandFlank(height: CGFloat) -> some View {
-        // One control size across the whole chassis. The strip is sized to seat
-        // it (`islandStripMinHeight`); the clamp only matters on a device that
-        // reports a shorter inset than we ask for.
-        let control = min(DexMetrics.controlButton, height - DexMetrics.islandBottomInset)
+        // The notch-level row. Clamped only for a device that reports a
+        // shorter inset than `islandStripMinHeight` asks for.
+        let slot = min(DexMetrics.islandSlot, max(height - DexMetrics.islandBottomInset, 0))
 
-        let dot = max(control * 0.17, 8)
+        return VStack(spacing: 0) {
+            HStack(alignment: .center, spacing: 0) {
+                lcdOrb(size: DexMetrics.islandOrb)
+                    .scaleEffect(orbHeld ? 0.88 : 1)
+                    .brightness(orbHeld ? -0.18 : 0)
+                    .animation(.easeOut(duration: 0.12), value: orbHeld)
+                    // The bead is smaller than the slot on purpose: shrinking a
+                    // control's art is not a licence to shrink its touch area,
+                    // so the hit shape stays a full 44pt circle around it.
+                    .frame(width: slot, height: slot)
+                    .contentShape(Circle())
+                    // Hold to flip. A hidden gesture on a decorative-looking
+                    // part is a poor primary affordance, but this one is a
+                    // deliberate easter egg: the orb depresses under the finger
+                    // so the feedback arrives before the flip does.
+                    //
+                    // One second, down from two. Two is long enough that someone
+                    // who already knows the gesture assumes it has stopped
+                    // working and lets go early — the orb depressing gives
+                    // immediate feedback, so the hold only has to be long enough
+                    // not to fire on a tap.
+                    .onLongPressGesture(minimumDuration: 1.0) {
+                        Haptics.tap()
+                        orbHeld = false
+                        isFlipped = true
+                    } onPressingChanged: { pressing in
+                        orbHeld = pressing
+                        if pressing { Haptics.orbPress() }
+                    }
 
-        return HStack(alignment: .center, spacing: 0) {
-            // Orb pinned left, directly above the User button.
-            //
-            // Rendering *in* the cutout is not an option, for the record: the
-            // island is hardware, the OS masks anything drawn under it, and
-            // putting content there means a Live Activity — ActivityKit plus a
-            // widget-extension target, which a SwiftPM/xtool project has no way
-            // to add.
-            lcdOrb(size: control)
-                .scaleEffect(orbHeld ? 0.88 : 1)
-                .brightness(orbHeld ? -0.18 : 0)
-                .animation(.easeOut(duration: 0.12), value: orbHeld)
-                // Hold to flip. A hidden gesture on a decorative-looking part
-                // is a poor primary affordance, but this one is a deliberate
-                // easter egg: the orb depresses under the finger so the
-                // feedback arrives before the flip does.
-                //
-                // One second, down from two. Two is long enough that someone who
-                // already knows the gesture assumes it has stopped working and
-                // lets go early — the orb depressing gives immediate feedback,
-                // so the hold only has to be long enough not to fire on a tap.
-                .onLongPressGesture(minimumDuration: 1.0) {
-                    Haptics.tap()
-                    orbHeld = false
-                    isFlipped = true
-                } onPressingChanged: { pressing in
-                    orbHeld = pressing
-                    if pressing { Haptics.orbPress() }
-                }
-                .fixedSize()
+                // The cutout's clearance. Nothing is drawn under it any more,
+                // so this is simply the gap the two corners are held apart by.
+                Spacer(minLength: DexMetrics.islandClearance)
 
-            // The title lip holds the island's clearance open (0.6.5, item 4),
-            // centred between the orb and the lamp cluster. The lip is taller
-            // than the row and bottom-aligned in it, so it reaches the display's
-            // top edge; the letters keep to its lower band, below the ~48pt the
-            // hardware cutout claims.
+                // The three skin-tinted lamps in the right corner (0.6.5, C1),
+                // centred on the same line as the orb so the pair reads as
+                // flanking the cutout rather than as two unrelated details.
+                statusDots(size: DexMetrics.islandStatusDot)
+                    // Decoration only, and never a touch target sitting next
+                    // to one.
+                    .allowsHitTesting(false)
+                    .frame(height: slot, alignment: .center)
+            }
+            .frame(height: slot)
+            .padding(.top, DexMetrics.islandTopInset)
+
+            // Any extra strip height — a device reporting a deeper inset than
+            // we ask for — lands here, between the cutout row and the lamps,
+            // rather than reopening the gap to the screen housing.
             Spacer(minLength: 0)
-            titleLip(control: control)
-                .frame(minWidth: DexMetrics.islandClearance)
-                .frame(height: control, alignment: .bottom)
-                .offset(y: -DexMetrics.islandBottomInset)
-            Spacer(minLength: 0)
 
-            // The three skin-tinted lamps, now in the right corner on their own
-            // (0.6.5, C1) rather than crowded onto the orb's shoulder.
-            //
-            // Boxed to one control square even though the cluster is a third of
-            // that, and the box is the point twice over. Its *width* balances
-            // the orb, and the two flanking Spacers only centre the title lip if
-            // the slots either side of it are equal — the lip has to sit under
-            // the hardware cutout, which is dead centre. Its *height* puts the
-            // lamps on the row's top line rather than its centre line, which is
-            // what lands them in the corner itself: level with the top of the
-            // orb, clear of the cutout's right edge. That replaces the old
-            // `statusDotsRise` nudge, which measured a rise off the orb's centre
-            // and meant nothing once the cluster stopped sitting beside it.
-            statusDots(size: dot)
-                // Decoration only, and never a touch target sitting next to one.
-                .allowsHitTesting(false)
-                .frame(width: control, height: control, alignment: .topTrailing)
+            // The two red housing lamps (0.6.5), on the bare chassis between
+            // the cutout and the bezel where the mockup draws them. They only
+            // reach it in 0.6.6 (D1): the title lip used to occupy exactly
+            // this slot, so they had been living in the housing's own top
+            // margin — which is 6pt thinner now that they have left it.
+            HStack(spacing: DexMetrics.bandPillSpacing) {
+                ventDot
+                ventDot
+            }
+            .allowsHitTesting(false)
+            .frame(height: DexMetrics.islandLampRow)
+            .padding(.bottom, DexMetrics.islandBottomInset)
         }
         .padding(.horizontal, DexMetrics.islandFlankPaddingH)
-        // Bottom-aligned with the small inset below, mirroring the footer's
-        // asymmetry: extra strip height (a device reporting a deeper top inset
-        // than we ask for) lands above the controls, on bare chassis, rather
-        // than being split and reopening the gap to the screen housing.
-        .padding(.bottom, DexMetrics.islandBottomInset)
-        .frame(height: height, alignment: .bottom)
+        .frame(height: height)
     }
 
-    /// A brushed-silver cog: the settings button.
+    /// The settings cog.
     ///
     /// Was the pixel-V wordmark, which looked like branding and so read as
     /// decoration — nobody expects a logo to be tappable. A cog states what it
     /// does.
-    /// Back on the skin's caps (v0.5.4, reversing 0.5.3's mode livery) —
-    /// see the note on `ChassisButton`. The glyph keeps its brushed-silver
-    /// gradient: a machined part, whatever the shell.
+    /// On the skin's caps (v0.5.4, reversing 0.5.3's mode livery) — see the
+    /// note on `ChassisButton`.
+    ///
+    /// **The glyph follows the skin too since 0.6.6 (F1).** It used to carry a
+    /// hardcoded brushed-silver gradient, on the argument that a cog is a
+    /// machined part whatever the shell. The cap underneath was always the
+    /// skin's — `ChassisControl` gives BLUSH a pink one — but at
+    /// `bandControlSmall` the glyph is most of what you see, so a fixed silver
+    /// gear on a pink cap read as an unskinned grey button. It takes
+    /// `control.glyph` now, exactly like Back and User, which is what makes the
+    /// four caps read as one set of parts.
     ///
     /// Lives in the button band since 0.6.5 (A3), at `bandControlSmall` —
     /// the one control the mockup draws smaller than its neighbours. Still
@@ -337,17 +295,7 @@ public struct DeviceChassis<Content: View>: View {
         } label: {
             Image(systemName: "gearshape.fill")
                 .font(.system(size: size * 0.52, weight: .semibold))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [
-                            Color(dexHex: "#f4f5f6"),
-                            Color(dexHex: "#c3c6ca"),
-                            Color(dexHex: "#8b8f95"),
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .foregroundStyle(skin.control.glyph)
                 .shadow(color: .black.opacity(0.5), radius: 0, x: 0, y: 1)
                 .frame(width: size, height: size)
                 .background(
@@ -365,7 +313,11 @@ public struct DeviceChassis<Content: View>: View {
                         lineWidth: 2
                     )
                 )
-                .shadow(color: .black.opacity(0.45), radius: 2, y: 1)
+                .shadow(
+                    color: .black.opacity(DexMetrics.bandShadowOpacity),
+                    radius: DexMetrics.bandShadowRadius,
+                    y: DexMetrics.bandShadowY
+                )
                 .contentShape(Circle())
         }
         .buttonStyle(DexPressStyle(scale: 0.9))
@@ -411,34 +363,40 @@ public struct DeviceChassis<Content: View>: View {
     // MARK: Screen
 
     private var screenHousing: some View {
-        // The white bezel: 6pt borders on left/right/bottom, none on top.
+        // The moulded housing: a thin top margin, the LCD, and the vent strip.
+        // The two red lamps that used to squat in the top margin moved up onto
+        // bare chassis in 0.6.6 (D1) — see `islandFlank` — which is why that
+        // margin is now the thinnest thing that still reads as moulding.
         VStack(spacing: 0) {
-            // The two red indicator lamps (0.6.5).
-            //
-            // The mockup puts them on bare chassis, centred between the notch
-            // and the top of the housing. There is no bare chassis left there:
-            // the title lip (0.6.5, item 4) hangs down through exactly that slot
-            // and reaches the display's edge, and the gap below it is
-            // `housingGap` — four points. So they take the housing's own top
-            // margin instead, which held nothing, sits at the same point in the
-            // stack, and mirrors the lamp on the vent strip below the LCD.
-            HStack(spacing: DexMetrics.bandPillSpacing) {
-                ventDot
-                ventDot
-            }
-            .allowsHitTesting(false)
-            .frame(height: DexMetrics.bezelTopMargin)
+            Color.clear
+                .frame(height: DexMetrics.bezelTopMargin)
             innerBezel
             bottomVents
         }
-        .background(skin.panel)
-        .clipShape(screenPanelShape)
+        // **The fill is the chamfered shape, not a rectangle behind one
+        // (0.6.6, E1).** `.background(skin.panel)` painted a full rect and left
+        // `clipShape` to cut the diagonal off it; a clip and a stroke antialias
+        // independently, so on the one edge that is neither horizontal nor
+        // vertical their two soft edges did not coincide and the white fill
+        // showed through as a sliver outside the cut. Filling the shape itself
+        // means there is no white out there to leak in the first place, and the
+        // `compositingGroup` flattens fill, contents and rim into one layer so
+        // the clip cuts them together rather than one at a time.
+        .background { screenPanelShape.fill(skin.panel) }
         .overlay {
             screenPanelShape
                 .strokeBorder(skin.panelEdge, lineWidth: DexMetrics.screenPanelBorder)
-                // NOCTURNE's charge: the housing rim glows softly. Two stacked
-                // shadows — a tight one and a wide one — read as phosphor rather
-                // than as a drop shadow.
+        }
+        .compositingGroup()
+        .clipShape(screenPanelShape)
+        // NOCTURNE's charge: the housing rim glows softly. Two stacked shadows
+        // — a tight one and a wide one — read as phosphor rather than as a drop
+        // shadow. Cast from *behind* the housing since 0.6.6, because the clip
+        // above would otherwise eat the halo it is supposed to spill onto the
+        // chassis; the opaque housing hides the plate it is cast from.
+        .background {
+            screenPanelShape
+                .fill(skin.rimGlow ?? .clear)
                 .shadow(color: skin.rimGlow?.opacity(0.9) ?? .clear, radius: 6)
                 .shadow(color: skin.rimGlow?.opacity(0.5) ?? .clear, radius: 16)
         }
@@ -509,21 +467,44 @@ public struct DeviceChassis<Content: View>: View {
             // old slot. Held off the edge by the chamfer's run: at the lamp's
             // height the diagonal has eaten roughly `chamfer - ventStrip/2` of
             // the left edge, and a lamp inside that is a lamp cut in half.
+            //
+            // Nudged a further ~0.3 chamfers right in 0.6.6 (E2): it was
+            // clearing the diagonal by the width of the lamp itself, which reads
+            // as crowding the cut rather than as sitting beside it.
             ventDot
-                .padding(.leading, DexMetrics.screenPanelChamfer * 0.9)
+                .padding(.leading, DexMetrics.screenPanelChamfer * 1.2)
 
             Spacer(minLength: 0)
 
-            // Grill slats at the right end. The wordmark that the mockup puts
-            // between them is deliberately absent: it lives in the title lip at
-            // the top of the chassis since 0.6.5 (item 4), and stamping it here
-            // as well would put two of them on one device.
+            // The grille, with the wordmark stamped into it (0.6.6, D2).
+            //
+            // This is where the mockup always put it, between the slats at the
+            // bottom-right of the housing; 0.6.5 sent it to a lip at the top of
+            // the chassis instead, and 0.6.6's D1 deletes that lip. So the
+            // device carries exactly one wordmark again and it is in the vent —
+            // moulded into the grille the way a real one is, rather than
+            // floating on its own plate.
+            //
+            // In `skin.grill` rather than the old brushed-metal gradient: the
+            // slats around it are that colour, and a wordmark that does not
+            // match the grille it is cut into reads as a sticker. Carried at
+            // more opacity than the slats so it stays legible where they are
+            // deliberately faint.
             VStack(spacing: 2) {
-                ForEach(0..<3, id: \.self) { _ in
-                    Capsule().fill(skin.grill).frame(width: 64, height: 2)
-                }
+                ventSlat
+                ventSlat
+                Text("VINODEX")
+                    .font(DexFont.retro(7))
+                    .tracking(2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                    .foregroundStyle(skin.grill)
+                    .opacity(0.9)
+                    .frame(width: 64)
+                ventSlat
+                ventSlat
             }
-            .opacity(0.5)
+            .allowsHitTesting(false)
             // Pulled in off the panel's rounded corner, which the slats
             // were running into at their right end.
             .padding(.trailing, DexMetrics.headerPaddingH + DexMetrics.screenPanelCorner * 0.5)
@@ -531,12 +512,20 @@ public struct DeviceChassis<Content: View>: View {
         .frame(height: DexMetrics.ventStripHeight)
     }
 
+    /// One grille slat. Faint on purpose — the vent is texture, not a feature;
+    /// the wordmark between them is the only thing here meant to be read.
+    private var ventSlat: some View {
+        Capsule()
+            .fill(skin.grill)
+            .frame(width: 64, height: 2)
+            .opacity(0.5)
+    }
+
     // MARK: Footer — the button band
     //
-    // Four physical controls around one display (0.6.5, A/B). Top-aligned, in
-    // two rows: User alone on the left, the marquee panel centred with its two
-    // indicator lamps above it, then Settings — the small one — and the
-    // Home-over-Back pair on the right.
+    // Four physical controls around one display (0.6.5, A/B): User alone on the
+    // left, the marquee panel centred with its two indicator lamps above it, and
+    // Settings/Home/Back as one staggered cluster on the right.
     //
     // There is deliberately **no** primary action button. Select and OK are
     // screen taps, and a fifth circle down here would be a control with nothing
@@ -569,38 +558,7 @@ public struct DeviceChassis<Content: View>: View {
             .frame(maxWidth: DexMetrics.marqueeMaxWidth)
             .frame(maxWidth: .infinity)
 
-            // Settings, smaller than the other three (0.6.5, A3). Down from the
-            // island strip, where the cog used to live above Home.
-            settingsButton(size: DexMetrics.bandControlSmall)
-                // Centred on the upper row rather than hung from its top edge:
-                // a small circle sharing a top line with two large ones reads
-                // as having slipped, not as being small.
-                .padding(.top, (DexMetrics.bandControl - DexMetrics.bandControlSmall) / 2)
-
-            // Home over Back on the right (0.6.5, A2), Back lowest — nearest
-            // the thumb, and the one pressed most.
-            //
-            // Both are always mounted. Back greys out where there is nowhere to
-            // go rather than vanishing: a control that disappears takes the
-            // buttons below it with it, and having Home jump down the band
-            // between screens is worse than a dim button.
-            VStack(spacing: DexMetrics.bandNavGap) {
-                ChassisButton(kind: .home, size: DexMetrics.bandControl, enabled: onHome != nil) {
-                    isFlipped = false
-                    onHome?()
-                }
-
-                // Back acts on whatever is in front of you: with the device
-                // flipped it turns it back over first, rather than navigating
-                // underneath and appearing to do nothing.
-                ChassisButton(kind: .back, size: DexMetrics.bandControl, enabled: showsBack || isFlipped) {
-                    if isFlipped {
-                        isFlipped = false
-                    } else {
-                        onBack?()
-                    }
-                }
-            }
+            navCluster
         }
         .frame(height: DexMetrics.bandHeight, alignment: .top)
         .padding(.horizontal, DexMetrics.footerPaddingH)
@@ -612,6 +570,64 @@ public struct DeviceChassis<Content: View>: View {
         .padding(.bottom, DexMetrics.chassisEdgeInset)
         .frame(maxWidth: .infinity)
         .background(skin.footerWash)
+    }
+
+    /// Settings, Home and Back as one staggered triangle (0.6.6, B1/F3).
+    ///
+    /// **This reverses 0.6.5's A2**, which put Home directly over Back in a
+    /// vertical column, and reversing it is worth the churn: the column is the
+    /// most expensive shape two buttons can take. It charged the band two full
+    /// diameters plus a gap — 110pt at SMALL — and every point of that came off
+    /// the LCD. The same two buttons staggered diagonally need one diameter plus
+    /// the vertical *component* of their separation, which is 95pt here even
+    /// after 0.6.6's B2 grew all four controls.
+    ///
+    /// Home takes the top-right; Back is offset down-and-inward from it, which
+    /// is both the mockup's diagonal and the corner nearest the thumb; Settings
+    /// closes the triangle beneath them. The three are packed to near-tangency —
+    /// see the geometry note on `DexMetrics.bandClusterHomeX` — so the cluster
+    /// reads as one group of parts rather than three loose circles, which is
+    /// F3's complaint answered: the cog is *inside* the group now, not floating
+    /// above the row's midline on its own centring padding.
+    ///
+    /// Laid out by offset against an explicitly sized transparent plate rather
+    /// than by stacks. Overlapping bounding boxes have no stack arrangement, and
+    /// the plate is what gives the `HStack` above a width to measure — the
+    /// offset children contribute none.
+    private var navCluster: some View {
+        ZStack(alignment: .topLeading) {
+            Color.clear
+                .frame(width: DexMetrics.bandClusterWidth, height: DexMetrics.bandClusterHeight)
+
+            // Home, the cluster's apex.
+            ChassisButton(kind: .home, size: DexMetrics.bandControl, enabled: onHome != nil) {
+                isFlipped = false
+                onHome?()
+            }
+            .offset(x: DexMetrics.bandClusterHomeX)
+
+            // Back, down and inward. Always mounted, and greyed where there is
+            // nowhere to go rather than vanishing: a control that disappears
+            // moves the ones around it, and having the cluster re-form itself
+            // between screens is worse than a dim button.
+            //
+            // It acts on whatever is in front of you — with the device flipped
+            // it turns it back over first, rather than navigating underneath and
+            // appearing to do nothing.
+            ChassisButton(kind: .back, size: DexMetrics.bandControl, enabled: showsBack || isFlipped) {
+                if isFlipped {
+                    isFlipped = false
+                } else {
+                    onBack?()
+                }
+            }
+            .offset(y: DexMetrics.bandClusterBackY)
+
+            // Settings, the small one (0.6.5, A3), closing the triangle.
+            settingsButton(size: DexMetrics.bandControlSmall)
+                .offset(x: DexMetrics.bandClusterSettingsX, y: DexMetrics.bandClusterSettingsY)
+        }
+        .frame(width: DexMetrics.bandClusterWidth, height: DexMetrics.bandClusterHeight)
     }
 
     /// The marquee's two indicator lamps (0.6.5, B2): a red and a blue pill,
@@ -705,28 +721,9 @@ private struct ChamferedPanel: InsettableShape {
     }
 }
 
-/// The title lip's silhouette (0.6.5, item 4): wide at the top edge where it
-/// leaves the chassis, shoulders curving in to a narrower flat foot — the
-/// 0.6.2 trapezoid bump turned upside down, hanging instead of rising.
-private struct TitleLip: Shape {
-    func path(in rect: CGRect) -> Path {
-        let shoulder = rect.width * 0.14
-        var p = Path()
-        p.move(to: CGPoint(x: rect.minX, y: rect.minY))
-        p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
-        p.addQuadCurve(
-            to: CGPoint(x: rect.maxX - shoulder, y: rect.maxY),
-            control: CGPoint(x: rect.maxX - shoulder * 0.3, y: rect.maxY - rect.height * 0.18)
-        )
-        p.addLine(to: CGPoint(x: rect.minX + shoulder, y: rect.maxY))
-        p.addQuadCurve(
-            to: CGPoint(x: rect.minX, y: rect.minY),
-            control: CGPoint(x: rect.minX + shoulder * 0.3, y: rect.maxY - rect.height * 0.18)
-        )
-        p.closeSubpath()
-        return p
-    }
-}
+// `TitleLip` retired in 0.6.6 (D1): the top wordmark it was built to seat is
+// gone, and the only wordmark on the device is stamped into the grille instead
+// — see `bottomVents`.
 
 // MARK: - Chassis shell
 
@@ -825,7 +822,15 @@ public struct ChassisButton: View {
                 icon
             }
             .frame(width: size, height: size)
-            .shadow(color: .black.opacity(0.6), radius: 6, y: 8)
+            // Softened in 0.6.6 (B3) — see `DexMetrics.bandShadowOpacity`. The
+            // old 0.6/6/8 cast a near-black plate roughly a quarter of a
+            // diameter below each circle, which is a sticker's shadow, not a
+            // moulded cap's.
+            .shadow(
+                color: .black.opacity(DexMetrics.bandShadowOpacity),
+                radius: DexMetrics.bandShadowRadius,
+                y: DexMetrics.bandShadowY
+            )
         }
         .buttonStyle(DexPressStyle())
         .disabled(!enabled)
@@ -1138,11 +1143,46 @@ public struct MarqueeBanner: View {
                         alignment: .leading
                     )
                     .clipShape(RoundedRectangle(cornerRadius: DexMetrics.marqueeInnerCorner))
+                    // The end fade (0.6.6, C2). The strip is a window onto a
+                    // loop longer than itself, so text *has* to leave it — the
+                    // complaint was never that it scrolled but that the clip
+                    // guillotined it, parking half a glyph hard against each
+                    // edge. Masking the same clip with a gradient turns that
+                    // into letters passing behind the housing, which is what a
+                    // real segment panel with a bezel over it looks like.
+                    //
+                    // Masks the scrolling copies only, not the panel: the fill,
+                    // its grid and its rim are a separate layer of the ZStack
+                    // and must stay solid to their own edges.
+                    .mask(alignment: .leading) { endFade(width: strip.size.width) }
                 }
                 .padding(4)
             }
         }
         .frame(height: DexMetrics.marqueeHeight)
+    }
+
+    /// The mask that softens both ends of the strip (0.6.6, C2).
+    ///
+    /// Built from the measured strip width rather than from relative stops:
+    /// `marqueeFade` is one glyph cell, so the ramp has to be that many
+    /// *points* long whatever the panel's width, or a narrow screen gets a fade
+    /// that eats half the readable text and a wide one gets no fade at all.
+    /// Degrades to a plain opaque mask if the strip is too narrow to hold two
+    /// ramps, which is the only case where fading would hide everything.
+    private func endFade(width: CGFloat) -> some View {
+        let fade = min(DexMetrics.marqueeFade, max(width, 0) / 3)
+        return LinearGradient(
+            stops: [
+                .init(color: .clear, location: 0),
+                .init(color: .black, location: fade / max(width, 1)),
+                .init(color: .black, location: 1 - fade / max(width, 1)),
+                .init(color: .clear, location: 1),
+            ],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+        .frame(width: max(width, 0))
     }
 
     /// One full cycle of content: every segment, `gap` apart, with the page

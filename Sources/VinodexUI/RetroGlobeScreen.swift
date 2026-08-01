@@ -124,9 +124,11 @@ public struct RetroGlobeScreen: View {
                         .multilineTextAlignment(.center)
                         // Always light, in both LCD modes. A marker does not sit
                         // on the screen background — it sits on the *globe*,
-                        // which is dark green whatever the mode is, so following
-                        // `lcd.text` turned the label near-black over a dark
-                        // sphere and made it unreadable in light mode.
+                        // whose hue now follows the mode (0.6.6, A) but whose
+                        // ground is a dark sphere in every one of them. So
+                        // following `lcd.text` turned the label near-black over
+                        // that sphere and made it unreadable in light mode; the
+                        // plate below carries the contrast instead.
                         .foregroundStyle(.white)
                         .fixedSize()
                         .padding(.horizontal, 12)
@@ -287,9 +289,26 @@ final class GlobeModel {
     ///
     /// The screen mode has to reach in here rather than being handled by the
     /// SwiftUI layer alone: the whole rig — emission, three light colours and
-    /// the wireframe — is a green CRT glow tuned against a black ground. Left
-    /// alone on the light screen it read as a hole punched in the page, which
-    /// is why the globe was the one screen the setting appeared not to touch.
+    /// the wireframe — used to be a green CRT glow tuned against a black
+    /// ground. Left alone on the light screen it read as a hole punched in the
+    /// page, which is why the globe was the one screen the setting appeared not
+    /// to touch.
+    ///
+    /// **Every green in the rig is derived from `tint` since 0.6.6 (A).** That
+    /// item exists because the sphere stayed green in every mode while the LCD
+    /// behind it themed correctly, and the cause turned out to be arithmetic,
+    /// not plumbing — the tint was reaching this function all along.
+    /// `updatedglobemap.jpg` is a pure-green neon coastline on black, and 0.6.5
+    /// applied the tint as a channel *multiply*. A multiply can only ever take
+    /// colour away: green times purple is a darker green, because the texture
+    /// has no red or blue for the purple to scale up. The one mode that looked
+    /// right was LIGHT, and only because it inverts the texture before the
+    /// multiply reaches it.
+    ///
+    /// So the texture is **colorized** now (see `colorized(_:with:)`) — reduced
+    /// to luminance and re-hued — and the three lights, the emission and the
+    /// wireframe all take the tint too. Colorizing alone would not have been
+    /// enough: a purple sphere lit by three green lamps renders green again.
     func buildScene(isLight: Bool, tint: UIColor = .white, invertsTexture: Bool = false) -> SCNScene {
         let scene = SCNScene()
         scene.background.contents = UIColor.clear
@@ -303,18 +322,17 @@ final class GlobeModel {
            let image = UIImage(contentsOfFile: url.path) {
             // Both treatments happen to the TEXTURE, once per rebuild
             // (`buildScene` only runs from `makeUIView`): invert first
-            // (LIGHT's globe, 0.6.4), then the mode/skin tint multiplied
-            // into the pixels (0.6.5, item 7). The tint rode
-            // `SCNMaterial.multiply` for two releases and never visibly
-            // reached the device — under the physically-based lighting model
-            // the multiply layer is quietly ignored on hardware, which is why
-            // LIGHT (the one mode that rewrote the texture) was the only one
-            // that worked. Texture-space is the path proven to render, so
-            // every tint takes it now.
+            // (LIGHT's globe, 0.6.4), then colorize into the mode/skin tint
+            // (0.6.6, A — 0.6.5's item 7 multiplied here instead).
+            //
+            // Texture-space rather than `SCNMaterial.multiply`, which is where
+            // the tint rode for two releases without ever visibly reaching the
+            // device: under the physically-based lighting model that layer is
+            // quietly ignored on hardware.
             let base = invertsTexture ? Self.inverted(image) ?? image : image
-            material.diffuse.contents = Self.tinted(base, with: tint) ?? base
+            material.diffuse.contents = Self.colorized(base, with: tint) ?? base
         } else {
-            material.diffuse.contents = UIColor(Dex.green)
+            material.diffuse.contents = tint
         }
         material.diffuse.wrapS = .repeat
         material.diffuse.wrapT = .clamp
@@ -322,8 +340,10 @@ final class GlobeModel {
         material.metalness.contents = 0.08
         // Self-illumination is what makes the dark globe glow. On paper it only
         // washes the landmasses out, so light mode keeps a trace of it for
-        // warmth and lets the lights do the work.
-        material.emission.contents = UIColor(Color(dexHex: isLight ? "#20402f" : "#0d311f"))
+        // warmth and lets the lights do the work. A deep shade of the tint
+        // rather than the old fixed bottle green: the glow has to be the same
+        // colour as the thing glowing.
+        material.emission.contents = Self.shaded(tint, isLight ? 0.20 : 0.14)
         material.emission.intensity = isLight ? 0.08 : 0.3
         sphere.materials = [material]
         globeNode = SCNNode(geometry: sphere)
@@ -335,31 +355,36 @@ final class GlobeModel {
         let wireMaterial = SCNMaterial()
         wireMaterial.fillMode = .lines
         wireMaterial.lightingModel = .constant
-        // Neon mint disappears against the light ground, so the light shell is
-        // drawn in the deep bottle green the rest of light mode uses — and
-        // needs more opacity, since a dark line at 8% is invisible where a
-        // glowing one was not.
-        wireMaterial.diffuse.contents = UIColor(Color(dexHex: isLight ? "#1B6B3A" : "#7bffbc"))
+        // A pale tint disappears against the light ground, so the light shell
+        // takes a deep shade of it instead — and needs more opacity, since a
+        // dark line at 8% is invisible where a glowing one was not.
+        wireMaterial.diffuse.contents = isLight ? Self.shaded(tint, 0.32) : Self.lifted(tint, 0.30)
         wireMaterial.transparency = isLight ? 0.22 : 0.08
         wireMaterial.isDoubleSided = true
         wire.materials = [wireMaterial]
         wireNode = SCNNode(geometry: wire)
         scene.rootNode.addChildNode(wireNode)
 
-        // Lighting: ambient + key + rim, matching the three.js rig. Light mode
-        // neutralises the green cast and lifts the ambient, so the sphere reads
-        // as a lit object on paper rather than a glowing one in the dark.
+        // Lighting: ambient + key + rim, matching the three.js rig.
+        //
+        // All three carry the tint since 0.6.6 (A), lifted toward white by
+        // different amounts so they stay *lights* rather than three coloured
+        // gels — the key is nearly white, the rim is the tint itself. The tints
+        // are pale by construction (see `LcdMode.globeTint`), so this is a cast
+        // on the light rather than a wash, and the colorized texture keeps
+        // control of the hue. Light mode keeps its lifted ambient so the sphere
+        // reads as a lit object on paper rather than a glowing one in the dark.
         let ambient = SCNNode()
         ambient.light = SCNLight()
         ambient.light?.type = .ambient
-        ambient.light?.color = UIColor(Color(dexHex: isLight ? "#EAF3EC" : "#66ff99"))
+        ambient.light?.color = Self.lifted(tint, isLight ? 0.72 : 0.18)
         ambient.light?.intensity = isLight ? 620 : 330
         scene.rootNode.addChildNode(ambient)
 
         let key = SCNNode()
         key.light = SCNLight()
         key.light?.type = .directional
-        key.light?.color = UIColor(Color(dexHex: isLight ? "#FFFFFF" : "#9bffca"))
+        key.light?.color = Self.lifted(tint, isLight ? 1 : 0.55)
         key.light?.intensity = isLight ? 950 : 1100
         key.position = SCNVector3(2.5, 1.8, 3.2)
         key.look(at: SCNVector3Zero)
@@ -368,7 +393,7 @@ final class GlobeModel {
         let rim = SCNNode()
         rim.light = SCNLight()
         rim.light?.type = .directional
-        rim.light?.color = UIColor(Color(dexHex: isLight ? "#8FBFA2" : "#1fff91"))
+        rim.light?.color = isLight ? Self.shaded(tint, 0.62) : tint
         rim.light?.intensity = isLight ? 260 : 500
         rim.position = SCNVector3(-3, -1, -2)
         rim.look(at: SCNVector3Zero)
@@ -536,28 +561,80 @@ final class GlobeModel {
         lastTranslation = .zero
     }
 
-    /// The map texture multiplied by the mode/skin tint (0.6.5, item 7) —
-    /// channel-wise, via `CIColorMatrix`, so the coastline detail survives
-    /// and only the cast shifts. Near-white tints skip the filter entirely:
-    /// multiplying by white is the identity, and LIGHT deliberately passes
-    /// white so its inverted globe stays clean.
-    private static func tinted(_ image: UIImage, with tint: UIColor) -> UIImage? {
-        var r: CGFloat = 1, g: CGFloat = 1, b: CGFloat = 1, a: CGFloat = 1
-        tint.getRed(&r, green: &g, blue: &b, alpha: &a)
-        guard r < 0.98 || g < 0.98 || b < 0.98 else { return image }
+    /// The map texture **colorized** into the mode/skin tint (0.6.6, A).
+    ///
+    /// Replaces 0.6.5's channel multiply, which could not work on this
+    /// particular texture and so made the whole per-mode globe feature look
+    /// like it had never shipped. `updatedglobemap.jpg` is a neon-green
+    /// coastline on black — roughly `(0.25, 0.95, 0.30)` where there is ink and
+    /// zero everywhere else. Multiplying that by L-WINES' purple scales a green
+    /// that is already there and a red and blue that are not, so the output is
+    /// a *dimmer green*. Every mode multiplied to green, which is exactly what
+    /// the device showed.
+    ///
+    /// Colorizing throws the texture's own hue away first: each output channel
+    /// is the pixel's **luminance** times that channel of the tint, which one
+    /// `CIColorMatrix` does in a single pass — `inputRVector` dotted with the
+    /// input RGBA *is* `luma · tint.r` when its three colour terms are the
+    /// luminance weights scaled by `tint.r`. Coastline detail survives because
+    /// luminance preserves it; only the hue is replaced.
+    ///
+    /// `gain` compensates for what desaturation costs: the neon green's
+    /// luminance is well below its green channel, so a straight colorize
+    /// returns a globe noticeably dimmer than the one people are used to. The
+    /// 8-bit render at the end clamps whatever this pushes past white.
+    ///
+    /// Near-white tints skip the filter entirely — LIGHT deliberately passes
+    /// white and inverts the texture instead (0.6.4, F1), and colorizing by
+    /// white would flatten that inversion to greyscale.
+    private static func colorized(_ image: UIImage, with tint: UIColor) -> UIImage? {
+        let c = components(tint)
+        guard c.r < 0.98 || c.g < 0.98 || c.b < 0.98 else { return image }
+
+        let gain: CGFloat = 1.3
+        // Rec. 601 luma weights — the same ones `CIPhotoEffectMono` uses.
+        let luma = (r: 0.299 * gain, g: 0.587 * gain, b: 0.114 * gain)
 
         guard let input = CIImage(image: image),
               let filter = CIFilter(name: "CIColorMatrix")
         else { return nil }
         filter.setValue(input, forKey: kCIInputImageKey)
-        filter.setValue(CIVector(x: r, y: 0, z: 0, w: 0), forKey: "inputRVector")
-        filter.setValue(CIVector(x: 0, y: g, z: 0, w: 0), forKey: "inputGVector")
-        filter.setValue(CIVector(x: 0, y: 0, z: b, w: 0), forKey: "inputBVector")
+        filter.setValue(CIVector(x: luma.r * c.r, y: luma.g * c.r, z: luma.b * c.r, w: 0), forKey: "inputRVector")
+        filter.setValue(CIVector(x: luma.r * c.g, y: luma.g * c.g, z: luma.b * c.g, w: 0), forKey: "inputGVector")
+        filter.setValue(CIVector(x: luma.r * c.b, y: luma.g * c.b, z: luma.b * c.b, w: 0), forKey: "inputBVector")
         filter.setValue(CIVector(x: 0, y: 0, z: 0, w: 1), forKey: "inputAVector")
         guard let output = filter.outputImage else { return nil }
         let context = CIContext()
         guard let cg = context.createCGImage(output, from: output.extent) else { return nil }
         return UIImage(cgImage: cg)
+    }
+
+    /// The tint's sRGB components. `getRed` fails on a colour that is not in an
+    /// RGB space (a pattern or a monochrome `UIColor`), so an unreadable tint
+    /// falls back to white — which is the identity everywhere it is used.
+    private static func components(_ color: UIColor) -> (r: CGFloat, g: CGFloat, b: CGFloat) {
+        var r: CGFloat = 1, g: CGFloat = 1, b: CGFloat = 1, a: CGFloat = 1
+        guard color.getRed(&r, green: &g, blue: &b, alpha: &a) else { return (1, 1, 1) }
+        return (r, g, b)
+    }
+
+    /// `color` scaled toward black — the tint's deep register, for the
+    /// emission glow and light mode's wireframe.
+    private static func shaded(_ color: UIColor, _ factor: CGFloat) -> UIColor {
+        let c = components(color)
+        return UIColor(red: c.r * factor, green: c.g * factor, blue: c.b * factor, alpha: 1)
+    }
+
+    /// `color` mixed toward white — the tint's light register, for the lamps.
+    /// At `amount` 1 this is plain white, which is what LIGHT mode wants.
+    private static func lifted(_ color: UIColor, _ amount: CGFloat) -> UIColor {
+        let c = components(color)
+        return UIColor(
+            red: c.r + (1 - c.r) * amount,
+            green: c.g + (1 - c.g) * amount,
+            blue: c.b + (1 - c.b) * amount,
+            alpha: 1
+        )
     }
 
     /// The map texture with its colours inverted (0.6.4, F1) — LIGHT mode's
