@@ -415,9 +415,9 @@ public struct DeviceChassis<Content: View>: View {
         }
         .background(skin.panel)
         .clipShape(
-            .rect(
+            UnevenRoundedRectangle(
                 topLeadingRadius: DexMetrics.screenPanelCorner,
-                bottomLeadingRadius: DexMetrics.screenPanelCorner,
+                bottomLeadingRadius: 2,
                 bottomTrailingRadius: DexMetrics.screenPanelCorner,
                 topTrailingRadius: DexMetrics.screenPanelCorner
             )
@@ -425,7 +425,7 @@ public struct DeviceChassis<Content: View>: View {
         .overlay {
             UnevenRoundedRectangle(
                 topLeadingRadius: DexMetrics.screenPanelCorner,
-                bottomLeadingRadius: DexMetrics.screenPanelCorner,
+                bottomLeadingRadius: 2,
                 bottomTrailingRadius: DexMetrics.screenPanelCorner,
                 topTrailingRadius: DexMetrics.screenPanelCorner
             )
@@ -511,40 +511,117 @@ public struct DeviceChassis<Content: View>: View {
     // MARK: Footer
 
     private func footer() -> some View {
-        HStack(spacing: 8) {
-            // Back and Home act on whatever is in front of you. With the panel
-            // open (or the device flipped) they dismiss that first, rather than
-            // navigating underneath it and appearing to do nothing.
-            // Back where there is somewhere to go; otherwise the slot earns
-            // its keep as the way into saved entries.
-            if showsBack || isFlipped {
-                ChassisButton(kind: .back, enabled: true) {
-                    if isFlipped {
-                        isFlipped = false
-                    } else {
-                        onBack?()
-                    }
-                }
-            } else {
-                ChassisButton(kind: .bookmarks, enabled: onBookmarks != nil) {
+        VStack(spacing: 12) {
+            // Two pill status lights (red + blue) centered above marquee (0.6.5, B2)
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(Dex.red500)
+                    .frame(width: 10, height: 10)
+                    .overlay(Circle().strokeBorder(Dex.red800, lineWidth: 1))
+
+                Circle()
+                    .fill(Dex.blue)
+                    .frame(width: 10, height: 10)
+                    .overlay(Circle().strokeBorder(Color(dexHex: "#0D7ACC"), lineWidth: 1))
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+
+            // Button band: User (left) | Marquee (center) | Settings (center-right) | Home/Back (right)
+            HStack(spacing: 12) {
+                // User button bottom-left (0.6.5, A1)
+                ChassisButton(kind: .user, enabled: onBookmarks != nil) {
                     onBookmarks?()
                 }
-            }
 
-            MarqueeBanner(
-                segments: footerSegments,
-                symbol: footerSymbol,
-                fontSize: DexMetrics.marqueeTextSize
-            )
-            .frame(maxWidth: DexMetrics.marqueeMaxWidth)
-            .frame(maxWidth: .infinity)
+                // Green "M" marquee panel - central display element (0.6.5, B1)
+                ZStack {
+                    RoundedRectangle(cornerRadius: DexMetrics.marqueeCorner)
+                        .fill(Dex.green500)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: DexMetrics.marqueeCorner)
+                                .strokeBorder(Dex.green700, lineWidth: 1)
+                        )
 
-            ChassisButton(kind: .home, enabled: onHome != nil) {
-                isFlipped = false
+                    HStack(spacing: 4) {
+                        ForEach(Array(footerSegments.enumerated()), id: \.offset) { _, segment in
+                            Text(segment)
+                                .font(DexFont.retro(DexMetrics.marqueeTextSize * 0.75))
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
+                        }
+                        if let symbol = footerSymbol {
+                            Image(systemName: symbol)
+                                .font(.system(size: DexMetrics.marqueeTextSize * 0.6, weight: .bold))
+                                .foregroundStyle(.white)
+                        }
+                    }
+                    .padding(.horizontal, 8)
+                }
+                .frame(height: DexMetrics.footerControl * 0.8)
+                .frame(maxWidth: DexMetrics.marqueeMaxWidth * 0.6)
+                .frame(maxWidth: .infinity)
+
+                // Settings button center-right, smaller (0.6.5, A3)
+                Button {
+                    Haptics.tap()
+                    onSettings?()
+                } label: {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: DexMetrics.footerControl * 0.35, weight: .semibold))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [
+                                    Color(dexHex: "#f4f5f6"),
+                                    Color(dexHex: "#c3c6ca"),
+                                    Color(dexHex: "#8b8f95"),
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .shadow(color: .black.opacity(0.5), radius: 0, x: 0, y: 1)
+                        .frame(width: DexMetrics.footerControl * 0.65, height: DexMetrics.footerControl * 0.65)
+                        .background(
+                            Circle().fill(
+                                LinearGradient(
+                                    colors: [skin.control.top, skin.control.bottom],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                        )
+                        .overlay(
+                            Circle().strokeBorder(
+                                skin.control.edge,
+                                lineWidth: 2
+                            )
+                        )
+                        .shadow(color: .black.opacity(0.45), radius: 2, y: 1)
+                        .contentShape(Circle())
+                }
+                .buttonStyle(DexPressStyle(scale: 0.9))
+                .accessibilityLabel("Settings")
+
+                // Home (top) and Back (bottom) vertical pair on right (0.6.5, A2)
+                VStack(spacing: 8) {
+                    ChassisButton(kind: .home, enabled: onHome != nil) {
+                        isFlipped = false
                         onHome?()
+                    }
+
+                    if showsBack || isFlipped {
+                        ChassisButton(kind: .back, enabled: true) {
+                            if isFlipped {
+                                isFlipped = false
+                            } else {
+                                onBack?()
+                            }
+                        }
+                    }
+                }
             }
+            .padding(.horizontal, DexMetrics.footerPaddingH)
         }
-        .padding(.horizontal, DexMetrics.footerPaddingH)
         // Asymmetric on purpose, and built from the two insets rather than
         // centred in a fixed height: tight to the screen housing above, full
         // `chassisEdgeInset` below so the home indicator has bare chassis to
@@ -629,7 +706,8 @@ private final class ChassisPatternLoader {
 public struct ChassisButton: View {
     /// `bookmarks` replaces Back on the main screen, where there is nowhere
     /// to go back to and the button was just a greyed-out slot.
-    public enum Kind { case back, home, bookmarks }
+    /// `user` is an alias for bookmarks used in the button band (0.6.5).
+    public enum Kind { case back, home, bookmarks, user }
 
     let kind: Kind
     let enabled: Bool
@@ -680,13 +758,13 @@ public struct ChassisButton: View {
         switch kind {
         case .back: "Back"
         case .home: "Home"
-        case .bookmarks: "Saved entries"
+        case .bookmarks, .user: "Saved entries"
         }
     }
 
     private var gradient: LinearGradient {
         switch kind {
-        case .back, .bookmarks:
+        case .back, .bookmarks, .user:
             LinearGradient(colors: [skin.control.top, skin.control.bottom], startPoint: .top, endPoint: .bottom)
         case .home:
             LinearGradient(colors: [skin.accent.light, skin.accent.mid], startPoint: .top, endPoint: .bottom)
@@ -695,7 +773,7 @@ public struct ChassisButton: View {
 
     private var borderColor: Color {
         switch kind {
-        case .back, .bookmarks: skin.control.edge
+        case .back, .bookmarks, .user: skin.control.edge
         case .home: skin.accent.edge
         }
     }
@@ -710,7 +788,7 @@ public struct ChassisButton: View {
             Image(systemName: "chevron.left")
                 .font(.system(size: DexMetrics.footerControl * 0.47, weight: .heavy))
                 .foregroundStyle(skin.control.glyph)
-        case .bookmarks:
+        case .bookmarks, .user:
             Image(systemName: "person.crop.circle")
                 .font(.system(size: DexMetrics.footerControl * 0.44, weight: .semibold))
                 .foregroundStyle(skin.control.glyph)
