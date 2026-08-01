@@ -1,5 +1,7 @@
 ﻿# HGapps plan — open issues, cleanup, and next batches
 
+**Authored by Horizon.**
+
 *2026-07-30, written at iOS v0.6.2 (tagged, on main). This is the working
 plan that consolidates the open ends of AUDIT.md, KNOWN-ISSUES.md,
 V1-ROADMAP.md and the archived shipping/port reviews. Run batches with the
@@ -7,7 +9,8 @@ V1-ROADMAP.md and the archived shipping/port reviews. Run batches with the
 
 > **Moved 0.6.5 (batch 4 phase 3).** This file lived at `HGapps\PLAN.md` — one
 > level above the repo, where only one collaborator could see it. It now sits
-> in `horizon-md/` alongside AUDIT/auditS/arch so both collaborators do. The
+> in `horizon-md/`, so both collaborators do; the AUDIT/auditS/arch trio it
+> draws on moved alongside it and then on into `godot-md/`. The
 > workspace paths it describes (`HGapps\…`) still refer to the folder **above**
 > this repo. Note that several items below are already done — the pixelflags
 > decision, the root-doc archive, the `README-layout.md` rewrite and this very

@@ -1,5 +1,7 @@
 # Vinodex Audit — 2026-07-28
 
+**Authored by Godot.**
+
 A work order, not a report. Every item below is a specific, located defect with a
 proposed fix. Work through them in any order; check them off as they land.
 

@@ -179,7 +179,7 @@ vinodex-ios/
   scripts/                 Data generator and icon rasteriser
   shared/pixelflags/       Pixel-art flags — cross-repo master (web consumes them too), source for Resources/Flags
   xtool.yml                Bundle ID and icon path for xtool
-  horizon-md/AUDIT.md      Standing work order — numbered, permanent IDs referenced in commits
+  godot-md/AUDIT.md        Standing work order — numbered, permanent IDs referenced in commits
   horizon-md/, godot-md/   Per-collaborator doc folders (0.6.5)
   KNOWN-ISSUES.md          Runbook: device deployment, WSL setup, traps that waste time
 ```
@@ -231,7 +231,7 @@ no effect on iOS.
 - A green CI run does not mean the app builds — the UI layer is invisible to
   Linux. Run `xtool dev build` before merging anything that touches
   `Sources/VinodexUI/` or `Sources/VinodexApp/`.
-- `horizon-md/AUDIT.md` carries permanent item IDs (`H3`, `M12`, `L27`). Name the ones a PR
+- `godot-md/AUDIT.md` carries permanent item IDs (`H3`, `M12`, `L27`). Name the ones a PR
   closes in its description and tick them in the same PR.
 - `KNOWN-ISSUES.md` is where operational discoveries go — anything that cost you
   an hour and would cost the next person the same.
