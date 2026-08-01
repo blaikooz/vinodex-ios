@@ -44,6 +44,11 @@ public struct DeviceChassis<Content: View>: View {
     /// Read for VINTAGE mode's monochrome pass over the LCD — see `innerBezel`.
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
 
+    /// The chassis owns the app's two largest movements — the 0.7s 3D flip and
+    /// the footer marquee — so this is where Reduce Motion has to be read.
+    /// (AUDIT M18)
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
@@ -105,7 +110,14 @@ public struct DeviceChassis<Content: View>: View {
                 DeviceBackPlate()
                     // Pre-rotated so it reads the right way round once the
                     // container has turned; without this it arrives mirrored.
-                    .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
+                    //
+                    // Which is exactly why it is conditional: under Reduce
+                    // Motion the container does not turn, so a fixed 180° here
+                    // would leave the back plate permanently mirrored — the
+                    // engraved VINODEX wordmark reading backwards. The two
+                    // rotations are one mechanism and have to be dropped
+                    // together. (AUDIT M18)
+                    .rotation3DEffect(.degrees(reduceMotion ? 0 : 180), axis: (x: 0, y: 1, z: 0))
                     .opacity(showsBackFace ? 1 : 0)
                     .accessibilityHidden(!isFlipped)
                     // Swipe rather than tap, so returning is the same gesture
@@ -120,16 +132,30 @@ public struct DeviceChassis<Content: View>: View {
                     )
             }
             .rotation3DEffect(
-                .degrees(isFlipped ? 180 : 0),
+                .degrees(reduceMotion ? 0 : (isFlipped ? 180 : 0)),
                 axis: (x: 0, y: 1, z: 0),
                 perspective: 0.45
             )
-            .animation(.easeInOut(duration: DexMetrics.flipDuration), value: isFlipped)
+            .animation(
+                reduceMotion ? nil : Animation.easeInOut(duration: DexMetrics.flipDuration),
+                value: isFlipped
+            )
             // Hard cut at the halfway point: no duration, so the faces swap in
             // one frame rather than fading, and it lands while the plate is
             // edge-on so nothing is visibly on screen to pop.
+            //
+            // Under Reduce Motion there is no turn to hide the cut behind, so
+            // the midpoint delay would just be half a second of nothing
+            // happening. A short cross-fade replaces it — the one transition
+            // Apple's guidance explicitly offers as the substitute for a
+            // rotation. (AUDIT M18)
             .onChange(of: isFlipped) { _, flipped in
                 flipSwapTask?.cancel()
+                flipSwapTask = nil
+                guard !reduceMotion else {
+                    withAnimation(.easeInOut(duration: 0.2)) { showsBackFace = flipped }
+                    return
+                }
                 flipSwapTask = Task { @MainActor in
                     try? await Task.sleep(for: .seconds(DexMetrics.flipDuration / 2))
                     guard !Task.isCancelled else { return }
@@ -836,12 +862,32 @@ struct PulseGlow: ViewModifier {
     let maxRadius: CGFloat
 
     @State private var on = false
+    /// The four instances of this modifier are the *only* `repeatForever`
+    /// animations in the app, so this one check is the whole of its perpetual
+    /// motion. Frozen lit rather than frozen dark: the orb and the three status
+    /// lamps are meant to read as powered, and a dead-looking indicator lamp is
+    /// a different message, not a calmer one. (AUDIT M18; overlaps L11)
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    @ViewBuilder
     func body(content: Content) -> some View {
-        content
-            .shadow(color: color.opacity(on ? 0.8 : 0.25), radius: on ? maxRadius : minRadius)
-            .animation(.easeInOut(duration: period / 2).repeatForever(autoreverses: true), value: on)
-            .onAppear { on = true }
+        if reduceMotion {
+            content
+                .shadow(color: color.opacity(0.5), radius: (minRadius + maxRadius) / 2)
+                // Un-latch. `on` is `@State` on the modifier itself, so it
+                // survives this branch swap — without the reset, turning Reduce
+                // Motion off again re-mounts the branch below, its `.onAppear`
+                // writes `true` over `true`, and `.animation(_:value:)` sees no
+                // change to animate. The lamps would come back stuck at full
+                // glow, permanently, for someone who just asked for motion
+                // *back*. Invisible here: this branch never reads `on`.
+                .onAppear { on = false }
+        } else {
+            content
+                .shadow(color: color.opacity(on ? 0.8 : 0.25), radius: on ? maxRadius : minRadius)
+                .animation(.easeInOut(duration: period / 2).repeatForever(autoreverses: true), value: on)
+                .onAppear { on = true }
+        }
     }
 }
 
@@ -897,6 +943,11 @@ public struct MarqueeBanner: View {
 
     /// The strip's phosphor follows the shell — see `ChassisSkin.marqueeText`.
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
+    /// A strip of text sliding sideways under the screen, on every screen, for
+    /// as long as the app is open — the single most continuous movement in the
+    /// app. Read here rather than passed in by `DeviceChassis` so the banner
+    /// keeps working wherever else it is mounted. (AUDIT M18)
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
 
@@ -947,10 +998,20 @@ public struct MarqueeBanner: View {
             // shift 0 until the geometry reader lands again. The offset is a
             // pure function of the clock, so resuming needs no stored phase.
             // (AUDIT M8)
-            TimelineView(.animation(paused: paused)) { context in
+            // Reduce Motion stops the clock the same way the flip does, but it
+            // cannot simply *pause* the strip: pinning a scrolling label at
+            // shift 0 is only safe if the label fits, and these do not. A
+            // scrolling label is allowed to overflow because the scroll is what
+            // reveals its tail. Measured against the bundled Press Start 2P in
+            // the strip's 256pt of usable width, DAILY CHALLENGE is 288pt at
+            // the default text step, and at HUGE six of the app's ten page
+            // titles overflow. So the still form is a different view — see
+            // `staticLabel`. Taking the motion away must not take the words
+            // with it. (AUDIT M18)
+            TimelineView(.animation(paused: paused || reduceMotion)) { context in
                 let cycle = copyWidth + gap
                 let elapsed = context.date.timeIntervalSinceReferenceDate
-                let shift = copyWidth > 0
+                let shift = (copyWidth > 0 && !reduceMotion)
                     ? CGFloat((elapsed * pointsPerSecond).truncatingRemainder(dividingBy: Double(cycle)))
                     : 0
 
@@ -960,24 +1021,30 @@ public struct MarqueeBanner: View {
                 // ignores `maxWidth` entirely, renders full-bleed across the
                 // footer and squeezes the Back/user button out of the row.
                 GeometryReader { strip in
-                    HStack(spacing: gap) {
-                        label
-                            .background(
-                                GeometryReader { copy in
-                                    Color.clear
-                                        .onAppear { copyWidth = copy.size.width }
-                                        .onChange(of: copy.size.width) { _, new in
-                                            copyWidth = new
+                    Group {
+                        if reduceMotion {
+                            staticLabel
+                        } else {
+                            HStack(spacing: gap) {
+                                label
+                                    .background(
+                                        GeometryReader { copy in
+                                            Color.clear
+                                                .onAppear { copyWidth = copy.size.width }
+                                                .onChange(of: copy.size.width) { _, new in
+                                                    copyWidth = new
+                                                }
                                         }
-                                }
-                            )
-                        label
+                                    )
+                                label
+                            }
+                            .offset(x: -shift)
+                        }
                     }
-                    .offset(x: -shift)
                     .frame(
                         width: max(strip.size.width, 0),
                         height: max(strip.size.height, 0),
-                        alignment: .leading
+                        alignment: reduceMotion ? .center : .leading
                     )
                     .clipShape(RoundedRectangle(cornerRadius: DexMetrics.marqueeInnerCorner))
                 }
@@ -985,6 +1052,38 @@ public struct MarqueeBanner: View {
             }
         }
         .frame(height: DexMetrics.marqueeHeight)
+    }
+
+    /// The Reduce Motion form: one label, centred, still, and sized to fit.
+    ///
+    /// `minimumScaleFactor` rather than `.fixedSize()` — the whole point is
+    /// that this one has to fit the strip rather than run past its edge, and
+    /// the worst case (DAILY CHALLENGE at HUGE) needs about 0.7. Ellipsis
+    /// behind that as a floor, so a longer title added later degrades to a
+    /// visible truncation mark rather than to a word chopped mid-glyph.
+    ///
+    /// One segment, not all of them joined: the only multi-segment caller is
+    /// the main screen's five toasts, and CHEERS/SANTE/SALUTE/PROST/KANPAI are
+    /// five ways of saying one thing. Shrinking the strip to a fifth of its
+    /// size to fit four synonyms would trade legibility for nothing.
+    private var staticLabel: some View {
+        HStack(spacing: gap * 0.4) {
+            Text(segments.first ?? "")
+                .font(segmentFont)
+                .foregroundStyle(skin.marqueeText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .truncationMode(.tail)
+                .shadow(color: skin.marqueeShadow.opacity(0.65), radius: 0, x: 1, y: 1)
+
+            if let symbol {
+                Image(systemName: symbol)
+                    .font(.system(size: symbolSize, weight: .bold))
+                    .foregroundStyle(skin.marqueeText)
+                    .shadow(color: skin.marqueeShadow.opacity(0.65), radius: 0, x: 1, y: 1)
+            }
+        }
+        .padding(.horizontal, 6)
     }
 
     /// One full cycle of content: every segment, `gap` apart, with the page

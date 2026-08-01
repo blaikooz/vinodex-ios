@@ -1,10 +1,37 @@
 #if canImport(SwiftUI) && canImport(UIKit)
 import SwiftUI
+import UIKit
 import VinodexCore
 import VinodexUI
 
+/// Portrait-only, declared at run time (AUDIT M17).
+///
+/// The chassis is not a layout that reflows — it is a fixed portrait stack with
+/// a hard 138pt island band across the top (`DexMetrics.islandStripMinHeight`),
+/// a bezel that absorbs the remaining height, and a footer pinned to the bottom
+/// edge. Landscape does not degrade it, it dismantles it: the island band eats
+/// most of a landscape screen's height and the LCD collapses to a strip.
+///
+/// A delegate rather than the Info.plist because the Info.plist is not ours to
+/// write. xtool generates the whole thing and exposes only `bundleID` and
+/// `iconPath` through `xtool.yml` — it does not even let the app set its own
+/// version (see KNOWN-ISSUES.md, "xtool stamps a fake version into every
+/// bundle"), so `UISupportedInterfaceOrientations` has nowhere to be declared.
+/// This callback is consulted per window and overrides the plist in any case,
+/// so it is both the available lock and the authoritative one.
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(
+        _ application: UIApplication,
+        supportedInterfaceOrientationsFor window: UIWindow?
+    ) -> UIInterfaceOrientationMask {
+        .portrait
+    }
+}
+
 @main
 struct VinodexApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
     init() {
         // Nothing here blocks the first frame (AUDIT M6).
         //

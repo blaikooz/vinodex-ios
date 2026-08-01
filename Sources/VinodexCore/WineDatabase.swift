@@ -20,6 +20,15 @@ public enum Continent: String, Sendable, CaseIterable, Identifiable {
         }
     }
 
+    /// One-line name, for anywhere the marker's line break would be wrong: the
+    /// globe's continent-list fallback, VoiceOver labels, the scanner's step
+    /// title. Callers used to reach for `markerLabel` and strip the newline by
+    /// hand, which is a rule about globe geometry leaking into three unrelated
+    /// places. (AUDIT M20)
+    public var displayName: String {
+        markerLabel.replacingOccurrences(of: "\n", with: " ")
+    }
+
     /// Latitude/longitude the marker is pinned to.
     ///
     /// These are continent centroids, not wine regions. The values ported from

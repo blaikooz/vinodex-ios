@@ -14,7 +14,7 @@ they never get renumbered, even as items are resolved.
 
 ## Status
 
-**57 resolved · 1 won't-fix · 49 open**
+**61 resolved · 1 won't-fix · 45 open**
 
 Re-verified item-by-item against `b48ad20` (v0.6.3) on 2026-07-31. Every open item
 was re-read against current source — the `fb5dcf2` line anchors were ignored in
@@ -37,22 +37,28 @@ superseded copy — so 254 of 254 drawn assets now regenerate). Both raised
 follow-ups instead of overclaiming: **M49** owns the type *range* H11 narrowed
 but deliberately did not widen, **M50** a search-field sizing bug H11 surfaced.
 
+**Then M11–M20**, 2026-07-31 — the four still open in that range: **M11**
+(the globe's frame loop on a clock), **M17** (portrait lock), **M18** (Reduce
+Motion, previously honoured nowhere in the app) and **M20** (a non-globe path
+to a continent). That clears the Performance row's only Medium and two of the
+Accessibility row's six. See the update log.
+
 | Severity | Open | Resolved | Won't-fix | Total |
 |---|---:|---:|---:|---:|
 | Critical | 0 | — | — | 0 |
 | High | 0 | 12 | — | 12 |
-| Medium | 24 | 25 | 1 | 50 |
+| Medium | 20 | 29 | 1 | 50 |
 | Low | 25 | 20 | — | 45 |
-| **Total** | **49** | **57** | **1** | **107** |
+| **Total** | **45** | **61** | **1** | **107** |
 
 Open items by workstream — each row is roughly one sitting's worth of related work:
 
 | Workstream | Open | Items |
 |---|---:|---|
-| UI & UX polish | 13 | M17 M23 M24 · L28 L32 L35 L36 L37 L38 L39 L40 L42 L43 |
+| UI & UX polish | 12 | M23 M24 · L28 L32 L35 L36 L37 L38 L39 L40 L42 L43 |
 | Architecture & code quality | 10 | M27–M31 · L1 L2 L9 L10 L45 |
-| Performance | 5 | M11 · L11 L12 L14 L16 |
-| Accessibility | 7 | M18 M20 M21 M48 M49 M50 · L44 |
+| Performance | 4 | L11 L12 L14 L16 |
+| Accessibility | 5 | M21 M48 M49 M50 · L44 |
 | Release & licensing | 5 | M35 M36 M37 · L20 L22 |
 | Data & robustness | 2 | M45 M46 |
 | Pipeline & reproducibility | 3 | M40 · L25 L26 |
@@ -79,7 +85,7 @@ unfixed foundations. Ranked by how much they grew:
 | **M23** | 1 → 2 invisible daily-return features, plus the streak |
 | **L26** | unguarded asset surface 1 → 5 directories |
 | **L12** | keystroke-rebuilt subtree gained a 20-well recently-viewed strip |
-| **M20** | globe gained a second mount (scanner) with *no* non-globe path to a continent |
+| **M20** | globe gained a second mount (scanner) with *no* non-globe path to a continent — *since fixed; the fallback lives in the shared screen, so both mounts have it* |
 
 **No critical items, and no High ones.** Nothing crashes, corrupts data, or
 breaks the build today. The all-or-nothing database decode (**H2**) that held
@@ -424,10 +430,28 @@ number misses, search for the quoted symbol.
   - Now at: `DeviceChassis.swift:855` (copyWidth), `:896` (cycle), `:911` (measure)
 - [x] **M10** · perf · FlagImage does an uncached `UIImage(contentsOfFile:)` on every body eval (2× per shaped well) · `Sources/VinodexUI/EntryVisual.swift:314` → @MainActor flag cache mirroring IconLoader
   - **Resolved @0a446d3.** `@MainActor final class FlagLoader` caches `[String: UIImage?]`; `FlagImage` calls `FlagLoader.shared.image(for:)`.
-- [ ] **M11** · perf · globe CADisplayLink runs at native refresh with a constant per-frame spin — 2× speed and 2× cost on 120Hz ProMotion · `Sources/VinodexUI/RetroGlobeScreen.swift:338` → time-based deltas plus `preferredFrameRateRange` 30–60
-  - **Unchanged @b48ad20.** Needs `dt`-scaled autoSpin/velocity and
-    `pow(damping, dt*60)` alongside the frame-rate range; the marker throttle
-    should key off elapsed time too. Now at `RetroGlobeScreen.swift:399` (`start()`).
+- [x] **M11** · perf · globe CADisplayLink runs at native refresh with a constant per-frame spin — 2× speed and 2× cost on 120Hz ProMotion · `Sources/VinodexUI/RetroGlobeScreen.swift:338` → time-based deltas plus `preferredFrameRateRange` 30–60
+  - **Resolved 2026-07-31**, all four parts. `tick()` measures
+    `link.timestamp` deltas (clamped to `maxFrameDelta` so a stall steps once
+    rather than snapping a third of a turn); `autoSpinRate` and the drag
+    velocity are per *second* and scaled by `dt`; damping is
+    `pow(0.94, dt*60)`; the marker throttle is a `markerClock` against
+    `markerInterval` rather than `frameCount % 4`; and `start()` sets
+    `CAFrameRateRange(minimum: 30, maximum: 60, preferred: 60)`.
+  - The fifth part the item did not name but needed: the *throw* was the last
+    event's delta, i.e. "distance per touch event", which is half as large on a
+    120Hz panel for the same real finger speed. It is now `delta / interval`
+    from `value.time`.
+  - **Verified numerically**, since nothing in this repo can run it: a
+    simulation of both implementations (`swiftc`, no UIKit) over a 200pt sweep
+    plus 1s of coast. At 60Hz the rewrite is identical to the old code to three
+    decimals (drag 1.904 rad, coast 0.317 rad). At 120Hz the old code doubled
+    the idle autospin (−3.840 vs −1.920 rad over 10s), halved the inertia
+    (0.317s vs 0.633s to decay to 10%) and cut a flick's coast by more than
+    half (2.226 vs 4.903 rad); the rewrite reproduces its own 60Hz numbers on
+    both panels.
+  - Now at: `RetroGlobeScreen.swift:373–415` (per-second constants), `:610`
+    (`start()`), `:634` (`tick()`), `:743` (`drag`), `:776` (`endDrag`)
 - [~] **M12** · perf · PixelOutline stacks eight zero-radius `.shadow` passes per icon (9× composite per glyph) across every list, tile, and grid · `Sources/VinodexUI/DexIcon.swift:79` → bake the outline into the cached UIImage inside IconLoader
   - **Won't-fix @0a446d3.** A code comment in `DexIcon.swift` deliberately keeps the shadow approach so glyphs stay runtime-tintable; baking outlines into cached bitmaps would block that. Documented intent, not open work.
 
@@ -440,29 +464,95 @@ number misses, search for the quoted symbol.
 - [x] **M15** · light-mode · the filter banner is hardcoded stone800/stone200 — a dark web-theme strip over light lists · `Sources/VinodexUI/EncyclopediaListScreen.swift:82` → `lcd.surface`/`lcd.text`/`lcd.surfaceEdge`
 - [x] **M16** · light-mode · globe screen mixes a hardcoded black page with light-mode tokens (deep-green caption ~3.2:1 on black, stark white search well) · `Sources/VinodexUI/RetroGlobeScreen.swift:33` → commit the screen to dark tokens or theme the page with `lcd.page`
   - **Resolved @0a446d3.** The screen uses `DexScreenBackground()` and rebuilds the scene on `isLight` (`.id(lcd)`), so page, grid and globe emission all follow SCREEN MODE.
-- [ ] **M17** · layout · no orientation lock anywhere while chassis geometry hard-assumes a portrait island cutout · `xtool.yml` → declare portrait-only in the generated Info.plist
-  - **Unchanged @b48ad20** and completely unaddressed: nothing in the repo
-    declares `UISupportedInterfaceOrientations` and there is no runtime lock,
-    while the chassis is a fixed portrait stack with a hard 138pt island band.
-    One key in `xtool.yml` — verify xtool actually threads it into the Info.plist.
+- [x] **M17** · layout · no orientation lock anywhere while chassis geometry hard-assumes a portrait island cutout · `xtool.yml` → declare portrait-only in the generated Info.plist
+  - **Resolved 2026-07-31 — by a different mechanism than the item proposed,
+    deliberately.** The `xtool.yml` route was checked first and does not exist:
+    that file is not a passthrough for the generated Info.plist. Its `version:`
+    is the config-schema version, and xtool 1.17 hardcodes
+    `CFBundleShortVersionString` with no key to override it (KNOWN-ISSUES.md,
+    "xtool stamps a fake version into every bundle") — so the app cannot declare
+    its own *version* there, let alone its orientations. A speculative
+    `UISupportedInterfaceOrientations` key would have read as a lock while doing
+    nothing.
+  - The lock is `AppDelegate.application(_:supportedInterfaceOrientationsFor:)`
+    returning `.portrait`, wired with `@UIApplicationDelegateAdaptor`
+    (`VinodexApp.swift:22`). That callback is consulted per window and takes
+    precedence over the plist in any case, so it is the stronger of the two
+    mechanisms, not a fallback. `xtool.yml` carries a comment saying so, so the
+    next person does not re-open this looking for the missing key.
 - [x] **M44** · contrast · selected-option labels in the SYSTEM screen changed from `.black` to `.white` on an `lcd.accent` fill — in dark mode the accent is #4ADE80 mint, so the selected tab/skin/screen-mode/text-size buttons are white-on-mint at ~1.8:1 (was ~12:1) · `Sources/VinodexUI/SettingsPanel.swift:98,224,262,288` → add a per-mode `lcd.onAccent` token (dark → .black, light → .white) and use it for all selected states
   - **Since audit:** new — this is a regression introduced by v0.3.9, not an original finding.
 
 **UX & accessibility**
 
-- [ ] **M18** · a11y · `accessibilityReduceMotion` is checked nowhere — marquee, PulseGlow, globe autospin, and the 0.7s flip are all unstoppable · `Sources/VinodexUI/DeviceChassis.swift:652` → honor the environment flag (static marquee, frozen glow, no autospin, cross-fade)
-  - **Unchanged @b48ad20** — the flag is still checked nowhere in the tree, and
-    the motion added since is unguarded too. One useful narrowing: `PulseGlow`
-    (`DeviceChassis.swift:810`) is the **only** `repeatForever` animation in the
-    whole codebase, so **L11** and this item overlap almost entirely.
+- [x] **M18** · a11y · `accessibilityReduceMotion` is checked nowhere — marquee, PulseGlow, globe autospin, and the 0.7s flip are all unstoppable · `Sources/VinodexUI/DeviceChassis.swift:652` → honor the environment flag (static marquee, frozen glow, no autospin, cross-fade)
+  - **Resolved 2026-07-31**, all four named motions plus the one added since.
+    The flag is read in four places: `DeviceChassis` (the flip), `PulseGlow`,
+    `MarqueeBanner`, and `RetroGlobeScreen` (autospin, via
+    `GlobeModel.autoSpins` — shared with **M20**). The fifth is
+    `SettingsPanel`'s `DataWave`, the 2.6s counter-and-curve sweep added after
+    the audit ran, which now starts settled.
+  - Two traps found by the review pass, both now closed, and worth recording
+    because each turned a motion fix into a *worse* result than doing nothing:
+    - **The flip's two rotations are one mechanism.** `DeviceBackPlate` carries
+      a compensating 180° pre-rotation so it reads the right way round after
+      the container turns. Dropping only the container's rotation leaves the
+      back plate permanently mirrored — the engraved VINODEX wordmark
+      backwards. Both are now conditional together.
+    - **`PulseGlow`'s `@State` outlives the branch swap.** Its `on` latch is
+      set once by `.onAppear`; the Reduce-Motion branch does not reset it, so
+      turning the setting *off* again re-mounts the animated branch, its
+      `.onAppear` writes `true` over `true`, `.animation(_:value:)` sees no
+      change, and the orb plus all three lamps stay stuck at full glow forever.
+      The reduce branch now clears the latch.
+  - **A static marquee is not a paused marquee.** Pinning the strip to shift 0
+    hides the tail of any label wider than it, and these are wider: measured
+    against the bundled Press Start 2P at the strip's 256pt usable width,
+    `DAILY CHALLENGE` is 288pt at the default text step, and at HUGE six of the
+    app's ten page titles overflow. Reduce Motion must not cost information, so
+    the still form is a separate `staticLabel` — one segment, centred,
+    `minimumScaleFactor(0.6)` with tail truncation behind it.
+  - **L11** is now *most* of the way closed as a side effect: `PulseGlow` is
+    the only `repeatForever` in the codebase and it no longer runs at all under
+    Reduce Motion. What L11 still owns is the other 99% of users — it animates
+    shadow *radius* rather than the opacity of a pre-blurred circle, and it
+    still runs behind the flipped plate.
+  - Now at: `DeviceChassis.swift:50` (chassis flag), `:120` (back-plate
+    rotation), `:135–170` (flip + cross-fade), `:841` (`PulseGlow`), `:933`
+    (marquee flag), `:994` (paused timeline), `:1008` (static branch), `:1052`
+    (`staticLabel`) · `RetroGlobeScreen.swift:42`, `:50` (`freezesGlobe`)
+    · `SettingsPanel.swift:1079` (`DataWave`)
 - [x] **M19** · a11y · DexAlert dialogs are not VO-modal — focus escapes into obscured content and scrim-tap-to-cancel has no accessible equivalent · `Sources/VinodexUI/DexAlert.swift:36` → `.accessibilityAddTraits(.isModal)` on the dialog card
-- [ ] **M20** · a11y · continent selection needs taps on continuously moving markers plus a drag for rear continents — impossible under VoiceOver · `Sources/VinodexUI/RetroGlobeScreen.swift:355` → pause autospin at rest / add a static continent-list fallback
-  - **Worse @b48ad20.** Autospin is still unconditional and rear continents still
-    need a drag — and it gained a second mount: the scanner's globe step
-    (`ScannerScreen.swift:386`) reuses the screen with the world-search list
-    fallback switched **off**, so that instance has *no* non-globe path to a
-    continent at all.
-  - Now at: `RetroGlobeScreen.swift:418` (unconditional autoSpin), `:100` (markers)
+- [x] **M20** · a11y · continent selection needs taps on continuously moving markers plus a drag for rear continents — impossible under VoiceOver · `Sources/VinodexUI/RetroGlobeScreen.swift:355` → pause autospin at rest / add a static continent-list fallback
+  - **Resolved 2026-07-31**, both halves. Autospin is off under VoiceOver *and*
+    under Reduce Motion (`freezesGlobe`, shared with **M18**) — a drag still
+    spins the globe in both cases, since what has to stop is the movement
+    nobody asked for, not the control. The fallback is a `CONTINENT LIST`
+    toggle under the globe and a flat list of all six, opened by default when
+    VoiceOver is running.
+  - **The fallback lives inside `RetroGlobeScreen`, deliberately**, which is
+    what fixes the second mount the item calls out: the scanner's globe step
+    reuses the screen with `showsSearch: false`, so anything added to the
+    scanner instead would have left the route mount unfixed, and anything added
+    to the route would have left the scanner with no non-globe path at all.
+    One control, both mounts, no per-caller flag.
+  - Rows are built from `model.markers`, not `Continent.allCases`, so a row's
+    colour swatch is the same colour as the marker it stands in for by
+    construction — and the screen keeps its single `WineDatabase.shared` read
+    rather than adding one (**M27**).
+  - Two smaller halves: markers off the front face were still in the
+    accessibility tree, so VoiceOver offered six continents of which only the
+    two or three facing you did anything (`.accessibilityHidden(!visible)`);
+    and `Continent.displayName` is new in VinodexCore so the list, the
+    VoiceOver labels and the scanner's step title all take the name without the
+    marker plate's line break, instead of the three of them stripping `\n` by
+    hand. It is Linux-testable and pinned by `ContinentTests`.
+  - The 12pt gutters beside the list card were passing touches through to live
+    marker buttons underneath — a marker plate can reach the viewport edge —
+    so the overlay is full-bleed with a `contentShape`.
+  - Now at: `RetroGlobeScreen.swift:50` (`freezesGlobe`), `:97` (overlay),
+    `:153` (`listToggle`), `:181` (`continentList`), `:297` (marker a11y),
+    `:458` (`autoSpins`) · `WineDatabase.swift:28` (`displayName`)
 - [ ] **M21** · a11y+discoverability · the device flip is an unhinted 2s long-press on a non-button orb; the back plate is unreachable via VoiceOver · `Sources/VinodexUI/DeviceChassis.swift:148` → settings "About / flip" row plus an accessibilityAction on the orb
   - **Unchanged @b48ad20** — neither half landed. Only delta: the hold shortened
     2.0s → 1.0s and gained `Haptics.orbPress()` feedback
@@ -702,6 +792,12 @@ number misses, search for the quoted symbol.
   - Worth knowing: `PulseGlow` (`DeviceChassis.swift:810`) is the **only**
     `repeatForever` animation in the entire codebase, so fixing it is the whole
     of the app's perpetual-animation cost — and it overlaps **M18**.
+  - **Narrowed 2026-07-31 by M18**, which took the overlap: `PulseGlow` no
+    longer animates at all under Reduce Motion. That is the correct half and
+    not this item's half — L11 is about the other ~99% of users, where the
+    animation still blurs shadow *radius* four times a frame rather than
+    cross-fading a pre-blurred circle, and still runs behind the flipped plate.
+    M18 did **not** add a `paused` term. Now at `DeviceChassis.swift:841`.
 - [ ] **L12** · perf · BookmarksScreen renders saved rows in an eager VStack and every name-field keystroke rebuilds the whole list · `Sources/VinodexUI/BookmarksScreen.swift:44` → LazyVStack plus a child view for the name editor
   - **Worse @b48ad20.** Both halves intact, and the keystroke-rebuilt subtree grew
     — 0.6.3's recently-viewed strip (`BookmarksScreen.swift:295–332`) eagerly
@@ -910,6 +1006,47 @@ number misses, search for the quoted symbol.
 ---
 
 ## Update log
+
+**2026-07-31 — M11 M17 M18 M20.** The four items still open in the M11–M20
+range (**M12** is won't-fix; **M13–M16** and **M19** were already closed). Medium
+open 24 → 20; the Performance row loses its only Medium and Accessibility goes
+6 → 4 Mediums.
+
+- **Two of the four were closed by a different mechanism than their own remedy
+  line proposed**, and both entries carry the reason. **M17** asked for a key in
+  `xtool.yml`; that file is not a passthrough for the generated Info.plist —
+  xtool does not let the app declare its own *version* there, as
+  KNOWN-ISSUES.md already records, so an orientation key would have read as a
+  lock while doing nothing. The lock is `supportedInterfaceOrientationsFor` in
+  Swift, which overrides the plist anyway. **M18**'s remedy said "static
+  marquee"; a *paused* marquee hides the tail of any label wider than the strip,
+  and measured against the bundled Press Start 2P in 256pt of usable width,
+  `DAILY CHALLENGE` is 288pt at the default text step — so the still form is a
+  separate shrink-to-fit label. Taking away motion must not take away words.
+- **The review pass caught three regressions this batch introduced**, all three
+  the same shape — a fix that left the feature worse than not fixing it:
+  `PulseGlow`'s `@State` latch survives the Reduce-Motion branch swap, so
+  turning the setting back *off* left the orb and lamps stuck at full glow
+  permanently; the flip's compensating back-plate rotation is half of one
+  mechanism, so dropping only the container's left the engraved wordmark
+  mirrored; and a velocity ceiling placed inside `drag` rather than `endDrag`
+  capped half of the rotation the finger was causing, making the globe's gain a
+  function of how fast you moved it (2.0 rad slow → 1.31 rad fast over the same
+  200pt). All three are fixed and described in their items.
+- **M11 was verified numerically**, since nothing in this repo can run the UI:
+  both implementations simulated in plain Swift over a 200pt sweep plus a
+  second of coast. At 60Hz the rewrite matches the old code to three decimals;
+  at 120Hz the old code doubled the autospin, halved the inertia and cut a
+  flick's coast by more than half, and the rewrite reproduces its own 60Hz
+  numbers on both. The marquee measurement above is CoreText against the real
+  `.ttf`. Neither is a substitute for the `ios` CI job, which is still the only
+  thing that type-checks any of this.
+- Follow-ons, none of them claimed as closed: **L11** is narrowed but not
+  resolved (Reduce Motion stops `PulseGlow` entirely; the shadow-radius
+  animation and the missing flip-pause are still there for everyone else);
+  **M20**'s `Continent.displayName` is new in VinodexCore and pinned by
+  `ContinentTests`, which is the only part of this batch a local test run can
+  reach.
 
 **2026-07-31 — H11 H12.** The last two High items, and with them the High row.
 Neither was closed the way its own remedy line described, because the

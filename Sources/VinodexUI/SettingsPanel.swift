@@ -1092,16 +1092,20 @@ private struct DataWave: View {
     /// redrawing this panel forever.
     @State private var start = Date()
     @State private var finished = false
+    /// The sweep is decoration over a number that is already correct, so under
+    /// Reduce Motion it simply starts finished — the panel shows the settled
+    /// curve and the real total, and no clock runs. (AUDIT M18)
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private static let duration: Double = 2.6
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            TimelineView(.animation(paused: finished)) { timeline in
+            TimelineView(.animation(paused: finished || reduceMotion)) { timeline in
                 // The counter and the curve must advance together, so both are
                 // rendered from the same value.
                 let elapsed = timeline.date.timeIntervalSince(start)
-                let linear = min(max(elapsed / Self.duration, 0), 1)
+                let linear = reduceMotion ? 1 : min(max(elapsed / Self.duration, 0), 1)
                 // Eased so the sweep settles into the total instead of running
                 // at full speed and stopping dead on the last frame.
                 let p = linear * linear * (3 - 2 * linear)
