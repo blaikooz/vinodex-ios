@@ -123,7 +123,7 @@ public struct ToolsScreen: View {
         action: @escaping () -> Void
     ) -> some View {
         Button {
-            Haptics.tap()
+            Haptics.screenTap()
             action()
         } label: {
             VStack(spacing: 12) {

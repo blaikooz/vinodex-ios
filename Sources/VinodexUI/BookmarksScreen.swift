@@ -257,7 +257,7 @@ public struct BookmarksScreen: View {
             Spacer()
             if !items.isEmpty {
                 Button {
-                    Haptics.tap()
+                    Haptics.screenTap()
                     confirmingClear = true
                 } label: {
                     Text("CLEAR ALL")
@@ -369,7 +369,7 @@ public struct BookmarksScreen: View {
             Task {
                 if let data = try? await item.loadTransferable(type: Data.self) {
                     avatar.adopt(data)
-                    Haptics.tap()
+                    Haptics.screenTap()
                 }
                 pickedPhoto = nil
             }
@@ -476,7 +476,7 @@ public struct BookmarksScreen: View {
     private var statRow: some View {
         VStack(alignment: .leading, spacing: 8) {
             Button {
-                Haptics.tap()
+                Haptics.screenTap()
                 onPassport()
             } label: {
                 HStack(spacing: 6) {

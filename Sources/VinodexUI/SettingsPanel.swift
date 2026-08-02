@@ -154,7 +154,7 @@ public struct SettingsPanel: View {
         let style = tileColors(title)
 
         return Button {
-            Haptics.tap()
+            Haptics.screenTap()
             action()
         } label: {
             VStack(spacing: 12) {
@@ -544,7 +544,7 @@ public struct SettingsSectionPanel: View {
 
         settingsSection("DEVELOPER") {
             Button {
-                Haptics.tap()
+                Haptics.screenTap()
                 onDev()
             } label: {
                 settingRow(
@@ -854,14 +854,11 @@ public struct SettingsSectionPanel: View {
         let stats = db.databaseStats
 
         return VStack(alignment: .leading, spacing: 18) {
-            settingsSection("DATABASE") {
-                LazyVGrid(columns: statColumns, spacing: 8) {
-                    ForEach(stats.categoryLines) { line in
-                        statTile(label: line.label, count: line.count)
-                    }
-                }
-            }
-
+            // TOTAL ENTRIES leads (0.6.8, A1). It was under the per-table
+            // breakdown, which is the wrong way round for a readout: the total
+            // is the headline and the six tiles are how it is made up, so
+            // reading down the page now goes from the fact to its parts rather
+            // than asking you to add up six numbers and then confirming them.
             settingsSection("TOTAL ENTRIES") {
                 // Centred (0.6.4, C3) — the "ACROSS 6 TABLES" tail is gone;
                 // the number is the fact, so it holds the middle.
@@ -880,6 +877,14 @@ public struct SettingsSectionPanel: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 6).strokeBorder(lcd.surfaceEdge, lineWidth: 1)
                 )
+            }
+
+            settingsSection("DATABASE") {
+                LazyVGrid(columns: statColumns, spacing: 8) {
+                    ForEach(stats.categoryLines) { line in
+                        statTile(label: line.label, count: line.count)
+                    }
+                }
             }
 
             settingsSection("GROWTH") {

@@ -294,19 +294,26 @@ public struct ChipFilterScreen: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .overlay(alignment: .bottom) { lcd.accent.opacity(0.4).frame(height: 2) }
 
-            Text(facet.note)
-                .font(DexFont.mono(16))
-                .foregroundStyle(lcd.subtext)
-
-            // A wrapping flow rather than a horizontal scroller: a chip you have
-            // to scroll sideways to discover is a chip nobody taps, and every
-            // row here fits in two lines at most.
+            // `facet.note` is no longer drawn (0.6.8, K2). Six explanatory
+            // lines over six rows of chips is a paragraph of instructions on a
+            // screen whose whole subject is that the chips answer for
+            // themselves — the summary at the top already says what the filter
+            // has done, and the dimmed dead chips already say which ones lead
+            // nowhere.
+            //
+            // Kept as the row's accessibility hint rather than deleted: the
+            // notes carry a real warning ("Grapes only — everything else drops
+            // out"), and the visual reader learns that from watching the count
+            // move, which is exactly the channel a screen reader does not have.
             ChipFlow(spacing: 8) {
                 ForEach(ChipFilter.options(for: facet)) { option in
                     chip(option)
                 }
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(facet.title)
+        .accessibilityHint(facet.note)
     }
 
     private func chip(_ option: ChipOption) -> some View {
@@ -326,15 +333,18 @@ public struct ChipFilterScreen: View {
             Haptics.select()
             filter.toggle(option)
         } label: {
-            HStack(spacing: 7) {
-                Text(option.label)
-                    .font(DexFont.retro(11))
-                    .tracking(0.5)
-                Text("\(count)")
-                    .font(DexFont.mono(16))
-                    .opacity(0.75)
-            }
-            .foregroundStyle(on ? chipInk : (dead ? lcd.disabledText : lcd.text))
+            // Label only (0.6.8, K1). Every chip used to carry the count it
+            // would produce if tapped, which made a row of a dozen chips a row
+            // of a dozen numbers to read past; the running total in the summary
+            // is the number that was actually being consulted.
+            //
+            // The costing itself stays — it is what `dead` is computed from,
+            // and a chip that leads nowhere still says so by going dim, which
+            // is the half of the feature that worked without being read.
+            Text(option.label)
+                .font(DexFont.retro(11))
+                .tracking(0.5)
+                .foregroundStyle(on ? chipInk : (dead ? lcd.disabledText : lcd.text))
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
             .background(Capsule().fill(on ? lcd.accent : lcd.surface))

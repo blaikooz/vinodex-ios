@@ -73,7 +73,17 @@ public enum AppVersion {
     /// plus two new skins, per-button console palettes, draggable back-plate
     /// stamps and the LCD-resize fix. Still no catalog change, so
     /// `waveMilestones` does not move.
-    static let fallback = "0.6.7"
+    ///
+    /// 0.6.8: the batch the user labelled "6.7.1". Same resolution as 0.6.4 and
+    /// 0.6.5 above — the label names the work, the scheme names the build, and
+    /// the scheme has been three components since 0.4.3 for reasons this file
+    /// spends forty lines on. A fourth joint would be the exact thing that
+    /// paragraph was written to stop, and `AppVersionTests.threeComponents`
+    /// would fail on it. It is a polish pass over 0.6.7's chassis — the footer
+    /// controls at 1.74×, the red lamps back on the white bezel, an app-wide
+    /// LCD back swipe, press-and-hold stamp dragging — so it takes the next
+    /// patch. No catalog change again, so `waveMilestones` still does not move.
+    static let fallback = "0.6.8"
 
     /// Versions no build deliberately chose.
     ///

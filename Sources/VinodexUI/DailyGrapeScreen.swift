@@ -131,7 +131,7 @@ public struct DailyGrapeScreen: View {
 
             if revealed {
                 Button {
-                    Haptics.tap()
+                    Haptics.screenTap()
                     onOpen(grape)
                 } label: {
                     label("OPEN ENTRY", fill: Dex.green, text: .black)

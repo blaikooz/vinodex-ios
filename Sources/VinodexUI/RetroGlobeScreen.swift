@@ -150,10 +150,20 @@ public struct RetroGlobeScreen: View {
             // works both ways, because someone may well want to explore the
             // globe itself.
             if voiceOver { showsList = true }
+            // The one screen that owns horizontal dragging, so the one screen
+            // that stands the LCD's back swipe down (0.6.8, I1). Suspended for
+            // the whole screen rather than only while the sphere is up: the
+            // list is an overlay *on* the globe, the sphere is still live
+            // underneath it, and a gate that flickered with `showsList` would
+            // be one more thing to get wrong. See `BackSwipeGate`.
+            BackSwipeGate.shared.suspend()
         }
         .onChange(of: freezesGlobe) { _, frozen in model.autoSpins = !frozen }
         .onChange(of: voiceOver) { _, on in if on { showsList = true } }
-        .onDisappear { model.stop() }
+        .onDisappear {
+            model.stop()
+            BackSwipeGate.shared.resume()
+        }
     }
 
     // MARK: Continent list (the non-globe path)
@@ -164,7 +174,7 @@ public struct RetroGlobeScreen: View {
     /// ordinary control.
     private var listToggle: some View {
         Button {
-            Haptics.tap()
+            Haptics.screenTap()
             showsList.toggle()
         } label: {
             HStack(spacing: 8) {
@@ -228,9 +238,24 @@ public struct RetroGlobeScreen: View {
             onSelectContinent(marker.continent)
         } label: {
             HStack(spacing: 10) {
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(marker.color)
-                    .frame(width: 10, height: 26)
+                // The continent's own hero icon (0.6.8, C1) — the drawn globe
+                // every other surface in the app already shows it with (the
+                // world-search row, the continent screen's hero, a saved-entry
+                // tile). This list was the one place a continent was a bare
+                // colour swatch, which made it the one place you could not
+                // recognise one at a glance.
+                //
+                // No new art: `EntryIconWell` resolves the generated glyph
+                // through `EntryVisual.continentVisual`, well colour and all.
+                // The 10×26 swatch stays as the fallback for a continent with
+                // no entry — the same guard `marker.color` already carries.
+                if let entry = marker.entry {
+                    EntryIconWell(entry: .continent(entry), size: 44, cornerRadius: 8)
+                } else {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(marker.color)
+                        .frame(width: 10, height: 26)
+                }
 
                 Text(marker.continent.displayName)
                     .font(DexFont.retro(12))
@@ -263,7 +288,7 @@ public struct RetroGlobeScreen: View {
         GeometryReader { geo in
             ForEach(model.markers) { marker in
                 Button {
-                    Haptics.tap()
+                    Haptics.screenTap()
                     onSelectContinent(marker.continent)
                 } label: {
                     // Text-only on purpose. 0.5.9 briefly put the drawn globe
@@ -384,6 +409,11 @@ final class GlobeModel {
         var position: CGPoint
         var visible: Bool
         var color: Color
+        /// The continent's catalog entry, carried so the list row can draw its
+        /// hero icon (0.6.8, C1) without a second `WineDatabase.shared` read on
+        /// a screen deliberately held to one (AUDIT M27). It is the same lookup
+        /// `color` already makes — see `markers`.
+        var entry: ContinentEntry?
         var id: String { continent.rawValue }
     }
 
@@ -459,11 +489,13 @@ final class GlobeModel {
     /// the icon well and the globe marker are the same colour by
     /// construction, not by two tables agreeing.
     var markers: [Marker] = Continent.allCases.map {
-        Marker(
+        let entry = WineDatabase.shared.continentEntry($0)
+        return Marker(
             continent: $0,
             position: .zero,
             visible: false,
-            color: Color(dexHex: WineDatabase.shared.continentEntry($0)?.common.color ?? "#4ADE80")
+            color: Color(dexHex: entry?.common.color ?? "#4ADE80"),
+            entry: entry
         )
     }
 

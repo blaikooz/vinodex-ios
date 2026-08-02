@@ -160,7 +160,7 @@ public struct TastingQuizScreen: View {
             lockedTier = tier
             return
         }
-        Haptics.tap()
+        Haptics.screenTap()
         newlyUnlocked = nil
         withAnimation(.easeOut(duration: 0.2)) {
             // Seeded off the reveal cursor so two runs started back to back do
@@ -176,7 +176,7 @@ public struct TastingQuizScreen: View {
         guard var current = session, !current.answered else { return }
         if question.isCorrect(id) {
             Sounds.correct()
-            Haptics.tap()
+            Haptics.screenTap()
         } else {
             Sounds.wrong()
             Haptics.select()
@@ -187,7 +187,7 @@ public struct TastingQuizScreen: View {
 
     private func next() {
         guard var current = session else { return }
-        Haptics.tap()
+        Haptics.screenTap()
         current.advance()
 
         // The one moment a paper completes — progression records exactly here,
@@ -206,7 +206,7 @@ public struct TastingQuizScreen: View {
     }
 
     private func retry() {
-        Haptics.tap()
+        Haptics.screenTap()
         newlyUnlocked = nil
         withAnimation(.easeOut(duration: 0.2)) { session = session?.retry() }
     }

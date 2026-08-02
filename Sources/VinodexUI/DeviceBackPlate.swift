@@ -16,6 +16,11 @@ import VinodexCore
 public struct DeviceBackPlate: View {
     private static let creator = "HORIZON/GODOT"
 
+    /// Turns the device back over (0.6.8, B3). The plate does not own
+    /// `isFlipped` — `DeviceChassis` does — so the one control on this surface
+    /// reports upward rather than reaching for shared state.
+    var onReturn: (() -> Void)?
+
     private var year: Int { Calendar.current.component(.year, from: Date()) }
 
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
@@ -29,17 +34,28 @@ public struct DeviceBackPlate: View {
     /// Where the stamps have been dragged to, across launches. See
     /// `StampLayoutStore`.
     @State private var layout = StampLayoutStore.shared
+    /// The stamp the press-and-hold has *armed* (0.6.8, B1) — lifted off the
+    /// plate and waiting to be moved. Separate from `dragging` because the lift
+    /// has to be visible before any movement happens: that is what tells you
+    /// the hold worked and that the next thing your finger does will drag.
+    @State private var armed: String?
     /// The stamp currently under the finger, and how far it has travelled this
     /// gesture. Live only — the committed position goes to `layout` on release,
     /// so a drag interrupted by the app going away leaves nothing half-written.
     @State private var dragging: String?
     @State private var drag: CGSize = .zero
 
-    public init() {}
+    public init(onReturn: (() -> Void)? = nil) {
+        self.onReturn = onReturn
+    }
 
     public var body: some View {
-        // Dismissal is a swipe, owned by `DeviceChassis` — the plate is a
-        // surface, not a button.
+        // Dismissal is the engraved arrow in the bottom-right corner (0.6.8,
+        // B3). It was a swipe anywhere on this surface, which had to go for two
+        // reasons: it fought the stamps' own touches, and I1 gives the *LCD* an
+        // app-wide back swipe while I2 excludes this plate — so a swipe here
+        // would be the same movement meaning two different things depending on
+        // which face is up.
         ZStack {
             if skin.isTranslucent {
                 InternalsView()
@@ -88,6 +104,14 @@ public struct DeviceBackPlate: View {
             // stamps are the plate's collection, and the info tap is F2's
             // point.
             stampField
+
+            // The way back, in the corner nearest the thumb (0.6.8, B3).
+            // Mounted after the stamps so a stamp dragged onto it cannot bury
+            // the only control on the plate.
+            returnButton
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                .padding(.trailing, 28)
+                .padding(.bottom, 84)
         }
         .overlay {
             if let stamp = openStamp {
@@ -113,7 +137,55 @@ public struct DeviceBackPlate: View {
                 .padding(3)
                 .allowsHitTesting(false)
         }
-        .accessibilityLabel("Device back plate. Swipe to return.")
+        .accessibilityLabel("Device back plate.")
+    }
+
+    /// The engraved return arrow (0.6.8, B3) — the plate's only control.
+    ///
+    /// Large, and engraved rather than moulded: this plate has no buttons on
+    /// it, and the one thing 0.6.4's swipe-hint note got right is that a chip
+    /// with a border reads as bolted on. So it is cut *into* the metal the same
+    /// way the nameplate and the serial are — a recessed round dish, the arrow
+    /// carrying the same one-pixel light-below/dark-above pair as every other
+    /// engraving here, with a thin bright lip where the light catches the rim.
+    ///
+    /// It replaces the SWIPE TO RETURN line entirely (B2). That line existed
+    /// because the gesture was invisible; the reason it kept being moved is
+    /// that no amount of moving fixes an instruction standing in for a control.
+    private var returnButton: some View {
+        Button {
+            Haptics.tap()
+            onReturn?()
+        } label: {
+            Image(systemName: "arrow.right")
+                .font(.system(size: DexMetrics.backPlateReturn * 0.44, weight: .heavy))
+                .foregroundStyle(Dex.stone700)
+                .engraved()
+                .frame(width: DexMetrics.backPlateReturn, height: DexMetrics.backPlateReturn)
+                .background(
+                    Circle().fill(
+                        LinearGradient(
+                            colors: [Dex.stone600.opacity(0.45), Dex.stone800.opacity(0.30)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                )
+                .overlay(
+                    // The dish's wall, dark where the light does not reach…
+                    Circle().strokeBorder(Dex.stone800.opacity(0.55), lineWidth: 2)
+                )
+                .overlay(
+                    // …and the bright lip a point lower, exactly as
+                    // `ButtonWell` shades the footer's recesses.
+                    Circle()
+                        .strokeBorder(.white.opacity(0.35), lineWidth: 1)
+                        .offset(y: 1.5)
+                )
+                .contentShape(Circle())
+        }
+        .buttonStyle(DexPressStyle(scale: 0.92))
+        .accessibilityLabel("Return to the screen")
     }
 
     /// One paper stamp per earned Passport badge — issued in its own spot, and
@@ -158,42 +230,80 @@ public struct DeviceBackPlate: View {
                         in: geo.size
                     )
 
+                    let lifted = armed == stamp.id || dragging == stamp.id
+
                     BackPlateStampView(stamp: stamp)
                         .rotationEffect(.degrees(slot.rotation))
-                        // Lifted off the plate while it is under the finger,
-                        // so a drag reads as picking the stamp up rather than
-                        // as the plate scrolling.
-                        .scaleEffect(dragging == stamp.id ? 1.08 : 1)
+                        // **The lift-off** (0.6.8, B1). Bigger and further off
+                        // the plate than 0.6.7's 1.08, and — crucially — it
+                        // happens the instant the hold completes, *before*
+                        // anything has moved. It is the whole feedback for a
+                        // gesture that is otherwise invisible: the stamp
+                        // peeling up is what says "this is yours to move now".
+                        .scaleEffect(lifted ? 1.16 : 1)
                         .shadow(
-                            color: .black.opacity(dragging == stamp.id ? 0.4 : 0),
-                            radius: 8,
-                            y: 5
+                            color: .black.opacity(lifted ? 0.45 : 0),
+                            radius: 12,
+                            y: 8
                         )
-                        .animation(.easeOut(duration: 0.15), value: dragging)
-                        // A `Button` cannot host a drag gesture — its own
-                        // press recogniser wins and the stamp never moves. A
-                        // plain tap alongside a distance-gated drag gives both:
-                        // 8pt is far enough that reading a stamp's story does
-                        // not nudge it.
+                        .animation(.spring(response: 0.25, dampingFraction: 0.65), value: lifted)
                         .contentShape(Rectangle())
                         .onTapGesture {
+                            // A tap on a lifted stamp puts it back down rather
+                            // than opening its story: someone who armed a drag
+                            // and changed their mind has no other way out, and
+                            // a modal appearing instead would read as the hold
+                            // having failed.
                             Haptics.select()
-                            openStamp = stamp
+                            if lifted {
+                                armed = nil
+                            } else {
+                                openStamp = stamp
+                            }
                         }
+                        // **Hold, then drag** (0.6.8, B1).
+                        //
+                        // 0.6.7 ran a bare `DragGesture(minimumDistance: 8)`
+                        // alongside the tap, which is why the plate felt buggy:
+                        // eight points is inside the slop of an ordinary touch,
+                        // so *reading* a stamp routinely nudged it, and the
+                        // recogniser also claimed the horizontal movement the
+                        // plate's own swipe-to-return needed (that swipe is gone
+                        // in this batch — see `body` — but the arming is the
+                        // fix either way, because I1's LCD swipe has the same
+                        // shape).
+                        //
+                        // `sequenced` rather than two independent gestures: it
+                        // is one recogniser that cannot start dragging until the
+                        // press has completed, so a plain tap fails the press,
+                        // never reaches the drag, and falls through to
+                        // `onTapGesture` above. Two gestures would race.
                         .gesture(
-                            DragGesture(minimumDistance: 8)
+                            LongPressGesture(minimumDuration: 0.35)
+                                .onEnded { _ in
+                                    armed = stamp.id
+                                    Haptics.select()
+                                }
+                                .sequenced(before: DragGesture(minimumDistance: 0))
                                 .onChanged { value in
-                                    if dragging != stamp.id {
-                                        dragging = stamp.id
-                                        Haptics.select()
-                                    }
-                                    drag = value.translation
+                                    guard case .second(true, let move?) = value else { return }
+                                    dragging = stamp.id
+                                    drag = move.translation
                                 }
                                 .onEnded { value in
+                                    defer {
+                                        armed = nil
+                                        dragging = nil
+                                        drag = .zero
+                                    }
+                                    // The press completed but the finger lifted
+                                    // without moving: nothing to commit, and the
+                                    // stamp settles back where it was.
+                                    guard case .second(true, let move?) = value else { return }
                                     let settled = Self.clamp(
                                         CGPoint(
-                                            x: home.x + CGFloat(moved.dx) + value.translation.width,
-                                            y: home.y + CGFloat(moved.dy) + value.translation.height
+                                            x: home.x + CGFloat(moved.dx) + move.translation.width,
+                                            y: home.y + CGFloat(moved.dy) + move.translation.height
                                         ),
                                         in: geo.size
                                     )
@@ -206,13 +316,11 @@ public struct DeviceBackPlate: View {
                                             dy: Double(settled.y - home.y)
                                         )
                                     )
-                                    dragging = nil
-                                    drag = .zero
-                                    Haptics.tap()
+                                    Haptics.select()
                                 }
                         )
                         .accessibilityLabel("\(stamp.title) stamp. Opens its story.")
-                        .accessibilityHint("Drag to move it on the plate.")
+                        .accessibilityHint("Press and hold, then drag to move it on the plate.")
                         .frame(width: Self.stampSize.width, height: Self.stampSize.height)
                         .offset(x: at.x, y: at.y)
                 }
@@ -429,7 +537,12 @@ public struct DeviceBackPlate: View {
             )
             .engraved()
 
-            swipeHint
+            // `swipeHint` retired in 0.6.8 (B2). It read SWIPE TO RETURN and it
+            // had moved twice looking for a place where people would find it —
+            // the bottom edge, then a dark chip above the nameplate, then under
+            // this block. All three were the same mistake: a line of text
+            // standing in for a control. The gesture it described is gone and
+            // the control it should have been is in the bottom-right corner.
 
             Spacer(minLength: 0)
         }
@@ -438,35 +551,6 @@ public struct DeviceBackPlate: View {
         .allowsHitTesting(false)
     }
 
-    /// The way out, engraved directly under the middle block.
-    ///
-    /// It has moved twice. It began in engraved grey at the very bottom edge,
-    /// below the serial and the copyright, where nobody found it. It was then
-    /// tried as a dark chip above the nameplate, which solved the contrast by
-    /// putting a *button* on a plate that has no buttons — the one element here
-    /// that did not look machined.
-    ///
-    /// This is the version that keeps both: it stays engraved, in the plate's
-    /// own language, but sits directly under the centred block rather than at
-    /// the bottom edge, and is set larger and darker than the serial lines
-    /// around it. Position and weight carry the emphasis instead of colour.
-    ///
-    /// VT323 rather than the retro face: `SWIPE TO RETURN` is fifteen tracked
-    /// characters, and Press Start 2P at a size worth reading overruns the
-    /// plate on a phone at the LARGE text scale.
-    private var swipeHint: some View {
-        HStack(spacing: 14) {
-            Image(systemName: "hand.draw")
-                .font(.system(size: 26, weight: .semibold))
-            Text("SWIPE TO RETURN")
-                .font(DexFont.mono(30))
-                .tracking(7)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-        }
-        .foregroundStyle(Dex.stone800)
-        .engraved()
-    }
 }
 
 private extension View {

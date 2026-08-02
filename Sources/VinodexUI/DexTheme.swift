@@ -138,9 +138,10 @@ public enum DexMetrics {
     /// into the top safe-area strip, flanking the Dynamic Island, which is dead
     /// chassis otherwise. The bezel keeps none of that height.
     ///
-    /// `islandClearance` is the gap held open for the cutout: the Dynamic Island
-    /// is ~126pt wide on Pro models, and this is deliberately wider so the flank
-    /// content never tucks under it.
+    /// The gap held open for the cutout is no longer a metric (0.6.8, F2/F3):
+    /// the Dynamic Island is ~126pt wide on Pro models and the row simply puts
+    /// its two clusters at their own insets, leaving whatever is between —
+    /// ~45pt of margin either side on a 393pt phone.
     public static let headerPaddingH: CGFloat = rem
     /// Floor for the island strip. `.statusBarHidden()` can collapse
     /// `safeAreaInsets.top` to zero on cutout devices, so this must independently
@@ -152,19 +153,34 @@ public enum DexMetrics {
     public static let chassisEdgeInset: CGFloat = 16
     /// Gap between the screen housing and the bands. Minimal on purpose — every
     /// point here comes off the LCD — but non-zero so the housing does not butt
-    /// straight into the controls.
-    public static let housingGap: CGFloat = 4
+    /// straight into the controls. 3, down from 4 (0.6.8, E5): the band grew a
+    /// long way in this batch and every point of chrome that is only a gap was
+    /// re-examined.
+    public static let housingGap: CGFloat = 3
     /// Gap from the island controls down to the screen housing. Used to match
     /// `footerTopInset` (6); tightened so the controls sit closer to the
     /// housing while the raised `islandTopInset` gives them air above instead.
     public static let islandBottomInset: CGFloat = 2
+    /// Where the hardware cutout sits, measured from the display's top edge.
+    ///
+    /// Spelled out since 0.6.8 (F2): "centred vertically within the notch
+    /// height" is a placement the layout can *compute* rather than a number
+    /// somebody eyeballs once and then has to re-eyeball whenever the orb
+    /// changes size. The Dynamic Island's own plate starts ~11pt down and is
+    /// ~37pt tall, so its centre line is 29.5pt from the top.
+    public static let islandNotchTop: CGFloat = 11
+    public static let islandNotchHeight: CGFloat = 37
+    /// The notch's centre line — what the orb and the lamp trio are levelled on.
+    public static var islandNotchCenter: CGFloat { islandNotchTop + islandNotchHeight / 2 }
+
     /// Gap from the display's top edge down to the island controls.
     ///
-    /// 8, down from 18 (0.6.6, E3). The orb and the lamp cluster move *up into
-    /// the notch band* in this batch, which means the inset above them is no
-    /// longer breathing room — it is the distance the hardware cutout starts
-    /// at. The Dynamic Island's own top edge sits ~11pt down; anything smaller
-    /// than that up here is chassis nobody sees.
+    /// **Derived since 0.6.8 (F2)** rather than the flat 8 it carried from
+    /// 0.6.6 (E3): whatever the slot's height, this is the inset that puts the
+    /// slot's centre on `islandNotchCenter`, so the orb reads as level with the
+    /// cutout by construction instead of by coincidence. (It resolves to ~7.5
+    /// at the shipped sizes, which is why the flat 8 looked right — F2 is the
+    /// turn where that stops being luck.)
     ///
     /// The floor is load-bearing: the display's 55pt corner arc cuts
     /// `55 - sqrt(55² - (55-h)²)` off each side at height `h`, which at 8pt is
@@ -172,7 +188,9 @@ public enum DexMetrics {
     /// *circles*: the widest point of the orb sits half a slot lower, where the
     /// arc has closed to ~2pt. Going below 8 starts cutting the button's actual
     /// edge rather than the empty corner of its bounding box.
-    public static let islandTopInset: CGFloat = 8
+    public static var islandTopInset: CGFloat {
+        max(islandNotchCenter - islandSlot / 2, 8)
+    }
     /// The glass orb, up in the notch band since 0.6.6 (E3) and no longer one
     /// of the `controlButton`-sized parts.
     ///
@@ -183,13 +201,12 @@ public enum DexMetrics {
     /// it. 55% of a control is a bead: unmistakably a lamp, and small enough to
     /// sit beside the cutout rather than under it.
     ///
-    /// 0.62, up from 0.55 (0.6.7, F2). 0.6.6 shrank it hard to buy back the
-    /// LCD height a 64pt orb was costing; the complaint since is that the bead
-    /// went a step too far. This grows it ~13% and the strip does **not** grow
-    /// with it — the two red lamps left the strip in this batch (F1), which
-    /// returns more height than the bigger orb spends. See
-    /// `islandStripMinHeight`.
-    public static var islandOrb: CGFloat { controlButton * 0.62 }
+    /// 0.55, back down from 0.62 (0.6.8, F1). 0.6.7 grew it 13% because 0.6.6
+    /// had shrunk it a step too far; this takes that step back. It costs the
+    /// layout nothing either way — `islandSlot` is floored at the 44pt touch
+    /// minimum, which the bead has been under since 0.6.6, so the orb's
+    /// diameter has not driven the strip's height for two batches.
+    public static var islandOrb: CGFloat { controlButton * 0.55 }
     /// The row the orb and the lamp cluster share, level with the cutout.
     ///
     /// Floored at 44 rather than sized to the orb: the orb is the flip
@@ -201,51 +218,87 @@ public enum DexMetrics {
     // in this strip at all. They spent 0.6.6 on bare chassis below the cutout,
     // which is where the device reported them rendering *outside* the LCD's
     // border — because they were: bare chassis is outside the housing. They
-    // are anchored to the bezel plate now (see `bezelLampStrip`), so the band
-    // they used to need here is gone and the strip is 10pt shorter for it.
+    // are on the white bezel now (see `bezelTopMargin`), so the band they used
+    // to need here is gone and the strip is 10pt shorter for it.
     /// Floor for the island strip: the inset above, the notch-level row, then
     /// the small `islandBottomInset` against the screen housing. Computed — it
     /// follows `controlButton`, which follows `UIScale`.
     ///
-    /// ~58 at SMALL, down from 64 (0.6.7, F1/F2) and from 84 before that. This
+    /// ~54 at SMALL, down from 64 (0.6.7, F1/F2) and from 84 before that. This
     /// number is charged straight to the LCD on any device whose real top inset
     /// is smaller than it; a Dynamic Island reports 59, so at this size the
-    /// strip finally costs the LCD *nothing* — the hardware inset is the
-    /// binding constraint rather than our own floor. That is what paid for the
-    /// bigger orb in F2.
+    /// strip costs the LCD *nothing* — the hardware inset is the binding
+    /// constraint rather than our own floor, which is the whole of F4: there is
+    /// no dead space up here left to reclaim, because the strip stopped being
+    /// the thing setting its own height two batches ago.
     public static var islandStripMinHeight: CGFloat {
         islandTopInset + islandSlot + islandBottomInset
     }
-    /// The gap held open for the hardware cutout, and — since 0.6.7 (F3) — the
-    /// left edge of the corner the status trio is centred in.
+    // `islandClearance` and `islandFlankPaddingH` retired in 0.6.8 (F2/F3).
+    //
+    // Both existed to build the row out of a *fixed* gap held open for the
+    // cutout: one padding either side, a hard 158pt spacer in the middle, and
+    // the trio centred in whatever the spacer left. F2 moves the orb inboard
+    // and F3 moves the trio outboard, which the fixed-clearance form could only
+    // express by editing the clearance and the paddings in opposite directions
+    // and hoping the middle still cleared the island. The row is now simply
+    // "orb at its inset, spacer, trio at its inset", and the cutout's clearance
+    // is what is left over — on a 393pt phone the orb ends at 88 and the trio
+    // starts at ~302 against an island spanning 133–259, so the gap is
+    // 45pt/43pt of margin rather than a number to maintain.
+
+    /// How far in from the leading edge the orb's slot starts (0.6.8, F2).
     ///
-    /// 158, up from 138. The trio no longer hangs off the trailing padding; it
-    /// is centred in everything to the right of this clearance, which on a
-    /// 393pt phone puts its leading lamp ~7pt clear of the island's right edge.
-    /// At the old 138 that margin went negative and the first lamp tucked under
-    /// the cutout.
-    public static let islandClearance: CGFloat = 158
-    /// Matches `footerPaddingH` so the orb sits directly above the Back button
-    /// and the cog above Home — the four chassis controls share two columns.
-    public static let islandFlankPaddingH: CGFloat = cornerGuardH
-    /// The white housing's margin above the LCD.
+    /// 44, out from `cornerGuardH`'s 26. The orb was in the display's corner
+    /// because that is where a corner control goes — but it is a *lamp*, not a
+    /// control the thumb has to reach, and the corner is also where the 55pt
+    /// display arc is eating the most room. Moving it inboard puts it on flat
+    /// glass and opens the corner it was crowding.
+    public static let islandOrbInsetLeading: CGFloat = 44
+    /// How far in from the trailing edge the lamp trio ends (0.6.8, F3).
     ///
-    /// 2, down from 10 (0.6.7, F1). The eight points it gives up go straight
-    /// into `bezelLampStrip` directly below it, so the housing is exactly as
-    /// tall as it was and the LCD loses nothing — the moulding above the bezel
-    /// simply became bezel. What is left only has to read as a seam.
-    public static let bezelTopMargin: CGFloat = 2
-    /// The stone strip along the top of the bezel plate that seats the two red
-    /// housing lamps (0.6.7, F1).
+    /// `cornerGuardH`, i.e. the trio is trailing-aligned on the same inset the
+    /// orb used to hold on the leading side — so the two clusters read as a
+    /// mirrored pair of *blocks* even though the trio is half again as wide as
+    /// the orb's slot. 0.6.7 (F3) centred the trio in the whole corner region
+    /// instead, which put it ~70pt further left than this and left an obvious
+    /// empty run of chassis outboard of it.
+    public static let islandStatusInsetTrailing: CGFloat = cornerGuardH
+    /// How far the trio sits above the orb's centre line (0.6.8, F3).
     ///
-    /// The lamps have now lived in three places: the housing's white top margin
-    /// (0.6.5), bare chassis under the cutout (0.6.6, D1), and here. The middle
-    /// one is the one that broke — "on the LCD border" means *on the border*,
-    /// and bare chassis is outside the housing entirely. This is the border: it
-    /// is the same `Dex.stone800` plate the LCD is set into, merely thicker
-    /// along its top edge so an 8pt lamp has stone to sit on rather than
-    /// straddling a 4pt rim. Paid for out of `bezelTopMargin` point for point.
-    public static let bezelLampStrip: CGFloat = 12
+    /// Small and deliberate: level with the orb they read as one row of four
+    /// lamps with a gap in it, and a touch higher they read as a cluster of
+    /// their own in the corner above the display.
+    public static let islandStatusRise: CGFloat = 6
+    /// The **white** bezel strip above the LCD — and, since 0.6.8 (D), the two
+    /// red status lamps' home.
+    ///
+    /// The lamps have now lived in four places, and it is worth writing the
+    /// anatomy down once so the fifth does not happen. Outside in, the screen
+    /// assembly is: the chassis moulding, then the *white housing plate*
+    /// (`skin.panel`, chamfered, rimmed by `screenPanelBorder`), then the *dark
+    /// grey band* (`Dex.stone800`, `bezelFrame` thick), then the LCD itself.
+    ///
+    /// - 0.6.5 put the lamps in this white strip when it was 10pt tall.
+    /// - 0.6.6 (D1) moved them onto bare chassis under the cutout — outside the
+    ///   housing altogether, which is what "floating off the LCD's border"
+    ///   meant.
+    /// - 0.6.7 (F1) brought them back onto the *dark grey band*, by thickening
+    ///   its top edge into a 12pt stone lamp strip.
+    /// - 0.6.8 (D) puts them back on the white plate, which is where they were
+    ///   asked for: the grey band keeps one uniform `bezelFrame` all the way
+    ///   round (D1), and this strip grows from 2 to 20 so an 8pt lamp has real
+    ///   white moulding around it rather than a seam to straddle (D2, D3).
+    ///
+    /// 20 is the lamp's own diameter plus half of it again above and below.
+    /// This is the one dimension in the housing that is *spent* rather than
+    /// borrowed — it costs the LCD ~10pt net once the stone strip it replaces
+    /// is handed back.
+    public static let bezelTopMargin: CGFloat = 20
+    // `bezelLampStrip` retired in 0.6.8 (D1). It was the thickened top edge of
+    // the grey band, and D1's whole content is that the band goes back to one
+    // width on all four sides — `bezelFrame` is that width, and there is no
+    // longer a second one.
     /// Spacing between the three status lamps. Widened with the lamps
     /// themselves (0.6.6, E3; again 0.6.7, F3) so the trio still reads as three
     /// lights rather than one blob now that each is bigger.
@@ -286,6 +339,18 @@ public enum DexMetrics {
     /// The top margin holds nothing, so it stays thin.
     public static var ventStripHeight: CGFloat { 1.75 * rem * UIScale.current.factor }
     public static var ventDot: CGFloat { 0.5 * rem * UIScale.current.factor }   // w-2
+    /// The bottom strip's lone status lamp (0.6.8, G3).
+    ///
+    /// Half again the diameter of the pair upstairs. They are not the same
+    /// part: the two on the white bezel are a matched power/link pair reading
+    /// as one unit at the top of the display, while this one is by itself at
+    /// the far end of a 28pt strip next to a wordmark and a grille, and at
+    /// `ventDot` it read as a speck of dirt rather than as a lamp.
+    public static var bottomVentDot: CGFloat { 0.75 * rem * UIScale.current.factor }
+    /// How far the grille slats sit above the bottom strip's centre line
+    /// (0.6.8, G1). The slats are optically bottom-heavy — four 2pt rules with
+    /// 3pt between them — so centring the block leaves it reading low.
+    public static let grilleRise: CGFloat = 5
 
     /// The bottom-strip wordmark (0.6.7, H1).
     ///
@@ -297,9 +362,25 @@ public enum DexMetrics {
     /// horizontal scale lands around 1.3× the vertical one — stretched, but
     /// still recognisably the same face rather than a smear.
     public static let wordmarkSize: CGFloat = 12
+    /// Letter spacing applied **before** the run is measured, which is what
+    /// makes it the wordmark's proportion control rather than a spacing tweak
+    /// (0.6.8, G2 — it was hardcoded at 5 inside `StretchedWordmark`).
+    ///
+    /// The slot is fixed, so the horizontal scale is `slot / natural`, and
+    /// tracking is most of `natural`. Dropping it from 5 to 2 shortens the
+    /// measured run ~18%, which the fit gives straight back as scale — so the
+    /// *glyphs* come out ~21% wider while the *gaps* between them come out
+    /// roughly half what they were. One number moving in one direction is
+    /// exactly G2's "reduce character spacing, increase character width".
+    public static let wordmarkTracking: CGFloat = 2
     /// Breathing room inside the wordmark's slot, so the stretched glyphs do
     /// not touch the strip's edges or the parts either side of them.
-    public static let wordmarkInsetV: CGFloat = 2
+    ///
+    /// The vertical inset is also G2's height control: it is subtracted from
+    /// the strip twice, so 4 (from 2) takes ~17% off the glyphs' height while
+    /// the width above grows. Between them the letterform goes from ~1.3×
+    /// wider-than-tall to ~1.9×.
+    public static let wordmarkInsetV: CGFloat = 4
     public static let wordmarkInsetH: CGFloat = 10
 
     /// Footer
@@ -323,9 +404,24 @@ public enum DexMetrics {
     /// `bandHeight` tall rather than one control.
     public static var footerHeight: CGFloat { footerTopInset + bandHeight + chassisEdgeInset }
     /// Gap between the screen housing and the footer row. Much tighter than the
-    /// inset below the row — see `footerHeight`.
-    public static let footerTopInset: CGFloat = 6
-    public static let footerPaddingH: CGFloat = cornerGuardH
+    /// inset below the row — see `footerHeight`. 4, down from 6 (0.6.8, E5).
+    public static let footerTopInset: CGFloat = 4
+    /// The band's own horizontal inset (0.6.8, E2).
+    ///
+    /// 10, in from `cornerGuardH`'s 26 — the buttons go to the edges, which is
+    /// the whole of E2. `cornerGuardH` is the clearance a control's *bounding
+    /// box* needs to clear the display's 55pt corner arc, and it was always
+    /// conservative for a circle: the bottom cap's lowest point sits at
+    /// `chassisEdgeInset` (16) where the arc has eaten ~16pt, but that point is
+    /// the width of nothing at all. Walking the circle at 10pt of padding, the
+    /// tightest approach is ~7pt clear of the arc at y≈20, and the cap's widest
+    /// point sits at y≈56 where the corner has closed entirely.
+    ///
+    /// Deliberately no longer shared with the island strip, which keeps
+    /// `cornerGuardH`: F2 and F3 move the top-row clusters on their own axes in
+    /// this batch, so the old "one padding, four controls in two columns" rule
+    /// had already stopped describing the chassis.
+    public static let bandPaddingH: CGFloat = 10
     /// **One** diameter for every physical control on the chassis: the orb and
     /// the cog on the island strip, Back/saved and Home in the footer.
     ///
@@ -354,8 +450,13 @@ public enum DexMetrics {
     /// buttons — the centrepiece shrinking because something else did. The band
     /// is as tall as a bundle whatever happens; this is simply the rest of that
     /// column once the two indicator lamps and their gap are out of it, so the
-    /// panel fills its slot exactly and comes out ~12pt taller than 0.6.6's,
-    /// for free.
+    /// panel fills its slot exactly.
+    ///
+    /// That construction is what makes E5 free in 0.6.8: the band roughly
+    /// doubled in height to seat the bigger controls, and the panel took all of
+    /// it — ~149pt against 0.6.7's ~83 — without a number changing here. The
+    /// glyphs grew with it (see `marqueeTextSize`), because a panel that tall
+    /// carrying 19pt letters is dead space wearing a green coat.
     public static var marqueeHeight: CGFloat {
         max(bandHeight - bandPillHeight - bandPillGap, bandControl)
     }
@@ -369,86 +470,100 @@ public enum DexMetrics {
     /// always mid-fade at either end.
     public static var marqueeFade: CGFloat { marqueeTextSize * TextScale.current.factor * 1.15 }
     /// One size for every screen: the main screen's longer banner scrolls,
-    /// so it does not need to shrink to fit. Trimmed from 1.45rem (v0.5.4)
-    /// — at that size the strip read louder than the buttons beside it.
-    public static let marqueeTextSize: CGFloat = 1.2 * rem
+    /// so it does not need to shrink to fit.
+    ///
+    /// 1.5rem (0.6.8, E3/E5), up from the 1.2 it was trimmed to in v0.5.4. That
+    /// trim was made because the strip "read louder than the buttons beside
+    /// it" — and E1 has just made the buttons three times the area, so the
+    /// argument now runs the other way. The panel is also ~149pt tall in this
+    /// batch; 19pt letters in it were a caption floating in a slab.
+    public static let marqueeTextSize: CGFloat = 1.5 * rem
 
-    /// Button band (0.6.5, A/B; restructured 0.6.7, G)
+    /// Button band (0.6.5, A/B; restructured 0.6.7 G, resized 0.6.8 E)
     ///
-    /// Four physical controls in **two matching diagonal bundles** — User over
-    /// Settings on the left, Home over Back on the right — flanking the marquee
-    /// panel, each pair sunk into its own elongated pill-shaped well.
+    /// Four physical controls in **two vertical bundles** — User over Settings
+    /// on the left, Home over Back on the right — flanking the marquee panel,
+    /// each pair sunk into its own capsule well.
     ///
-    /// `bandControl` still breaks the "one diameter for every control on the
-    /// chassis" rule the island strip follows, and for the same reason: the
-    /// marquee has to hold roughly half the chassis width to read as the
-    /// centrepiece, and four full `footerControl` circles plus their wells do
-    /// not leave that much on a compact phone.
+    /// **1.25 of `footerControl`, up from 0.72 (0.6.8, E1).** That is 80pt
+    /// against 46.1 — 1.74× the diameter and 3× the area — and it is as far as
+    /// E1's "roughly 2×" can be taken without the marquee going backwards,
+    /// which is worth setting out because the arithmetic is forced rather than
+    /// chosen:
     ///
-    /// 0.72, down from 0.84 (0.6.7, G2). Settings joins the other three at full
-    /// size in this batch, so the band is carrying four equal circles where it
-    /// used to carry three plus a small one — and two wells around them. Paid
-    /// for by trimming the common diameter, which nets out almost exactly: the
-    /// marquee keeps ~160pt of a 393pt phone (was ~162) and the band's height
-    /// is within a third of a point of what it was. See `bandBundleHeight`.
+    /// Two caps that do not overlap sit at least one diameter apart. A pair on
+    /// a diagonal therefore costs the row `d · (1 + dx/d)` of *width* on each
+    /// side, and 0.6.7's `dx` of 0.57d was 26pt of that per flank at the old
+    /// size — affordable then, and 46pt per flank at this size, which is most
+    /// of the marquee. Only a *vertical* pair costs the row nothing beyond one
+    /// diameter, so `bandBundleDX` goes to zero and the whole increase is paid
+    /// in band height instead. With that, on a 393pt phone: two 88pt bundles,
+    /// two 6pt gaps and 20pt of edge inset leave the marquee 185pt — up from
+    /// 160, which is E3, and the indicator pills are measured off the marquee
+    /// so they widen with it.
     ///
-    /// The happy side effect is that `bandControlSmall` is gone with it: every
-    /// physical control in the footer is now one diameter, which is the rule
-    /// the small cog was the sole exception to.
-    public static var bandControl: CGFloat { footerControl * 0.72 }
-    /// Gap between the band's columns.
-    public static let bandSpacing: CGFloat = 10
+    /// The height is what E4 buys. The band goes 95.6 → 168, the footer 117.6 →
+    /// 188, and the screen housing 667 → 599 on an 852pt display: **the LCD is
+    /// ~10% shorter**. That is the batch's one real cost and it is deliberate —
+    /// E4 authorises it and E5 is the instruction to make sure the height is
+    /// actually *used*, which it is: the bundles are 68% circle by area against
+    /// the diagonal's 43%, and the marquee panel absorbs the rest of the column.
+    ///
+    /// `bandControl` no longer undershoots `controlButton` either — it
+    /// overshoots it. The "one diameter for every physical control" rule the
+    /// island strip follows was already broken in the other direction; what is
+    /// true now is that all four footer controls share one diameter, which is
+    /// the part of the rule that was ever load-bearing.
+    public static var bandControl: CGFloat { footerControl * 1.25 }
+    /// Gap between the band's columns. 6, down from 10 (0.6.8, E5) — every
+    /// point here is a point of marquee.
+    public static let bandSpacing: CGFloat = 6
 
-    // MARK: The button bundles (0.6.7, G1/G2)
+    // MARK: The button bundles (0.6.7, G1/G2; straightened 0.6.8, E1)
     //
-    // **This restructures 0.6.6's B1.** That pass packed Settings, Home and
-    // Back into one near-tangent triangle on the right and left User alone on
-    // the far side of the marquee — an arrangement in which no two controls
-    // were the same size and the two flanks were nothing like each other.
-    // G2 pulls Settings out of the triangle and puts it under User, which
-    // leaves two pairs; G1 sinks each pair into an elongated pill-shaped well,
-    // the way an SNES face recess groups X/Y on a diagonal.
+    // Each flank is a **vertical pair in one capsule well** — the SNES face
+    // recess that groups X and Y, stood upright. User over Settings on the
+    // left, Home over Back on the right.
     //
-    // The pairs are mirror images: both diagonals lean *inward* at the bottom
-    // (User top-leading with Settings below-right of it, Home top-trailing with
-    // Back below-left), so the two wells point at each other across the
-    // marquee and the band reads as one symmetrical instrument.
+    // **The diagonal is gone (0.6.8, E1).** 0.6.7's G1/G2 staggered each pair
+    // by `0.57d` horizontally so the two wells leaned in toward the marquee,
+    // and at a 46pt diameter that read well and cost the row 26pt a side. E1
+    // roughly doubles the diameter, at which point the same fraction costs 46pt
+    // a side — the marquee's entire growth and then some — and the lean's own
+    // dead corners (a diagonal pair fills 43% of its bounding box; an upright
+    // one fills 68%) become the largest empty region in the band, which is
+    // precisely what E5 is pointing at. Upright is the only arrangement in
+    // which a bigger cap costs the row nothing but height.
     //
-    // That symmetry is also what settles F5. The marquee used to sit between a
-    // lone 54pt circle and a 105pt cluster, so "centred in its own column" and
-    // "centred in the chassis" were fifty points apart. Two congruent bundles
-    // put the same width on both sides of it, and the panel is centred in the
-    // chassis by construction rather than by a nudge.
+    // The two flanks are still congruent, so the marquee is centred in the
+    // chassis by construction and 0.6.7's F5 still holds for the same reason it
+    // did — the geometry is not fighting it.
     //
-    // The geometry is fractions of `bandControl`, so a bundle scales with
-    // `UIScale` in one piece. `dx`/`dy` are the *centre-to-centre* offset of
-    // the pair; their magnitude is 1.065 diameters, so the caps clear each
-    // other by ~6% of a diameter — near-tangent, like the old cluster, which is
-    // what makes a pair read as one part rather than two loose circles.
+    // Everything is a fraction of `bandControl`, so a bundle scales with
+    // `UIScale` in one piece.
 
-    /// The pair's horizontal and vertical separation, centre to centre. The
-    /// resulting diagonal is ~58° off horizontal: steep enough that Settings
-    /// reads as being *below* User (G2's wording), shallow enough that the
-    /// stagger still reads as a diagonal rather than a column.
-    public static var bandBundleDX: CGFloat { bandControl * 0.57 }
-    public static var bandBundleDY: CGFloat { bandControl * 0.90 }
+    /// Zero since 0.6.8 (E1) — see the note above. Kept as a named metric
+    /// rather than deleted because it is the number the argument turns on, and
+    /// a future pass that wants the lean back needs to see what it costs.
+    public static var bandBundleDX: CGFloat { 0 }
+    /// The pair's centre-to-centre separation: exactly one diameter, so the
+    /// caps are tangent. Tangent rather than merely close is what makes the two
+    /// read as one moulded part in a single recess.
+    public static var bandBundleDY: CGFloat { bandControl }
     /// Clearance between a cap and the wall of its well. Small — the well is a
     /// recess milled around the buttons, not a tray they are sitting in.
     public static let bandWellPad: CGFloat = 4
+    /// 88 at SMALL. One padded diameter, and no more: this is the number E1's
+    /// whole argument is about.
     public static var bandBundleWidth: CGFloat { bandControl + bandBundleDX + bandWellPad * 2 }
-    /// ~95.5 at SMALL against the retired cluster's 95.2 — a third of a point,
-    /// which is the whole of what the G restructure costs the LCD. It is more
-    /// than repaid by F1 handing back the island strip's 10pt lamp row.
+    /// 168 at SMALL, against 0.6.7's 95.6. All of E1's increase lands here —
+    /// see `bandControl` for what that costs the LCD and what E3/E5 buy back.
     public static var bandBundleHeight: CGFloat { bandControl + bandBundleDY + bandWellPad * 2 }
-    /// The well's long axis: the pair's centre separation plus a full padded
-    /// diameter, which makes the capsule the exact convex hull of the two
-    /// padded caps — so its bounding box is the bundle's, and the rotation
-    /// costs no extra room in the band.
-    public static var bandWellLength: CGFloat {
-        (bandBundleDX * bandBundleDX + bandBundleDY * bandBundleDY).squareRoot()
-            + bandControl + bandWellPad * 2
-    }
-    public static var bandWellThickness: CGFloat { bandControl + bandWellPad * 2 }
+    // `bandWellLength` and `bandWellThickness` retired in 0.6.8 (E1). They
+    // existed to size a capsule that then had to be *rotated* onto the
+    // diagonal, so the well's own box and the bundle's had to be computed
+    // separately and kept in agreement. Upright, they are the same box, and
+    // `ButtonWell` simply fills it.
 
     /// The band's own height. A bundle is the tallest thing in it — the
     /// marquee column fits inside this.
@@ -472,7 +587,13 @@ public enum DexMetrics {
     /// width less the gap between them, so the two lamps span exactly the strip
     /// they belong to at any screen width or `UIScale`. A fixed width could
     /// only ever be right on one phone.
-    public static let bandPillHeight: CGFloat = 8
+    ///
+    /// 14 tall since 0.6.8 (E3). "Make the marquee and its status lights wider"
+    /// gives the width for free — the pills are measured off the panel, so they
+    /// gained the same ~16% it did — but two 8pt slivers over a 149pt panel
+    /// read as a hairline, not as lamps. Height is the part that had to be
+    /// asked for.
+    public static let bandPillHeight: CGFloat = 14
     public static let bandPillSpacing: CGFloat = 8
     /// Gap from the pills down to the panel they belong to. Small — they have
     /// to read as lamps *on* the marquee's housing, not as their own row.
@@ -490,6 +611,24 @@ public enum DexMetrics {
     /// types — the half of this value is what times the face swap, so the two
     /// must come from one number.
     public static let flipDuration: Double = 0.7
+
+    /// The engraved return arrow in the back plate's bottom-right corner
+    /// (0.6.8, B3) — the plate's one control, replacing the swipe B2 removed.
+    /// Large on purpose: it is the only way off a full-screen surface, and the
+    /// swipe it replaces failed because it was invisible.
+    public static let backPlateReturn: CGFloat = 92
+
+    /// The LCD's back-swipe (0.6.8, I1).
+    ///
+    /// Deliberately strict on both axes. The gesture rides *simultaneously*
+    /// with whatever the screen mounts — every list is a `ScrollView` and
+    /// several screens carry their own drags — so it has to be a movement no
+    /// ordinary interaction produces by accident: a long, decisively horizontal
+    /// push to the right. A vertical scroll of any length stays under
+    /// `lcdBackSwipeSlop`; a horizontal chip row cannot reach 90pt without also
+    /// being an obvious page-level swipe.
+    public static let lcdBackSwipeDistance: CGFloat = 90
+    public static let lcdBackSwipeSlop: CGFloat = 55
 
     /// Scanline overlay
     public static let scanlineSpacing: CGFloat = 4

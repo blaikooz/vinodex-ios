@@ -69,7 +69,7 @@ public struct MainMenuScreen: View {
         action: @escaping () -> Void
     ) -> some View {
         Button {
-            Haptics.tap()
+            Haptics.screenTap()
             action()
         } label: {
             // Sized up in 0.6.1, then eased back a notch (0.6.2, B1) — 64pt
@@ -116,7 +116,7 @@ public struct MainMenuScreen: View {
     /// it has always been.
     private var searchButton: some View {
         Button {
-            Haptics.tap()
+            Haptics.screenTap()
             onSelect(.masterSearch)
         } label: {
             ZStack {

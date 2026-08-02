@@ -190,7 +190,7 @@ public struct DexSearchBarButton: View {
 
     public var body: some View {
         Button {
-            Haptics.tap()
+            Haptics.screenTap()
             action()
         } label: {
             DexSearchBarShell {

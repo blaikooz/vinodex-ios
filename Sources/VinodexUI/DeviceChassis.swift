@@ -38,6 +38,9 @@ public struct DeviceChassis<Content: View>: View {
 
     /// Drives the orb's depress animation while the flip gesture is held.
     @State private var orbHeld = false
+    /// Whether the LCD's back swipe is listening (0.6.8, I1) — suspended by any
+    /// screen that owns horizontal dragging. See `BackSwipeGate`.
+    @State private var backSwipe = BackSwipeGate.shared
     /// Shared with `SettingsPanel` through `@AppStorage`, so toggling it there
     /// repaints the chassis without any state being threaded between them.
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
@@ -107,7 +110,16 @@ public struct DeviceChassis<Content: View>: View {
                     .opacity(showsBackFace ? 0 : 1)
                     .accessibilityHidden(isFlipped)
 
-                DeviceBackPlate()
+                // **No swipe on the plate (0.6.8, B2/I2).** Returning used to
+                // be a drag anywhere on this surface, advertised by an engraved
+                // SWIPE TO RETURN line. Two things killed it: it fired on the
+                // plain touches that were meant to pick a stamp up, and I1 puts
+                // a swipe-back on the LCD app-wide — a *second* swipe on the
+                // one surface that is not the LCD would mean the same movement
+                // meaning two different things depending on which face is up.
+                // I2 says explicitly not here, so the plate gets a button
+                // instead (B3) and this face has no gesture of its own at all.
+                DeviceBackPlate(onReturn: { isFlipped = false })
                     // Pre-rotated so it reads the right way round once the
                     // container has turned; without this it arrives mirrored.
                     //
@@ -120,16 +132,6 @@ public struct DeviceChassis<Content: View>: View {
                     .rotation3DEffect(.degrees(reduceMotion ? 0 : 180), axis: (x: 0, y: 1, z: 0))
                     .opacity(showsBackFace ? 1 : 0)
                     .accessibilityHidden(!isFlipped)
-                    // Swipe rather than tap, so returning is the same gesture
-                    // in reverse. A tap gave no sense of the panel turning.
-                    .gesture(
-                        DragGesture(minimumDistance: 24)
-                            .onEnded { value in
-                                if abs(value.translation.width) > 60 {
-                                    isFlipped = false
-                                }
-                            }
-                    )
             }
             .rotation3DEffect(
                 .degrees(reduceMotion ? 0 : (isFlipped ? 180 : 0)),
@@ -213,11 +215,16 @@ public struct DeviceChassis<Content: View>: View {
     // **The two red housing lamps have left (0.6.7, F1).** 0.6.6 put them on
     // bare chassis below the cutout, and bare chassis is *outside* the screen
     // housing — which is exactly what the device reported: two lamps floating
-    // off the LCD's border. They are anchored to the bezel plate now (see
-    // `innerBezel`), and the 10pt band they needed down here goes with them.
-    // That 10pt is what pays for F2's larger orb, with change: the strip's
-    // floor drops below the 59pt a Dynamic Island already reserves, so it stops
-    // being the binding constraint at all.
+    // off the LCD's border. They are anchored to the screen housing now (see
+    // `screenHousing`), and the 10pt band they needed down here goes with them.
+    //
+    // **Both clusters moved on their own axes in 0.6.8 (F).** The orb goes
+    // inboard and slightly smaller (F1/F2), the trio goes outboard and slightly
+    // up (F3), and the row is levelled on the cutout's own centre line rather
+    // than on a hand-tuned inset. The strip's floor (~54pt) stays under the
+    // 59pt a Dynamic Island already reserves, so none of it is charged to the
+    // LCD — F4 is satisfied by the strip having stopped being the binding
+    // constraint in 0.6.7 and staying that way here.
     //
     // Rendering *in* the cutout is not an option, for the record: the island is
     // hardware, the OS masks anything drawn under it, and putting content there
@@ -259,29 +266,35 @@ public struct DeviceChassis<Content: View>: View {
                         orbHeld = pressing
                         if pressing { Haptics.orbPress() }
                     }
+                    // Inboard of the corner (0.6.8, F2), applied outside the
+                    // slot so the 44pt touch target moves with the bead rather
+                    // than being eaten by the inset.
+                    .padding(.leading, DexMetrics.islandOrbInsetLeading)
 
-                // The cutout's clearance. Nothing is drawn under it, so this is
-                // simply the gap the corner is held clear by — a fixed width
-                // rather than a `Spacer`, which is what makes the trio's slot
-                // below a measurable region instead of whatever is left after
-                // the spacer has pushed it against the trailing padding.
-                Color.clear
-                    .frame(width: DexMetrics.islandClearance, height: 1)
+                // The cutout's clearance — whatever is left between the two
+                // clusters (0.6.8, F2/F3). It was a fixed 158pt spacer, which
+                // had to be re-tuned every time either side moved; a `Spacer`
+                // states the actual rule, which is that nothing is drawn under
+                // the island and the two clusters simply keep out of its way.
+                // On a 393pt phone this leaves ~45pt of margin to the island's
+                // left edge and ~43 to its right.
+                Spacer(minLength: 0)
 
-                // The three skin-tinted lamps (0.6.5, C1), **centred in the
-                // top-right corner** since 0.6.7 (F3) rather than hung off the
-                // trailing padding. The corner is everything to the right of
-                // the cutout's clearance; giving the trio that whole region and
-                // centring it in it is what stops the cluster reading as three
-                // lamps shoved into the edge of the display. Vertically they
-                // stay on the orb's line, so the two corners still read as a
-                // pair flanking the cutout.
+                // The three skin-tinted lamps (0.6.5, C1), **trailing-aligned**
+                // since 0.6.8 (F3): the trio's outer edge sits on the same
+                // inset the orb's used to, so the two clusters read as a
+                // mirrored pair of blocks. 0.6.7 centred them in the whole
+                // right-hand corner instead, which put them ~70pt further left
+                // and left an obvious empty run outboard of them.
                 statusDots(size: DexMetrics.islandStatusDot)
                     // Decoration only, and never a touch target sitting next
                     // to one.
                     .allowsHitTesting(false)
-                    .frame(maxWidth: .infinity)
                     .frame(height: slot, alignment: .center)
+                    // Slightly above the orb's line (F3) — see
+                    // `islandStatusRise`.
+                    .offset(y: -DexMetrics.islandStatusRise)
+                    .padding(.trailing, DexMetrics.islandStatusInsetTrailing)
             }
             .frame(height: slot)
             .padding(.top, DexMetrics.islandTopInset)
@@ -291,7 +304,6 @@ public struct DeviceChassis<Content: View>: View {
             // screen housing.
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, DexMetrics.islandFlankPaddingH)
         .padding(.bottom, DexMetrics.islandBottomInset)
         .frame(height: height)
     }
@@ -399,13 +411,37 @@ public struct DeviceChassis<Content: View>: View {
     // MARK: Screen
 
     private var screenHousing: some View {
-        // The moulded housing: a thin top margin, the LCD, and the vent strip.
-        // The two red lamps that used to squat in the top margin moved up onto
-        // bare chassis in 0.6.6 (D1) — see `islandFlank` — which is why that
-        // margin is now the thinnest thing that still reads as moulding.
+        // The moulded housing, top to bottom: the **white top bezel** carrying
+        // the two red status lamps, the LCD in its dark grey band, and the
+        // white bottom strip carrying the vent lamp, the wordmark and the
+        // grille.
+        //
+        // **The lamps are up here again (0.6.8, D).** They have moved four
+        // times now — this white strip (0.6.5), bare chassis (0.6.6), the grey
+        // band's thickened top edge (0.6.7), and back here — so the layers are
+        // named in `DexMetrics.bezelTopMargin` and the two that matter are
+        // spelled out plainly:
+        //
+        //   *white bezel*  = this housing's own plate, `skin.panel`
+        //   *grey band*    = the `Dex.stone800` frame the LCD is set into,
+        //                    `bezelFrame` thick — see `innerBezel`
+        //
+        // 0.6.7 put the lamps on the grey band, which is what the device
+        // reported and what D2 asks to undo. D1 keeps that band at exactly the
+        // width it has; D3 grows this strip from 2pt to 20 so the lamps have
+        // white moulding around them instead of a seam.
         VStack(spacing: 0) {
             Color.clear
                 .frame(height: DexMetrics.bezelTopMargin)
+                // Centred in the white strip, which is where a handheld's
+                // power/link pair belongs and where 0.6.5 had them.
+                .overlay {
+                    HStack(spacing: DexMetrics.bandPillSpacing) {
+                        ventDot(size: DexMetrics.ventDot)
+                        ventDot(size: DexMetrics.ventDot)
+                    }
+                    .allowsHitTesting(false)
+                }
             innerBezel
             bottomVents
         }
@@ -452,10 +488,13 @@ public struct DeviceChassis<Content: View>: View {
         )
     }
 
-    private var ventDot: some View {
+    /// One red housing lamp. Takes its diameter since 0.6.8 (G3): the pair on
+    /// the white top bezel and the lone one in the bottom strip are the same
+    /// bulb at two sizes, not two parts.
+    private func ventDot(size: CGFloat) -> some View {
         Circle()
             .fill(Dex.red500)
-            .frame(width: DexMetrics.ventDot, height: DexMetrics.ventDot)
+            .frame(width: size, height: size)
             .overlay(Circle().strokeBorder(Dex.red800, lineWidth: 1))
             .shadow(color: Dex.red500.opacity(0.8), radius: 3)
     }
@@ -499,6 +538,36 @@ public struct DeviceChassis<Content: View>: View {
                 .opacity(DexMetrics.scanlineOpacity)
                 .allowsHitTesting(false)
         }
+        // **The app-wide back swipe (0.6.8, I1).**
+        //
+        // Mounted here, on the display itself, so every screen gets it without
+        // knowing about it — the alternative (a modifier each screen applies)
+        // is exactly the per-page arrangement I3 exists to retire. The LCD is
+        // also the only surface it may live on: the back plate is explicitly
+        // excluded (I2), and it is not on the plate because the plate is a
+        // sibling of this whole subtree, not a child of it.
+        //
+        // `simultaneousGesture`, not `gesture`: a child's own recogniser wins
+        // outright against a parent's, so a plain `.gesture` here would be
+        // silently dead inside every `ScrollView` in the app — which is nearly
+        // every screen. Running alongside means the thresholds have to do the
+        // discriminating instead; see `DexMetrics.lcdBackSwipeDistance`.
+        //
+        // `BackSwipeGate` is how a screen that genuinely owns horizontal
+        // dragging opts out. Exactly one does (the globe), and it suspends the
+        // gate rather than this view offering an off switch, because the
+        // conflict belongs to the screen and this layer cannot know about it.
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 30)
+                .onEnded { value in
+                    guard showsBack, !isFlipped, backSwipe.isEnabled else { return }
+                    guard value.translation.width > DexMetrics.lcdBackSwipeDistance,
+                          abs(value.translation.height) < DexMetrics.lcdBackSwipeSlop
+                    else { return }
+                    Haptics.select()
+                    onBack?()
+                }
+        )
         // The monochrome modes: desaturate everything on the LCD, then tint
         // the lot — grey-green for VINTAGE, amber phosphor for AMBER. Done
         // here, over the whole display, because it is the only way entry art,
@@ -508,34 +577,18 @@ public struct DeviceChassis<Content: View>: View {
         .colorMultiply(lcd.monochromeTint ?? .white)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipShape(RoundedRectangle(cornerRadius: DexMetrics.bezelCorner))
-        // A thin stone frame, equal on every side so the LCD sits centred.
-        // Note this is deliberately small: padding here costs LCD height, and
-        // a uniform `bezelInsetH` (12pt) took 24pt of vertical space away.
+        // The dark grey band: a thin stone frame, **equal on every side**
+        // (0.6.8, D1). 0.6.7 thickened its top edge to 12pt to seat the two red
+        // lamps, which is what put them "inside the dark gray band"; D1 keeps
+        // the band at this width and D2 moves the lamps out to the white bezel
+        // above, so there is one thickness again. Deliberately small either
+        // way: padding here costs LCD height, and a uniform `bezelInsetH`
+        // (12pt) took 24pt of vertical space away.
         .padding(DexMetrics.bezelFrame)
-        // …except along the top, where the plate thickens into the strip that
-        // seats the two red housing lamps (0.6.7, F1). Paid for out of
-        // `bezelTopMargin` point for point, so the housing is the same height
-        // it was and the LCD loses nothing. See `bezelLampStrip`.
-        .padding(.top, DexMetrics.bezelLampStrip - DexMetrics.bezelFrame)
         .background(
             RoundedRectangle(cornerRadius: DexMetrics.bezelCorner + DexMetrics.bezelFrame)
                 .fill(Dex.stone800)
         )
-        // The lamps themselves, **on the border** — anchored to the bezel plate
-        // rather than to the chassis, which is the whole of F1. They have now
-        // lived in three places (the housing's white margin, bare chassis under
-        // the cutout, here); this is the only one of the three that is actually
-        // part of the LCD's frame, so it is the only one where "outside the
-        // border" cannot happen again by construction. Centred, which is where
-        // 0.6.5 had them and where a handheld's power/link pair belongs.
-        .overlay(alignment: .top) {
-            HStack(spacing: DexMetrics.bandPillSpacing) {
-                ventDot
-                ventDot
-            }
-            .allowsHitTesting(false)
-            .frame(height: DexMetrics.bezelLampStrip)
-        }
         // Horizontal only — this insets the housing without costing height.
         .padding(.horizontal, DexMetrics.bezelInsetH - DexMetrics.bezelFrame)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -552,7 +605,8 @@ public struct DeviceChassis<Content: View>: View {
             // Nudged a further ~0.3 chamfers right in 0.6.6 (E2): it was
             // clearing the diagonal by the width of the lamp itself, which reads
             // as crowding the cut rather than as sitting beside it.
-            ventDot
+            // Half again its old diameter (0.6.8, G3) — see `bottomVentDot`.
+            ventDot(size: DexMetrics.bottomVentDot)
                 .padding(.leading, DexMetrics.screenPanelChamfer * 1.2)
 
             // **The wordmark, third home (0.6.7, H1).**
@@ -586,6 +640,11 @@ public struct DeviceChassis<Content: View>: View {
                 ventSlat
             }
             .allowsHitTesting(false)
+            // Raised off the strip's centre line (0.6.8, G1). Four thin rules
+            // with air between them are optically bottom-heavy, so a
+            // geometrically centred block reads low against the lamp and the
+            // wordmark beside it.
+            .offset(y: -DexMetrics.grilleRise)
             // Pulled in off the panel's rounded corner, which the slats
             // were running into at their right end.
             .padding(.trailing, DexMetrics.headerPaddingH + DexMetrics.screenPanelCorner * 0.5)
@@ -604,9 +663,18 @@ public struct DeviceChassis<Content: View>: View {
     // MARK: Footer — the button band
     //
     // Four physical controls around one display (0.6.5, A/B; restructured
-    // 0.6.7, G): **two matching diagonal bundles** — User over Settings on the
-    // left, Home over Back on the right — with the marquee panel and its two
-    // indicator lamps between them.
+    // 0.6.7, G; resized 0.6.8, E): **two matching vertical bundles** — User
+    // over Settings on the left, Home over Back on the right — with the marquee
+    // panel and its two indicator lamps between them.
+    //
+    // 0.6.8's E is one instruction with five clauses, and they are all the same
+    // trade: the caps go to 1.74× (E1), which only fits if the pairs stand
+    // upright and the band's edge inset comes in to 10pt (E2), which together
+    // hand the marquee ~25pt of extra width and its lamps with it (E3), paid
+    // for out of ~68pt of screen housing (E4) — and the height that buys is
+    // then all spent rather than left as air (E5): the wells are 68% cap by
+    // area, the marquee column fills the band, and the glyphs on it grew to
+    // match. See `DexMetrics.bandControl` for the arithmetic.
     //
     // There is deliberately **no** primary action button. Select and OK are
     // screen taps, and a fifth circle down here would be a control with nothing
@@ -650,7 +718,9 @@ public struct DeviceChassis<Content: View>: View {
             navBundle
         }
         .frame(height: DexMetrics.bandHeight, alignment: .top)
-        .padding(.horizontal, DexMetrics.footerPaddingH)
+        // The buttons out to the edges (0.6.8, E2) — `bandPaddingH`, not the
+        // island strip's `cornerGuardH`, which the two rows no longer share.
+        .padding(.horizontal, DexMetrics.bandPaddingH)
         // Asymmetric on purpose, and built from the two insets rather than
         // centred in a fixed height: tight to the screen housing above, full
         // `chassisEdgeInset` below so the home indicator has bare chassis to
@@ -661,14 +731,13 @@ public struct DeviceChassis<Content: View>: View {
         .background(skin.footerWash)
     }
 
-    /// User over Settings, sunk into the left-hand well (0.6.7, G2).
+    /// User over Settings, sunk into the left-hand well (0.6.7, G2; upright
+    /// since 0.6.8, E1).
     ///
-    /// User keeps the top-leading corner it has held since 0.6.5's A1; Settings
-    /// arrives from the right-hand cluster and takes the position below and
-    /// *inboard* of it, so this bundle's diagonal leans toward the marquee.
-    /// Its mirror image is `navBundle`.
+    /// User keeps the top-leading corner it has held since 0.6.5's A1;
+    /// Settings sits directly below it. Its mirror image is `navBundle`.
     private var userBundle: some View {
-        buttonBundle(side: .leading) {
+        buttonBundle {
             // User. It no longer shares a slot with Back — the band has had
             // room for both since 0.6.5, so the old "Back where there is
             // somewhere to go, saved entries otherwise" swap is gone and each
@@ -683,21 +752,18 @@ public struct DeviceChassis<Content: View>: View {
         }
     }
 
-    /// Home over Back, sunk into the right-hand well (0.6.7, G1).
+    /// Home over Back, sunk into the right-hand well (0.6.7, G1; upright since
+    /// 0.6.8, E1).
     ///
-    /// **This is 0.6.6's B1 triangle less its third member.** That pass packed
-    /// Settings, Home and Back to mutual near-tangency; G2 takes Settings away
-    /// to pair with User, which leaves the diagonal the mockup actually draws —
-    /// Home at the top-trailing, Back below and inward from it, in the corner
-    /// nearest the thumb. G1's well is what keeps the pair reading as one part
-    /// now that there is no third circle holding the group together.
+    /// Home at the top, Back directly below it in the corner nearest the thumb.
+    /// The well is what keeps the pair reading as one part.
     ///
     /// Back is always mounted and greyed where there is nowhere to go, rather
     /// than vanishing: a control that disappears moves the ones around it, and
     /// having the bundle re-form itself between screens is worse than a dim
     /// button.
     private var navBundle: some View {
-        buttonBundle(side: .trailing) {
+        buttonBundle {
             ChassisButton(kind: .home, size: DexMetrics.bandControl, enabled: onHome != nil) {
                 isFlipped = false
                 onHome?()
@@ -716,58 +782,33 @@ public struct DeviceChassis<Content: View>: View {
         }
     }
 
-    /// Which way a bundle's diagonal leans. Both lean *inward* at the bottom,
-    /// so the two wells point at each other across the marquee.
-    private enum BundleSide {
-        /// Top button at the leading edge, bottom button below-and-right.
-        case leading
-        /// Top button at the trailing edge, bottom button below-and-left.
-        case trailing
-    }
-
-    /// Two controls on a diagonal in one elongated pill-shaped recess
-    /// (0.6.7, G1/G2) — the SNES face recess that groups X and Y.
+    /// Two controls stacked in one capsule recess (0.6.7, G1/G2; stood upright
+    /// 0.6.8, E1) — the SNES face recess that groups X and Y.
     ///
-    /// Laid out by offset against an explicitly sized transparent plate rather
-    /// than by stacks. Overlapping bounding boxes have no stack arrangement, and
-    /// the plate is what gives the footer's `HStack` a width to measure — the
-    /// offset children contribute none.
+    /// **A plain `VStack` since 0.6.8.** The diagonal form had to be laid out by
+    /// absolute offset against an explicitly sized transparent plate, because
+    /// two staggered circles have overlapping bounding boxes and no stack
+    /// arrangement describes them. With `bandBundleDX` at zero there is no
+    /// stagger, the two caps are tangent, and a stack says all of that in three
+    /// lines — including giving the footer's `HStack` a real width to measure,
+    /// which the offset children never did.
     ///
     /// The well is a `Capsule` as long as the pair's centre separation plus one
     /// padded diameter, which makes it the exact convex hull of the two padded
-    /// caps: its bounding box *is* the bundle's, so rotating it to the diagonal
-    /// costs the band no extra room. Its centre is the midpoint of the two
-    /// button centres, which by that construction is the plate's centre — so it
-    /// needs no offset of its own, only the rotation.
+    /// caps, and it is drawn behind them at the bundle's own size.
     private func buttonBundle<Top: View, Bottom: View>(
-        side: BundleSide,
         @ViewBuilder top: () -> Top,
         @ViewBuilder bottom: () -> Bottom
     ) -> some View {
-        let pad = DexMetrics.bandWellPad
-        let dx = DexMetrics.bandBundleDX
-        let dy = DexMetrics.bandBundleDY
-        // Down-and-right for the leading bundle, down-and-left for the trailing
-        // one. Sign is the only difference between the two mirror images.
-        let lean: CGFloat = side == .leading ? 1 : -1
-        let topX = side == .leading ? pad : pad + dx
-        let bottomX = topX + lean * dx
-
-        return ZStack(alignment: .topLeading) {
-            Color.clear
-                .frame(width: DexMetrics.bandBundleWidth, height: DexMetrics.bandBundleHeight)
-
-            // Sized to the plate so the rotated capsule centres on it — the
-            // well's own layout box is its unrotated length × thickness, and
-            // `rotationEffect` turns it about that box's centre.
-            ButtonWell(angle: .radians(atan2(Double(dy), Double(lean * dx))))
-                .frame(width: DexMetrics.bandBundleWidth, height: DexMetrics.bandBundleHeight)
-
+        // The caps are tangent (`bandBundleDY == bandControl`), so the stack's
+        // own spacing is zero and the separation is entirely the diameters'.
+        VStack(spacing: DexMetrics.bandBundleDY - DexMetrics.bandControl) {
             top()
-                .offset(x: topX, y: pad)
-
             bottom()
-                .offset(x: bottomX, y: pad + dy)
+        }
+        .padding(DexMetrics.bandWellPad)
+        .background {
+            ButtonWell()
         }
         .frame(width: DexMetrics.bandBundleWidth, height: DexMetrics.bandBundleHeight)
     }
@@ -813,18 +854,20 @@ public struct DeviceChassis<Content: View>: View {
     }
 }
 
-/// The recess a button bundle sits in (0.6.7, G1).
+/// The recess a button bundle sits in (0.6.7, G1; upright since 0.6.8, E1).
 ///
 /// An SNES face recess: a stadium milled into the deck, the two caps sitting in
-/// it on a diagonal. Drawn as shading rather than in any skin colour — a dark
-/// floor, a soft dark wall along the top edge where no light reaches, and a
-/// bright lip along the bottom where it does — so it works over every one of the
-/// eighteen shells without a per-skin table. That is the same reasoning the
-/// chassis already applies to the caps' own drop shadows and specular
-/// highlights: shading is a property of the light, not of the plastic.
+/// it. Drawn as shading rather than in any skin colour — a dark floor, a soft
+/// dark wall along the top edge where no light reaches, and a bright lip along
+/// the bottom where it does — so it works over every one of the eighteen shells
+/// without a per-skin table. That is the same reasoning the chassis already
+/// applies to the caps' own drop shadows and specular highlights: shading is a
+/// property of the light, not of the plastic.
+///
+/// The `angle` parameter is gone with the diagonal: the capsule is drawn at the
+/// bundle's own upright bounds, so there is nothing to rotate and no
+/// hand-computed convex hull to keep in step with the caps.
 private struct ButtonWell: View {
-    let angle: Angle
-
     var body: some View {
         Capsule()
             .fill(.black.opacity(0.20))
@@ -841,8 +884,6 @@ private struct ButtonWell: View {
                     .strokeBorder(.white.opacity(0.14), lineWidth: 1)
                     .offset(y: 1.5)
             )
-            .frame(width: DexMetrics.bandWellLength, height: DexMetrics.bandWellThickness)
-            .rotationEffect(angle)
             .allowsHitTesting(false)
     }
 }
@@ -942,13 +983,18 @@ private struct StretchedWordmark: View {
 
             Text("VINODEX")
                 .font(DexFont.retro(DexMetrics.wordmarkSize))
-                // Tracking is what keeps the stretch civilised. It is applied
-                // before the run is measured, so widening the natural letter
-                // spacing is what brings the horizontal scale down toward the
-                // vertical one — at 5 the two land about 1.3 apart, which is a
-                // wordmark. Set solid, the same slot forces nearer 1.7, which
-                // is a smear.
-                .tracking(5)
+                // Tracking is the stretch's control surface, not a spacing
+                // tweak: it is applied *before* the run is measured, so it is
+                // most of the natural width the fixed slot is divided by.
+                // Loosening it brings the horizontal scale down toward the
+                // vertical; tightening it drives the glyphs wider.
+                //
+                // 2 since 0.6.8 (G2), from 5 — one move that does both halves
+                // of "reduce character spacing, increase character width",
+                // because the gaps shrink with the tracking while the glyphs
+                // grow with the scale it releases. See
+                // `DexMetrics.wordmarkTracking`.
+                .tracking(DexMetrics.wordmarkTracking)
                 .lineLimit(1)
                 .fixedSize()
                 // The grille's own colour, at more opacity than the slats: the

@@ -119,7 +119,7 @@ public struct WalkthroughScreen: View {
             }
 
             Button {
-                Haptics.tap()
+                Haptics.screenTap()
                 if isLast {
                     onFinish()
                 } else {
