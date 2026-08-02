@@ -234,6 +234,34 @@ public enum DexMetrics {
     public static var islandStripMinHeight: CGFloat {
         islandTopInset + islandSlot + islandBottomInset
     }
+
+    /// **What the LCD actually pays for the strip** (0.6.9, B1).
+    ///
+    /// B1 asks for the screen back at the top, and this is where the empty
+    /// space up there actually was. `islandStripMinHeight` sizes the *band the
+    /// controls are drawn in*, and the chassis reserved that same number — or
+    /// the device's reported `safeAreaInsets.top`, whichever was larger — as
+    /// dead layout above the screen housing. On a Dynamic Island phone that is
+    /// 59pt, and 59 is not a measurement of anything the chassis contains: it
+    /// is the inset iOS reserves for its own status furniture, which this app
+    /// hides (`.statusBarHidden()`) and draws over anyway.
+    ///
+    /// What the housing genuinely has to clear is the *cutout* — the island's
+    /// plate ends at `islandNotchTop + islandNotchHeight` (48pt), and anything
+    /// drawn above that line is masked by hardware. So the reserve is that,
+    /// plus the small `islandBottomInset`, and it is a **cap** rather than a
+    /// second floor: the flank is a sibling overlay in `frontFace`, not a stack
+    /// member, so it may stand taller than the space the housing yields to it.
+    /// The only thing that overhangs is the orb's transparent touch padding —
+    /// its slot's bottom edge lands at ~51.5 against a housing starting at 50,
+    /// and the bead itself ends at ~47.6, well clear.
+    ///
+    /// Worth 9pt of LCD on an island device, and nothing at all on a device
+    /// whose real inset is already smaller — which is correct: there is no
+    /// empty space to reclaim there.
+    public static var islandStripReserve: CGFloat {
+        islandNotchTop + islandNotchHeight + islandBottomInset
+    }
     // `islandClearance` and `islandFlankPaddingH` retired in 0.6.8 (F2/F3).
     //
     // Both existed to build the row out of a *fixed* gap held open for the
@@ -264,12 +292,12 @@ public enum DexMetrics {
     /// instead, which put it ~70pt further left than this and left an obvious
     /// empty run of chassis outboard of it.
     public static let islandStatusInsetTrailing: CGFloat = cornerGuardH
-    /// How far the trio sits above the orb's centre line (0.6.8, F3).
-    ///
-    /// Small and deliberate: level with the orb they read as one row of four
-    /// lamps with a gap in it, and a touch higher they read as a cluster of
-    /// their own in the corner above the display.
-    public static let islandStatusRise: CGFloat = 6
+    // `islandStatusRise` retired in 0.6.9 (E1). 0.6.8's F3 lifted the lamp trio
+    // 6pt off the orb's centre line so the two clusters read as separate
+    // objects rather than as one interrupted row of four lamps. E1 answers
+    // that directly: the orb and the coloured lights are to be **level**. The
+    // separation is carried by the ~215pt of cutout between them, which is
+    // more than enough on its own.
     /// The **white** bezel strip above the LCD — and, since 0.6.8 (D), the two
     /// red status lamps' home.
     ///
@@ -317,10 +345,40 @@ public enum DexMetrics {
 
     /// Screen housing
     public static let screenPanelCorner: CGFloat = 2 * rem
-    /// Thinner grey edge, so more of the panel reads as the white/graphite
-    /// moulding rather than outline. The stroke is inset, so what it gives up
-    /// the panel colour takes.
-    public static let screenPanelBorder: CGFloat = 4
+    /// The housing's rim — **the outermost line on the main screen**, and
+    /// thicker for it since 0.6.9 (B2).
+    ///
+    /// 6, up from 4. Worth saying which line this is, because the chassis has
+    /// several and B2 names one of them by position rather than by part. From
+    /// the display's edge inward the main screen draws: bare shell (no outline
+    /// — `chassisBorder` and `chassisBorderInset` are declared above but have
+    /// never been drawn, and the shell runs to the physical bezel), then *this*
+    /// stroke around the chamfered screen housing, then the `Dex.stone800`
+    /// grey band (`bezelFrame`), then the LCD. So this is the outermost line
+    /// that exists.
+    ///
+    /// Costs the LCD nothing: it is a `strokeBorder` on an overlay, inset into
+    /// the housing's own bounds, so what it takes it takes from the white
+    /// panel colour and not from the screen's height.
+    public static let screenPanelBorder: CGFloat = 6
+    /// How far the housing's two white strips hold their contents off the rim
+    /// (0.6.9, B2).
+    ///
+    /// The rim is an *overlay* on the housing's full bounds, so it is drawn
+    /// across the outer `screenPanelBorder` points of whatever the housing's
+    /// stack put there — which, top and bottom, is the lamp strip and the vent
+    /// strip. At 4pt that was invisible: the top lamps cleared it by 2pt and the
+    /// wordmark's own inset happened to land exactly on it. At 6 it crosses the
+    /// top of both red lamps and cuts 2pt off the bottom of the wordmark and the
+    /// last grille slat.
+    ///
+    /// So the strips centre their contents in the part of themselves that is
+    /// still white, rather than in their full bounds. That is also the correct
+    /// reading of F1's "centred along that bezel" — the bezel is the moulding
+    /// you can see, not the box it is laid out in. Deliberately derived from the
+    /// border rather than being a number of its own, so thickening the rim again
+    /// cannot re-open this.
+    public static var housingRimGuard: CGFloat { screenPanelBorder }
     public static let screenPanelInset: CGFloat = 0.5 * rem   // m-2
     /// The housing's keyed corner (0.6.5, C2): the bottom-left is a straight
     /// diagonal cut rather than an arc, the way a moulded bezel is keyed so the
@@ -338,7 +396,21 @@ public enum DexMetrics {
     /// dot and the three grill slats, and at 1rem they were crowding its edges.
     /// The top margin holds nothing, so it stays thin.
     public static var ventStripHeight: CGFloat { 1.75 * rem * UIScale.current.factor }
-    public static var ventDot: CGFloat { 0.5 * rem * UIScale.current.factor }   // w-2
+    /// The **pair of red lamps on the white top bezel** — bigger since 0.6.9
+    /// (B3).
+    ///
+    /// 0.65rem, up from 0.5 (8pt → 10.4). Sized against the strip they sit in
+    /// rather than picked: `bezelTopMargin` is 20 and stays 20, because growing
+    /// it would spend at the top exactly what B1 is reclaiming there, and B2
+    /// takes `housingRimGuard` (6) off the usable part of it. That leaves a
+    /// 14pt clear band, in which 10.4 keeps ~1.8pt of white above and below —
+    /// still seated in the plate rather than straddling a seam, which is the
+    /// whole reason 0.6.8 (D3) grew the strip in the first place.
+    ///
+    /// Deliberately still a shade under `bottomVentDot` (12): 0.6.8's G3 made
+    /// the lone lamp downstairs the larger part because it sits by itself at
+    /// the end of a wide strip, and B3 closes that gap without inverting it.
+    public static var ventDot: CGFloat { 0.65 * rem * UIScale.current.factor }
     /// The bottom strip's lone status lamp (0.6.8, G3).
     ///
     /// Half again the diameter of the pair upstairs. They are not the same
@@ -347,10 +419,12 @@ public enum DexMetrics {
     /// the far end of a 28pt strip next to a wordmark and a grille, and at
     /// `ventDot` it read as a speck of dirt rather than as a lamp.
     public static var bottomVentDot: CGFloat { 0.75 * rem * UIScale.current.factor }
-    /// How far the grille slats sit above the bottom strip's centre line
-    /// (0.6.8, G1). The slats are optically bottom-heavy — four 2pt rules with
-    /// 3pt between them — so centring the block leaves it reading low.
-    public static let grilleRise: CGFloat = 5
+    // `grilleRise` retired in 0.6.9 (F1). 0.6.8's G1 lifted the slats 5pt off
+    // the bottom strip's centre line on an optical argument — four thin rules
+    // with air between them read low when geometrically centred. F1 asks for
+    // the lamp, the wordmark and the grille to be centred along that bezel, and
+    // an optical correction on one of the three is exactly what stops them
+    // reading as one row. The strip centres all three now; see `bottomVents`.
 
     /// The bottom-strip wordmark (0.6.7, H1).
     ///
@@ -460,24 +534,55 @@ public enum DexMetrics {
     public static var marqueeHeight: CGFloat {
         max(bandHeight - bandPillHeight - bandPillGap, bandControl)
     }
-    /// How far the strip's contents fade out at each end (0.6.6, C2).
+    // `marqueeFade` retired in 0.6.9 (D1). It sized the gradient mask at each
+    // end of the strip to one glyph cell, so a character was always mid-fade
+    // as it passed behind the housing. Nothing passes behind anything now: the
+    // panel holds a still, fitted label, and a ramp over its first and last
+    // glyph would simply dim the words.
+
+    /// One size for every screen — **28pt since 0.6.9 (D4)**, up from 24.
     ///
-    /// The panel is a window onto a longer loop, so text *has* to leave it —
-    /// the complaint was never that it scrolled but that it was guillotined,
-    /// with half a glyph parked against a hard edge at both ends. A gradient
-    /// mask makes the same motion read as letters passing behind the housing.
-    /// Sized off the glyph cell rather than fixed, so one whole character is
-    /// always mid-fade at either end.
-    public static var marqueeFade: CGFloat { marqueeTextSize * TextScale.current.factor * 1.15 }
-    /// One size for every screen: the main screen's longer banner scrolls,
-    /// so it does not need to shrink to fit.
+    /// The history is a pendulum and it is worth knowing why this swing is
+    /// different. 1.5rem was the 0.6.8 value, itself back up from the 1.2 that
+    /// v0.5.4 trimmed to on the grounds that the strip "read louder than the
+    /// buttons beside it". Both of those arguments were about a *scrolling*
+    /// line, which could only ever be one line: every point of size bought
+    /// there was a point of tail that had to scroll past.
     ///
-    /// 1.5rem (0.6.8, E3/E5), up from the 1.2 it was trimmed to in v0.5.4. That
-    /// trim was made because the strip "read louder than the buttons beside
-    /// it" — and E1 has just made the buttons three times the area, so the
-    /// argument now runs the other way. The panel is also ~149pt tall in this
-    /// batch; 19pt letters in it were a caption floating in a slab.
-    public static let marqueeTextSize: CGFloat = 1.5 * rem
+    /// D1 removed the scroll, so the constraint changed rather than the taste.
+    /// A still label can wrap to two lines and shrink into its box, which means
+    /// the nominal size is a *starting* size rather than a commitment — see
+    /// `MarqueeBanner.title` for the three fallbacks behind it. D4 says there is
+    /// room, and with the panel ~115pt tall carrying a glyph and a wrapped
+    /// title, there is.
+    public static let marqueeTextSize: CGFloat = 1.75 * rem
+
+    /// The page glyph above the title (0.6.9, D2).
+    ///
+    /// A third of the panel — deliberately sized off the *panel* rather than
+    /// off the type. It is chrome, not a character: a symbol that scaled with
+    /// SETTINGS > TEXT SIZE would grow inside a panel whose height does not,
+    /// and at the HUGE step would push the words it introduces out of the
+    /// bottom of it. The title takes whatever is left and fits itself to that.
+    public static var marqueeGlyph: CGFloat { marqueeHeight * 0.32 }
+    /// Air between the glyph and the title. Tight: they are one block, and a
+    /// generous gap here reads as two unrelated things sharing a panel.
+    public static let marqueeGlyphGap: CGFloat = 4
+    /// Side margin inside the panel, so the wrapped title does not touch the
+    /// rim. Larger than the 6 the old still label carried, because the label is
+    /// now allowed to fill the panel rather than sitting in the middle of it.
+    public static let marqueeTextInset: CGFloat = 10
+
+    /// The main screen's greeting cycle (0.6.9, D3).
+    ///
+    /// Dwell then cross-fade, forever, through CHEERS / SANTE / SALUTE / PROST
+    /// / KANPAI. 2.6s is long enough to read a short word twice over and short
+    /// enough that the panel is visibly *doing* something on a screen with no
+    /// other movement left on it; the fade is slow enough to read as a dissolve
+    /// rather than as a redraw. Suspended entirely under Reduce Motion — see
+    /// `MarqueeBanner.cycle()`.
+    public static let marqueeGreetingDwell: Double = 2.6
+    public static let marqueeGreetingFade: Double = 0.55
 
     /// Button band (0.6.5, A/B; restructured 0.6.7 G, resized 0.6.8 E)
     ///
@@ -514,7 +619,19 @@ public enum DexMetrics {
     /// island strip follows was already broken in the other direction; what is
     /// true now is that all four footer controls share one diameter, which is
     /// the part of the rule that was ever load-bearing.
-    public static var bandControl: CGFloat { footerControl * 1.25 }
+    ///
+    /// **A quarter smaller in 0.6.9 (C1): 0.9375, i.e. `1.25 × 0.75`.** 80pt
+    /// → 60. Written as the product rather than collapsed to `0.9375` in one
+    /// step would hide what the instruction was; the factor is spelled out
+    /// here instead. The caps stay the largest controls on the chassis and are
+    /// still 1.7× the area they were before 0.6.8, so E1's argument survives
+    /// the trim — what does not survive is the height it charged the LCD.
+    ///
+    /// Everything downstream is a fraction of this, so the band, the wells and
+    /// the marquee all follow from one number: `bandBundleHeight` goes 168 →
+    /// 134 and the footer 188 → 154, which is 34pt straight back to the screen.
+    /// See `DexMetrics.islandStripReserve` for the other 9 (B1).
+    public static var bandControl: CGFloat { footerControl * 1.25 * 0.75 }
     /// Gap between the band's columns. 6, down from 10 (0.6.8, E5) — every
     /// point here is a point of marquee.
     public static let bandSpacing: CGFloat = 6
@@ -546,18 +663,26 @@ public enum DexMetrics {
     /// rather than deleted because it is the number the argument turns on, and
     /// a future pass that wants the lean back needs to see what it costs.
     public static var bandBundleDX: CGFloat { 0 }
-    /// The pair's centre-to-centre separation: exactly one diameter, so the
-    /// caps are tangent. Tangent rather than merely close is what makes the two
-    /// read as one moulded part in a single recess.
-    public static var bandBundleDY: CGFloat { bandControl }
+    /// Air between a bundle's two caps (0.6.9, C3).
+    ///
+    /// 0.6.8 made them exactly tangent, on the argument that touching caps read
+    /// as one moulded part in a single recess. C3 asks for a slight gap, which
+    /// is the opposite call on the same question and a legitimate one: tangent
+    /// circles share a single pinch point, and at 60pt that pinch reads as a
+    /// moulding defect rather than as two parts. 6pt is a tenth of a diameter —
+    /// enough to see daylight, not enough to break the pair up. The well still
+    /// encloses both, which is what keeps them one bundle.
+    public static let bandCapGap: CGFloat = 6
+    /// The pair's centre-to-centre separation: one diameter plus `bandCapGap`
+    /// since 0.6.9 (C3). It was exactly one diameter — tangent — from 0.6.8.
+    public static var bandBundleDY: CGFloat { bandControl + bandCapGap }
     /// Clearance between a cap and the wall of its well. Small — the well is a
     /// recess milled around the buttons, not a tray they are sitting in.
     public static let bandWellPad: CGFloat = 4
-    /// 88 at SMALL. One padded diameter, and no more: this is the number E1's
-    /// whole argument is about.
+    /// 68 at SMALL (0.6.9, C1), down from 88. One padded diameter, and no more.
     public static var bandBundleWidth: CGFloat { bandControl + bandBundleDX + bandWellPad * 2 }
-    /// 168 at SMALL, against 0.6.7's 95.6. All of E1's increase lands here —
-    /// see `bandControl` for what that costs the LCD and what E3/E5 buy back.
+    /// 134 at SMALL (0.6.9, C1/C3), down from 0.6.8's 168: two 60pt caps, the
+    /// 6pt `bandCapGap` between them, and the well's own padding either end.
     public static var bandBundleHeight: CGFloat { bandControl + bandBundleDY + bandWellPad * 2 }
     // `bandWellLength` and `bandWellThickness` retired in 0.6.8 (E1). They
     // existed to size a capsule that then had to be *rotated* onto the
@@ -618,17 +743,10 @@ public enum DexMetrics {
     /// swipe it replaces failed because it was invisible.
     public static let backPlateReturn: CGFloat = 92
 
-    /// The LCD's back-swipe (0.6.8, I1).
-    ///
-    /// Deliberately strict on both axes. The gesture rides *simultaneously*
-    /// with whatever the screen mounts — every list is a `ScrollView` and
-    /// several screens carry their own drags — so it has to be a movement no
-    /// ordinary interaction produces by accident: a long, decisively horizontal
-    /// push to the right. A vertical scroll of any length stays under
-    /// `lcdBackSwipeSlop`; a horizontal chip row cannot reach 90pt without also
-    /// being an obvious page-level swipe.
-    public static let lcdBackSwipeDistance: CGFloat = 90
-    public static let lcdBackSwipeSlop: CGFloat = 55
+    // `lcdBackSwipeDistance` and `lcdBackSwipeSlop` retired in 0.6.9 (A1).
+    // They were the thresholds that let 0.6.8's app-wide LCD back swipe ride
+    // simultaneously with every `ScrollView` in the app without firing on one;
+    // A1 removes the gesture, so the numbers describe nothing.
 
     /// Scanline overlay
     public static let scanlineSpacing: CGFloat = 4
@@ -824,6 +942,18 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// whole LCD to the handheld's palette. The rawValue is ASCII on
     /// purpose (it persists); the umlaut lives in `displayName`.
     case gruenerBoy = "GRUNER BOY"
+    /// **The hand-drawn screen** (0.6.9, M1): ruled cartridge paper with
+    /// blue-black ink, the pairing for the PÉT-NAT shell — though the two
+    /// are independent, like every other skin/mode pair, and a drawn screen
+    /// in a steel shell is a perfectly good joke.
+    ///
+    /// The only mode in the roster that changes how the ground is *drawn*
+    /// rather than what colour it is: `DexScreenBackground` swaps the square
+    /// engineering grid for `RuledPaper` — horizontal rules with a wobble
+    /// and a red margin line. A square grid says CRT whatever colour it is
+    /// painted, which is exactly the trap M1 is set to catch. See
+    /// `isSketchPaper`.
+    case notebook = "NOTEBOOK"
 
     public static let storageKey = "lcdMode"
 
@@ -852,7 +982,8 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// be wrong in both directions. WINE OS joins the pale side; the other
     /// themed modes are dark glass.
     public var isLight: Bool {
-        self == .light || self == .vintage || self == .wineOS || self == .gruenerBoy
+        self == .light || self == .vintage || self == .wineOS
+            || self == .gruenerBoy || self == .notebook
     }
 
     /// The tint the chassis multiplies the grayscaled LCD by — nil renders in
@@ -861,7 +992,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// terminal green (terminal).
     public var monochromeTint: Color? {
         switch self {
-        case .dark, .light, .wineOS, .blueScreen, .starTrek: nil
+        case .dark, .light, .wineOS, .blueScreen, .starTrek, .notebook: nil
         case .vintage: Color(dexHex: "#C6CFB2")
         case .amber: Color(dexHex: "#FFB300")
         case .terminal: Color(dexHex: "#4DFF4D")
@@ -883,6 +1014,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .blueScreen: "pc"
         case .starTrek: "atom"
         case .gruenerBoy: "gamecontroller.fill"
+        case .notebook: "pencil.line"
         }
     }
 
@@ -896,6 +1028,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .blueScreen: Color(dexHex: "#1021B4")
         case .starTrek: Color(dexHex: "#0B0910")
         case .gruenerBoy: Color(dexHex: "#E6EBCF")
+        case .notebook: Color(dexHex: "#F6F1E2")
         }
     }
 
@@ -910,6 +1043,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .blueScreen: Color(dexHex: "#A6DBFF")
         case .starTrek: Color(dexHex: "#FFA94D")
         case .gruenerBoy: Color(dexHex: "#141A0C")
+        case .notebook: Color(dexHex: "#1E2534")
         }
     }
 
@@ -928,6 +1062,8 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .blueScreen: Color(dexHex: "#7DF9FF")
         case .starTrek: Color(dexHex: "#C983E8")
         case .gruenerBoy: Color(dexHex: "#2F3A1C")
+        // Red pen — what anyone marking up a page reaches for.
+        case .notebook: Color(dexHex: "#B03A3A")
         }
     }
 
@@ -941,6 +1077,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .blueScreen: Color(dexHex: "#BFE4FF")
         case .starTrek: Color(dexHex: "#F2CD9A")
         case .gruenerBoy: Color(dexHex: "#202817")
+        case .notebook: Color(dexHex: "#2B3244")
         }
     }
 
@@ -954,6 +1091,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .blueScreen: Color.white.opacity(0.06)
         case .starTrek: Color(dexHex: "#C983E8").opacity(0.08)
         case .gruenerBoy: Color.black.opacity(0.06)
+        case .notebook: Color(dexHex: "#2B3244").opacity(0.05)
         }
     }
 
@@ -968,6 +1106,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .blueScreen: Color(dexHex: "#4A5FE0")
         case .starTrek: Color(dexHex: "#7A4E9E")
         case .gruenerBoy: Color(dexHex: "#3A4224")
+        case .notebook: Color(dexHex: "#6C7896")
         }
     }
 
@@ -975,7 +1114,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     public var buttonWell: Color {
         switch self {
         case .dark, .amber, .terminal, .starTrek: .black.opacity(0.35)
-        case .light, .vintage, .wineOS, .gruenerBoy: .white
+        case .light, .vintage, .wineOS, .gruenerBoy, .notebook: .white
         case .blueScreen: Color(dexHex: "#0A1690")
         }
     }
@@ -991,6 +1130,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .blueScreen: Color(dexHex: "#0E1CA8")
         case .starTrek: .black
         case .gruenerBoy: Color(dexHex: "#DDE3C2")
+        case .notebook: Color(dexHex: "#EFE8D6")
         }
     }
 
@@ -1004,6 +1144,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .blueScreen: Color(dexHex: "#1F31CE")
         case .starTrek: Color(dexHex: "#191022")
         case .gruenerBoy: Color(dexHex: "#EFF2DE")
+        case .notebook: Color(dexHex: "#FCF8EE")
         }
     }
 
@@ -1016,6 +1157,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .blueScreen: Color(dexHex: "#5D74E8")
         case .starTrek: Color(dexHex: "#5C3E78")
         case .gruenerBoy: Color(dexHex: "#7A8258")
+        case .notebook: Color(dexHex: "#9AA2B4")
         }
     }
 
@@ -1029,6 +1171,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .blueScreen: Color(dexHex: "#8FB0F0")
         case .starTrek: Color(dexHex: "#C2915C")
         case .gruenerBoy: Color(dexHex: "#455030")
+        case .notebook: Color(dexHex: "#5A6274")
         }
     }
 
@@ -1039,6 +1182,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .light, .vintage, .wineOS: Color(dexHex: "#FFFFFF")
         case .blueScreen: Color(dexHex: "#0A1690")
         case .gruenerBoy: Color(dexHex: "#F4F6E8")
+        case .notebook: Color(dexHex: "#FCF8EE")
         }
     }
 
@@ -1057,6 +1201,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .blueScreen: Color(dexHex: "#6272D4")
         case .starTrek: Color(dexHex: "#6D5A49")
         case .gruenerBoy: Color(dexHex: "#939B78")
+        case .notebook: Color(dexHex: "#A3A9B8")
         }
     }
 
@@ -1068,7 +1213,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     public var onAccent: Color {
         switch self {
         case .dark, .amber, .terminal, .starTrek: .black
-        case .light, .vintage, .wineOS, .gruenerBoy: .white
+        case .light, .vintage, .wineOS, .gruenerBoy, .notebook: .white
         case .blueScreen: Color(dexHex: "#0A1690")
         }
     }
@@ -1092,7 +1237,11 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .wineOS: Color(dexHex: "#8598B8")
         case .blueScreen: Color(dexHex: "#4A5FE0")
         case .starTrek: Color(dexHex: "#3A2C1E")
+        // The ruled paper's own rule colour — see `isSketchPaper`. Read
+        // by `RuledPaper` rather than by `DexGridBackground`, which this
+        // mode does not mount.
         case .gruenerBoy: Color(dexHex: "#7A8258")
+        case .notebook: Color(dexHex: "#8FA2C4")
         }
     }
 
@@ -1149,6 +1298,10 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .gruenerBoy:
             ChassisAccent(pale: "#E6EBCF", light: "#C2CE9A", bright: "#8BAC0F",
                           mid: "#566A18", edge: "#24300C", ink: "#0F1A0A")
+        // Red pen on paper, the same ladder the accent picks from.
+        case .notebook:
+            ChassisAccent(pale: "#FBEFEF", light: "#EFC7C7", bright: "#D46A6A",
+                          mid: "#B03A3A", edge: "#6E1F1F", ink: "#3A0E0E")
         }
     }
 
@@ -1180,6 +1333,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         // L-WINES: the console's accent purple.
         case .starTrek: Color(dexHex: "#C983E8")
         case .gruenerBoy: Color(dexHex: "#C2CE9A")
+        case .notebook: Color(dexHex: "#E4DFCE")
         }
     }
 
@@ -1189,6 +1343,21 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// glowing. Only LIGHT — the other pale modes keep the normal texture
     /// under their own tints.
     public var invertsGlobeTexture: Bool { self == .light }
+
+    /// Whether the LCD's ground is **ruled paper** rather than a grid
+    /// (0.6.9, M1).
+    ///
+    /// The one mode flag that changes a *rendering* rather than a colour,
+    /// and it sits beside `invertsGlobeTexture` because that is the only
+    /// other one — LIGHT inverts the globe texture, NOTEBOOK swaps the
+    /// backdrop. `DexScreenBackground` mounts `RuledPaper` instead of
+    /// `DexGridBackground` when this is true.
+    ///
+    /// Spelled as a flag rather than as `self == .notebook` at the call
+    /// site for the reason `isLight` is an explicit list: a second drawn
+    /// mode should turn this on rather than have the backdrop grow a
+    /// second equality check.
+    public var isSketchPaper: Bool { self == .notebook }
 
     public static var current: LcdMode {
         LcdMode(rawValue: UserDefaults.standard.string(forKey: storageKey) ?? "") ?? .dark
@@ -1287,6 +1456,31 @@ public struct ChassisButtonSet: Sendable {
     }
 }
 
+/// How a skin's parts are *drawn*, for the one skin that is not a palette
+/// (0.6.9, M1).
+///
+/// Sibling to `ChassisButtonSet` and `SkinMark` in intent: an optional hook on
+/// `ChassisSkin` that is nil on every ordinary colourway and costs them nothing.
+/// The difference is what it varies. Those two vary colours and a badge; this
+/// varies the *line* — the shell gains a paper grain and every rim on the
+/// chassis is re-emitted as a wobbled, twice-drawn ink stroke instead of a
+/// geometric one. See `SketchRender.swift` for why that is the only way to get a
+/// hand-drawn look out of a system whose eighteen other skins are hex tables.
+///
+/// Two colours, because that is all a drawing has: what you draw *with* and
+/// what you draw *on*.
+public struct SketchStyle: Sendable {
+    /// The pen. Every outline on the chassis is stroked in this.
+    public let ink: Color
+    /// The paper's tooth — the stipple laid over the shell.
+    public let grain: Color
+
+    public init(ink: String, grain: String) {
+        self.ink = Color(dexHex: ink)
+        self.grain = Color(dexHex: grain)
+    }
+}
+
 /// A drawn skin emblem, for skins that cannot use an SF Symbol (0.6.7, K1).
 ///
 /// An enum with one case rather than a view, so `ChassisSkin` — which is data —
@@ -1373,6 +1567,18 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     /// Orange wine is a real category (skin-contact white), which makes it the
     /// obvious name for the one orange device.
     case orangeWine = "ORANGE WINE"
+    /// **The hand-drawn shell** (0.6.9, M1): cartridge paper with a fibre
+    /// tooth, every rim inked by hand, and a blue-black pen doing all the work
+    /// the other eighteen skins give to a colour ramp. See `sketch`.
+    ///
+    /// Named for the wine whose bottles look like this. Pét-nat is a real style
+    /// — méthode ancestrale, bottled before the first fermentation finishes —
+    /// and the hand-drawn label is so nearly universal on it that it is the
+    /// category's visual signature. The house rule holds: a wine name, not a
+    /// description, and nobody else's mark. The rawValue is ASCII on purpose
+    /// (it persists); the accent lives in `displayName`, exactly as GRUNER BOY
+    /// does.
+    case petNat = "PET NAT"
 
     public static let storageKey = "chassisSkin"
 
@@ -1415,6 +1621,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // The DMG screen's own pea-green, paled for the multiply.
         case .grisDeGris: Color(dexHex: "#DCE8C4")
         case .orangeWine: Color(dexHex: "#FFDF8A")
+        // Pencil blue on paper — the one skin whose globe should look
+        // like a drawing of a globe.
+        case .petNat: Color(dexHex: "#DCE3F0")
         }
     }
 
@@ -1473,6 +1682,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .psvino: "PSVINO"
         case .grisDeGris: "GRIS DE GRIS"
         case .orangeWine: "ORANGE WINE"
+        case .petNat: "PÉT-NAT"
         }
     }
 
@@ -1514,6 +1724,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // The brick's own control: a d-pad.
         case .grisDeGris: "dpad.fill"
         case .orangeWine: "exclamationmark.triangle.fill"
+        // The pen that drew the shell.
+        case .petNat: "pencil.and.outline"
         }
     }
 
@@ -1577,6 +1789,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // reads as a fault rather than as a colourway.
         case .orangeWine:
             return trio(("#FFD22E", "#B98A00"), ("#FF8A1F", "#A34C00"), ("#C24E06", "#6E2A00"))
+        // Felt-tip primaries, the three pens anyone actually owns. Flat
+        // and unshaded on purpose: a gradient lamp on a drawn shell is
+        // the one thing that would give the trick away.
+        case .petNat:
+            return trio(("#E24A4A", "#8E1C1C"), ("#E8B93A", "#8E6A0A"), ("#3E7FBF", "#1B4470"))
         }
     }
 
@@ -1608,6 +1825,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // Warm handheld grey, a shade off neutral the way ABS ages.
         case .grisDeGris: Color(dexHex: "#C8C4BC")
         case .orangeWine: Color(dexHex: "#E8720E")
+        // Cartridge paper, slightly warm — pure white reads as a blank
+        // canvas rather than as a sheet somebody drew on.
+        case .petNat: Color(dexHex: "#EFE9DC")
         }
     }
 
@@ -1636,6 +1856,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .psvino: Color(dexHex: "#232427").opacity(0.75)
         case .grisDeGris: Color(dexHex: "#C8C4BC").opacity(0.75)
         case .orangeWine: Color(dexHex: "#E8720E").opacity(0.75)
+        // No wash, like OAKED: a translucent bar across a sheet of paper
+        // is a smudge. The grain runs uninterrupted under the buttons.
+        case .petNat: Color.clear
         }
     }
 
@@ -1664,6 +1887,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // The lighter grey faceplate the original brick set its screen into.
         case .grisDeGris: Color(dexHex: "#DAD6CE")
         case .orangeWine: Color(dexHex: "#F6A550")
+        // A second sheet laid on the first, a shade brighter.
+        case .petNat: Color(dexHex: "#F8F4EA")
         }
     }
 
@@ -1688,6 +1913,10 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .psvino: Color(dexHex: "#141517")
         case .grisDeGris: Color(dexHex: "#8B8880")
         case .orangeWine: Color(dexHex: "#8A4406")
+        // The ink itself — the geometric rim is drawn at very low
+        // opacity under the hand line, so the two do not read as two
+        // outlines. See `DeviceChassis.screenHousing`.
+        case .petNat: Color(dexHex: "#2B3244")
         }
     }
 
@@ -1715,6 +1944,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .psvino: Color(dexHex: "#55575E")
         case .grisDeGris: Color(dexHex: "#9A968E")
         case .orangeWine: Color(dexHex: "#A85708")
+        case .petNat: Color(dexHex: "#4A5468")
         }
     }
 
@@ -1768,6 +1998,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // Hazard yellow: the buttons are black, so the orb is the only thing
         // on this shell allowed to look lit.
         case .orangeWine: Color(dexHex: "#FFD22E")
+        // A wash of ink where the lamp is — the drawn device's one
+        // concession to looking powered.
+        case .petNat: Color(dexHex: "#7FA6D8")
         }
     }
 
@@ -1793,6 +2026,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .psvino: Color(dexHex: "#2E6DB4")
         case .grisDeGris: Color(dexHex: "#8F1414")
         case .orangeWine: Color(dexHex: "#C99000")
+        case .petNat: Color(dexHex: "#3E6FA8")
         }
     }
 
@@ -1880,6 +2114,12 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .orangeWine:
             ChassisAccent(pale: "#6E6E70", light: "#4A4A4C", bright: "#2A2A2C",
                           mid: "#161617", edge: "#0A0A0B", ink: "#F2EFEA")
+        // Pencil greys with a blue-black rim. Deliberately the flattest
+        // ramp in the range: the six stops exist to make a cap look
+        // moulded, and this cap is meant to look drawn.
+        case .petNat:
+            ChassisAccent(pale: "#FBF8F1", light: "#E6E0D2", bright: "#C9C2B2",
+                          mid: "#A79F8E", edge: "#2B3244", ink: "#2B3244")
         }
     }
 
@@ -1952,6 +2192,10 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // Black caps on the warning orange.
         case .orangeWine:
             ChassisControl(top: "#3A3A3C", bottom: "#0B0B0C", edge: "#6E6E70", glyph: "#ffffff")
+        // Paper caps with an ink glyph, per the Blanc de Blancs
+        // precedent — white on paper is nothing at all.
+        case .petNat:
+            ChassisControl(top: "#FBF8F1", bottom: "#DED7C7", edge: "#2B3244", glyph: "#2B3244")
         }
     }
 
@@ -2013,6 +2257,31 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         self == .psvino ? .sigil : nil
     }
 
+    /// How this skin's parts are drawn, or nil for the ordinary moulded ones
+    /// (0.6.9, M1).
+    ///
+    /// Nil on eighteen of nineteen skins, which is the point of the hook: they
+    /// keep the geometric rims, the gradients and the specular highlights that
+    /// make a shell read as injection-moulded plastic, and they pay nothing —
+    /// no shape, no canvas, no branch beyond one optional check per part.
+    ///
+    /// The one non-nil case is what M1 actually needs. Adding PÉT-NAT as
+    /// nineteen more hexes would have produced a beige device, because what
+    /// says "hand-drawn" is the line and not the colour. See
+    /// `SketchRender.swift`, and `DeviceChassis`/`ChassisButton` for the four
+    /// places that read this.
+    ///
+    /// A struct rather than a `Bool`, for `ChassisAccent`'s reason: the ink and
+    /// the paper's tooth are only ever used together, and a second sketch skin
+    /// (a red-pen one, say) should be a second pair of colours here rather than
+    /// a second flag somewhere else.
+    public var sketch: SketchStyle? {
+        // Payne's grey rather than black: a pen line on paper is never actually
+        // black, and a true #000 outline is the fastest way to make a drawn
+        // thing look printed.
+        self == .petNat ? SketchStyle(ink: "#2B3244", grain: "#B7AE99") : nil
+    }
+
     /// Marquee phosphor. Period LED strips came in green, amber, red and blue,
     /// so this is the one part where a colour change is period-correct rather
     /// than merely decorative.
@@ -2042,6 +2311,10 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // homages do not glow the identical green.
         case .grisDeGris: Color(dexHex: "#A6C550")
         case .orangeWine: Color(dexHex: "#FFC93C")
+        // A highlighter stripe. The one panel on the device that is
+        // filled rather than outlined, because a marquee has to read as
+        // lit and there is no drawn equivalent of lit.
+        case .petNat: Color(dexHex: "#E8DF7A")
         }
     }
 
@@ -2067,6 +2340,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .psvino: Color(dexHex: "#2E6DB4")
         case .grisDeGris: Color(dexHex: "#7E9B2E")
         case .orangeWine: Color(dexHex: "#E0A100")
+        case .petNat: Color(dexHex: "#BFB55A")
         }
     }
 
@@ -2092,6 +2366,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .psvino: Color(dexHex: "#08182E")
         case .grisDeGris: Color(dexHex: "#16240A")
         case .orangeWine: Color(dexHex: "#33220A")
+        case .petNat: Color(dexHex: "#2B3244")
         }
     }
 

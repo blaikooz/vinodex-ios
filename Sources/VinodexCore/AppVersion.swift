@@ -83,7 +83,19 @@ public enum AppVersion {
     /// controls at 1.74×, the red lamps back on the white bezel, an app-wide
     /// LCD back swipe, press-and-hold stamp dragging — so it takes the next
     /// patch. No catalog change again, so `waveMilestones` still does not move.
-    static let fallback = "0.6.8"
+    ///
+    /// 0.6.9: the batch the user labelled "0.6.7.2". Same resolution as 0.6.4,
+    /// 0.6.5 and 0.6.8 above, and by now the pattern is the point rather than
+    /// the exception — the label names the work in whatever shape it arrived
+    /// in, the scheme names the build, and the scheme has been three components
+    /// since 0.4.3. `AppVersionTests.threeComponents` is what keeps the two
+    /// from being confused. It is a third corrective pass over the same chassis
+    /// — the LCD back swipe removed outright, the footer caps down a quarter
+    /// and re-paired, the marquee stopped scrolling in favour of a glyph and a
+    /// cycling greeting, a hand-drawn skin and screen mode — plus one catalog
+    /// change (Morellino as a Sangiovese synonym), which adds no entry, so
+    /// `waveMilestones` still does not move.
+    static let fallback = "0.6.9"
 
     /// Versions no build deliberately chose.
     ///

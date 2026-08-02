@@ -38,9 +38,19 @@ public struct DeviceChassis<Content: View>: View {
 
     /// Drives the orb's depress animation while the flip gesture is held.
     @State private var orbHeld = false
-    /// Whether the LCD's back swipe is listening (0.6.8, I1) — suspended by any
-    /// screen that owns horizontal dragging. See `BackSwipeGate`.
-    @State private var backSwipe = BackSwipeGate.shared
+    // **No app-wide back swipe (0.6.9, A1).** 0.6.8's I1 mounted a
+    // `simultaneousGesture` on the LCD so every screen got a swipe-back for
+    // free, with `BackSwipeGate` as the opt-out for the one screen that owns
+    // horizontal dragging. A1 removes the feature outright, so the gate, its
+    // suspend/resume calls in `RetroGlobeScreen`, its tests and the two
+    // threshold metrics go with it — a gesture nobody can trigger is worse
+    // than no gesture, but a *gate* for a gesture that no longer exists is
+    // worse still.
+    //
+    // Back navigation is unaffected: the footer's Back cap is mounted on every
+    // screen and enabled whenever `showsBack` is true (see `navBundle`), which
+    // the app sets from a non-empty route stack. The back plate keeps its own
+    // engraved arrow (0.6.8, B3) for turning the device back over.
     /// Shared with `SettingsPanel` through `@AppStorage`, so toggling it there
     /// repaints the chassis without any state being threaded between them.
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
@@ -77,8 +87,17 @@ public struct DeviceChassis<Content: View>: View {
 
     private var isMainScreen: Bool { title == "VINODEX" }
 
-    /// The main screen cycles its toasts as separate words — the banner gives
-    /// every boundary between them the same gap it gives the wrap seam.
+    /// The main screen's toasts — five ways of saying one thing.
+    ///
+    /// **Shown one at a time since 0.6.9 (D3).** They used to be five words in
+    /// a single scrolling run, separated by the same gap the strip gave its
+    /// wrap seam; the panel holds still now, so it cycles them instead, dwell
+    /// and cross-fade. See `MarqueeBanner.cycle()`.
+    ///
+    /// ASCII, deliberately: SANTE and GRUNER BOY are spelled the same way and
+    /// for the same reason — the bundled Press Start 2P is a display face with
+    /// a partial Latin-1 range, and a missing glyph on the device's most
+    /// prominent panel is a worse outcome than a missing accent.
     private var footerSegments: [String] {
         isMainScreen ? ["CHEERS!", "SANTE!", "SALUTE!", "PROST!", "KANPAI!"] : [title]
     }
@@ -93,6 +112,12 @@ public struct DeviceChassis<Content: View>: View {
         // used rather than wasted. Insets are then reserved explicitly.
         GeometryReader { geo in
             let topStrip = max(geo.safeAreaInsets.top, DexMetrics.islandStripMinHeight)
+            // What the *layout* pays for that strip (0.6.9, B1) — capped at
+            // the cutout's own footprint rather than at whatever inset the OS
+            // reports. See `DexMetrics.islandStripReserve`; the flank is drawn
+            // at `topStrip` regardless, since it is an overlay rather than a
+            // member of the stack below.
+            let housingTop = min(topStrip, DexMetrics.islandStripReserve)
 
             ZStack {
                 // Front and back are both mounted, each hidden when facing
@@ -106,7 +131,7 @@ public struct DeviceChassis<Content: View>: View {
                 // as a panel being turned over. `flipSwap` steps at the midpoint
                 // instead, when the plate is edge-on and the cut is invisible,
                 // so the flip is purely physical.
-                frontFace(topStrip: topStrip)
+                frontFace(topStrip: topStrip, housingTop: housingTop)
                     .opacity(showsBackFace ? 0 : 1)
                     .accessibilityHidden(isFlipped)
 
@@ -173,7 +198,7 @@ public struct DeviceChassis<Content: View>: View {
         .background(skin.underlay.ignoresSafeArea())
     }
 
-    private func frontFace(topStrip: CGFloat) -> some View {
+    private func frontFace(topStrip: CGFloat, housingTop: CGFloat) -> some View {
         ZStack(alignment: .top) {
             // The mock electronics sit behind the translucent shell and flip
             // with the front face — the back plate is its own opaque part.
@@ -183,7 +208,9 @@ public struct DeviceChassis<Content: View>: View {
             ChassisShell(skin: skin)
 
             VStack(spacing: 0) {
-                Color.clear.frame(height: topStrip)
+                // `housingTop`, not `topStrip` (0.6.9, B1): the screen starts
+                // where the cutout ends, not where iOS's status inset does.
+                Color.clear.frame(height: housingTop)
                 screenHousing
                     // Minimal, equal gap to both bands.
                     .padding(.vertical, DexMetrics.housingGap)
@@ -290,10 +317,11 @@ public struct DeviceChassis<Content: View>: View {
                     // Decoration only, and never a touch target sitting next
                     // to one.
                     .allowsHitTesting(false)
+                    // **Level with the orb** (0.6.9, E1). 0.6.8's F3 rode 6pt
+                    // high on `islandStatusRise`; the row's own `.center`
+                    // alignment now puts both clusters on the cutout's centre
+                    // line with nothing correcting it. See the retired metric.
                     .frame(height: slot, alignment: .center)
-                    // Slightly above the orb's line (F3) — see
-                    // `islandStatusRise`.
-                    .offset(y: -DexMetrics.islandStatusRise)
                     .padding(.trailing, DexMetrics.islandStatusInsetTrailing)
             }
             .frame(height: slot)
@@ -357,12 +385,27 @@ public struct DeviceChassis<Content: View>: View {
                 )
                 .overlay(
                     Circle().strokeBorder(
-                        cap.edge,
+                        cap.edge.opacity(skin.sketch == nil ? 1 : 0),
                         lineWidth: 2
                     )
                 )
+                // Inked by hand on the drawn skin (0.6.9, M1) — the geometric
+                // rim goes to zero rather than being conditionally omitted, so
+                // the cap's layout is identical either way. Seeded off the
+                // button so the cog's circle is not the same wobble as the
+                // three caps beside it.
+                .overlay {
+                    if let sketch = skin.sketch {
+                        SketchStroke(
+                            shape: { SketchCircle(seed: $0) },
+                            ink: sketch.ink,
+                            lineWidth: 2,
+                            seed: 41
+                        )
+                    }
+                }
                 .shadow(
-                    color: .black.opacity(DexMetrics.bandShadowOpacity),
+                    color: .black.opacity(skin.sketch == nil ? DexMetrics.bandShadowOpacity : 0),
                     radius: DexMetrics.bandShadowRadius,
                     y: DexMetrics.bandShadowY
                 )
@@ -434,12 +477,17 @@ public struct DeviceChassis<Content: View>: View {
             Color.clear
                 .frame(height: DexMetrics.bezelTopMargin)
                 // Centred in the white strip, which is where a handheld's
-                // power/link pair belongs and where 0.6.5 had them.
+                // power/link pair belongs and where 0.6.5 had them — and, since
+                // 0.6.9 (B2), in the part of it the housing rim does not cross.
+                // See `DexMetrics.housingRimGuard`; the padding shifts the
+                // pair's centre down by half the rim, which is exactly the
+                // amount of this strip the rim covers.
                 .overlay {
                     HStack(spacing: DexMetrics.bandPillSpacing) {
                         ventDot(size: DexMetrics.ventDot)
                         ventDot(size: DexMetrics.ventDot)
                     }
+                    .padding(.top, DexMetrics.housingRimGuard)
                     .allowsHitTesting(false)
                 }
             innerBezel
@@ -456,8 +504,30 @@ public struct DeviceChassis<Content: View>: View {
         // the clip cuts them together rather than one at a time.
         .background { screenPanelShape.fill(skin.panel) }
         .overlay {
+            // The rim. On the drawn skin (0.6.9, M1) the geometric stroke drops
+            // to a ghost and the hand line does the work — both are kept rather
+            // than swapped, because the wobble means the ink does not sit
+            // exactly on the chamfered silhouette, and a faint true edge under
+            // it is what stops the housing's fill showing a hard boundary the
+            // pen has strayed inside of.
+            //
+            // `SketchRoundedRect` and not a chamfered sketch shape: at 1.5pt of
+            // wobble the keyed corner is inside the pen's own error, so a
+            // second hand-drawn silhouette would be four times the code for a
+            // difference nobody could see.
             screenPanelShape
-                .strokeBorder(skin.panelEdge, lineWidth: DexMetrics.screenPanelBorder)
+                .strokeBorder(
+                    skin.panelEdge.opacity(skin.sketch == nil ? 1 : 0.25),
+                    lineWidth: DexMetrics.screenPanelBorder
+                )
+            if let sketch = skin.sketch {
+                SketchStroke(
+                    shape: { SketchRoundedRect(cornerRadius: DexMetrics.screenPanelCorner, seed: $0) },
+                    ink: sketch.ink,
+                    lineWidth: 2.4,
+                    seed: 11
+                )
+            }
         }
         .compositingGroup()
         .clipShape(screenPanelShape)
@@ -538,36 +608,11 @@ public struct DeviceChassis<Content: View>: View {
                 .opacity(DexMetrics.scanlineOpacity)
                 .allowsHitTesting(false)
         }
-        // **The app-wide back swipe (0.6.8, I1).**
+        // No gesture of any kind rides on the display since 0.6.9 (A1) — see
+        // the note beside `orbHeld`. The LCD is a surface screens are mounted
+        // in, and every recogniser it carried had to be negotiated with
+        // whatever was mounted.
         //
-        // Mounted here, on the display itself, so every screen gets it without
-        // knowing about it — the alternative (a modifier each screen applies)
-        // is exactly the per-page arrangement I3 exists to retire. The LCD is
-        // also the only surface it may live on: the back plate is explicitly
-        // excluded (I2), and it is not on the plate because the plate is a
-        // sibling of this whole subtree, not a child of it.
-        //
-        // `simultaneousGesture`, not `gesture`: a child's own recogniser wins
-        // outright against a parent's, so a plain `.gesture` here would be
-        // silently dead inside every `ScrollView` in the app — which is nearly
-        // every screen. Running alongside means the thresholds have to do the
-        // discriminating instead; see `DexMetrics.lcdBackSwipeDistance`.
-        //
-        // `BackSwipeGate` is how a screen that genuinely owns horizontal
-        // dragging opts out. Exactly one does (the globe), and it suspends the
-        // gate rather than this view offering an off switch, because the
-        // conflict belongs to the screen and this layer cannot know about it.
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 30)
-                .onEnded { value in
-                    guard showsBack, !isFlipped, backSwipe.isEnabled else { return }
-                    guard value.translation.width > DexMetrics.lcdBackSwipeDistance,
-                          abs(value.translation.height) < DexMetrics.lcdBackSwipeSlop
-                    else { return }
-                    Haptics.select()
-                    onBack?()
-                }
-        )
         // The monochrome modes: desaturate everything on the LCD, then tint
         // the lot — grey-green for VINTAGE, amber phosphor for AMBER. Done
         // here, over the whole display, because it is the only way entry art,
@@ -594,8 +639,20 @@ public struct DeviceChassis<Content: View>: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    /// The white strip below the LCD: the lone red lamp, the wordmark, the
+    /// grille.
+    ///
+    /// **All three centred on the strip's own line since 0.6.9 (F1).**
+    /// Horizontally they were already spread along it — the lamp is held off
+    /// the chamfer, the wordmark takes the whole run between lamp and grille,
+    /// and the grille is pinned to the trailing corner — so what F1 is asking
+    /// for is the other axis. `.center` is stated explicitly rather than left
+    /// to the `HStack`'s default, because the one thing that *was* off the line
+    /// (the grille's 5pt optical rise, 0.6.8 G1) was off it deliberately, and
+    /// an implicit default is a poor place to record that a decision was
+    /// reversed.
     private var bottomVents: some View {
-        HStack(spacing: 0) {
+        HStack(alignment: .center, spacing: 0) {
             // The lamp moves to the left end of the strip (0.6.5), where the
             // mockup has it — it was centred, which put it under the wordmark's
             // old slot. Held off the edge by the chamfer's run: at the lamp's
@@ -640,16 +697,19 @@ public struct DeviceChassis<Content: View>: View {
                 ventSlat
             }
             .allowsHitTesting(false)
-            // Raised off the strip's centre line (0.6.8, G1). Four thin rules
-            // with air between them are optically bottom-heavy, so a
-            // geometrically centred block reads low against the lamp and the
-            // wordmark beside it.
-            .offset(y: -DexMetrics.grilleRise)
             // Pulled in off the panel's rounded corner, which the slats
             // were running into at their right end.
             .padding(.trailing, DexMetrics.headerPaddingH + DexMetrics.screenPanelCorner * 0.5)
         }
-        .frame(height: DexMetrics.ventStripHeight)
+        // The strip is `ventStripHeight` tall overall, but its bottom
+        // `housingRimGuard` points are under the housing's rim (0.6.9, B2), so
+        // the three parts are centred in what is left. Written as a shortened
+        // frame plus the padding rather than as an offset, so the strip still
+        // measures its full height in the housing's stack — an offset would
+        // have moved the contents *and* left the LCD believing it had more
+        // room than it does.
+        .frame(height: DexMetrics.ventStripHeight - DexMetrics.housingRimGuard)
+        .padding(.bottom, DexMetrics.housingRimGuard)
     }
 
     /// One grille slat. Faint on purpose — the vent is texture, not a feature.
@@ -663,9 +723,17 @@ public struct DeviceChassis<Content: View>: View {
     // MARK: Footer — the button band
     //
     // Four physical controls around one display (0.6.5, A/B; restructured
-    // 0.6.7, G; resized 0.6.8, E): **two matching vertical bundles** — User
-    // over Settings on the left, Home over Back on the right — with the marquee
-    // panel and its two indicator lamps between them.
+    // 0.6.7, G; resized 0.6.8, E; re-paired and re-sized 0.6.9, C): **two
+    // matching vertical bundles** — Back over User on the left, Home over
+    // Settings on the right — with the marquee panel and its two indicator
+    // lamps between them.
+    //
+    // 0.6.9's C is three clauses and they pull the same way: the caps come down
+    // a quarter to 60pt (C1), the pairing re-cuts so the top row is the two
+    // controls that *move* you and the bottom row the two that *open* something
+    // (C2), and the caps in each well stop being tangent (C3). C1 hands 34pt of
+    // band height straight back to the LCD, which with B1's 9 is the batch's
+    // answer to 0.6.8 having spent 68 of it.
     //
     // 0.6.8's E is one instruction with five clauses, and they are all the same
     // trade: the caps go to 1.74× (E1), which only fits if the pairs stand
@@ -682,7 +750,7 @@ public struct DeviceChassis<Content: View>: View {
 
     private func footer() -> some View {
         HStack(alignment: .top, spacing: DexMetrics.bandSpacing) {
-            userBundle
+            backBundle
 
             // The centre: two lamps stacked over the marquee panel (B1, B2).
             // Stacking them is what drops the panel's centre line below the
@@ -715,7 +783,7 @@ public struct DeviceChassis<Content: View>: View {
             .frame(maxWidth: DexMetrics.marqueeMaxWidth)
             .frame(maxWidth: .infinity)
 
-            navBundle
+            homeBundle
         }
         .frame(height: DexMetrics.bandHeight, alignment: .top)
         // The buttons out to the edges (0.6.8, E2) — `bandPaddingH`, not the
@@ -731,44 +799,24 @@ public struct DeviceChassis<Content: View>: View {
         .background(skin.footerWash)
     }
 
-    /// User over Settings, sunk into the left-hand well (0.6.7, G2; upright
-    /// since 0.6.8, E1).
+    /// **Back over User, in the left-hand well** (0.6.9, C2).
     ///
-    /// User keeps the top-leading corner it has held since 0.6.5's A1;
-    /// Settings sits directly below it. Its mirror image is `navBundle`.
-    private var userBundle: some View {
-        buttonBundle {
-            // User. It no longer shares a slot with Back — the band has had
-            // room for both since 0.6.5, so the old "Back where there is
-            // somewhere to go, saved entries otherwise" swap is gone and each
-            // button is always where you left it.
-            ChassisButton(kind: .bookmarks, size: DexMetrics.bandControl, enabled: onBookmarks != nil) {
-                onBookmarks?()
-            }
-        } bottom: {
-            // Settings, at User's own diameter (G2) rather than the small cap
-            // it wore in the triangle.
-            settingsButton(size: DexMetrics.bandControl)
-        }
-    }
-
-    /// Home over Back, sunk into the right-hand well (0.6.7, G1; upright since
-    /// 0.6.8, E1).
-    ///
-    /// Home at the top, Back directly below it in the corner nearest the thumb.
-    /// The well is what keeps the pair reading as one part.
+    /// The pairing is re-cut in this batch. 0.6.7's G2 gave the left well
+    /// User-over-Settings and the right well Home-over-Back, which grouped the
+    /// two *personal* controls on one side and the two *navigation* controls on
+    /// the other. C2 re-pairs by row instead: Back and Home are the top row —
+    /// the two things that move you — and User and Settings the bottom row, the
+    /// two things that open a place. Back sits leading because that is the
+    /// direction it means, and Home trailing for the same reason.
     ///
     /// Back is always mounted and greyed where there is nowhere to go, rather
     /// than vanishing: a control that disappears moves the ones around it, and
     /// having the bundle re-form itself between screens is worse than a dim
-    /// button.
-    private var navBundle: some View {
+    /// button. With 0.6.9's A1 removing the LCD swipe, this cap is also the
+    /// **only** app-level back affordance, which is a second reason it may not
+    /// move or disappear.
+    private var backBundle: some View {
         buttonBundle {
-            ChassisButton(kind: .home, size: DexMetrics.bandControl, enabled: onHome != nil) {
-                isFlipped = false
-                onHome?()
-            }
-        } bottom: {
             // Back acts on whatever is in front of you — with the device
             // flipped it turns it back over first, rather than navigating
             // underneath and appearing to do nothing.
@@ -779,6 +827,29 @@ public struct DeviceChassis<Content: View>: View {
                     onBack?()
                 }
             }
+        } bottom: {
+            // User. It no longer shares a slot with Back — the band has had
+            // room for both since 0.6.5, so the old "Back where there is
+            // somewhere to go, saved entries otherwise" swap is gone and each
+            // button is always where you left it.
+            ChassisButton(kind: .bookmarks, size: DexMetrics.bandControl, enabled: onBookmarks != nil) {
+                onBookmarks?()
+            }
+        }
+    }
+
+    /// **Home over Settings, in the right-hand well** (0.6.9, C2) — the mirror
+    /// of `backBundle`. See its note for why the pairing changed.
+    private var homeBundle: some View {
+        buttonBundle {
+            ChassisButton(kind: .home, size: DexMetrics.bandControl, enabled: onHome != nil) {
+                isFlipped = false
+                onHome?()
+            }
+        } bottom: {
+            // Settings, at Home's own diameter (0.6.7, G2) rather than the
+            // small cap it wore in the triangle.
+            settingsButton(size: DexMetrics.bandControl)
         }
     }
 
@@ -800,8 +871,10 @@ public struct DeviceChassis<Content: View>: View {
         @ViewBuilder top: () -> Top,
         @ViewBuilder bottom: () -> Bottom
     ) -> some View {
-        // The caps are tangent (`bandBundleDY == bandControl`), so the stack's
-        // own spacing is zero and the separation is entirely the diameters'.
+        // The caps are `bandCapGap` apart since 0.6.9 (C3) rather than tangent,
+        // so this resolves to that gap rather than to zero. Stated as the
+        // separation minus a diameter — not as `bandCapGap` directly — so the
+        // stack's spacing cannot drift from the height the bundle is framed at.
         VStack(spacing: DexMetrics.bandBundleDY - DexMetrics.bandControl) {
             top()
             bottom()
@@ -1036,6 +1109,13 @@ private struct ChassisShell: View {
                     // Pixel art — filtering would smear the pattern.
                     .interpolation(.none)
             }
+            // The paper's tooth (0.6.9, M1). Drawn rather than tiled from an
+            // asset, unlike the three patterns above: a stipple is cheaper to
+            // generate than to ship, it scales to any device without a seam,
+            // and PÉT-NAT therefore needs nothing from `art/icons/`.
+            if let sketch = skin.sketch {
+                PaperGrain(color: sketch.grain)
+            }
         }
     }
 }
@@ -1111,16 +1191,32 @@ public struct ChassisButton: View {
         } label: {
             ZStack {
                 Circle().fill(gradient)
-                Circle().strokeBorder(borderColor, lineWidth: 3)
+                // Hidden rather than skipped on the drawn skin (0.6.9, M1), so
+                // the cap is the same stack of layers on every shell; the hand
+                // line below replaces it. Same treatment as the cog's rim.
+                Circle().strokeBorder(borderColor.opacity(skin.sketch == nil ? 1 : 0), lineWidth: 3)
+                if let sketch = skin.sketch {
+                    SketchStroke(
+                        shape: { SketchCircle(seed: $0) },
+                        ink: sketch.ink,
+                        lineWidth: 2.2,
+                        // Per-kind, so Back, Home and User are three different
+                        // circles rather than the same wonky one stamped out
+                        // three times — which is the tell that would give away
+                        // that nobody drew them.
+                        seed: sketchSeed
+                    )
+                }
                 icon
             }
             .frame(width: size, height: size)
             // Softened in 0.6.6 (B3) — see `DexMetrics.bandShadowOpacity`. The
             // old 0.6/6/8 cast a near-black plate roughly a quarter of a
             // diameter below each circle, which is a sticker's shadow, not a
-            // moulded cap's.
+            // moulded cap's. Dropped entirely on the drawn skin: a cast shadow
+            // is the one thing a pen cannot do.
             .shadow(
-                color: .black.opacity(DexMetrics.bandShadowOpacity),
+                color: .black.opacity(skin.sketch == nil ? DexMetrics.bandShadowOpacity : 0),
                 radius: DexMetrics.bandShadowRadius,
                 y: DexMetrics.bandShadowY
             )
@@ -1129,6 +1225,15 @@ public struct ChassisButton: View {
         .disabled(!enabled)
         .opacity(enabled ? 1 : 0.35)
         .accessibilityLabel(accessibilityLabel)
+    }
+
+    /// One wobble per kind — see the note at the call site (0.6.9, M1).
+    private var sketchSeed: UInt64 {
+        switch kind {
+        case .back: 7
+        case .home: 19
+        case .bookmarks: 29
+        }
     }
 
     /// VoiceOver reads the SF Symbol otherwise — Saved announces as "person",
@@ -1258,11 +1363,20 @@ public struct DexScreenBackground: View {
     public var body: some View {
         ZStack {
             mode.ground
-            DexGridBackground(
-                spacing: 10,
-                color: mode.gridLine,
-                opacity: 0.35
-            )
+            // **Ruled paper, not a grid, in NOTEBOOK** (0.6.9, M1). This is the
+            // half of M1 that a palette could not have done: the square grid is
+            // an engineering backdrop and reads as CRT in any colour it is
+            // painted, so a "hand-drawn mode" built out of tokens alone would
+            // have been a cream-coloured CRT. See `LcdMode.isSketchPaper`.
+            if mode.isSketchPaper {
+                RuledPaper(rule: mode.gridLine, margin: mode.accent)
+            } else {
+                DexGridBackground(
+                    spacing: 10,
+                    color: mode.gridLine,
+                    opacity: 0.35
+                )
+            }
         }
         .ignoresSafeArea()
     }
@@ -1347,9 +1461,29 @@ struct PulseGlow: ViewModifier {
     }
 }
 
-/// The scrolling marquee panel — the centrepiece of the button band. Ports
-/// `terminal-marquee`: two copies of the label offset by one cycle, which loops
-/// seamlessly.
+/// The title panel — the centrepiece of the button band.
+///
+/// **It does not scroll (0.6.9, D1).** From 0.5.1 through 0.6.8 this ported the
+/// web app's `terminal-marquee`: two copies of the label offset by one measured
+/// cycle, animated off a `TimelineView` clock, with a gradient mask at each end
+/// so the letters read as passing behind the housing rather than being
+/// guillotined by the clip. D1 retires the whole mechanism. What is left is the
+/// form PR #11's M18 already built for Reduce Motion — a still, centred,
+/// fitted label — promoted from the accessibility branch to the only branch.
+///
+/// Deleting rather than disabling the scroll is the point. Keeping both alive
+/// behind a flag would leave the measured `copyWidth`, the two-copy `HStack`,
+/// the end fade and the timeline clock as code nothing reaches, and every one of
+/// those is a thing this file has previously lost a round to (audit M8, M9, and
+/// the 0.6.6 C2 fade). Gone with it: `pointsPerSecond`, `copyWidth`, `gap`,
+/// `label`, `endFade` and `DexMetrics.marqueeFade`.
+///
+/// What the still form gains is room. A scrolling strip could only ever be one
+/// line of one size, because the scroll was what revealed the tail; a fixed
+/// label can wrap, can be set much larger (D4), and has space above it for the
+/// page's own glyph at a size worth looking at (D2). And a panel that is not
+/// moving can say something *else* on the main screen — see the greeting cycle
+/// below (D3).
 ///
 /// **Lit, not backlit, since 0.6.5 (B1).** It used to be a black strip with the
 /// skin's phosphor glowing on it, which is a VFD; the mockup's centrepiece is a
@@ -1359,60 +1493,44 @@ struct PulseGlow: ViewModifier {
 /// of it. Every skin follows, since both were already per-skin — CLASSIC's green
 /// phosphor is what makes the panel green, and NOCTURNE's or BLUSH's panel is
 /// its own colour rather than a green one bolted onto the wrong shell.
-///
-/// The animation is started from `onChange(of:)` rather than `onAppear` —
-/// the label is measured by a background reader, so at `onAppear` the width is
-/// still zero and the animation would never run.
 public struct MarqueeBanner: View {
-    /// The words the strip cycles. Most screens pass one segment — their
-    /// title; the main screen passes its five toasts. Segments, not a single
-    /// string, so every word boundary gets the same `gap` the wrap seam does
-    /// (v0.5.7, E1) instead of whatever spacing was baked into the text.
+    /// The words the panel shows. Most screens pass one — their title; the main
+    /// screen passes its five toasts, which the panel now cycles through rather
+    /// than running past in a single line (0.6.9, D3).
     let segments: [String]
-    /// SF Symbol stamped between repetitions — `SYSTEM ⟨gear⟩ SYSTEM ⟨gear⟩`
-    /// (v0.5.7, E2). Nil runs text-only.
+    /// SF Symbol for the page, drawn **above** the title since 0.6.9 (D2) at
+    /// `DexMetrics.marqueeGlyph`. It used to be stamped inline after the words
+    /// (v0.5.7, E2), which was the only place a scrolling single line had for
+    /// it. Nil runs text-only and the label takes the whole panel.
     let symbol: String?
     let fontSize: CGFloat
-    var pointsPerSecond: Double = 34
-    /// Stops the clock (AUDIT M8). The strip is inside the front face, which
-    /// the flip merely hides at `opacity 0` — without this it kept redrawing at
-    /// the display's refresh rate, forever, behind an opaque metal back plate.
+    /// Stops the greeting cycle (AUDIT M8, kept through D3). The panel is inside
+    /// the front face, which the flip merely hides at `opacity 0` — a cycle left
+    /// running behind an opaque metal back plate is a timer nobody can see.
+    ///
+    /// It used to stop the scroll clock as well; there is no longer a clock to
+    /// stop, and on a single-segment screen this now gates nothing at all.
     var paused: Bool = false
 
-    /// The first copy's width, measured from its own laid-out geometry.
-    ///
-    /// Every previous version *predicted* this number — character count
-    /// times a `UIFont`-measured cell (0.5.1), then the same corrected for
-    /// the text-scale factor (0.5.4, audit M9) — and every prediction
-    /// disagreed with SwiftUI's actual layout by a point or two: `NSString`
-    /// metrics and SwiftUI `Text` rounding are not the same machinery, the
-    /// error scaled with the label's length, and the seam skipped by exactly
-    /// that error every lap. Measuring the rendered label itself cannot
-    /// disagree with the rendered label. Until the first measurement lands
-    /// the strip holds still (shift 0) rather than popping.
-    @State private var copyWidth: CGFloat = 0
+    /// Which greeting is showing (0.6.9, D3). Always 0 on the ~ten screens that
+    /// pass a single segment, where the cycle never starts.
+    @State private var index = 0
 
-    /// Spacing between the two copies — part of the cycle geometry, scaled
-    /// like the glyphs.
-    ///
-    /// Resolved in `init`, not per access (AUDIT M8). It was a computed
-    /// property reading `TextScale.current`, which is a `UserDefaults` lookup,
-    /// and the `TimelineView` closure touches it four times per frame — so a
-    /// banner nobody is looking at was hitting the defaults store ~500×/s.
-    /// `DeviceChassis` is `.id`-keyed on the text scale, so a change rebuilds
-    /// this view rather than needing it re-read.
-    private let gap: CGFloat
-    /// Likewise: `DexFont.retro` reads `TextScale.current` on every call, and
-    /// `label` is rebuilt inside the timeline closure on every frame.
+    /// Resolved in `init`, not per access (AUDIT M8): `DexFont.retro` reads
+    /// `TextScale.current`, which is a `UserDefaults` lookup, and `body` is
+    /// rebuilt on every skin or cycle change. `DeviceChassis` is `.id`-keyed on
+    /// the text scale, so a change rebuilds this view rather than needing it
+    /// re-read.
     private let segmentFont: Font
-    private let symbolSize: CGFloat
 
     /// The strip's phosphor follows the shell — see `ChassisSkin.marqueeText`.
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
-    /// A strip of text sliding sideways under the screen, on every screen, for
-    /// as long as the app is open — the single most continuous movement in the
-    /// app. Read here rather than passed in by `DeviceChassis` so the banner
-    /// keeps working wherever else it is mounted. (AUDIT M18)
+    /// Read here rather than passed in by `DeviceChassis` so the banner keeps
+    /// working wherever else it is mounted. (AUDIT M18)
+    ///
+    /// Its job changed in 0.6.9. It used to choose between the scrolling and
+    /// still forms; the still form is now the only one, so what is left for it
+    /// to gate is the greeting cycle — see `cycle()`.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
@@ -1425,235 +1543,168 @@ public struct MarqueeBanner: View {
     /// which is what a segment LCD's glyphs actually look like.
     private var ink: Color { skin.marqueeShadow }
 
+    /// The word on the panel right now, clamped rather than subscripted: the
+    /// cycle and the segment list are separate pieces of state, and a screen
+    /// change can swap a five-segment list for a one-segment list between the
+    /// `index` advancing and the body running.
+    private var current: String {
+        guard !segments.isEmpty else { return "" }
+        return segments[min(index, segments.count - 1)]
+    }
+
     public init(
         segments: [String],
         symbol: String? = nil,
         fontSize: CGFloat,
-        pointsPerSecond: Double = 34,
         paused: Bool = false
     ) {
         self.segments = segments
         self.symbol = symbol
         self.fontSize = fontSize
-        self.pointsPerSecond = pointsPerSecond
         self.paused = paused
-
-        // Through the resolver, not `fontSize * TextScale.current.factor`:
-        // since 0.6.4 a size floor sits between the two, so the hand-rolled
-        // form can disagree with what `DexFont.retro` actually drew. The gap
-        // and the symbol are laid out against the glyphs, and this file has
-        // already lost three rounds to a marquee seam that skipped by exactly
-        // such a disagreement (audit M8, M9).
-        let pt = DexFont.resolvedSize(fontSize)
-        self.gap = pt * 1.5
         self.segmentFont = DexFont.retro(fontSize)
-        self.symbolSize = pt * 0.8
     }
 
     public var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: DexMetrics.marqueeCorner)
-                .fill(ground)
-                // The pixel grid now sits on the lit ground rather than over
-                // black, so it reads as the panel's own segment structure —
-                // `marqueeGrid` is a register off the phosphor either way, so
-                // it still separates from the fill.
-                .overlay(
-                    DexGridBackground(spacing: 12, color: skin.marqueeGrid, opacity: 0.22)
-                        .clipShape(RoundedRectangle(cornerRadius: DexMetrics.marqueeCorner))
-                )
-                // A lit panel is brightest where the lamp behind it is: a touch
-                // of ink settling toward the bottom is what stops the fill
-                // reading as flat paint.
-                .overlay(
-                    LinearGradient(
-                        colors: [.clear, ink.opacity(0.18)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: DexMetrics.marqueeCorner))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: DexMetrics.marqueeCorner)
-                        .strokeBorder(ink.opacity(0.8), lineWidth: 2)
-                )
-                // The panel's own glow, spilling onto the chassis around it —
-                // the one thing that says this is a display and not a green
-                // sticker.
-                .shadow(color: ground.opacity(0.45), radius: 6)
-
-            // Offset is a pure function of the clock, so it cannot drift and
-            // cannot be restarted mid-run by a re-render. The cycle is one
-            // measured copy plus the gap: the second copy starts exactly
-            // there, so a wrap lands on identical pixels.
-            // `paused:` and not simply unmounting the strip: the measured
-            // `copyWidth` has to survive, or the flip back holds still at
-            // shift 0 until the geometry reader lands again. Because of the
-            // above, resuming needs no stored phase. (AUDIT M8)
-            //
-            // Reduce Motion stops the clock the same way the flip does, but it
-            // cannot simply *pause* the strip: pinning a scrolling label at
-            // shift 0 is only safe if the label fits, and these do not. A
-            // scrolling label is allowed to overflow because the scroll is what
-            // reveals its tail. Measured against the bundled Press Start 2P in
-            // the strip's 256pt of usable width, DAILY CHALLENGE is 288pt at
-            // the default text step, and at HUGE six of the app's ten page
-            // titles overflow. So the still form is a different view — see
-            // `staticLabel`. Taking the motion away must not take the words
-            // with it. (AUDIT M18)
-            TimelineView(.animation(paused: paused || reduceMotion)) { context in
-                let cycle = copyWidth + gap
-                let elapsed = context.date.timeIntervalSinceReferenceDate
-                let shift = (copyWidth > 0 && !reduceMotion)
-                    ? CGFloat((elapsed * pointsPerSecond).truncatingRemainder(dividingBy: Double(cycle)))
-                    : 0
-
-                // The GeometryReader is load-bearing, not decoration: the
-                // `.fixedSize()` label pair is ~1500pt wide for the main-menu
-                // text, and without a *definite* width to clip against it
-                // ignores `maxWidth` entirely, renders full-bleed across the
-                // footer and squeezes the Back/user button out of the row.
-                GeometryReader { strip in
-                    Group {
-                        if reduceMotion {
-                            staticLabel
-                        } else {
-                            HStack(spacing: gap) {
-                                label
-                                    .background(
-                                        GeometryReader { copy in
-                                            Color.clear
-                                                .onAppear { copyWidth = copy.size.width }
-                                                .onChange(of: copy.size.width) { _, new in
-                                                    copyWidth = new
-                                                }
-                                        }
-                                    )
-                                label
-                            }
-                            .offset(x: -shift)
-                        }
-                    }
-                    .frame(
-                        width: max(strip.size.width, 0),
-                        height: max(strip.size.height, 0),
-                        alignment: reduceMotion ? .center : .leading
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: DexMetrics.marqueeInnerCorner))
-                    // The end fade (0.6.6, C2). The strip is a window onto a
-                    // loop longer than itself, so text *has* to leave it — the
-                    // complaint was never that it scrolled but that the clip
-                    // guillotined it, parking half a glyph hard against each
-                    // edge. Masking the same clip with a gradient turns that
-                    // into letters passing behind the housing, which is what a
-                    // real segment panel with a bezel over it looks like.
-                    //
-                    // Masks the scrolling copies only, not the panel: the fill,
-                    // its grid and its rim are a separate layer of the ZStack
-                    // and must stay solid to their own edges.
-                    .mask(alignment: .leading) { endFade(width: strip.size.width) }
-                }
-                .padding(4)
-            }
+            panel
+            content
         }
         .frame(height: DexMetrics.marqueeHeight)
+        // Keyed on both, so the loop restarts when the screen changes under it
+        // and stops dead when the device is turned over. `task(id:)` cancels
+        // the previous run, which is what makes the sleep below safe to write
+        // as an open loop.
+        .task(id: cycleKey) { await cycle() }
     }
 
-    /// The mask that softens both ends of the strip (0.6.6, C2).
-    ///
-    /// Built from the measured strip width rather than from relative stops:
-    /// `marqueeFade` is one glyph cell, so the ramp has to be that many
-    /// *points* long whatever the panel's width, or a narrow screen gets a fade
-    /// that eats half the readable text and a wide one gets no fade at all.
-    /// Degrades to a plain opaque mask if the strip is too narrow to hold two
-    /// ramps, which is the only case where fading would hide everything.
-    ///
-    /// Zero ramp under Reduce Motion, which is the same degenerate case for a
-    /// different reason: the fade exists to sell text *passing behind* the
-    /// housing, and nothing passes. `staticLabel` is scaled to fit the strip
-    /// exactly, so at the worst case (DAILY CHALLENGE at HUGE) it reaches both
-    /// edges and a ramp would dim the first and last glyph of a label whose
-    /// whole purpose is to be readable at a standstill. Kept as a width of 0
-    /// rather than dropping the `.mask` so the still and moving forms are the
-    /// same view with the same identity. (AUDIT M18)
-    private func endFade(width: CGFloat) -> some View {
-        let fade = reduceMotion ? 0 : min(DexMetrics.marqueeFade, max(width, 0) / 3)
-        return LinearGradient(
-            stops: [
-                .init(color: .clear, location: 0),
-                .init(color: .black, location: fade / max(width, 1)),
-                .init(color: .black, location: 1 - fade / max(width, 1)),
-                .init(color: .clear, location: 1),
-            ],
-            startPoint: .leading,
-            endPoint: .trailing
-        )
-        .frame(width: max(width, 0))
+    /// What a cycle run belongs to. The joined segments rather than the count:
+    /// two different five-toast lists would otherwise share a run and the new
+    /// one would inherit the old one's phase.
+    private var cycleKey: String {
+        (paused ? "paused|" : "") + segments.joined(separator: "\u{1F}")
     }
 
-    /// The Reduce Motion form: one label, centred, still, and sized to fit.
+    /// The greeting cycle (0.6.9, D3): dwell, cross-fade, next word, forever.
     ///
-    /// `minimumScaleFactor` rather than `.fixedSize()` — the whole point is
-    /// that this one has to fit the strip rather than run past its edge, and
-    /// the worst case (DAILY CHALLENGE at HUGE) needs about 0.7. Ellipsis
-    /// behind that as a floor, so a longer title added later degrades to a
-    /// visible truncation mark rather than to a word chopped mid-glyph.
+    /// A `Task` loop rather than a `Timer` or a `TimelineView`, because
+    /// `task(id:)` already owns its lifetime — leaving the screen, turning the
+    /// device over or switching to a single-segment title all cancel it, and
+    /// none of those need a matching teardown call to be remembered.
     ///
-    /// One segment, not all of them joined: the only multi-segment caller is
-    /// the main screen's five toasts, and CHEERS/SANTE/SALUTE/PROST/KANPAI are
-    /// five ways of saying one thing. Shrinking the strip to a fifth of its
-    /// size to fit four synonyms would trade legibility for nothing.
-    /// `ink` on `ground`, exactly as `label` does — **not** `skin.marqueeText`
-    /// on `skin.marqueeShadow`. Those two swapped roles in 0.6.5 (B1) when the
-    /// strip became a lit panel with its letters cut out of it: `marqueeText`
-    /// is now the *panel fill*. Written against the pre-0.6.5 strip this drew
-    /// the words in the colour of the surface behind them. The two forms have
-    /// to read from the same two properties or they will drift again.
-    private var staticLabel: some View {
-        HStack(spacing: gap * 0.4) {
-            Text(segments.first ?? "")
-                .font(segmentFont)
-                .foregroundStyle(ink)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-                .truncationMode(.tail)
-                .shadow(color: ground.opacity(0.7), radius: 0, x: 1, y: 1)
-
-            if let symbol {
-                Image(systemName: symbol)
-                    .font(.system(size: symbolSize, weight: .bold))
-                    .foregroundStyle(ink)
-                    .shadow(color: ground.opacity(0.7), radius: 0, x: 1, y: 1)
+    /// **Held still under Reduce Motion.** A cross-fade is the transition
+    /// Apple's own guidance offers as the substitute for a movement, so the
+    /// fade itself would be defensible — but the change is *unprompted*, and
+    /// Reduce Motion asks for none of that. `PulseGlow` in this same file
+    /// settles on the most informative still state rather than simply stopping,
+    /// and the same reasoning applies here: the panel holds on the first
+    /// greeting, which is a toast rather than a blank.
+    private func cycle() async {
+        guard segments.count > 1, !paused, !reduceMotion else { return }
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .seconds(DexMetrics.marqueeGreetingDwell))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeInOut(duration: DexMetrics.marqueeGreetingFade)) {
+                index = (index + 1) % segments.count
             }
         }
-        .padding(.horizontal, 6)
     }
 
-    /// One full cycle of content: every segment, `gap` apart, with the page
-    /// glyph closing it. Two copies of this sit `gap` apart in the strip, so
-    /// the seam between them is indistinguishable from any internal boundary
-    /// — which is what makes the loop read as endless.
-    private var label: some View {
-        HStack(spacing: gap) {
-            ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
-                Text(segment)
-                    .font(segmentFont)
-                    .foregroundStyle(ink)
-                    .lineLimit(1)
-                    .fixedSize()
-                    // A hard catch of the lit ground below-right, where the
-                    // black drop shadow used to be. Same one-pixel trick,
-                    // inverted with the panel: it is what makes the letters read
-                    // as cut into the display rather than printed on it.
-                    .shadow(color: ground.opacity(0.7), radius: 0, x: 1, y: 1)
-            }
+    /// The lit plate itself: fill, segment grid, lamp gradient, rim, glow.
+    private var panel: some View {
+        RoundedRectangle(cornerRadius: DexMetrics.marqueeCorner)
+            .fill(ground)
+            // The pixel grid sits on the lit ground rather than over black, so
+            // it reads as the panel's own segment structure — `marqueeGrid` is
+            // a register off the phosphor either way, so it still separates
+            // from the fill.
+            .overlay(
+                DexGridBackground(spacing: 12, color: skin.marqueeGrid, opacity: 0.22)
+                    .clipShape(RoundedRectangle(cornerRadius: DexMetrics.marqueeCorner))
+            )
+            // A lit panel is brightest where the lamp behind it is: a touch of
+            // ink settling toward the bottom is what stops the fill reading as
+            // flat paint.
+            .overlay(
+                LinearGradient(
+                    colors: [.clear, ink.opacity(0.18)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .clipShape(RoundedRectangle(cornerRadius: DexMetrics.marqueeCorner))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: DexMetrics.marqueeCorner)
+                    .strokeBorder(ink.opacity(0.8), lineWidth: 2)
+            )
+            // The panel's own glow, spilling onto the chassis around it — the
+            // one thing that says this is a display and not a green sticker.
+            .shadow(color: ground.opacity(0.45), radius: 6)
+    }
+
+    /// The glyph over the title (0.6.9, D2/D4).
+    ///
+    /// The glyph is sized off the **panel**, not off the type: it is chrome,
+    /// and a symbol that grew with SETTINGS > TEXT SIZE would push the words it
+    /// is supposed to introduce off a panel whose height does not move. The
+    /// words take whatever is left, and shrink into it.
+    private var content: some View {
+        VStack(spacing: DexMetrics.marqueeGlyphGap) {
             if let symbol {
                 Image(systemName: symbol)
-                    .font(.system(size: symbolSize, weight: .bold))
+                    .font(.system(size: DexMetrics.marqueeGlyph, weight: .bold))
                     .foregroundStyle(ink)
                     .shadow(color: ground.opacity(0.7), radius: 0, x: 1, y: 1)
             }
+            title
         }
+        .padding(.horizontal, DexMetrics.marqueeTextInset)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // A guard rather than a mechanism: the label is fitted, so nothing
+        // should reach this. If a future title does, it is cut at the panel's
+        // rim like a display clipping an oversized image, not spilled onto the
+        // moulding.
+        .clipShape(RoundedRectangle(cornerRadius: DexMetrics.marqueeInnerCorner))
+    }
+
+    /// The title, wrapped and fitted (0.6.9, D2).
+    ///
+    /// Three fallbacks in order, which is what "wrap or adjust the text to fit"
+    /// costs at 28pt in a pixel face on a ~225pt panel:
+    ///
+    /// 1. **Soft hyphens** (`EntryDisplay.hyphenated`) so a single long word
+    ///    can break at all — SwiftUI's `Text` exposes no hyphenation setting,
+    ///    so CONTINENTS or SAUVIGNON would otherwise be one unbreakable run.
+    ///    Already proven in this typeface: the entry chips have used it since
+    ///    v0.5.7.
+    /// 2. **Two lines**, which is what the panel's height affords once the
+    ///    glyph is out of it. DAILY CHALLENGE breaks at its space and reads
+    ///    better stacked than it ever did scrolling past.
+    /// 3. **`minimumScaleFactor`**, down to 0.4 — deep, because the worst case
+    ///    is a long entry name at the HUGE text step, and a title that shrinks
+    ///    is better than one that truncates. The ellipsis behind it is the
+    ///    floor, so anything longer still degrades to a visible truncation mark
+    ///    rather than to a word chopped mid-glyph.
+    ///
+    /// `.id(index)` is what makes D3's cross-fade actually fade: SwiftUI does
+    /// not animate a `Text`'s *contents* changing, so the identity has to
+    /// change for the transition to have an insertion and a removal to run.
+    private var title: some View {
+        Text(EntryDisplay.hyphenated(current))
+            .font(segmentFont)
+            .foregroundStyle(ink)
+            .multilineTextAlignment(.center)
+            .lineLimit(2)
+            .minimumScaleFactor(0.4)
+            .truncationMode(.tail)
+            // A hard catch of the lit ground below-right, where a black drop
+            // shadow would be. Same one-pixel trick, inverted with the panel:
+            // it is what makes the letters read as cut into the display rather
+            // than printed on it.
+            .shadow(color: ground.opacity(0.7), radius: 0, x: 1, y: 1)
+            .id(index)
+            .transition(.opacity)
     }
 }
 

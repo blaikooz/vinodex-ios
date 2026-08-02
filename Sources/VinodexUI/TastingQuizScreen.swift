@@ -174,13 +174,12 @@ public struct TastingQuizScreen: View {
 
     private func choose(_ id: String, in question: QuizQuestion) {
         guard var current = session, !current.answered else { return }
-        if question.isCorrect(id) {
-            Sounds.correct()
-            Haptics.screenTap()
-        } else {
-            Sounds.wrong()
-            Haptics.select()
-        }
+        // One voice per answer (0.6.9, G1). This used to pair the result sting
+        // with `screenTap()`/`select()`, both of which play Warm Ping since
+        // 0.6.8 (J1) — so every answer fired two authored sounds at once. See
+        // `Haptics.answer(correct:)`; the haptic split it carried is preserved
+        // inside it.
+        Haptics.answer(correct: question.isCorrect(id))
         current.choose(id, in: question)
         withAnimation(.easeOut(duration: 0.25)) { session = current }
     }

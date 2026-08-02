@@ -329,35 +329,27 @@ public struct ChipFilterScreen: View {
         // not `count`: an uncosted chip is unknown, not dead.
         let dead = !on && costed == 0
 
-        return Button {
-            Haptics.select()
+        // **A hero chip since 0.6.9 (J1)** — the value's own palette colours in
+        // a rounded rectangle, rather than the monochrome capsule this drew
+        // from v0.5.9. See `DexHeroChip`; the three states and their reasoning
+        // live there, so the varieties scan's own chip row (I3) cannot drift
+        // from this one.
+        //
+        // Label only (0.6.8, K1). Every chip used to carry the count it would
+        // produce if tapped, which made a row of a dozen chips a row of a dozen
+        // numbers to read past; the running total in the summary is the number
+        // that was actually being consulted. The costing itself stays — it is
+        // what `dead` is computed from, and it is still what the accessibility
+        // label reads out, which is the channel that never had the summary.
+        return DexHeroChip(
+            label: option.label,
+            chip: db.palette.filterChip(option),
+            isOn: on,
+            isDead: dead
+        ) {
             filter.toggle(option)
-        } label: {
-            // Label only (0.6.8, K1). Every chip used to carry the count it
-            // would produce if tapped, which made a row of a dozen chips a row
-            // of a dozen numbers to read past; the running total in the summary
-            // is the number that was actually being consulted.
-            //
-            // The costing itself stays — it is what `dead` is computed from,
-            // and a chip that leads nowhere still says so by going dim, which
-            // is the half of the feature that worked without being read.
-            Text(option.label)
-                .font(DexFont.retro(11))
-                .tracking(0.5)
-                .foregroundStyle(on ? chipInk : (dead ? lcd.disabledText : lcd.text))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(Capsule().fill(on ? lcd.accent : lcd.surface))
-            .overlay(
-                Capsule().strokeBorder(
-                    on ? lcd.accent : (dead ? lcd.surfaceEdge.opacity(0.5) : lcd.surfaceEdge),
-                    lineWidth: 2
-                )
-            )
         }
-        .buttonStyle(DexPressStyle(scale: 0.94))
         .accessibilityLabel("\(option.label), \(count) entries")
-        .accessibilityAddTraits(on ? [.isSelected] : [])
     }
 
     /// Text on a lit chip.

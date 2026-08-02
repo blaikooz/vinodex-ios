@@ -268,12 +268,33 @@ public struct ScannerScreen: View {
     /// steps the questionnaire via `ScannerBackRouter` (0.6.4, B2), so the
     /// header arrow was a second control doing the same thing — and the
     /// device's own buttons are the ones that should do device things.
+    ///
+    /// **The step counter has left this row (0.6.9, H2).** It sat here, hard
+    /// against the leading edge, with RESET at the trailing one — chrome in the
+    /// top corner of a screen whose content is centred in the middle of the
+    /// LCD, so the number and the question it counted were the two things
+    /// furthest apart on the page. H2 puts it directly above the question and
+    /// centred on it; see `question(_:_:content:)`. RESET keeps the row, and
+    /// the reveal keeps its RESULT label here because a result is not a
+    /// question and does not go through that helper.
     private var header: some View {
         HStack(spacing: 10) {
-            Text(step == .reveal ? "RESULT" : "STEP \(questionNumber) OF 5")
-                .font(DexFont.retro(12))
-                .tracking(1)
-                .foregroundStyle(lcd.subtext)
+            if step == .reveal {
+                Text("RESULT")
+                    .font(DexFont.retro(12))
+                    .tracking(1)
+                    .foregroundStyle(lcd.subtext)
+            } else if step == .globe {
+                // The one question step that does not go through
+                // `question(_:_:content:)` — the globe is mounted full-bleed,
+                // because it needs the height and a scroll view around a
+                // drag-to-spin surface fights the gesture. Its counter has
+                // nowhere else to be, so it stays in the row.
+                Text("STEP \(questionNumber) OF 5")
+                    .font(DexFont.retro(12))
+                    .tracking(1)
+                    .foregroundStyle(lcd.subtext)
+            }
 
             Spacer(minLength: 0)
 
@@ -372,14 +393,18 @@ public struct ScannerScreen: View {
         }
     }
 
-    /// Body has no palette table of its own, so it borrows the wine-type chips'
-    /// vocabulary: the same three weights, graded light to full.
+    /// Body has no generated palette table of its own, so it borrows the
+    /// wine-type chips' vocabulary: the same three weights, graded light to
+    /// full.
+    ///
+    /// The table itself moved to `Palette.bodyChips` in 0.6.9 (J1). It was
+    /// private here, and the filter screen's new BODY hero chips need the same
+    /// three colours — two copies of a hand-authored triple is exactly the
+    /// arrangement that ends with a scanner answer and a filter chip for the
+    /// same body class in two different greens.
     private func bodyChip(_ body: GrapeBody) -> Palette.Chip {
-        switch body {
-        case .light: Palette.Chip(bg: "#1a2e05", border: "#65a30d", text: "#d9f99d")
-        case .medium: Palette.Chip(bg: "#451a03", border: "#d97706", text: "#fde68a")
-        case .full: Palette.Chip(bg: "#3b0f0f", border: "#8b0000", text: "#fecdd3")
-        }
+        Palette.bodyChips[body.rawValue]
+            ?? Palette.Chip(bg: "#1c1917", border: "#57534e", text: "#e7e5e4")
     }
 
     // MARK: 3 — origin
@@ -422,8 +447,9 @@ public struct ScannerScreen: View {
 
                 // "NOT SURE", not "I DON'T KNOW" (0.6.8, L3) — the same words
                 // the colour and body steps skip with, so one answer has one
-                // name across the whole questionnaire.
-                bigButton("NOT SURE", symbol: "questionmark", tint: lcd.subtext) {
+                // name across the whole questionnaire. **Glyphless since 0.6.9
+                // (H1)** — see `bigButton`.
+                bigButton("NOT SURE", tint: lcd.subtext) {
                     criteria.country = nil
                     advance(to: .flavors)
                 }
@@ -1008,18 +1034,34 @@ public struct ScannerScreen: View {
     /// the scanner is one question at a time on an otherwise empty screen, not
     /// a list, and a lone left-aligned question in the top corner looked like
     /// the screen had failed to finish loading.
+    ///
+    /// **Leads with the step counter since 0.6.9 (H2)**, centred over the
+    /// question rather than parked in the header's leading corner. Rendered
+    /// here rather than in `header` so it travels with the prompt it counts:
+    /// every question step goes through this helper, so one line covers all
+    /// six of them and no step can be added without one.
     private func question<C: View>(
         _ title: String,
         _ subtitle: String,
         @ViewBuilder content: () -> C
     ) -> some View {
         VStack(spacing: 18) {
-            Text(title)
-                .font(DexFont.retro(20))
-                .tracking(1)
-                .foregroundStyle(lcd.text)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
+            // Tight to the title rather than at the stack's own 18pt: the
+            // counter is a label *on* the question, not a section above it.
+            VStack(spacing: 8) {
+                Text("STEP \(questionNumber) OF 5")
+                    .font(DexFont.retro(12))
+                    .tracking(1)
+                    .foregroundStyle(lcd.subtext)
+
+                Text(title)
+                    .font(DexFont.retro(20))
+                    .tracking(1)
+                    .foregroundStyle(lcd.text)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity)
 
             Text(subtitle)
                 .font(DexFont.mono(22))
@@ -1090,9 +1132,18 @@ public struct ScannerScreen: View {
         .buttonStyle(DexPressStyle(scale: 0.96))
     }
 
+    /// A full-width labelled action.
+    ///
+    /// `symbol` is optional since 0.6.9 (H1). Step 3's NOT SURE carried
+    /// `questionmark`, which is the one glyph on the questionnaire that says
+    /// nothing the label does not: the other three symbols here name an
+    /// *action* (open the globe, run the scan, move on), while a question mark
+    /// beside the words NOT SURE is the words again, in a picture. Nil is a
+    /// real state rather than a blank slot — the label centres in the button on
+    /// its own.
     private func bigButton(
         _ label: String,
-        symbol: String,
+        symbol: String? = nil,
         tint: Color,
         action: @escaping () -> Void
     ) -> some View {
@@ -1101,8 +1152,10 @@ public struct ScannerScreen: View {
             action()
         } label: {
             HStack(spacing: 12) {
-                Image(systemName: symbol)
-                    .font(.system(size: 21, weight: .bold))
+                if let symbol {
+                    Image(systemName: symbol)
+                        .font(.system(size: 21, weight: .bold))
+                }
                 Text(label)
                     .font(DexFont.retro(14))
                     .tracking(1)

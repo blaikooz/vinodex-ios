@@ -239,7 +239,18 @@ struct RootView: View {
             EncyclopediaListScreen(
                 categories: [category],
                 filter: filter,
-                showsSearch: category != .regions
+                showsSearch: category != .regions,
+                // **Chips on the varieties scan** (0.6.9, I3), and only there.
+                // COLOUR and BODY are grape-only facets by `ChipFacet.note`'s
+                // own account, and RARITY is grapes-and-styles — inside a
+                // listing that is already one category, all three are grape
+                // axes. TYPE would offer one live value here and CLIMATE would
+                // empty the list on any tap, so neither is offered.
+                //
+                // Not extended to the other categories in this batch: I3 names
+                // one screen, and REGIONS and STYLES would each want a facet
+                // set argued on its own terms rather than this one reused.
+                chipFacets: category == .grapes ? [.color, .body, .rarity] : []
             ) { open($0) }
 
         case .masterSearch:

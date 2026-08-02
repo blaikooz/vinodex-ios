@@ -74,7 +74,26 @@ public struct EntryVisual {
             well: .color(well),
             iconID: iconID,
             iconColor: tint,
-            ringColor: nil,
+            // **Ringed by rarity since 0.6.9 (I2).** Grapes were the one
+            // category with no ring at all — regions take their climate's,
+            // styles take white, flavours take their subclass's — so a grape
+            // well fell through to `EntryIconWell`'s 1pt black hairline, which
+            // is the "no ring" case rather than a colour.
+            //
+            // Rarity is the right axis for it because the sprite inside the
+            // well is *already* keyed on rarity: `GrapeSpriteLoader` re-inks
+            // the bunch's leaf to the rarity colour (0.6.2, A2). The ring makes
+            // that legible at row size, where a re-inked leaf is four pixels,
+            // and it means one grape carries one rarity signal in two registers
+            // rather than a badge bolted on beside it.
+            //
+            // The chip table's `border` stop, not `text` or `bg`: it is the
+            // saturated one of the three, and it is what the RARITY chip on the
+            // same row is already outlined in — so the ring and the chip
+            // visibly agree. Optional-chained rather than defaulted, so a
+            // rarity absent from the generated table leaves the hairline it
+            // always had instead of inventing a colour.
+            ringColor: db.palette.rarityChips[g.rarity.rawValue].map { Color(dexHex: $0.border) },
             // The bunch sprite (0.5.4): colour, depth, blend and leaf derived
             // from the grape itself — see `GrapeArt`. The tasting-note glyph
             // above stays resolved as the fallback.

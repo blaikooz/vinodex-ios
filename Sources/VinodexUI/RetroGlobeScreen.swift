@@ -150,19 +150,16 @@ public struct RetroGlobeScreen: View {
             // works both ways, because someone may well want to explore the
             // globe itself.
             if voiceOver { showsList = true }
-            // The one screen that owns horizontal dragging, so the one screen
-            // that stands the LCD's back swipe down (0.6.8, I1). Suspended for
-            // the whole screen rather than only while the sphere is up: the
-            // list is an overlay *on* the globe, the sphere is still live
-            // underneath it, and a gate that flickered with `showsList` would
-            // be one more thing to get wrong. See `BackSwipeGate`.
-            BackSwipeGate.shared.suspend()
+            // `BackSwipeGate.suspend()` used to be called here (0.6.8, I1):
+            // this is the one screen that owns horizontal dragging, so it was
+            // the one screen that had to stand the LCD's app-wide back swipe
+            // down. 0.6.9's A1 removes that swipe, so there is nothing left to
+            // negotiate with and the drag below is simply this screen's own.
         }
         .onChange(of: freezesGlobe) { _, frozen in model.autoSpins = !frozen }
         .onChange(of: voiceOver) { _, on in if on { showsList = true } }
         .onDisappear {
             model.stop()
-            BackSwipeGate.shared.resume()
         }
     }
 
@@ -459,9 +456,24 @@ final class GlobeModel {
     /// makes the control's gain a function of how fast you move, the one thing
     /// a direct-manipulation control must never do.
     private static let maxThrowRate: Double = 8 * .pi
-    /// Camera pull-back. The web app sits at 3.6; further out shrinks the globe
-    /// so the markers have room to breathe on a phone.
-    private static let cameraDistance: Double = 3.95
+    /// Camera pull-back — **3.45 since 0.6.9 (L1)**, in from 3.95.
+    ///
+    /// The globe grows by moving the camera rather than by scaling the sphere,
+    /// which is the only version of "larger" that keeps the screen coherent:
+    /// `globeRadius` is the unit the marker projection, the wireframe shell and
+    /// the front-facing test are all written in, so scaling it would mean
+    /// re-deriving three other things to end up looking identical. Pulling the
+    /// camera in is one number and everything follows through the same
+    /// projection — the markers included, since `markerScreenPoint` goes
+    /// through `projectPoint`.
+    ///
+    /// 3.95 was chosen against the web app's 3.6 to give the markers room to
+    /// breathe on a phone, and that argument has since been overtaken twice:
+    /// 0.6.8 (C1) put real hero icons on the continent rows so the list is now
+    /// a first-class way to pick one, and the marker plates hide well before
+    /// the limb anyway (`frontFacingThreshold`). At 3.45 the sphere is ~14%
+    /// wider on screen and the plates still clear each other.
+    private static let cameraDistance: Double = 3.45
     /// Markers hide well before the limb so they never straddle the edge.
     private static let frontFacingThreshold: Double = 0.55
 

@@ -182,7 +182,29 @@ public extension WineEntry {
         switch self {
         case .grape(let g):
             return [
-                TileChip(label: EntryDisplay.grapeColorLabel(g), key: g.grapeType.rawValue, table: .wineType),
+                // **The colour chip reads `colorTypeChips`, uppercased**
+                // (0.6.9, I1). It asked `wineTypeChips` for `"red"` / `"white"`
+                // — the wrong table *and* the wrong case. `wineTypeChips` is
+                // keyed by style ("Full-Body Red", "Aromatic White"), every
+                // generated palette table is keyed uppercase, and the lookup
+                // therefore missed on all 146 grapes and fell through to
+                // `Palette.resolve`'s neutral stone fallback. That is what
+                // "the red and white chips show the wrong colors" was: not a
+                // bad palette, a chip that never reached one. `colorTypeChips`
+                // has carried the right pair the whole time — RED is #3b0f0f
+                // on #8b0000 and WHITE is #3b2f00 on #b8860b, which is the dark
+                // red and the yellow the brief asks for.
+                //
+                // The label was already correct (`grapeColorLabel` uppercases),
+                // which is exactly why this survived: the chip said RED and was
+                // grey, so it read as a styling choice rather than a miss.
+                TileChip(
+                    label: EntryDisplay.grapeColorLabel(g),
+                    key: g.grapeType.rawValue.uppercased(),
+                    table: .colorType
+                ),
+                // The *style* chip does belong to `wineTypeChips`, and its key
+                // matches that table's vocabulary as authored.
                 TileChip(label: EntryDisplay.grapeBodyLabel(g), key: g.grapeStyle, table: .wineType),
                 TileChip(label: g.details.origin.uppercased(), key: g.details.origin, table: .country),
             ]

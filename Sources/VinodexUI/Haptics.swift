@@ -60,6 +60,36 @@ public enum Haptics {
         impact.impactOccurred()
     }
 
+    /// **An exam answer** (0.6.9, G1): the result sting, and nothing else.
+    ///
+    /// G1 is a conflict 0.6.8 created. J1 moved ~21 on-LCD sites onto Warm
+    /// Ping, and the quiz's answer taps were among them — so from 0.6.8
+    /// answering played Warm Ping *and* Correct Answer (or Warm Ping and
+    /// Incorrect Answer), two authored stings a few milliseconds apart on the
+    /// one moment in the app that most needs a single unambiguous voice.
+    ///
+    /// The fix is a third entry point rather than a `silent:` flag on the two
+    /// existing ones, because the rule this states is not "sometimes skip the
+    /// ping" — it is that an answer *has* its own sound, so the generic
+    /// touch sound does not apply. J1's rule is unchanged everywhere else: the
+    /// rest of the quiz screen (BEGIN, NEXT, RETRY) still pings, because those
+    /// are ordinary presses on the LCD.
+    ///
+    /// The haptics keep the split J1 was careful to preserve: a rigid impact
+    /// for right — the decisive press — and the lighter selection tick for
+    /// wrong. Muting sounds must not mute the buzz, so the sting is played
+    /// ahead of this system's own guard, exactly as `tap()` does.
+    public static func answer(correct: Bool) {
+        if correct { Sounds.correct() } else { Sounds.wrong() }
+        guard enabled else { return }
+        if correct {
+            impact.prepare()
+            impact.impactOccurred()
+        } else {
+            UISelectionFeedbackGenerator().selectionChanged()
+        }
+    }
+
     /// The lighter on-LCD touch: selection tick, warm ping.
     public static func select() {
         Sounds.select()
