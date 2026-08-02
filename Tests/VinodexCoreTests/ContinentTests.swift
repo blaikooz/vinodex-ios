@@ -90,6 +90,29 @@ struct ContinentTests {
         #expect(Set(expected.values).count == 6)
     }
 
+    /// `displayName` exists because the globe's continent-list fallback, the
+    /// scanner's step title and every VoiceOver label need the name *without*
+    /// the marker plate's line break (AUDIT M20). Two things have to hold: no
+    /// newline survives, and the one-line form is otherwise the marker's own
+    /// text — a separately-authored table would be free to drift from it.
+    @Test("displayName is the marker label with no line break", arguments: Continent.allCases)
+    func displayNameIsSingleLine(_ continent: Continent) {
+        let name = continent.displayName
+        #expect(!name.contains("\n"), "\(continent.rawValue) still carries a line break")
+        #expect(!name.isEmpty)
+        #expect(
+            name == continent.markerLabel.replacingOccurrences(of: "\n", with: " "),
+            "\(continent.rawValue) display name has drifted from its marker label"
+        )
+        // The two-line cases are the whole reason this exists; the other four
+        // must come through untouched.
+        switch continent {
+        case .northAmerica: #expect(name == "NORTH AMERICA")
+        case .southAmerica: #expect(name == "SOUTH AMERICA")
+        default: #expect(name == continent.rawValue)
+        }
+    }
+
     @Test("hasRegions is true for a country with regions in the selection")
     func hasRegionsTrue() {
         #expect(db.hasRegions(inCountry: "France"))

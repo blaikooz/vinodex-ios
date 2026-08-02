@@ -24,6 +24,15 @@ public struct RetroGlobeScreen: View {
     var showsSearch: Bool
 
     @State private var model = GlobeModel()
+    /// Whether the flat continent list is showing instead of the globe.
+    ///
+    /// The globe is a *drag-and-tap-a-moving-target* control, which is not a
+    /// control at all for someone using VoiceOver, Switch Control or a shaky
+    /// hand — and the rear half of the sphere cannot even be reached without a
+    /// drag. This list is the equivalent path, present on both mounts (the
+    /// scanner's globe step turns `showsSearch` off, so before this it had no
+    /// non-globe way to name a continent at all). (AUDIT M20)
+    @State private var showsList = false
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
     /// The skin's tint is the DARK-mode fallback (0.6.2, F1); every other
@@ -31,11 +40,21 @@ public struct RetroGlobeScreen: View {
     /// `LcdMode.globeTint` for why the mode outranks the skin here.
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
     private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
+    /// Perpetual rotation is the one thing on this screen that is motion for
+    /// its own sake. (AUDIT M18)
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
 
     /// Mode first, skin as the DARK fallback — the resolution 0.6.4 F1 exists
     /// to establish.
     private var globeTint: Color { lcd.globeTint ?? skin.globeTint }
 
+    /// Autospin off. Two reasons, one rule: Reduce Motion asks for no
+    /// unprompted movement, and VoiceOver cannot land on a target that is
+    /// drifting under the cursor — "pause at rest" from AUDIT M20. A drag still
+    /// spins the globe in both cases; what stops is the movement nobody asked
+    /// for.
+    private var freezesGlobe: Bool { reduceMotion || voiceOver }
 
     public init(
         onSelectContinent: @escaping (Continent) -> Void,
@@ -81,18 +100,41 @@ public struct RetroGlobeScreen: View {
 
                     markerLayer
                 }
+                // Hidden from assistive tech *before* the overlay is added, so
+                // the list that replaces it is not hidden with it: the globe
+                // and its markers are one control, and while the list is up it
+                // is the list that answers for them.
+                .accessibilityHidden(showsList)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay {
+                    if showsList {
+                        continentList
+                            // Full-bleed and hit-testable, so the 12pt gutters
+                            // beside the card absorb touches instead of passing
+                            // them to the globe underneath — a marker plate can
+                            // reach the viewport edge, and tapping one while the
+                            // list is up would open a continent nobody chose.
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .contentShape(Rectangle())
+                    }
+                }
+
+                listToggle
 
                 // Two lines, because the globe has two affordances and the
                 // second one is the one that actually gets you somewhere. A
                 // marker looks like a label, so nothing on screen said it was
                 // tappable — the instruction only mentioned spinning.
+                //
+                // Swapped rather than removed while the list is up: the pair is
+                // the same two lines tall either way, so the toggle does not
+                // move under the finger that pressed it.
                 VStack(spacing: 5) {
-                    Text("DRAG TO SPIN GLOBE")
+                    Text(showsList ? "PICK A CONTINENT" : "DRAG TO SPIN GLOBE")
                         .font(DexFont.retro(11))
                         .tracking(3)
                         .foregroundStyle(lcd.accent)
-                    Text("TAP TO SELECT CONTINENT")
+                    Text(showsList ? "OR GO BACK TO THE GLOBE" : "TAP TO SELECT CONTINENT")
                         .font(DexFont.retro(10))
                         .tracking(2)
                         .foregroundStyle(lcd.subtext)
@@ -101,7 +143,118 @@ public struct RetroGlobeScreen: View {
             }
             .padding(.vertical, 12)
         }
+        .onAppear {
+            model.autoSpins = !freezesGlobe
+            // Opened straight onto the list under VoiceOver rather than onto a
+            // sphere with nothing on it to focus. Not forced — the toggle still
+            // works both ways, because someone may well want to explore the
+            // globe itself.
+            if voiceOver { showsList = true }
+        }
+        .onChange(of: freezesGlobe) { _, frozen in model.autoSpins = !frozen }
+        .onChange(of: voiceOver) { _, on in if on { showsList = true } }
         .onDisappear { model.stop() }
+    }
+
+    // MARK: Continent list (the non-globe path)
+
+    /// Switches between the sphere and the list. Sized to the 44pt minimum
+    /// target, and always present — the list is not an accessibility mode that
+    /// has to be discovered through Settings, it is the second half of an
+    /// ordinary control.
+    private var listToggle: some View {
+        Button {
+            Haptics.tap()
+            showsList.toggle()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: showsList ? "globe.americas.fill" : "list.bullet")
+                    .font(.system(size: 13, weight: .bold))
+                Text(showsList ? "BACK TO GLOBE" : "CONTINENT LIST")
+                    .font(DexFont.retro(11))
+                    .tracking(2)
+            }
+            .foregroundStyle(lcd.accent)
+            .padding(.horizontal, 14)
+            .frame(minHeight: 44)
+            .background(lcd.surface)
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .strokeBorder(lcd.accent, lineWidth: 2)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+        }
+        .buttonStyle(DexPressStyle(scale: 0.95))
+    }
+
+    /// Every continent, in one flat list, whatever the globe happens to be
+    /// showing. Opaque rather than translucent: a list read over a rotating
+    /// sphere is exactly the legibility problem the list exists to avoid.
+    private var continentList: some View {
+        VStack(spacing: 0) {
+            Text("ALL CONTINENTS")
+                .font(DexFont.retro(11))
+                .tracking(3)
+                .foregroundStyle(lcd.subtext)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.bottom, 8)
+
+            ScrollView {
+                VStack(spacing: 8) {
+                    // From the markers rather than `Continent.allCases`, so the
+                    // row's swatch is the same colour as the marker it stands
+                    // in for, by construction rather than by two tables
+                    // agreeing (v0.5.6's rule, and it keeps this screen down to
+                    // its one existing `WineDatabase.shared` read — AUDIT M27).
+                    ForEach(model.markers) { marker in
+                        continentRow(marker)
+                    }
+                }
+            }
+        }
+        .padding(12)
+        .background(lcd.panelGround)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(lcd.surfaceEdge, lineWidth: 2)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .padding(.horizontal, 12)
+    }
+
+    private func continentRow(_ marker: GlobeModel.Marker) -> some View {
+        Button {
+            Haptics.select()
+            onSelectContinent(marker.continent)
+        } label: {
+            HStack(spacing: 10) {
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(marker.color)
+                    .frame(width: 10, height: 26)
+
+                Text(marker.continent.displayName)
+                    .font(DexFont.retro(12))
+                    .tracking(1)
+                    .foregroundStyle(lcd.text)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Spacer(minLength: 4)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(lcd.subtext)
+            }
+            .padding(8)
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .background(lcd.surface)
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .strokeBorder(marker.color.opacity(0.8), lineWidth: 1)
+            )
+        }
+        .buttonStyle(DexPressStyle())
+        .accessibilityLabel(marker.continent.displayName)
     }
 
     // MARK: Markers
@@ -150,6 +303,13 @@ public struct RetroGlobeScreen: View {
                 .position(x: marker.position.x, y: marker.position.y)
                 .opacity(marker.visible ? 1 : 0)
                 .allowsHitTesting(marker.visible)
+                // A marker on the far side of the sphere is invisible and
+                // untappable, but was still in the accessibility tree — so
+                // VoiceOver offered six continents of which only the front two
+                // or three did anything. The label drops the marker plate's
+                // line break. (AUDIT M20)
+                .accessibilityHidden(!marker.visible)
+                .accessibilityLabel(marker.continent.displayName)
                 .animation(.easeOut(duration: 0.3), value: marker.visible)
             }
             .onAppear { model.viewportSize = geo.size }
@@ -171,7 +331,11 @@ public struct RetroGlobeScreen: View {
 
     private var dragGesture: some Gesture {
         DragGesture(minimumDistance: 4)
-            .onChanged { value in model.drag(translation: value.translation) }
+            // `value.time` is threaded through so the throw that carries the
+            // globe after the finger lifts is measured in points per *second*
+            // rather than points per touch-event — those are not the same
+            // number on a 120Hz panel. (AUDIT M11)
+            .onChanged { value in model.drag(translation: value.translation, at: value.time) }
             .onEnded { _ in model.endDrag() }
     }
 }
@@ -224,11 +388,47 @@ final class GlobeModel {
     }
 
     // Constants ported directly from RetroGlobeScreen.tsx.
+    //
+    // The web app's were all *per frame*, on the unstated assumption that a
+    // frame is 1/60s. That assumption is false on every ProMotion device the
+    // app runs on: the display link fired at 120Hz, so the globe span twice as
+    // fast, inertia decayed twice as quickly, and markers re-projected twice as
+    // often — for the same visible result. They are per *second* here, scaled
+    // by the measured frame delta. (AUDIT M11)
     private static let dragSensitivity: Double = 0.005
+    /// Per-frame at `dampingReferenceRate`, kept in the tuned units and raised
+    /// to `dt * 60` in `tick()` rather than re-derived — `0.94^60 ≈ 0.024/s`
+    /// is not a number anyone would recognise as this dial.
     private static let inertiaDamping: Double = 0.94
+    private static let dampingReferenceRate: Double = 60
     private static let maxPitch: Double = 1.0
     private static let globeRadius: Double = 1.05
-    private static let autoSpin: Double = -0.0032
+    /// Was `-0.0032` per frame: the same rotation, stated per second.
+    private static let autoSpinRate: Double = -0.0032 * dampingReferenceRate
+    /// A frame delta longer than this is a stall, not a slow frame — a
+    /// backgrounded app or a blocked main thread returning after half a second
+    /// would otherwise snap the globe a third of a turn. Clamped, the worst
+    /// case is one 50ms step.
+    private static let maxFrameDelta: Double = 1.0 / 20
+    /// Marker re-projection cadence. Was "every 4th frame", which is this at
+    /// 60Hz and half as slow again at 120.
+    private static let markerInterval: Double = 4.0 / dampingReferenceRate
+    /// Ceiling on the coast a flick leaves behind, ~4 turns/second.
+    ///
+    /// A guard, not a tuning dial: it sits above the fastest throw a real
+    /// gesture produces (a 4000pt/s sweep is ~20 rad/s), so ordinary flicks
+    /// keep exactly the speed they had before this rewrite. It exists for the
+    /// pathological case the per-second form introduces — two touch events
+    /// delivered close enough together that the divide amplifies a small
+    /// movement.
+    ///
+    /// Applied in `endDrag`, deliberately, **not** in `drag`. `tick()`
+    /// integrates `velocityYaw` on every frame including while the finger is
+    /// down (only the damping is gated on `!dragging`), so a ceiling applied
+    /// during the drag caps half of the rotation the finger is causing — which
+    /// makes the control's gain a function of how fast you move, the one thing
+    /// a direct-manipulation control must never do.
+    private static let maxThrowRate: Double = 8 * .pi
     /// Camera pull-back. The web app sits at 3.6; further out shrinks the globe
     /// so the markers have room to breathe on a phone.
     private static let cameraDistance: Double = 3.95
@@ -269,6 +469,10 @@ final class GlobeModel {
 
     var viewportSize: CGSize = .zero
 
+    /// Whether the globe drifts on its own. Off under Reduce Motion and under
+    /// VoiceOver — see `RetroGlobeScreen.freezesGlobe`. (AUDIT M18, M20)
+    var autoSpins = true
+
     private(set) var cameraNode = SCNNode()
     private var globeNode = SCNNode()
     private var wireNode = SCNNode()
@@ -281,7 +485,15 @@ final class GlobeModel {
     private var velocityPitch: Double = 0
     private var dragging = false
     private var lastTranslation: CGSize = .zero
-    private var frameCount = 0
+    /// The previous frame's `CADisplayLink.timestamp`. Zero means "no frame yet
+    /// this run", which is also what `stop()` restores.
+    private var lastTimestamp: CFTimeInterval = 0
+    /// Seconds since markers were last re-projected.
+    private var markerClock: Double = 0
+    /// Timestamp of the previous drag event, for the per-second throw. Nil
+    /// between gestures, so the first event of a drag sets no velocity rather
+    /// than dividing by an interval it does not have.
+    private var lastDragTime: Date?
 
     // MARK: Scene construction
 
@@ -446,31 +658,57 @@ final class GlobeModel {
         guard displayLink == nil else { return }
         let link = CADisplayLink(target: DisplayLinkProxy { [weak self] in self?.tick() },
                                  selector: #selector(DisplayLinkProxy.fire))
+        // Ask for 30–60 rather than taking the panel's native rate. The scene
+        // is one slowly-rotating sphere and six labels; there is nothing in it
+        // a 120Hz sample rate resolves that a 60Hz one does not, and the
+        // difference is a doubled GPU/CPU bill for the whole time the screen is
+        // open. The floor is what stops the system dropping it so far that the
+        // rotation reads as a stutter. (AUDIT M11)
+        link.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 60, preferred: 60)
         link.add(to: .main, forMode: .common)
+        lastTimestamp = 0
+        markerClock = 0
         displayLink = link
     }
 
     func stop() {
         displayLink?.invalidate()
         displayLink = nil
+        lastTimestamp = 0
         saveHeading()
     }
 
     private func tick() {
+        guard let link = displayLink else { return }
+
+        // Elapsed time between *presented* frames, so a dropped frame is
+        // caught up rather than lost. The first frame of a run has nothing to
+        // measure against and takes the nominal step.
+        let now = link.timestamp
+        let dt = lastTimestamp > 0
+            ? min(max(now - lastTimestamp, 0), Self.maxFrameDelta)
+            : 1 / Self.dampingReferenceRate
+        lastTimestamp = now
+        guard dt > 0 else { return }
+
         if !dragging {
-            velocityYaw *= Self.inertiaDamping
-            velocityPitch *= Self.inertiaDamping
+            let decay = pow(Self.inertiaDamping, dt * Self.dampingReferenceRate)
+            velocityYaw *= decay
+            velocityPitch *= decay
         }
 
-        yaw += velocityYaw + Self.autoSpin
-        pitch = min(max(pitch + velocityPitch, -Self.maxPitch), Self.maxPitch)
+        yaw += (velocityYaw + (autoSpins ? Self.autoSpinRate : 0)) * dt
+        pitch = min(max(pitch + velocityPitch * dt, -Self.maxPitch), Self.maxPitch)
 
         applyOrientation()
 
-        // Markers are re-projected every few frames, as the web version does —
-        // they move slowly and this keeps SwiftUI updates cheap.
-        frameCount += 1
-        if frameCount % 4 == 0 {
+        // Markers are re-projected on a clock rather than a frame count, as the
+        // web version does by frame — they move slowly and this keeps SwiftUI
+        // updates cheap. Keyed to time so the cadence is the same 15Hz whatever
+        // rate the display link is actually running at.
+        markerClock += dt
+        if markerClock >= Self.markerInterval {
+            markerClock = 0
             updateMarkers()
         }
     }
@@ -543,22 +781,56 @@ final class GlobeModel {
 
     // MARK: Input
 
-    func drag(translation: CGSize) {
+    /// Applies one drag event, and records the throw it would leave behind.
+    ///
+    /// The rotation the finger causes is a *position* delta and is applied 1:1,
+    /// exactly as before — it must track the finger, not a clock. The velocity
+    /// kept for inertia is the separate thing that has to be per-second: it was
+    /// simply the last event's delta, i.e. "however far the finger moved in one
+    /// touch event", which on a 120Hz panel is half the distance it is on a
+    /// 60Hz one for the same real speed. Dividing by the interval between the
+    /// two events makes the throw the same on both. (AUDIT M11)
+    func drag(translation: CGSize, at time: Date) {
         let dx = translation.width - lastTranslation.width
         let dy = translation.height - lastTranslation.height
         lastTranslation = translation
         dragging = true
 
-        velocityYaw = Double(dx) * Self.dragSensitivity
-        velocityPitch = Double(dy) * Self.dragSensitivity * 0.45
+        let dYaw = Double(dx) * Self.dragSensitivity
+        let dPitch = Double(dy) * Self.dragSensitivity * 0.45
 
-        yaw += velocityYaw
-        pitch = min(max(pitch + velocityPitch, -Self.maxPitch), Self.maxPitch)
+        // Floored, not clamped both ends: two events arriving in the same
+        // millisecond would otherwise divide out to a thousandfold throw. A
+        // long interval needs no floor of its own — a finger that paused has
+        // moved correspondingly further, so the ratio stays honest. The ceiling
+        // is applied at release instead — see `maxThrowRate`.
+        //
+        // The first event of a gesture has one sample and no interval, and
+        // takes the nominal one, exactly as `tick()`'s first frame does. Not
+        // zero: `tick()` integrates this velocity while the finger is still
+        // down, so a zero here would quietly drop one event's worth of
+        // rotation, and on a three-event flick that is 17% of the turn — a
+        // control whose gain depends on how fast you move it, which is what
+        // this whole item is about. The next event lands 8–16ms later and
+        // replaces the estimate.
+        let interval = lastDragTime.map { max(time.timeIntervalSince($0), 1.0 / 240) }
+            ?? (1 / Self.dampingReferenceRate)
+        velocityYaw = dYaw / interval
+        velocityPitch = dPitch / interval
+        lastDragTime = time
+
+        yaw += dYaw
+        pitch = min(max(pitch + dPitch, -Self.maxPitch), Self.maxPitch)
     }
 
     func endDrag() {
         dragging = false
         lastTranslation = .zero
+        lastDragTime = nil
+        // The only place the ceiling belongs: from here on nothing is driving
+        // the globe but this number.
+        velocityYaw = min(max(velocityYaw, -Self.maxThrowRate), Self.maxThrowRate)
+        velocityPitch = min(max(velocityPitch, -Self.maxThrowRate), Self.maxThrowRate)
     }
 
     /// The map texture **colorized** into the mode/skin tint (0.6.6, A).

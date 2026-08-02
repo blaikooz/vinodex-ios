@@ -1,5 +1,7 @@
 # Vinodex — Architecture, Repository & Platform Audit
 
+**Authored by Godot.**
+
 **2026-07-28** · audited at `640efe9` (branch `audit`), with `upstream/main` at `2cae512`.
 Four parallel audits: git history & hygiene, GitHub & remote topology, Swift module
 architecture, build & data pipeline.

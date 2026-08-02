@@ -1,5 +1,7 @@
 # Vinodex Targeted Audit — Compliance · Security · Test
 
+**Authored by Godot.**
+
 **Written 2026-07-29 against `fb5dcf2`. Re-verified 2026-07-31 against `b48ad20`.**
 
 > **Path note (added 0.6.5, batch 4 — findings below are unchanged).** Read

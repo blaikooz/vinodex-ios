@@ -7,3 +7,17 @@ version: 1
 # quota frees up or on a paid account.
 bundleID: com.example.Vinodex
 iconPath: AppIcon.png
+
+# NO ORIENTATION KEY HERE, DELIBERATELY (AUDIT M17). The app is portrait-only
+# and the audit's proposed fix was `UISupportedInterfaceOrientations` in the
+# generated Info.plist -- but xtool generates that plist itself and this file is
+# not a passthrough for it. `version:` above is the config-schema version, not
+# the app's; xtool 1.17 hardcodes CFBundleShortVersionString and there is no key
+# to override it either (see KNOWN-ISSUES.md). Adding a speculative key here
+# would read as a lock while doing nothing.
+#
+# The lock is `AppDelegate.application(_:supportedInterfaceOrientationsFor:)` in
+# Sources/VinodexApp/VinodexApp.swift. That callback is consulted per window and
+# takes precedence over the plist regardless, so it is the stronger of the two
+# -- if a future xtool does expose plist keys, add it there as belt and braces,
+# not as a replacement.

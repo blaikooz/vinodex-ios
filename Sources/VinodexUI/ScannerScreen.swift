@@ -441,7 +441,7 @@ public struct ScannerScreen: View {
         let countries = db.countries(in: continent)
 
         return question(
-            continent.markerLabel.replacingOccurrences(of: "\n", with: " "),
+            continent.displayName,
             "Which one?"
         ) {
             if countries.isEmpty {
