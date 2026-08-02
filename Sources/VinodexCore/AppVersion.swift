@@ -62,7 +62,11 @@ public enum AppVersion {
     ///
     /// 0.6.5: the batch the user labelled "6.3.3" — same convention as above,
     /// the label maps to the next patch after what the tree actually holds.
-    static let fallback = "0.6.5"
+    ///
+    /// 0.6.6: the corrective polish pass over the chassis 0.6.5 shipped —
+    /// per-mode globe tint, the diagonal button cluster, the wordmark moved
+    /// into the grille. No catalog change, so `waveMilestones` does not move.
+    static let fallback = "0.6.6"
 
     /// Versions no build deliberately chose.
     ///
