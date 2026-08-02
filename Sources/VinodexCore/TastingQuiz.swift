@@ -145,26 +145,54 @@ public final class QuizProgress {
     public static let shared = QuizProgress()
 
     public static let storageKey = "quizTierUnlocked"
+    /// Which exams have been passed at least once (0.6.7, A4) — the star on
+    /// the exam list.
+    ///
+    /// Deliberately **not** derivable from `highestUnlocked`. The two agree for
+    /// the first two tiers and diverge at the top: passing ENTHUSIAST unlocks
+    /// SOMMELIER, so a ladder position of "sommelier unlocked" says nothing
+    /// about whether SOMMELIER itself has ever been passed, and that is exactly
+    /// the exam whose star is worth having. Stored as its own list.
+    public static let completedKey = "quizTiersCompleted"
 
     private let defaults: UserDefaults
 
     /// The highest tier the user may start. Missing or unreadable → novice.
     private(set) public var highestUnlocked: QuizTier
+    /// Every tier passed at least once, in no particular order.
+    private(set) public var completed: Set<QuizTier>
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         highestUnlocked = defaults.string(forKey: Self.storageKey)
             .flatMap(QuizTier.init(rawValue:)) ?? .novice
+        // An unreadable or partly-unknown list degrades to whatever of it still
+        // resolves, matching how the bookmark shelves treat a stale id: a
+        // renamed tier should cost its own star, not the whole set.
+        let raw = defaults.array(forKey: Self.completedKey) as? [String] ?? []
+        completed = Set(raw.compactMap(QuizTier.init(rawValue:)))
     }
 
     public func unlocked(_ tier: QuizTier) -> Bool {
         tier.rank <= highestUnlocked.rank
     }
 
+    /// Whether this exam has ever been passed — drives its completion star.
+    public func isCompleted(_ tier: QuizTier) -> Bool {
+        completed.contains(tier)
+    }
+
     /// Records a pass; returns the newly unlocked tier, or nil if the pass
     /// opened nothing new (repeat passes, or the top of the ladder).
+    ///
+    /// The completion star is recorded *before* that guard, and has to be: a
+    /// repeat pass and a pass at the top of the ladder both return nil, and
+    /// both are still passes.
     @discardableResult
     public func recordPass(tier: QuizTier) -> QuizTier? {
+        if completed.insert(tier).inserted {
+            defaults.set(completed.map(\.rawValue).sorted(), forKey: Self.completedKey)
+        }
         guard let next = tier.next, next.rank > highestUnlocked.rank else { return nil }
         highestUnlocked = next
         defaults.set(next.rawValue, forKey: Self.storageKey)
@@ -173,7 +201,9 @@ public final class QuizProgress {
 
     public func reset() {
         highestUnlocked = .novice
+        completed = []
         defaults.removeObject(forKey: Self.storageKey)
+        defaults.removeObject(forKey: Self.completedKey)
     }
 }
 

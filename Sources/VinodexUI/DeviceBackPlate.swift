@@ -21,9 +21,19 @@ public struct DeviceBackPlate: View {
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
     private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
 
-    /// The stamp whose info sheet is open (0.6.4, F2) — tapping a stamp is
-    /// the one interaction the plate has beyond the flip.
+    /// The stamp whose info sheet is open (0.6.4, F2) — tapping a stamp was
+    /// the one interaction the plate had beyond the flip until 0.6.7 (C1)
+    /// added dragging them.
     @State private var openStamp: BackPlateStamp?
+
+    /// Where the stamps have been dragged to, across launches. See
+    /// `StampLayoutStore`.
+    @State private var layout = StampLayoutStore.shared
+    /// The stamp currently under the finger, and how far it has travelled this
+    /// gesture. Live only — the committed position goes to `layout` on release,
+    /// so a drag interrupted by the app going away leaves nothing half-written.
+    @State private var dragging: String?
+    @State private var drag: CGSize = .zero
 
     public init() {}
 
@@ -106,11 +116,22 @@ public struct DeviceBackPlate: View {
         .accessibilityLabel("Device back plate. Swipe to return.")
     }
 
-    /// One paper stamp per earned Passport badge, each in its own fixed spot —
-    /// "somewhere else on the back plate" that stays put between launches.
+    /// One paper stamp per earned Passport badge — issued in its own spot, and
+    /// **draggable anywhere on the plate from there** (0.6.7, C1), with wherever
+    /// you put it surviving a relaunch.
+    ///
     /// Recomputed on each flip; `Passport.compute` is cheap and the plate is
-    /// rebuilt on flip anyway. What renders in the slot is data-driven
-    /// (`StampCatalog`) — the slot table below only says *where*.
+    /// rebuilt on flip anyway. What renders in a slot is data-driven
+    /// (`StampCatalog`); the table below says only where a stamp *starts*, and
+    /// `StampLayoutStore` says how far it has been moved since.
+    ///
+    /// Laid out by absolute origin in a `GeometryReader` rather than by
+    /// alignment and padding, which is what C1 needed: the old form could place
+    /// a stamp against an edge but had nowhere to put "and then 40pt right of
+    /// that", and there was no plate size in scope to clamp a drag against. The
+    /// slot table did not have to change to make the move — an alignment was
+    /// always fully implied by the signs of its own offsets, so the alignment
+    /// field was redundant and is gone.
     private var stampField: some View {
         let passport = Passport.compute(
             tried: BookmarkStore.shared.ids(on: .tried),
@@ -118,48 +139,133 @@ public struct DeviceBackPlate: View {
             bestStreak: StreakStore.shared.best,
             highestTier: QuizProgress.shared.highestUnlocked
         )
-        return ZStack {
-            ForEach(StampCatalog.unlocked(from: passport)) { stamp in
-                let slot = Self.stampSlots[stamp.id]
-                    ?? StampSlot(alignment: .center, dx: 0, dy: 0, rotation: 0)
-                Button {
-                    Haptics.select()
-                    openStamp = stamp
-                } label: {
+        return GeometryReader { geo in
+            ZStack(alignment: .topLeading) {
+                // Gives the stack the plate's own bounds to lay origins out
+                // against — the positioned children contribute none.
+                Color.clear
+
+                ForEach(StampCatalog.unlocked(from: passport)) { stamp in
+                    let slot = Self.stampSlots[stamp.id] ?? StampSlot(dx: 0, dy: 0, rotation: 0)
+                    let home = Self.origin(of: slot, in: geo.size)
+                    let live = dragging == stamp.id ? drag : .zero
+                    let moved = layout.offset(for: stamp.id)
+                    let at = Self.clamp(
+                        CGPoint(
+                            x: home.x + CGFloat(moved.dx) + live.width,
+                            y: home.y + CGFloat(moved.dy) + live.height
+                        ),
+                        in: geo.size
+                    )
+
                     BackPlateStampView(stamp: stamp)
                         .rotationEffect(.degrees(slot.rotation))
+                        // Lifted off the plate while it is under the finger,
+                        // so a drag reads as picking the stamp up rather than
+                        // as the plate scrolling.
+                        .scaleEffect(dragging == stamp.id ? 1.08 : 1)
+                        .shadow(
+                            color: .black.opacity(dragging == stamp.id ? 0.4 : 0),
+                            radius: 8,
+                            y: 5
+                        )
+                        .animation(.easeOut(duration: 0.15), value: dragging)
+                        // A `Button` cannot host a drag gesture — its own
+                        // press recogniser wins and the stamp never moves. A
+                        // plain tap alongside a distance-gated drag gives both:
+                        // 8pt is far enough that reading a stamp's story does
+                        // not nudge it.
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            Haptics.select()
+                            openStamp = stamp
+                        }
+                        .gesture(
+                            DragGesture(minimumDistance: 8)
+                                .onChanged { value in
+                                    if dragging != stamp.id {
+                                        dragging = stamp.id
+                                        Haptics.select()
+                                    }
+                                    drag = value.translation
+                                }
+                                .onEnded { value in
+                                    let settled = Self.clamp(
+                                        CGPoint(
+                                            x: home.x + CGFloat(moved.dx) + value.translation.width,
+                                            y: home.y + CGFloat(moved.dy) + value.translation.height
+                                        ),
+                                        in: geo.size
+                                    )
+                                    // Stored relative to the issued spot, not
+                                    // absolutely — see `StampOffset`.
+                                    layout.move(
+                                        stamp.id,
+                                        to: StampOffset(
+                                            dx: Double(settled.x - home.x),
+                                            dy: Double(settled.y - home.y)
+                                        )
+                                    )
+                                    dragging = nil
+                                    drag = .zero
+                                    Haptics.tap()
+                                }
+                        )
+                        .accessibilityLabel("\(stamp.title) stamp. Opens its story.")
+                        .accessibilityHint("Drag to move it on the plate.")
+                        .frame(width: Self.stampSize.width, height: Self.stampSize.height)
+                        .offset(x: at.x, y: at.y)
                 }
-                .buttonStyle(DexPressStyle(scale: 0.95))
-                .accessibilityLabel("\(stamp.title) stamp. Opens its story.")
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: slot.alignment)
-                .padding(.leading, slot.dx > 0 ? slot.dx : 0)
-                .padding(.trailing, slot.dx < 0 ? -slot.dx : 0)
-                .padding(.top, slot.dy > 0 ? slot.dy : 0)
-                .padding(.bottom, slot.dy < 0 ? -slot.dy : 0)
             }
         }
     }
 
+    /// `BackPlateStampView`'s own frame, which the slot arithmetic has to know
+    /// to place an origin and to clamp a drag. Matches its defaults.
+    private static let stampSize = CGSize(width: 76, height: 90)
+
     private struct StampSlot {
-        let alignment: Alignment
-        /// Positive = from leading, negative = from trailing.
+        /// Positive = from the leading edge, negative = from the trailing.
         let dx: CGFloat
-        /// Positive = from top, negative = from bottom.
+        /// Positive = from the top edge, negative = from the bottom.
         let dy: CGFloat
         let rotation: Double
     }
 
-    /// Fixed home per stamp, scattered clear of the engraving block, the
-    /// screws, the barcode (bottom-leading), the price tag (top-trailing)
+    /// A slot's top-leading origin on a plate of this size. Negative offsets
+    /// measure back from the far edge, which is exactly what the trailing and
+    /// bottom paddings used to do.
+    private static func origin(of slot: StampSlot, in size: CGSize) -> CGPoint {
+        CGPoint(
+            x: slot.dx >= 0 ? slot.dx : size.width + slot.dx - stampSize.width,
+            y: slot.dy >= 0 ? slot.dy : size.height + slot.dy - stampSize.height
+        )
+    }
+
+    /// Keeps a dragged stamp on the plate. Clamped on the *unrotated* frame:
+    /// the stamps sit at up to 15°, so a corner does poke a few points past the
+    /// edge — which is what a stamp stuck near the edge of a real thing looks
+    /// like, and much better than reserving a rotation-proof margin the user
+    /// would feel as an invisible wall well inside the plate.
+    private static func clamp(_ point: CGPoint, in size: CGSize) -> CGPoint {
+        CGPoint(
+            x: min(max(point.x, 0), max(size.width - stampSize.width, 0)),
+            y: min(max(point.y, 0), max(size.height - stampSize.height, 0))
+        )
+    }
+
+    /// Where each stamp is *issued* — scattered clear of the engraving block,
+    /// the screws, the barcode (bottom-leading), the price tag (top-trailing)
     /// and the skin sticker (leading, above the barcode). Colours moved into
-    /// `StampCatalog` with the rest of the stamp's identity (0.6.4, F2).
+    /// `StampCatalog` with the rest of the stamp's identity (0.6.4, F2); since
+    /// 0.6.7 (C1) this is a starting position rather than a fixed home.
     private static let stampSlots: [String: StampSlot] = [
-        "firstSip": StampSlot(alignment: .topLeading, dx: 34, dy: 96, rotation: -12),
-        "tenBottles": StampSlot(alignment: .topTrailing, dx: -38, dy: 208, rotation: 8),
-        "allNoble": StampSlot(alignment: .bottomTrailing, dx: -34, dy: -168, rotation: -7),
-        "regionComplete": StampSlot(alignment: .bottomLeading, dx: 46, dy: -230, rotation: 10),
-        "streakWeek": StampSlot(alignment: .bottomTrailing, dx: -128, dy: -84, rotation: -15),
-        "sommelier": StampSlot(alignment: .topLeading, dx: 132, dy: 150, rotation: 5),
+        "firstSip": StampSlot(dx: 34, dy: 96, rotation: -12),
+        "tenBottles": StampSlot(dx: -38, dy: 208, rotation: 8),
+        "allNoble": StampSlot(dx: -34, dy: -168, rotation: -7),
+        "regionComplete": StampSlot(dx: 46, dy: -230, rotation: 10),
+        "streakWeek": StampSlot(dx: -128, dy: -84, rotation: -15),
+        "sommelier": StampSlot(dx: 132, dy: 150, rotation: 5),
     ]
 
     private var metal: some View {

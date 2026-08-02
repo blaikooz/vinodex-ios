@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 /// One postage stamp on the device's back plate (0.6.4, F2).
 ///
@@ -126,5 +127,94 @@ public enum StampCatalog {
     public static func unlocked(from passport: Passport) -> [BackPlateStamp] {
         let earned = Set(passport.badges.filter(\.earned).map(\.id))
         return all.filter { earned.contains($0.id) }
+    }
+}
+
+/// How far a stamp has been dragged from the spot the plate issued it in
+/// (0.6.7, C1).
+///
+/// **An offset, not a position.** Two reasons, and both are why the alternative
+/// was rejected: the default slot table stays the authority on where a stamp
+/// nobody has touched sits, so re-scattering the series later is still a change
+/// to one table rather than a migration of everybody's saved coordinates; and an
+/// offset survives the plate being a different size — an absolute point saved on
+/// a Pro Max lands off the bottom of a mini, where a "somewhere else, about that
+/// far" does not.
+///
+/// `Double` rather than `CGFloat` so the type is Foundation-only and lives in
+/// Core with the rest of the stamp model, testable on Linux.
+public struct StampOffset: Codable, Sendable, Equatable {
+    public var dx: Double
+    public var dy: Double
+
+    public static let zero = StampOffset(dx: 0, dy: 0)
+
+    public init(dx: Double, dy: Double) {
+        self.dx = dx
+        self.dy = dy
+    }
+}
+
+/// Where the user has moved each back-plate stamp to.
+///
+/// In `UserDefaults` rather than `ScreenStateStore`, which is explicit that it
+/// holds *session* state and is wiped by Home: a stamp you deliberately dragged
+/// to the corner is not a scroll position, and finding the plate re-scattered
+/// on the next launch would read as the app forgetting rather than as a fresh
+/// screen. Same reasoning as `QuizProgress`, and the same shape.
+///
+/// JSON-encoded like `BookmarkStore`'s ratings map: six stamps of two doubles is
+/// a couple of hundred bytes, so defaults is proportionate.
+@MainActor
+@Observable
+public final class StampLayoutStore {
+    public static let shared = StampLayoutStore()
+
+    public static let storageKey = "backPlateStampOffsets"
+
+    private let defaults: UserDefaults
+
+    /// Keyed by stamp id. Absent means "still where the plate put it" — the
+    /// default is stored as absence rather than as a zero, so a plate nobody
+    /// has rearranged leaves nothing behind.
+    private(set) public var offsets: [String: StampOffset]
+
+    /// Injectable for tests; defaults to `.standard` in the app.
+    public init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        if let data = defaults.data(forKey: Self.storageKey),
+           let decoded = try? JSONDecoder().decode([String: StampOffset].self, from: data) {
+            offsets = decoded
+        } else {
+            offsets = [:]
+        }
+    }
+
+    public func offset(for id: String) -> StampOffset {
+        offsets[id] ?? .zero
+    }
+
+    /// Records a stamp's new home. A move back to the issued spot clears the
+    /// entry rather than storing a zero, per the note on `offsets`.
+    public func move(_ id: String, to offset: StampOffset) {
+        if offset == .zero {
+            offsets.removeValue(forKey: id)
+        } else {
+            offsets[id] = offset
+        }
+        persist()
+    }
+
+    public func reset() {
+        offsets = [:]
+        defaults.removeObject(forKey: Self.storageKey)
+    }
+
+    private func persist() {
+        guard !offsets.isEmpty, let data = try? JSONEncoder().encode(offsets) else {
+            defaults.removeObject(forKey: Self.storageKey)
+            return
+        }
+        defaults.set(data, forKey: Self.storageKey)
     }
 }

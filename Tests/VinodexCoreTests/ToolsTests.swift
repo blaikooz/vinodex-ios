@@ -538,6 +538,112 @@ struct QuizProgressTests {
         reloaded.reset()
         #expect(!QuizProgress(defaults: defaults).unlocked(.enthusiast))
     }
+
+    // MARK: Completion stars (0.6.7, A4)
+
+    @MainActor
+    @Test("nothing is starred on a fresh ladder")
+    func noStarsFresh() {
+        let progress = QuizProgress(defaults: makeDefaults())
+        for tier in QuizTier.allCases {
+            #expect(!progress.isCompleted(tier))
+        }
+    }
+
+    @MainActor
+    @Test("a pass stars its own exam, not the one it unlocks")
+    func starsThePassedExam() {
+        let progress = QuizProgress(defaults: makeDefaults())
+        progress.recordPass(tier: .novice)
+        #expect(progress.isCompleted(.novice))
+        // ENTHUSIAST is open, but nobody has sat it.
+        #expect(progress.unlocked(.enthusiast))
+        #expect(!progress.isCompleted(.enthusiast))
+    }
+
+    @MainActor
+    @Test("the top of the ladder still earns its star")
+    func topOfLadderStars() {
+        // The one case a star cannot be derived from `highestUnlocked`:
+        // passing SOMMELIER unlocks nothing, so the ladder does not move.
+        let progress = QuizProgress(defaults: makeDefaults())
+        progress.recordPass(tier: .novice)
+        progress.recordPass(tier: .enthusiast)
+        #expect(progress.recordPass(tier: .sommelier) == nil)
+        #expect(progress.isCompleted(.sommelier))
+    }
+
+    @MainActor
+    @Test("stars survive a reload and reset clears them")
+    func starsPersistAndReset() {
+        let defaults = makeDefaults()
+        QuizProgress(defaults: defaults).recordPass(tier: .novice)
+
+        let reloaded = QuizProgress(defaults: defaults)
+        #expect(reloaded.isCompleted(.novice))
+
+        reloaded.reset()
+        #expect(!QuizProgress(defaults: defaults).isCompleted(.novice))
+    }
+}
+
+/// Where the back-plate stamps have been dragged to (0.6.7, C1).
+@Suite("Stamp layout")
+struct StampLayoutTests {
+    private func makeDefaults() -> UserDefaults {
+        let name = UUID().uuidString
+        let defaults = UserDefaults(suiteName: name)!
+        defaults.removePersistentDomain(forName: name)
+        return defaults
+    }
+
+    @MainActor
+    @Test("an untouched plate reports every stamp at its issued spot")
+    func freshPlate() {
+        let layout = StampLayoutStore(defaults: makeDefaults())
+        #expect(layout.offsets.isEmpty)
+        for stamp in StampCatalog.all {
+            #expect(layout.offset(for: stamp.id) == .zero)
+        }
+    }
+
+    @MainActor
+    @Test("a move survives a relaunch")
+    func movePersists() {
+        let defaults = makeDefaults()
+        StampLayoutStore(defaults: defaults).move("firstSip", to: StampOffset(dx: 40, dy: -18))
+
+        let reloaded = StampLayoutStore(defaults: defaults)
+        #expect(reloaded.offset(for: "firstSip") == StampOffset(dx: 40, dy: -18))
+        // Moving one stamp does not move any other.
+        #expect(reloaded.offset(for: "sommelier") == .zero)
+    }
+
+    @MainActor
+    @Test("dragging a stamp back home leaves nothing stored")
+    func homeClearsTheEntry() {
+        let defaults = makeDefaults()
+        let layout = StampLayoutStore(defaults: defaults)
+        layout.move("allNoble", to: StampOffset(dx: 12, dy: 9))
+        #expect(!layout.offsets.isEmpty)
+
+        layout.move("allNoble", to: .zero)
+        #expect(layout.offsets.isEmpty)
+        #expect(StampLayoutStore(defaults: defaults).offsets.isEmpty)
+    }
+
+    @MainActor
+    @Test("reset re-scatters the whole plate")
+    func resetClears() {
+        let defaults = makeDefaults()
+        let layout = StampLayoutStore(defaults: defaults)
+        layout.move("firstSip", to: StampOffset(dx: 5, dy: 5))
+        layout.move("tenBottles", to: StampOffset(dx: -30, dy: 60))
+
+        layout.reset()
+        #expect(layout.offsets.isEmpty)
+        #expect(StampLayoutStore(defaults: defaults).offsets.isEmpty)
+    }
 }
 
 @Suite("Walkthrough")

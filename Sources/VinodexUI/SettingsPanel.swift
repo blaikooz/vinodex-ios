@@ -612,9 +612,11 @@ public struct SettingsSectionPanel: View {
                                         .padding(5)
                                 }
                                 .overlay {
-                                    Image(systemName: option.symbol)
-                                        .font(.system(size: 17, weight: .semibold))
-                                        .foregroundStyle(option.accent.pale)
+                                    // Through `SkinEmblem` rather than
+                                    // `Image(systemName:)` since 0.6.7 (K1):
+                                    // PSVino's badge is a drawing now, not a
+                                    // symbol name.
+                                    SkinEmblem(skin: option, size: 17, tint: option.accent.pale)
                                         .shadow(color: .black.opacity(0.55), radius: 0, x: 1, y: 1)
                                         // Centred in the deck, not the tile —
                                         // the bottom 14pt is the panel strip.
@@ -1194,9 +1196,20 @@ private struct DataWave: View {
             )
         }
         // Flexible since 0.6.4 (C2): the DATA page is fixed-height now and
-        // the wave is what soaks up the LCD's leftover space. The floor is
-        // the old fixed height, so the curve can never collapse.
-        .frame(minHeight: 96, maxHeight: .infinity)
+        // the wave is what soaks up the LCD's leftover space.
+        //
+        // **The 96pt floor is gone (0.6.7, I1).** It was the old fixed height,
+        // kept "so the curve can never collapse", and it was half of why this
+        // page changed the size of the LCD when you opened it: a hard minimum
+        // on the one screen in the app that does not scroll is a demand the
+        // page makes of the housing, and on a shorter device (or at a larger
+        // text step) the sum of the two count blocks plus 96 exceeded the
+        // display. The housing is clamped at the other end now — see
+        // `DeviceChassis.innerBezel` — but a page that only fits because it is
+        // being clipped is not fitting. The `Canvas` has no intrinsic size, so
+        // without a floor the graph simply takes what is left, down to
+        // nothing, and the readout above it always fits.
+        .frame(maxHeight: .infinity)
     }
 
     /// Milestone values under the curve, pinned to the ends so the first and
@@ -1264,6 +1277,8 @@ enum SavedDataReset {
         AvatarStore.shared.clear()
         QuizProgress.shared.reset()
         StreakStore.shared.reset()
+        // The back plate goes back to the scatter it ships with (0.6.7, C1).
+        StampLayoutStore.shared.reset()
         ScreenStateStore.shared.clear()
         SearchStateStore.shared.clear()
 
@@ -1276,6 +1291,8 @@ enum SavedDataReset {
             BookmarkStore.ratingsKey,
             RevealCursor.storageKey,
             QuizProgress.storageKey,
+            QuizProgress.completedKey,
+            StampLayoutStore.storageKey,
             StreakStore.streakKey,
             StreakStore.lastDayKey,
             StreakStore.bestKey,

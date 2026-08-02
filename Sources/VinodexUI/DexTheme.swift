@@ -182,7 +182,14 @@ public enum DexMetrics {
     /// was also what forced the island strip to 84pt and charged the LCD for
     /// it. 55% of a control is a bead: unmistakably a lamp, and small enough to
     /// sit beside the cutout rather than under it.
-    public static var islandOrb: CGFloat { controlButton * 0.55 }
+    ///
+    /// 0.62, up from 0.55 (0.6.7, F2). 0.6.6 shrank it hard to buy back the
+    /// LCD height a 64pt orb was costing; the complaint since is that the bead
+    /// went a step too far. This grows it ~13% and the strip does **not** grow
+    /// with it — the two red lamps left the strip in this batch (F1), which
+    /// returns more height than the bigger orb spends. See
+    /// `islandStripMinHeight`.
+    public static var islandOrb: CGFloat { controlButton * 0.62 }
     /// The row the orb and the lamp cluster share, level with the cutout.
     ///
     /// Floored at 44 rather than sized to the orb: the orb is the flip
@@ -190,40 +197,66 @@ public enum DexMetrics {
     /// art is not a licence to shrink its touch area below the platform
     /// minimum. The extra points are padding around the bead, not more bead.
     public static var islandSlot: CGFloat { max(islandOrb + 8, 44) }
-    /// The band below the cutout that carries the two red housing lamps
-    /// (0.6.6, D1). They used to take the screen housing's own top margin;
-    /// deleting the title lip freed the bare chassis the mockup drew them on.
-    public static let islandLampRow: CGFloat = 10
-    /// Floor for the island strip: the inset above, the notch-level row, the
-    /// lamp band, then the small `islandBottomInset` against the screen
-    /// housing. Computed — it follows `controlButton`, which follows `UIScale`.
+    // `islandLampRow` retired in 0.6.7 (F1): the two red lamps are no longer
+    // in this strip at all. They spent 0.6.6 on bare chassis below the cutout,
+    // which is where the device reported them rendering *outside* the LCD's
+    // border — because they were: bare chassis is outside the housing. They
+    // are anchored to the bezel plate now (see `bezelLampStrip`), so the band
+    // they used to need here is gone and the strip is 10pt shorter for it.
+    /// Floor for the island strip: the inset above, the notch-level row, then
+    /// the small `islandBottomInset` against the screen housing. Computed — it
+    /// follows `controlButton`, which follows `UIScale`.
     ///
-    /// 64 at SMALL, down from 84 (0.6.6, E3). This number is charged straight
-    /// to the LCD on any device whose real top inset is smaller than it, which
-    /// is every one of them — a Dynamic Island reports 59. Sizing the strip to
-    /// seat a 64pt orb was the single most expensive decision in the chassis.
+    /// ~58 at SMALL, down from 64 (0.6.7, F1/F2) and from 84 before that. This
+    /// number is charged straight to the LCD on any device whose real top inset
+    /// is smaller than it; a Dynamic Island reports 59, so at this size the
+    /// strip finally costs the LCD *nothing* — the hardware inset is the
+    /// binding constraint rather than our own floor. That is what paid for the
+    /// bigger orb in F2.
     public static var islandStripMinHeight: CGFloat {
-        islandTopInset + islandSlot + islandLampRow + islandBottomInset
+        islandTopInset + islandSlot + islandBottomInset
     }
-    public static let islandClearance: CGFloat = 138
+    /// The gap held open for the hardware cutout, and — since 0.6.7 (F3) — the
+    /// left edge of the corner the status trio is centred in.
+    ///
+    /// 158, up from 138. The trio no longer hangs off the trailing padding; it
+    /// is centred in everything to the right of this clearance, which on a
+    /// 393pt phone puts its leading lamp ~7pt clear of the island's right edge.
+    /// At the old 138 that margin went negative and the first lamp tucked under
+    /// the cutout.
+    public static let islandClearance: CGFloat = 158
     /// Matches `footerPaddingH` so the orb sits directly above the Back button
     /// and the cog above Home — the four chassis controls share two columns.
     public static let islandFlankPaddingH: CGFloat = cornerGuardH
     /// The white housing's margin above the LCD.
     ///
-    /// 10, down from a full rem (0.6.6, D1). It was sized to seat the two red
-    /// housing lamps, which had nowhere else to go while the title lip occupied
-    /// the bare chassis above; the lip is gone and the lamps went with it, so
-    /// what is left only has to read as moulding. Every point of it was LCD.
-    public static let bezelTopMargin: CGFloat = 10
+    /// 2, down from 10 (0.6.7, F1). The eight points it gives up go straight
+    /// into `bezelLampStrip` directly below it, so the housing is exactly as
+    /// tall as it was and the LCD loses nothing — the moulding above the bezel
+    /// simply became bezel. What is left only has to read as a seam.
+    public static let bezelTopMargin: CGFloat = 2
+    /// The stone strip along the top of the bezel plate that seats the two red
+    /// housing lamps (0.6.7, F1).
+    ///
+    /// The lamps have now lived in three places: the housing's white top margin
+    /// (0.6.5), bare chassis under the cutout (0.6.6, D1), and here. The middle
+    /// one is the one that broke — "on the LCD border" means *on the border*,
+    /// and bare chassis is outside the housing entirely. This is the border: it
+    /// is the same `Dex.stone800` plate the LCD is set into, merely thicker
+    /// along its top edge so an 8pt lamp has stone to sit on rather than
+    /// straddling a 4pt rim. Paid for out of `bezelTopMargin` point for point.
+    public static let bezelLampStrip: CGFloat = 12
     /// Spacing between the three status lamps. Widened with the lamps
-    /// themselves (0.6.6, E3) so the trio still reads as three lights rather
-    /// than one blob now that each is bigger.
-    public static let statusDotSpacing: CGFloat = 0.28 * rem
+    /// themselves (0.6.6, E3; again 0.6.7, F3) so the trio still reads as three
+    /// lights rather than one blob now that each is bigger.
+    public static let statusDotSpacing: CGFloat = 0.34 * rem
     /// The three lamps in the strip's right corner, level with the cutout.
-    /// Bigger since 0.6.6 (E3) — they were sized off the old oversized orb and
-    /// came out as specks; now they are sized to be legible at arm's length.
-    public static var islandStatusDot: CGFloat { max(islandOrb * 0.38, 13) }
+    ///
+    /// Bigger again in 0.6.7 (F3) — 0.6.6 sized them off the orb at 0.38 and
+    /// they still read as specks beside a cutout 37pt tall. 0.46 of a
+    /// (now larger) orb, floored at 17, puts them at ~18pt: a lamp you can see
+    /// from arm's length rather than a pixel you have to look for.
+    public static var islandStatusDot: CGFloat { max(islandOrb * 0.46, 17) }
     // `statusDotsGap` and `statusDotsRise` retired in 0.6.5 (C1): both measured
     // the cluster's placement relative to the orb, and the cluster no longer
     // sits beside the orb — it has the opposite corner of the strip to itself.
@@ -253,6 +286,21 @@ public enum DexMetrics {
     /// The top margin holds nothing, so it stays thin.
     public static var ventStripHeight: CGFloat { 1.75 * rem * UIScale.current.factor }
     public static var ventDot: CGFloat { 0.5 * rem * UIScale.current.factor }   // w-2
+
+    /// The bottom-strip wordmark (0.6.7, H1).
+    ///
+    /// Nominal glyph size only — what actually lands on screen is this run
+    /// measured and then scaled to fill the slot between the red lamp and the
+    /// grille, independently in x and y. So this number sets the *proportions*
+    /// of the letterform, not its size: the smaller it is, the more the
+    /// stretch, and Press Start 2P at 12 gives a run wide enough that the
+    /// horizontal scale lands around 1.3× the vertical one — stretched, but
+    /// still recognisably the same face rather than a smear.
+    public static let wordmarkSize: CGFloat = 12
+    /// Breathing room inside the wordmark's slot, so the stretched glyphs do
+    /// not touch the strip's edges or the parts either side of them.
+    public static let wordmarkInsetV: CGFloat = 2
+    public static let wordmarkInsetH: CGFloat = 10
 
     /// Footer
     ///
@@ -299,7 +347,18 @@ public enum DexMetrics {
     /// and a panel that matched the button diameter read as the smallest thing
     /// in the band rather than the largest. Taller again in 0.6.6 (C1) — the
     /// diagonal cluster gave the band back the height to spend on it.
-    public static var marqueeHeight: CGFloat { bandControl * 1.32 }
+    ///
+    /// **Measured off the band rather than off the button since 0.6.7 (G/F4).**
+    /// It was `bandControl * 1.32`, and G2's smaller common diameter would have
+    /// quietly taken 10pt off the panel as a side effect of resizing the
+    /// buttons — the centrepiece shrinking because something else did. The band
+    /// is as tall as a bundle whatever happens; this is simply the rest of that
+    /// column once the two indicator lamps and their gap are out of it, so the
+    /// panel fills its slot exactly and comes out ~12pt taller than 0.6.6's,
+    /// for free.
+    public static var marqueeHeight: CGFloat {
+        max(bandHeight - bandPillHeight - bandPillGap, bandControl)
+    }
     /// How far the strip's contents fade out at each end (0.6.6, C2).
     ///
     /// The panel is a window onto a longer loop, so text *has* to leave it —
@@ -314,56 +373,86 @@ public enum DexMetrics {
     /// — at that size the strip read louder than the buttons beside it.
     public static let marqueeTextSize: CGFloat = 1.2 * rem
 
-    /// Button band (0.6.5, A/B)
+    /// Button band (0.6.5, A/B; restructured 0.6.7, G)
     ///
-    /// Four physical controls — User, Settings, Home, Back — around the marquee
-    /// panel, in two rows: U / S / H across the top and B under H.
+    /// Four physical controls in **two matching diagonal bundles** — User over
+    /// Settings on the left, Home over Back on the right — flanking the marquee
+    /// panel, each pair sunk into its own elongated pill-shaped well.
     ///
-    /// `bandControl` deliberately breaks the "one diameter for every control on
-    /// the chassis" rule the island strip still follows. The marquee has to
-    /// hold roughly half the chassis width to read as the centrepiece, and four
-    /// full `footerControl` circles plus their gaps do not leave that much on a
-    /// compact phone. They remain one size *as a group*, which is what the rule
-    /// was actually protecting against; `bandControlSmall` is the one exception,
-    /// and the mockup calls Settings out as the small button on purpose.
-    public static var bandControl: CGFloat { footerControl * 0.84 }
-    public static var bandControlSmall: CGFloat { bandControl * 0.72 }
+    /// `bandControl` still breaks the "one diameter for every control on the
+    /// chassis" rule the island strip follows, and for the same reason: the
+    /// marquee has to hold roughly half the chassis width to read as the
+    /// centrepiece, and four full `footerControl` circles plus their wells do
+    /// not leave that much on a compact phone.
+    ///
+    /// 0.72, down from 0.84 (0.6.7, G2). Settings joins the other three at full
+    /// size in this batch, so the band is carrying four equal circles where it
+    /// used to carry three plus a small one — and two wells around them. Paid
+    /// for by trimming the common diameter, which nets out almost exactly: the
+    /// marquee keeps ~160pt of a 393pt phone (was ~162) and the band's height
+    /// is within a third of a point of what it was. See `bandBundleHeight`.
+    ///
+    /// The happy side effect is that `bandControlSmall` is gone with it: every
+    /// physical control in the footer is now one diameter, which is the rule
+    /// the small cog was the sole exception to.
+    public static var bandControl: CGFloat { footerControl * 0.72 }
     /// Gap between the band's columns.
     public static let bandSpacing: CGFloat = 10
 
-    // MARK: The nav cluster (0.6.6, B1/F3)
+    // MARK: The button bundles (0.6.7, G1/G2)
     //
-    // Settings, Home and Back as a **staggered triangle** rather than the
-    // vertical Home-over-Back pair 0.6.5 built. 0.6.5's A2 asked for the
-    // column; 0.6.6's B1 reverses it, and reversing it is worth doing because
-    // the column was the most expensive shape available: two full diameters
-    // plus a gap of band height, all of it charged to the LCD.
+    // **This restructures 0.6.6's B1.** That pass packed Settings, Home and
+    // Back into one near-tangent triangle on the right and left User alone on
+    // the far side of the marquee — an arrangement in which no two controls
+    // were the same size and the two flanks were nothing like each other.
+    // G2 pulls Settings out of the triangle and puts it under User, which
+    // leaves two pairs; G1 sinks each pair into an elongated pill-shaped well,
+    // the way an SNES face recess groups X/Y on a diagonal.
     //
-    // The three are packed to mutual near-tangency — every pair sits ~0.06
-    // diameters apart — which is the tightest a cluster can be and still read
-    // as three separate controls. Home takes the top-right, Back is offset
-    // down-and-inward from it (the diagonal the mockup draws, and the corner
-    // nearest the thumb), and Settings closes the triangle below. That last
-    // placement is also F3's answer: the cog is *inside* the group now instead
-    // of floating above its midline.
+    // The pairs are mirror images: both diagonals lean *inward* at the bottom
+    // (User top-leading with Settings below-right of it, Home top-trailing with
+    // Back below-left), so the two wells point at each other across the
+    // marquee and the band reads as one symmetrical instrument.
     //
-    // The geometry is expressed as fractions of `bandControl` so the whole
-    // cluster scales with `UIScale` in one piece. Cluster-local origins, all
-    // measured from its top-leading corner.
+    // That symmetry is also what settles F5. The marquee used to sit between a
+    // lone 54pt circle and a 105pt cluster, so "centred in its own column" and
+    // "centred in the chassis" were fifty points apart. Two congruent bundles
+    // put the same width on both sides of it, and the panel is centred in the
+    // chassis by construction rather than by a nudge.
+    //
+    // The geometry is fractions of `bandControl`, so a bundle scales with
+    // `UIScale` in one piece. `dx`/`dy` are the *centre-to-centre* offset of
+    // the pair; their magnitude is 1.065 diameters, so the caps clear each
+    // other by ~6% of a diameter — near-tangent, like the old cluster, which is
+    // what makes a pair read as one part rather than two loose circles.
 
-    /// Home's leading edge — the cluster's right-hand column.
-    public static var bandClusterHomeX: CGFloat { bandControl * 0.95 }
-    /// Back's top edge. Back's leading edge is the cluster's own (x = 0).
-    public static var bandClusterBackY: CGFloat { bandControl * 0.475 }
-    /// Settings, tucked under Home and inboard of it, closing the triangle.
-    public static var bandClusterSettingsX: CGFloat { bandControl * 0.95 }
-    public static var bandClusterSettingsY: CGFloat { bandControl * 1.05 }
-    public static var bandClusterWidth: CGFloat { bandControl * 1.95 }
-    public static var bandClusterHeight: CGFloat { bandControl * 1.77 }
+    /// The pair's horizontal and vertical separation, centre to centre. The
+    /// resulting diagonal is ~58° off horizontal: steep enough that Settings
+    /// reads as being *below* User (G2's wording), shallow enough that the
+    /// stagger still reads as a diagonal rather than a column.
+    public static var bandBundleDX: CGFloat { bandControl * 0.57 }
+    public static var bandBundleDY: CGFloat { bandControl * 0.90 }
+    /// Clearance between a cap and the wall of its well. Small — the well is a
+    /// recess milled around the buttons, not a tray they are sitting in.
+    public static let bandWellPad: CGFloat = 4
+    public static var bandBundleWidth: CGFloat { bandControl + bandBundleDX + bandWellPad * 2 }
+    /// ~95.5 at SMALL against the retired cluster's 95.2 — a third of a point,
+    /// which is the whole of what the G restructure costs the LCD. It is more
+    /// than repaid by F1 handing back the island strip's 10pt lamp row.
+    public static var bandBundleHeight: CGFloat { bandControl + bandBundleDY + bandWellPad * 2 }
+    /// The well's long axis: the pair's centre separation plus a full padded
+    /// diameter, which makes the capsule the exact convex hull of the two
+    /// padded caps — so its bounding box is the bundle's, and the rotation
+    /// costs no extra room in the band.
+    public static var bandWellLength: CGFloat {
+        (bandBundleDX * bandBundleDX + bandBundleDY * bandBundleDY).squareRoot()
+            + bandControl + bandWellPad * 2
+    }
+    public static var bandWellThickness: CGFloat { bandControl + bandWellPad * 2 }
 
-    /// The band's own height. The cluster is the tallest thing in it — the
-    /// marquee column and the lone User button both fit inside this.
-    public static var bandHeight: CGFloat { bandClusterHeight }
+    /// The band's own height. A bundle is the tallest thing in it — the
+    /// marquee column fits inside this.
+    public static var bandHeight: CGFloat { bandBundleHeight }
 
     /// The drop shadow under every band control (0.6.6, B3).
     ///
@@ -375,10 +464,14 @@ public enum DexMetrics {
     public static let bandShadowRadius: CGFloat = 4
     public static let bandShadowY: CGFloat = 3
 
-    /// The two indicator pills above the marquee panel (0.6.5, B2). Wider
-    /// since 0.6.6 (C3): at 18pt they read as dashes beside a panel that has
-    /// since grown twice.
-    public static let bandPillWidth: CGFloat = 30
+    /// The two indicator pills above the marquee panel (0.6.5, B2).
+    ///
+    /// `bandPillWidth` retired in 0.6.7 (F4). It was 18pt, then 30 (0.6.6, C3),
+    /// and both were guesses at "wide enough beside the panel". The pair is
+    /// sized off the panel itself now: each pill takes half the marquee's own
+    /// width less the gap between them, so the two lamps span exactly the strip
+    /// they belong to at any screen width or `UIScale`. A fixed width could
+    /// only ever be right on one phone.
     public static let bandPillHeight: CGFloat = 8
     public static let bandPillSpacing: CGFloat = 8
     /// Gap from the pills down to the panel they belong to. Small — they have
@@ -1025,6 +1118,46 @@ public struct ChassisControl: Sendable {
     }
 }
 
+/// Four individually-coloured face buttons (0.6.7, K2/K3).
+///
+/// Only the two console liveries carry one — see `ChassisSkin.buttonSet`. Home
+/// keeps the six-stop `ChassisAccent` rather than being flattened to a cap,
+/// because it is still the lit button on those shells and losing its inner disc
+/// to gain a colour would be a downgrade; the other three are ordinary moulded
+/// caps that happen to be four different colours.
+///
+/// One struct rather than four optional properties, for `ChassisAccent`'s own
+/// reason: a skin that coloured three of the four and inherited the fourth from
+/// the default cap would read as a bug, not as a colourway.
+public struct ChassisButtonSet: Sendable {
+    public let home: ChassisAccent
+    public let back: ChassisControl
+    public let bookmarks: ChassisControl
+    public let settings: ChassisControl
+
+    public init(
+        home: ChassisAccent,
+        back: ChassisControl,
+        bookmarks: ChassisControl,
+        settings: ChassisControl
+    ) {
+        self.home = home
+        self.back = back
+        self.bookmarks = bookmarks
+        self.settings = settings
+    }
+}
+
+/// A drawn skin emblem, for skins that cannot use an SF Symbol (0.6.7, K1).
+///
+/// An enum with one case rather than a view, so `ChassisSkin` — which is data —
+/// does not have to know how to draw anything; `SkinEmblem` in the view layer
+/// resolves it. Adding a second mark is a case here and an arm there.
+public enum SkinMark: Sendable, Equatable {
+    /// The Vinodex sigil: an original maker's mark. See `SkinSigil`.
+    case sigil
+}
+
 /// Chassis colourway. The LCD itself never changes — only the moulding around
 /// it — so a skin swap cannot affect legibility of the content.
 ///
@@ -1083,6 +1216,24 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     /// all the talking — lights run triangle/circle/cross, the powered parts
     /// run the cross's blue. Subtle on purpose; the reference hardware was.
     case psvino = "PSVINO"
+    /// The original handheld brick (0.6.7, J1): warm grey moulding with red
+    /// face buttons, the pea-green screen surviving only as the marquee's
+    /// phosphor.
+    ///
+    /// Named for the wine, not the console — `gris de gris` is a real style
+    /// (pale grey-pink rosé pressed from Gris grapes), and "grey shell, red
+    /// buttons" is the same sentence. The house has done this twice before:
+    /// the forest-green DMG homage ships as BOX WINE and the calculator livery
+    /// as SMART GRAPE. Naming a skin after someone else's hardware is the one
+    /// thing this range does not do.
+    case grisDeGris = "GRIS DE GRIS"
+    /// Warning-orange moulding with black buttons (0.6.7, J2) — hazard livery,
+    /// and the only skin in the range whose powered parts are *darker* than its
+    /// shell.
+    ///
+    /// Orange wine is a real category (skin-contact white), which makes it the
+    /// obvious name for the one orange device.
+    case orangeWine = "ORANGE WINE"
 
     public static let storageKey = "chassisSkin"
 
@@ -1122,6 +1273,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .blush: Color(dexHex: "#FFCCDD")
         // Console-boot blue — the cross button, paled for the multiply.
         case .psvino: Color(dexHex: "#BBD4F5")
+        // The DMG screen's own pea-green, paled for the multiply.
+        case .grisDeGris: Color(dexHex: "#DCE8C4")
+        case .orangeWine: Color(dexHex: "#FFDF8A")
         }
     }
 
@@ -1178,6 +1332,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .steel: "STAINLESS STEEL"
         case .blush: "BLUSH"
         case .psvino: "PSVINO"
+        case .grisDeGris: "GRIS DE GRIS"
+        case .orangeWine: "ORANGE WINE"
         }
     }
 
@@ -1213,7 +1369,12 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .nocturne: "moon.zzz.fill"
         case .steel: "gearshape.2.fill"
         case .blush: "heart.fill"
-        case .psvino: "playstation.logo"
+        // The console emblem is gone (0.6.7, K1) - see `drawnMark`. This is
+        // only the fallback for anything that still wants a plain symbol.
+        case .psvino: "seal.fill"
+        // The brick's own control: a d-pad.
+        case .grisDeGris: "dpad.fill"
+        case .orangeWine: "exclamationmark.triangle.fill"
         }
     }
 
@@ -1268,6 +1429,15 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // Triangle, circle, cross — the face buttons as indicator lamps.
         case .psvino:
             return trio(("#3AC4B4", "#0E7A6E"), ("#F0435C", "#8F0E20"), ("#6FA3E8", "#1B4470"))
+        // Three reds stepped light to deep, matching the caps - the grey
+        // shell leaves room for exactly one colour and the buttons have it.
+        case .grisDeGris:
+            return trio(("#FF8A8A", "#B02020"), ("#E23E3E", "#8F1414"), ("#A81E1E", "#5C0A0A"))
+        // Hazard trio: signal yellow, safety orange, deep amber. Not black -
+        // the buttons carry this skin's black, and an unlit indicator lamp
+        // reads as a fault rather than as a colourway.
+        case .orangeWine:
+            return trio(("#FFD22E", "#B98A00"), ("#FF8A1F", "#A34C00"), ("#C24E06", "#6E2A00"))
         }
     }
 
@@ -1296,6 +1466,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .blush: Color(dexHex: "#EEA7B6")
         // DualShock matte charcoal — near-black with the plastic's warmth.
         case .psvino: Color(dexHex: "#232427")
+        // Warm handheld grey, a shade off neutral the way ABS ages.
+        case .grisDeGris: Color(dexHex: "#C8C4BC")
+        case .orangeWine: Color(dexHex: "#E8720E")
         }
     }
 
@@ -1322,6 +1495,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .steel: Color(dexHex: "#B8BCC2").opacity(0.8)
         case .blush: Color(dexHex: "#EEA7B6").opacity(0.75)
         case .psvino: Color(dexHex: "#232427").opacity(0.75)
+        case .grisDeGris: Color(dexHex: "#C8C4BC").opacity(0.75)
+        case .orangeWine: Color(dexHex: "#E8720E").opacity(0.75)
         }
     }
 
@@ -1347,6 +1522,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .blush: Color(dexHex: "#FBE9EC")
         // Console grey — the PS2's own two-tone: charcoal shell, grey deck.
         case .psvino: Color(dexHex: "#3B3C41")
+        // The lighter grey faceplate the original brick set its screen into.
+        case .grisDeGris: Color(dexHex: "#DAD6CE")
+        case .orangeWine: Color(dexHex: "#F6A550")
         }
     }
 
@@ -1369,6 +1547,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .steel: Color(dexHex: "#6B7078")
         case .blush: Color(dexHex: "#D2718A")
         case .psvino: Color(dexHex: "#141517")
+        case .grisDeGris: Color(dexHex: "#8B8880")
+        case .orangeWine: Color(dexHex: "#8A4406")
         }
     }
 
@@ -1394,6 +1574,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .steel: Color(dexHex: "#6B7078")
         case .blush: Color(dexHex: "#C8879A")
         case .psvino: Color(dexHex: "#55575E")
+        case .grisDeGris: Color(dexHex: "#9A968E")
+        case .orangeWine: Color(dexHex: "#A85708")
         }
     }
 
@@ -1442,6 +1624,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .blush: Color(dexHex: "#FF7FA8")
         // The analog-stick LED: cross-button blue on the charcoal.
         case .psvino: Color(dexHex: "#5B93D8")
+        // The power lamp, in the caps own red.
+        case .grisDeGris: Color(dexHex: "#E23E3E")
+        // Hazard yellow: the buttons are black, so the orb is the only thing
+        // on this shell allowed to look lit.
+        case .orangeWine: Color(dexHex: "#FFD22E")
         }
     }
 
@@ -1465,6 +1652,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .steel: Color(dexHex: "#9FB8D8")
         case .blush: Color(dexHex: "#E1447E")
         case .psvino: Color(dexHex: "#2E6DB4")
+        case .grisDeGris: Color(dexHex: "#8F1414")
+        case .orangeWine: Color(dexHex: "#C99000")
         }
     }
 
@@ -1542,6 +1731,16 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .psvino:
             ChassisAccent(pale: "#E3EEFA", light: "#B9D2F0", bright: "#5B93D8",
                           mid: "#2E6DB4", edge: "#173D6B", ink: "#0A1F38")
+        // The brick's red face buttons - the one saturated colour on the grey.
+        case .grisDeGris:
+            ChassisAccent(pale: "#FFE5E5", light: "#FFB3B3", bright: "#E23E3E",
+                          mid: "#C22626", edge: "#7A1414", ink: "#3D0505")
+        // Black, and deliberately: J2 asks for black buttons, so the *lit*
+        // button is black too. `ink` is pale rather than dark because Home's
+        // inner disc runs pale->bright, which on this ramp is a dark disc.
+        case .orangeWine:
+            ChassisAccent(pale: "#6E6E70", light: "#4A4A4C", bright: "#2A2A2C",
+                          mid: "#161617", edge: "#0A0A0B", ink: "#F2EFEA")
         }
     }
 
@@ -1608,7 +1807,71 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // The DualShock's own grey-black buttons.
         case .psvino:
             ChassisControl(top: "#3A3B40", bottom: "#101114", edge: "#6A6C72", glyph: "#ffffff")
+        // Red caps on the grey shell.
+        case .grisDeGris:
+            ChassisControl(top: "#D8484E", bottom: "#8A1F24", edge: "#F0989C", glyph: "#ffffff")
+        // Black caps on the warning orange.
+        case .orangeWine:
+            ChassisControl(top: "#3A3A3C", bottom: "#0B0B0C", edge: "#6E6E70", glyph: "#ffffff")
         }
+    }
+
+    /// Per-button colours for the two console liveries (0.6.7, K2/K3).
+    ///
+    /// Nil on every other skin, which is the whole point of the hook: those
+    /// keep one moulded cap for the three mechanical controls and the `accent`
+    /// ramp for Home, exactly as they always have. Only the console skins
+    /// colour-code the four face buttons individually, because on the hardware
+    /// they are quoting that is the single thing anyone remembers about them.
+    ///
+    /// **Colours only.** The glyphs stay Vinodex's own — the chevron, the
+    /// house, the person, the cog. No shape from either reference set is
+    /// reproduced here, and the PSVino emblem that *was* a trademark is gone
+    /// (see `drawnMark`). A palette is not a mark.
+    ///
+    /// Each button gets its face *and* its glyph from its own colour: the
+    /// glyph is a pale (or, on a pale cap, a dark) form of the same hue rather
+    /// than a flat white, so all four read as coloured parts rather than as
+    /// coloured caps with the same white icon stamped on them. All four
+    /// recolour — the brief is explicit that this is not a subset.
+    public var buttonSet: ChassisButtonSet? {
+        switch self {
+        // Green / red / blue / magenta-pink.
+        case .psvino:
+            ChassisButtonSet(
+                home: ChassisAccent(pale: "#E6FBF7", light: "#9FE6DA", bright: "#3AC4B4",
+                                    mid: "#1E9E90", edge: "#0B5C54", ink: "#04241F"),
+                back: ChassisControl(top: "#F0435C", bottom: "#7E0C1C", edge: "#FF97A6", glyph: "#FFE3E8"),
+                bookmarks: ChassisControl(top: "#6FA3E8", bottom: "#173D6B", edge: "#A9CBF5", glyph: "#E4EFFC"),
+                settings: ChassisControl(top: "#E86FC0", bottom: "#6E1250", edge: "#F5A9DA", glyph: "#FCE4F3")
+            )
+        // Green / red / blue / yellow.
+        case .vinhoVerde:
+            ChassisButtonSet(
+                home: ChassisAccent(pale: "#E4F7DF", light: "#A7E39A", bright: "#5CC246",
+                                    mid: "#3A9A28", edge: "#1E5C14", ink: "#062A02"),
+                back: ChassisControl(top: "#E5402F", bottom: "#7A1409", edge: "#FF9587", glyph: "#FFE2DE"),
+                bookmarks: ChassisControl(top: "#3F8FE0", bottom: "#123C68", edge: "#9AC6F0", glyph: "#E2EEFA"),
+                // Dark glyph on the yellow cap, per the Blanc de Blancs
+                // precedent — a pale glyph on this one is unreadable.
+                settings: ChassisControl(top: "#F2C130", bottom: "#7A5A05", edge: "#FBE08C", glyph: "#3A2A00")
+            )
+        default: nil
+        }
+    }
+
+    /// An original drawn mark, for the skins whose reference hardware's emblem
+    /// is somebody's trademark (0.6.7, K1).
+    ///
+    /// PSVino carried `playstation.logo` — a real SF Symbol, and a real
+    /// registered mark, which is not ours to ship however convenient the API
+    /// makes it. It is replaced by a drawing of our own: see `SkinSigil`. The
+    /// hook is general rather than a special case on `.psvino` so the next
+    /// homage skin has somewhere to put its badge instead of reaching for a
+    /// logo, and `symbol` keeps a neutral fallback for anything that only
+    /// knows how to render a string.
+    public var drawnMark: SkinMark? {
+        self == .psvino ? .sigil : nil
     }
 
     /// Marquee phosphor. Period LED strips came in green, amber, red and blue,
@@ -1635,6 +1898,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .blush: Color(dexHex: "#FF9EC0")
         // Boot-screen blue phosphor.
         case .psvino: Color(dexHex: "#7DB2F0")
+        // The pea-green screen, kept as the one thing on this device that is
+        // still a display. Stepped off BOX WINE #9BBC0F so the two handheld
+        // homages do not glow the identical green.
+        case .grisDeGris: Color(dexHex: "#A6C550")
+        case .orangeWine: Color(dexHex: "#FFC93C")
         }
     }
 
@@ -1658,6 +1926,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .steel: Color(dexHex: "#5FA8E8")
         case .blush: Color(dexHex: "#F472B6")
         case .psvino: Color(dexHex: "#2E6DB4")
+        case .grisDeGris: Color(dexHex: "#7E9B2E")
+        case .orangeWine: Color(dexHex: "#E0A100")
         }
     }
 
@@ -1681,6 +1951,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .steel: Color(dexHex: "#0A1A2A")
         case .blush: Color(dexHex: "#3B0A1E")
         case .psvino: Color(dexHex: "#08182E")
+        case .grisDeGris: Color(dexHex: "#16240A")
+        case .orangeWine: Color(dexHex: "#33220A")
         }
     }
 

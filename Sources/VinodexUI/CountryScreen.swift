@@ -72,11 +72,20 @@ public struct CountryScreen: View {
     private let states: [String]
     /// How many regions each state holds — the trailing number on a state row.
     private let regionCounts: [String: Int]
-    /// Every grape this country's regions name, deduplicated and ordered by how
-    /// often they appear — the ones defining the country come first.
-    private let notableGrapes: [String]
-    /// The same list resolved to real entries, so the section is something you
-    /// can open rather than a row of chips that look tappable and are not.
+    /// **Every** grape this country has (0.6.7, B1), resolved to real entries
+    /// so the section is something you can open rather than a row of chips that
+    /// look tappable and are not.
+    ///
+    /// Two sources, unioned. The regions' `notableGrapes` come first, ordered
+    /// by how many regions name them — those are the grapes that define the
+    /// country, and burying Sangiovese under an alphabetical Italian list would
+    /// be a worse page. Everything the catalog attributes to the country
+    /// follows, in name order.
+    ///
+    /// The section used to be the first list alone, headed NOTABLE GRAPES, and
+    /// it was quietly lossy: a grape the country grows but no region here calls
+    /// notable did not appear on its country's page at all, which for the
+    /// smaller catalogues is most of them.
     private let grapeEntries: [WineEntry]
     /// The country's appellation systems (0.6, A2): the authored canonical
     /// list from `countries.json` when it exists, else the systems its
@@ -114,11 +123,25 @@ public struct CountryScreen: View {
         self.regionCounts = perState
         self.states = perState.keys.sorted()
 
+        // The notable ones, most-named first.
         let ranked = grapeCounts
             .sorted { ($0.value, $1.key) > ($1.value, $0.key) }
             .map(\.key)
-        self.notableGrapes = ranked
-        self.grapeEntries = ranked.compactMap { db.entry(named: $0, category: .grapes) }
+        var grapes = ranked.compactMap { db.entry(named: $0, category: .grapes) }
+
+        // Then everything else the catalog gives this country. Deduplicated by
+        // id, not by name: the same grape can be reached by both routes and a
+        // `ForEach` over duplicate ids is a runtime warning as well as a
+        // repeated row.
+        var seen = Set(grapes.map(\.id))
+        let byOrigin = db.entries(
+            matching: EntryQuery(categories: [.grapes], filter: .origin(country), search: "")
+        )
+        for grape in byOrigin.sorted(by: { $0.name < $1.name }) where !seen.contains(grape.id) {
+            seen.insert(grape.id)
+            grapes.append(grape)
+        }
+        self.grapeEntries = grapes
 
         if let system = db.countryInfo(country)?.appellationSystem, !system.isEmpty {
             self.appellations = system
@@ -130,12 +153,23 @@ public struct CountryScreen: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
+                // **Info → Appellation System → Regions → All Grapes**
+                // (0.6.7, B2). The order used to run info, states, grapes,
+                // appellations, regions — grapes third, before the page had
+                // said anything about the place they come from. The stack now
+                // reads outside-in: what the country is, how it classifies its
+                // wine, where in it, and only then what grows there.
+                //
+                // STATES is not in B2's list and stays where it is, directly
+                // under INFO: it is a navigation aid rather than a section of
+                // the article, only the USA has any, and it does not disturb
+                // the relative order of the four the brief does name.
                 hero.id(Anchor.hero)
                 infoSection.id(Anchor.info)
                 if !states.isEmpty { statesSection.id(Anchor.states) }
-                if !notableGrapes.isEmpty { grapesSection.id(Anchor.grapes) }
                 if !appellations.isEmpty { appellationsSection.id(Anchor.appellations) }
                 regionsSection.id(Anchor.regions)
+                if !grapeEntries.isEmpty { grapesSection.id(Anchor.grapes) }
             }
             // Pairs with `scrollPosition(id:)` below — without it the scroll
             // view has no per-section geometry to report or to scroll to, and
@@ -241,7 +275,7 @@ public struct CountryScreen: View {
     private var grapesSection: some View {
         let all = grapeEntries
         let shown = showsAllGrapes ? all : Array(all.prefix(3))
-        return section("NOTABLE GRAPES", symbol: "list.bullet") {
+        return section("ALL GRAPES", symbol: "list.bullet") {
             VStack(spacing: 8) {
                 ForEach(shown) { entry in
                     EntryTileView(

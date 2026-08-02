@@ -459,27 +459,22 @@ public struct BookmarksScreen: View {
         .frame(minHeight: 44)
     }
 
-    /// The streak flame when one is alight, and the way into the passport.
+    /// The way into the passport, and the streak flame beneath it when one is
+    /// alight.
+    ///
+    /// **Stacked rather than side by side since 0.6.7 (D1).** The two shared a
+    /// row, and the row is not wide: the avatar takes 96pt plus its gap, so on a
+    /// compact phone two capsules were splitting ~200pt between them and the
+    /// PASSPORT label was being squeezed down its `minimumScaleFactor` — the
+    /// full name only rendered when no streak was running. Nothing on this
+    /// panel is competing for the vertical, so a column costs a row of height
+    /// and buys both labels their full size.
+    ///
+    /// Passport first, streak under it: one is the control and one is a
+    /// readout, and putting the readout on top would push the button further
+    /// from the thumb to no purpose.
     private var statRow: some View {
-        HStack(spacing: 8) {
-            if streak.current > 0 {
-                HStack(spacing: 6) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Dex.yellow)
-                    Text("\(streak.current) DAY\(streak.current == 1 ? "" : "S")")
-                        .font(DexFont.retro(11))
-                        .tracking(1)
-                        .foregroundStyle(lcd.subtext)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 9)
-                .background(Capsule().fill(lcd.well))
-                .overlay(Capsule().strokeBorder(lcd.surfaceEdge, lineWidth: 2))
-            }
-
+        VStack(alignment: .leading, spacing: 8) {
             Button {
                 Haptics.tap()
                 onPassport()
@@ -491,7 +486,6 @@ public struct BookmarksScreen: View {
                         .font(DexFont.retro(11))
                         .tracking(1)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.7)
                 }
                 .foregroundStyle(lcd.onAccent)
                 .padding(.horizontal, 12)
@@ -499,6 +493,23 @@ public struct BookmarksScreen: View {
                 .background(Capsule().fill(lcd.accent))
             }
             .buttonStyle(DexPressStyle(scale: 0.95))
+
+            if streak.current > 0 {
+                HStack(spacing: 6) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(Dex.yellow)
+                    Text("\(streak.current) DAY\(streak.current == 1 ? "" : "S")")
+                        .font(DexFont.retro(11))
+                        .tracking(1)
+                        .foregroundStyle(lcd.subtext)
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(Capsule().fill(lcd.well))
+                .overlay(Capsule().strokeBorder(lcd.surfaceEdge, lineWidth: 2))
+            }
         }
     }
 

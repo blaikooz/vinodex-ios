@@ -66,7 +66,14 @@ public enum AppVersion {
     /// 0.6.6: the corrective polish pass over the chassis 0.6.5 shipped —
     /// per-mode globe tint, the diagonal button cluster, the wordmark moved
     /// into the grille. No catalog change, so `waveMilestones` does not move.
-    static let fallback = "0.6.6"
+    ///
+    /// 0.6.7: the second corrective pass over the same chassis — the wordmark
+    /// out of the grille and into the bottom strip, the red lamps anchored to
+    /// the bezel, the button band rebuilt as two recessed diagonal bundles —
+    /// plus two new skins, per-button console palettes, draggable back-plate
+    /// stamps and the LCD-resize fix. Still no catalog change, so
+    /// `waveMilestones` does not move.
+    static let fallback = "0.6.7"
 
     /// Versions no build deliberately chose.
     ///

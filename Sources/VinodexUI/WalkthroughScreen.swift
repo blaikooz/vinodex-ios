@@ -39,18 +39,33 @@ public struct WalkthroughScreen: View {
         ZStack {
             DexScreenBackground()
 
+            // Diagram at the top taking every point the page can spare, then
+            // the walkthrough copy at the bottom directly above the buttons
+            // (0.6.7, E1/E2).
+            //
+            // The old order was progress / diagram / copy / **spacer** /
+            // controls, which parked the paragraph in the middle of the screen
+            // with a growing hole under it — and pinned the diagram at a fixed
+            // 230pt while that hole grew to 150 on a tall phone. Moving the
+            // spare height from the spacer into the diagram does both items at
+            // once: the device gets bigger *because* the text moved down.
+            //
+            // `maxHeight: .infinity` and no floor, deliberately. `DeviceDiagram`
+            // is a `GeometryReader` and has no minimum of its own, so it takes
+            // whatever is left over and nothing else on this page can be
+            // squeezed by it — which matters because this is one of the two
+            // screens in the app that does not scroll. (See the note on the
+            // LCD's clamp in `DeviceChassis.innerBezel`.)
             VStack(spacing: 14) {
                 progress
 
                 DeviceDiagram(highlight: step.highlight, isolated: step.isolated, skin: skin, lcd: lcd)
-                    .frame(height: 230)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     // Redrawn per step so the lit part animates rather than
                     // cutting, which is what makes it read as "look here".
                     .animation(.easeInOut(duration: 0.3), value: step.highlight)
 
                 copy
-
-                Spacer(minLength: 0)
 
                 controls
             }
@@ -149,6 +164,15 @@ struct DeviceDiagram: View {
     var isolated: Bool = false
     let skin: ChassisSkin
     let lcd: LcdMode
+
+    /// The four caps, resolved through the skin the same way the real chassis
+    /// resolves them (0.6.7, K2/K3) — the console liveries colour each button
+    /// individually, everything else shares one moulded cap. The diagram claims
+    /// to be "this device in your colourway", so it has to follow.
+    private var backCap: ChassisControl { skin.buttonSet?.back ?? skin.control }
+    private var userCap: ChassisControl { skin.buttonSet?.bookmarks ?? skin.control }
+    private var settingsCap: ChassisControl { skin.buttonSet?.settings ?? skin.control }
+    private var homeRamp: ChassisAccent { skin.buttonSet?.home ?? skin.accent }
 
     /// Whether a part is the subject of this step. `.device` lights everything,
     /// which is how the last step says "this whole object". The tools step
@@ -293,20 +317,28 @@ struct DeviceDiagram: View {
 
                         Spacer(minLength: 0)
 
-                        // The skin's caps, like the real cog (v0.5.4).
+                        // The skin's caps, like the real cog (v0.5.4). Note
+                        // the real cog moved to the button band in 0.6.5 and
+                        // under User in 0.6.7 (G2); the diagram keeps it up
+                        // here because the *step* is about reaching settings,
+                        // and a schematic that redraws itself every batch stops
+                        // being a map.
                         Circle()
                             .fill(
                                 LinearGradient(
-                                    colors: [skin.control.top, skin.control.bottom],
+                                    colors: [settingsCap.top, settingsCap.bottom],
                                     startPoint: .top, endPoint: .bottom
                                 )
                             )
                             .frame(width: control, height: control)
-                            .overlay(Circle().strokeBorder(skin.control.edge, lineWidth: 1.5))
+                            .overlay(Circle().strokeBorder(settingsCap.edge, lineWidth: 1.5))
                             .overlay(
                                 Image(systemName: "gearshape.fill")
                                     .font(.system(size: control * 0.5))
-                                    .foregroundStyle(Dex.stone200)
+                                    // The skin's glyph, not a fixed silver —
+                                    // the real cog took `control.glyph` in
+                                    // 0.6.6 (F1) and this copy did not follow.
+                                    .foregroundStyle(settingsCap.glyph)
                             )
                             .opacity(dim(.settings))
                             .shadow(color: lcd.accent.opacity(lit(.settings) ? 0.8 : 0), radius: 6)
@@ -388,16 +420,16 @@ struct DeviceDiagram: View {
                         Circle()
                             .fill(
                                 LinearGradient(
-                                    colors: [skin.control.top, skin.control.bottom],
+                                    colors: [backCap.top, backCap.bottom],
                                     startPoint: .top, endPoint: .bottom
                                 )
                             )
                             .frame(width: control, height: control)
-                            .overlay(Circle().strokeBorder(skin.control.edge, lineWidth: 1.5))
+                            .overlay(Circle().strokeBorder(backCap.edge, lineWidth: 1.5))
                             .overlay(
                                 Image(systemName: "chevron.left")
                                     .font(.system(size: control * 0.5, weight: .bold))
-                                    .foregroundStyle(skin.control.glyph)
+                                    .foregroundStyle(backCap.glyph)
                             )
                             .opacity(dim(.back))
                             .shadow(color: lcd.accent.opacity(lit(.back) ? 0.8 : 0), radius: 6)
@@ -405,16 +437,16 @@ struct DeviceDiagram: View {
                         Circle()
                             .fill(
                                 LinearGradient(
-                                    colors: [skin.control.top, skin.control.bottom],
+                                    colors: [userCap.top, userCap.bottom],
                                     startPoint: .top, endPoint: .bottom
                                 )
                             )
                             .frame(width: control, height: control)
-                            .overlay(Circle().strokeBorder(skin.control.edge, lineWidth: 1.5))
+                            .overlay(Circle().strokeBorder(userCap.edge, lineWidth: 1.5))
                             .overlay(
                                 Image(systemName: "person.crop.circle")
                                     .font(.system(size: control * 0.5, weight: .bold))
-                                    .foregroundStyle(skin.control.glyph)
+                                    .foregroundStyle(userCap.glyph)
                             )
                             .opacity(dim(.saved))
                             .shadow(color: lcd.accent.opacity(lit(.saved) ? 0.8 : 0), radius: 6)
@@ -433,16 +465,16 @@ struct DeviceDiagram: View {
                         Circle()
                             .fill(
                                 LinearGradient(
-                                    colors: [skin.accent.light, skin.accent.mid],
+                                    colors: [homeRamp.light, homeRamp.mid],
                                     startPoint: .top, endPoint: .bottom
                                 )
                             )
                             .frame(width: control, height: control)
-                            .overlay(Circle().strokeBorder(skin.accent.edge, lineWidth: 1.5))
+                            .overlay(Circle().strokeBorder(homeRamp.edge, lineWidth: 1.5))
                             .overlay(
                                 Image(systemName: "house.fill")
                                     .font(.system(size: control * 0.45, weight: .bold))
-                                    .foregroundStyle(skin.accent.ink)
+                                    .foregroundStyle(homeRamp.ink)
                             )
                             .opacity(dim(.home))
                             .shadow(color: lcd.accent.opacity(lit(.home) ? 0.8 : 0), radius: 6)

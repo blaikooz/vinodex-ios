@@ -249,6 +249,10 @@ struct SkinStickerView: View {
                 .interpolation(.none)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
+        } else if skin.drawnMark != nil {
+            // The drawn mark outranks the SF-Symbol stand-in (0.6.7, K1) — it
+            // *is* this skin's emblem, not a placeholder for one.
+            SkinEmblem(skin: skin, size: size * 0.36, tint: skin.accent.mid)
         } else {
             Image(systemName: skin.stickerSymbol)
                 .font(.system(size: size * 0.36, weight: .semibold))

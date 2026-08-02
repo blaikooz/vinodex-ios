@@ -253,6 +253,7 @@ public struct TastingQuizScreen: View {
 
     private func tierRow(_ tier: QuizTier) -> some View {
         let locked = !progress.unlocked(tier)
+        let passed = progress.isCompleted(tier)
         let flavor = switch tier {
         case .novice: "The grapes everyone has heard of."
         case .enthusiast: "The full cellar."
@@ -264,10 +265,25 @@ public struct TastingQuizScreen: View {
         } label: {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(tier.displayName)
-                        .font(DexFont.retro(13))
-                        .tracking(1)
-                        .foregroundStyle(locked ? lcd.disabledText : lcd.text)
+                    HStack(spacing: 8) {
+                        // The completion star (0.6.7, A4): this exam has been
+                        // passed at least once, and the list says so from now
+                        // on. Beside the name rather than out at the trailing
+                        // edge, where the lock and the chevron already live —
+                        // a star out there would read as another affordance
+                        // instead of as a record.
+                        if passed {
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(Dex.yellow)
+                                .shadow(color: Dex.yellow.opacity(0.5), radius: 3)
+                                .accessibilityLabel("Completed")
+                        }
+                        Text(tier.displayName)
+                            .font(DexFont.retro(13))
+                            .tracking(1)
+                            .foregroundStyle(locked ? lcd.disabledText : lcd.text)
+                    }
                     Text(flavor)
                         .font(DexFont.mono(17))
                         .foregroundStyle(lcd.subtext)
@@ -304,10 +320,17 @@ public struct TastingQuizScreen: View {
                 .foregroundStyle(streak.current > 0 ? Dex.yellow : lcd.subtext)
                 .shadow(color: Dex.yellow.opacity(streak.current > 0 ? 0.5 : 0), radius: 8)
 
-            Text("PAPER COMPLETE")
-                .font(DexFont.retro(16))
-                .tracking(3)
+            // "PAPER COMPLETE" through 0.6.6. The screen's own vocabulary is
+            // "paper" throughout — it is a WSET-shaped app — but the *user*
+            // never sees that word anywhere else: the tile says DAILY
+            // CHALLENGE, the marquee says DAILY CHALLENGE, and the completion
+            // card said something else entirely. (0.6.7, A1)
+            Text("DAILY CHALLENGE COMPLETED.")
+                .font(DexFont.retro(13))
+                .tracking(2)
                 .foregroundStyle(lcd.text)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
 
             Text(streak.current > 0
                 ? "STREAK: \(streak.current) \(streak.current == 1 ? "DAY" : "DAYS"). COME BACK TOMORROW."
@@ -568,7 +591,10 @@ public struct TastingQuizScreen: View {
                 }
 
                 Button(action: exit) {
-                    Text(mode == .practice ? "BACK TO PAPERS" : "EXIT")
+                    // "BACK TO PAPERS" through 0.6.6 — same mismatch A1 fixes
+                    // on the daily card. The screen you go back to is headed
+                    // CHOOSE YOUR EXAM. (0.6.7, A2)
+                    Text(mode == .practice ? "BACK TO EXAMS" : "EXIT")
                         .font(DexFont.retro(12))
                         .tracking(1.5)
                         .foregroundStyle(lcd.subtext)
