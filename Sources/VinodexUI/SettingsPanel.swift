@@ -112,7 +112,7 @@ public struct SettingsPanel: View {
                 )
             }
         }
-        .animation(.easeOut(duration: 0.15), value: offeringTour)
+        .animation(DexMotion.overlay, value: offeringTour)
     }
 
     /// Per-tile colours, tuned separately for the pale and dark grounds
@@ -152,6 +152,13 @@ public struct SettingsPanel: View {
         action: @escaping () -> Void
     ) -> some View {
         let style = tileColors(title)
+        // C5 (0.7.1): the `controlAccent` doc has claimed since 0.5.4 that the
+        // settings tiles follow the screen mode. They never did — this table
+        // was the counter-example, six literals with an `isLight` branch. Under
+        // an Emulator mode they follow it now, and everywhere else the table
+        // stands exactly as tuned.
+        let paint = lcd.chrome(face: style.face, shadow: style.shadow)
+        let ink = lcd.chromeInk(over: style.face, preferring: style.ink)
 
         return Button {
             Haptics.screenTap()
@@ -160,12 +167,12 @@ public struct SettingsPanel: View {
             VStack(spacing: 12) {
                 Image(systemName: symbol)
                     .font(.system(size: 44, weight: .semibold))
-                    .foregroundStyle(style.ink)
+                    .foregroundStyle(ink)
                     .shadow(color: .black.opacity(0.3), radius: 0, x: 1, y: 2)
                 Text(title)
                     .font(DexFont.retro(13))
                     .tracking(1)
-                    .foregroundStyle(style.ink)
+                    .foregroundStyle(ink)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                     .shadow(color: .black.opacity(0.35), radius: 0, x: 1, y: 1)
@@ -173,10 +180,10 @@ public struct SettingsPanel: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(dexHex: style.face))
+                    .fill(paint.face)
                     .overlay(alignment: .bottom) {
                         // The same 6pt fake extrusion the menu tiles carry.
-                        Color(dexHex: style.shadow).frame(height: 6)
+                        paint.shadow.frame(height: 6)
                     }
                     .clipShape(RoundedRectangle(cornerRadius: 10))
             )
@@ -278,8 +285,8 @@ public struct SettingsSectionPanel: View {
                 )
             }
         }
-        .animation(.easeOut(duration: 0.15), value: lockedBundle)
-        .animation(.easeOut(duration: 0.15), value: confirmingWipe)
+        .animation(DexMotion.overlay, value: lockedBundle)
+        .animation(DexMotion.overlay, value: confirmingWipe)
     }
 
     /// DATA is a fixed page (0.6.4, C2) — everything else scrolls.
@@ -696,7 +703,17 @@ public struct SettingsSectionPanel: View {
                             .lineLimit(2)
                             .multilineTextAlignment(.center)
                             .minimumScaleFactor(0.6)
-                            .frame(height: 28)
+                            // `minHeight`, not `height` (0.7.1, A4).
+                            // `minimumScaleFactor` resolves a *width*
+                            // shortfall; it does nothing about a two-line box
+                            // exceeding a hard height. VINODEX CLASSIC in an
+                            // 82pt cell settles near 0.94 to fit its longest
+                            // word, and two lines at 11.5 × 0.94 × the face's
+                            // 1.374 em line height is 29.7pt against 28 — the
+                            // second line's descenders clipped. A minimum
+                            // still gives the congruent box the note above
+                            // wants, and lets the rare tall case breathe.
+                            .frame(minHeight: 28)
                     }
                     .foregroundStyle(skin == option ? lcd.onAccent : lcd.subtext)
                     .padding(.horizontal, 8)
@@ -862,9 +879,16 @@ public struct SettingsSectionPanel: View {
                             Haptics.select()
                             uiScaleRaw = option.rawValue
                         } label: {
+                            // The guards its sibling `textSize` carries, and
+                            // the note that explains them (0.7.1, A4). This
+                            // has two options and does not break today; it
+                            // breaks the day a third is added, which is
+                            // exactly the change that broke `textSize` and
+                            // produced that note.
                             Text(option.rawValue)
                                 .font(DexFont.retro(13))
-                                .tracking(1)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
                                 .foregroundStyle(uiScale == option ? lcd.onAccent : lcd.subtext)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 17)
@@ -1114,7 +1138,7 @@ public struct DexToggle: View {
                     .padding(4)
             }
             .frame(width: width, height: height)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isOn)
+            .animation(DexMotion.settle, value: isOn)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(isOn ? "On" : "Off")
@@ -1330,6 +1354,12 @@ enum SavedDataReset {
         StreakStore.shared.reset()
         // The back plate goes back to the scatter it ships with (0.6.7, C1).
         StampLayoutStore.shared.reset()
+        // The stamp-unlock ledger and the pin bar (0.7.1, D2/B5). Both are
+        // user state that survives a wipe otherwise: an un-reset ledger would
+        // silently swallow the celebrations of a fresh start, which is the one
+        // run where earning FIRST SIP again actually means something.
+        PassportProgress.shared.reset()
+        QuickPinStore.shared.reset()
         ScreenStateStore.shared.clear()
         SearchStateStore.shared.clear()
 
@@ -1344,6 +1374,9 @@ enum SavedDataReset {
             QuizProgress.storageKey,
             QuizProgress.completedKey,
             StampLayoutStore.storageKey,
+            BookmarkStore.triedDaysKey,
+            PassportProgress.storageKey,
+            QuickPinStore.storageKey,
             StreakStore.streakKey,
             StreakStore.lastDayKey,
             StreakStore.bestKey,

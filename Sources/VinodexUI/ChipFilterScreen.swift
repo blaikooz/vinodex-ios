@@ -192,7 +192,12 @@ public struct ChipFilterScreen: View {
     /// The running total, and the way out of a filter that has gone too far.
     private var summary: some View {
         HStack(spacing: 12) {
-            Image(systemName: "line.3.horizontal.decrease.circle.fill")
+            // The magnifier (0.7.1, A2): this card is the head of MASTER
+            // SEARCH, and the screen's own hero cannot be wearing the filter
+            // bars while the button that opened it wears a magnifier. The bars
+            // stay where they mean "a filter is narrowing a list you are
+            // already looking at" — `EncyclopediaListScreen.filterBanner`.
+            Image(systemName: DexGlyph.search)
                 .font(.system(size: 26, weight: .semibold))
                 .foregroundStyle(lcd.accent)
 
@@ -252,9 +257,17 @@ public struct ChipFilterScreen: View {
                 Image(systemName: "slider.horizontal.3")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(lcd.accent)
+                // Guarded (0.7.1, A4): with a filter on, the row needed
+                // 334pt of a 311pt width — glyph, label, the "n ON" badge and
+                // the chevron — and the label wrapped to two lines the moment
+                // a chip was lit. It read correctly at rest, which is why it
+                // stood. `layoutPriority` on the badge below decides which of
+                // the two gives.
                 Text("FILTER CHIPS")
                     .font(DexFont.retro(12))
                     .tracking(1)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                     .foregroundStyle(lcd.text)
                 if filter.count > 0 {
                     Text("\(filter.count) ON")

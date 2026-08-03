@@ -135,7 +135,7 @@ public struct DeviceBackPlate: View {
                 )
             }
         }
-        .animation(.easeOut(duration: 0.15), value: openStamp)
+        .animation(DexMotion.overlay, value: openStamp)
         // A dark edge all the way round. Without it the plate's pale metal ran
         // straight into the chassis behind it and the underside read as a
         // lighting change rather than as a separate part that has been turned
@@ -289,7 +289,7 @@ public struct DeviceBackPlate: View {
                             radius: 12,
                             y: 8
                         )
-                        .animation(.spring(response: 0.25, dampingFraction: 0.65), value: lifted)
+                        .animation(DexMotion.press, value: lifted)
                         // Frame and position first — everything below this line
                         // is attached to a view already sitting where it belongs
                         // in the plate's coordinate space, which is what stops
@@ -338,8 +338,24 @@ public struct DeviceBackPlate: View {
                         // right moved a tilted stamp right-and-up, and moved it
                         // further than the finger went. Measuring in the plate's
                         // own space is transform-free by construction.
+                        //
+                        // **Shortened to 0.25s (0.7.1, D3.)** The 0.7.0 fix
+                        // above is arithmetically right — the stamp tracks the
+                        // finger exactly — and D3 still arrived saying dragging
+                        // does not work. The remaining failure is not the
+                        // tracking, it is the *entry*: `LongPressGesture` fails
+                        // if the finger travels more than ~10pt before the
+                        // duration elapses, so anyone who presses and starts
+                        // moving straight away — which is what "drag this" means
+                        // to almost everybody — gets no gesture at all and
+                        // concludes it is broken. 0.35s is a long time to hold
+                        // perfectly still. 0.25 is about the shortest that still
+                        // cannot fire on a tap, and it is paired with the
+                        // engraved hint on the plate (see `nameplate`) so the
+                        // hold is something the device tells you about rather
+                        // than something you have to guess.
                         .gesture(
-                            LongPressGesture(minimumDuration: 0.35)
+                            LongPressGesture(minimumDuration: 0.25)
                                 .onEnded { _ in
                                     armed = stamp.id
                                     Haptics.select()
@@ -364,11 +380,30 @@ public struct DeviceBackPlate: View {
                                     // The press completed but the finger lifted
                                     // without moving: nothing to commit, and the
                                     // stamp settles back where it was.
-                                    guard case .second(true, let move?) = value else { return }
+                                    //
+                                    // **Falls back to the last live translation**
+                                    // (0.7.1, D3). A sequenced gesture that is
+                                    // interrupted rather than released — the
+                                    // classic case being an incoming call or the
+                                    // device being turned over mid-drag — can
+                                    // end without a `.second` payload, and the
+                                    // 0.7.0 code silently discarded the move. A
+                                    // position the user visibly dragged a stamp
+                                    // to and then lost is the exact complaint
+                                    // D3 makes, so the last translation this
+                                    // drag reported is committed instead.
+                                    let translation: CGSize
+                                    if case .second(true, let move?) = value {
+                                        translation = move.translation
+                                    } else if dragging == stamp.id, drag != .zero {
+                                        translation = drag
+                                    } else {
+                                        return
+                                    }
                                     let settled = Self.clamp(
                                         CGPoint(
-                                            x: home.x + CGFloat(moved.dx) + move.translation.width,
-                                            y: home.y + CGFloat(moved.dy) + move.translation.height
+                                            x: home.x + CGFloat(moved.dx) + translation.width,
+                                            y: home.y + CGFloat(moved.dy) + translation.height
                                         ),
                                         in: geo.size
                                     )
@@ -386,6 +421,15 @@ public struct DeviceBackPlate: View {
                         )
                         .accessibilityLabel("\(stamp.title) stamp. Opens its story.")
                         .accessibilityHint("Press and hold, then drag to move it on the plate.")
+                        // VoiceOver cannot perform a hold-then-drag at all, so
+                        // the two things the gesture does are also offered as
+                        // named actions (0.7.1, D3): put it back where it was
+                        // issued, which is the only destination a screen reader
+                        // user could name unambiguously.
+                        .accessibilityAction(named: "Reset position") {
+                            layout.move(stamp.id, to: .zero)
+                            Haptics.select()
+                        }
                 }
             }
             // The space every drag is measured in — the plate's, not a stamp's.
@@ -650,6 +694,29 @@ public struct DeviceBackPlate: View {
             // this block. All three were the same mistake: a line of text
             // standing in for a control. The gesture it described is gone and
             // the control it should have been is in the bottom-right corner.
+            //
+            // **The stamp hint is not that mistake** (0.7.1, D3), and the
+            // difference is worth stating since this is the same spot. That
+            // line stood in for a control — there was no other way to go back.
+            // This one describes a *secondary* gesture on an object that is
+            // already fully usable without it: every stamp taps to open its
+            // story, and the hold is the extra. Engraved into the moulding
+            // alongside the other plant markings, at the smallest size on the
+            // plate, because it is documentation of the object rather than an
+            // instruction to the user — and D3's report was, at root, that
+            // nothing anywhere said the hold existed.
+            Text("HOLD A STAMP TO REPOSITION")
+                // `retro(10)`: `TypeScale.nominalFloor` clamps anything below
+                // it *before* the scale factor, so a smaller number here would
+                // describe a size that never renders — the trap `StampFrame`
+                // documents at length a few files over.
+                .font(DexFont.retro(10))
+                .tracking(1)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .foregroundStyle(plate.ink.opacity(0.75))
+                .engraved()
+                .padding(.top, 10)
 
             Spacer(minLength: 0)
         }

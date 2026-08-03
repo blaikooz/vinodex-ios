@@ -194,10 +194,20 @@ public struct MoonDialScreen: View {
 
     private func row(_ label: String, _ value: String, grow: CGFloat) -> some View {
         HStack(spacing: 10) {
+            // Guarded like every other block on this page (0.7.1, A4). The
+            // file's own header states the rule — everything `lineLimit`-ed
+            // with a `minimumScaleFactor` so a larger text step shrinks words
+            // into the rows they have — and the label was the one exception.
+            // At HUGE on the shortest device, MOON IN / SAGITTARIUS needs
+            // 276.4pt in a 273.7pt card and DAY TYPE / FLOWER DAY needs 275.1:
+            // the value can shrink and the label could not, so the *label* was
+            // what broke, to DAY / TYPE.
             Text(label)
                 .font(DexFont.retro(10 + 3 * grow))
                 .tracking(1)
                 .foregroundStyle(lcd.subtext)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
             Spacer(minLength: 8)
             Text(value)
                 .font(DexFont.retro(11 + 3.5 * grow))

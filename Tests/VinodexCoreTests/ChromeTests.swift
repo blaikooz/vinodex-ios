@@ -22,7 +22,6 @@ struct ChromeTests {
     /// which fails if a route is added and not listed.
     static let allRoutes: [DexRoute] = {
         var routes: [DexRoute] = [
-            .masterSearch,
             .detail(entryID: "does-not-exist"),
             .globe,
             .globeSearch,
@@ -129,20 +128,45 @@ struct ChromeTests {
     /// Bump the number *and* add the route to `allRoutes` together.
     @Test("the route list covers the whole enum")
     func routeListIsComplete() {
-        // 18 simple + 5 categories + 5 settings sections = 28.
-        #expect(Self.allRoutes.count == 28, "add the new route to `allRoutes`")
+        // 17 simple + 5 categories + 5 settings sections = 27. Was 28 until
+        // 0.7.1 (A1) retired `.masterSearch`, whose title `.chipFilter` now
+        // carries.
+        #expect(Self.allRoutes.count == 27, "add the new route to `allRoutes`")
     }
 
-    // MARK: The streak flame (D1)
+    // MARK: The shared glyph constants (0.7.0 D1, 0.7.1 E1/A2)
 
-    /// D1 asked for the fire icon to change *everywhere it is used*. The way
-    /// that became checkable is that there is now one place; this asserts the
-    /// route table reads it rather than carrying its own literal, which is the
-    /// exact failure D1 was fixing (the marquee showed a `calendar`).
-    @Test("the daily challenge wears the shared flame")
-    func dailyChallengeUsesTheFlameConstant() {
-        #expect(DexRoute.dailyChallenge.marqueeSymbol == DexGlyph.streakFlame)
-        #expect(DexGlyph.streakFlame != "flame.fill", "D1 asked for a different fire icon")
+    /// D1 asked for the fire icon to change *everywhere it is used*, and E1
+    /// asked for it to stop being fire at all. The way either became checkable
+    /// is that there is one place; this asserts the route table reads it rather
+    /// than carrying its own literal, which is the exact failure D1 was fixing
+    /// (the marquee showed a `calendar`).
+    @Test("the daily challenge wears the shared challenge glyph")
+    func dailyChallengeUsesTheSharedConstant() {
+        #expect(DexRoute.dailyChallenge.marqueeSymbol == DexGlyph.challenge)
+        // E1/E2: no fire anywhere on the challenge, in any of its forms. The
+        // catalog's own `lucide:flame` is a different icon on a different
+        // subject and is untouched.
+        #expect(!DexGlyph.challenge.contains("flame"), "E1 asked for the fire to go")
+    }
+
+    /// A2: one magnifying glass, and every search affordance reads it.
+    ///
+    /// The UI is where the glyph is drawn, so no Linux gate can see a stray
+    /// literal on a button — but the two search *routes* are Core, and this
+    /// pins the rule that the app's search wears `DexGlyph.search` while the
+    /// world search deliberately does not (it is a search of places, and
+    /// `glyphsAreDistinct` above would fail if both claimed the magnifier).
+    @Test("master search wears the one magnifier")
+    func searchGlyphIsUnified() {
+        #expect(DexGlyph.search == "magnifyingglass")
+        #expect(DexRoute.chipFilter.marqueeSymbol == DexGlyph.search)
+        #expect(DexRoute.chipFilter.title == "MASTER SEARCH")
+        #expect(DexRoute.globeSearch.marqueeSymbol != DexGlyph.search)
+        // E3/A2 together: the blind tasting left the magnifier family, so no
+        // second glyph in the app can be mistaken for the search.
+        #expect(!DexRoute.scanner.marqueeSymbol.contains("magnifyingglass"))
+        #expect(DexRoute.scanner.title == "BLIND TASTING")
     }
 
     // MARK: Page room (J1/J2/J3)

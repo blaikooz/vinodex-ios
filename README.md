@@ -82,11 +82,14 @@ LCD never changes with the skin, so a colourway can never hurt legibility.
 | **Vinho Verde** | Glow-in-the-dark green, glowing rim | Charged green | Green |
 | **Stainless Steel** | Brushed aluminium, crisp dark seams | Ice | Ice blue |
 
-Plus ten screen modes — dark, light, monochrome VINTAGE (black on grey-green
-like an old organiser), AMBER and TERMINAL phosphors, the GRÜNERBOY dot-matrix,
-the early-GUI WINE.OS, the VINOFD blue tube, and the L-WINES console. Two text
-sizes, a haptics switch, and an authored SFX pack — clicks, pings and stings,
-off by default — with its own switch.
+Plus nine screen modes in three groups. **Classic** is dark and light.
+**Retro** is period display hardware — monochrome VINTAGE (black on grey-green
+like an old organiser), the AMBER and TERMINAL phosphors, and the GRÜNERBOY
+dot-matrix. **Emulator** quotes one specific machine each — the early-GUI
+WINE.OS, the VINOFD blue tube, the L-WINES console — and each Emulator mode
+repaints the LCD's coloured chrome in its own palette rather than wearing the
+house colours. Two text sizes, a haptics switch, and an authored SFX pack —
+clicks, pings and stings, off by default — with its own switch.
 
 ## The web app is the sibling, not the source
 

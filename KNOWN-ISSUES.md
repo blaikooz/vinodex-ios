@@ -47,6 +47,24 @@ dead — is this bug.
 
 **Fix, in this order.** Order is the whole point.
 
+> **There is a script now: `scripts/fix-27015.ps1`** (added 0.7.1). Right-click
+> → Run as administrator, or `Start-Process powershell -Verb RunAs -ArgumentList
+> '-ExecutionPolicy','Bypass','-File','H:\vscode-projects\HGapps\vinodex-ios\scripts\fix-27015.ps1'`.
+> It does all three steps in one elevated pass, dispatches step 2 through
+> `explorer.exe` so the Store app still launches unelevated, waits up to 20s for
+> Apple to take `127.0.0.1:27015`, and **refuses to re-add the proxy if Apple
+> did not get it** — which is the failure the manual sequence below can walk
+> straight past. The steps are kept here because the script is a transcription
+> of them and the reasoning is what matters.
+>
+> **A note on `AMPDevicesAgent`.** The healthy listener is sometimes this
+> rather than `AppleMobileDeviceProcess`; both are Apple's side and either is
+> fine. What is *not* fine is seeing it listening on some five-digit port
+> (`127.0.0.1:55095` and friends) — that is the ephemeral fallback, and it
+> means the proxy won the race. Do not point `USBMUXD_SOCKET_ADDRESS` at it:
+> it is the launcher's own IPC, not usbmuxd, so you connect fine and speak the
+> wrong protocol.
+
 ```powershell
 # 1. ELEVATED — free the port and stop Apple's processes
 netsh interface portproxy delete v4tov4 listenport=27015 listenaddress=0.0.0.0

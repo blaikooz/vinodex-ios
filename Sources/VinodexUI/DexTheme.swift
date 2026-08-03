@@ -304,12 +304,34 @@ public enum DexMetrics {
     /// instead, which put it ~70pt further left than this and left an obvious
     /// empty run of chassis outboard of it.
     ///
-    /// **`cornerGuardH + 20` since 0.7.0 (G1)** — the trio's half of the same
+    /// **`cornerGuardH + 20` in 0.7.0 (G1)** — the trio's half of the same
     /// move, kept as an offset from the guard rather than as a fresh literal so
     /// the two clusters still travel the same distance from their own edges and
-    /// stay a mirrored pair. On 393pt the trio now spans ~282→347 against an
-    /// island ending at 259: ~23pt of clearance.
-    public static let islandStatusInsetTrailing: CGFloat = cornerGuardH + 20
+    /// stay a mirrored pair.
+    ///
+    /// **Back to `cornerGuardH + 6` in 0.7.1 (A4), and the reason is a warning
+    /// about how this number gets spent.** G1's note claimed "~282→347 against
+    /// an island ending at 259: ~23pt of clearance". That was true when it was
+    /// written and stopped being true in the same release: a 282→347 span is
+    /// 65pt, which is the *old* 17pt trio, and A5 then grew the lamps to 22pt
+    /// for a 79.4pt trio without re-deriving the span. Worse, both edits were
+    /// budgeted against the same figure — the "~43pt of clearance" 0.6.8
+    /// measured — G1 spending 20 of it and A5 another 17, neither aware of the
+    /// other. Actual clearance had fallen to **8.1pt** at UI SIZE = SMALL and
+    /// **1.2pt** at LARGE, where the orb is 40pt and the trio 86.3: the
+    /// leftmost lamp was touching the cutout.
+    ///
+    /// At `+6` the trio spans 281.6→361 at SMALL and 274.7→361 at LARGE, for
+    /// 22.1pt and 15.2pt of clearance against an island ending near 259.5 on a
+    /// 393pt phone. The mirrored-pair reading survives — the orb's own leading
+    /// inset is `cornerGuardH`, so the two clusters are within six points of
+    /// travelling the same distance from their edges.
+    ///
+    /// **Do not spend this again without re-deriving the span.** The trio is
+    /// `3 × islandStatusDot + 2 × statusDotSpacing`, and both of those scale
+    /// with `UIScale`; the clearance is `deviceWidth − thisInset − trio −
+    /// islandRightEdge`, and the binding case is LARGE, not SMALL.
+    public static let islandStatusInsetTrailing: CGFloat = cornerGuardH + 6
     // `islandStatusRise` retired in 0.6.9 (E1). 0.6.8's F3 lifted the lamp trio
     // 6pt off the orb's centre line so the two clusters read as separate
     // objects rather than as one interrupted row of four lamps. E1 answers
@@ -346,16 +368,30 @@ public enum DexMetrics {
     // width on all four sides — `bezelFrame` is that width, and there is no
     // longer a second one.
     /// Spacing between the three status lamps. Widened with the lamps
-    /// themselves (0.6.6, E3; again 0.6.7, F3) so the trio still reads as three
-    /// lights rather than one blob now that each is bigger.
-    public static let statusDotSpacing: CGFloat = 0.34 * rem
+    /// themselves (0.6.6, E3; again 0.6.7, F3; again 0.7.1, A5/A6) so the trio
+    /// still reads as three lights rather than one blob now that each is
+    /// bigger — and now that each carries a milled rim of its own, which needs
+    /// a little air around it or three rims run together into a chain.
+    public static let statusDotSpacing: CGFloat = 0.42 * rem
     /// The three lamps in the strip's right corner, level with the cutout.
     ///
     /// Bigger again in 0.6.7 (F3) — 0.6.6 sized them off the orb at 0.38 and
-    /// they still read as specks beside a cutout 37pt tall. 0.46 of a
-    /// (now larger) orb, floored at 17, puts them at ~18pt: a lamp you can see
-    /// from arm's length rather than a pixel you have to look for.
-    public static var islandStatusDot: CGFloat { max(islandOrb * 0.46, 17) }
+    /// they still read as specks beside a cutout 37pt tall.
+    ///
+    /// **Bigger again in 0.7.1 (A5).** 0.6.7's ~18pt lamps were legible; what
+    /// they were not was *equipment*. The orb across the strip is 35pt, and at
+    /// half that the trio still read as indicator pinpricks rather than as the
+    /// other half of a mirrored pair of blocks — which is what 0.6.8's F3
+    /// arranged them to be. 0.60 of the orb, floored at 22, puts them at 22pt,
+    /// and A6's recessed rim needs the diameter: the wall, the lip and the
+    /// specular bead are all fractions of it and none of them survive at 17.
+    ///
+    /// The trio grows from 62pt wide to 79.4 at UI SIZE = SMALL and 86.3 at
+    /// LARGE. That was paid for twice over — see the correction on
+    /// `islandStatusInsetTrailing`, which is where the room actually came
+    /// from — and the arithmetic is written out there rather than here because
+    /// the inset is the thing anyone changing this has to look at.
+    public static var islandStatusDot: CGFloat { max(islandOrb * 0.60, 22) }
     // `statusDotsGap` and `statusDotsRise` retired in 0.6.5 (C1): both measured
     // the cluster's placement relative to the orb, and the cluster no longer
     // sits beside the orb — it has the opposite corner of the strip to itself.
@@ -591,16 +627,44 @@ public enum DexMetrics {
     /// now allowed to fill the panel rather than sitting in the middle of it.
     public static let marqueeTextInset: CGFloat = 10
 
-    /// The main screen's greeting cycle (0.6.9, D3).
+    /// The ordinary marquee cross-fade — a route title replacing another.
     ///
-    /// Dwell then cross-fade, forever, through CHEERS / SANTE / SALUTE / PROST
-    /// / KANPAI. 2.6s is long enough to read a short word twice over and short
-    /// enough that the panel is visibly *doing* something on a screen with no
-    /// other movement left on it; the fade is slow enough to read as a dissolve
-    /// rather than as a redraw. Suspended entirely under Reduce Motion — see
-    /// `MarqueeBanner.cycle()`.
-    public static let marqueeGreetingDwell: Double = 2.6
+    /// Was the greeting cycle's fade (0.6.9, D3), and outlived the cycle:
+    /// 0.7.1's B1-B3 retired the five-toast loop and `marqueeGreetingDwell`
+    /// with it (the dwells are `MarqueeStage.timeout` now, in Core, where they
+    /// can be tested), but every screen's title still arrives this way. 0.55s
+    /// is slow enough to read as a change and short enough not to lag a
+    /// navigation the rest of the app has already completed.
     public static let marqueeGreetingFade: Double = 0.55
+
+    /// Overlay in and out: alerts, prompts, the marquee drawer, a mode
+    /// switching under a picker (0.7.1, F3).
+    ///
+    /// 0.15s eased out. Not a new number — it is the one thirteen call sites
+    /// across seven files had already converged on by writing
+    /// `.easeOut(duration: 0.15)` out longhand. F3 asks for the timings to be
+    /// standardised, and the honest first step is to notice that most of them
+    /// already were and give the agreement a name, so that the fourteenth
+    /// overlay inherits it instead of guessing again. See `DexMotion`.
+    public static let overlayFade: Double = 0.15
+
+    /// The pixel dissolve between the main screen's scripted stages
+    /// (0.7.1, B2/B3).
+    ///
+    /// **Two and a half times the cross-fade, deliberately.** B2 asks for a
+    /// *slow* pixelated fade, and slowness is doing real work here rather than
+    /// being a stylistic preference: the effect is cells switching over one at
+    /// a time, and below about a second there are not enough frames between
+    /// the first cell and the last for a viewer to see them go individually —
+    /// it collapses into a single flicker and reads as a glitch. 1.4s is the
+    /// point where WELCOME! is visibly *eroding* into MENU.
+    ///
+    /// It can afford to be slow because nothing waits on it. Both transitions
+    /// it runs are unprompted — a launch settling, and ten seconds of nobody
+    /// touching the device — so there is no user standing by for it to finish.
+    /// That is also why it never runs on a route title, which always has
+    /// someone waiting: see `MarqueeBanner.pixelFades`.
+    public static let marqueePixelFade: Double = 1.4
 
     /// Button band (0.6.5, A/B; restructured 0.6.7 G, resized 0.6.8 E)
     ///
@@ -772,6 +836,51 @@ public enum DexMetrics {
     public static let scanlineOpacity: Double = 0.2
 }
 
+// MARK: - Motion
+
+/// The app's shared animation curves (0.7.1, F3).
+///
+/// **What F3 actually found.** The instruction was to standardise transitions
+/// and animations so screen changes, fades and popups feel uniform, and the
+/// starting assumption was that they did not. Mostly they did: thirteen call
+/// sites in seven files had independently written `.easeOut(duration: 0.15)`
+/// for showing an overlay, and two had independently written a spring for a
+/// thing being picked up. What was missing was not agreement — it was anywhere
+/// to *record* the agreement, so each new surface re-derived it and the ones
+/// that drifted (a 0.2/0.6 press spring, a 0.25/0.7 toggle spring, a 0.25/0.65
+/// lift spring: three springs for three variations on one idea) drifted
+/// silently.
+///
+/// So this is four named curves rather than a new motion language. Each says
+/// what *kind* of event it is for, because that is the question a call site can
+/// actually answer — "is this an overlay appearing or a control responding" is
+/// answerable; "should this be 0.15 or 0.18" is not.
+///
+/// Reduce Motion is deliberately **not** handled here. It is a decision about
+/// whether a movement should happen at all, and the answer differs per movement
+/// — `PulseGlow` settles on a still glow, `MarqueeBanner` swaps the dissolve
+/// for a cross-fade, the drawer swaps a slide for a fade. A curve that
+/// secretly became `nil` would hide all three of those judgements behind one.
+public enum DexMotion {
+    /// Something appearing over the screen and going away again: alerts,
+    /// upgrade prompts, the rating sheet, the marquee drawer's scrim.
+    public static let overlay = Animation.easeOut(duration: DexMetrics.overlayFade)
+
+    /// One string replacing another in place — the marquee's route titles, and
+    /// anything else that changes text without moving.
+    public static let crossfade = Animation.easeInOut(duration: DexMetrics.marqueeGreetingFade)
+
+    /// A dragged thing coming to rest, or a segmented control moving its
+    /// selection. Damped high: this is furniture settling, not something
+    /// springing.
+    public static let settle = Animation.spring(response: 0.28, dampingFraction: 0.82)
+
+    /// A control answering a finger — a cap depressing, a stamp lifting off
+    /// the plate. Looser, because a physical control that answered without
+    /// overshoot at all would read as a picture of a button.
+    public static let press = Animation.spring(response: 0.24, dampingFraction: 0.66)
+}
+
 // MARK: - Fonts
 //
 // Registered from the bundle at runtime via CoreText. This is the pattern
@@ -935,11 +1044,19 @@ public enum UIScale: String, CaseIterable, Identifiable, Sendable {
 /// `allCases` order is picker order. Membership is *not* declared here — see
 /// `LcdMode.section` for why the arrow points that way.
 public enum LcdModeSection: String, CaseIterable, Identifiable, Sendable {
-    /// The house themes: no conceit beyond light, dark, and the desktop one.
+    /// The house themes: no conceit beyond light and dark.
     case classic = "CLASSIC"
     /// Period display hardware — phosphor and reflective LCD, monochrome by
     /// construction rather than by palette.
-    case vintage = "VINTAGE"
+    ///
+    /// **VINTAGE → RETRO (0.7.1, C1.)** The heading and the mode `LcdMode.vintage`
+    /// both read "VINTAGE", so the picker printed a group called VINTAGE with a
+    /// tile called VINTAGE inside it and two other tiles that were not — the
+    /// heading looked like a mislabelled tile. RETRO names the same idea without
+    /// colliding with any mode, and the case is renamed with it because *no
+    /// section is persisted anywhere*: the mode rawValues are the storage, and
+    /// they do not move.
+    case retro = "RETRO"
     /// Modes that quote one specific machine's screen.
     case emulator = "EMULATOR"
 
@@ -1020,11 +1137,22 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// Written this way round the compiler will not build a mode that has no
     /// home, and `LcdModeSection.modes` derives from `allCases`, so a mode
     /// cannot be listed twice either.
+    ///
+    /// **Two modes swapped groups in 0.7.1 (C2, C3).** WINE.OS was filed under
+    /// CLASSIC because it is a *light* mode and the light modes lived together;
+    /// but it is an homage to one specific desktop, which is the whole
+    /// definition of EMULATOR, and it left CLASSIC as what that heading always
+    /// meant — light and dark, and nothing else. GRÜNERBOY went the other way:
+    /// it is a reflective dot-matrix LCD running the same grayscale-and-tint
+    /// pass as VINTAGE, AMBER and TERMINAL, so it belongs with the period
+    /// display *hardware* rather than with the machines that merely quote a
+    /// colour scheme. Membership is derived from this switch, so both moves are
+    /// one line each and the picker follows.
     public var section: LcdModeSection {
         switch self {
-        case .dark, .light, .wineOS: .classic
-        case .amber, .vintage, .terminal: .vintage
-        case .starTrek, .gruenerBoy, .blueScreen: .emulator
+        case .dark, .light: .classic
+        case .amber, .vintage, .terminal, .gruenerBoy: .retro
+        case .starTrek, .blueScreen, .wineOS: .emulator
         }
     }
 
@@ -1393,6 +1521,135 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     public static var current: LcdMode {
         LcdMode(rawValue: UserDefaults.standard.string(forKey: storageKey) ?? "") ?? .dark
     }
+
+    /// The next mode in the roster, wrapping — the twin of `ChassisSkin.next`
+    /// (0.7.1, B5). The drawer's NEXT SCREEN tile is the only caller; it walks
+    /// `allCases` declaration order rather than picker order, so the cycle
+    /// crosses group boundaries and eventually shows you all nine.
+    public var next: LcdMode {
+        let all = LcdMode.allCases
+        let i = all.firstIndex(of: self) ?? 0
+        return all[(i + 1) % all.count]
+    }
+
+    // MARK: Themed chrome (0.7.1, C5)
+
+    /// Whether this mode repaints the LCD's coloured controls in its own
+    /// palette.
+    ///
+    /// True for the EMULATOR group only, and the group is the argument. CLASSIC
+    /// is the app being itself — DARK and LIGHT are supposed to show the house
+    /// colours, and a green BLIND TASTING tile beside a purple WINE EXAM tile is
+    /// the design, not a leak. RETRO already has a stronger mechanism: those
+    /// four modes run the chassis's grayscale-and-tint pass over the entire LCD
+    /// (`DeviceChassis`), so their tiles are *already* one palette and tinting
+    /// the source colours first would only change which greys came out.
+    ///
+    /// That leaves EMULATOR, where every mode quotes a specific machine in full
+    /// colour and nothing was making the chrome agree with it. L-WINES is a
+    /// black-glass console with amber readouts that had six saturated Tailwind
+    /// tiles bolted to it.
+    public var themesChrome: Bool { section == .emulator }
+
+    /// A coloured control's face and shadow under this screen mode (0.7.1, C5).
+    ///
+    /// Call sites keep passing the hand-picked hex pair they always passed;
+    /// under an Emulator mode this folds it toward that mode's own ramp and
+    /// hands back the result. **The blend, not a replacement**, and that is the
+    /// legibility half of C5: replacing the literals would make all six tools
+    /// tiles the same colour and destroy the only thing telling them apart at a
+    /// glance, so the original hue survives at 40% and the mode's `bright`
+    /// supplies the other 60%. Six distinguishable tiles that are recognisably
+    /// one machine's palette, rather than six identical ones or six that ignore
+    /// the machine.
+    ///
+    /// Contrast is not left to the blend. The ink a caller draws on top is
+    /// `chromeInk(over:)`, which picks black or white by the *blended* face's
+    /// luminance rather than by the literal that went in — the two can land on
+    /// opposite sides of the line, which is exactly how a themed control ends up
+    /// with unreadable text.
+    ///
+    /// Non-Emulator modes get `Color(dexHex:)` on the untouched strings, so this
+    /// is a no-op everywhere it should be one.
+    public func chrome(face: String, shadow: String) -> (face: Color, shadow: Color) {
+        guard themesChrome else {
+            return (Color(dexHex: face), Color(dexHex: shadow))
+        }
+        let ramp = controlAccent
+        return (
+            DexRGB(hex: face).mixed(with: ramp.brightRGB, amount: 0.6).color,
+            DexRGB(hex: shadow).mixed(with: ramp.edgeRGB, amount: 0.6).color
+        )
+    }
+
+    /// The ink to draw over a face this mode produced.
+    ///
+    /// Callers pass the *literal* they would have used, and the face string they
+    /// gave `chrome(face:shadow:)`; on a non-Emulator mode the preference is
+    /// honoured untouched, because the existing tiles were hand-checked (the
+    /// tools shelf's note on why the yellow and cyan faces deepened a step to
+    /// keep white on them is exactly that work, and it should not be redone by a
+    /// formula). On an Emulator mode the face has moved, so the preference is
+    /// re-derived from where it moved to.
+    public func chromeInk(over face: String, preferring preferred: Color) -> Color {
+        guard themesChrome else { return preferred }
+        let blended = DexRGB(hex: face).mixed(with: controlAccent.brightRGB, amount: 0.6)
+        // 0.55 rather than 0.5: white-on-mid reads worse than black-on-mid at
+        // the 13pt retro face these labels use, so the tie goes to dark ink.
+        return blended.luminance > 0.55 ? controlAccent.ink : .white
+    }
+}
+
+/// A colour as three channels, so two of them can be mixed.
+///
+/// SwiftUI's `Color` is opaque — there is no supported way back out to
+/// components without going through `UIColor`, which would make this file
+/// UIKit-dependent for arithmetic that is four lines of `Double`. Everything
+/// upstream is already `#RRGGBB` strings (`Color(dexHex:)`, `ChassisAccent`,
+/// every tile literal), so the strings are the honest input.
+public struct DexRGB: Sendable, Equatable {
+    public var r: Double
+    public var g: Double
+    public var b: Double
+
+    /// Parses `#RRGGBB`. Falls back to mid grey on anything else, matching
+    /// `Color(dexHex:)`'s own behaviour rather than trapping — a colour is
+    /// never worth a crash.
+    public init(hex raw: String) {
+        let value = raw.trimmingCharacters(in: .whitespaces)
+        let digits = value.hasPrefix("#") ? String(value.dropFirst()) : value
+        guard digits.count == 6, let bits = UInt32(digits, radix: 16) else {
+            (r, g, b) = (0.47, 0.44, 0.42)
+            return
+        }
+        r = Double((bits >> 16) & 0xFF) / 255
+        g = Double((bits >> 8) & 0xFF) / 255
+        b = Double(bits & 0xFF) / 255
+    }
+
+    public init(r: Double, g: Double, b: Double) {
+        self.r = r
+        self.g = g
+        self.b = b
+    }
+
+    /// `amount` of `other`, the rest of self. Linear in sRGB, which is wrong
+    /// physically and right here: the inputs are UI paint chips chosen by eye,
+    /// and a gamma-correct mix of two mid-tones comes back lighter than either
+    /// of the colours a designer picked.
+    public func mixed(with other: DexRGB, amount: Double) -> DexRGB {
+        let t = min(max(amount, 0), 1)
+        return DexRGB(
+            r: r + (other.r - r) * t,
+            g: g + (other.g - g) * t,
+            b: b + (other.b - b) * t
+        )
+    }
+
+    /// Rec. 709 relative luminance, for deciding black ink or white.
+    public var luminance: Double { 0.2126 * r + 0.7152 * g + 0.0722 * b }
+
+    public var color: Color { Color(.sRGB, red: r, green: g, blue: b, opacity: 1) }
 }
 
 /// The six-stop colour ramp one lit chassis button is built from.
@@ -1419,6 +1676,14 @@ public struct ChassisAccent: Sendable {
     /// The glyph.
     public let ink: Color
 
+    /// The two stops kept as components as well as colours, so a ramp can be
+    /// *mixed into* something (0.7.1, C5 — see `LcdMode.chrome(face:shadow:)`).
+    /// `bright` and `edge` are the pair a themed control needs: the face it
+    /// leans toward and the shadow under it. Stored at init rather than parsed
+    /// per call — a tools shelf asks for six of these per render.
+    public let brightRGB: DexRGB
+    public let edgeRGB: DexRGB
+
     public init(pale: String, light: String, bright: String, mid: String, edge: String, ink: String) {
         self.pale = Color(dexHex: pale)
         self.light = Color(dexHex: light)
@@ -1426,6 +1691,8 @@ public struct ChassisAccent: Sendable {
         self.mid = Color(dexHex: mid)
         self.edge = Color(dexHex: edge)
         self.ink = Color(dexHex: ink)
+        self.brightRGB = DexRGB(hex: bright)
+        self.edgeRGB = DexRGB(hex: edge)
     }
 }
 
@@ -1892,7 +2159,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .orangeWine: "ORANGE WINE"
         case .petNat: "PÉT-NAT"
         case .waldglas: "WALDGLAS"
-        case .halloween: "HALLOWEEN"
+        // HALLOWEEN → HALLOWINE (0.7.1, C4). Label only — the rawValue is the
+        // `@AppStorage` key *and* the seed for the back plate's procedural wear
+        // (see `WornOverlay.seed`), so moving it would both reset every device
+        // wearing this shell and repaint the ones that survived.
+        case .halloween: "HALLOWINE"
         }
     }
 

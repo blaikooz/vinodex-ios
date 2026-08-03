@@ -6,13 +6,14 @@ import VinodexCore
 ///
 /// This began as MINIGAMES, when the daily reveal was promoted out of the
 /// settings list and needed a shelf of its own. It has since collected things
-/// with no play in them at all — IDENTIFY is an identification aid, LABEL SCAN
-/// will be another — so the name was promising the wrong thing to anyone
+/// with no play in them at all — BLIND TASTING is an identification aid, LABEL
+/// SCAN will be another — so the name was promising the wrong thing to anyone
 /// looking for either. TOOLS covers both; a game is a tool you use for fun.
 ///
-/// **The shelf is still six tiles** (0.7.0, I1/I2). FILTER SEARCH left it,
-/// because the main menu's big round button is the filter search now and a tool
-/// reachable two ways from one screen is a tool nobody can find; LABEL SCAN took
+/// **The shelf is still six tiles** (0.7.0, I1/I2). MASTER SEARCH left it — it
+/// was called FILTER SEARCH then — because the main menu's big round button is
+/// that screen now and a tool reachable two ways from one screen is a tool
+/// nobody can find; LABEL SCAN took
 /// the empty square. Six keeps the fixed three-row grid that fills the LCD
 /// without scrolling, which is the layout's whole contract.
 ///
@@ -55,16 +56,19 @@ public struct ToolsScreen: View {
                     // first — they are the reason to open this screen while
                     // actually drinking something.
                     //
-                    // **IDENTIFY, not SCANNER** (0.7.0, I3). A UI-string rename
-                    // only, per house convention: `DexRoute.scanner`,
-                    // `ScannerScreen` and `ScannerBackRouter` all keep their
-                    // names, and nothing persisted moves. The old label named
-                    // the mechanism, and on a device where every listing is
-                    // already called a *scan* it named the wrong one — this is
-                    // the tool that tells you what is in the glass.
+                    // **BLIND TASTING** (0.7.1, E3), after IDENTIFY (0.7.0, I3),
+                    // after SCANNER. A UI-string rename each time, per house
+                    // convention: `DexRoute.scanner`, `ScannerScreen` and
+                    // `ScannerBackRouter` all keep their names, and nothing
+                    // persisted moves. SCANNER named the mechanism on a device
+                    // where every listing is already a *scan*; IDENTIFY named
+                    // the verb; BLIND TASTING names what the four steps are —
+                    // colour, body, origin, flavour, with no label in front of
+                    // you. The glyph follows E3 out of the magnifier family
+                    // (A2 reserves those for search) into the premise itself.
                     tile(
-                        title: "IDENTIFY",
-                        symbol: "sparkle.magnifyingglass",
+                        title: "BLIND\nTASTING",
+                        symbol: "eye.slash.fill",
                         face: "#22c55e", shadow: "#15803d",
                         action: onScanner
                     )
@@ -91,7 +95,7 @@ public struct ToolsScreen: View {
                     )
                     tile(
                         title: "DAILY\nCHALLENGE",
-                        symbol: DexGlyph.streakFlame,
+                        symbol: DexGlyph.challenge,
                         face: "#ef4444", shadow: "#991b1b",
                         action: onDailyChallenge
                     )
@@ -148,20 +152,26 @@ public struct ToolsScreen: View {
         comingSoon: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
-        Button {
+        // C5 (0.7.1): the hand-picked pair goes in, the screen mode decides
+        // what comes out. A no-op on every mode outside EMULATOR — see
+        // `LcdMode.chrome(face:shadow:)`.
+        let paint = lcd.chrome(face: face, shadow: shadow)
+        let label = lcd.chromeInk(over: face, preferring: ink)
+
+        return Button {
             Haptics.screenTap()
             action()
         } label: {
             VStack(spacing: 12) {
                 Image(systemName: symbol)
                     .font(.system(size: 44, weight: .semibold))
-                    .foregroundStyle(ink)
+                    .foregroundStyle(label)
                     .shadow(color: .black.opacity(0.3), radius: 0, x: 1, y: 2)
                 Text(title)
                     .font(DexFont.retro(13))
                     .tracking(1)
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(ink)
+                    .foregroundStyle(label)
                     .lineLimit(2)
                     .minimumScaleFactor(0.5)
                     .shadow(color: .black.opacity(0.35), radius: 0, x: 1, y: 1)
@@ -169,11 +179,23 @@ public struct ToolsScreen: View {
                     HStack(spacing: 4) {
                         Image(systemName: "hourglass")
                             .font(.system(size: 9, weight: .bold))
+                        // `retro(10)`, not `retro(7)` (0.7.1, A4).
+                        // `TypeScale.nominalFloor` is 10 and is applied
+                        // *before* the scale factor, so this has never
+                        // rendered at 7 — the source was understating what
+                        // ships by 43%, which is how eleven characters plus
+                        // tracking plus the hourglass came to need 150.5pt in
+                        // a 150.5pt tile and wrapped to COMING / SOON,
+                        // unbalancing the six-tile grid on anything narrower.
+                        // The size now says what it draws, and the guards the
+                        // title above already had are here too.
                         Text("COMING SOON")
-                            .font(DexFont.retro(7))
+                            .font(DexFont.retro(10))
                             .tracking(1)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                     }
-                    .foregroundStyle(ink.opacity(0.85))
+                    .foregroundStyle(label.opacity(0.85))
                     .accessibilityLabel("Coming soon — not built yet")
                 }
             }
@@ -181,10 +203,10 @@ public struct ToolsScreen: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(dexHex: face))
+                    .fill(paint.face)
                     .overlay(alignment: .bottom) {
                         // The same 6pt fake extrusion the menu tiles carry.
-                        Color(dexHex: shadow).frame(height: 6)
+                        paint.shadow.frame(height: 6)
                     }
                     .clipShape(RoundedRectangle(cornerRadius: 10))
             )

@@ -248,10 +248,17 @@ public struct StatBar: View {
 
     public var body: some View {
         HStack(spacing: 12) {
+            // The last unguarded fixed-width `DexFont` label in the app
+            // (0.7.1, A4). AROMATICS at HUGE is 92.2pt in a 96pt box — it
+            // survives only because VT323 advances 0.4 em where the retro face
+            // advances a full one, and one longer stat name would character-
+            // break it against an 8pt bar and misalign the whole block.
             Text(label)
                 .font(DexFont.mono(19))
                 .foregroundStyle(lcd.text)
                 .tracking(1.5)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
                 .frame(width: 96, alignment: .leading)
 
             HStack(spacing: 2) {

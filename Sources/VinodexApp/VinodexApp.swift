@@ -122,7 +122,22 @@ struct RootView: View {
             onBack: path.isEmpty ? nil : { goBack() },
             onHome: { goHome() },
             onBookmarks: { push(.bookmarks) },
-            onSettings: { push(.settings) }
+            onSettings: { push(.settings) },
+            // The marquee drawer (0.7.1, B5). `openRoute`, not `push`, so a
+            // shortcut to an entry would still clear the paywall gate — none of
+            // the drawer's current destinations is a `.detail`, and the point
+            // of routing it through the one gate is that the next one added
+            // cannot forget.
+            //
+            // **Replaces the stack rather than growing it** when the drawer is
+            // used from a pushed screen: the drawer is a way of *going*
+            // somewhere, not of drilling in, and a Back button that walked you
+            // through every screen you had jumped between would turn a shortcut
+            // into a longer path than the one it saved. Home stays one tap.
+            onQuickRoute: { route in
+                path = []
+                openRoute(route)
+            }
         ) {
             // The prompt lives inside the LCD, like every other popup — an
             // overlay on the chassis itself would dim the bezel, island and
@@ -168,8 +183,8 @@ struct RootView: View {
                     )
                 }
             }
-            .animation(.easeOut(duration: 0.15), value: lockedAttempt?.id)
-            .animation(.easeOut(duration: 0.15), value: showingDataAlert)
+            .animation(DexMotion.overlay, value: lockedAttempt?.id)
+            .animation(DexMotion.overlay, value: showingDataAlert)
         }
         .id(scaleRaw + "|" + uiScaleRaw)
         // The app's declared position on Dynamic Type (0.6.4, AUDIT H11):
@@ -277,14 +292,9 @@ struct RootView: View {
                 chipFacets: Self.chipFacets(for: category)
             ) { open($0) }
 
-        case .masterSearch:
-            EncyclopediaListScreen(
-                categories: Set(EntryCategory.allCases),
-                showsCountries: true,
-                onSelect: { open($0) },
-                onSelectCountry: { push(.country(name: $0)) }
-            )
-
+        // `.masterSearch` retired in 0.7.1 (A1) — see `DexRoute`. It was this
+        // one `EncyclopediaListScreen` configuration and no screen of its own;
+        // `.chipFilter` is MASTER SEARCH now and runs the same query.
         case .detail(let id):
             if let entry = db.entry(id: id) {
                 EntryDetailScreen(

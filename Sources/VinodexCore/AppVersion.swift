@@ -118,7 +118,41 @@ public enum AppVersion {
     /// right coordinate space, filter chips on the world/styles/flavour scans,
     /// the tools shelf re-cut, three fixed pages grown into their measured
     /// slack, and the marquee glyph table audited end to end.
-    static let fallback = "0.7.0"
+    ///
+    /// 0.7.1: **the label and the scheme agreed for the second time running**,
+    /// and the second one is what makes it a habit rather than a coincidence.
+    /// A patch, correctly: everything here is a fix, a rename or a feature
+    /// grown out of a surface that already existed, and nothing changes what
+    /// the app *is* the way 0.7.0's two new skins and three new facets did.
+    ///
+    /// The catalog moved for the first time since 0.6.4 — and did not move.
+    /// South America's marker colour changed (A3: `#73343A` sat within five
+    /// points a channel of North America's `#722F37`, so the two continents
+    /// drew the same dot on the globe), which means `shared/` was edited,
+    /// synced, regenerated and re-audited for dangling references. But a colour
+    /// is not an entry: the total stands at 405 and `waveMilestones` does not
+    /// move, exactly as it has not since 0.6.2's 375 was appended.
+    ///
+    /// The work, by section. **A:** FILTER SEARCH became MASTER SEARCH and the
+    /// dead `.masterSearch` route was retired so the two could not both hold
+    /// the name; every search affordance in the app collapsed onto one
+    /// magnifier (`DexGlyph.search`); the header lamps grew from 17pt to 22pt;
+    /// and every lamp on the device — the island trio, the two on the white
+    /// bezel, the one in the vent strip, the two over the marquee — now sits in
+    /// a milled recess (`RecessedLamp`) instead of being a flat disc with a
+    /// hairline. **B:** the marquee is scripted (WELCOME! → MENU → CHEERS!
+    /// after ten idle seconds, `MarqueeScript` in Core so a Linux gate can see
+    /// it), transitions on a pixel dissolve rather than a cross-fade, and is a
+    /// button on every screen that opens a swipeable quick-access drawer with
+    /// a two-slot pin bar. **C:** the VINTAGE picker group became RETRO,
+    /// WINE.OS and GRÜNERBOY swapped groups, HALLOWEEN became HALLOWINE, and
+    /// the Emulator modes now repaint the app's coloured chrome in their own
+    /// ramps. **D:** the passport gained a per-day activity graph (which
+    /// required the tried shelf to start dating its entries at all), a
+    /// stamp-unlock moment, a four-rung rank ladder beginning with VINODEX
+    /// MASTER, and two more fixes to the stamp drag. **E:** the daily
+    /// challenge's fire became a target, and IDENTIFY became BLIND TASTING.
+    static let fallback = "0.7.1"
 
     /// Versions no build deliberately chose.
     ///

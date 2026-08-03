@@ -127,7 +127,7 @@ public struct TastingQuizScreen: View {
                 )
             }
         }
-        .animation(.easeOut(duration: 0.15), value: lockedTier)
+        .animation(DexMotion.overlay, value: lockedTier)
     }
 
     private func previousTier(of tier: QuizTier) -> QuizTier? {
@@ -322,7 +322,7 @@ public struct TastingQuizScreen: View {
     /// The daily's done card: today's paper is sat, come back tomorrow.
     private var dailyDone: some View {
         VStack(spacing: 18) {
-            Image(systemName: DexGlyph.streakFlame)
+            Image(systemName: DexGlyph.challenge)
                 .font(.system(size: 56, weight: .semibold))
                 .foregroundStyle(streak.current > 0 ? Dex.yellow : lcd.subtext)
                 .shadow(color: Dex.yellow.opacity(streak.current > 0 ? 0.5 : 0), radius: 8)

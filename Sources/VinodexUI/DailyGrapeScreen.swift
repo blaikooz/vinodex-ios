@@ -125,12 +125,34 @@ public struct DailyGrapeScreen: View {
                 }
                 .animation(.easeOut(duration: 0.35), value: revealed)
 
+            // **Fitted, not intrinsic** (0.7.1, A4). Both of these carried
+            // `.fixedSize(horizontal: false, vertical: true)` and neither
+            // carried a `lineLimit` or a `minimumScaleFactor` — on a page with
+            // *no `ScrollView`*, inside an LCD that clips. `fixedSize` says
+            // "report my full intrinsic height and refuse compression", which
+            // is the one instruction a fixed page cannot honour: the three
+            // `Spacer(minLength: 0)` around them can only give back zero.
+            //
+            // The arithmetic, on the shortest supported device at the HUGE
+            // text step: heading 18 + well 142 + name 49 + a median 174-char
+            // description at 7 lines of 21.6pt = 151 + button 46 + spacings 78
+            // + padding 40 = 524pt against a 431pt display. Ninety-three points
+            // cut off at the bezel, and 204 for the longest entry in the
+            // catalog. It reads correctly on a tall phone at SMALL, which is
+            // why it stood.
+            //
+            // `MoonDialScreen`'s header already states the rule for fixed
+            // pages — every block `lineLimit`-ed with a `minimumScaleFactor`,
+            // so a larger text step shrinks the words into the rows they
+            // already have instead of adding rows. This page simply never
+            // applied it.
             Text(revealed ? grape.name.uppercased() : "? ? ?")
                 .font(DexFont.retro(20 + 8 * grow))
                 .foregroundStyle(lcd.text)
                 .shadow(color: lcd.accent.opacity(0.55), radius: 0, x: 3, y: 3)
                 .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(2)
+                .minimumScaleFactor(0.5)
                 .padding(.horizontal, 20)
 
             if revealed {
@@ -138,7 +160,13 @@ public struct DailyGrapeScreen: View {
                     .font(DexFont.mono(18 + 5 * grow))
                     .foregroundStyle(lcd.bodyText)
                     .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
+                    // Six lines is what the page has room for once the well,
+                    // the name and the button are paid for. Past that the
+                    // scale factor takes over, and past *that* it truncates
+                    // with an ellipsis — a visible "there is more" rather than
+                    // a sentence silently sheared off by the bezel.
+                    .lineLimit(6)
+                    .minimumScaleFactor(0.6)
                     .padding(.horizontal, 24)
                     .transition(.opacity)
             }

@@ -18,6 +18,10 @@ V1-ROADMAP.md and the archived shipping/port reviews. Run batches with the
 
 ## Where things stand
 
+> **Updated 2026-08-02, at iOS v0.7.1.** The line below is the 0.6.2 baseline
+> this file was written at and is kept for context; the current state is the
+> batch log immediately after it.
+
 - **iOS**: v0.6.2 on `main`, tagged. 375 entries (128 grapes · 104 regions ·
   31 styles · 106 flavors · 25 countries), five rarity tiers, tools suite,
   15 skins, geographic region dots, passport stamps. All 196 tests green,
@@ -29,6 +33,58 @@ V1-ROADMAP.md and the archived shipping/port reviews. Run batches with the
   vinodex-ios and are current. SHIPPING-REVIEW.md and PORT-TO-WEB.md (now in HGapps\archive\) are
   archived (banners point here). V1-ROADMAP.md carries a 2026-07-30 baseline
   correction. The 0.6 missing-data tracker (Downloads) is fully landed.
+
+### Batch log since 0.6.2
+
+Each row is one dexbot batch: the spec it ran from, what it changed, and the
+gate result. Kept here rather than only in `AppVersion.swift`'s release notes
+because that file answers "what is this build" and this one answers "what has
+been happening", which is the question a planning doc is for.
+
+| Version | Spec | Headline | Catalog | Gates |
+|---|---|---|---|---|
+| 0.6.3–0.6.9 | assorted | Chassis work: button band, top-bar chrome, per-mode globe, recessed button bundles, two skins, back swipe removed, still marquee. See `AppVersion.swift`. | 405 from 0.6.4 | green |
+| 0.7.0 | `vinodex-0.7.0` | Sectioned pickers on both axes, WALDGLAS + HALLOWEEN skins, three chip facets, per-skin back plate, stamp drag rebuilt, tools shelf re-cut, marquee glyph table audited. | 405, untouched | 250 tests, clean build |
+| 0.7.1 | `vinodex-0.7.1.md` | UI/UX fixes, the new marquee, polish — see below. | 405; South America's marker colour changed, no entry moved | 282 tests, clean build, deployed |
+
+**0.7.1, by section** (all six landed; the spec's suggested A+C+E / B / D split
+was used as the *sequencing* rather than as a scope cut, each phase gated
+before the next started):
+
+- **A** — MASTER SEARCH rename plus the retirement of the dead `.masterSearch`
+  route it collided with; one magnifier everywhere (`DexGlyph.search`); South
+  America off North America's colour (`shared/data/continents.ts` → sync →
+  generate → zero dangling); header lamps 17→22pt; and `RecessedLamp`, one
+  modifier now seating all eight lamps on the device.
+- **B** — `MarqueeScript` (Core, tested) drives WELCOME! → MENU → CHEERS!;
+  `PixelDissolve` gives the transition its pixels; the panel is a button on
+  every screen opening `MarqueeDrawer`, which carries a two-slot pin bar
+  (`QuickPinStore`, Core, tested).
+- **C** — VINTAGE group → RETRO, WINE.OS → Emulator, GRÜNERBOY → Retro,
+  HALLOWEEN → HALLOWINE (label only), and `LcdMode.chrome(face:shadow:)` so
+  Emulator modes repaint the app's coloured tiles in their own ramp.
+- **D** — the tried shelf now dates its entries (`BookmarkStore.triedDaysKey`,
+  new — nothing recorded a date before this), which is what the activity graph
+  is built on; `PassportProgress` diffs earned badges so an unlock has a
+  moment; `PassportTier` is the four-rung ladder from VINODEX MASTER.
+- **E** — `DexGlyph.challenge` (`target`) replaces the flame everywhere;
+  IDENTIFY → BLIND TASTING, and its glyph left the magnifier family with it.
+- **F** — `DexMotion`, four named curves; seventeen longhand animation call
+  sites swept onto them.
+
+**Parked from 0.7.1** (candidates for the next batch):
+
+- The drawer opens from the marquee but nothing else on the chassis feeds
+  `MarqueeScript.noteActivity()`. Today the idle timer only resets on a
+  navigation or a marquee tap, which is correct but conservative — a tap
+  anywhere on the LCD arguably counts as activity.
+- Africa `#C48B8B` and Oceania `#D4A5A5` are as close to each other as North
+  and South America were before A3. Same fix, not asked for, worth raising.
+- The 0.7.1 pin bar holds `SettingsSection`s only. Pinning a *tool* or an entry
+  is the obvious next ask and `QuickPinStore` would need a wider element type.
+- `LcdMode.chrome` blends toward `controlAccent`; the Retro group is
+  deliberately excluded because the chassis already greys and tints the whole
+  LCD for it. If those modes ever lose the grayscale pass, they need the blend.
 
 ## A. Audit debt — suggested next sittings (from AUDIT.md's 52 open)
 

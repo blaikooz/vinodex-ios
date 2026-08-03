@@ -548,7 +548,7 @@ public struct ScannerScreen: View {
                     // answer in the vocabulary the rest of the questionnaire
                     // now uses (see `skip`, and L3 on step 3).
                     basket.isEmpty ? "NOT SURE, SCAN" : "SCAN",
-                    symbol: "sparkle.magnifyingglass",
+                    symbol: "eye.slash.fill",
                     tint: Dex.yellow
                 ) {
                     advance(to: .reveal)

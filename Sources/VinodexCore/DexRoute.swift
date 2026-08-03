@@ -2,7 +2,7 @@ import Foundation
 
 /// Glyphs that more than one screen has to agree on.
 ///
-/// **Why this exists (0.7.0, D1).** The streak flame was the literal
+/// **Why this exists (0.7.0, D1; still true at 0.7.1, E1).** The streak flame was the literal
 /// `"flame.fill"` typed out in five places — the TOOLS tile, the saved-entries
 /// streak row, the passport badge, the quiz result and the back-plate stamp's
 /// fallback — with the marquee showing a `calendar` instead. D1 asks for a
@@ -13,15 +13,43 @@ import Foundation
 /// In Core rather than VinodexUI because `BackPlateStamps` and `DexRoute` both
 /// need it and neither can see the UI module.
 public enum DexGlyph {
-    /// The daily-challenge / streak fire.
+    /// The daily challenge, and the streak it keeps.
     ///
-    /// `flame.circle.fill` rather than `flame.fill`: the disc reads at the
-    /// marquee glyph's size and at the 10pt streak row alike, where the bare
-    /// flame's tapering tip disappeared, and it is unmistakably a *different*
-    /// fire icon, which is what was asked for. SF Symbols 3 / iOS 15, so it
-    /// clears the iOS 17 floor — see KNOWN-ISSUES on symbols that render blank
-    /// rather than failing to compile.
-    public static let streakFlame = "flame.circle.fill"
+    /// **No longer a fire (0.7.1, E1/E2.)** 0.7.0's D1 asked for "a different
+    /// fire icon" and got one; E1 asks for the fire to stop being fire at all.
+    /// `target` is the challenge itself rather than the reward for keeping one
+    /// — a daily paper you either hit or miss — and unlike the flame it does
+    /// not have to compete with `lucide:flame`, which the *catalog* uses for
+    /// thirty-one spicy and volcanic entries. Two unrelated fires on one screen
+    /// was the real defect behind E2's "no stray fire icons left".
+    ///
+    /// Concentric rings read at every size this appears at: the 10pt streak
+    /// row in the profile, the 13pt tools tile, the marquee glyph and the 56pt
+    /// hero on the daily-done card. SF Symbols 2 / iOS 14, well under the iOS 17
+    /// floor — see KNOWN-ISSUES on symbols that render blank rather than
+    /// failing to compile.
+    ///
+    /// Renamed from `streakFlame`: the constant said what it drew instead of
+    /// what it meant, which is exactly why the next change to it had to touch
+    /// six files.
+    public static let challenge = "target"
+
+    /// Search, everywhere in the app (0.7.1, A2).
+    ///
+    /// A2 asks for one magnifying glass and no other search iconography. Before
+    /// this there were four glyphs doing the job: the plain magnifier in the
+    /// search-bar shell, `line.3.horizontal.decrease` on the main menu's round
+    /// button, `line.3.horizontal.decrease.circle.fill` on the filter screen's
+    /// marquee and summary card, and `sparkle.magnifyingglass` on the scanner.
+    /// The bars are a *filter* glyph, and the screen they opened is the app's
+    /// search — so the button and the magnifier disagreed about what the button
+    /// was for.
+    ///
+    /// The bars survive in exactly one role, and it is not search: the chip
+    /// dropdown's disclosure (`slider.horizontal.3`) and the "a filter is
+    /// narrowing this list" banner, which are statements about a list rather
+    /// than a way in.
+    public static let search = "magnifyingglass"
 }
 
 /// One group of settings, each with its own panel.
@@ -78,22 +106,18 @@ public enum SettingsSection: String, CaseIterable, Hashable, Sendable, Identifia
 /// navigation change, and hashing a full entry graph for that is wasteful.
 public enum DexRoute: Hashable, Sendable {
     case list(category: EntryCategory, filter: EntryFilter?)
-    /// A plain text search over the whole database.
-    ///
-    /// **Unreachable from the UI since 0.7.0 (I1)**, and deliberately left
-    /// standing. I1 points the main menu's round button — this route's only
-    /// entry — at `.chipFilter` instead, and removes FILTER SEARCH from the
-    /// tools shelf, so there is nowhere left that pushes this. That is the
-    /// spec's intent rather than an oversight: `ChipFilterScreen` runs the very
-    /// same `EntryQuery.masterSearch(_:)` behind its own field, so the filter
-    /// search is a strict superset of this screen and shipping both would be
-    /// two doors onto one room.
-    ///
-    /// The route and its screen stay because *deleting a working screen was not
-    /// what was asked*, and re-linking it is one line if the answer changes.
-    /// `EntryQuery.masterSearch(_:)` in `EntryFilter.swift` is a different thing
-    /// with the same name — the query itself — and is very much still in use.
-    case masterSearch
+    // `case masterSearch` **retired in 0.7.1 (A1).** It was a plain text search
+    // over the whole database, left standing but unreachable through 0.7.0
+    // (I1) on the grounds that deleting a working screen was not what had been
+    // asked. A1 asks for it now, by implication: it renames `.chipFilter`'s
+    // label to MASTER SEARCH, and two routes cannot both be the master search.
+    //
+    // Nothing is lost. This route had no screen of its own — it was one
+    // configuration of `EncyclopediaListScreen`, and `ChipFilterScreen` runs
+    // the very same `EntryQuery.masterSearch(_:)` behind its own field, so the
+    // surviving screen is a strict superset. `EntryQuery.masterSearch(_:)` in
+    // `EntryFilter.swift` is a different thing with the same name — the query
+    // itself — and is very much still in use.
     case detail(entryID: String)
     case globe
     /// Place search: continents and regions, which between them carry the
@@ -153,8 +177,6 @@ public enum DexRoute: Hashable, Sendable {
         switch self {
         case .list(let category, let filter):
             filter?.scanTitle ?? category.listTitle
-        case .masterSearch:
-            "MASTER SEARCH"
         case .detail:
             "SCAN"
         case .globe:
@@ -173,13 +195,17 @@ public enum DexRoute: Hashable, Sendable {
         case .dailyGrape:
             "WHAT'S THAT…?"
         case .scanner:
-            // Renamed from SCANNER (0.7.0, I3) — the label only, per the same
-            // convention `wsetQuiz` and `chipFilter` already follow: the case,
-            // `ScannerScreen`, `ScannerBackRouter` and every `ScreenStateStore`
-            // key keep their names, because those are vocabulary rather than
-            // copy. On a device where every listing is a *scan*, SCANNER named
-            // the wrong thing; this is the tool that identifies a glass.
-            "IDENTIFY"
+            // SCANNER → IDENTIFY (0.7.0, I3) → BLIND TASTING (0.7.1, E3), the
+            // label only each time, per the same convention `wsetQuiz` and
+            // `chipFilter` already follow: the case, `ScannerScreen`,
+            // `ScannerBackRouter` and every `ScreenStateStore` key keep their
+            // names, because those are vocabulary rather than copy.
+            //
+            // IDENTIFY named the verb; BLIND TASTING names the thing a drinker
+            // is actually doing when they work a glass down from colour to body
+            // to origin to flavour with no label in front of them, which is
+            // exactly this screen's four steps.
+            "BLIND TASTING"
         case .moonDial:
             "MOON DIAL"
         case .settings:
@@ -188,8 +214,13 @@ public enum DexRoute: Hashable, Sendable {
             section.rawValue
         case .minigames:
             "TOOLS"
+        // FILTER SEARCH → MASTER SEARCH (0.7.1, A1), label only; the case,
+        // `ChipFilterScreen` and the `chipFilter` state key stay. The screen
+        // was named after its controls rather than its job, and it is the one
+        // door into the whole database — every category, chips and free text
+        // together — which is what MASTER SEARCH always meant here.
         case .chipFilter:
-            "FILTER SEARCH"
+            "MASTER SEARCH"
         case .wsetQuiz:
             // Renamed from TASTING QUIZ (v0.5.9, D1); the case keeps its name
             // — `wsetQuiz` is woven into `ScreenStateStore` keys.
@@ -240,17 +271,17 @@ public enum DexRoute: Hashable, Sendable {
         // regions listing wearing a map (K2, rule 2).
         case .list(let category, let filter):
             filter?.marqueeSymbol ?? category.marqueeSymbol
-        case .masterSearch:
-            "magnifyingglass"
         // A fallback: detail titles come from the entry, and so does the
         // symbol — see `WineEntry.scanSymbol`.
         case .detail:
             "viewfinder"
         case .globe:
             "globe.americas.fill"
-        // Places, not text: this searches continents, countries and regions, and
-        // the plain magnifier it shared with MASTER SEARCH said nothing about
-        // which of the two searches you were in.
+        // Places, not text: this searches continents, countries and regions,
+        // and the plain magnifier it once shared with the master search said
+        // nothing about which of the two searches you were in. A2 unifies
+        // *search* on `DexGlyph.search`; this is a search of the world, and the
+        // map disc is what says so.
         case .globeSearch:
             "map.circle.fill"
         case .bookmarks:
@@ -265,9 +296,12 @@ public enum DexRoute: Hashable, Sendable {
         case .dailyGrape:
             "sparkles"
         // Matches its TOOLS tile, and frees `viewfinder` to be only the
-        // unresolved-entry fallback above.
+        // unresolved-entry fallback above. `sparkle.magnifyingglass` until
+        // 0.7.1: A2 reserves every magnifier for search, and once the tool was
+        // called BLIND TASTING (E3) a magnifying glass was describing the
+        // wrong sense entirely. A covered eye is the whole premise.
         case .scanner:
-            "sparkle.magnifyingglass"
+            "eye.slash.fill"
         case .moonDial:
             "moon.stars.fill"
         case .settings:
@@ -276,17 +310,20 @@ public enum DexRoute: Hashable, Sendable {
             section.symbol
         case .minigames:
             "wrench.and.screwdriver.fill"
+        // The magnifier, matching the round button that opens it (K2, rule 1)
+        // now that A2 has made that button a magnifier too.
         case .chipFilter:
-            "line.3.horizontal.decrease.circle.fill"
+            DexGlyph.search
         // Matches its TOOLS tile. `graduationcap.fill` was a reasonable glyph
         // for an exam and the wrong one for *this* exam.
         case .wsetQuiz:
             "checkmark.seal.fill"
-        // The streak flame, which is what this page is. `calendar` was the only
-        // hairline glyph in the table and it named the schedule rather than the
-        // thing being kept. Through the constant, so D1 moved it here too.
+        // The challenge mark, which is what this page is. `calendar` was the
+        // only hairline glyph in the table and it named the schedule rather
+        // than the thing being kept. Through the constant, so 0.7.0's D1 and
+        // 0.7.1's E1 both moved it in one place.
         case .dailyChallenge:
-            DexGlyph.streakFlame
+            DexGlyph.challenge
         case .passport:
             "book.closed.fill"
         case .walkthrough:
