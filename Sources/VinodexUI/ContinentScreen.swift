@@ -180,7 +180,7 @@ public struct ContinentScreen: View {
                         Image(systemName: "hourglass")
                             .font(.system(size: 10, weight: .bold))
                         Text("COMING SOON")
-                            .font(DexFont.retro(8))
+                            .font(DexFont.retro(10))
                             .tracking(1)
                     }
                     .foregroundStyle(lcd.disabledText)

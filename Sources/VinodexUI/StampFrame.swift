@@ -158,7 +158,7 @@ struct BackPlateStampView: View {
                 glyph
                     .frame(maxHeight: .infinity)
                 Text(stamp.title)
-                    .font(DexFont.retro(6))
+                    .font(DexFont.retro(10))
                     .tracking(0.5)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
@@ -173,7 +173,7 @@ struct BackPlateStampView: View {
         }
         .overlay(alignment: .topTrailing) {
             Text(stamp.denomination)
-                .font(DexFont.retro(7))
+                .font(DexFont.retro(10))
                 .foregroundStyle(ink)
                 .padding(.top, 8)
                 .padding(.trailing, 9)

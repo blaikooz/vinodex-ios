@@ -730,7 +730,7 @@ public struct ScannerScreen: View {
             VStack(spacing: 6) {
                 EntryIconWell(db: db, entry: flavor, size: 44, cornerRadius: 8)
                 Text(EntryDisplay.hyphenated(flavor.name.uppercased()))
-                    .font(DexFont.retro(9))
+                    .font(DexFont.retro(10))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .minimumScaleFactor(0.6)
