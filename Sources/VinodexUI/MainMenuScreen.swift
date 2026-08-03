@@ -114,15 +114,28 @@ public struct MainMenuScreen: View {
     /// v0.5.3: the search button wears the mode's control livery, like the
     /// chassis buttons around it — in DARK that resolves to the same amber
     /// it has always been.
+    ///
+    /// **It opens FILTER SEARCH since 0.7.0 (I1).** It used to open MASTER
+    /// SEARCH, which is a text field over the whole database; the filter search
+    /// is that same text field (`ChipFilterScreen` runs the identical
+    /// `.masterSearch(_:)` query) *plus* the chips and a live surviving-count.
+    /// It is a strict superset, so the menu's most prominent control now leads
+    /// to the better of the two rather than to the one that came first.
+    ///
+    /// The glyph moves with it. Keeping the magnifier would have made the change
+    /// invisible from the one screen it happens on, and the filter bars are what
+    /// the destination is called. `line.3.horizontal.decrease` rather than the
+    /// `.circle.fill` form the tools tile used — a glyph with its own circle
+    /// inside a 102pt circle reads as a button drawn twice.
     private var searchButton: some View {
         Button {
             Haptics.screenTap()
-            onSelect(.masterSearch)
+            onSelect(.chipFilter)
         } label: {
             ZStack {
                 Circle().fill(mode.controlAccent.bright)
                 Circle().strokeBorder(mode.controlAccent.mid, lineWidth: 6)
-                Image(systemName: "magnifyingglass")
+                Image(systemName: "line.3.horizontal.decrease")
                     .font(.system(size: 40, weight: .bold))
                     .foregroundStyle(mode.controlAccent.ink)
             }

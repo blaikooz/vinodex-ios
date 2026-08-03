@@ -339,17 +339,30 @@ public struct EntryDetailScreen: View {
     private var headerTiles: some View {
         Group {
             switch entry {
+            // **Two rows, not one** (0.7.0, A1): COLOR and TYPE share the top
+            // row, ORIGIN takes a full-width bar under them.
+            //
+            // Three abreast gave the country a third of the LCD's width, and a
+            // country name is the longest string in the row by a wide margin —
+            // UNITED STATES, SOUTH AFRICA and NEW ZEALAND all had to wrap or
+            // shrink to fit, while COLOR and TYPE (one short word each) sat in
+            // thirds they did not need. This is the same move the *region* tiles
+            // made two batches earlier for the same reason and in the same
+            // shape: the long string rides alone on a bar, the two short ones
+            // pair up. See `keyGrapeBar`'s note directly below.
             case .grape(let g):
-                HStack(alignment: .top, spacing: 8) {
-                    tile(label: "COLOR",
-                         chip: chip(g.grapeType.rawValue.uppercased(), .colorType),
-                         destination: .list(category: .grapes, filter: .type(g.grapeType.rawValue))) { tint in
-                        DexIcon(iconID: db.icons.colorIcon(g.grapeType.rawValue.uppercased()), size: 32, color: tint)
-                    }
-                    tile(label: "TYPE",
-                         chip: chip(EntryDisplay.grapeBodyLabel(g), .wineType, key: g.grapeStyle),
-                         destination: .list(category: .grapes, filter: .type(g.grapeStyle))) { tint in
-                        DexIcon(iconID: db.icons.bodyIcon(g.grapeBodyClass), size: 32, color: tint)
+                VStack(spacing: 10) {
+                    HStack(alignment: .top, spacing: 8) {
+                        tile(label: "COLOR",
+                             chip: chip(g.grapeType.rawValue.uppercased(), .colorType),
+                             destination: .list(category: .grapes, filter: .type(g.grapeType.rawValue))) { tint in
+                            DexIcon(iconID: db.icons.colorIcon(g.grapeType.rawValue.uppercased()), size: 32, color: tint)
+                        }
+                        tile(label: "TYPE",
+                             chip: chip(EntryDisplay.grapeBodyLabel(g), .wineType, key: g.grapeStyle),
+                             destination: .list(category: .grapes, filter: .type(g.grapeStyle))) { tint in
+                            DexIcon(iconID: db.icons.bodyIcon(g.grapeBodyClass), size: 32, color: tint)
+                        }
                     }
                     tile(label: "ORIGIN",
                          chip: chip(g.details.origin.uppercased(), .country, key: g.details.origin),

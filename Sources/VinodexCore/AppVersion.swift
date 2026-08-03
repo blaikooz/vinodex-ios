@@ -95,7 +95,30 @@ public enum AppVersion {
     /// cycling greeting, a hand-drawn skin and screen mode — plus one catalog
     /// change (Morellino as a Sangiovese synonym), which adds no entry, so
     /// `waveMilestones` still does not move.
-    static let fallback = "0.6.9"
+    /// 0.7.0: **the first batch since 0.4.3 whose label needed no
+    /// reinterpretation.** Five of the last six arrived as "6.3.3", "6.7.1",
+    /// "0.6.7.2" and so on, and each of those notes above records the same
+    /// resolution: the label names the work, the scheme names the build. The
+    /// user named this one 0.7.0, which already *is* the scheme — a minor bump,
+    /// which is the right joint for a batch that adds two chassis skins, three
+    /// new filter facets, a per-skin back plate and a new tool slot, rather than
+    /// the patch a corrective pass would take.
+    ///
+    /// A minor bump has no `waveMilestones` implication, and it is worth saying
+    /// why rather than leaving it as an absence: that list records *catalog
+    /// totals*, not versions. It moves when the entry count moves and at no
+    /// other time. This batch touches no `shared/` data at all — nothing was
+    /// regenerated, `entries.json` is byte-identical, and the total stands at
+    /// 405 — so the list does not move, exactly as it did not for 0.6.6 through
+    /// 0.6.9.
+    ///
+    /// The work: the picker grouped into sections on both axes, the NOTEBOOK
+    /// screen mode removed while the PÉT-NAT shell stays, WALDGLAS and
+    /// HALLOWEEN added, a back plate per skin, the stamp drag rebuilt on the
+    /// right coordinate space, filter chips on the world/styles/flavour scans,
+    /// the tools shelf re-cut, three fixed pages grown into their measured
+    /// slack, and the marquee glyph table audited end to end.
+    static let fallback = "0.7.0"
 
     /// Versions no build deliberately chose.
     ///

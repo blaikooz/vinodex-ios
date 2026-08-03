@@ -103,7 +103,7 @@ public enum StampCatalog {
             info: "Seven daily challenges in a row. Discipline, applied to wine — a rare vintage.",
             colorHex: "#8F5A33",
             artStem: "stamp-streak-week",
-            fallbackSymbol: "flame.fill",
+            fallbackSymbol: DexGlyph.streakFlame,
             denomination: "7¢"
         ),
         BackPlateStamp(

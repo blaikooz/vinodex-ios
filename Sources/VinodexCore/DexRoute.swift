@@ -1,5 +1,29 @@
 import Foundation
 
+/// Glyphs that more than one screen has to agree on.
+///
+/// **Why this exists (0.7.0, D1).** The streak flame was the literal
+/// `"flame.fill"` typed out in five places — the TOOLS tile, the saved-entries
+/// streak row, the passport badge, the quiz result and the back-plate stamp's
+/// fallback — with the marquee showing a `calendar` instead. D1 asks for a
+/// different fire icon *everywhere it is used*, and the only way to make
+/// "everywhere" checkable is for there to be one place. A new surface that wants
+/// the flame reads this and is correct by default.
+///
+/// In Core rather than VinodexUI because `BackPlateStamps` and `DexRoute` both
+/// need it and neither can see the UI module.
+public enum DexGlyph {
+    /// The daily-challenge / streak fire.
+    ///
+    /// `flame.circle.fill` rather than `flame.fill`: the disc reads at the
+    /// marquee glyph's size and at the 10pt streak row alike, where the bare
+    /// flame's tapering tip disappeared, and it is unmistakably a *different*
+    /// fire icon, which is what was asked for. SF Symbols 3 / iOS 15, so it
+    /// clears the iOS 17 floor — see KNOWN-ISSUES on symbols that render blank
+    /// rather than failing to compile.
+    public static let streakFlame = "flame.circle.fill"
+}
+
 /// One group of settings, each with its own panel.
 ///
 /// The settings screen is a grid of these rather than one long scroll: the
@@ -54,6 +78,21 @@ public enum SettingsSection: String, CaseIterable, Hashable, Sendable, Identifia
 /// navigation change, and hashing a full entry graph for that is wasteful.
 public enum DexRoute: Hashable, Sendable {
     case list(category: EntryCategory, filter: EntryFilter?)
+    /// A plain text search over the whole database.
+    ///
+    /// **Unreachable from the UI since 0.7.0 (I1)**, and deliberately left
+    /// standing. I1 points the main menu's round button — this route's only
+    /// entry — at `.chipFilter` instead, and removes FILTER SEARCH from the
+    /// tools shelf, so there is nowhere left that pushes this. That is the
+    /// spec's intent rather than an oversight: `ChipFilterScreen` runs the very
+    /// same `EntryQuery.masterSearch(_:)` behind its own field, so the filter
+    /// search is a strict superset of this screen and shipping both would be
+    /// two doors onto one room.
+    ///
+    /// The route and its screen stay because *deleting a working screen was not
+    /// what was asked*, and re-linking it is one line if the answer changes.
+    /// `EntryQuery.masterSearch(_:)` in `EntryFilter.swift` is a different thing
+    /// with the same name — the query itself — and is very much still in use.
     case masterSearch
     case detail(entryID: String)
     case globe
@@ -134,7 +173,13 @@ public enum DexRoute: Hashable, Sendable {
         case .dailyGrape:
             "WHAT'S THAT…?"
         case .scanner:
-            "SCANNER"
+            // Renamed from SCANNER (0.7.0, I3) — the label only, per the same
+            // convention `wsetQuiz` and `chipFilter` already follow: the case,
+            // `ScannerScreen`, `ScannerBackRouter` and every `ScreenStateStore`
+            // key keep their names, because those are vocabulary rather than
+            // copy. On a device where every listing is a *scan*, SCANNER named
+            // the wrong thing; this is the tool that identifies a glass.
+            "IDENTIFY"
         case .moonDial:
             "MOON DIAL"
         case .settings:
@@ -164,10 +209,37 @@ public enum DexRoute: Hashable, Sendable {
     /// `SYSTEM ⟨gear⟩ SYSTEM ⟨gear⟩ …`. Sits beside `title` because the two
     /// travel together into the footer. All iOS 17-safe — see KNOWN-ISSUES on
     /// symbols with a later OS floor rendering blank rather than failing.
+    ///
+    /// **Audited end to end in 0.7.0 (K2).** The table was written a route at a
+    /// time as routes arrived, and by 0.6.9 a third of it was either generic or
+    /// simply not this page's glyph. Three rules came out of going through all
+    /// twenty-nine of them, and they are worth stating because the next route
+    /// added here will need them:
+    ///
+    /// 1. **A page's glyph is the glyph on the control that opens it.** The
+    ///    marquee confirms where you have arrived; showing something other than
+    ///    what you just tapped is a small lie every time. Six entries disagreed
+    ///    with their own tile.
+    /// 2. **A filter is a page.** `.list` discarded its filter, so GEOLOGY,
+    ///    RARITY and CLIMATE scans all wore their parent category's glyph. See
+    ///    `EntryFilter.marqueeSymbol`.
+    /// 3. **Collisions are only allowed where the pages really are the same
+    ///    kind of page.** `map.fill` stood for the regions listing, a country
+    ///    and a region detail; `globe.americas.fill` for four different world
+    ///    screens; `sparkles` for both FLAVORS and the daily reveal. Those are
+    ///    separated now by what the page actually is — the globe screen keeps
+    ///    the globe, continents take `globe.europe.africa.fill`, a country takes
+    ///    a flag.
+    ///
+    /// The remaining deliberate repeats are a category's glyph appearing on both
+    /// its listing and its detail pages, which is `WineEntry.scanSymbol` agreeing
+    /// with `EntryCategory.marqueeSymbol` on purpose.
     public var marqueeSymbol: String {
         switch self {
-        case .list(let category, _):
-            category.marqueeSymbol
+        // The filter's own glyph where there is one — a GEOLOGY SCAN is not a
+        // regions listing wearing a map (K2, rule 2).
+        case .list(let category, let filter):
+            filter?.marqueeSymbol ?? category.marqueeSymbol
         case .masterSearch:
             "magnifyingglass"
         // A fallback: detail titles come from the entry, and so does the
@@ -176,18 +248,26 @@ public enum DexRoute: Hashable, Sendable {
             "viewfinder"
         case .globe:
             "globe.americas.fill"
+        // Places, not text: this searches continents, countries and regions, and
+        // the plain magnifier it shared with MASTER SEARCH said nothing about
+        // which of the two searches you were in.
         case .globeSearch:
-            "magnifyingglass"
+            "map.circle.fill"
         case .bookmarks:
             "bookmark.fill"
+        // A country, not a map — `map.fill` is the regions listing's, and this
+        // is the one screen whose subject is a nation.
         case .country:
-            "map.fill"
+            "flag.fill"
         case .state:
             "mappin.and.ellipse"
+        // Matches the TOOLS tile that opens it (K2, rule 1).
         case .dailyGrape:
-            "questionmark.diamond.fill"
+            "sparkles"
+        // Matches its TOOLS tile, and frees `viewfinder` to be only the
+        // unresolved-entry fallback above.
         case .scanner:
-            "viewfinder"
+            "sparkle.magnifyingglass"
         case .moonDial:
             "moon.stars.fill"
         case .settings:
@@ -198,16 +278,23 @@ public enum DexRoute: Hashable, Sendable {
             "wrench.and.screwdriver.fill"
         case .chipFilter:
             "line.3.horizontal.decrease.circle.fill"
+        // Matches its TOOLS tile. `graduationcap.fill` was a reasonable glyph
+        // for an exam and the wrong one for *this* exam.
         case .wsetQuiz:
-            "graduationcap.fill"
+            "checkmark.seal.fill"
+        // The streak flame, which is what this page is. `calendar` was the only
+        // hairline glyph in the table and it named the schedule rather than the
+        // thing being kept. Through the constant, so D1 moved it here too.
         case .dailyChallenge:
-            "calendar"
+            DexGlyph.streakFlame
         case .passport:
             "book.closed.fill"
         case .walkthrough:
             "figure.walk"
+        // Not the globe: the globe screen is the globe, and a continent page is
+        // one continent (K2, rule 3).
         case .continent:
-            "globe.americas.fill"
+            "globe.europe.africa.fill"
         }
     }
 }
@@ -216,11 +303,15 @@ public extension EntryCategory {
     /// The category's marquee glyph — see `DexRoute.marqueeSymbol`.
     var marqueeSymbol: String {
         switch self {
-        case .grapes: "leaf.fill"
+        // The main menu's own GRAPES tile (K2, rule 1). `leaf.fill` was doubly
+        // wrong: it is the glyph on the menu's *FLAVORS* tile, so tapping GRAPES
+        // put the other category's icon on the marquee.
+        case .grapes: "circle.grid.3x3.fill"
         case .regions: "map.fill"
         case .styles: "wineglass.fill"
-        case .flavors: "sparkles"
-        case .continents: "globe.americas.fill"
+        // The menu's FLAVORS tile, now that grapes no longer hold it.
+        case .flavors: "leaf.fill"
+        case .continents: "globe.europe.africa.fill"
         }
     }
 }

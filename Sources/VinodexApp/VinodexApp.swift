@@ -229,6 +229,40 @@ struct RootView: View {
         return route.marqueeSymbol
     }
 
+    /// Which chip rows a category listing offers (0.7.0, H2/H3, extending
+    /// 0.6.9's I3).
+    ///
+    /// I3 put chips on the varieties scan and explicitly deferred the rest,
+    /// noting that REGIONS and STYLES "would each want a facet set argued on its
+    /// own terms rather than this one reused". H asks for three of those sets,
+    /// and this is the table rather than a ternary because that is what a
+    /// per-category argument looks like written down.
+    ///
+    /// The rule every row here obeys: inside a listing that is *already* one
+    /// category, a facet is only worth offering if it has more than one live
+    /// value and no value that empties the list. That is what rules TYPE and
+    /// CLIMATE out of the grape listing, and it is what rules COUNTRY out of the
+    /// flavour one — flavours have no origin at all.
+    ///
+    /// - GRAPES: unchanged from I3.
+    /// - STYLES: STYLE CLASS only, per H2's "styles only". RARITY and COUNTRY
+    ///   both technically work on styles, and both were declined for H1's
+    ///   reason: the spec names one axis.
+    /// - FLAVORS: TASTE and FAMILY, the flavour taxonomy's two levels — the same
+    ///   two a flavour's own detail page puts in its header tiles. Neither
+    ///   existed as a facet before H3; see `ChipFacet`.
+    /// - REGIONS and CONTINENTS: none. The regions listing has no search bar
+    ///   (see `showsSearch` below) and the world search is where place
+    ///   filtering lives — H1 put the chips there rather than here.
+    private static func chipFacets(for category: EntryCategory) -> [ChipFacet] {
+        switch category {
+        case .grapes: [.color, .body, .rarity]
+        case .styles: [.styleClass]
+        case .flavors: [.flavorClass, .flavorSubclass]
+        case .regions, .continents: []
+        }
+    }
+
     @ViewBuilder
     private var screen: some View {
         switch path.last {
@@ -240,17 +274,7 @@ struct RootView: View {
                 categories: [category],
                 filter: filter,
                 showsSearch: category != .regions,
-                // **Chips on the varieties scan** (0.6.9, I3), and only there.
-                // COLOUR and BODY are grape-only facets by `ChipFacet.note`'s
-                // own account, and RARITY is grapes-and-styles — inside a
-                // listing that is already one category, all three are grape
-                // axes. TYPE would offer one live value here and CLIMATE would
-                // empty the list on any tap, so neither is offered.
-                //
-                // Not extended to the other categories in this batch: I3 names
-                // one screen, and REGIONS and STYLES would each want a facet
-                // set argued on its own terms rather than this one reused.
-                chipFacets: category == .grapes ? [.color, .body, .rarity] : []
+                chipFacets: Self.chipFacets(for: category)
             ) { open($0) }
 
         case .masterSearch:
@@ -299,6 +323,15 @@ struct RootView: View {
             EncyclopediaListScreen(
                 categories: [.continents, .regions],
                 showsCountries: true,
+                // **World-search chips** (0.7.0, H1) — countries, continents and
+                // regions, and nothing else. One facet does all three: TYPE is
+                // the row that chooses between the tables, and
+                // `ChipFilter.options(for:in:includingCountries:)` scopes it to
+                // the two categories this screen holds plus the COUNTRIES
+                // pseudo-value. CLIMATE and COUNTRY were both candidates and
+                // both declined: H1 names three things, and a facet nobody asked
+                // for is a row every user of this screen has to read past.
+                chipFacets: [.category],
                 onSelect: { open($0) },
                 onSelectCountry: { push(.country(name: $0)) }
             )
@@ -332,7 +365,6 @@ struct RootView: View {
                 onDailyGrape: { push(.dailyGrape) },
                 onScanner: { push(.scanner) },
                 onMoonDial: { push(.moonDial) },
-                onChipFilter: { push(.chipFilter) },
                 onQuiz: { push(.wsetQuiz) },
                 onDailyChallenge: { push(.dailyChallenge) }
             )

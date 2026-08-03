@@ -310,7 +310,17 @@ struct PaperGrain: View {
     }
 }
 
-/// The notebook page the LCD becomes in NOTEBOOK mode (0.6.9, M1).
+/// The ruled page the LCD used to become in NOTEBOOK mode (0.6.9, M1).
+///
+/// **Unmounted since 0.7.0 (C1) and kept on purpose.** C1 removes the NOTEBOOK
+/// screen mode, which was this view's only call site; B2 keeps the PÉT-NAT
+/// shell, because the shell and the screen have always been independent
+/// choices. So the drawn *device* survives and the drawn *page* has no owner —
+/// not a bug, and not something to fix by quietly re-pointing the paper at
+/// `ChassisSkin.sketch`, which would fuse the two halves the user deliberately
+/// picked apart. It is a finished drawing waiting on a decision; deleting it
+/// would mean redrawing it to act on that decision. Re-mounting it is one `if`
+/// in `DexScreenBackground`.
 ///
 /// Replaces `DexGridBackground` rather than recolouring it, which is the
 /// difference between a hand-drawn *mode* and a beige *palette*: a square

@@ -574,109 +574,140 @@ public struct SettingsSectionPanel: View {
     /// fourteen skins the rows pushed everything below them off screen.
     private var skinTesting: some View {
         settingsSection("CHASSIS SKINS") {
-            LazyVGrid(columns: pickerColumns, spacing: 8) {
-                ForEach(ChassisSkin.allCases) { option in
-                    let locked = option != .classic && !access.isUnlocked(.skins)
-
-                    Button {
-                        Haptics.select()
-                        if locked {
-                            lockedBundle = .skins
-                        } else {
-                            skinRaw = option.rawValue
-                        }
-                    } label: {
-                        VStack(spacing: 8) {
-                            // Body over panel, so the swatch reads as the
-                            // actual shell — with the skin's emblem glyph in
-                            // the middle, the way the screen-mode tiles carry
-                            // theirs, at the same 50pt so the two pickers
-                            // read as one instrument (v0.5.6). The dark base
-                            // under the body is for the translucent skins,
-                            // whose smoke needs something to be over.
-                            RoundedRectangle(cornerRadius: 5)
-                                .fill(Color(dexHex: "#1B1D21"))
-                                .overlay(RoundedRectangle(cornerRadius: 5).fill(option.body))
-                                .frame(height: 50)
-                                .frame(maxWidth: .infinity)
-                                .overlay(alignment: .topLeading) {
-                                    Circle()
-                                        .fill(option.orb)
-                                        .frame(width: 10, height: 10)
-                                        .padding(5)
-                                }
-                                .overlay(alignment: .topTrailing) {
-                                    Circle()
-                                        .fill(option.accent.bright)
-                                        .frame(width: 10, height: 10)
-                                        .padding(5)
-                                }
-                                .overlay {
-                                    // Through `SkinEmblem` rather than
-                                    // `Image(systemName:)` since 0.6.7 (K1):
-                                    // PSVino's badge is a drawing now, not a
-                                    // symbol name.
-                                    SkinEmblem(skin: option, size: 17, tint: option.accent.pale)
-                                        .shadow(color: .black.opacity(0.55), radius: 0, x: 1, y: 1)
-                                        // Centred in the deck, not the tile —
-                                        // the bottom 14pt is the panel strip.
-                                        .offset(y: -7)
-                                }
-                                .overlay(alignment: .bottom) {
-                                    Rectangle()
-                                        .fill(option.panel)
-                                        .frame(height: 14)
-                                        .overlay {
-                                            Capsule()
-                                                .fill(option.marqueeText)
-                                                .frame(width: 24, height: 3)
-                                        }
-                                }
-                                .clipShape(RoundedRectangle(cornerRadius: 5))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 5)
-                                        .strokeBorder(option.panelEdge, lineWidth: 1)
-                                )
-                                .overlay(alignment: .bottomTrailing) {
-                                    // Lock/tick rides the preview so the name
-                                    // below keeps the tile's full width.
-                                    if locked {
-                                        Image(systemName: "lock.fill")
-                                            .font(.system(size: 10, weight: .bold))
-                                            .padding(4)
-                                    } else if skin == option {
-                                        Image(systemName: "checkmark")
-                                            .font(.system(size: 11, weight: .bold))
-                                            .padding(4)
-                                    }
-                                }
-                                .opacity(locked ? 0.45 : 1)
-
-                            // A fixed two-line box (v0.5.8, C2). The old
-                            // word-per-line stack gave every tile its own
-                            // height — three-word names ran a line taller and
-                            // one-word tiles floated short in their grid row.
-                            // Reserving two lines makes all fourteen tiles
-                            // congruent; long names wrap, short ones centre.
-                            Text(option.displayName)
-                                .font(DexFont.retro(10))
-                                .tracking(1)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.center)
-                                .minimumScaleFactor(0.6)
-                                .frame(height: 28)
-                        }
-                        .foregroundStyle(skin == option ? lcd.onAccent : lcd.subtext)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 12)
-                        .frame(maxWidth: .infinity)
-                        .background(
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(skin == option ? lcd.accent : lcd.surface)
-                        )
+            // **Grouped since 0.7.0 (B2).** Twenty-one tiles in one flat grid
+            // showed the whole range and said nothing about it. The headings
+            // come from `ChassisSkinSection`, and the membership is derived
+            // from `ChassisSkin.allCases` rather than listed here — see the
+            // note on `ChassisSkin.section`. Nothing in this file can drop a
+            // skin from the picker.
+            VStack(alignment: .leading, spacing: 16) {
+                ForEach(ChassisSkinSection.allCases) { group in
+                    VStack(alignment: .leading, spacing: 8) {
+                        pickerHeading(group.rawValue)
+                        skinGrid(group.skins)
                     }
-                    .buttonStyle(DexPressStyle(scale: 0.97))
                 }
+            }
+        }
+    }
+
+    /// A sub-heading inside one of the two cosmetic pickers (0.7.0, B1/B2).
+    ///
+    /// Deliberately quieter than `settingsSection`'s own title: this is a
+    /// division *within* a section, and at the same weight the panel would read
+    /// as having twelve top-level sections rather than two with headings in
+    /// them. Subtext rather than accent, no rule, and a shorter tracking run.
+    private func pickerHeading(_ title: String) -> some View {
+        Text(title)
+            .font(DexFont.retro(11))
+            .tracking(1.5)
+            .foregroundStyle(lcd.subtext)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func skinGrid(_ skins: [ChassisSkin]) -> some View {
+        LazyVGrid(columns: pickerColumns, spacing: 8) {
+            ForEach(skins) { option in
+                let locked = option != .classic && !access.isUnlocked(.skins)
+
+                Button {
+                    Haptics.select()
+                    if locked {
+                        lockedBundle = .skins
+                    } else {
+                        skinRaw = option.rawValue
+                    }
+                } label: {
+                    VStack(spacing: 8) {
+                        // Body over panel, so the swatch reads as the
+                        // actual shell — with the skin's emblem glyph in
+                        // the middle, the way the screen-mode tiles carry
+                        // theirs, at the same 50pt so the two pickers
+                        // read as one instrument (v0.5.6). The dark base
+                        // under the body is for the translucent skins,
+                        // whose smoke needs something to be over.
+                        RoundedRectangle(cornerRadius: 5)
+                            .fill(Color(dexHex: "#1B1D21"))
+                            .overlay(RoundedRectangle(cornerRadius: 5).fill(option.body))
+                            .frame(height: 50)
+                            .frame(maxWidth: .infinity)
+                            .overlay(alignment: .topLeading) {
+                                Circle()
+                                    .fill(option.orb)
+                                    .frame(width: 10, height: 10)
+                                    .padding(5)
+                            }
+                            .overlay(alignment: .topTrailing) {
+                                Circle()
+                                    .fill(option.accent.bright)
+                                    .frame(width: 10, height: 10)
+                                    .padding(5)
+                            }
+                            .overlay {
+                                // Through `SkinEmblem` rather than
+                                // `Image(systemName:)` since 0.6.7 (K1):
+                                // PSVino's badge is a drawing now, not a
+                                // symbol name.
+                                SkinEmblem(skin: option, size: 17, tint: option.accent.pale)
+                                    .shadow(color: .black.opacity(0.55), radius: 0, x: 1, y: 1)
+                                    // Centred in the deck, not the tile —
+                                    // the bottom 14pt is the panel strip.
+                                    .offset(y: -7)
+                            }
+                            .overlay(alignment: .bottom) {
+                                Rectangle()
+                                    .fill(option.panel)
+                                    .frame(height: 14)
+                                    .overlay {
+                                        Capsule()
+                                            .fill(option.marqueeText)
+                                            .frame(width: 24, height: 3)
+                                    }
+                            }
+                            .clipShape(RoundedRectangle(cornerRadius: 5))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 5)
+                                    .strokeBorder(option.panelEdge, lineWidth: 1)
+                            )
+                            .overlay(alignment: .bottomTrailing) {
+                                // Lock/tick rides the preview so the name
+                                // below keeps the tile's full width.
+                                if locked {
+                                    Image(systemName: "lock.fill")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .padding(4)
+                                } else if skin == option {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .padding(4)
+                                }
+                            }
+                            .opacity(locked ? 0.45 : 1)
+
+                        // A fixed two-line box (v0.5.8, C2). The old
+                        // word-per-line stack gave every tile its own
+                        // height — three-word names ran a line taller and
+                        // one-word tiles floated short in their grid row.
+                        // Reserving two lines makes all fourteen tiles
+                        // congruent; long names wrap, short ones centre.
+                        Text(option.displayName)
+                            .font(DexFont.retro(10))
+                            .tracking(1)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
+                            .minimumScaleFactor(0.6)
+                            .frame(height: 28)
+                    }
+                    .foregroundStyle(skin == option ? lcd.onAccent : lcd.subtext)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 12)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(skin == option ? lcd.accent : lcd.surface)
+                    )
+                }
+                .buttonStyle(DexPressStyle(scale: 0.97))
             }
         }
     }
@@ -688,77 +719,92 @@ public struct SettingsSectionPanel: View {
     /// shelf for one release — at ten modes the shelf hid most of them off the
     /// right edge, and a grid shows the whole range at once.
     ///
+    /// **Grouped since 0.7.0 (B1)**, on the same mechanism as the skins above:
+    /// headings from `LcdModeSection`, membership derived from
+    /// `LcdMode.allCases`.
+    ///
     /// Each card is a miniature LCD in the mode's own colours: glyph, a text
     /// line, a caption line. The monochrome modes run the real grayscale-and-
     /// tint pass over their miniature, so AMBER previews amber rather than
     /// the green its raw tokens would show.
     private var screenMode: some View {
         settingsSection("SCREEN MODE") {
-            LazyVGrid(columns: pickerColumns, spacing: 8) {
-                ForEach(LcdMode.allCases) { option in
-                    // Every mode past the default gates on the same cosmetic
-                    // bundle — a paywall case that costs nothing to test and
-                    // touches every screen.
-                    let locked = option != .dark && !access.isUnlocked(.lightMode)
-
-                    Button {
-                        Haptics.select()
-                        if locked {
-                            lockedBundle = .lightMode
-                        } else {
-                            lcdRaw = option.rawValue
-                        }
-                    } label: {
-                        VStack(spacing: 8) {
-                            RoundedRectangle(cornerRadius: 5)
-                                .fill(option.screen)
-                                .frame(height: 50)
-                                .frame(maxWidth: .infinity)
-                                .overlay {
-                                    VStack(spacing: 4) {
-                                        Image(systemName: option.symbol)
-                                            .font(.system(size: 15, weight: .semibold))
-                                            .foregroundStyle(option.accent)
-                                        RoundedRectangle(cornerRadius: 1)
-                                            .fill(option.text.opacity(0.85))
-                                            .frame(width: 34, height: 3)
-                                        RoundedRectangle(cornerRadius: 1)
-                                            .fill(option.subtext.opacity(0.8))
-                                            .frame(width: 24, height: 3)
-                                    }
-                                }
-                                .grayscale(option.monochromeTint == nil ? 0 : 1)
-                                .colorMultiply(option.monochromeTint ?? .white)
-                                .clipShape(RoundedRectangle(cornerRadius: 5))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 5)
-                                        .strokeBorder(option.surfaceEdge, lineWidth: 1)
-                                )
-                                .opacity(locked ? 0.45 : 1)
-
-                            HStack(spacing: 4) {
-                                if locked {
-                                    Image(systemName: "lock.fill")
-                                        .font(.system(size: 10, weight: .bold))
-                                }
-                                Text(option.displayName)
-                                    .font(DexFont.retro(10))
-                                    .tracking(1)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.55)
-                            }
-                        }
-                        .foregroundStyle(lcd == option ? lcd.onAccent : lcd.subtext)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 12)
-                        .frame(maxWidth: .infinity)
-                        .background(
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(lcd == option ? lcd.accent : lcd.surface)
-                        )
+            VStack(alignment: .leading, spacing: 16) {
+                ForEach(LcdModeSection.allCases) { group in
+                    VStack(alignment: .leading, spacing: 8) {
+                        pickerHeading(group.rawValue)
+                        modeGrid(group.modes)
                     }
-                    .buttonStyle(DexPressStyle(scale: 0.97))
                 }
+            }
+        }
+    }
+
+    private func modeGrid(_ modes: [LcdMode]) -> some View {
+        LazyVGrid(columns: pickerColumns, spacing: 8) {
+            ForEach(modes) { option in
+                // Every mode past the default gates on the same cosmetic
+                // bundle — a paywall case that costs nothing to test and
+                // touches every screen.
+                let locked = option != .dark && !access.isUnlocked(.lightMode)
+
+                Button {
+                    Haptics.select()
+                    if locked {
+                        lockedBundle = .lightMode
+                    } else {
+                        lcdRaw = option.rawValue
+                    }
+                } label: {
+                    VStack(spacing: 8) {
+                        RoundedRectangle(cornerRadius: 5)
+                            .fill(option.screen)
+                            .frame(height: 50)
+                            .frame(maxWidth: .infinity)
+                            .overlay {
+                                VStack(spacing: 4) {
+                                    Image(systemName: option.symbol)
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundStyle(option.accent)
+                                    RoundedRectangle(cornerRadius: 1)
+                                        .fill(option.text.opacity(0.85))
+                                        .frame(width: 34, height: 3)
+                                    RoundedRectangle(cornerRadius: 1)
+                                        .fill(option.subtext.opacity(0.8))
+                                        .frame(width: 24, height: 3)
+                                }
+                            }
+                            .grayscale(option.monochromeTint == nil ? 0 : 1)
+                            .colorMultiply(option.monochromeTint ?? .white)
+                            .clipShape(RoundedRectangle(cornerRadius: 5))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 5)
+                                    .strokeBorder(option.surfaceEdge, lineWidth: 1)
+                            )
+                            .opacity(locked ? 0.45 : 1)
+
+                        HStack(spacing: 4) {
+                            if locked {
+                                Image(systemName: "lock.fill")
+                                    .font(.system(size: 10, weight: .bold))
+                            }
+                            Text(option.displayName)
+                                .font(DexFont.retro(10))
+                                .tracking(1)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.55)
+                        }
+                    }
+                    .foregroundStyle(lcd == option ? lcd.onAccent : lcd.subtext)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 12)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(lcd == option ? lcd.accent : lcd.surface)
+                    )
+                }
+                .buttonStyle(DexPressStyle(scale: 0.97))
             }
         }
     }

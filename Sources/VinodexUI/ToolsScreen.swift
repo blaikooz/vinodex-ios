@@ -5,11 +5,16 @@ import VinodexCore
 /// The tools hub.
 ///
 /// This began as MINIGAMES, when the daily reveal was promoted out of the
-/// settings list and needed a shelf of its own. It has since collected two
-/// things with no play in them at all — the scanner is an identification aid and
-/// the filter search is a query builder — so the name was promising the wrong
-/// thing to anyone looking for either. TOOLS covers both; a game is a tool you
-/// use for fun.
+/// settings list and needed a shelf of its own. It has since collected things
+/// with no play in them at all — IDENTIFY is an identification aid, LABEL SCAN
+/// will be another — so the name was promising the wrong thing to anyone
+/// looking for either. TOOLS covers both; a game is a tool you use for fun.
+///
+/// **The shelf is still six tiles** (0.7.0, I1/I2). FILTER SEARCH left it,
+/// because the main menu's big round button is the filter search now and a tool
+/// reachable two ways from one screen is a tool nobody can find; LABEL SCAN took
+/// the empty square. Six keeps the fixed three-row grid that fills the LCD
+/// without scrolling, which is the layout's whole contract.
 ///
 /// Tiles match the main menu's deliberately — filled faces with the fake
 /// extrusion, not outlines — so every grid of big square buttons in the app
@@ -18,7 +23,6 @@ public struct ToolsScreen: View {
     let onDailyGrape: () -> Void
     let onScanner: () -> Void
     let onMoonDial: () -> Void
-    let onChipFilter: () -> Void
     let onQuiz: () -> Void
     let onDailyChallenge: () -> Void
 
@@ -29,14 +33,12 @@ public struct ToolsScreen: View {
         onDailyGrape: @escaping () -> Void,
         onScanner: @escaping () -> Void = {},
         onMoonDial: @escaping () -> Void = {},
-        onChipFilter: @escaping () -> Void = {},
         onQuiz: @escaping () -> Void = {},
         onDailyChallenge: @escaping () -> Void = {}
     ) {
         self.onDailyGrape = onDailyGrape
         self.onScanner = onScanner
         self.onMoonDial = onMoonDial
-        self.onChipFilter = onChipFilter
         self.onQuiz = onQuiz
         self.onDailyChallenge = onDailyChallenge
     }
@@ -52,17 +54,30 @@ public struct ToolsScreen: View {
                     // The two that answer a question about a specific glass go
                     // first — they are the reason to open this screen while
                     // actually drinking something.
+                    //
+                    // **IDENTIFY, not SCANNER** (0.7.0, I3). A UI-string rename
+                    // only, per house convention: `DexRoute.scanner`,
+                    // `ScannerScreen` and `ScannerBackRouter` all keep their
+                    // names, and nothing persisted moves. The old label named
+                    // the mechanism, and on a device where every listing is
+                    // already called a *scan* it named the wrong one — this is
+                    // the tool that tells you what is in the glass.
                     tile(
-                        title: "SCANNER",
+                        title: "IDENTIFY",
                         symbol: "sparkle.magnifyingglass",
                         face: "#22c55e", shadow: "#15803d",
                         action: onScanner
                     )
+                    // **LABEL SCAN, coming soon** (0.7.0, I2). No action and no
+                    // route: `comingSoon` is the country gates' own treatment
+                    // (see `DexEmptyState` / the gated country rows), reused
+                    // rather than a second disabled style invented here.
                     tile(
-                        title: "FILTER\nSEARCH",
-                        symbol: "line.3.horizontal.decrease.circle.fill",
-                        face: "#2AB5FF", shadow: "#136A99",
-                        action: onChipFilter
+                        title: "LABEL\nSCAN",
+                        symbol: "camera.viewfinder",
+                        face: "#64748B", shadow: "#334155",
+                        comingSoon: true,
+                        action: {}
                     )
                 }
                 // The quiz family sits together: the practice ladder, then
@@ -76,7 +91,7 @@ public struct ToolsScreen: View {
                     )
                     tile(
                         title: "DAILY\nCHALLENGE",
-                        symbol: "flame.fill",
+                        symbol: DexGlyph.streakFlame,
                         face: "#ef4444", shadow: "#991b1b",
                         action: onDailyChallenge
                     )
@@ -114,12 +129,23 @@ public struct ToolsScreen: View {
     /// extrusion, top-left sheen. Yellow and cyan faces take a dark ink —
     /// white on either is unreadable, the same rule the menu's search button
     /// follows.
+    ///
+    /// `comingSoon` marks a tile that is announced but not built (0.7.0, I2).
+    ///
+    /// The same three ideas the country gates settled on: the row still exists
+    /// and still *looks like* what it will be, its ink dims, and it says COMING
+    /// SOON in words. Not `.disabled()` — a dead tile that has gone grey is
+    /// indistinguishable from a paywalled one and from a bug, which is the
+    /// distinction `ContinentScreen`'s note spends a paragraph on. It stays
+    /// tappable and does nothing, because there is nothing yet to explain that
+    /// the label has not already said.
     private func tile(
         title: String,
         symbol: String,
         face: String,
         shadow: String,
         ink: Color = .white,
+        comingSoon: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
         Button {
@@ -139,7 +165,19 @@ public struct ToolsScreen: View {
                     .lineLimit(2)
                     .minimumScaleFactor(0.5)
                     .shadow(color: .black.opacity(0.35), radius: 0, x: 1, y: 1)
+                if comingSoon {
+                    HStack(spacing: 4) {
+                        Image(systemName: "hourglass")
+                            .font(.system(size: 9, weight: .bold))
+                        Text("COMING SOON")
+                            .font(DexFont.retro(7))
+                            .tracking(1)
+                    }
+                    .foregroundStyle(ink.opacity(0.85))
+                    .accessibilityLabel("Coming soon — not built yet")
+                }
             }
+            .opacity(comingSoon ? 0.62 : 1)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 10)

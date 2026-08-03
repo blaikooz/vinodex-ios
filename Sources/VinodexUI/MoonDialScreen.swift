@@ -62,24 +62,44 @@ public struct MoonDialScreen: View {
     /// A floor would defeat the point twice over — it is what makes a page
     /// unfittable, and inside 0.6.7's clipping LCD it would not scroll to
     /// reveal what it pushed out, it would simply hide it.
+    ///
+    /// ## Larger, and still one page (0.7.0, J1)
+    ///
+    /// J1 asks for a bigger UI here; K2 above says the page must not need to
+    /// scroll. Those are only in conflict if "bigger" means a fixed number of
+    /// points added to everything, which is what a naive read of J1 would do —
+    /// and it is the same hard floor K2 was written to keep out, arrived at from
+    /// the other side.
+    ///
+    /// So nothing here grows by a constant. Everything grows by `growth`, which
+    /// is a measurement of the slack the page actually has, on the two axes that
+    /// consume it: the LCD's height and the text scale. On the shortest
+    /// supported screen at HUGE text `growth` is 0 and every number below
+    /// resolves to exactly what 0.6.9 shipped — the fit K2 established is
+    /// therefore not merely preserved, it is the *floor case of the same
+    /// arithmetic*. On a tall phone at SMALL text it is 1 and the page uses the
+    /// room it was leaving in the `Spacer` at the bottom.
+    ///
+    /// This is why there is still no `minHeight` anywhere on this screen.
     public var body: some View {
         ZStack {
             DexScreenBackground()
 
             GeometryReader { geo in
-                VStack(spacing: 12) {
+                let grow = Self.growth(geo.size.height)
+                VStack(spacing: 12 + 8 * grow) {
                     Text(dateLine)
-                        .font(DexFont.retro(11))
+                        .font(DexFont.retro(11 + 3 * grow))
                         .tracking(1)
                         .foregroundStyle(lcd.subtext)
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
                         .minimumScaleFactor(0.6)
 
-                    dial(in: geo.size.height)
+                    dial(in: geo.size.height, grow: grow)
 
-                    dayType
-                    verdict
+                    dayType(grow: grow)
+                    verdict(grow: grow)
                     Spacer(minLength: 0)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -87,6 +107,17 @@ public struct MoonDialScreen: View {
                 .padding(.vertical, 14)
             }
         }
+    }
+
+    /// How much room this page has to spare, from 0 (none) to 1 (plenty).
+    ///
+    /// The rule lives in `PageRoom` (Core) rather than here because all three of
+    /// J's pages need it and because Core is the half of this app that
+    /// `swift test` can actually see — VinodexUI compiles to nothing off-device,
+    /// so a layout rule written here is a rule no gate can check. See
+    /// `PageRoomTests`.
+    private static func growth(_ pageHeight: CGFloat) -> CGFloat {
+        CGFloat(PageRoom.growth(pageHeight: Double(pageHeight)))
     }
 
     /// The illustration: the day's glyph in a ring tinted by the verdict.
@@ -97,8 +128,12 @@ public struct MoonDialScreen: View {
     /// fraction of that, so the ring, the ticks and the glyph scale as one
     /// piece — the ticks used to sit at a hardcoded `-75`, which is the old
     /// radius written twice.
-    private func dial(in pageHeight: CGFloat) -> some View {
-        let size = min(max(pageHeight * 0.30, 104), 150)
+    private func dial(in pageHeight: CGFloat, grow: CGFloat) -> some View {
+        // **Larger where there is room** (0.7.0, J1). Both the fraction and the
+        // ceiling ride `grow`, and both collapse to 0.6.9's 0.30/150 when it is
+        // zero. The 104 floor is untouched — it is what keeps a short screen
+        // readable, and raising it is precisely the hard floor K2 forbids.
+        let size = min(max(pageHeight * (0.30 + 0.09 * grow), 104), 150 + 64 * grow)
         let radius = size / 2
 
         return ZStack {
@@ -121,7 +156,7 @@ public struct MoonDialScreen: View {
                     .font(.system(size: size * 0.27, weight: .semibold))
                     .foregroundStyle(tint)
                 Text(day.rawValue)
-                    .font(DexFont.retro(16))
+                    .font(DexFont.retro(16 + 5 * grow))
                     .tracking(2)
                     .foregroundStyle(lcd.text)
                     .lineLimit(1)
@@ -142,14 +177,14 @@ public struct MoonDialScreen: View {
         }
     }
 
-    private var dayType: some View {
-        VStack(spacing: 8) {
-            row("DAY TYPE", "\(day.rawValue) DAY")
-            row("ELEMENT", day.element)
-            row("MOON IN", MoonCalendar.zodiac(for: now))
+    private func dayType(grow: CGFloat) -> some View {
+        VStack(spacing: 8 + 5 * grow) {
+            row("DAY TYPE", "\(day.rawValue) DAY", grow: grow)
+            row("ELEMENT", day.element, grow: grow)
+            row("MOON IN", MoonCalendar.zodiac(for: now), grow: grow)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 12 + 4 * grow)
+        .padding(.vertical, 12 + 6 * grow)
         .frame(maxWidth: .infinity)
         .background(RoundedRectangle(cornerRadius: 8).fill(lcd.surface))
         .overlay(
@@ -157,15 +192,15 @@ public struct MoonDialScreen: View {
         )
     }
 
-    private func row(_ label: String, _ value: String) -> some View {
+    private func row(_ label: String, _ value: String, grow: CGFloat) -> some View {
         HStack(spacing: 10) {
             Text(label)
-                .font(DexFont.retro(10))
+                .font(DexFont.retro(10 + 3 * grow))
                 .tracking(1)
                 .foregroundStyle(lcd.subtext)
             Spacer(minLength: 8)
             Text(value)
-                .font(DexFont.retro(11))
+                .font(DexFont.retro(11 + 3.5 * grow))
                 .tracking(1)
                 .foregroundStyle(lcd.text)
                 .lineLimit(1)
@@ -187,21 +222,21 @@ public struct MoonDialScreen: View {
     /// only call site: it is data with a deterministic per-day rule and its own
     /// tests, and the next surface that wants a line about today should have it
     /// to hand.
-    private var verdict: some View {
-        VStack(spacing: 10) {
+    private func verdict(grow: CGFloat) -> some View {
+        VStack(spacing: 10 + 4 * grow) {
             Image(systemName: day.isGoodForDrinking ? "checkmark.seal.fill" : "hand.raised.fill")
-                .font(.system(size: 28, weight: .bold))
+                .font(.system(size: 28 + 12 * grow, weight: .bold))
                 .foregroundStyle(tint)
 
             Text(day.verdict)
-                .font(DexFont.retro(15))
+                .font(DexFont.retro(15 + 5 * grow))
                 .tracking(1)
                 .foregroundStyle(tint)
                 .multilineTextAlignment(.center)
                 .lineLimit(3)
                 .minimumScaleFactor(0.6)
         }
-        .padding(14)
+        .padding(14 + 6 * grow)
         .frame(maxWidth: .infinity)
         .background(RoundedRectangle(cornerRadius: 8).fill(tint.opacity(0.1)))
         .overlay(

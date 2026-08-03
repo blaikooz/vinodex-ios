@@ -496,7 +496,7 @@ public struct BookmarksScreen: View {
 
             if streak.current > 0 {
                 HStack(spacing: 6) {
-                    Image(systemName: "flame.fill")
+                    Image(systemName: DexGlyph.streakFlame)
                         .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(Dex.yellow)
                     Text("\(streak.current) DAY\(streak.current == 1 ? "" : "S")")

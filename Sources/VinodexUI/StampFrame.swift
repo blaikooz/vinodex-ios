@@ -142,8 +142,15 @@ private struct GrainSpeckle: View {
 /// *happened to* the plate, not UI chrome.
 struct BackPlateStampView: View {
     let stamp: BackPlateStamp
-    var width: CGFloat = 76
-    var height: CGFloat = 90
+    /// 88x104 since 0.7.0 (E1), up from 76x90.
+    ///
+    /// The title is the widest thing on a stamp and it did not fit; the two ways
+    /// out were to shrink the words further or to give them room, and the words
+    /// were already being crushed to an illegible size. See the note on the
+    /// title itself for the arithmetic. `DeviceBackPlate.stampSize` mirrors
+    /// this, because the slot origins and the drag clamp both need it.
+    var width: CGFloat = 88
+    var height: CGFloat = 104
 
     private var ink: Color { Color(dexHex: stamp.colorHex) }
 
@@ -157,14 +164,47 @@ struct BackPlateStampView: View {
             VStack(spacing: 4) {
                 glyph
                     .frame(maxHeight: .infinity)
+                // **The title fits inside the stamp** (0.7.0, E1).
+                //
+                // It did not, and the reason is worth writing down because the
+                // number in the call below is a lie about what renders.
+                // `DexFont.retro` routes through `TypeScale.resolve`, which
+                // applies `nominalFloor` **before** the scale step — so
+                // `retro(6)` has never rendered at 6pt. It renders at
+                // `max(10, 6) × factor`, i.e. 8.5pt at SMALL and 11.5pt at
+                // HUGE. The floor is right (it is an accessibility guarantee and
+                // there is no arguing with it), but it silently promoted this
+                // one label by 67% at some point in 0.6.x, and nothing on this
+                // surface was re-measured afterwards.
+                //
+                // At 11.5pt in the Press Start face — a full em per character —
+                // COMPLETE alone is ~96pt of advance, against the 56pt the old
+                // `.padding(10)` left it on a 76pt stamp. One line and a
+                // `minimumScaleFactor(0.6)` was the whole budget, so the title
+                // was being crushed to ~7pt of a pixel face that has no legible
+                // pixels there. REGION COMPLETE was the worst; STREAK WEEK and
+                // TEN BOTTLES were the same failure a notch milder.
+                //
+                // Fixed by giving it room rather than by shrinking it further:
+                // the stamp itself is wider (see `BackPlateStampView.width`),
+                // the title wraps to the two lines every multi-word title in
+                // `StampCatalog` naturally wants, it takes back the block's
+                // horizontal padding so it can use the full width inside the
+                // keyline, and the scale floor comes *up* to 0.75. Worst case is
+                // now COMPLETE at HUGE, which needs ~0.77 — inside the floor,
+                // with the glyph above absorbing whatever the second line costs.
                 Text(stamp.title)
                     .font(DexFont.retro(6))
                     .tracking(0.5)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .minimumScaleFactor(0.75)
                     .foregroundStyle(ink.opacity(0.9))
+                    .padding(.horizontal, -4)
             }
-            .padding(10)
+            .padding(.horizontal, 10)
+            .padding(.top, 10)
+            .padding(.bottom, 8)
 
             // Thin inner keyline — the printed frame inside the perforation.
             Rectangle()

@@ -282,7 +282,19 @@ public enum DexMetrics {
     /// control the thumb has to reach, and the corner is also where the 55pt
     /// display arc is eating the most room. Moving it inboard puts it on flat
     /// glass and opens the corner it was crowding.
-    public static let islandOrbInsetLeading: CGFloat = 44
+    ///
+    /// **64 since 0.7.0 (G1)**, another 20 inboard. G1 moves the orb right and
+    /// the coloured lights left — the two clusters travelling toward each other
+    /// along the row 0.6.9's E1 levelled them on. The vertical alignment is
+    /// untouched: both still centre on the cutout's line, which is what E1
+    /// asked for and what `islandFlank`'s `.center` alignment does with nothing
+    /// correcting it.
+    ///
+    /// The budget is the cutout, and it is checked rather than guessed: on the
+    /// narrowest island device (393pt) the orb's 44pt slot now runs 64→108
+    /// against an island starting at 133, so ~25pt of clearance remains. Both
+    /// clusters keep more margin than the 20pt the row was designed around.
+    public static let islandOrbInsetLeading: CGFloat = 64
     /// How far in from the trailing edge the lamp trio ends (0.6.8, F3).
     ///
     /// `cornerGuardH`, i.e. the trio is trailing-aligned on the same inset the
@@ -291,7 +303,13 @@ public enum DexMetrics {
     /// the orb's slot. 0.6.7 (F3) centred the trio in the whole corner region
     /// instead, which put it ~70pt further left than this and left an obvious
     /// empty run of chassis outboard of it.
-    public static let islandStatusInsetTrailing: CGFloat = cornerGuardH
+    ///
+    /// **`cornerGuardH + 20` since 0.7.0 (G1)** — the trio's half of the same
+    /// move, kept as an offset from the guard rather than as a fresh literal so
+    /// the two clusters still travel the same distance from their own edges and
+    /// stay a mirrored pair. On 393pt the trio now spans ~282→347 against an
+    /// island ending at 259: ~23pt of clearance.
+    public static let islandStatusInsetTrailing: CGFloat = cornerGuardH + 20
     // `islandStatusRise` retired in 0.6.9 (E1). 0.6.8's F3 lifted the lamp trio
     // 6pt off the orb's centre line so the two clusters read as separate
     // objects rather than as one interrupted row of four lamps. E1 answers
@@ -906,6 +924,35 @@ public enum UIScale: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+/// A heading in the screen-mode picker (0.7.0, B1).
+///
+/// Nine modes in one undifferentiated three-column grid was a wall of tiles
+/// with no argument in it — the picker showed the range without saying what the
+/// range *was*. These three headings are the three things a mode can be: the
+/// app's own themes, a period display technology, and an homage to a specific
+/// machine.
+///
+/// `allCases` order is picker order. Membership is *not* declared here — see
+/// `LcdMode.section` for why the arrow points that way.
+public enum LcdModeSection: String, CaseIterable, Identifiable, Sendable {
+    /// The house themes: no conceit beyond light, dark, and the desktop one.
+    case classic = "CLASSIC"
+    /// Period display hardware — phosphor and reflective LCD, monochrome by
+    /// construction rather than by palette.
+    case vintage = "VINTAGE"
+    /// Modes that quote one specific machine's screen.
+    case emulator = "EMULATOR"
+
+    public var id: String { rawValue }
+
+    /// The modes under this heading, in `LcdMode.allCases` order.
+    ///
+    /// Derived rather than declared, so every mode appears exactly once across
+    /// the whole picker by construction: this is a partition of `allCases`, not
+    /// three hand-kept lists that have to agree with it.
+    public var modes: [LcdMode] { LcdMode.allCases.filter { $0.section == self } }
+}
+
 /// Whether the LCD renders dark-on-black or the original handheld's dark-on-
 /// light-grey. Independent of `ChassisSkin`: the shell and the screen are
 /// separate choices, and pairing a light screen with the red shell is a
@@ -942,18 +989,6 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// whole LCD to the handheld's palette. The rawValue is ASCII on
     /// purpose (it persists); the umlaut lives in `displayName`.
     case gruenerBoy = "GRUNER BOY"
-    /// **The hand-drawn screen** (0.6.9, M1): ruled cartridge paper with
-    /// blue-black ink, the pairing for the PÉT-NAT shell — though the two
-    /// are independent, like every other skin/mode pair, and a drawn screen
-    /// in a steel shell is a perfectly good joke.
-    ///
-    /// The only mode in the roster that changes how the ground is *drawn*
-    /// rather than what colour it is: `DexScreenBackground` swaps the square
-    /// engineering grid for `RuledPaper` — horizontal rules with a wobble
-    /// and a red margin line. A square grid says CRT whatever colour it is
-    /// painted, which is exactly the trap M1 is set to catch. See
-    /// `isSketchPaper`.
-    case notebook = "NOTEBOOK"
 
     public static let storageKey = "lcdMode"
 
@@ -976,6 +1011,23 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// Which heading this mode sits under in the picker (0.7.0, B1).
+    ///
+    /// An exhaustive switch rather than a table on `LcdModeSection`, and that is
+    /// the whole safety argument: a section list written as
+    /// `[.dark, .light, .wineOS]` somewhere can silently *omit* a mode, and the
+    /// omitted one simply stops appearing in the picker with nothing failing.
+    /// Written this way round the compiler will not build a mode that has no
+    /// home, and `LcdModeSection.modes` derives from `allCases`, so a mode
+    /// cannot be listed twice either.
+    public var section: LcdModeSection {
+        switch self {
+        case .dark, .light, .wineOS: .classic
+        case .amber, .vintage, .terminal: .vintage
+        case .starTrek, .gruenerBoy, .blueScreen: .emulator
+        }
+    }
+
     /// Whether the screen ground is pale. An explicit list, not `!= .dark`:
     /// vintage is dark ink on a pale ground and wants every light branch, but
     /// amber is a *dark* mode — pale scrims and dark-on-accent ink on it would
@@ -983,7 +1035,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// themed modes are dark glass.
     public var isLight: Bool {
         self == .light || self == .vintage || self == .wineOS
-            || self == .gruenerBoy || self == .notebook
+            || self == .gruenerBoy
     }
 
     /// The tint the chassis multiplies the grayscaled LCD by — nil renders in
@@ -992,7 +1044,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// terminal green (terminal).
     public var monochromeTint: Color? {
         switch self {
-        case .dark, .light, .wineOS, .blueScreen, .starTrek, .notebook: nil
+        case .dark, .light, .wineOS, .blueScreen, .starTrek: nil
         case .vintage: Color(dexHex: "#C6CFB2")
         case .amber: Color(dexHex: "#FFB300")
         case .terminal: Color(dexHex: "#4DFF4D")
@@ -1014,7 +1066,6 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .blueScreen: "pc"
         case .starTrek: "atom"
         case .gruenerBoy: "gamecontroller.fill"
-        case .notebook: "pencil.line"
         }
     }
 
@@ -1028,7 +1079,6 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .blueScreen: Color(dexHex: "#1021B4")
         case .starTrek: Color(dexHex: "#0B0910")
         case .gruenerBoy: Color(dexHex: "#E6EBCF")
-        case .notebook: Color(dexHex: "#F6F1E2")
         }
     }
 
@@ -1043,7 +1093,6 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .blueScreen: Color(dexHex: "#A6DBFF")
         case .starTrek: Color(dexHex: "#FFA94D")
         case .gruenerBoy: Color(dexHex: "#141A0C")
-        case .notebook: Color(dexHex: "#1E2534")
         }
     }
 
@@ -1063,7 +1112,6 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .starTrek: Color(dexHex: "#C983E8")
         case .gruenerBoy: Color(dexHex: "#2F3A1C")
         // Red pen — what anyone marking up a page reaches for.
-        case .notebook: Color(dexHex: "#B03A3A")
         }
     }
 
@@ -1077,7 +1125,6 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .blueScreen: Color(dexHex: "#BFE4FF")
         case .starTrek: Color(dexHex: "#F2CD9A")
         case .gruenerBoy: Color(dexHex: "#202817")
-        case .notebook: Color(dexHex: "#2B3244")
         }
     }
 
@@ -1091,7 +1138,6 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .blueScreen: Color.white.opacity(0.06)
         case .starTrek: Color(dexHex: "#C983E8").opacity(0.08)
         case .gruenerBoy: Color.black.opacity(0.06)
-        case .notebook: Color(dexHex: "#2B3244").opacity(0.05)
         }
     }
 
@@ -1106,7 +1152,6 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .blueScreen: Color(dexHex: "#4A5FE0")
         case .starTrek: Color(dexHex: "#7A4E9E")
         case .gruenerBoy: Color(dexHex: "#3A4224")
-        case .notebook: Color(dexHex: "#6C7896")
         }
     }
 
@@ -1114,7 +1159,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     public var buttonWell: Color {
         switch self {
         case .dark, .amber, .terminal, .starTrek: .black.opacity(0.35)
-        case .light, .vintage, .wineOS, .gruenerBoy, .notebook: .white
+        case .light, .vintage, .wineOS, .gruenerBoy: .white
         case .blueScreen: Color(dexHex: "#0A1690")
         }
     }
@@ -1130,7 +1175,6 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .blueScreen: Color(dexHex: "#0E1CA8")
         case .starTrek: .black
         case .gruenerBoy: Color(dexHex: "#DDE3C2")
-        case .notebook: Color(dexHex: "#EFE8D6")
         }
     }
 
@@ -1144,7 +1188,6 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .blueScreen: Color(dexHex: "#1F31CE")
         case .starTrek: Color(dexHex: "#191022")
         case .gruenerBoy: Color(dexHex: "#EFF2DE")
-        case .notebook: Color(dexHex: "#FCF8EE")
         }
     }
 
@@ -1157,7 +1200,6 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .blueScreen: Color(dexHex: "#5D74E8")
         case .starTrek: Color(dexHex: "#5C3E78")
         case .gruenerBoy: Color(dexHex: "#7A8258")
-        case .notebook: Color(dexHex: "#9AA2B4")
         }
     }
 
@@ -1171,7 +1213,6 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .blueScreen: Color(dexHex: "#8FB0F0")
         case .starTrek: Color(dexHex: "#C2915C")
         case .gruenerBoy: Color(dexHex: "#455030")
-        case .notebook: Color(dexHex: "#5A6274")
         }
     }
 
@@ -1182,7 +1223,6 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .light, .vintage, .wineOS: Color(dexHex: "#FFFFFF")
         case .blueScreen: Color(dexHex: "#0A1690")
         case .gruenerBoy: Color(dexHex: "#F4F6E8")
-        case .notebook: Color(dexHex: "#FCF8EE")
         }
     }
 
@@ -1201,7 +1241,6 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .blueScreen: Color(dexHex: "#6272D4")
         case .starTrek: Color(dexHex: "#6D5A49")
         case .gruenerBoy: Color(dexHex: "#939B78")
-        case .notebook: Color(dexHex: "#A3A9B8")
         }
     }
 
@@ -1213,7 +1252,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     public var onAccent: Color {
         switch self {
         case .dark, .amber, .terminal, .starTrek: .black
-        case .light, .vintage, .wineOS, .gruenerBoy, .notebook: .white
+        case .light, .vintage, .wineOS, .gruenerBoy: .white
         case .blueScreen: Color(dexHex: "#0A1690")
         }
     }
@@ -1237,11 +1276,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .wineOS: Color(dexHex: "#8598B8")
         case .blueScreen: Color(dexHex: "#4A5FE0")
         case .starTrek: Color(dexHex: "#3A2C1E")
-        // The ruled paper's own rule colour — see `isSketchPaper`. Read
-        // by `RuledPaper` rather than by `DexGridBackground`, which this
-        // mode does not mount.
         case .gruenerBoy: Color(dexHex: "#7A8258")
-        case .notebook: Color(dexHex: "#8FA2C4")
         }
     }
 
@@ -1298,10 +1333,6 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .gruenerBoy:
             ChassisAccent(pale: "#E6EBCF", light: "#C2CE9A", bright: "#8BAC0F",
                           mid: "#566A18", edge: "#24300C", ink: "#0F1A0A")
-        // Red pen on paper, the same ladder the accent picks from.
-        case .notebook:
-            ChassisAccent(pale: "#FBEFEF", light: "#EFC7C7", bright: "#D46A6A",
-                          mid: "#B03A3A", edge: "#6E1F1F", ink: "#3A0E0E")
         }
     }
 
@@ -1333,7 +1364,6 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         // L-WINES: the console's accent purple.
         case .starTrek: Color(dexHex: "#C983E8")
         case .gruenerBoy: Color(dexHex: "#C2CE9A")
-        case .notebook: Color(dexHex: "#E4DFCE")
         }
     }
 
@@ -1344,20 +1374,21 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// under their own tints.
     public var invertsGlobeTexture: Bool { self == .light }
 
-    /// Whether the LCD's ground is **ruled paper** rather than a grid
-    /// (0.6.9, M1).
-    ///
-    /// The one mode flag that changes a *rendering* rather than a colour,
-    /// and it sits beside `invertsGlobeTexture` because that is the only
-    /// other one — LIGHT inverts the globe texture, NOTEBOOK swaps the
-    /// backdrop. `DexScreenBackground` mounts `RuledPaper` instead of
-    /// `DexGridBackground` when this is true.
-    ///
-    /// Spelled as a flag rather than as `self == .notebook` at the call
-    /// site for the reason `isLight` is an explicit list: a second drawn
-    /// mode should turn this on rather than have the backdrop grow a
-    /// second equality check.
-    public var isSketchPaper: Bool { self == .notebook }
+    // `isSketchPaper` retired with the NOTEBOOK mode itself (0.7.0, C1).
+    //
+    // 0.6.9's M1 shipped the hand-drawn look as two independent halves — a
+    // shell (`ChassisSkin.sketch`, still here, still PÉT-NAT's) and a screen
+    // (this flag, plus `SketchRender.RuledPaper`). C1 removes the screen
+    // mode and B2 keeps the shell, which is the two halves being independent
+    // working exactly as designed: PÉT-NAT is now a drawn shell around an
+    // ordinary gridded LCD, the same way it was always allowed to be a drawn
+    // shell around AMBER.
+    //
+    // `RuledPaper` is deliberately left in `SketchRender.swift` rather than
+    // deleted with its only call site: it is a finished drawing with no
+    // owner, and the decision it is waiting on (whether the paper should
+    // follow the *skin* instead of a mode) is the user's, not this batch's.
+    // Re-mounting it is one `if` in `DexScreenBackground`.
 
     public static var current: LcdMode {
         LcdMode(rawValue: UserDefaults.standard.string(forKey: storageKey) ?? "") ?? .dark
@@ -1489,6 +1520,90 @@ public struct SketchStyle: Sendable {
 public enum SkinMark: Sendable, Equatable {
     /// The Vinodex sigil: an original maker's mark. See `SkinSigil`.
     case sigil
+    /// A jack-o'-lantern (0.7.0, B2). Drawn rather than named because SF
+    /// Symbols has no pumpkin at the iOS 17 floor — not a licensing problem
+    /// like `.sigil`'s, simply an absent glyph, and the same hook answers both.
+    /// See `SkinPumpkin`.
+    /// See `SkinPumpkin`.
+    ///
+    /// How a mark is *drawn* stays in `SkinMarkView`'s switch rather than
+    /// becoming a flag here: the sigil is three open strokes and has to be
+    /// stroked, the lantern is a silhouette with its face cut out and has to be
+    /// filled `eoFill`, and a third mark will have its own answer that no
+    /// `isStroked` boolean would have covered. An exhaustive switch in one
+    /// renderer is the thing that will not compile until that answer exists.
+    case pumpkin
+}
+
+/// How one chassis skin's **back plate** is made (0.7.0, F1).
+///
+/// The plate was a single hardcoded sheet of brushed aluminium with one
+/// exception carved out of it — `isTranslucent` swapped the metal for the mock
+/// internals, and seventeen of nineteen skins therefore turned over to a
+/// byte-identical slab. A shell moulded from walnut, from paper or from
+/// bottle glass with a steel back is two products, which is the argument the
+/// plate's own doc comment already made for the clear skins and then applied to
+/// nobody else.
+///
+/// A struct rather than a pile of separate hooks, for `ChassisAccent`'s reason:
+/// these values are only ever used together, and a plate is one material.
+///
+/// **VINODEX CLASSIC's values are the plate exactly as it was** — every literal
+/// below for `.classic` is lifted from the hardcoded sheet, so the house device
+/// is provably untouched and stays the reference the others vary from.
+public struct BackPlateStyle: Sendable {
+    /// The four diagonal stops of the plate's own material.
+    public let stops: [Color]
+    /// What is done to that material's surface.
+    public let finish: BackPlateFinish
+    /// The dark band around the whole plate.
+    public let edge: Color
+    /// Fill for anything cut *into* the plate: the nameplate recess, the serial
+    /// panel, the return dish.
+    public let recess: Color
+    /// The engraved copy, and the heavier weight for the maker's mark.
+    public let ink: Color
+    public let inkDeep: Color
+    /// The fasteners: three stops for the head, one for its rim.
+    public let screw: [Color]
+    public let screwRim: Color
+
+    public init(
+        stops: [String],
+        finish: BackPlateFinish,
+        edge: String,
+        recess: String,
+        ink: String,
+        inkDeep: String,
+        screw: [String],
+        screwRim: String
+    ) {
+        self.stops = stops.map { Color(dexHex: $0) }
+        self.finish = finish
+        self.edge = Color(dexHex: edge)
+        self.recess = Color(dexHex: recess)
+        self.ink = Color(dexHex: ink)
+        self.inkDeep = Color(dexHex: inkDeep)
+        self.screw = screw.map { Color(dexHex: $0) }
+        self.screwRim = Color(dexHex: screwRim)
+    }
+}
+
+/// The surface treatment over a plate's base material (0.7.0, F1).
+public enum BackPlateFinish: Sendable, Equatable {
+    /// The fine vertical striations that say "machined aluminium" — the
+    /// original plate's finish, and still CLASSIC's.
+    case brushed
+    /// Nothing at all: injection-moulded plastic, which has no grain.
+    case moulded
+    /// A tiled pattern from `Resources/Chassis`, by the same name and through
+    /// the same loader the *front* shell uses (`ChassisSkin.bodyPatternAsset`).
+    /// Reusing the front's asset is the point — a walnut device is walnut on
+    /// both sides or it is two devices.
+    case pattern(String)
+    /// Paper tooth, for the drawn shell — `SketchRender.PaperGrain` in this
+    /// colour, exactly as `ChassisShell` mounts it on the front.
+    case paper(Color)
 }
 
 /// Chassis colourway. The LCD itself never changes — only the moulding around
@@ -1497,6 +1612,41 @@ public enum SkinMark: Sendable, Equatable {
 /// Persisted under this key by both `DeviceChassis` and `SettingsPanel`;
 /// `@AppStorage` keeps the two in sync without threading state between them.
 ///
+/// A heading in the chassis-skin picker (0.7.0, B2).
+///
+/// Twenty-one shells in one flat grid is a swatch book, not a range. These six
+/// headings are the six *arguments* the range actually makes: the house
+/// colourways, the ones named for a wine's colour, the ones named for what wine
+/// is kept in, the ones quoting consumer hardware, the see-through ones, and the
+/// seasonal ones.
+///
+/// `allCases` order is picker order. Membership is not declared here — see
+/// `ChassisSkin.section`.
+public enum ChassisSkinSection: String, CaseIterable, Identifiable, Sendable {
+    /// The house device and the two shells that are variations on it.
+    case classic = "CLASSIC"
+    /// Named for what is in the glass.
+    case wines = "WINES"
+    /// Named for what the wine is kept in — cask, tank, bottle.
+    case vessel = "VESSEL"
+    /// The consumer-hardware homages. Never anybody's mark — see `drawnMark`.
+    case retrofit = "RETROFIT"
+    /// The translucent shells, mock internals showing through.
+    case clearTech = "CLEARTECH"
+    /// Seasonal in theme only. A skin that vanished in January would read as a
+    /// bug, not as a gift — see `.christmas`.
+    case festive = "FESTIVE"
+
+    public var id: String { rawValue }
+
+    /// The skins under this heading, in `ChassisSkin.allCases` order.
+    ///
+    /// Derived rather than declared, so the six sections are provably a
+    /// partition of `allCases`: no skin can be dropped from the picker by being
+    /// left off a list, and none can appear twice.
+    public var skins: [ChassisSkin] { ChassisSkin.allCases.filter { $0.section == self } }
+}
+
 /// A skin used to be four greys and a body colour: swap it and you got the same
 /// cyan orb, the same amber Home button and the same green marquee in a
 /// different-coloured tray. The moulding changed and none of the *parts* did,
@@ -1579,15 +1729,61 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     /// (it persists); the accent lives in `displayName`, exactly as GRUNER BOY
     /// does.
     case petNat = "PET NAT"
+    /// **Forest glass** (0.7.0, B2) — the green translucent shell, and the only
+    /// skin in the range whose reference is older than electricity.
+    ///
+    /// *Waldglas* is genuine: the potash glass blown in the German and Bohemian
+    /// forests from the middle ages on, coloured a pale olive-green by the iron
+    /// in the wood ash that fluxed it. Bottle green is not a design choice, it is
+    /// what glass does when nobody decolourises it — which makes this the most
+    /// literal possible reading of "clear plastic shell" and lands it squarely in
+    /// CLEARTECH beside EMPTY BOTTLE and RETROVIN.
+    ///
+    /// The house naming rule holds without straining: a real glass name, not a
+    /// description, and nobody's mark.
+    case waldglas = "WALDGLAS"
+    /// **Black and orange** (0.7.0, B2) — the one skin in the range that is a
+    /// night rather than a wine or a material.
+    ///
+    /// Seasonal in theme only, exactly as WINE XMAS is: it is always available,
+    /// because a skin that appeared for a fortnight in October and then vanished
+    /// would read as a bug. It carries the range's only per-skin *control* glyph
+    /// — the user button is a drawn pumpkin, see `controlMark`.
+    case halloween = "HALLOWEEN"
 
     public static let storageKey = "chassisSkin"
 
     public var id: String { rawValue }
 
+    /// Which heading this skin sits under in the picker (0.7.0, B2).
+    ///
+    /// An exhaustive switch, for `LcdMode.section`'s reason: written the other
+    /// way round — six declared lists of skins — a skin could be left off every
+    /// list and would simply stop appearing in the picker, with nothing failing
+    /// to say so. This way the compiler refuses to build a skin with no home.
+    ///
+    /// Note that several skins sit under a heading their *case name* does not
+    /// suggest, because the case name is the persisted raw value and the label
+    /// has moved since: `.nocturne` is VINHO VERDE, `.vinhoVerde` is BOX WINE,
+    /// `.riesling` is VIN JAUNE, `.nouveau` is RETROVIN, `.glouglou` is EMPTY
+    /// BOTTLE. Read `displayName` before moving anything here.
+    public var section: ChassisSkinSection {
+        switch self {
+        case .classic, .midnight, .original: .classic
+        case .burgundy, .nocturne, .champagne: .wines
+        case .oaked, .steel, .petNat: .vessel
+        case .vinhoVerde, .psvino, .grisDeGris, .riesling, .smartGrape, .orangeWine: .retrofit
+        case .glouglou, .nouveau, .waldglas: .clearTech
+        case .christmas, .blush, .halloween: .festive
+        }
+    }
+
     /// Whether the shell is see-through — `DeviceChassis`'s cue to mount the
     /// mock internals behind it. A flag rather than sniffing alpha out of a
     /// `Color`, which SwiftUI does not expose anyway.
-    public var isTranslucent: Bool { self == .glouglou || self == .nouveau }
+    public var isTranslucent: Bool {
+        self == .glouglou || self == .nouveau || self == .waldglas
+    }
 
     /// A soft halo around the screen housing — NOCTURNE's glow-in-the-dark
     /// charge. Nil everywhere else; the chassis applies it as a shadow, so
@@ -1624,6 +1820,10 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // Pencil blue on paper — the one skin whose globe should look
         // like a drawing of a globe.
         case .petNat: Color(dexHex: "#DCE3F0")
+        // Seen through bottle glass.
+        case .waldglas: Color(dexHex: "#DCEAC0")
+        // Jack-o'-lantern light.
+        case .halloween: Color(dexHex: "#FFD6A8")
         }
     }
 
@@ -1639,10 +1839,18 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     /// further from the boards. Meaningful only for translucent skins.
     /// RETROVIN's back is its own atomic purple (v0.5.9, A2): the plate used
     /// one hardcoded grey smoke, so the purple shell turned grey from behind.
+    /// A switch since 0.7.0 (B2) rather than the two-way ternary it was: with
+    /// WALDGLAS there are three translucent skins and three back mouldings, and
+    /// a ternary that has to name two of them is one skin away from lying about
+    /// the third — which is exactly the bug v0.5.9's A2 fixed for RETROVIN.
     public var backSmoke: Color {
-        self == .nouveau
-            ? Color(dexHex: "rgba(147,51,234,0.34)")
-            : Color(dexHex: "rgba(204,216,224,0.34)")
+        switch self {
+        case .nouveau: Color(dexHex: "rgba(147,51,234,0.34)")
+        // Forest glass from behind: the same olive, one degree paler for the
+        // extra moulding between the eye and the boards.
+        case .waldglas: Color(dexHex: "rgba(176,196,132,0.34)")
+        default: Color(dexHex: "rgba(204,216,224,0.34)")
+        }
     }
 
     /// What the picker calls this skin.
@@ -1683,6 +1891,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .grisDeGris: "GRIS DE GRIS"
         case .orangeWine: "ORANGE WINE"
         case .petNat: "PÉT-NAT"
+        case .waldglas: "WALDGLAS"
+        case .halloween: "HALLOWEEN"
         }
     }
 
@@ -1726,6 +1936,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .orangeWine: "exclamationmark.triangle.fill"
         // The pen that drew the shell.
         case .petNat: "pencil.and.outline"
+        // Forest glass, named for the woods it was blown in.
+        case .waldglas: "leaf.circle.fill"
+        // The neutral fallback only. This skin's emblem is a drawing —
+        // SF Symbols has no pumpkin at the iOS 17 floor. See `drawnMark`.
+        case .halloween: "moon.haze.fill"
         }
     }
 
@@ -1794,6 +2009,16 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // the one thing that would give the trick away.
         case .petNat:
             return trio(("#E24A4A", "#8E1C1C"), ("#E8B93A", "#8E6A0A"), ("#3E7FBF", "#1B4470"))
+        // Three depths of the same glass: the thin edge of a blown wall,
+        // the body, and the punt where it stacks up almost opaque.
+        case .waldglas:
+            return trio(("#D7E8AE", "#7E9A3E"), ("#A8C766", "#5A7526"), ("#5F7A28", "#2E3F10"))
+        // Candle, pumpkin, ember — stepped wide on purpose. Three oranges
+        // within a few percent of one luminance is the BLUSH mistake
+        // (see its note above): a device with three indistinguishable
+        // indicators reads as broken.
+        case .halloween:
+            return trio(("#FFC98A", "#B36A00"), ("#FF8A1F", "#A34C00"), ("#8A2E00", "#3D1200"))
         }
     }
 
@@ -1828,6 +2053,12 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // Cartridge paper, slightly warm — pure white reads as a blank
         // canvas rather than as a sheet somebody drew on.
         case .petNat: Color(dexHex: "#EFE9DC")
+        // Olive-green smoke — translucent, like GLOUGLOU; see `underlay`.
+        // The colour iron in wood ash gives glass nobody decolourised.
+        case .waldglas: Color(dexHex: "rgba(160,183,116,0.42)")
+        // Not black: a true #000 shell has no moulding in it at all. This
+        // is near-black with a violet cast, which is what reads as night.
+        case .halloween: Color(dexHex: "#17141A")
         }
     }
 
@@ -1859,6 +2090,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // No wash, like OAKED: a translucent bar across a sheet of paper
         // is a smudge. The grain runs uninterrupted under the buttons.
         case .petNat: Color.clear
+        case .waldglas: Color(dexHex: "rgba(160,183,116,0.28)")
+        case .halloween: Color(dexHex: "#17141A").opacity(0.75)
         }
     }
 
@@ -1889,6 +2122,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .orangeWine: Color(dexHex: "#F6A550")
         // A second sheet laid on the first, a shade brighter.
         case .petNat: Color(dexHex: "#F8F4EA")
+        case .waldglas: Color(dexHex: "rgba(214,229,178,0.55)")
+        case .halloween: Color(dexHex: "#241E2B")
         }
     }
 
@@ -1917,6 +2152,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // opacity under the hand line, so the two do not read as two
         // outlines. See `DeviceChassis.screenHousing`.
         case .petNat: Color(dexHex: "#2B3244")
+        case .waldglas: Color(dexHex: "rgba(122,142,84,0.85)")
+        case .halloween: Color(dexHex: "#0C0A10")
         }
     }
 
@@ -1945,6 +2182,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .grisDeGris: Color(dexHex: "#9A968E")
         case .orangeWine: Color(dexHex: "#A85708")
         case .petNat: Color(dexHex: "#4A5468")
+        // Opaque over the internals, like GLOUGLOU's and RETROVIN's.
+        case .waldglas: Color(dexHex: "#6C8348")
+        case .halloween: Color(dexHex: "#4A3F55")
         }
     }
 
@@ -2001,6 +2241,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // A wash of ink where the lamp is — the drawn device's one
         // concession to looking powered.
         case .petNat: Color(dexHex: "#7FA6D8")
+        // A bright bead of the same glass, lit from behind.
+        case .waldglas: Color(dexHex: "#C9E86A")
+        // The candle inside the lantern — the one lit thing on a shell
+        // whose buttons are deliberately unlit.
+        case .halloween: Color(dexHex: "#FF8A1F")
         }
     }
 
@@ -2027,6 +2272,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .grisDeGris: Color(dexHex: "#8F1414")
         case .orangeWine: Color(dexHex: "#C99000")
         case .petNat: Color(dexHex: "#3E6FA8")
+        case .waldglas: Color(dexHex: "#7A9A2E")
+        case .halloween: Color(dexHex: "#B34700")
         }
     }
 
@@ -2120,6 +2367,14 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .petNat:
             ChassisAccent(pale: "#FBF8F1", light: "#E6E0D2", bright: "#C9C2B2",
                           mid: "#A79F8E", edge: "#2B3244", ink: "#2B3244")
+        // The glass itself, lit — one dye lot, like BURGUNDY's purple.
+        case .waldglas:
+            ChassisAccent(pale: "#F0F7DE", light: "#D7E8AE", bright: "#A8C766",
+                          mid: "#7E9A3E", edge: "#48601E", ink: "#1F2C0A")
+        // Pumpkin orange, and it is the only colour on the shell.
+        case .halloween:
+            ChassisAccent(pale: "#FFEBD4", light: "#FFC98A", bright: "#FF8A1F",
+                          mid: "#E0670A", edge: "#8A3A00", ink: "#331500")
         }
     }
 
@@ -2196,6 +2451,14 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // precedent — white on paper is nothing at all.
         case .petNat:
             ChassisControl(top: "#FBF8F1", bottom: "#DED7C7", edge: "#2B3244", glyph: "#2B3244")
+        // Clear green caps, moulded from the same glass as the shell.
+        case .waldglas:
+            ChassisControl(top: "rgba(203,222,160,0.55)", bottom: "rgba(72,96,30,0.60)",
+                           edge: "rgba(226,238,200,0.90)", glyph: "#1F2C0A")
+        // Black caps with an orange glyph — the two colours, and only the
+        // two colours.
+        case .halloween:
+            ChassisControl(top: "#2A2530", bottom: "#0A080C", edge: "#5E5468", glyph: "#FF8A1F")
         }
     }
 
@@ -2254,7 +2517,176 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     /// logo, and `symbol` keeps a neutral fallback for anything that only
     /// knows how to render a string.
     public var drawnMark: SkinMark? {
-        self == .psvino ? .sigil : nil
+        switch self {
+        case .psvino: .sigil
+        // Not a trademark problem, an absent-glyph one: there is no pumpkin in
+        // SF Symbols at the iOS 17 floor, and `symbol` therefore holds only a
+        // neutral fallback for anything that can render nothing but a string.
+        case .halloween: .pumpkin
+        default: nil
+        }
+    }
+
+    /// A per-skin glyph for the **user button**, or nil for the house one
+    /// (0.7.0, B2/F1).
+    ///
+    /// Deliberately separate from `drawnMark`, which is the skin's *badge* — the
+    /// thing on the picker tile and the back-plate sticker. This is a glyph on a
+    /// mechanical control, and the two are different surfaces with different
+    /// rules: `buttonSet` established that a skin may recolour the four face
+    /// buttons, with the explicit caveat that the *glyphs* stay Vinodex's own.
+    ///
+    /// HALLOWEEN is the first skin to take a glyph as well, and it is worth
+    /// being clear about why that does not reopen the caveat: the pumpkin is a
+    /// drawing of ours, not a shape quoted from anybody's hardware. The rule was
+    /// never "the glyphs never change", it was "we do not reproduce someone
+    /// else's mark".
+    ///
+    /// Nil on twenty of twenty-one skins and costs them one optional check.
+    public var userMark: SkinMark? {
+        self == .halloween ? .pumpkin : nil
+    }
+
+    /// This skin's back plate (0.7.0, F1). See `BackPlateStyle`.
+    ///
+    /// Twenty of the twenty-one entries are built from the skin's *own* existing
+    /// tokens — `panel`, `body`, `panelEdge`, `accent` — rather than from
+    /// twenty-one hand-authored palettes. That is not laziness, it is the
+    /// property that makes the hook survive: a skin whose shell colour is
+    /// retuned gets a back that follows it, and a twenty-second skin gets a
+    /// plate for free instead of one more table to forget.
+    ///
+    /// `.classic` is the exception in both directions: it is written out in
+    /// literals, and those literals are the plate as it shipped.
+    public var backPlate: BackPlateStyle {
+        // The steel plate, verbatim. Do not derive this one — it is the
+        // reference, and deriving it would move the baseline.
+        if self == .classic {
+            return BackPlateStyle(
+                stops: ["#cdcfd2", "#9ea1a5", "#7e8186", "#b8babd"],
+                finish: .brushed,
+                edge: "#2b2d30",
+                recess: "#57534e",
+                ink: "#44403c",
+                inkDeep: "#292524",
+                screw: ["#e7e5e4", "#a8a29e", "#57534e"],
+                screwRim: "#44403c"
+            )
+        }
+        return BackPlateStyle(
+            // Panel over body over body over panel: the same diagonal the steel
+            // sheet runs, in this shell's two mouldings, so the plate catches
+            // the light the way the front does.
+            stops: [panelHex, bodyHex, bodyHex, panelHex],
+            finish: plateFinish,
+            edge: panelEdgeHex,
+            recess: panelEdgeHex,
+            ink: panelEdgeHex,
+            inkDeep: panelEdgeHex,
+            screw: [panelHex, bodyHex, panelEdgeHex],
+            screwRim: panelEdgeHex
+        )
+    }
+
+    /// The surface over the plate's base, which follows the front's.
+    ///
+    /// Reads `bodyPatternAsset` and `sketch` rather than declaring a second
+    /// table: STEEL is brushed on both faces, OAKED is walnut on both faces,
+    /// PÉT-NAT is paper on both faces. Anything with no front treatment is
+    /// plain moulding, which is what plastic looks like from behind.
+    private var plateFinish: BackPlateFinish {
+        if let sketch { return .paper(sketch.grain) }
+        if let asset = bodyPatternAsset { return .pattern(asset) }
+        // Everything else is injection-moulded plastic, which has no grain.
+        // Note that STAINLESS STEEL does *not* fall through to `.brushed` here:
+        // it ships a `steel-brush` pattern and takes the branch above, so the
+        // two faces wear the same machining rather than two different
+        // approximations of it. `.brushed` is now CLASSIC's alone — the literal
+        // aluminium sheet the plate has always been.
+        return .moulded
+    }
+
+    // The plate is built from hex strings rather than from the `Color` values
+    // the rest of this type exposes, because `BackPlateStyle` composes them into
+    // gradients and SwiftUI gives no way to read a component back out of a
+    // `Color`. These three are the same literals `body`, `panel` and `panelEdge`
+    // resolve, kept beside them.
+    private var bodyHex: String {
+        switch self {
+        case .classic: "#DC0A2D"
+        case .midnight: "#17161A"
+        case .original: "#D8D8D0"
+        case .burgundy: "#4B1D3F"
+        case .riesling: "#F2C11B"
+        case .vinhoVerde: "#24402B"
+        case .glouglou: "rgba(204,216,224,0.40)"
+        case .smartGrape: "#1C1C1E"
+        case .champagne: "#E8D5A6"
+        case .christmas: "#1B4332"
+        case .nouveau: "rgba(147,51,234,0.42)"
+        case .oaked: "#5C4028"
+        case .nocturne: "#C9F2BE"
+        case .steel: "#C7CBD1"
+        case .blush: "#EEA7B6"
+        case .psvino: "#232427"
+        case .grisDeGris: "#C8C4BC"
+        case .orangeWine: "#E8720E"
+        case .petNat: "#EFE9DC"
+        case .waldglas: "rgba(160,183,116,0.42)"
+        case .halloween: "#17141A"
+        }
+    }
+
+    private var panelHex: String {
+        switch self {
+        case .classic: "#DEDEDE"
+        case .midnight: "#2B2A30"
+        case .original: "#EFEFE9"
+        case .burgundy: "#D3BBCE"
+        case .riesling: "#4A4F55"
+        case .vinhoVerde: "#2E4F36"
+        case .glouglou: "rgba(234,241,246,0.55)"
+        case .smartGrape: "#2C2A28"
+        case .champagne: "#F6EEDC"
+        case .christmas: "#F4F7F2"
+        case .nouveau: "rgba(216,180,254,0.50)"
+        case .oaked: "#F2E8D5"
+        case .nocturne: "#E9FBE0"
+        case .steel: "#DDE0E4"
+        case .blush: "#FBE9EC"
+        case .psvino: "#3B3C41"
+        case .grisDeGris: "#DAD6CE"
+        case .orangeWine: "#F6A550"
+        case .petNat: "#F8F4EA"
+        case .waldglas: "rgba(214,229,178,0.55)"
+        case .halloween: "#241E2B"
+        }
+    }
+
+    private var panelEdgeHex: String {
+        switch self {
+        case .classic: "#a8a29e"
+        case .midnight: "#4A4852"
+        case .original: "#9A9A93"
+        case .burgundy: "#2C0F24"
+        case .riesling: "#B9BEC4"
+        case .vinhoVerde: "#16281B"
+        case .glouglou: "rgba(148,163,184,0.85)"
+        case .smartGrape: "#5A5148"
+        case .champagne: "#B49B62"
+        case .christmas: "#9CAF9C"
+        case .nouveau: "rgba(233,213,255,0.90)"
+        case .oaked: "#B5892E"
+        case .nocturne: "#8FCB7C"
+        case .steel: "#6B7078"
+        case .blush: "#D2718A"
+        case .psvino: "#141517"
+        case .grisDeGris: "#8B8880"
+        case .orangeWine: "#8A4406"
+        case .petNat: "#2B3244"
+        case .waldglas: "rgba(122,142,84,0.85)"
+        case .halloween: "#0C0A10"
+        }
     }
 
     /// How this skin's parts are drawn, or nil for the ordinary moulded ones
@@ -2315,6 +2747,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // filled rather than outlined, because a marquee has to read as
         // lit and there is no drawn equivalent of lit.
         case .petNat: Color(dexHex: "#E8DF7A")
+        case .waldglas: Color(dexHex: "#B8D96A")
+        case .halloween: Color(dexHex: "#FFA23C")
         }
     }
 
@@ -2341,6 +2775,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .grisDeGris: Color(dexHex: "#7E9B2E")
         case .orangeWine: Color(dexHex: "#E0A100")
         case .petNat: Color(dexHex: "#BFB55A")
+        case .waldglas: Color(dexHex: "#8AA83E")
+        case .halloween: Color(dexHex: "#E0670A")
         }
     }
 
@@ -2367,6 +2803,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .grisDeGris: Color(dexHex: "#16240A")
         case .orangeWine: Color(dexHex: "#33220A")
         case .petNat: Color(dexHex: "#2B3244")
+        case .waldglas: Color(dexHex: "#1A240A")
+        case .halloween: Color(dexHex: "#2B1200")
         }
     }
 

@@ -13,6 +13,16 @@ import VinodexCore
 /// solid steel back would be two different products. The screws and engraving
 /// stay: fasteners are real parts, and the maker's mark is etched into the
 /// plastic instead of the metal.
+///
+/// **One plate per skin since 0.7.0 (F1).** The paragraph above made the right
+/// argument and then applied it to two skins out of nineteen: everything else
+/// turned over to the identical aluminium slab, so a walnut device, a paper
+/// device and a black-and-orange device all had the same back. Every colour on
+/// this surface now comes from `ChassisSkin.backPlate`, and the surface
+/// treatment follows the *front's* — `bodyPatternAsset` and `sketch`, through
+/// the same `ChassisPatternLoader` and the same `PaperGrain`, rather than a
+/// second table describing the same materials twice. VINODEX CLASSIC's entry is
+/// the old literals, so the house device's plate is unchanged.
 public struct DeviceBackPlate: View {
     private static let creator = "HORIZON/GODOT"
 
@@ -64,7 +74,7 @@ public struct DeviceBackPlate: View {
                 highlight
             } else {
                 metal
-                striations
+                finish
                 highlight
             }
             screws
@@ -133,7 +143,7 @@ public struct DeviceBackPlate: View {
         // the display does not clip it away.
         .overlay {
             RoundedRectangle(cornerRadius: DexMetrics.deviceCorner)
-                .strokeBorder(Color(dexHex: "#2b2d30"), lineWidth: 5)
+                .strokeBorder(plate.edge, lineWidth: 5)
                 .padding(3)
                 .allowsHitTesting(false)
         }
@@ -159,13 +169,13 @@ public struct DeviceBackPlate: View {
         } label: {
             Image(systemName: "arrow.right")
                 .font(.system(size: DexMetrics.backPlateReturn * 0.44, weight: .heavy))
-                .foregroundStyle(Dex.stone700)
+                .foregroundStyle(plate.ink)
                 .engraved()
                 .frame(width: DexMetrics.backPlateReturn, height: DexMetrics.backPlateReturn)
                 .background(
                     Circle().fill(
                         LinearGradient(
-                            colors: [Dex.stone600.opacity(0.45), Dex.stone800.opacity(0.30)],
+                            colors: [plate.recess.opacity(0.45), plate.inkDeep.opacity(0.30)],
                             startPoint: .top,
                             endPoint: .bottom
                         )
@@ -173,7 +183,7 @@ public struct DeviceBackPlate: View {
                 )
                 .overlay(
                     // The dish's wall, dark where the light does not reach…
-                    Circle().strokeBorder(Dex.stone800.opacity(0.55), lineWidth: 2)
+                    Circle().strokeBorder(plate.inkDeep.opacity(0.55), lineWidth: 2)
                 )
                 .overlay(
                     // …and the bright lip a point lower, exactly as
@@ -204,6 +214,34 @@ public struct DeviceBackPlate: View {
     /// slot table did not have to change to make the move — an alignment was
     /// always fully implied by the signs of its own offsets, so the alignment
     /// field was redundant and is gone.
+    ///
+    /// ## Why the drag shook (0.7.0, E2)
+    ///
+    /// 0.6.8's B1 fixed *when* a drag may start (hold first, so reading a stamp
+    /// stops nudging it) and left *how it tracks* broken. The report — "doesn't
+    /// follow the finger, shakes a lot" — is one symptom of a positive feedback
+    /// loop, and damping it would have been treating the oscillation as if it
+    /// were noise. It was not noise, it was arithmetic:
+    ///
+    /// The gesture was attached to the stamp **above** `.offset(x: at.x,
+    /// y: at.y)` in the modifier chain — that is, the offset was applied to the
+    /// gesture's own view — and `DragGesture` reports `translation` as (current
+    /// location − start location) *in the attached view's coordinate space*. So
+    /// each frame ran: finger moves 10pt → translation 10 → `drag` = 10 →
+    /// `at` moves the view 10 → the view's local space has moved 10 with it →
+    /// the same finger position now measures as translation 0 → `drag` = 0 →
+    /// the view snaps home → next event measures 10 again. The stamp buzzes
+    /// between two positions roughly a frame apart and averages out somewhere
+    /// behind the finger, which is exactly what was described.
+    ///
+    /// The canonical SwiftUI idiom is the other order — `.offset(…).gesture(…)`,
+    /// with the offset *inside* the gesture's view so the gesture measures in
+    /// the stable parent space — and that is what the chain does now. Belt and
+    /// braces, the drag also names the plate's coordinate space explicitly
+    /// (`plateSpace`), which additionally cancels the rotation and lift-scale
+    /// distortion described at the gesture itself. Neither change damps
+    /// anything: the translation is applied 1:1 and the stamp is under the
+    /// finger.
     private var stampField: some View {
         let passport = Passport.compute(
             tried: BookmarkStore.shared.ids(on: .tried),
@@ -232,6 +270,11 @@ public struct DeviceBackPlate: View {
 
                     let lifted = armed == stamp.id || dragging == stamp.id
 
+                    // **Modifier order is the whole fix** (0.7.0, E2). See the
+                    // note on `stampField` above; the two rules are that every
+                    // transform the gesture drives sits *below* the gesture, and
+                    // that the gesture measures in the plate's space rather than
+                    // in the stamp's own.
                     BackPlateStampView(stamp: stamp)
                         .rotationEffect(.degrees(slot.rotation))
                         // **The lift-off** (0.6.8, B1). Bigger and further off
@@ -247,6 +290,12 @@ public struct DeviceBackPlate: View {
                             y: 8
                         )
                         .animation(.spring(response: 0.25, dampingFraction: 0.65), value: lifted)
+                        // Frame and position first — everything below this line
+                        // is attached to a view already sitting where it belongs
+                        // in the plate's coordinate space, which is what stops
+                        // the drag from chasing its own tail.
+                        .frame(width: Self.stampSize.width, height: Self.stampSize.height)
+                        .offset(x: at.x, y: at.y)
                         .contentShape(Rectangle())
                         .onTapGesture {
                             // A tap on a lifted stamp puts it back down rather
@@ -278,13 +327,29 @@ public struct DeviceBackPlate: View {
                         // press has completed, so a plain tap fails the press,
                         // never reaches the drag, and falls through to
                         // `onTapGesture` above. Two gestures would race.
+                        //
+                        // **Named coordinate space** (0.7.0, E2), and the second
+                        // half of the fix. A bare `DragGesture` reports its
+                        // translation in `.local` — the *attached view's* space —
+                        // which here is a stamp carrying a `rotationEffect` of up
+                        // to 15° and, while lifted, a `scaleEffect` of 1.16.
+                        // Both transforms sit below the gesture, so a local
+                        // translation came back rotated and 16% long: dragging
+                        // right moved a tilted stamp right-and-up, and moved it
+                        // further than the finger went. Measuring in the plate's
+                        // own space is transform-free by construction.
                         .gesture(
                             LongPressGesture(minimumDuration: 0.35)
                                 .onEnded { _ in
                                     armed = stamp.id
                                     Haptics.select()
                                 }
-                                .sequenced(before: DragGesture(minimumDistance: 0))
+                                .sequenced(
+                                    before: DragGesture(
+                                        minimumDistance: 0,
+                                        coordinateSpace: .named(Self.plateSpace)
+                                    )
+                                )
                                 .onChanged { value in
                                     guard case .second(true, let move?) = value else { return }
                                     dragging = stamp.id
@@ -321,16 +386,25 @@ public struct DeviceBackPlate: View {
                         )
                         .accessibilityLabel("\(stamp.title) stamp. Opens its story.")
                         .accessibilityHint("Press and hold, then drag to move it on the plate.")
-                        .frame(width: Self.stampSize.width, height: Self.stampSize.height)
-                        .offset(x: at.x, y: at.y)
                 }
             }
+            // The space every drag is measured in — the plate's, not a stamp's.
+            // Declared on the stack rather than on `GeometryReader` so it is the
+            // same box the slot origins and `clamp` already work in.
+            .coordinateSpace(name: Self.plateSpace)
         }
     }
 
+    /// Name of the plate's coordinate space (0.7.0, E2).
+    ///
+    /// A constant rather than a literal at both ends: a typo in either would not
+    /// fail to compile, it would silently fall back to a global measurement and
+    /// reintroduce a subtler version of the bug this fixes.
+    private static let plateSpace = "backPlateField"
+
     /// `BackPlateStampView`'s own frame, which the slot arithmetic has to know
     /// to place an origin and to clamp a drag. Matches its defaults.
-    private static let stampSize = CGSize(width: 76, height: 90)
+    private static let stampSize = CGSize(width: 88, height: 104)
 
     private struct StampSlot {
         /// Positive = from the leading edge, negative = from the trailing.
@@ -376,17 +450,50 @@ public struct DeviceBackPlate: View {
         "sommelier": StampSlot(dx: 132, dy: 150, rotation: 5),
     ]
 
+    /// This skin's plate material (0.7.0, F1) — see `ChassisSkin.backPlate`.
+    /// Resolved once and read by everything below, so the plate is one material
+    /// rather than a dozen call sites each deciding.
+    private var plate: BackPlateStyle { skin.backPlate }
+
+    /// The plate's base, in the skin's own two mouldings rather than in one
+    /// hardcoded aluminium (0.7.0, F1). VINODEX CLASSIC's stops are the
+    /// original four, so the house device is unchanged.
     private var metal: some View {
         LinearGradient(
-            colors: [
-                Color(dexHex: "#cdcfd2"),
-                Color(dexHex: "#9ea1a5"),
-                Color(dexHex: "#7e8186"),
-                Color(dexHex: "#b8babd"),
-            ],
+            colors: plate.stops,
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
+    }
+
+    /// Whatever is done to the base's surface (0.7.0, F1).
+    ///
+    /// The front shell already had this exact idea — `ChassisShell` lays a tiled
+    /// pattern or a paper grain over `skin.body` — and the back had a brushed
+    /// finish nailed to it. A walnut device with a machined back was two
+    /// devices, which is the argument the plate's own header makes for the clear
+    /// skins and then applied to nobody else.
+    @ViewBuilder
+    private var finish: some View {
+        switch plate.finish {
+        case .brushed:
+            striations
+        case .moulded:
+            // Plastic has no grain. Deliberately nothing, not a faint
+            // something — a token texture over every skin is the flat-slab
+            // problem again with extra steps.
+            EmptyView()
+        case .pattern(let asset):
+            if let image = ChassisPatternLoader.shared.image(asset) {
+                Image(uiImage: image)
+                    .resizable(resizingMode: .tile)
+                    .interpolation(.none)
+                    .allowsHitTesting(false)
+            }
+        case .paper(let grain):
+            PaperGrain(color: grain)
+                .allowsHitTesting(false)
+        }
     }
 
     /// Fine vertical lines standing in for a brushed finish. The web version
@@ -443,17 +550,17 @@ public struct DeviceBackPlate: View {
         Circle()
             .fill(
                 LinearGradient(
-                    colors: [Dex.stone200, Dex.stone400, Dex.stone600],
+                    colors: plate.screw,
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
             )
             .frame(width: 26, height: 26)
-            .overlay(Circle().strokeBorder(Dex.stone700, lineWidth: 1))
+            .overlay(Circle().strokeBorder(plate.screwRim, lineWidth: 1))
             .overlay(
                 // The slot.
                 Capsule()
-                    .fill(Dex.stone800.opacity(0.7))
+                    .fill(plate.screwRim.opacity(0.7))
                     .frame(width: 18, height: 3)
                     .rotationEffect(.degrees(45))
             )
@@ -476,7 +583,7 @@ public struct DeviceBackPlate: View {
                 Text("VINODEX")
                     .font(DexFont.retro(36))
                     .tracking(8)
-                    .foregroundStyle(Dex.stone800)
+                    .foregroundStyle(plate.inkDeep)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                 // Read from `AppVersion` rather than a literal here, which had
@@ -484,7 +591,7 @@ public struct DeviceBackPlate: View {
                 Text(AppVersion.display)
                     .font(DexFont.mono(28))
                     .tracking(7)
-                    .foregroundStyle(Dex.stone700)
+                    .foregroundStyle(plate.ink)
             }
             .padding(.horizontal, 34)
             .padding(.vertical, 22)
@@ -492,7 +599,7 @@ public struct DeviceBackPlate: View {
                 RoundedRectangle(cornerRadius: 8)
                     .fill(
                         LinearGradient(
-                            colors: [Dex.stone600.opacity(0.4), Dex.stone800.opacity(0.4)],
+                            colors: [plate.recess.opacity(0.4), plate.inkDeep.opacity(0.4)],
                             startPoint: .top,
                             endPoint: .bottom
                         )
@@ -500,7 +607,7 @@ public struct DeviceBackPlate: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .strokeBorder(Dex.stone700.opacity(0.6), lineWidth: 2)
+                    .strokeBorder(plate.ink.opacity(0.6), lineWidth: 2)
             )
             .engraved()
 
@@ -517,7 +624,7 @@ public struct DeviceBackPlate: View {
             .tracking(4)
             .lineLimit(1)
             .minimumScaleFactor(0.55)
-            .foregroundStyle(Dex.stone700)
+            .foregroundStyle(plate.ink)
             .engraved()
             .padding(.horizontal, 26)
             .padding(.vertical, 18)
@@ -525,7 +632,7 @@ public struct DeviceBackPlate: View {
                 RoundedRectangle(cornerRadius: 8)
                     .fill(
                         LinearGradient(
-                            colors: [Dex.stone600.opacity(0.22), Dex.stone800.opacity(0.22)],
+                            colors: [plate.recess.opacity(0.22), plate.inkDeep.opacity(0.22)],
                             startPoint: .top,
                             endPoint: .bottom
                         )
@@ -533,7 +640,7 @@ public struct DeviceBackPlate: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .strokeBorder(Dex.stone700.opacity(0.4), lineWidth: 2)
+                    .strokeBorder(plate.ink.opacity(0.4), lineWidth: 2)
             )
             .engraved()
 

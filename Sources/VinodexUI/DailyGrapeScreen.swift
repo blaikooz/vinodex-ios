@@ -86,19 +86,35 @@ public struct DailyGrapeScreen: View {
         }
     }
 
+    /// **Larger where there is room** (0.7.0, J2).
+    ///
+    /// This page is fixed and non-scrolling like the moon dial, and it was
+    /// visibly under-filled: three `Spacer`s absorbed the slack, so on a tall
+    /// phone a 132pt icon and 13pt heading floated in the middle of a mostly
+    /// empty LCD. It grows on exactly the same measured-slack rule and through
+    /// exactly the same Core helper — see `PageRoom`. Where `grow` is 0 (short
+    /// screen, or HUGE text) every number below is the one that shipped in
+    /// 0.6.9, so this cannot make an already-tight page tighter.
     private func content(_ grape: WineEntry) -> some View {
-        VStack(spacing: 18) {
+        GeometryReader { geo in
+            let grow = CGFloat(PageRoom.growth(pageHeight: Double(geo.size.height)))
+            card(grape, grow: grow)
+        }
+    }
+
+    private func card(_ grape: WineEntry, grow: CGFloat) -> some View {
+        VStack(spacing: 18 + 10 * grow) {
             Spacer(minLength: 0)
 
             Text(revealed ? "TODAY'S \(kindWord)" : "WHAT'S THAT \(kindWord)?")
-                .font(DexFont.retro(13))
+                .font(DexFont.retro(13 + 5 * grow))
                 .tracking(2)
                 .foregroundStyle(Dex.yellow)
                 .multilineTextAlignment(.center)
 
             // Silhouette until revealed: the real icon well, flattened to a
             // single dark shape so the outline still teases the answer.
-            EntryIconWell(entry: grape, size: 132, cornerRadius: 16)
+            EntryIconWell(entry: grape, size: 132 + 64 * grow, cornerRadius: 16)
                 .saturation(revealed ? 1 : 0)
                 .brightness(revealed ? 0 : -0.55)
                 .overlay {
@@ -110,7 +126,7 @@ public struct DailyGrapeScreen: View {
                 .animation(.easeOut(duration: 0.35), value: revealed)
 
             Text(revealed ? grape.name.uppercased() : "? ? ?")
-                .font(DexFont.retro(20))
+                .font(DexFont.retro(20 + 8 * grow))
                 .foregroundStyle(lcd.text)
                 .shadow(color: lcd.accent.opacity(0.55), radius: 0, x: 3, y: 3)
                 .multilineTextAlignment(.center)
@@ -119,7 +135,7 @@ public struct DailyGrapeScreen: View {
 
             if revealed {
                 Text(grape.entryDescription)
-                    .font(DexFont.mono(18))
+                    .font(DexFont.mono(18 + 5 * grow))
                     .foregroundStyle(lcd.bodyText)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -134,7 +150,7 @@ public struct DailyGrapeScreen: View {
                     Haptics.screenTap()
                     onOpen(grape)
                 } label: {
-                    label("OPEN ENTRY", fill: Dex.green, text: .black)
+                    label("OPEN ENTRY", fill: Dex.green, text: .black, grow: grow)
                 }
                 .buttonStyle(DexPressStyle(scale: 0.96))
             } else {
@@ -142,23 +158,24 @@ public struct DailyGrapeScreen: View {
                     Haptics.select()
                     withAnimation(.easeOut(duration: 0.35)) { revealed = true }
                 } label: {
-                    label("REVEAL", fill: Dex.yellow, text: Dex.amber900)
+                    label("REVEAL", fill: Dex.yellow, text: Dex.amber900, grow: grow)
                 }
                 .buttonStyle(DexPressStyle(scale: 0.96))
             }
 
             Spacer(minLength: 0)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(20)
     }
 
-    private func label(_ text: String, fill: Color, text textColor: Color) -> some View {
+    private func label(_ text: String, fill: Color, text textColor: Color, grow: CGFloat) -> some View {
         Text(text)
-            .font(DexFont.retro(12))
+            .font(DexFont.retro(12 + 5 * grow))
             .tracking(2)
             .foregroundStyle(textColor)
-            .padding(.horizontal, 30)
-            .padding(.vertical, 14)
+            .padding(.horizontal, 30 + 12 * grow)
+            .padding(.vertical, 14 + 6 * grow)
             .background(Capsule().fill(fill))
             .overlay(Capsule().strokeBorder(.white.opacity(0.35), lineWidth: 1))
     }

@@ -245,7 +245,7 @@ public struct PassportScreen: View {
         case "tenBottles": "shippingbox.fill"
         case "allNoble": "crown.fill"
         case "regionComplete": "map.fill"
-        case "streakWeek": "flame.fill"
+        case "streakWeek": DexGlyph.streakFlame
         case "sommelier": "graduationcap.fill"
         default: "seal.fill"
         }

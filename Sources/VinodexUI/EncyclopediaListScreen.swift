@@ -151,7 +151,21 @@ public struct EncyclopediaListScreen: View {
             .map(SearchRow.entry)
         // Countries carry no grape facet, so a lit chip drops them — the same
         // honest reading of an AND across facets `ChipFilter` documents.
-        let countries = showsCountries && chips.isEmpty
+        //
+        // **With one exception, added for H1 (0.7.0).** A country row is not an
+        // entry; it is synthesised, and it can satisfy exactly one chip in the
+        // whole system — TYPE > COUNTRIES. The blanket rule was written when the
+        // only screen with chips was the grape listing, where no country row is
+        // drawn at all and the question never arose. On the world search,
+        // countries are a third of the results and the COUNTRIES chip is one of
+        // the three H1 asks for, so the old rule made that chip mean "hide the
+        // things I just asked for".
+        //
+        // The rule now is the honest one: countries survive when nothing is lit,
+        // or when the *only* lit facet is TYPE and COUNTRIES is among its
+        // values. Any other facet still drops them, because a country genuinely
+        // cannot carry a climate or a rarity.
+        let countries = showsCountries && chips.allowsCountryRows
             ? db.countries(matching: search).map(SearchRow.country)
             : []
         rows = (entries + countries).sorted {
@@ -387,8 +401,18 @@ public struct EncyclopediaListScreen: View {
                 .foregroundStyle(lcd.accent)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
+            // Scoped to this screen's own tables (0.7.0, H1). On the world
+            // search the TYPE row must offer CONTINENTS, REGIONS and COUNTRIES
+            // and nothing else — a GRAPES chip there is a control whose only
+            // possible effect is to empty the list.
             ChipFlow(spacing: 8) {
-                ForEach(ChipFilter.options(for: facet)) { option in
+                ForEach(
+                    ChipFilter.options(
+                        for: facet,
+                        in: categories,
+                        includingCountries: showsCountries
+                    )
+                ) { option in
                     DexHeroChip(
                         label: option.label,
                         chip: db.palette.filterChip(option),

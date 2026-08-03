@@ -102,9 +102,18 @@ public struct DeviceChassis<Content: View>: View {
         isMainScreen ? ["CHEERS!", "SANTE!", "SALUTE!", "PROST!", "KANPAI!"] : [title]
     }
 
-    private var footerSymbol: String? {
-        isMainScreen ? "wineglass.fill" : marqueeSymbol
-    }
+    /// **No glyph on the main screen** (0.7.0, K1).
+    ///
+    /// 0.6.9's D2 put a large glyph above the marquee title on every screen and
+    /// hardcoded a wine glass for the main one. That was the wrong shape twice
+    /// over: `VinodexApp` already resolves `nil` for an empty navigation path —
+    /// the main screen is the one page with no route and therefore no page to be
+    /// accurate to (K2) — and this ternary then put the glyph back. K1 removes
+    /// it, so the panel there is the cycling greeting on its own, at the full
+    /// height 0.6.9's D2 note says a nil symbol gives it.
+    ///
+    /// `isMainScreen` stays: `footerSegments` still needs it for the toasts.
+    private var footerSymbol: String? { marqueeSymbol }
 
     public var body: some View {
         // The whole chassis is laid out in physical-screen coordinates so the
@@ -1123,7 +1132,10 @@ private struct ChassisShell: View {
 /// Loads bundled chassis patterns, cached — mirrors `FlagLoader`, misses
 /// recorded so an absent asset is not re-probed every render.
 @MainActor
-private final class ChassisPatternLoader {
+// Internal rather than file-private since 0.7.0 (F1): the *back* plate mounts
+// the same tiled patterns as the front now, and a second loader with a second
+// cache over the same PNGs would be two answers to one question.
+final class ChassisPatternLoader {
     static let shared = ChassisPatternLoader()
 
     private var cache: [String: UIImage?] = [:]
@@ -1294,10 +1306,19 @@ public struct ChassisButton: View {
             Image(systemName: "chevron.left")
                 .font(.system(size: size * 0.47, weight: .heavy))
                 .foregroundStyle(cap.glyph)
+        // The one control whose glyph a skin may replace (0.7.0, B2) —
+        // HALLOWEEN's user button is a drawn pumpkin. `SkinMarkView` resolves
+        // "the skin's mark, or the house symbol if it has none", so twenty of
+        // twenty-one skins render exactly the `person.crop.circle` they always
+        // did. See `ChassisSkin.userMark` for why this is not the console
+        // liveries' colours-only caveat being reopened.
         case .bookmarks:
-            Image(systemName: "person.crop.circle")
-                .font(.system(size: size * 0.44, weight: .semibold))
-                .foregroundStyle(cap.glyph)
+            SkinMarkView(
+                mark: skin.userMark,
+                fallback: "person.crop.circle",
+                size: size * 0.44,
+                tint: cap.glyph
+            )
         case .home:
             Circle()
                 .fill(LinearGradient(colors: [homeAccent.pale, homeAccent.bright], startPoint: .top, endPoint: .bottom))
@@ -1363,20 +1384,22 @@ public struct DexScreenBackground: View {
     public var body: some View {
         ZStack {
             mode.ground
-            // **Ruled paper, not a grid, in NOTEBOOK** (0.6.9, M1). This is the
-            // half of M1 that a palette could not have done: the square grid is
-            // an engineering backdrop and reads as CRT in any colour it is
-            // painted, so a "hand-drawn mode" built out of tokens alone would
-            // have been a cream-coloured CRT. See `LcdMode.isSketchPaper`.
-            if mode.isSketchPaper {
-                RuledPaper(rule: mode.gridLine, margin: mode.accent)
-            } else {
-                DexGridBackground(
-                    spacing: 10,
-                    color: mode.gridLine,
-                    opacity: 0.35
-                )
-            }
+            // **Back to one backdrop for every mode** (0.7.0, C1).
+            //
+            // 0.6.9's M1 branched here on `LcdMode.isSketchPaper` to mount
+            // `RuledPaper` for NOTEBOOK. C1 removes that mode, so the branch has
+            // nothing left to select and the grid is unconditional again. The
+            // *shell* half of M1 is untouched — `ChassisSkin.sketch` still draws
+            // PÉT-NAT by hand — which is the documented design: the shell and
+            // the screen are independent choices.
+            //
+            // See the retirement note on `LcdMode` for what happens to
+            // `RuledPaper`, which is kept and unmounted rather than deleted.
+            DexGridBackground(
+                spacing: 10,
+                color: mode.gridLine,
+                opacity: 0.35
+            )
         }
         .ignoresSafeArea()
     }
