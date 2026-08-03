@@ -154,12 +154,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Node version lives in .nvmrc so a maintainer's clone and this job can't
+      # drift apart; npm ci installs exactly what package-lock.json records,
+      # where npm install may resolve newer. (arch B3)
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: '.nvmrc'
 
       - name: Install tooling
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
+
+      # tsconfig.json is strict over shared/ and scripts/, but until this step
+      # only a human remembering to run tsc ever enforced it. (arch B5)
+      - name: Typecheck
+        run: npm run typecheck
 
       - name: Regenerate
         run: npm run generate

@@ -7,6 +7,16 @@ xcuserdata/
 # xtool's build output (the packaged .app)
 xtool/
 
+# iOS signing material and secrets — xtool's free-profile deploy handles these
+# in this working directory; never committable. (arch R3 / auditS L11)
+*.mobileprovision
+*.p12
+*.cer
+*.certSigningRequest
+*.ipa
+*.dSYM/
+.env
+
 # Only needed if you regenerate the bundled data; see README.
 node_modules/
 scripts/.generate.mjs
