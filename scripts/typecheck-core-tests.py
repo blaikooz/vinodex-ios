@@ -19,19 +19,27 @@ BINPATH = subprocess.check_output(["swift", "build", "--show-bin-path"], cwd=ROO
 
 SHIM = '''
 // Stand-ins for the swift-testing macro surface.
-func __expect(_ cond: @autoclosure () throws -> Bool, _ msg: @autoclosure () -> String = "",
+// `__Comment` mirrors `Comment`: string literals and interpolations convert,
+// `String` values do not — `#expect(cond, someString)` must fail here exactly
+// as it fails in CI (hit 2026-08-03, EntryPaletteTests).
+struct __Comment: ExpressibleByStringLiteral, ExpressibleByStringInterpolation {
+    init(stringLiteral _: String) {}
+}
+// Exactly one `__expect` overload may take the bare autoclosure condition —
+// a second makes every call ambiguous.
+func __expect(_ cond: @autoclosure () throws -> Bool, _ msg: @autoclosure () -> __Comment? = nil,
               sourceLocation: Int = 0) rethrows { _ = try cond(); _ = msg() }
 // `#expect(throws: T.self) { … }` — the error-throwing form.
 @discardableResult
-func __expect<E: Error, R>(throws _: E.Type, _ msg: @autoclosure () -> String = "",
+func __expect<E: Error, R>(throws _: E.Type, _ msg: @autoclosure () -> __Comment? = nil,
                            sourceLocation: Int = 0,
                            performing body: () throws -> R) -> E? { _ = msg(); return nil }
 struct __Unwrap: Error {}
-func __require<T>(_ v: @autoclosure () throws -> T?, _ msg: @autoclosure () -> String = "") throws -> T {
+func __require<T>(_ v: @autoclosure () throws -> T?, _ msg: @autoclosure () -> __Comment? = nil) throws -> T {
     guard let v = try v() else { throw __Unwrap() }
     return v
 }
-enum Issue { static func record(_ msg: String = "") {} }
+enum Issue { static func record(_ msg: __Comment? = nil) {} }
 '''
 
 

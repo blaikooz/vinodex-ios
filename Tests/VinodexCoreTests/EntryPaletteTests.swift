@@ -19,7 +19,7 @@ struct EntryPaletteTests {
     @Test("the ladder folds the spellings the data really uses")
     func ladderFoldsSpellings() {
         for spelling in ["Full-Body Red", "full body red", "Full-Bodied Red", "FULL BODIED RED"] {
-            #expect(EntryPalette.styleToneKey(for: spelling) == "full-bodied red", spelling)
+            #expect(EntryPalette.styleToneKey(for: spelling) == "full-bodied red", "\(spelling)")
         }
         // Both spellings of the same colour resolve to the accented key, which
         // is how `palette.json` spells it. De-accenting the key would break the
@@ -82,7 +82,7 @@ struct EntryPaletteTests {
                 ["Light", "Medium", "Full"].map { EntryPalette.grapeWellFallbackHex(style: style, body: $0) }
             }
         for hex in Set(colours) {
-            #expect(hex.count == 7 && hex.hasPrefix("#"), hex)
+            #expect(hex.count == 7 && hex.hasPrefix("#"), "\(hex)")
             #expect(hex == hex.lowercased(), "\(hex) is not lowercase")
             #expect(UInt32(hex.dropFirst(), radix: 16) != nil, "\(hex) is not hex")
         }
