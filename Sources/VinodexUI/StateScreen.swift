@@ -17,16 +17,22 @@ public struct StateScreen: View {
     @State private var bookmarks = BookmarkStore.shared
     /// Scroll position outlives the view — see `ScreenStateStore`.
     @State private var screens = ScreenStateStore.shared
-    private let db = WineDatabase.shared
+    /// The database this screen reads. Defaulted so no call site changes, but
+    /// injectable, which is the whole of **M27**: a screen that hard-reads
+    /// `WineDatabase.shared` cannot be put in front of a fixture.
+    private let db: WineDatabase
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
-    public init(state: String, onSelectRegion: @escaping (WineEntry) -> Void) {
+    public init(db: WineDatabase = .shared, state: String, onSelectRegion: @escaping (WineEntry) -> Void) {
+        self.db = db
         self.state = state
         self.onSelectRegion = onSelectRegion
     }
 
-    private var bookmarkID: String { "STATE_\(state)" }
+    /// Through `SavedItem` rather than a string literal, for the reason spelled
+    /// out on `CountryScreen.bookmarkID` (AUDIT **L1**).
+    private var bookmarkID: String { SavedItem.state(state).storageID }
 
     private var screenKey: String { ScreenStateStore.state(state) }
 
@@ -68,71 +74,29 @@ public struct StateScreen: View {
     }
 
     private var hero: some View {
-        VStack(spacing: 14) {
+        DexHero(title: state) {
             // Hero-sized, matching `CountryScreen` — the two screens are the
             // same shape and a state's flag is doing the same job.
             FlagSwatch(country: state, width: 168, height: 106)
                 .shadow(color: .black.opacity(0.45), radius: 6, y: 3)
-
-            Text(state.uppercased())
-                .font(DexFont.retro(21))
-                .foregroundStyle(lcd.text)
-                .shadow(color: lcd.accent.opacity(0.55), radius: 0, x: 4, y: 4)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-
-            saveButton
+        } actions: {
+            DexSaveButton(id: bookmarkID, store: bookmarks)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 18)
-        .background(
-            ZStack {
-                lcd.heroWash
-                DexGridBackground(spacing: 34, color: lcd.heroGrid, opacity: 0.5)
-            }
-        )
-        .overlay(alignment: .bottom) { lcd.accent.frame(height: 4) }
-        .padding(.horizontal, -14)
-        .padding(.bottom, 16)
-    }
-
-    private var saveButton: some View {
-        let saved = bookmarks.contains(bookmarkID)
-        return Button {
-            Haptics.select()
-            bookmarks.toggle(bookmarkID)
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: saved ? "bookmark.fill" : "bookmark")
-                    .font(.system(size: 14, weight: .bold))
-                Text(saved ? "SAVED" : "SAVE")
-                    .font(DexFont.retro(10))
-                    .tracking(2)
-            }
-            .foregroundStyle(saved ? .white : lcd.accent)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .background(Capsule().fill(saved ? lcd.accent : lcd.buttonWell))
-            .overlay(Capsule().strokeBorder(lcd.accent, lineWidth: 2))
-        }
-        .buttonStyle(DexPressStyle(scale: 0.94))
     }
 
     private var regionsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: "mappin.and.ellipse")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(lcd.accent)
-                Text("REGIONS")
-                    .font(DexFont.retro(12))
-                    .tracking(1)
-                    .foregroundStyle(lcd.accent)
-            }
-            .padding(.bottom, 2)
-            .overlay(alignment: .bottom) { lcd.accent.opacity(0.4).frame(height: 2) }
-
+        DexSection("REGIONS", symbol: "mappin.and.ellipse") {
             VStack(spacing: 8) {
+                // A heading with nothing under it reads as a fault, not as an
+                // answer — see `DexSectionEmpty` (AUDIT **L36**).
+                if regions.isEmpty {
+                    DexEmptyState(db: db) {
+                        DexSectionEmpty(
+                            symbol: "mappin.slash",
+                            message: "NO REGIONS FOUND"
+                        )
+                    }
+                }
                 ForEach(regions) { entry in
                     EntryTileView(
                         entry: entry,

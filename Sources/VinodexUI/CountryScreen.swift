@@ -20,13 +20,21 @@ public struct CountryScreen: View {
     /// it being torn down and rebuilt on the way back from a region — see
     /// `ScreenStateStore`.
     @State private var screens = ScreenStateStore.shared
-    private let db = WineDatabase.shared
+    /// The database this screen reads. Defaulted so no call site changes, but
+    /// injectable, which is the whole of **M27**: a screen that hard-reads
+    /// `WineDatabase.shared` cannot be put in front of a fixture.
+    private let db: WineDatabase
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
     /// Countries have no entry, so the bookmark key is synthesised. Prefixed so
     /// it can never collide with a real entry id.
-    private var bookmarkID: String { "COUNTRY_\(country)" }
+    ///
+    /// Built through `SavedItem` rather than from a string literal (AUDIT
+    /// **L1**): `BookmarkStore.saved(in:)` reads the same ids back through
+    /// `SavedItem.countryPrefix`, so a literal here would strand every saved
+    /// place the day that prefix changed.
+    private var bookmarkID: String { SavedItem.country(country).storageID }
 
     private var screenKey: String { ScreenStateStore.country(country) }
 
@@ -84,16 +92,19 @@ public struct CountryScreen: View {
     private let appellations: [String]
 
     public init(
+        db: WineDatabase = .shared,
         country: String,
         onSelectRegion: @escaping (WineEntry) -> Void,
         onSelectState: @escaping (String) -> Void = { _ in }
     ) {
+        self.db = db
         self.country = country
         self.onSelectRegion = onSelectRegion
         self.onSelectState = onSelectState
 
-        // A local, not `self.db`: `self` is not fully initialised yet.
-        let db = WineDatabase.shared
+        // Everything below reads the *parameter*, not `self.db`: `self` is not
+        // fully initialised yet, so the property cannot be read here even
+        // though it has just been assigned.
         let regions = db.entries(
             matching: EntryQuery(categories: [.regions], filter: .origin(country), search: "")
         )
@@ -153,56 +164,14 @@ public struct CountryScreen: View {
     }
 
     private var hero: some View {
-        VStack(spacing: 14) {
-            // The flag *is* the hero here — there is no entry icon to carry the
-            // page — so it gets hero proportions rather than the row size.
-            FlagSwatch(country: country, width: 168, height: 106)
+        DexHero(title: country) {
+            // The flag *is* the hero here — there is no entry icon to carry
+            // the page — so it gets hero proportions rather than the row size.
+            FlagSwatch(db: db, country: country, width: 168, height: 106)
                 .shadow(color: .black.opacity(0.45), radius: 6, y: 3)
-
-            Text(country.uppercased())
-                .font(DexFont.retro(21))
-                .foregroundStyle(lcd.text)
-                .shadow(color: lcd.accent.opacity(0.55), radius: 0, x: 4, y: 4)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-
-            saveButton
+        } actions: {
+            DexSaveButton(id: bookmarkID, store: bookmarks)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 18)
-        .background(
-            ZStack {
-                lcd.heroWash
-                DexGridBackground(spacing: 34, color: lcd.heroGrid, opacity: 0.5)
-            }
-        )
-        .overlay(alignment: .bottom) { lcd.accent.frame(height: 4) }
-        .padding(.horizontal, -14)
-        .padding(.bottom, 16)
-    }
-
-    /// Same control as the entry screens, so a country is savable like
-    /// anything else.
-    private var saveButton: some View {
-        let saved = bookmarks.contains(bookmarkID)
-        return Button {
-            Haptics.select()
-            bookmarks.toggle(bookmarkID)
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: saved ? "bookmark.fill" : "bookmark")
-                    .font(.system(size: 14, weight: .bold))
-                Text(saved ? "SAVED" : "SAVE")
-                    .font(DexFont.retro(10))
-                    .tracking(2)
-            }
-            .foregroundStyle(saved ? .white : lcd.accent)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .background(Capsule().fill(saved ? lcd.accent : lcd.buttonWell))
-            .overlay(Capsule().strokeBorder(lcd.accent, lineWidth: 2))
-        }
-        .buttonStyle(DexPressStyle(scale: 0.94))
     }
 
     /// The country blurb, authored in `shared/data/countries.ts` and generated
@@ -215,7 +184,7 @@ public struct CountryScreen: View {
     /// same sentence with the nouns swapped on all eighteen pages, and the
     /// REGIONS section directly below already shows the count. Gone.
     private var infoSection: some View {
-        section("INFO", symbol: "book") {
+        DexSection("INFO", symbol: "book") {
             VStack(alignment: .leading, spacing: 8) {
                 // The blurb alone — the appellation system has its own
                 // section below; a chip row here too said it twice (0.6.x).
@@ -241,7 +210,7 @@ public struct CountryScreen: View {
     private var grapesSection: some View {
         let all = grapeEntries
         let shown = showsAllGrapes ? all : Array(all.prefix(3))
-        return section("NOTABLE GRAPES", symbol: "list.bullet") {
+        return DexSection("NOTABLE GRAPES", symbol: "list.bullet") {
             VStack(spacing: 8) {
                 ForEach(shown) { entry in
                     EntryTileView(
@@ -292,7 +261,7 @@ public struct CountryScreen: View {
     }
 
     private var appellationsSection: some View {
-        section("APPELLATION SYSTEM", symbol: "shield") {
+        DexSection("APPELLATION SYSTEM", symbol: "shield") {
             VStack(alignment: .leading, spacing: 6) {
                 ForEach(appellations, id: \.self) { system in
                     let full = EntryDisplay.appellationName(classification: system, country: country)
@@ -327,7 +296,7 @@ public struct CountryScreen: View {
     }
 
     private var statesSection: some View {
-        section("STATES", symbol: "map") {
+        DexSection("STATES", symbol: "map") {
             VStack(spacing: 8) {
                 ForEach(visibleStates, id: \.self) { state in
                     Button {
@@ -335,7 +304,7 @@ public struct CountryScreen: View {
                         onSelectState(state)
                     } label: {
                         HStack(spacing: 12) {
-                            FlagSwatch(country: state, width: 68, height: 44)
+                            FlagSwatch(db: db, country: state, width: 68, height: 44)
                             Text(state.uppercased())
                                 .font(DexFont.retro(12))
                                 .foregroundStyle(lcd.text)
@@ -369,8 +338,20 @@ public struct CountryScreen: View {
     private var regionsSection: some View {
         let all = regions
         let shown = showsAllRegions ? all : Array(all.prefix(3))
-        return section("REGIONS", symbol: "mappin.and.ellipse") {
+        return DexSection("REGIONS", symbol: "mappin.and.ellipse") {
             VStack(spacing: 8) {
+                // The same unguarded heading `StateScreen` had (AUDIT **L36**).
+                // This one is the more reachable of the two: `CountryScreen` is
+                // assembled from whatever regions name the country, so a
+                // partial decode failure can empty it outright.
+                if all.isEmpty {
+                    DexEmptyState(db: db) {
+                        DexSectionEmpty(
+                            symbol: "mappin.slash",
+                            message: "NO REGIONS FOUND"
+                        )
+                    }
+                }
                 // One red dot per region, geographically placed where the
                 // data carries a `mapPosition` (0.6.x) — see `CountryOutlineMap`.
                 CountryOutlineMap(country: country, regions: all)
@@ -391,30 +372,6 @@ public struct CountryScreen: View {
                 }
             }
         }
-    }
-
-    private func section<C: View>(
-        _ title: String,
-        symbol: String,
-        @ViewBuilder content: () -> C
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: symbol)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(lcd.accent)
-                Text(title)
-                    .font(DexFont.retro(12))
-                    .tracking(1)
-                    .foregroundStyle(lcd.accent)
-            }
-            .padding(.bottom, 2)
-            .overlay(alignment: .bottom) { lcd.accent.opacity(0.4).frame(height: 2) }
-
-            content()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.bottom, 22)
     }
 }
 #endif

@@ -11,6 +11,14 @@ import VinodexCore
 /// the `md:` breakpoint, so a phone sees the same layout the web app gives it.
 public struct DeviceChassis<Content: View>: View {
     let title: String
+    /// Whether this is the root screen — the one with no route pushed.
+    ///
+    /// Declared by the caller rather than inferred from `title == "VINODEX"`
+    /// (AUDIT **L2**). The footer's toast cycle and its wineglass glyph are the
+    /// two behaviours keyed off it, and both used to hang on a string the app
+    /// module happens to produce for an empty path. Renaming the home screen
+    /// would have silently demoted it to an ordinary page.
+    var isRoot: Bool = false
     /// The page's marquee glyph, stamped between the banner's repetitions —
     /// see `MarqueeBanner.symbol`. Routed from `DexRoute.marqueeSymbol`.
     var marqueeSymbol: String?
@@ -54,6 +62,7 @@ public struct DeviceChassis<Content: View>: View {
 
     public init(
         title: String,
+        isRoot: Bool = false,
         marqueeSymbol: String? = nil,
         showsBack: Bool = false,
         onBack: (() -> Void)? = nil,
@@ -63,6 +72,7 @@ public struct DeviceChassis<Content: View>: View {
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.title = title
+        self.isRoot = isRoot
         self.marqueeSymbol = marqueeSymbol
         self.showsBack = showsBack
         self.onBack = onBack
@@ -72,16 +82,14 @@ public struct DeviceChassis<Content: View>: View {
         self.content = content
     }
 
-    private var isMainScreen: Bool { title == "VINODEX" }
-
     /// The main screen cycles its toasts as separate words — the banner gives
     /// every boundary between them the same gap it gives the wrap seam.
     private var footerSegments: [String] {
-        isMainScreen ? ["CHEERS!", "SANTE!", "SALUTE!", "PROST!", "KANPAI!"] : [title]
+        isRoot ? ["CHEERS!", "SANTE!", "SALUTE!", "PROST!", "KANPAI!"] : [title]
     }
 
     private var footerSymbol: String? {
-        isMainScreen ? "wineglass.fill" : marqueeSymbol
+        isRoot ? "wineglass.fill" : marqueeSymbol
     }
 
     public var body: some View {
@@ -90,6 +98,7 @@ public struct DeviceChassis<Content: View>: View {
         // used rather than wasted. Insets are then reserved explicitly.
         GeometryReader { geo in
             let topStrip = max(geo.safeAreaInsets.top, DexMetrics.islandStripMinHeight)
+            let hasCutout = DexMetrics.hasDisplayCutout(bottomSafeArea: geo.safeAreaInsets.bottom)
 
             ZStack {
                 // Front and back are both mounted, each hidden when facing
@@ -103,7 +112,7 @@ public struct DeviceChassis<Content: View>: View {
                 // as a panel being turned over. `flipSwap` steps at the midpoint
                 // instead, when the plate is edge-on and the cut is invisible,
                 // so the flip is purely physical.
-                frontFace(topStrip: topStrip)
+                frontFace(topStrip: topStrip, hasCutout: hasCutout)
                     .opacity(showsBackFace ? 0 : 1)
                     .accessibilityHidden(isFlipped)
 
@@ -130,6 +139,17 @@ public struct DeviceChassis<Content: View>: View {
                                 }
                             }
                     )
+                    // The way back, for the same reason as the orb above: the
+                    // plate's own label already says "swipe to return", and a
+                    // swipe is precisely what VoiceOver reserves for its own
+                    // navigation. `.escape` is the two-finger scrub, which is
+                    // what a user reaching for "get me out of here" already
+                    // does; the named action makes it discoverable in the
+                    // rotor rather than only known. (AUDIT **M21**)
+                    .accessibilityAction(.escape) { isFlipped = false }
+                    .accessibilityAction(named: "Turn the device back over") {
+                        isFlipped = false
+                    }
             }
             .rotation3DEffect(
                 .degrees(reduceMotion ? 0 : (isFlipped ? 180 : 0)),
@@ -162,6 +182,12 @@ public struct DeviceChassis<Content: View>: View {
                     showsBackFace = flipped
                 }
             }
+            // The signposted way in, for screens inside the LCD — the settings
+            // panel's ABOUT row. Registered while mounted and cleared after, so
+            // the closure can never outlive the chassis holding the state it
+            // writes. See `ChassisFlipRouter`. (AUDIT **M21**)
+            .onAppear { ChassisFlipRouter.shared.handler = { isFlipped = true } }
+            .onDisappear { ChassisFlipRouter.shared.handler = nil }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
         }
@@ -171,7 +197,7 @@ public struct DeviceChassis<Content: View>: View {
         .background(skin.underlay.ignoresSafeArea())
     }
 
-    private func frontFace(topStrip: CGFloat) -> some View {
+    private func frontFace(topStrip: CGFloat, hasCutout: Bool) -> some View {
         ZStack(alignment: .top) {
             // The mock electronics sit behind the translucent shell and flip
             // with the front face — the back plate is its own opaque part.
@@ -188,7 +214,7 @@ public struct DeviceChassis<Content: View>: View {
                 footer()
             }
 
-            islandFlank(height: topStrip)
+            islandFlank(height: topStrip, hasCutout: hasCutout)
         }
     }
 
@@ -260,7 +286,7 @@ public struct DeviceChassis<Content: View>: View {
     // right. This band is otherwise dead chassis, so using it costs the LCD
     // nothing — the bezel keeps none of it.
 
-    private func islandFlank(height: CGFloat) -> some View {
+    private func islandFlank(height: CGFloat, hasCutout: Bool) -> some View {
         // One control size across the whole chassis. The strip is sized to seat
         // it (`islandStripMinHeight`); the clamp only matters on a device that
         // reports a shorter inset than we ask for.
@@ -298,6 +324,20 @@ public struct DeviceChassis<Content: View>: View {
                     if pressing { Haptics.orbPress() }
                 }
                 .fixedSize()
+                // VoiceOver never delivers a long press to a decorative
+                // element, so without this the back of the device — version,
+                // maker's mark, serial, stamps — had no route in at all. One
+                // element with a button trait and an activation action, which
+                // is the same gesture VoiceOver already uses for every other
+                // control on the chassis. (AUDIT **M21**)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Indicator orb")
+                .accessibilityHint("Turns the device over to its back plate")
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction {
+                    Haptics.tap()
+                    isFlipped = true
+                }
 
             // Status lights to the *right* of the orb, as a layout sibling.
             //
@@ -321,9 +361,15 @@ public struct DeviceChassis<Content: View>: View {
             // row and bottom-aligned in it, so it reaches the display's top
             // edge; the letters keep to its lower band, below the ~48pt the
             // hardware cutout claims.
+            //
+            // On a flat-topped display there is no cutout to keep clear of, so
+            // the reservation goes and the lip takes the width its wordmark
+            // actually needs — which on an SE-class screen is width the orb,
+            // lamps and cog were being squeezed out of, to hold open a hole
+            // that is not there. (AUDIT **L32**)
             Spacer(minLength: 0)
             titleLip(control: control)
-                .frame(minWidth: DexMetrics.islandClearance)
+                .frame(minWidth: hasCutout ? DexMetrics.islandClearance : 0)
                 .frame(height: control, alignment: .bottom)
                 .offset(y: -DexMetrics.islandBottomInset)
             Spacer(minLength: 0)
@@ -406,7 +452,15 @@ public struct DeviceChassis<Content: View>: View {
                     .padding(.top, size * 0.1)
             }
             .shadow(color: .black.opacity(0.5), radius: 3, y: 2)
-            .modifier(PulseGlow(color: skin.orbGlow, period: 5.3, minRadius: 2, maxRadius: size * 0.3))
+            .modifier(
+                PulseGlow(
+                    color: skin.orbGlow,
+                    period: 5.3,
+                    minRadius: 2,
+                    maxRadius: size * 0.3,
+                    paused: showsBackFace
+                )
+            )
     }
 
     private func statusDots(size: CGFloat) -> some View {
@@ -425,7 +479,15 @@ public struct DeviceChassis<Content: View>: View {
             .fill(fill)
             .frame(width: size, height: size)
             .overlay(Circle().strokeBorder(border, lineWidth: 1))
-            .modifier(PulseGlow(color: fill, period: period, minRadius: 1, maxRadius: size * 0.7))
+            .modifier(
+                PulseGlow(
+                    color: fill,
+                    period: period,
+                    minRadius: 1,
+                    maxRadius: size * 0.7,
+                    paused: showsBackFace
+                )
+            )
     }
 
     // MARK: Screen
@@ -651,470 +713,11 @@ private final class ChassisPatternLoader {
     }
 }
 
-// MARK: - Chassis buttons
-
-/// The physical-looking Back and Home buttons.
-///
-/// Haptics fire here rather than at call sites so every chassis button feels the
-/// same — the main thing a native build can offer that the web app cannot.
-public struct ChassisButton: View {
-    /// `bookmarks` replaces Back on the main screen, where there is nowhere
-    /// to go back to and the button was just a greyed-out slot.
-    public enum Kind { case back, home, bookmarks }
-
-    let kind: Kind
-    let enabled: Bool
-    let action: () -> Void
-
-    /// Read here rather than passed down, the same way `DexToggle` reads the
-    /// screen mode: the footer builds these, and threading it through would
-    /// mean every future caller had to remember to.
-    ///
-    /// The *skin*, deliberately (v0.5.4, reversing 0.5.3): these are physical
-    /// parts of the chassis, and physical parts belong to the colourway. A
-    /// screen mode re-dressing the moulded buttons made every skin look like
-    /// the same device the moment the LCD changed. On-LCD chrome (the search
-    /// button, the settings tiles) still follows the mode — pixels on the
-    /// screen are the screen's business.
-    @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
-
-    private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
-
-    public init(kind: Kind, enabled: Bool = true, action: @escaping () -> Void) {
-        self.kind = kind
-        self.enabled = enabled
-        self.action = action
-    }
-
-    public var body: some View {
-        Button {
-            Haptics.tap()
-            action()
-        } label: {
-            ZStack {
-                Circle().fill(gradient)
-                Circle().strokeBorder(borderColor, lineWidth: 3)
-                icon
-            }
-            .frame(width: DexMetrics.footerControl, height: DexMetrics.footerControl)
-            .shadow(color: .black.opacity(0.6), radius: 6, y: 8)
-        }
-        .buttonStyle(DexPressStyle())
-        .disabled(!enabled)
-        .opacity(enabled ? 1 : 0.35)
-        .accessibilityLabel(accessibilityLabel)
-    }
-
-    /// VoiceOver reads the SF Symbol otherwise — Saved announces as "person",
-    /// and Back/Home are unlabeled. (audit H10)
-    private var accessibilityLabel: String {
-        switch kind {
-        case .back: "Back"
-        case .home: "Home"
-        case .bookmarks: "Saved entries"
-        }
-    }
-
-    private var gradient: LinearGradient {
-        switch kind {
-        case .back, .bookmarks:
-            LinearGradient(colors: [skin.control.top, skin.control.bottom], startPoint: .top, endPoint: .bottom)
-        case .home:
-            LinearGradient(colors: [skin.accent.light, skin.accent.mid], startPoint: .top, endPoint: .bottom)
-        }
-    }
-
-    private var borderColor: Color {
-        switch kind {
-        case .back, .bookmarks: skin.control.edge
-        case .home: skin.accent.edge
-        }
-    }
-
-    // Glyphs scale with `footerControl` rather than carrying fixed points, so
-    // enlarging the buttons does not leave the same small icon floating in a
-    // bigger circle.
-    @ViewBuilder
-    private var icon: some View {
-        switch kind {
-        case .back:
-            Image(systemName: "chevron.left")
-                .font(.system(size: DexMetrics.footerControl * 0.47, weight: .heavy))
-                .foregroundStyle(skin.control.glyph)
-        case .bookmarks:
-            Image(systemName: "person.crop.circle")
-                .font(.system(size: DexMetrics.footerControl * 0.44, weight: .semibold))
-                .foregroundStyle(skin.control.glyph)
-        case .home:
-            Circle()
-                .fill(LinearGradient(colors: [skin.accent.pale, skin.accent.bright], startPoint: .top, endPoint: .bottom))
-                .overlay(Circle().strokeBorder(skin.accent.mid, lineWidth: 1))
-                .padding(2)
-                .overlay {
-                    Image(systemName: "house.fill")
-                        .font(.system(size: DexMetrics.footerControl * 0.41, weight: .bold))
-                        .foregroundStyle(skin.accent.ink)
-                }
-        }
-    }
-}
-
-/// Chunky press feedback mirroring the web app's `active:scale` / `active:translate-y`.
-public struct DexPressStyle: ButtonStyle {
-    var scale: CGFloat = 0.96
-
-    public init(scale: CGFloat = 0.96) { self.scale = scale }
-
-    public func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? scale : 1)
-            .animation(.spring(response: 0.2, dampingFraction: 0.6), value: configuration.isPressed)
-    }
-}
-
-// MARK: - Effects
-
-/// Repeating horizontal scanlines — the LCD's CRT texture.
-public struct ScanlineOverlay: View {
-    public init() {}
-
-    public var body: some View {
-        Canvas { context, size in
-            var y: CGFloat = 0
-            while y < size.height {
-                context.fill(
-                    Path(CGRect(x: 0, y: y, width: size.width, height: DexMetrics.scanlineThickness)),
-                    with: .color(.black.opacity(0.5))
-                )
-                y += DexMetrics.scanlineSpacing
-            }
-        }
-        .allowsHitTesting(false)
-    }
-}
-
-/// The LCD backdrop shared by every screen.
-///
-/// Exists as one view rather than per-screen copies so the main menu cannot
-/// drift from the list and detail screens — they looked different because each
-/// had its own colour and grid settings.
-public struct DexScreenBackground: View {
-    /// Read here rather than passed down: every screen uses this one view for
-    /// its ground, so honouring the setting in one place covers all of them.
-    @AppStorage(LcdMode.storageKey) private var modeRaw = LcdMode.dark.rawValue
-
-    private var mode: LcdMode { LcdMode(rawValue: modeRaw) ?? .dark }
-
-    public init() {}
-
-    public var body: some View {
-        ZStack {
-            mode.ground
-            DexGridBackground(
-                spacing: 10,
-                color: mode.gridLine,
-                opacity: 0.35
-            )
-        }
-        .ignoresSafeArea()
-    }
-}
-
-/// Faint square grid used as an atmospheric LCD backdrop.
-public struct DexGridBackground: View {
-    var spacing: CGFloat
-    var color: Color
-    var opacity: Double
-
-    public init(spacing: CGFloat = 30, color: Color = Dex.green, opacity: Double = 0.1) {
-        self.spacing = spacing
-        self.color = color
-        self.opacity = opacity
-    }
-
-    public var body: some View {
-        Canvas { context, size in
-            var path = Path()
-            var x: CGFloat = 0
-            while x < size.width {
-                path.move(to: CGPoint(x: x, y: 0))
-                path.addLine(to: CGPoint(x: x, y: size.height))
-                x += spacing
-            }
-            var y: CGFloat = 0
-            while y < size.height {
-                path.move(to: CGPoint(x: 0, y: y))
-                path.addLine(to: CGPoint(x: size.width, y: y))
-                y += spacing
-            }
-            context.stroke(path, with: .color(color.opacity(opacity)), lineWidth: 1)
-        }
-        .allowsHitTesting(false)
-    }
-}
-
-/// Replaces the CSS `lcd-pulse` / `dot-pulse-*` keyframes. The web versions use
-/// irregular multi-stop timings; a symmetric ease here reads the same in motion.
-struct PulseGlow: ViewModifier {
-    let color: Color
-    let period: Double
-    let minRadius: CGFloat
-    let maxRadius: CGFloat
-
-    @State private var on = false
-    /// The four instances of this modifier are the *only* `repeatForever`
-    /// animations in the app, so this one check is the whole of its perpetual
-    /// motion. Frozen lit rather than frozen dark: the orb and the three status
-    /// lamps are meant to read as powered, and a dead-looking indicator lamp is
-    /// a different message, not a calmer one. (AUDIT M18; overlaps L11)
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if reduceMotion {
-            content
-                .shadow(color: color.opacity(0.5), radius: (minRadius + maxRadius) / 2)
-                // Un-latch. `on` is `@State` on the modifier itself, so it
-                // survives this branch swap — without the reset, turning Reduce
-                // Motion off again re-mounts the branch below, its `.onAppear`
-                // writes `true` over `true`, and `.animation(_:value:)` sees no
-                // change to animate. The lamps would come back stuck at full
-                // glow, permanently, for someone who just asked for motion
-                // *back*. Invisible here: this branch never reads `on`.
-                .onAppear { on = false }
-        } else {
-            content
-                .shadow(color: color.opacity(on ? 0.8 : 0.25), radius: on ? maxRadius : minRadius)
-                .animation(.easeInOut(duration: period / 2).repeatForever(autoreverses: true), value: on)
-                .onAppear { on = true }
-        }
-    }
-}
-
-/// The scrolling footer banner. Ports `terminal-marquee`: two copies of the
-/// label offset by one cycle, which loops seamlessly.
-///
-/// The animation is started from `onChange(of:)` rather than `onAppear` —
-/// the label is measured by a background reader, so at `onAppear` the width is
-/// still zero and the animation would never run.
-public struct MarqueeBanner: View {
-    /// The words the strip cycles. Most screens pass one segment — their
-    /// title; the main screen passes its five toasts. Segments, not a single
-    /// string, so every word boundary gets the same `gap` the wrap seam does
-    /// (v0.5.7, E1) instead of whatever spacing was baked into the text.
-    let segments: [String]
-    /// SF Symbol stamped between repetitions — `SYSTEM ⟨gear⟩ SYSTEM ⟨gear⟩`
-    /// (v0.5.7, E2). Nil runs text-only.
-    let symbol: String?
-    let fontSize: CGFloat
-    var pointsPerSecond: Double = 34
-    /// Stops the clock (AUDIT M8). The strip is inside the front face, which
-    /// the flip merely hides at `opacity 0` — without this it kept redrawing at
-    /// the display's refresh rate, forever, behind an opaque metal back plate.
-    var paused: Bool = false
-
-    /// The first copy's width, measured from its own laid-out geometry.
-    ///
-    /// Every previous version *predicted* this number — character count
-    /// times a `UIFont`-measured cell (0.5.1), then the same corrected for
-    /// the text-scale factor (0.5.4, audit M9) — and every prediction
-    /// disagreed with SwiftUI's actual layout by a point or two: `NSString`
-    /// metrics and SwiftUI `Text` rounding are not the same machinery, the
-    /// error scaled with the label's length, and the seam skipped by exactly
-    /// that error every lap. Measuring the rendered label itself cannot
-    /// disagree with the rendered label. Until the first measurement lands
-    /// the strip holds still (shift 0) rather than popping.
-    @State private var copyWidth: CGFloat = 0
-
-    /// Spacing between the two copies — part of the cycle geometry, scaled
-    /// like the glyphs.
-    ///
-    /// Resolved in `init`, not per access (AUDIT M8). It was a computed
-    /// property reading `TextScale.current`, which is a `UserDefaults` lookup,
-    /// and the `TimelineView` closure touches it four times per frame — so a
-    /// banner nobody is looking at was hitting the defaults store ~500×/s.
-    /// `DeviceChassis` is `.id`-keyed on the text scale, so a change rebuilds
-    /// this view rather than needing it re-read.
-    private let gap: CGFloat
-    /// Likewise: `DexFont.retro` reads `TextScale.current` on every call, and
-    /// `label` is rebuilt inside the timeline closure on every frame.
-    private let segmentFont: Font
-    private let symbolSize: CGFloat
-
-    /// The strip's phosphor follows the shell — see `ChassisSkin.marqueeText`.
-    @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
-    /// A strip of text sliding sideways under the screen, on every screen, for
-    /// as long as the app is open — the single most continuous movement in the
-    /// app. Read here rather than passed in by `DeviceChassis` so the banner
-    /// keeps working wherever else it is mounted. (AUDIT M18)
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
-
-    public init(
-        segments: [String],
-        symbol: String? = nil,
-        fontSize: CGFloat,
-        pointsPerSecond: Double = 34,
-        paused: Bool = false
-    ) {
-        self.segments = segments
-        self.symbol = symbol
-        self.fontSize = fontSize
-        self.pointsPerSecond = pointsPerSecond
-        self.paused = paused
-
-        // Through the resolver, not `fontSize * TextScale.current.factor`:
-        // since 0.6.4 a size floor sits between the two, so the hand-rolled
-        // form can disagree with what `DexFont.retro` actually drew. The gap
-        // and the symbol are laid out against the glyphs, and this file has
-        // already lost three rounds to a marquee seam that skipped by exactly
-        // such a disagreement (audit M8, M9).
-        let pt = DexFont.resolvedSize(fontSize)
-        self.gap = pt * 1.5
-        self.segmentFont = DexFont.retro(fontSize)
-        self.symbolSize = pt * 0.8
-    }
-
-    public var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: DexMetrics.marqueeCorner)
-                .fill(.black)
-                .overlay(
-                    DexGridBackground(spacing: 12, color: skin.marqueeGrid, opacity: 0.18)
-                        .clipShape(RoundedRectangle(cornerRadius: DexMetrics.marqueeCorner))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: DexMetrics.marqueeCorner)
-                        .strokeBorder(.white.opacity(0.75), lineWidth: 1)
-                )
-
-            // Offset is a pure function of the clock, so it cannot drift and
-            // cannot be restarted mid-run by a re-render. The cycle is one
-            // measured copy plus the gap: the second copy starts exactly
-            // there, so a wrap lands on identical pixels.
-            // `paused:` and not simply unmounting the strip: the measured
-            // `copyWidth` has to survive, or the flip back holds still at
-            // shift 0 until the geometry reader lands again. The offset is a
-            // pure function of the clock, so resuming needs no stored phase.
-            // (AUDIT M8)
-            // Reduce Motion stops the clock the same way the flip does, but it
-            // cannot simply *pause* the strip: pinning a scrolling label at
-            // shift 0 is only safe if the label fits, and these do not. A
-            // scrolling label is allowed to overflow because the scroll is what
-            // reveals its tail. Measured against the bundled Press Start 2P in
-            // the strip's 256pt of usable width, DAILY CHALLENGE is 288pt at
-            // the default text step, and at HUGE six of the app's ten page
-            // titles overflow. So the still form is a different view — see
-            // `staticLabel`. Taking the motion away must not take the words
-            // with it. (AUDIT M18)
-            TimelineView(.animation(paused: paused || reduceMotion)) { context in
-                let cycle = copyWidth + gap
-                let elapsed = context.date.timeIntervalSinceReferenceDate
-                let shift = (copyWidth > 0 && !reduceMotion)
-                    ? CGFloat((elapsed * pointsPerSecond).truncatingRemainder(dividingBy: Double(cycle)))
-                    : 0
-
-                // The GeometryReader is load-bearing, not decoration: the
-                // `.fixedSize()` label pair is ~1500pt wide for the main-menu
-                // text, and without a *definite* width to clip against it
-                // ignores `maxWidth` entirely, renders full-bleed across the
-                // footer and squeezes the Back/user button out of the row.
-                GeometryReader { strip in
-                    Group {
-                        if reduceMotion {
-                            staticLabel
-                        } else {
-                            HStack(spacing: gap) {
-                                label
-                                    .background(
-                                        GeometryReader { copy in
-                                            Color.clear
-                                                .onAppear { copyWidth = copy.size.width }
-                                                .onChange(of: copy.size.width) { _, new in
-                                                    copyWidth = new
-                                                }
-                                        }
-                                    )
-                                label
-                            }
-                            .offset(x: -shift)
-                        }
-                    }
-                    .frame(
-                        width: max(strip.size.width, 0),
-                        height: max(strip.size.height, 0),
-                        alignment: reduceMotion ? .center : .leading
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: DexMetrics.marqueeInnerCorner))
-                }
-                .padding(4)
-            }
-        }
-        .frame(height: DexMetrics.marqueeHeight)
-    }
-
-    /// The Reduce Motion form: one label, centred, still, and sized to fit.
-    ///
-    /// `minimumScaleFactor` rather than `.fixedSize()` — the whole point is
-    /// that this one has to fit the strip rather than run past its edge, and
-    /// the worst case (DAILY CHALLENGE at HUGE) needs about 0.7. Ellipsis
-    /// behind that as a floor, so a longer title added later degrades to a
-    /// visible truncation mark rather than to a word chopped mid-glyph.
-    ///
-    /// One segment, not all of them joined: the only multi-segment caller is
-    /// the main screen's five toasts, and CHEERS/SANTE/SALUTE/PROST/KANPAI are
-    /// five ways of saying one thing. Shrinking the strip to a fifth of its
-    /// size to fit four synonyms would trade legibility for nothing.
-    private var staticLabel: some View {
-        HStack(spacing: gap * 0.4) {
-            Text(segments.first ?? "")
-                .font(segmentFont)
-                .foregroundStyle(skin.marqueeText)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-                .truncationMode(.tail)
-                .shadow(color: skin.marqueeShadow.opacity(0.65), radius: 0, x: 1, y: 1)
-
-            if let symbol {
-                Image(systemName: symbol)
-                    .font(.system(size: symbolSize, weight: .bold))
-                    .foregroundStyle(skin.marqueeText)
-                    .shadow(color: skin.marqueeShadow.opacity(0.65), radius: 0, x: 1, y: 1)
-            }
-        }
-        .padding(.horizontal, 6)
-    }
-
-    /// One full cycle of content: every segment, `gap` apart, with the page
-    /// glyph closing it. Two copies of this sit `gap` apart in the strip, so
-    /// the seam between them is indistinguishable from any internal boundary
-    /// — which is what makes the loop read as endless.
-    private var label: some View {
-        HStack(spacing: gap) {
-            ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
-                Text(segment)
-                    .font(segmentFont)
-                    .foregroundStyle(skin.marqueeText)
-                    .lineLimit(1)
-                    .fixedSize()
-                    .shadow(color: skin.marqueeShadow.opacity(0.65), radius: 0, x: 1, y: 1)
-            }
-            if let symbol {
-                Image(systemName: symbol)
-                    .font(.system(size: symbolSize, weight: .bold))
-                    .foregroundStyle(skin.marqueeText)
-                    .shadow(color: skin.marqueeShadow.opacity(0.65), radius: 0, x: 1, y: 1)
-            }
-        }
-    }
-}
-
 /// The pixel-V wordmark, bundled from the web app's logo.
-public struct LogoMark: View {
-    public init() {}
+struct LogoMark: View {
+    init() {}
 
-    public var body: some View {
+    var body: some View {
         if let url = DexResources.url(named: "vinodex-logo", ext: "png", subdirectory: "Resources/Logo"),
            let image = UIImage(contentsOfFile: url.path) {
             Image(uiImage: image)

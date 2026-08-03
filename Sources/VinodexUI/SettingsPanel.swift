@@ -1,6 +1,8 @@
 #if canImport(SwiftUI) && canImport(UIKit)
 import Foundation
 import SwiftUI
+// `.json` for the RESTORE picker's `allowedContentTypes` (AUDIT **M35**).
+import UniformTypeIdentifiers
 import VinodexCore
 
 /// The device's own menu: a grid of square feature tiles.
@@ -50,7 +52,7 @@ public struct SettingsPanel: View {
         // that person must not have to hunt for it.
         VStack(spacing: 10) {
             HStack(spacing: 10) {
-                featureTile(title: "TUTORIAL", symbol: "flag.checkered") {
+                featureTile(title: "TUTORIAL", symbol: "flag.checkered", livery: .green) {
                     offeringTour = true
                 }
                 // A wrench, not a gamepad — the hub holds more instruments
@@ -58,6 +60,7 @@ public struct SettingsPanel: View {
                 featureTile(
                     title: "TOOLS",
                     symbol: "wrench.and.screwdriver.fill",
+                    livery: .amber,
                     action: onMinigames
                 )
             }
@@ -66,13 +69,15 @@ public struct SettingsPanel: View {
             HStack(spacing: 10) {
                 featureTile(
                     title: SettingsSection.customization.rawValue,
-                    symbol: SettingsSection.customization.symbol
+                    symbol: SettingsSection.customization.symbol,
+                    livery: .red
                 ) {
                     onSection(.customization)
                 }
                 featureTile(
                     title: SettingsSection.settings.rawValue,
-                    symbol: SettingsSection.settings.symbol
+                    symbol: SettingsSection.settings.symbol,
+                    livery: .orange
                 ) {
                     onSection(.settings)
                 }
@@ -80,13 +85,15 @@ public struct SettingsPanel: View {
             HStack(spacing: 10) {
                 featureTile(
                     title: SettingsSection.data.rawValue,
-                    symbol: SettingsSection.data.symbol
+                    symbol: SettingsSection.data.symbol,
+                    livery: .sky
                 ) {
                     onSection(.data)
                 }
                 featureTile(
                     title: SettingsSection.access.rawValue,
-                    symbol: SettingsSection.access.symbol
+                    symbol: SettingsSection.access.symbol,
+                    livery: .violet
                 ) {
                     onSection(.access)
                 }
@@ -115,43 +122,26 @@ public struct SettingsPanel: View {
         .animation(.easeOut(duration: 0.15), value: offeringTour)
     }
 
-    /// Per-tile colours, tuned separately for the pale and dark grounds
-    /// (v0.5.6, reversing 0.5.3's uniform mode ramp): each tile is unique
-    /// again — the colour is half the identity — and light mode runs the
-    /// deeper cuts because the bright faces washed out on the pale page.
-    private func tileColors(_ title: String) -> (face: String, shadow: String, ink: Color) {
-        if lcd.isLight {
-            return switch title {
-            case "TUTORIAL": ("#15803D", "#0B4A24", .white)
-            case "TOOLS": ("#B45309", "#7A3606", .white)
-            case "CUSTOMIZE": ("#B91C1C", "#7A1010", .white)
-            case "SETTINGS": ("#C2410C", "#7C2D12", .white)
-            case "DATA": ("#1D6FA8", "#11486E", .white)
-            default: ("#7E22CE", "#4C1D95", .white)   // ACCESS
-            }
-        }
-        return switch title {
-        case "TUTORIAL": ("#22C55E", "#15803D", .white)
-        // White ink like every other tile (0.6.4, E1) — the dark-amber ink
-        // made TOOLS the odd one out on the grid. The face deepens a step so
-        // white still clears it, rather than sitting white-on-yellow.
-        case "TOOLS": ("#EAB308", "#A16207", .white)
-        case "CUSTOMIZE": ("#EF4444", "#991B1B", .white)
-        case "SETTINGS": ("#F97316", "#9A3412", .white)
-        case "DATA": ("#2AB5FF", "#136A99", .white)
-        default: ("#A855F7", "#6B21A8", .white)       // ACCESS
-        }
-    }
-
     /// Styled like the main menu's tiles — filled face, 6pt bottom extrusion,
     /// top-left sheen. Stretches to fill its grid cell rather than squaring
     /// off (v0.5.6): the grid fits the LCD, so the tiles absorb the height.
+    ///
+    /// The livery is now a parameter rather than a lookup on `title` (AUDIT
+    /// **L33**). Two parallel six-row tables of hexes lived here, both switched
+    /// on the tile's display string, both ending in a `default:` that meant
+    /// ACCESS — so renaming a tile silently repainted it purple, and the
+    /// compiler had nothing to say about it. See `DexTileLivery`.
     private func featureTile(
         title: String,
         symbol: String,
+        livery: DexTileLivery,
         action: @escaping () -> Void
     ) -> some View {
-        let style = tileColors(title)
+        let style = (
+            face: livery.face(lcd),
+            shadow: livery.shadow(lcd),
+            ink: livery.ink
+        )
 
         return Button {
             Haptics.tap()
@@ -173,10 +163,10 @@ public struct SettingsPanel: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(dexHex: style.face))
+                    .fill(style.face)
                     .overlay(alignment: .bottom) {
                         // The same 6pt fake extrusion the menu tiles carry.
-                        Color(dexHex: style.shadow).frame(height: 6)
+                        style.shadow.frame(height: 6)
                     }
                     .clipShape(RoundedRectangle(cornerRadius: 10))
             )
@@ -218,9 +208,24 @@ public struct SettingsSectionPanel: View {
     /// CLEAR SAVED DATA asks first — it is the one control here that cannot be
     /// undone by tapping it again.
     @State private var confirmingWipe = false
+    /// BACK UP / RESTORE (AUDIT **M35**). The archive is written to a temp file
+    /// and handed to `ShareLink`; the URL is held so the button can be built
+    /// before the user taps anything, since `ShareLink` wants its item up front.
+    @State private var backupURL: URL?
+    @State private var showingImporter = false
+    /// A decoded archive waiting on the in-LCD confirmation. Restoring is
+    /// destructive in the same way the wipe is — it replaces the shelves rather
+    /// than merging into them — so it asks with the same dialog.
+    @State private var pendingImport: SavedDataArchive?
+    /// One line of outcome, success or refusal. Nil when there is nothing to
+    /// report.
+    @State private var transferNotice: String?
     @AppStorage(Haptics.storageKey) private var hapticsOn = true
     /// Off by default from v0.5.1 — sounds are opt-in. See `Sounds`.
     @AppStorage(Sounds.storageKey) private var soundsOn = false
+    /// On by default, preserving the behaviour this setting was carved out of
+    /// (AUDIT **L40**). See `ScreenWake`.
+    @AppStorage(ScreenWake.storageKey) private var keepAwakeOn = true
     /// Scroll position outlives the view — see `ScreenStateStore`. ACCESS and
     /// DATA are both taller than the LCD, so opening the upgrade prompt from a
     /// bundle row near the bottom used to bounce the panel back to the top.
@@ -230,7 +235,10 @@ public struct SettingsSectionPanel: View {
     @AppStorage(UIScale.storageKey) private var uiScaleRaw = UIScale.small.rawValue
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
 
-    private let db = WineDatabase.shared
+    /// The database this screen reads. Defaulted so no call site changes, but
+    /// injectable, which is the whole of **M27**: a screen that hard-reads
+    /// `WineDatabase.shared` cannot be put in front of a fixture.
+    private let db: WineDatabase
 
     private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
     private var scale: TextScale { TextScale(rawValue: scaleRaw) ?? .small }
@@ -238,7 +246,8 @@ public struct SettingsSectionPanel: View {
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
     private var totalCount: Int { db.entries.count }
 
-    public init(section: SettingsSection, onDev: @escaping () -> Void = {}) {
+    public init(db: WineDatabase = .shared, section: SettingsSection, onDev: @escaping () -> Void = {}) {
+        self.db = db
         self.section = section
         self.onDev = onDev
     }
@@ -270,16 +279,113 @@ public struct SettingsSectionPanel: View {
                     title: "CLEAR SAVED DATA?",
                     message: "Everything stored on this device — bookmarks, recents, tastings and ratings, quiz progress, streak, profile, purchases and appearance — goes back to a fresh install. This cannot be undone.",
                     confirmLabel: "ERASE",
+                    destructive: true,
                     onConfirm: {
                         confirmingWipe = false
                         SavedDataReset.wipeAll()
                     },
                     onCancel: { confirmingWipe = false }
                 )
+            } else if let pendingImport {
+                DexAlert(
+                    title: "RESTORE THIS BACKUP?",
+                    message: Self.importSummary(pendingImport),
+                    confirmLabel: "RESTORE",
+                    destructive: true,
+                    onConfirm: {
+                        self.pendingImport = nil
+                        let written = SavedDataRestore.apply(pendingImport)
+                        transferNotice = "Restored \(written.count) of \(SavedDataKey.allCases.count) items. Purchases are not restored from a file."
+                    },
+                    onCancel: { self.pendingImport = nil }
+                )
+            } else if let transferNotice {
+                DexAlert(
+                    title: "STORED DATA",
+                    message: transferNotice,
+                    confirmLabel: "OK",
+                    // An outcome, not a choice — one button, per DexAlert's note.
+                    cancelLabel: nil,
+                    onConfirm: { self.transferNotice = nil },
+                    onCancel: { self.transferNotice = nil }
+                )
             }
+        }
+        // The house rule is that dialogs render inside the LCD (AUDIT **L41**),
+        // and every one above does. `.fileImporter` is the third documented
+        // exception, after `PhotosPicker` for the avatar and `ShareLink` below:
+        // the OS owns the file browser, an app cannot draw one, and building a
+        // fake in-LCD browser over `FileManager` would be worse than the
+        // inconsistency. What follows the picker is a `DexAlert` like
+        // everything else.
+        .fileImporter(
+            isPresented: $showingImporter,
+            allowedContentTypes: [.json],
+            allowsMultipleSelection: false
+        ) { result in
+            handleImport(result)
         }
         .animation(.easeOut(duration: 0.15), value: lockedBundle)
         .animation(.easeOut(duration: 0.15), value: confirmingWipe)
+        .animation(.easeOut(duration: 0.15), value: pendingImport)
+        .animation(.easeOut(duration: 0.15), value: transferNotice)
+    }
+
+    /// BACK UP and RESTORE share a face. Drawn like the CLEAR button below
+    /// them rather than like a `settingRow`, because all three are actions on
+    /// the whole store rather than settings with a value.
+    private func transferLabel(_ title: String, symbol: String, tint: Color) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: symbol)
+                .font(.system(size: 14, weight: .bold))
+            Text(title)
+                .font(DexFont.retro(11))
+                .tracking(1)
+        }
+        .foregroundStyle(tint)
+        .padding(.vertical, 14)
+        .frame(maxWidth: .infinity)
+        .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .strokeBorder(tint.opacity(0.4), lineWidth: 2)
+        )
+    }
+
+    /// What the confirmation names, so "restore" is not a blind tap: where the
+    /// file came from and how much is in it.
+    private static func importSummary(_ archive: SavedDataArchive) -> String {
+        let shelved = archive.savedShelf.count + archive.wantToTryShelf.count + archive.triedShelf.count
+        let age = DailyPick.dayIndex() - archive.exportedDay
+        let when = age <= 0 ? "today" : age == 1 ? "yesterday" : "\(age) days ago"
+        return "From v\(archive.appVersion), backed up \(when). It holds \(shelved) shelved items and \(archive.triedRatings.count) tasting notes. Everything currently on this device is replaced, not merged."
+    }
+
+    private func handleImport(_ result: Result<[URL], Error>) {
+        switch result {
+        case .failure(let error):
+            transferNotice = "Could not open that file: \(error.localizedDescription)"
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            // A file handed over by the picker lives outside the app's
+            // sandbox, so it has to be opened under a security scope — without
+            // this the read fails with a permission error on a real device and
+            // works fine in the simulator, which is the worst way to find out.
+            let scoped = url.startAccessingSecurityScopedResource()
+            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+            do {
+                pendingImport = try SavedDataArchive.decode(from: Data(contentsOf: url))
+            } catch let refusal as SavedDataArchive.Refusal {
+                switch refusal {
+                case .notOurArchive(let app):
+                    transferNotice = "That file is not a Vinodex backup (it says \"\(app)\")."
+                case .unreadableFormat(let format):
+                    transferNotice = "That backup is in format \(format), which this build does not know how to read. Update the app and try again."
+                }
+            } catch {
+                transferNotice = "That file is not readable as a backup."
+            }
+        }
     }
 
     /// DATA is a fixed page (0.6.4, C2) — everything else scrolls.
@@ -302,7 +408,7 @@ public struct SettingsSectionPanel: View {
                     // Handled by the fixed branch above; unreachable here,
                     // kept so the switch stays exhaustive.
                     case .data: EmptyView()
-                    case .access: paywallTesting
+                    case .access: accessReadout
                     case .dev: dev
                     }
                 }
@@ -322,17 +428,73 @@ public struct SettingsSectionPanel: View {
         }
     }
 
-    /// Free-tier switch, then the individual bundles.
+    /// What this copy of the app can open, and what it cannot (AUDIT **L42**).
+    ///
+    /// Read-only, and that is the change. This panel used to *be* the test
+    /// harness: a FREE TIER master switch that turned the paywall off outright,
+    /// a toggle per bundle that granted it, a REVOKE ALL, and copy describing
+    /// itself as "a test harness, not a store" — all of it one tap from the
+    /// settings grid, in front of every user. The harness is still exactly as
+    /// useful and still exists; it has moved behind DEV, where the rest of the
+    /// developer plumbing already lives. What a user sees here is a statement
+    /// of what they have.
+    @ViewBuilder
+    private var accessReadout: some View {
+        settingsSection("YOUR LIBRARY") {
+            VStack(alignment: .leading, spacing: 10) {
+                settingRow(
+                    symbol: access.starterOnly ? "lock.fill" : "lock.open.fill",
+                    tint: access.starterOnly ? Dex.yellow : Dex.green,
+                    title: access.starterOnly ? "FREE LIBRARY" : "FULL LIBRARY",
+                    detail: access.starterOnly
+                        ? "\(browsableCount) of \(totalCount) entries open to you"
+                        : "All \(totalCount) entries open to you"
+                ) {
+                    EmptyView()
+                }
+
+                Text("More of the catalog comes with the bundles below. There is no store in this build — nothing here can be bought yet.")
+                    .font(DexFont.mono(17))
+                    .foregroundStyle(lcd.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+
+        settingsSection("BUNDLES") {
+            VStack(spacing: 10) {
+                ForEach(offerableEntitlements, id: \.id) { entitlement in
+                    let owned = access.granted.contains(entitlement)
+                    settingRow(
+                        symbol: bundleSymbol(entitlement),
+                        tint: owned ? Dex.green : lcd.subtext,
+                        title: entitlement.title,
+                        detail: entitlement.blurb
+                    ) {
+                        // A state, not a control. The tick says what is true;
+                        // it does not offer to change it.
+                        Image(systemName: owned ? "checkmark.circle.fill" : "lock.fill")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(owned ? Dex.green : lcd.subtext)
+                            .accessibilityLabel(owned ? "Owned" : "Locked")
+                    }
+                }
+            }
+        }
+    }
+
+    /// The entitlement grants, as a developer tool — the controls that used to
+    /// sit in ACCESS (AUDIT **L42**).
     ///
     /// One boolean could only produce two states — all locked or all open — so
-    /// every interesting case went untested. The bundle rows below reproduce
+    /// every interesting case went untested. The bundle rows here reproduce
     /// them: own one country and nothing else, own the flavour wheel but no
     /// atlas, own a cosmetic but no content. The counter under the master
     /// switch reports what the current combination actually yields, which is
-    /// the fastest way to see a coverage rule behaving wrongly.
+    /// the fastest way to see a coverage rule behaving wrongly. All of that is
+    /// worth keeping; none of it was ever worth shipping to the settings grid.
     @ViewBuilder
-    private var paywallTesting: some View {
-        settingsSection("FREE TIER") {
+    private var entitlementHarness: some View {
+        settingsSection("PAYWALL TESTING") {
             VStack(alignment: .leading, spacing: 10) {
                 settingRow(
                     symbol: access.starterOnly ? "lock.fill" : "lock.open.fill",
@@ -352,9 +514,9 @@ public struct SettingsSectionPanel: View {
             }
         }
 
-        settingsSection("BUNDLES") {
+        settingsSection("GRANT BUNDLES") {
             VStack(spacing: 10) {
-                ForEach(testableEntitlements, id: \.id) { entitlement in
+                ForEach(offerableEntitlements, id: \.id) { entitlement in
                     settingRow(
                         symbol: bundleSymbol(entitlement),
                         tint: access.granted.contains(entitlement) ? Dex.green : lcd.subtext,
@@ -393,12 +555,12 @@ public struct SettingsSectionPanel: View {
         }
     }
 
-    /// The bundles the ACCESS panel offers as test cases.
+    /// The bundles both panels list — ACCESS as a readout, DEV as switches.
     ///
     /// Country bundles are drawn from the countries that actually have regions,
-    /// capped at the three largest — the panel is a test harness, not a store,
-    /// and eighteen country rows would bury the cosmetic cases underneath them.
-    private var testableEntitlements: [Entitlement] {
+    /// capped at the three largest: eighteen country rows would bury the
+    /// cosmetic ones underneath them.
+    private var offerableEntitlements: [Entitlement] {
         [.pro, .flavors] + topCountries.map { Entitlement.country($0) } + [.skins, .lightMode]
     }
 
@@ -515,8 +677,82 @@ public struct SettingsSectionPanel: View {
             }
         }
 
+        // The third row beside HAPTICS and SOUNDS, and the same shape: a device
+        // behaviour the app used to simply assert. Keeping the screen alive for
+        // the whole life of the process is defensible for a book you read with
+        // a glass in your hand and indefensible as something nobody was asked
+        // about. (AUDIT **L40**)
+        settingsSection("SCREEN") {
+            VStack(alignment: .leading, spacing: 10) {
+                settingRow(
+                    symbol: keepAwakeOn ? "sun.max.fill" : "moon.zzz.fill",
+                    tint: keepAwakeOn ? Dex.green : lcd.subtext,
+                    title: "KEEP AWAKE",
+                    detail: keepAwakeOn
+                        ? "The screen stays on while the app is open."
+                        : "The screen locks on your usual schedule."
+                ) {
+                    DexToggle(isOn: keepAwakeOn, tint: Dex.green) {
+                        keepAwakeOn.toggle()
+                        // Applied now rather than at the next launch — a
+                        // setting whose effect you cannot observe reads as
+                        // broken.
+                        ScreenWake.settingChanged()
+                    }
+                }
+                Text("Reading a bottle takes longer than the auto-lock allows. Turn it off if you would rather the phone behaved normally.")
+                    .font(DexFont.mono(17))
+                    .foregroundStyle(lcd.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+
         settingsSection("STORED DATA") {
             VStack(alignment: .leading, spacing: 10) {
+                // Backup sits immediately above the button that destroys what
+                // it backs up. A bundle-ID change orphans this device's
+                // container outright — there is no migration to write, so a
+                // file the user keeps is the only thing that survives one
+                // (AUDIT **M35**; KNOWN-ISSUES, "Changing the bundle ID is a
+                // one-way door").
+                //
+                // `ShareLink` is a system sheet, and the second documented
+                // exception to the in-LCD dialog rule for the same reason
+                // `.fileImporter` is: the OS owns the destination picker.
+                if let backupURL {
+                    ShareLink(item: backupURL) {
+                        transferLabel("BACK UP", symbol: "square.and.arrow.up", tint: lcd.text)
+                    }
+                    .buttonStyle(DexPressStyle(scale: 0.98))
+                } else {
+                    Button {
+                        Haptics.tap()
+                        do {
+                            backupURL = try SavedDataRestore.writeTemporaryFile(
+                                SavedDataRestore.archive()
+                            )
+                        } catch {
+                            transferNotice = "Could not write the backup file: \(error.localizedDescription)"
+                        }
+                    } label: {
+                        transferLabel("BACK UP", symbol: "square.and.arrow.up", tint: lcd.text)
+                    }
+                    .buttonStyle(DexPressStyle(scale: 0.98))
+                }
+
+                Button {
+                    Haptics.tap()
+                    showingImporter = true
+                } label: {
+                    transferLabel("RESTORE", symbol: "square.and.arrow.down", tint: lcd.text)
+                }
+                .buttonStyle(DexPressStyle(scale: 0.98))
+
+                Text("A backup is one file holding your shelves, tastings, progress and settings. Keep it somewhere off the phone: reinstalling, or a change to the app's identity on a future release, leaves everything on this page behind. Purchases are not in it — those come back from the store, never from a file.")
+                    .font(DexFont.mono(17))
+                    .foregroundStyle(lcd.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+
                 Button {
                     Haptics.select()
                     confirmingWipe = true
@@ -535,11 +771,38 @@ public struct SettingsSectionPanel: View {
                 }
                 .buttonStyle(DexPressStyle(scale: 0.98))
 
-                Text("Erases bookmarks, tastings and ratings, quiz progress, the daily streak, name and photo, purchases, skin, screen and text settings. The encyclopedia itself is untouched.")
+                Text("Erases bookmarks, tastings and ratings, quiz progress, the daily streak, name and photo, purchases, skin, screen and text settings. The encyclopedia itself is untouched. Back up first if you want any of it again.")
                     .font(DexFont.mono(17))
                     .foregroundStyle(lcd.subtext)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        }
+
+        // The back of the device was reachable only by a one-second press on
+        // an orb that looks like a lamp — an easter egg doing the job of a
+        // signpost, with the version number, the maker's mark and the earned
+        // collector stamps behind it. The egg stays; this is the route for
+        // people who were never going to guess it. (AUDIT **M21**)
+        settingsSection("ABOUT") {
+            Button {
+                Haptics.tap()
+                ChassisFlipRouter.shared.flip()
+            } label: {
+                settingRow(
+                    // iOS 13 vintage, deliberately: the `arrow.trianglehead.*`
+                    // family reads better here and renders blank on 17, which
+                    // is the floor. See KNOWN-ISSUES.
+                    symbol: "arrow.triangle.2.circlepath",
+                    tint: lcd.subtext,
+                    title: "TURN THE DEVICE OVER",
+                    detail: "Version, serial and maker's mark are engraved on the back — along with any collector stamps you have earned. Swipe to come back."
+                ) {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(lcd.subtext)
+                }
+            }
+            .buttonStyle(DexPressStyle(scale: 0.98))
         }
 
         settingsSection("DEVELOPER") {
@@ -781,6 +1044,16 @@ public struct SettingsSectionPanel: View {
                                 // retro face advances a full em, so six letters
                                 // plus tracking no longer clear it. The letter-
                                 // spacing is what gives, not the size.
+                                //
+                                // Still three options after M49, deliberately:
+                                // a fourth splits this row into ~69pt columns,
+                                // and a control you have to squint at to pick a
+                                // text size is its own joke. M49's extra range
+                                // went into HUGE instead of into a new button.
+                                // The row is sized by its longest label — SMALL,
+                                // five characters, wanting `5 × 13f` points, so
+                                // 84.5pt of a ~97pt column at the new 1.30 top.
+                                // It fits without shrinking; 0.8 is headroom.
                                 .font(DexFont.retro(13))
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.8)
@@ -974,6 +1247,9 @@ public struct SettingsSectionPanel: View {
     @ViewBuilder
     private var dev: some View {
         DiagnosticsReport(db: db).id("DIAGNOSTICS")
+        // The entitlement grants, moved here from ACCESS (AUDIT **L42**) —
+        // developer plumbing, behind the button the rest of it lives behind.
+        entitlementHarness
         CatalogScreen(db: db, showsIcons: false).id("COMPONENTS")
         CatalogScreen.IconSheet(db: db).id("ICONS")
     }
@@ -981,314 +1257,4 @@ public struct SettingsSectionPanel: View {
 
 // MARK: - Physical toggle
 
-/// A hardware-looking switch: a recessed track with a raised, bevelled throw
-/// that slides between two detents.
-///
-/// Replaces a flat 42x24 capsule with a white dot in it. On a chassis built
-/// entirely out of physical metaphors — moulded buttons, a screwed-on back
-/// plate, a glass orb — the one actual *setting* control was the only thing
-/// that looked like a web page. Sized to be hit with a thumb, too: the old one
-/// was under the 44pt touch minimum in both axes.
-public struct DexToggle: View {
-    let isOn: Bool
-    /// Lit colour of the track and the throw's inset when engaged.
-    var tint: Color = Dex.yellow
-    let action: () -> Void
-
-    @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
-    private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
-
-    public init(isOn: Bool, tint: Color = Dex.yellow, action: @escaping () -> Void) {
-        self.isOn = isOn
-        self.tint = tint
-        self.action = action
-    }
-
-    private let width: CGFloat = 76
-    private let height: CGFloat = 40
-    private var throwSize: CGFloat { height - 8 }
-
-    public var body: some View {
-        Button {
-            Haptics.select()
-            action()
-        } label: {
-            ZStack(alignment: isOn ? .trailing : .leading) {
-                // The well. Darker than the surface it sits on, so the throw
-                // reads as sitting *in* something rather than on top of it.
-                Capsule()
-                    .fill(isOn ? tint.opacity(0.85) : Dex.stone900)
-                    .overlay(
-                        Capsule().strokeBorder(
-                            isOn ? tint : Dex.stone700,
-                            lineWidth: 2
-                        )
-                    )
-                    .overlay(
-                        // Inner shadow along the top lip — the cue that sells a
-                        // recess. A full inner shadow is not available, so this
-                        // is the top edge alone, which is the part the eye uses.
-                        Capsule()
-                            .stroke(.black.opacity(0.45), lineWidth: 3)
-                            .blur(radius: 2)
-                            .mask(Capsule().fill(
-                                LinearGradient(
-                                    colors: [.black, .clear],
-                                    startPoint: .top,
-                                    endPoint: .center
-                                )
-                            ))
-                    )
-
-                // The throw: bevelled, with a knurled grip line so it reads as
-                // something a thumb pushes.
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Dex.stone200, Dex.stone400, Dex.stone600],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .overlay(Circle().strokeBorder(.white.opacity(0.6), lineWidth: 1))
-                    .overlay(
-                        Capsule()
-                            .fill(Dex.stone700.opacity(0.55))
-                            .frame(width: 2, height: throwSize * 0.42)
-                    )
-                    .frame(width: throwSize, height: throwSize)
-                    .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 2)
-                    .padding(4)
-            }
-            .frame(width: width, height: height)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isOn)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(isOn ? "On" : "Off")
-    }
-}
-
-// MARK: - Growth wave
-
-/// The DATA panel's growth graph: an area chart that sweeps left to right
-/// through the dataset's milestones while a counter runs up alongside it.
-///
-/// Drawn in a `Canvas` rather than assembled from shapes because the curve is
-/// sampled per pixel-column — a ripple rides on top of the value line so it
-/// reads as a wave rather than as three straight segments.
-private struct DataWave: View {
-    let milestones: [Int]
-    let lcd: LcdMode
-
-    /// When the sweep started, and whether it has run out.
-    ///
-    /// Driven by a `TimelineView` clock rather than by animating a `@State`
-    /// through an `Animatable` view. The obvious version — a view conforming to
-    /// `Animatable` so SwiftUI hands it interpolated values — does not compile
-    /// under Swift 6: `View` conformance isolates the type to the main actor
-    /// while `Animatable.animatableData` is a nonisolated requirement, and the
-    /// conformance is rejected as a data race. A clock needs no such crossing,
-    /// and `paused` lets the timeline stop once the sweep is done rather than
-    /// redrawing this panel forever.
-    @State private var start = Date()
-    @State private var finished = false
-    /// The sweep is decoration over a number that is already correct, so under
-    /// Reduce Motion it simply starts finished — the panel shows the settled
-    /// curve and the real total, and no clock runs. (AUDIT M18)
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    private static let duration: Double = 2.6
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            TimelineView(.animation(paused: finished || reduceMotion)) { timeline in
-                // The counter and the curve must advance together, so both are
-                // rendered from the same value.
-                let elapsed = timeline.date.timeIntervalSince(start)
-                let linear = reduceMotion ? 1 : min(max(elapsed / Self.duration, 0), 1)
-                // Eased so the sweep settles into the total instead of running
-                // at full speed and stopping dead on the last frame.
-                let p = linear * linear * (3 - 2 * linear)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("\(Int(dataWaveValue(at: p, in: milestones).rounded()))")
-                        .font(DexFont.retro(22))
-                        .foregroundStyle(lcd.accent)
-                    wave(p)
-                }
-            }
-            legend
-        }
-        .onAppear {
-            start = Date()
-            finished = false
-        }
-        .task {
-            // A little past the end, so the final frame is the settled one.
-            try? await Task.sleep(for: .seconds(Self.duration + 0.15))
-            finished = true
-        }
-    }
-
-    private func wave(_ p: Double) -> some View {
-        Canvas { context, size in
-            guard size.width > 1, size.height > 1 else { return }
-            let peak = Double(milestones.max() ?? 0)
-            guard peak > 0 else { return }
-
-            let baseline = size.height - 8
-            let top: CGFloat = 8
-            let usable = baseline - top
-            guard usable > 0 else { return }
-
-            // Never exactly zero: a zero-width sweep produces a degenerate path
-            // that Canvas draws as a stray dot at the origin.
-            let visible = min(max(p, 0.0001), 1)
-            let steps = 140
-
-            func point(at f: Double) -> CGPoint {
-                let v = dataWaveValue(at: f, in: milestones) / peak
-                // The ripple scales with the value so the flat empty start does
-                // not wobble below its own axis.
-                let ripple = sin(f * 13 + p * 5) * 0.03 * v
-                let height = min(max(v + ripple, 0), 1)
-                return CGPoint(
-                    x: CGFloat(f) * size.width,
-                    y: baseline - CGFloat(height) * usable
-                )
-            }
-
-            var line = Path()
-            var area = Path()
-            area.move(to: CGPoint(x: 0, y: baseline))
-
-            for i in 0...steps {
-                let f = Double(i) / Double(steps) * visible
-                let pt = point(at: f)
-                if i == 0 { line.move(to: pt) } else { line.addLine(to: pt) }
-                area.addLine(to: pt)
-            }
-            area.addLine(to: CGPoint(x: CGFloat(visible) * size.width, y: baseline))
-            area.closeSubpath()
-
-            // Axis first, so the fill sits over it rather than cutting it.
-            var axis = Path()
-            axis.move(to: CGPoint(x: 0, y: baseline))
-            axis.addLine(to: CGPoint(x: size.width, y: baseline))
-            context.stroke(axis, with: .color(lcd.accent.opacity(0.3)), lineWidth: 1)
-
-            context.fill(
-                area,
-                with: .linearGradient(
-                    Gradient(colors: [lcd.accent.opacity(0.42), lcd.accent.opacity(0.03)]),
-                    startPoint: CGPoint(x: 0, y: top),
-                    endPoint: CGPoint(x: 0, y: baseline)
-                )
-            )
-            context.stroke(line, with: .color(lcd.accent), lineWidth: 2)
-
-            let head = point(at: visible)
-            context.fill(
-                Path(ellipseIn: CGRect(x: head.x - 4, y: head.y - 4, width: 8, height: 8)),
-                with: .color(lcd.accent)
-            )
-        }
-        // Flexible since 0.6.4 (C2): the DATA page is fixed-height now and
-        // the wave is what soaks up the LCD's leftover space. The floor is
-        // the old fixed height, so the curve can never collapse.
-        .frame(minHeight: 96, maxHeight: .infinity)
-    }
-
-    /// Milestone values under the curve, pinned to the ends so the first and
-    /// last sit over the points they label rather than floating inward.
-    private var legend: some View {
-        HStack(spacing: 0) {
-            ForEach(Array(milestones.enumerated()), id: \.offset) { index, value in
-                Text("\(value)")
-                    .font(DexFont.mono(15))
-                    .foregroundStyle(lcd.subtext)
-                    .frame(
-                        maxWidth: .infinity,
-                        alignment: index == 0
-                            ? .leading
-                            : (index == milestones.count - 1 ? .trailing : .center)
-                    )
-            }
-        }
-    }
-
-}
-
-/// The value along the milestone track at `f` in 0...1.
-///
-/// Eased between stops with a smoothstep rather than interpolated linearly, so
-/// the curve arcs into each milestone instead of turning a hard corner at it —
-/// the difference between a wave and a zigzag.
-///
-/// A free function rather than a method on `DataWave`: it is called from the
-/// `Canvas` renderer, which is a nonisolated closure, and a member of a
-/// main-actor-isolated `View` reached from there is diagnosed as a cross-actor
-/// call. Nothing here touches view state, so it does not need to be one.
-private func dataWaveValue(at f: Double, in points: [Int]) -> Double {
-    guard let first = points.first else { return 0 }
-    guard points.count > 1 else { return Double(first) }
-
-    let clamped = min(max(f, 0), 1)
-    let scaled = clamped * Double(points.count - 1)
-    let index = min(Int(scaled), points.count - 2)
-    let local = scaled - Double(index)
-    let eased = local * local * (3 - 2 * local)
-
-    let a = Double(points[index])
-    let b = Double(points[index + 1])
-    return a + (b - a) * eased
-}
-
-// MARK: - Clear saved data
-
-/// CLEAR SAVED DATA. Lives in UI because half of what it clears (skin, LCD
-/// mode, text scale, haptics, avatar) is UI-owned; the Core stores expose
-/// their own resets and are called rather than reached into.
-///
-/// No relaunch needed: the `@AppStorage` reads are KVO-backed, so removing a
-/// key snaps every view back to its declared default, and the stores are all
-/// `@Observable` and mutated in memory here — removing their defaults keys
-/// alone would leave stale state cached until the next launch.
-@MainActor
-enum SavedDataReset {
-    static func wipeAll() {
-        BookmarkStore.shared.removeEverything()
-        RecentlyViewedStore.shared.clear()
-        RevealCursor.shared.reset()
-        AccessStore.shared.clearAll()
-        AvatarStore.shared.clear()
-        QuizProgress.shared.reset()
-        StreakStore.shared.reset()
-        ScreenStateStore.shared.clear()
-        SearchStateStore.shared.clear()
-
-        let defaults = UserDefaults.standard
-        for key in [
-            // Belt and braces after each store's own reset.
-            Shelf.saved.storageKey,
-            Shelf.wantToTry.storageKey,
-            Shelf.tried.storageKey,
-            BookmarkStore.ratingsKey,
-            RevealCursor.storageKey,
-            QuizProgress.storageKey,
-            StreakStore.streakKey,
-            StreakStore.lastDayKey,
-            StreakStore.bestKey,
-            LcdMode.storageKey,
-            TextScale.storageKey,
-            UIScale.storageKey,
-            ChassisSkin.storageKey,
-            UserProfile.displayNameKey,
-            Haptics.storageKey,
-            Sounds.storageKey,
-        ] {
-            defaults.removeObject(forKey: key)
-        }
-    }
-}
 #endif

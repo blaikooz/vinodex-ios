@@ -10,8 +10,8 @@ import VinodexCore
 /// categories genuinely differ — grapes colour the well by wine style and take
 /// their glyph from their primary tasting note, regions show a country flag
 /// ringed by climate, styles colour by classification, flavours by subclass.
-public struct EntryVisual {
-    public enum Well {
+struct EntryVisual {
+    enum Well {
         case color(Color)
         /// Country flag, filling the well. The 0.5.6 shaped-flag treatment
         /// (flag masked into an Iconify country outline) is gone — regions
@@ -19,19 +19,19 @@ public struct EntryVisual {
         case flag(country: String)
     }
 
-    public var well: Well
-    public var iconID: String?
-    public var iconColor: Color
+    var well: Well
+    var iconID: String?
+    var iconColor: Color
     /// Drawn as a 2pt ring around the well.
-    public var ringColor: Color?
+    var ringColor: Color?
     /// Glyph scale relative to the well, matching the web app's per-category sizes.
-    public var iconScale: CGFloat = 0.62
+    var iconScale: CGFloat = 0.62
     /// Full-colour pixel-art portrait stem (Resources/FlavorArt). When set and
     /// the asset resolves, it replaces the tinted glyph — the art carries its
     /// own colours and outline, so no tint or `PixelOutline` applies.
-    public var artName: String? = nil
+    var artName: String? = nil
 
-    public static func resolve(_ entry: WineEntry, db: WineDatabase = .shared) -> EntryVisual {
+    static func resolve(_ entry: WineEntry, db: WineDatabase = .shared) -> EntryVisual {
         switch entry {
         case .grape(let g): grapeVisual(g, db: db)
         case .region(let r): regionVisual(r, db: db)
@@ -48,8 +48,13 @@ public struct EntryVisual {
     // and Chardonnay as apple. Tint follows that note's flavour subclass.
 
     private static func grapeVisual(_ g: GrapeEntry, db: WineDatabase) -> EntryVisual {
-        let well = grapeWellColor(style: g.grapeStyle.isEmpty ? (g.wineType ?? "") : g.grapeStyle,
-                                  body: g.grapeBodyClass)
+        // Through the injected `db`, not `.shared`: the old call dropped the
+        // parameter on the floor, so an injected database got the bundled
+        // one's well colours. (AUDIT **M27**, and the rule itself is **M29**.)
+        let well = Color(dexHex: db.palette.grapeWellHex(
+            style: g.grapeStyle.isEmpty ? (g.wineType ?? "") : g.grapeStyle,
+            body: g.grapeBodyClass
+        ))
 
         let primary = g.tastingProfile?.first
         let relatedFlavor = primary.flatMap { db.entry(named: $0.note, category: .flavors) }
@@ -80,73 +85,6 @@ public struct EntryVisual {
             // above stays resolved as the fallback.
             artName: db.icons.grapeArtStem(forKey: GrapeArt.key(for: g))
         )
-    }
-
-    /// `getGrapeIconColor`: the style tone palette first, then colour/body
-    /// keyword heuristics.
-    static func grapeWellColor(style: String, body: String, db: WineDatabase = .shared) -> Color {
-        if let tone = styleTone(for: style, db: db) {
-            return Color(dexHex: tone)
-        }
-
-        let type = TextNormalize.label(style)
-        let bodyLevel = TextNormalize.label(body)
-        guard !type.isEmpty else { return Color(dexHex: "#78716c") }
-
-        if type.contains("red") || type.contains("bold") {
-            if bodyLevel.contains("light") { return Color(dexHex: "#DC143C") }
-            if bodyLevel.contains("full") { return Color(dexHex: "#4A0E0E") }
-            return Color(dexHex: "#8B0000")
-        }
-        if type.contains("white") || type.contains("aromatic") {
-            if bodyLevel.contains("light") { return Color(dexHex: "#FAFAD2") }
-            if bodyLevel.contains("full") { return Color(dexHex: "#B8860B") }
-            return Color(dexHex: "#DAA520")
-        }
-        if type.contains("rose") { return Color(dexHex: "#DB7093") }
-        if type.contains("sweet") { return Color(dexHex: "#CD853F") }
-        return Color(dexHex: "#78716c")
-    }
-
-    /// `normalizeStyleKey` + `STYLE_TONE_PALETTE`. The palette is generated, the
-    /// matching is here.
-    private static func styleTone(for style: String, db: WineDatabase) -> String? {
-        let t = TextNormalize.label(style)
-        guard !t.isEmpty else { return nil }
-
-        func has(_ needles: [String]) -> Bool { needles.contains { t.contains($0) } }
-
-        let key: String?
-        if has(["full-body red", "full body red", "full-bodied red", "full bodied red"]) {
-            key = "full-bodied red"
-        } else if t.contains("bright red") {
-            key = "bright red"
-        } else if has(["light-body red", "light body red", "light-bodied red", "light bodied red"]) {
-            key = "light-bodied red"
-        } else if t.contains("dark red") {
-            key = "dark red"
-        } else if has(["medium-body red", "medium body red", "medium-bodied red", "medium bodied red"]) {
-            key = "medium-bodied red"
-        } else if has(["pink", "rose"]) {
-            key = "rosé"
-        } else if has(["light-body white", "light body white", "light-bodied white", "light bodied white"]) {
-            key = "light-bodied white"
-        } else if t.contains("aromatic white") {
-            key = "aromatic white"
-        } else if has(["high-acid white", "high acid white"]) {
-            key = "high-acid white"
-        } else if has(["full-body white", "full body white", "full-bodied white", "full bodied white"]) {
-            key = "full-bodied white"
-        } else if t.contains("sweet white") {
-            key = "sweet white"
-        } else if has(["medium-body white", "medium body white", "medium-bodied white", "medium bodied white"]) {
-            key = "medium-bodied white"
-        } else {
-            key = nil
-        }
-
-        guard let key else { return nil }
-        return db.palette.styleTones[key]?.primary
     }
 
     // MARK: - Regions
@@ -282,17 +220,28 @@ public struct EntryVisual {
 /// compute once and keep. `@MainActor` for the same reason as `IconLoader`:
 /// Swift 6 strict concurrency rejects a mutable static cache.
 @MainActor
-public final class EntryVisualCache {
-    public static let shared = EntryVisualCache()
+final class EntryVisualCache {
+    static let shared = EntryVisualCache()
 
-    private var cache: [String: EntryVisual] = [:]
+    /// Keyed by database *identity* first, then entry id (AUDIT **M27**).
+    ///
+    /// This is the trap the item's own remedy walks into. Threading a `db`
+    /// parameter through every screen while leaving a process-wide cache keyed
+    /// on `entry.id` alone makes injection *look* done: the second database to
+    /// ask about an entry silently receives the first one's answer, and no
+    /// compile check in this project can see it, in the one module no test can
+    /// run. The database is immutable for its lifetime, so identity is a sound
+    /// key — and there is exactly one in a shipping build, so the extra level
+    /// costs one dictionary lookup.
+    private var cache: [ObjectIdentifier: [String: EntryVisual]] = [:]
 
     private init() {}
 
-    public func visual(for entry: WineEntry) -> EntryVisual {
-        if let hit = cache[entry.id] { return hit }
-        let resolved = EntryVisual.resolve(entry)
-        cache[entry.id] = resolved
+    func visual(for entry: WineEntry, in db: WineDatabase) -> EntryVisual {
+        let owner = ObjectIdentifier(db)
+        if let hit = cache[owner]?[entry.id] { return hit }
+        let resolved = EntryVisual.resolve(entry, db: db)
+        cache[owner, default: [:]][entry.id] = resolved
         return resolved
     }
 }
@@ -302,10 +251,12 @@ public final class EntryVisualCache {
 /// render. Mirrors `FlagLoader`. One loader for both sets because the well
 /// only carries one `artName` and the stems do not collide.
 @MainActor
-public final class PixelArtLoader {
-    public static let shared = PixelArtLoader()
+final class PixelArtLoader {
+    static let shared = PixelArtLoader()
 
-    private static let subdirectories = [
+    /// Not private: `DexAssetAudit` walks the same five directories, and two
+    /// copies of this list is exactly the drift **L26** exists to catch.
+    static let subdirectories = [
         "Resources/FlavorArt",
         "Resources/GrapeArt",
         "Resources/StyleArt",
@@ -323,7 +274,7 @@ public final class PixelArtLoader {
 
     private init() {}
 
-    public func image(_ stem: String) -> UIImage? {
+    func image(_ stem: String) -> UIImage? {
         if let hit = cache[stem] { return hit }
         var loaded: UIImage?
         for subdirectory in Self.subdirectories {
@@ -344,29 +295,34 @@ public final class PixelArtLoader {
 /// for the same country, so a list of regions was doing hundreds of redundant
 /// filesystem lookups per frame.
 @MainActor
-public final class FlagLoader {
-    public static let shared = FlagLoader()
+final class FlagLoader {
+    static let shared = FlagLoader()
 
-    /// Keyed by country, with `nil` recorded for countries that have no flag so
-    /// a miss is not retried on every render.
+    /// Keyed by *slug* — a filename — with `nil` recorded for a slug that has
+    /// no bundled PNG so a miss is not retried on every render.
+    ///
+    /// It used to key on country and resolve the slug itself off
+    /// `WineDatabase.shared`, which made the cache a data cache wearing an
+    /// asset cache's clothes: two databases disagreeing about a country's flag
+    /// would have shared one entry. Resolving the slug at the call site leaves
+    /// this keyed on the thing it actually loads. (AUDIT **M27**)
     private var cache: [String: UIImage?] = [:]
 
     private init() {}
 
-    public func image(for country: String) -> UIImage? {
-        if let hit = cache[country] { return hit }
+    func image(slug: String) -> UIImage? {
+        if let hit = cache[slug] { return hit }
 
-        let loaded: UIImage? = WineDatabase.shared.icons.flagSlug(for: country)
-            .flatMap { DexResources.url(named: $0, ext: "png", subdirectory: "Resources/Flags") }
+        let loaded = DexResources.url(named: slug, ext: "png", subdirectory: "Resources/Flags")
             .flatMap { UIImage(contentsOfFile: $0.path) }
 
-        cache[country] = loaded
+        cache[slug] = loaded
         return loaded
     }
 }
 
 /// Renders an `EntryVisual` at a given size.
-public struct EntryIconWell: View {
+struct EntryIconWell: View {
     let entry: WineEntry
     var size: CGFloat
     var cornerRadius: CGFloat
@@ -380,15 +336,19 @@ public struct EntryIconWell: View {
     /// icon, so a region reads as a *place on its map* everywhere it appears.
     var showsRegionDot: Bool
 
-    private var visual: EntryVisual { EntryVisualCache.shared.visual(for: entry) }
+    var db: WineDatabase
 
-    public init(
+    private var visual: EntryVisual { EntryVisualCache.shared.visual(for: entry, in: db) }
+
+    init(
+        db: WineDatabase = .shared,
         entry: WineEntry,
         size: CGFloat = 48,
         cornerRadius: CGFloat = 8,
         showsGlyph: Bool = true,
         showsRegionDot: Bool = true
     ) {
+        self.db = db
         self.entry = entry
         self.size = size
         self.cornerRadius = cornerRadius
@@ -396,7 +356,7 @@ public struct EntryIconWell: View {
         self.showsRegionDot = showsRegionDot
     }
 
-    public var body: some View {
+    var body: some View {
         let v = visual
         ZStack {
             background(v)
@@ -413,6 +373,11 @@ public struct EntryIconWell: View {
                 // Slightly larger than the glyph scale: the art's transparent
                 // margins are part of the canvas.
                 Image(uiImage: art)
+                    // AUDIT **L28**. The grape bunches and flavour portraits
+                    // are the largest pixel art the app draws, and they were
+                    // the ones still sampling linearly — a soft, smeared
+                    // upscale where every other pixel surface stays crisp.
+                    .interpolation(.none)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: size * 0.82, height: size * 0.82)
@@ -455,6 +420,8 @@ public struct EntryIconWell: View {
         let dotSize = max(5, size * 0.095)
         return ZStack {
             Image(uiImage: art)
+                // The region outline, crisp for the same reason (AUDIT **L28**).
+                .interpolation(.none)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
             if let dot = OutlineDotPlacer.shared.dots(
@@ -477,19 +444,23 @@ public struct EntryIconWell: View {
         case .color(let color):
             color
         case .flag(let country):
-            FlagImage(country: country)
+            FlagImage(db: db, country: country)
         }
     }
 }
 
 /// A bundled pixel flag, or the stone fallback when a country has none.
-public struct FlagImage: View {
+struct FlagImage: View {
     let country: String
+    var db: WineDatabase
 
-    public init(country: String) { self.country = country }
+    init(db: WineDatabase = .shared, country: String) {
+        self.db = db
+        self.country = country
+    }
 
-    public var body: some View {
-        if let image = FlagLoader.shared.image(for: country) {
+    var body: some View {
+        if let slug = db.icons.flagSlug(for: country), let image = FlagLoader.shared.image(slug: slug) {
             Image(uiImage: image)
                 .resizable()
                 .interpolation(.none)

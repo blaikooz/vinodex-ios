@@ -12,14 +12,18 @@ import VinodexCore
 /// *different* outline than this map (US regions on the USA map render their
 /// state outline elsewhere, so their authored point does not apply here).
 /// Either way the one hard promise holds: a dot never lands in the sea.
-public struct CountryOutlineMap: View {
+struct CountryOutlineMap: View {
     let country: String
     let regions: [WineEntry]
     var size: CGFloat = 132
 
-    private let db = WineDatabase.shared
+    /// The database this screen reads. Defaulted so no call site changes, but
+    /// injectable, which is the whole of **M27**: a screen that hard-reads
+    /// `WineDatabase.shared` cannot be put in front of a fixture.
+    private let db: WineDatabase
 
-    public init(country: String, regions: [WineEntry], size: CGFloat = 132) {
+    init(db: WineDatabase = .shared, country: String, regions: [WineEntry], size: CGFloat = 132) {
+        self.db = db
         self.country = country
         self.regions = regions
         self.size = size
@@ -42,7 +46,7 @@ public struct CountryOutlineMap: View {
         return String(id.dropFirst(4))
     }
 
-    public var body: some View {
+    var body: some View {
         if let mapStem = artStem,
            let art = PixelArtLoader.shared.image(mapStem),
            !regions.isEmpty {
@@ -61,6 +65,10 @@ public struct CountryOutlineMap: View {
 
             ZStack {
                 Image(uiImage: art)
+                    // The country outline is pixel art too, and at this size —
+                    // the largest single drawing on the page — linear sampling
+                    // is the most visible it ever gets. (AUDIT **L28**)
+                    .interpolation(.none)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                 ForEach(Array(dots.enumerated()), id: \.offset) { _, dot in

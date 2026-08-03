@@ -168,10 +168,21 @@ mkdir -p "$FLAGDIR"
 
 if [ -d "$PIXELFLAGS" ]; then
   copied=0
-  while IFS=$'\t' read -r country relpath; do
+  while IFS=$'\t' read -r country relpath slug; do
     [ -z "$country" ] && continue
     src="$PIXELFLAGS/$relpath"
-    slug=$(printf '%s' "$country" | tr '[:upper:] ' '[:lower:]-')
+    # The slug comes from the manifest, not from `tr` (audit L25). The rule was
+    # written twice — here, naming the file that gets copied, and in Swift's
+    # `IconManifest.flagSlug(for:)`, naming the file the app asks for — with no
+    # shared test. They agree on every ASCII name and would part company on the
+    # first accented or punctuated one, which ships as a flag that is present in
+    # the bundle and unreachable from the app. `generate-ios-data.ts` decides it
+    # once and both sides read it.
+    if [ -z "$slug" ]; then
+      echo "  MISSING flagSlugs entry for $country — regenerate icons.json (npm run generate)"
+      failed=$((failed + 1))
+      continue
+    fi
     if [ -f "$src" ]; then
       cp "$src" "$FLAGDIR/$slug.png"
       copied=$((copied + 1))
@@ -182,8 +193,10 @@ if [ -d "$PIXELFLAGS" ]; then
   done < <(python3 -c "
 import json,sys
 with open(sys.argv[1]) as fh:
-    for country, path in json.load(fh).get('flags', {}).items():
-        print(f'{country}\t{path}')
+    manifest = json.load(fh)
+slugs = manifest.get('flagSlugs') or {}
+for country, path in manifest.get('flags', {}).items():
+    print(f'{country}\t{path}\t{slugs.get(country, \"\")}')
 " "$MANIFEST")
   echo "copied $copied flags -> $FLAGDIR"
 elif [ "${SKIP_FLAGS:-0}" = "1" ]; then

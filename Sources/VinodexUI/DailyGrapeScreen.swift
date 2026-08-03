@@ -30,11 +30,15 @@ public struct DailyGrapeScreen: View {
     /// looked at. A visit now ends at Back-to-the-hub or Home, not at the first
     /// link you follow out of it.
     @State private var screens = ScreenStateStore.shared
-    private let db = WineDatabase.shared
+    /// The database this screen reads. Defaulted so no call site changes, but
+    /// injectable, which is the whole of **M27**: a screen that hard-reads
+    /// `WineDatabase.shared` cannot be put in front of a fixture.
+    private let db: WineDatabase
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
-    public init(onOpen: @escaping (WineEntry) -> Void) {
+    public init(db: WineDatabase = .shared, onOpen: @escaping (WineEntry) -> Void) {
+        self.db = db
         self.onOpen = onOpen
     }
 
@@ -63,7 +67,7 @@ public struct DailyGrapeScreen: View {
                 // "NOTHING TODAY" is a fact about the shuffle, and on an empty
                 // database it is a lie about the build — the game has nothing
                 // to pick *from*. `DexEmptyState` says which (AUDIT M2).
-                DexEmptyState {
+                DexEmptyState(db: db) {
                     Text("NOTHING TODAY")
                         .font(DexFont.retro(12))
                         .foregroundStyle(Dex.stone400)
@@ -98,7 +102,7 @@ public struct DailyGrapeScreen: View {
 
             // Silhouette until revealed: the real icon well, flattened to a
             // single dark shape so the outline still teases the answer.
-            EntryIconWell(entry: grape, size: 132, cornerRadius: 16)
+            EntryIconWell(db: db, entry: grape, size: 132, cornerRadius: 16)
                 .saturation(revealed ? 1 : 0)
                 .brightness(revealed ? 0 : -0.55)
                 .overlay {

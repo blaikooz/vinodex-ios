@@ -19,7 +19,7 @@ import Observation
 public final class RecentlyViewedStore {
     public static let shared = RecentlyViewedStore()
 
-    public static let storageKey = "recentlyViewedEntryIDs"
+    public static let storageKey = SavedDataKey.recentlyViewed.rawValue
 
     /// Enough to scroll back through a browsing session, small enough that the
     /// strip drawing it stays one glance. Trimmed on write, so lowering it in
@@ -32,6 +32,13 @@ public final class RecentlyViewedStore {
     /// Injectable for tests; defaults to `.standard` in the app.
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        ids = []
+        reload()
+    }
+
+    /// Re-reads from `defaults` after a restore wrote the key behind this
+    /// store's back — see `BookmarkStore.reload()` for the full reasoning.
+    public func reload() {
         ids = defaults.stringArray(forKey: Self.storageKey) ?? []
     }
 

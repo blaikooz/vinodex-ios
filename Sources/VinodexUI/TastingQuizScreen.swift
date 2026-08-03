@@ -44,13 +44,18 @@ public struct TastingQuizScreen: View {
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
-    private let db = WineDatabase.shared
+    /// The database this screen reads. Defaulted so no call site changes, but
+    /// injectable, which is the whole of **M27**: a screen that hard-reads
+    /// `WineDatabase.shared` cannot be put in front of a fixture.
+    private let db: WineDatabase
 
     public init(
+        db: WineDatabase = .shared,
         mode: QuizMode = .practice,
         onOpen: @escaping (WineEntry) -> Void,
         onExit: @escaping () -> Void = {}
     ) {
+        self.db = db
         self.mode = mode
         self.onOpen = onOpen
         self.onExit = onExit
@@ -174,12 +179,17 @@ public struct TastingQuizScreen: View {
 
     private func choose(_ id: String, in question: QuizQuestion) {
         guard var current = session, !current.answered else { return }
+        // The one branch in the app where the *outcome* is the message, so it
+        // gets the outcome haptics rather than the generic tap and ping both
+        // answers used to share (AUDIT **L38**). A wrong answer has no
+        // authored sound and no longer pretends to — `Sounds.wrong()` was an
+        // empty stub, which left the wrong branch with nothing at all
+        // (**L43**); the warning buzz is now what carries it.
         if question.isCorrect(id) {
             Sounds.correct()
-            Haptics.tap()
+            Haptics.success()
         } else {
-            Sounds.wrong()
-            Haptics.select()
+            Haptics.warning()
         }
         current.choose(id, in: question)
         withAnimation(.easeOut(duration: 0.25)) { session = current }
@@ -431,6 +441,32 @@ public struct TastingQuizScreen: View {
         }
         .buttonStyle(DexPressStyle(scale: 0.98))
         .disabled(answered)
+        // The result in words (AUDIT **L44**). Before this, right-or-wrong was
+        // carried entirely by a glyph and a green/red border on a row that is
+        // already `.disabled` — so VoiceOver read "Cabernet Sauvignon, dimmed"
+        // for the correct answer and for every other option alike, and a
+        // red/green pair carries nothing for a colour-blind reader either.
+        //
+        // One element rather than a label on the glyph: the row is one thing to
+        // read, and a separate "checkmark" element after the name is exactly
+        // the fragment a screen-reader user has to reassemble themselves.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(optionLabel(name: name, isAnswer: isAnswer, isChoice: isChoice))
+    }
+
+    /// What VoiceOver says for one option row — see `optionRow`.
+    ///
+    /// Unanswered it is just the name, because that is all the row is. Answered
+    /// it names the outcome first: which one was right, and whether it was the
+    /// one you picked. "Your answer, wrong" rather than "wrong", because the
+    /// correct row is also announced after a wrong guess and the two must not
+    /// be confusable.
+    private func optionLabel(name: String, isAnswer: Bool, isChoice: Bool) -> String {
+        guard answered else { return name }
+        if isAnswer {
+            return isChoice ? "\(name). Correct, your answer." : "\(name). Correct answer."
+        }
+        return isChoice ? "\(name). Wrong, your answer." : name
     }
 
     /// The reveal's modal shell: `DexAlert`'s scrim with the card scrollable,

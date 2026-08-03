@@ -187,7 +187,15 @@ public struct ChipFilter: Codable, Sendable, Hashable {
         selected[ChipFacet.category.rawValue]?.contains(Self.countriesCategoryValue) ?? false
     }
 
-    public static func options(for facet: ChipFacet) -> [ChipOption] {
+    /// The chips a facet offers.
+    ///
+    /// `countries` is a parameter rather than a `WineDatabase.shared` read
+    /// because this is Core: the singleton reaches the *bundled* database, so
+    /// a unit test asking for the COUNTRY chips was quietly asserting against
+    /// shipping data instead of its own fixture. Callers holding a database
+    /// should use `WineDatabase.chipOptions(for:)` below, which fills this in
+    /// from themselves. (AUDIT **M27**)
+    public static func options(for facet: ChipFacet, countries: [String]) -> [ChipOption] {
         switch facet {
         case .category:
             return EntryCategory.allCases.map {
@@ -211,7 +219,7 @@ public struct ChipFilter: Codable, Sendable, Hashable {
             }
         case .country:
             // The countries that actually have pages — same list search uses.
-            return WineDatabase.shared.searchableCountries.map {
+            return countries.map {
                 ChipOption(facet: facet, value: $0, label: $0.uppercased())
             }
         }
@@ -219,6 +227,18 @@ public struct ChipFilter: Codable, Sendable, Hashable {
 }
 
 public extension WineDatabase {
+    /// This database's chips for a facet. The one call shape the app should
+    /// use: it is the database in hand that decides which countries have pages,
+    /// not whichever one the process happens to have loaded.
+    func chipOptions(for facet: ChipFacet) -> [ChipOption] {
+        ChipFilter.options(for: facet, countries: searchableCountries)
+    }
+
+    /// Every chip across every facet, flattened.
+    var allChipOptions: [ChipOption] {
+        ChipFacet.allCases.flatMap { chipOptions(for: $0) }
+    }
+
     /// Everything surviving a chip selection, in the same name order every other
     /// listing uses.
     /// Filtering the pre-sorted list rather than sorting the survivors: the

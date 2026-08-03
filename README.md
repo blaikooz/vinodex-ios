@@ -120,10 +120,19 @@ kept deliberately close to it, and neither repo copies from the other.
 
 ## Running it
 
-Swift 6.3, and for a device build [xtool](https://github.com/xtool-org/xtool)
-with a Darwin SDK. The app builds from the committed resources alone — **Node is
-not required** unless you are regenerating data. Development happens on
-Linux/WSL; there is no Xcode project.
+Swift 6.3, and for a device build
+[xtool **1.17.0**](https://github.com/xtool-org/xtool/releases/tag/v1.17.0) with
+a Darwin SDK. The app builds from the committed resources alone — **Node is not
+required** unless you are regenerating data. Development happens on Linux/WSL;
+there is no Xcode project.
+
+xtool is pinned rather than linked-and-hoped (AUDIT **L22**): it is the tool
+that packages and signs, and its behaviour is load-bearing in ways this repo
+works around. 1.17.0 is what `AppVersion.placeholders` was measured against, and
+the version-stamping bug documented in [`KNOWN-ISSUES.md`](KNOWN-ISSUES.md) is
+1.17.0's. A different version may fix it, change it, or break a workaround
+written for it — so a build made with something else is a build whose bundle
+metadata nobody has checked.
 
 ```bash
 swift test                 # VinodexCore — runs anywhere Swift does
@@ -150,13 +159,56 @@ To a phone, via xtool from WSL:
 
 - The bundle ID in [`xtool.yml`](xtool.yml) (`com.example.Vinodex`) is a
   **placeholder** — change it before signing for real. A free Apple developer
-  profile caps you at **three App IDs**, so burn them thoughtfully.
+  profile caps you at **three App IDs**, so burn them thoughtfully. Changing it
+  is a **one-way door**: the bundle ID is the container identity, so every
+  saved shelf, rating and setting on an installed device stays behind and there
+  is no migration to write. Read
+  [Changing the bundle ID is a one-way door](KNOWN-ISSUES.md#changing-the-bundle-id-is-a-one-way-door)
+  first — the ordered preconditions are there, and the app's answer is
+  SETTINGS ▸ STORED DATA ▸ BACK UP.
 - **Annotated git tags are the version of record** (`v` + the version in
   `AppVersion.swift`). xtool stamps `1.0.0` into every bundle it builds, so the
   tag and `AppVersion.fallback` are the truth, not the Info.plist.
 - **Deploying from Windows + WSL is where the time actually goes.**
   [`KNOWN-ISSUES.md`](KNOWN-ISSUES.md) is the runbook — start with the port
   27015 race, which is the single most likely reason a deploy fails.
+
+### Release checklist
+
+The build environment is part of the artifact, and none of it was written down
+(AUDIT **L22**). Record the first two lines in the tag's annotation, so a
+release can be reproduced from the tag alone rather than from whoever cut it.
+
+```bash
+swift --version            # expect 6.3
+xtool --version            # expect 1.17.0 — the pinned version, see above
+```
+
+1. **Toolchain.** Swift 6.3, xtool 1.17.0. A different xtool is not
+   automatically wrong, but it is untested here — note the version you used and
+   re-check the back plate's version readout, which is the thing its stamping
+   bug breaks.
+2. **Data is current.** `npm run generate` then `git diff --stat
+   Sources/VinodexCore/Resources/` — clean, or the tag ships JSON that does not
+   match `shared/`.
+3. **Assets resolve.** SETTINGS > DEV, top block: every asset row reads `OK`
+   (AUDIT **L26**). A miss there is a red placeholder somewhere in the app.
+4. **Gates.** `swift test`, a clean `xtool dev build`, and on a Mac both
+   `scripts/typecheck-ios-surface.sh` — the only check that sees `VinodexUI` —
+   and `python3 scripts/typecheck-core-tests.py`, which type-checks the test
+   target with the swift-testing macros stripped. The second exists because
+   `swift test` does not run on either maintainer's machine (no `Testing`
+   module), so until CI the test files are checked by nothing at all: a test
+   that does not compile is indistinguishable from one that passes.
+5. **Version.** Bump `AppVersion.fallback`, then tag `v<that number>`,
+   annotated. **The tag is the version of record**, not the Info.plist. Add the
+   release's section to [`CHANGELOG.md`](CHANGELOG.md) in the same commit — the
+   annotation and the entry say the same thing, and the file is the browsable
+   half.
+6. **Bundle ID.** If this release changes it, the *previous* release must
+   already have shipped BACK UP, and users must have had a cycle to use it.
+   See the checklist under Deploying — after the change there is nothing left
+   to back up.
 
 ## Layout
 
@@ -182,6 +234,7 @@ vinodex-ios/
   godot-md/AUDIT.md        Standing work order — numbered, permanent IDs referenced in commits
   horizon-md/, godot-md/   Per-collaborator doc folders (0.6.5)
   KNOWN-ISSUES.md          Runbook: device deployment, WSL setup, traps that waste time
+  CHANGELOG.md             Release history, newest first — the browsable half of the tag annotations
 ```
 
 ### Working on data or colours
@@ -223,6 +276,44 @@ be updated by hand.
 
 The copy of `shared/` in `vinodex-web` feeds the web app only — changing it has
 no effect on iOS.
+
+### Binary assets
+
+Tracked binaries are **40 MB**, of which 34 MB is `art/icons/**` — the drawn
+source art. Git keeps every version of every one of them forever, so a careless
+binary is a permanent cost that a later `git rm` does not refund. Hence a policy
+(AUDIT **L20**), in four rules:
+
+1. **Compress before committing.** `scripts/recompress-png.py` re-deflates a PNG
+   and verifies the decoded pixels and colour mode are unchanged before it
+   writes anything — it is lossless in the strict sense, not the marketing one.
+   `AppIcon.png` was 951,285 bytes for an image that fits in 675,776.
+
+   ```bash
+   scripts/recompress-png.py --check art/icons
+   ```
+
+   `--check` changes nothing and exits 1 if anything can be saved, so it works
+   as a pre-commit gate.
+
+2. **Never over pipeline output.** `Sources/VinodexUI/Resources/**` is written
+   by `npm run icons` and checked by `npm run icons:verify`. Recompressing it by
+   hand wins about 4% and puts every one of those files permanently at odds with
+   the importer that regenerates them. If it is worth having, it belongs *in*
+   the importer.
+
+3. **Source art earns its size; nothing else does.** `art/icons/**` are the
+   masters — they are meant to be large, and `npm run icons` needs them. What is
+   worth a second look is `art/icons/reference/` (contact sheets, 11.7 MB) and
+   `art/icons/attic/` (drawn but unreferenced, 849 KB): both are kept
+   deliberately, and both are candidates for an assets repo rather than this one.
+
+4. **No new binary formats without a reason in the PR description.** A `.psd`, a
+   `.mov` or a font is a decision, not a file.
+
+There is currently **8.4 MB of provably lossless saving available in `art/`**
+that has not been taken, because rewriting 298 masters is the maintainer's call
+and not a side effect of an audit fix. The command is rule 1 without `--check`.
 
 ## Contributing
 

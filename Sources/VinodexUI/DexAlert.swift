@@ -15,6 +15,14 @@ public struct DexAlert: View {
     /// Nil for an acknowledgement — a one-button notice does not need a
     /// "cancel" for something that is not a choice.
     var cancelLabel: String? = "CANCEL"
+    /// Whether confirming destroys something (AUDIT **L38**).
+    ///
+    /// Stated rather than inferred from the button's colour: the confirm is
+    /// drawn red on *every* two-button alert, including UNLOCK, so the livery
+    /// cannot tell a wipe from a purchase. Only this changes the haptic — a
+    /// warning buzz for the taps that cannot be taken back, and the ordinary
+    /// click for the rest.
+    var destructive: Bool = false
     let onConfirm: () -> Void
     let onCancel: () -> Void
 
@@ -28,6 +36,7 @@ public struct DexAlert: View {
         message: String,
         confirmLabel: String,
         cancelLabel: String? = "CANCEL",
+        destructive: Bool = false,
         onConfirm: @escaping () -> Void,
         onCancel: @escaping () -> Void
     ) {
@@ -35,6 +44,7 @@ public struct DexAlert: View {
         self.message = message
         self.confirmLabel = confirmLabel
         self.cancelLabel = cancelLabel
+        self.destructive = destructive
         self.onConfirm = onConfirm
         self.onCancel = onCancel
     }
@@ -76,6 +86,7 @@ public struct DexAlert: View {
                         fill: cancelLabel == nil ? lcd.accent : Dex.red600,
                         border: cancelLabel == nil ? (lcd.isLight ? lcd.accent : Dex.green700) : Dex.red800,
                         text: cancelLabel == nil ? lcd.onAccent : .white,
+                        warns: destructive,
                         action: onConfirm
                     )
                 }
@@ -101,10 +112,11 @@ public struct DexAlert: View {
         fill: Color,
         border: Color,
         text: Color,
+        warns: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
         Button {
-            Haptics.tap()
+            if warns { Haptics.warning() } else { Haptics.tap() }
             action()
         } label: {
             Text(label)

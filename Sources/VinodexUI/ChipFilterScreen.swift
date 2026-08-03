@@ -37,12 +37,17 @@ public struct ChipFilterScreen: View {
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
-    private let db = WineDatabase.shared
+    /// The database this screen reads. Defaulted so no call site changes, but
+    /// injectable, which is the whole of **M27**: a screen that hard-reads
+    /// `WineDatabase.shared` cannot be put in front of a fixture.
+    private let db: WineDatabase
 
     public init(
+        db: WineDatabase = .shared,
         onSelect: @escaping (WineEntry) -> Void,
         onSelectCountry: @escaping (String) -> Void = { _ in }
     ) {
+        self.db = db
         self.onSelect = onSelect
         self.onSelectCountry = onSelectCountry
 
@@ -53,9 +58,8 @@ public struct ChipFilterScreen: View {
         // which on a screen whose whole subject is a live count is exactly the
         // wrong first impression.
         //
-        // A local `db`, not the property: `self` is not fully initialised until
-        // the `State` assignments below have all landed.
-        let db = WineDatabase.shared
+        // The `db` read below is the *parameter*, not the property: `self` is
+        // not fully initialised until the `State` assignments have all landed.
         let restored = ScreenStateStore.shared
             .decoded(ChipFilter.self, "filter", for: ScreenStateStore.chipFilter) ?? ChipFilter()
         _filter = State(initialValue: restored)
@@ -85,8 +89,10 @@ public struct ChipFilterScreen: View {
     @State private var debouncedFrom = ""
 
     /// Every chip on the screen, in one flat list — the set `chipCounts` costs.
-    private static let allOptions: [ChipOption] =
-        ChipFacet.allCases.flatMap { ChipFilter.options(for: $0) }
+    /// Off the database rather than `static`, since the COUNTRY chips are a
+    /// property of the data loaded, not of the type (AUDIT **M27**). Read once
+    /// per recompute, which already costs a full catalog pass per chip.
+    private var allOptions: [ChipOption] { db.allChipOptions }
 
     private func recomputeResults() {
         let q = query.trimmingCharacters(in: .whitespaces)
@@ -103,8 +109,8 @@ public struct ChipFilterScreen: View {
         // Countries are not entries, so their share is added by hand (0.6.2, B3).
         let countryShare = db.searchableCountries.count
         var costed: [ChipOption: Int] = [:]
-        costed.reserveCapacity(Self.allOptions.count)
-        for option in Self.allOptions {
+        costed.reserveCapacity(allOptions.count)
+        for option in allOptions {
             costed[option] = db.count(withChip: option, added: filter)
                 + (filter.toggling(option).includesCountries ? countryShare : 0)
         }
@@ -146,7 +152,7 @@ public struct ChipFilterScreen: View {
                         // "NOTHING MATCHES" blames the chips. On a database
                         // that failed to load, nothing matches anything, and
                         // the chips are innocent (AUDIT M2).
-                        DexEmptyState { emptyState }
+                        DexEmptyState(db: db) { emptyState }
                     } else {
                         // Synthesised country rows lead (0.6.2, B3): they are
                         // the few, the entries the many.
@@ -302,7 +308,7 @@ public struct ChipFilterScreen: View {
             // to scroll sideways to discover is a chip nobody taps, and every
             // row here fits in two lines at most.
             ChipFlow(spacing: 8) {
-                ForEach(ChipFilter.options(for: facet)) { option in
+                ForEach(db.chipOptions(for: facet)) { option in
                     chip(option)
                 }
             }
@@ -379,7 +385,7 @@ public struct ChipFilterScreen: View {
             onSelectCountry(country)
         } label: {
             HStack(spacing: 12) {
-                FlagSwatch(country: country, width: 52, height: 34)
+                FlagSwatch(db: db, country: country, width: 52, height: 34)
                 Text(country.uppercased())
                     .font(DexFont.retro(13))
                     .foregroundStyle(lcd.text)
@@ -448,7 +454,13 @@ struct ChipFlow: Layout {
         for row in rows {
             var x = bounds.minX
             for index in row.indices {
-                let size = subviews[index].sizeThatFits(.unspecified)
+                var size = subviews[index].sizeThatFits(.unspecified)
+                // See `FlowLayout` in CatalogScreen (AUDIT **M49**): the
+                // never-break-on-the-first-chip rule below is right, but it
+                // left an over-wide chip placed at its natural width, past the
+                // container edge, where the chassis clip hid it. Proposing the
+                // row width makes it shrink into the space that exists.
+                size.width = min(size.width, bounds.width)
                 subviews[index].place(
                     at: CGPoint(x: x, y: y + (row.height - size.height) / 2),
                     proposal: ProposedViewSize(size)
@@ -470,7 +482,10 @@ struct ChipFlow: Layout {
         var current = Row()
 
         for index in subviews.indices {
-            let size = subviews[index].sizeThatFits(.unspecified)
+            var size = subviews[index].sizeThatFits(.unspecified)
+            // Clamped before the row arithmetic, so a row holding an over-wide
+            // chip measures the width it will actually be placed at.
+            size.width = min(size.width, maxWidth)
             let needed = current.indices.isEmpty ? size.width : current.width + spacing + size.width
             // Never break on the first chip of a row: a chip wider than the
             // container has to go somewhere, and an empty row followed by an

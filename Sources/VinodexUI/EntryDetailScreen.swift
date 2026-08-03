@@ -47,13 +47,15 @@ public struct EntryDetailScreen: View {
     /// single entry, so they need a route rather than a `WineEntry`.
     var onOpenRoute: (DexRoute) -> Void = { _ in }
 
-    private let db = WineDatabase.shared
+    /// The database this screen reads. Defaulted so no call site changes, but
+    /// injectable, which is the whole of **M27**: a screen that hard-reads
+    /// `WineDatabase.shared` cannot be put in front of a fixture.
+    private let db: WineDatabase
     @State private var bookmarks = BookmarkStore.shared
     /// Raised when TRIED turns on, and again from MY RATING's EDIT.
     @State private var showingRating = false
     /// Which expandable sections are open (0.6.2, C2). Session-local:
     /// an expanded list is browsing state, not an answer.
-    @State private var expandedSections: Set<String> = []
     /// Scroll position outlives the view — see `ScreenStateStore`.
     @State private var screens = ScreenStateStore.shared
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
@@ -81,13 +83,14 @@ public struct EntryDetailScreen: View {
     }
 
     /// The web app caps linked lists at 8 rows.
-    private static let linkedRowLimit = 8
 
     public init(
+        db: WineDatabase = .shared,
         entry: WineEntry,
         onSelectRelated: @escaping (WineEntry) -> Void,
         onOpenRoute: @escaping (DexRoute) -> Void = { _ in }
     ) {
+        self.db = db
         self.entry = entry
         self.onSelectRelated = onSelectRelated
         self.onOpenRoute = onOpenRoute
@@ -113,7 +116,12 @@ public struct EntryDetailScreen: View {
                 // view. The zero spacing and matching alignment make the extra
                 // stack invisible.
                 VStack(alignment: .leading, spacing: 0) {
-                    categorySections
+                    EntryDetailSections(
+                        entry: entry,
+                        db: db,
+                        lcd: lcd,
+                        onSelectRelated: onSelectRelated
+                    )
                 }
                 .id(Anchor.sections)
             }
@@ -164,7 +172,7 @@ public struct EntryDetailScreen: View {
     /// rarity row's three small read-only ones — two star rows on one screen
     /// must not read as the same instrument.
     private var myTasting: some View {
-        section("MY RATING", symbol: "star.fill") {
+        DexSection("MY RATING", symbol: "star.fill") {
             let rating = bookmarks.rating(for: entry.id)
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 6) {
@@ -219,31 +227,19 @@ public struct EntryDetailScreen: View {
     /// art *is* the place, so the hero wants it back — and it carries the
     /// region's red location dot (v0.5.9, C1), same as the country scan page.
     private var hero: some View {
-        VStack(spacing: 14) {
-            EntryIconWell(entry: entry, size: DexMetrics.heroWell, cornerRadius: 20, showsRegionDot: true)
-
-            Text(entry.name.uppercased())
-                .font(DexFont.retro(21))
-                .foregroundStyle(lcd.text)
-                .shadow(color: lcd.accent.opacity(0.55), radius: 0, x: 4, y: 4)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-
+        DexHero(title: entry.name) {
+            EntryIconWell(db: db, 
+                entry: entry,
+                size: DexMetrics.heroWell,
+                cornerRadius: 20,
+                showsRegionDot: true
+            )
+        } actions: {
+            // Not `DexSaveButton`: an entry carries three shelves and a rating
+            // prompt off the third, which is a different control that happens
+            // to share the capsule. See `bookmarkButton`.
             bookmarkButton
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 18)
-        .background(
-            ZStack {
-                lcd.heroWash
-                DexGridBackground(spacing: 34, color: lcd.heroGrid, opacity: 0.5)
-            }
-        )
-        .overlay(alignment: .bottom) {
-            lcd.accent.frame(height: 4)
-        }
-        .padding(.horizontal, -14)
-        .padding(.bottom, 16)
     }
 
     /// Shelf state lives on the entry screen rather than the list, so it is one
@@ -316,7 +312,7 @@ public struct EntryDetailScreen: View {
     }
 
     private var infoSection: some View {
-        section("INFO", symbol: "book") {
+        DexSection("INFO", symbol: "book") {
             Text(entry.entryDescription)
                 .font(DexFont.mono(18))
                 .foregroundStyle(lcd.bodyText)
@@ -354,7 +350,7 @@ public struct EntryDetailScreen: View {
                     tile(label: "ORIGIN",
                          chip: chip(g.details.origin.uppercased(), .country, key: g.details.origin),
                          destination: .country(name: g.details.origin)) { _ in
-                        FlagSwatch(country: g.details.origin)
+                        FlagSwatch(db: db, country: g.details.origin)
                     }
                 }
 
@@ -376,7 +372,7 @@ public struct EntryDetailScreen: View {
                         tile(label: "COUNTRY",
                              chip: chip(r.details.origin.uppercased(), .country, key: r.details.origin),
                              destination: .country(name: r.details.origin)) { _ in
-                            FlagSwatch(country: r.details.origin)
+                            FlagSwatch(db: db, country: r.details.origin)
                         }
                     }
                 }
@@ -411,7 +407,7 @@ public struct EntryDetailScreen: View {
                         tile(label: "ORIGIN",
                              chip: chip(s.details.origin.uppercased(), .country, key: s.details.origin),
                              destination: .country(name: s.details.origin)) { _ in
-                            FlagSwatch(country: s.details.origin)
+                            FlagSwatch(db: db, country: s.details.origin)
                         }
                     }
                 }
@@ -465,7 +461,7 @@ public struct EntryDetailScreen: View {
             // read as a chip decoration; the bar is the region's headline
             // fact, so its hero earns hero scale.
             if let keyGrapeEntry {
-                EntryIconWell(entry: keyGrapeEntry, size: 56, cornerRadius: 8)
+                EntryIconWell(db: db, entry: keyGrapeEntry, size: 56, cornerRadius: 8)
             } else {
                 DexIcon(iconID: db.icons.fallback, size: 44, color: Dex.stone600)
             }
@@ -504,7 +500,7 @@ public struct EntryDetailScreen: View {
                 Haptics.select()
                 onSelectRelated(target)
             } label: {
-                EntryIconWell(entry: target, size: 34, cornerRadius: 6)
+                EntryIconWell(db: db, entry: target, size: 34, cornerRadius: 6)
             }
             .buttonStyle(DexPressStyle(scale: 0.9))
         } else {
@@ -574,530 +570,5 @@ public struct EntryDetailScreen: View {
         .modifier(TileLink(destination: destination, onOpen: onOpenRoute))
     }
 
-    // MARK: Category sections
-
-    @ViewBuilder
-    private var categorySections: some View {
-        switch entry {
-        case .grape(let g):
-            // Rarity leads (v0.5.6): it is the one-glance fact, and it was
-            // buried under five stat bars.
-            raritySection(g)
-            statsSection(g)
-            // The reference titles the grape notes section FLAVOR PROFILE.
-            flavorProfileSection(entry.tastingProfile)
-            if !g.grapeAlternateNames.isEmpty {
-                chipSection("ALSO KNOWN AS", symbol: "character.book.closed", names: g.grapeAlternateNames)
-            }
-            linkedSection("NOTABLE REGIONS", symbol: "mappin.and.ellipse", names: g.grapeNotableRegions)
-
-        case .region(let r):
-            systemSection(r)
-            // Directly under the system that governs them, rather than at the
-            // bottom of the screen below the grape list: the appellations *are*
-            // that system's denominations, and reading them a section apart made
-            // them look like an unrelated tag cloud.
-            if let appellations = r.details.appellations, !appellations.isEmpty {
-                chipSection("APPELLATIONS", symbol: "shield", names: appellations)
-            }
-            // Climate and soil are always shown for regions, even without data:
-            // climate falls back to "Unknown Climate" and soils to a
-            // climate-keyed triplet.
-            climateSection(r)
-            soilSection(r)
-            linkedSection("NOTABLE GRAPES", symbol: "list.bullet", names: r.details.notableGrapes)
-
-        case .style(let s):
-            styleRelatedSections(s)
-
-        case .flavor:
-            // Flavours deliberately have no INFO block in the reference; their
-            // grape list is titled NOTABLE GRAPES.
-            linkedSection("NOTABLE GRAPES", symbol: "list.bullet", names: entry.notableGrapes, limit: 8)
-
-        case .continent:
-            // Continents never reach this screen — see WineEntry.destination.
-            EmptyView()
-        }
-    }
-
-    /// Style sections vary by classification: METHOD shows KEY GRAPES, every
-    /// other class shows NOTABLE GRAPES, and all of them show KEY REGIONS.
-    ///
-    /// TYPE used to show no grape list at all. That was faithful to the web app,
-    /// which is where the omission comes from — but TYPE styles ("Full-Bodied
-    /// Red", "Aromatic White") *do* carry `notableGrapes`, and they are the
-    /// entries where the list matters most: a class defined by how the wine
-    /// tastes rather than by where it is from is only useful once you know which
-    /// grapes make it. The data was already there and simply was not drawn.
-    ///
-    /// BLEND is deliberately still excluded: its `notableGrapes` are the
-    /// components of the blend, already named in the entry's own description,
-    /// and listing them again as "notable" reads as a duplicate.
-    @ViewBuilder
-    private func styleRelatedSections(_ s: StyleEntry) -> some View {
-        let cls = EntryDisplay.styleClass(name: s.common.name, classification: s.details.classification)
-
-        switch cls {
-        case .method:
-            linkedSection("KEY GRAPES", symbol: "list.bullet", names: s.details.notableGrapes, expandable: true)
-        case .style, .origin, .type:
-            linkedSection("NOTABLE GRAPES", symbol: "list.bullet", names: s.details.notableGrapes, expandable: true)
-        case .blend:
-            EmptyView()
-        }
-
-        linkedSection("KEY REGIONS", symbol: "mappin.and.ellipse", names: s.details.keyRegions, expandable: true)
-    }
-
-    /// A single large chip carrying the climate's display name and colours.
-    private func climateSection(_ r: RegionEntry) -> some View {
-        let meta = r.climate.flatMap { db.palette.climates[$0.rawValue] }
-        let colors = meta?.colors ?? db.palette.namedChips["CLIMATE"]
-            ?? Palette.Chip(bg: "#14532d", border: "#22c55e", text: "#86efac")
-
-        return section("CLIMATE", symbol: "wind") {
-            HStack(spacing: 10) {
-                DexIcon(iconID: db.icons.climateIcon(r.climate), size: 26, color: Color(dexHex: colors.border))
-                Text((meta?.name ?? "Unknown Climate").uppercased())
-                    .font(DexFont.mono(22))
-                    .tracking(1.5)
-                    .foregroundStyle(Color(dexHex: colors.text))
-                Spacer()
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 9)
-            .background(Color(dexHex: colors.bg))
-            .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .strokeBorder(Color(dexHex: colors.border), lineWidth: 1)
-            )
-        }
-    }
-
-    /// A grid of soil buttons. Regions without an explicit soil type fall back
-    /// to a climate-keyed triplet rather than showing nothing.
-    private func soilSection(_ r: RegionEntry) -> some View {
-        let soils = db.icons.soils(soilType: r.details.soilType, climate: r.climate)
-
-        return section("SOIL COMPOSITION", symbol: "mountain.2") {
-            LazyVGrid(
-                columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3),
-                spacing: 10
-            ) {
-                ForEach(soils, id: \.self) { soil in
-                    let visual = db.icons.soilIcon(soil)
-                    VStack(spacing: 8) {
-                        // Sized up (0.6.x): at 46/24 the drawn soil art was
-                        // mostly margin — the square is the tile's whole point.
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color(dexHex: "#0b0f19"))
-                            .frame(width: 68, height: 68)
-                            .overlay(
-                                DexIcon(iconID: visual.icon, size: 52, color: Color(dexHex: visual.color))
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .strokeBorder(Color(dexHex: visual.color), lineWidth: 2)
-                            )
-                        Text(soil.uppercased())
-                            .font(DexFont.retro(10))
-                            .foregroundStyle(lcd.text)
-                            .multilineTextAlignment(.center)
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.7)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(lcd.surface)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .strokeBorder(Dex.stone800, lineWidth: 2)
-                    )
-                }
-            }
-        }
-    }
-
-    /// Per-stat bar colours, matching the reference exactly.
-    private static let statColors: [String: String] = [
-        "BODY": "#22c55e",
-        "ACID": "#eab308",
-        "TANNIN": "#ef4444",
-        "AROMATICS": "#c084fc",
-        "COLOR": "#f59e0b",
-    ]
-
-    private func statsSection(_ g: GrapeEntry) -> some View {
-        section("CHARACTERISTICS", symbol: "waveform.path.ecg") {
-            VStack(spacing: 14) {
-                ForEach(g.grapeCharacteristics.bars, id: \.label) { bar in
-                    StatBar(
-                        label: bar.label,
-                        value: bar.value,
-                        fill: Color(dexHex: Self.statColors[bar.label] ?? "#22c55e")
-                    )
-                }
-            }
-            .padding(12)
-            .background(lcd.surface)
-            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Dex.stone800, lineWidth: 1))
-        }
-    }
-
-    /// The rarity readout, at display size rather than row size. The chip and
-    /// the stars were list-row furniture (11pt chip, 11pt stars) on a screen
-    /// where rarity is one of the two things a collector opens the scan for —
-    /// it read as a footnote next to the CHARACTERISTICS bars above it.
-    private func raritySection(_ g: GrapeEntry) -> some View {
-        let chip = db.palette.rarityChips[g.rarity.rawValue]
-            ?? Palette.Chip(bg: "#3f3f46", border: "#52525b", text: "#e4e4e7")
-
-        return section("RARITY", symbol: "star") {
-            HStack(spacing: 8) {
-                Text(g.rarity.rawValue)
-                    .font(DexFont.retro(16))
-                    .tracking(1.5)
-                    .foregroundStyle(Color(dexHex: chip.text))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6).fill(Color(dexHex: chip.bg))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .strokeBorder(Color(dexHex: chip.border), lineWidth: 2)
-                    )
-                Spacer()
-                HStack(spacing: 7) {
-                    // NOBLE is a crown on its own, not a crown capping three
-                    // stars — the stars implied it was simply one rank above
-                    // RARE rather than a different kind of thing. GODFORSAKEN
-                    // (0.6.2, A1) sits above even that. Its emblem is a
-                    // cursed-gold skull (0.6.4, D3, was a flame) — a drawn
-                    // glyph via the icon pipeline, since SF Symbols carries no
-                    // skull at the iOS 17 target; the id ships in the
-                    // manifest's rasterisation list.
-                    if g.rarity == .godforsaken {
-                        DexIcon(
-                            iconID: "game-icons:death-skull",
-                            size: 28,
-                            color: Color(dexHex: "#ca8a04"),
-                            outlined: false
-                        )
-                        .shadow(color: Color(dexHex: "#ca8a04").opacity(0.6), radius: 4)
-                    } else if g.rarity == .noble {
-                        Image(systemName: "crown.fill")
-                            .font(.system(size: 26))
-                            .foregroundStyle(Dex.yellow)
-                            .shadow(color: Dex.yellow.opacity(0.55), radius: 4)
-                    } else {
-                        let filled = rarityRank(g.rarity)
-                        ForEach(0..<3, id: \.self) { index in
-                            Image(systemName: index < filled ? "star.fill" : "star")
-                                .font(.system(size: 20))
-                                .foregroundStyle(index < filled ? Dex.yellow : Dex.stone700)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private func rarityRank(_ rarity: RarityLabel) -> Int {
-        switch rarity {
-        case .common: 1
-        case .uncommon: 2
-        case .rare: 3
-        case .noble: 4
-        // Never reaches the star row — godforsaken has its own emblem — but
-        // the ladder should still rank it truthfully.
-        case .godforsaken: 5
-        }
-    }
-
-    /// The abbreviation in the chip, the spelled-out name beside it — the
-    /// treatment `CountryScreen`'s APPELLATION SYSTEMS section already uses.
-    ///
-    /// The chip used to carry the full name. That made a chip five words wide
-    /// which then wrapped to three lines, and it hid the abbreviation the bottle
-    /// label actually prints — which is the thing worth recognising.
-    private func systemSection(_ r: RegionEntry) -> some View {
-        section("APPELLATION SYSTEM", symbol: "shield") {
-            HStack(alignment: .top, spacing: 8) {
-                // Keyed by the abbreviation either way: the palette tables are
-                // indexed by `classification`, through the same table the list
-                // tile uses, so an appellation is one colour everywhere.
-                ChipView(
-                    label: r.details.classification,
-                    chip: db.palette.resolve(
-                        chip(r.details.classification, .classification, key: r.details.classification)
-                    )
-                )
-                Text(EntryDisplay.appellationName(
-                    classification: r.details.classification,
-                    country: r.details.origin
-                ))
-                .font(DexFont.mono(17))
-                .foregroundStyle(Dex.stone400)
-                .fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 8)
-                if let state = r.details.state {
-                    Text(state.uppercased())
-                        .font(DexFont.mono(19))
-                        .foregroundStyle(lcd.subtext)
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func flavorProfileSection(_ notes: [TastingNote]) -> some View {
-        if !notes.isEmpty {
-            section("FLAVOR PROFILE", symbol: "drop") {
-                VStack(spacing: 8) {
-                    ForEach(notes) { note in
-                        tastingRow(note)
-                    }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func tastingRow(_ note: TastingNote) -> some View {
-        let target = db.entry(named: note.note, category: .flavors)
-        LinkedRow(
-            title: note.note,
-            entry: target,
-            fallbackColor: Color(dexHex: note.color),
-            resolved: target != nil
-        ) {
-            if let target {
-                Haptics.select()
-                onSelectRelated(target)
-            }
-        }
-    }
-
-    /// Full-width rows, as the reference renders related entries — chips are
-    /// reserved for short metadata like appellations.
-    @ViewBuilder
-    private func linkedSection(
-        _ title: String,
-        symbol: String,
-        names: [String],
-        limit: Int = linkedRowLimit,
-        expandable: Bool = false
-    ) -> some View {
-        if !names.isEmpty {
-            section(title, symbol: symbol) {
-                VStack(spacing: 8) {
-                    // Expandable sections (0.6.2, C2) show three and offer
-                    // the rest behind a tab; capped ones keep the hard limit.
-                    let expanded = expandedSections.contains(title)
-                    let shown = expandable
-                        ? (expanded ? names : Array(names.prefix(3)))
-                        : Array(names.prefix(limit))
-                    ForEach(shown, id: \.self) { name in
-                        linkedRow(name)
-                    }
-                    if expandable && names.count > 3 {
-                        Button {
-                            Haptics.select()
-                            withAnimation(.easeOut(duration: 0.2)) {
-                                if expanded {
-                                    expandedSections.remove(title)
-                                } else {
-                                    expandedSections.insert(title)
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: expanded ? "chevron.up" : "chevron.down")
-                                    .font(.system(size: 13, weight: .bold))
-                                Text(expanded ? "SHOW FEWER" : "EXPAND ALL (\(names.count))")
-                                    .font(DexFont.retro(10))
-                                    .tracking(1)
-                                Spacer(minLength: 0)
-                            }
-                            .foregroundStyle(lcd.accent)
-                            .padding(.horizontal, 12)
-                            .frame(height: 42)
-                            .frame(maxWidth: .infinity)
-                            .background(Capsule().fill(lcd.well))
-                            .overlay(Capsule().strokeBorder(lcd.surfaceEdge, lineWidth: 2))
-                        }
-                        .buttonStyle(DexPressStyle(scale: 0.98))
-                    }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func linkedRow(_ name: String) -> some View {
-        let target = db.entry(named: name)
-        LinkedRow(
-            title: name,
-            entry: target,
-            fallbackColor: Dex.stone800,
-            resolved: target != nil
-        ) {
-            if let target {
-                Haptics.select()
-                onSelectRelated(target)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func chipSection(_ title: String, symbol: String, names: [String]) -> some View {
-        if !names.isEmpty {
-            section(title, symbol: symbol) {
-                FlowLayout(spacing: 6) {
-                    ForEach(names, id: \.self) { name in
-                        ChipView(
-                            label: name.uppercased(),
-                            chip: Palette.Chip(bg: "#052e16", border: "#15803d", text: "#bbf7d0")
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    /// Section header: symbol plus label over a green rule — the reference's
-    /// `border-b-2 border-green-800` treatment, not a boxed card.
-    private func section<C: View>(
-        _ title: String,
-        symbol: String,
-        @ViewBuilder content: () -> C
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: symbol)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(lcd.accent)
-                Text(title)
-                    .font(DexFont.retro(10))
-                    .tracking(1.5)
-                    .foregroundStyle(lcd.accent)
-                Spacer()
-            }
-            .padding(.bottom, 5)
-            .overlay(alignment: .bottom) {
-                Color(dexHex: "#166534").frame(height: 2)
-            }
-
-            content()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.bottom, 22)
-    }
-}
-
-/// A related-entry row. Unresolved names render greyed and inert, mirroring
-/// `isLinkable` in the web app — the common case at starter scale.
-struct LinkedRow: View {
-    let title: String
-    /// Nil when the name has no entry in the current selection.
-    let entry: WineEntry?
-    let fallbackColor: Color
-    let resolved: Bool
-    let action: () -> Void
-
-    @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
-    private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 10) {
-                Group {
-                    if let entry {
-                        EntryIconWell(entry: entry, size: 38, cornerRadius: 6)
-                    } else {
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(fallbackColor)
-                            .frame(width: 38, height: 38)
-                            .overlay(
-                                DexIcon(
-                                    iconID: WineDatabase.shared.icons.fallback,
-                                    size: 22,
-                                    color: Dex.stone600
-                                )
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 6)
-                                    .strokeBorder(.black.opacity(0.25), lineWidth: 1)
-                            )
-                    }
-                }
-
-                Text(title.uppercased())
-                    .font(DexFont.retro(11))
-                    // Not `.white`: this row's ground is `lcd.surface`, which is
-                    // white in light mode — the label was white-on-white and
-                    // vanished. This is the row FLAVOR PROFILE, NOTABLE GRAPES
-                    // and every other linked list is built from.
-                    .foregroundStyle(resolved ? lcd.text : lcd.disabledText)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Spacer(minLength: 4)
-
-                if resolved {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(Dex.stone600)
-                }
-            }
-            .padding(7)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(lcd.surface)
-            .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .strokeBorder(resolved ? Dex.stone700 : Dex.stone800, lineWidth: 1)
-            )
-        }
-        .buttonStyle(DexPressStyle(scale: 0.98))
-        .disabled(!resolved)
-    }
-}
-
-/// Flag swatch used in the three-tile header row, and — larger — as the hero of
-/// the country and state screens.
-///
-/// The size is a parameter rather than something the caller wraps in a `.frame`.
-/// It used to be hard-coded at 52x32, and every call site that wanted a
-/// different size put an outer frame around it: an outer frame does not resize
-/// fixed content, so the country hero's `.frame(width: 96, height: 60)` was
-/// simply centring a 52x32 flag in a 96x60 box, and the STATES rows' 40x26 box
-/// was smaller than the flag it nominally sized.
-public struct FlagSwatch: View {
-    let country: String
-    var width: CGFloat
-    var height: CGFloat
-
-    public init(country: String, width: CGFloat = 52, height: CGFloat = 32) {
-        self.country = country
-        self.width = width
-        self.height = height
-    }
-
-    /// Scaled off the swatch so a hero-sized flag does not carry the same 3pt
-    /// radius and 2pt border a row-sized one does.
-    private var corner: CGFloat { max(width * 0.06, 3) }
-    private var border: CGFloat { max(width * 0.04, 2) }
-
-    public var body: some View {
-        FlagImage(country: country)
-            .frame(width: width, height: height)
-            .clipShape(RoundedRectangle(cornerRadius: corner))
-            .overlay(
-                RoundedRectangle(cornerRadius: corner)
-                    .strokeBorder(.white, lineWidth: border)
-            )
-    }
 }
 #endif

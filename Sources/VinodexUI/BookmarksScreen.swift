@@ -5,8 +5,8 @@ import VinodexCore
 
 /// The profile's only stored field. A named constant so CLEAR SAVED DATA can
 /// name the key without spelling the literal twice.
-public enum UserProfile {
-    public static let displayNameKey = "userDisplayName"
+enum UserProfile {
+    static let displayNameKey = SavedDataKey.displayName.rawValue
 }
 
 /// The user screen: who you are, and your three shelves.
@@ -41,26 +41,26 @@ public struct BookmarksScreen: View {
     /// The active shelf. Session state, like the scroll position: a cold
     /// launch opens on SAVED.
     @State private var shelfRaw = Shelf.saved.rawValue
-    /// Local only, and deliberately so — there is no account, and inventing a
-    /// backend for a display name would be the tail wagging the dog.
-    @AppStorage(UserProfile.displayNameKey) private var displayName = ""
-    /// The picture, which is local for the same reason. See `AvatarStore`.
+    /// The picture, which is local only and deliberately so — there is no
+    /// account, and inventing a backend for a profile would be the tail
+    /// wagging the dog. See `AvatarStore`.
     @State private var avatar = AvatarStore.shared
     @State private var pickedPhoto: PhotosPickerItem?
-    /// Whether the name row is showing its field. Off by resting state: the
-    /// field used to be permanently on screen, which made the top of this
-    /// screen a form.
-    @State private var editingName = false
-    private let db = WineDatabase.shared
+    /// The database this screen reads. Defaulted so no call site changes, but
+    /// injectable, which is the whole of **M27**: a screen that hard-reads
+    /// `WineDatabase.shared` cannot be put in front of a fixture.
+    private let db: WineDatabase
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
     public init(
+        db: WineDatabase = .shared,
         onSelect: @escaping (WineEntry) -> Void,
         onSelectCountry: @escaping (String) -> Void = { _ in },
         onSelectState: @escaping (String) -> Void = { _ in },
         onPassport: @escaping () -> Void = {}
     ) {
+        self.db = db
         self.onSelect = onSelect
         self.onSelectCountry = onSelectCountry
         self.onSelectState = onSelectState
@@ -104,7 +104,11 @@ public struct BookmarksScreen: View {
             DexScreenBackground()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
+                // Lazy, like every other list screen (AUDIT **L12**). This was
+                // the last eager one: an ordinary saved shelf builds every row
+                // — tile, icon well, chips, and for TRIED a five-star strip and
+                // a journal line — before the first of them is on screen.
+                LazyVStack(alignment: .leading, spacing: 8) {
                     // The profile block and the header are one scroll target
                     // between them, so an anchor pointing here means "the top".
                     VStack(alignment: .leading, spacing: 8) {
@@ -158,10 +162,18 @@ public struct BookmarksScreen: View {
         .onChange(of: shelfRaw) { _, new in
             screens.setValue(new, "shelf", for: ScreenStateStore.bookmarks)
         }
-        // Clearing a whole shelf is one tap from a scroll view and cannot be
-        // undone, so it asks first. Removing a single entry does not — that one
-        // is cheap to redo. Rendered in-screen rather than as a system dialog,
-        // which would slide up from the device and break the chassis metaphor.
+        // Both removals ask first, and the comment here used to say the single
+        // one did not — three lines above the overlay that shows the dialog
+        // (AUDIT **L37**). The comment was the thing that was wrong, not the
+        // code: "cheap to redo" holds for a saved bookmark, which is one SAVE
+        // tap away from coming back, and does not hold on the TRIED shelf,
+        // where removing a row takes its rating and its written note with it
+        // (see `BookmarkStore.remove(_:on:)`). One ✕ is a small target near a
+        // scrolling list, and there is nothing behind it to restore what it
+        // deletes.
+        //
+        // Both are rendered in-screen rather than as system dialogs, which
+        // would slide up from the device and break the chassis metaphor.
         .overlay {
             if confirmingClear {
                 DexAlert(
@@ -170,6 +182,7 @@ public struct BookmarksScreen: View {
                         ? "\(items.count) tasting\(items.count == 1 ? "" : "s") will be removed — ratings and notes go with them."
                         : "\(items.count) \(items.count == 1 ? "item" : "items") will be removed. This cannot be undone.",
                     confirmLabel: "CLEAR",
+                    destructive: true,
                     onConfirm: {
                         bookmarks.removeAll(on: shelf)
                         confirmingClear = false
@@ -182,8 +195,11 @@ public struct BookmarksScreen: View {
             if let pendingDelete {
                 DexAlert(
                     title: "REMOVE FROM \(title(of: shelf))?",
-                    message: pendingDelete.displayName.uppercased(),
+                    message: shelf == .tried
+                        ? "\(pendingDelete.displayName.uppercased()) — its rating and note go with it."
+                        : pendingDelete.displayName.uppercased(),
                     confirmLabel: "REMOVE",
+                    destructive: true,
                     onConfirm: {
                         bookmarks.remove(pendingDelete.storageID, on: shelf)
                         self.pendingDelete = nil
@@ -307,7 +323,7 @@ public struct BookmarksScreen: View {
                             onSelect(entry)
                         } label: {
                             VStack(spacing: 4) {
-                                EntryIconWell(entry: entry, size: 56, cornerRadius: 8)
+                                EntryIconWell(db: db, entry: entry, size: 56, cornerRadius: 8)
                                 Text(entry.name.uppercased())
                                     .font(DexFont.retro(10))
                                     .foregroundStyle(lcd.subtext)
@@ -348,7 +364,7 @@ public struct BookmarksScreen: View {
             avatarPicker
 
             VStack(alignment: .leading, spacing: 10) {
-                nameRow
+                ProfileNameRow(lcd: lcd)
                 statRow
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -377,86 +393,29 @@ public struct BookmarksScreen: View {
     }
 
     /// The avatar, at 96pt — an actual portrait rather than a row glyph.
+    ///
+    /// The picture itself is `AvatarBadge` rather than inline content because
+    /// `PhotosPicker.init` is `nonisolated` and takes its label as a `@Sendable`
+    /// builder, so nothing inside that closure may touch this screen — and this
+    /// screen is main-actor isolated, inferred from the `@MainActor` singletons
+    /// its `@State` properties are seeded with. Under Swift 5 that was a warning
+    /// nobody saw; `swift-tools-version: 6.0` makes it six hard errors, and they
+    /// only ever appeared in the iOS compile, since `VinodexUI` builds to nothing
+    /// on the host. So the isolated reads happen *here* and cross as values: an
+    /// `AvatarStore` is `@MainActor`, hence `Sendable`, and so is `LcdMode`.
     private var avatarPicker: some View {
-        PhotosPicker(selection: $pickedPhoto, matching: .images, photoLibrary: .shared()) {
-            ZStack {
-                if let image = avatar.image {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    // The placeholder keeps the old brushed-metal treatment, so
-                    // an empty avatar still reads as part of the device.
-                    Image(systemName: "person.crop.circle.fill")
-                        .font(.system(size: 78))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [Dex.stone200, Dex.stone400, Dex.stone600],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                }
-            }
-            .frame(width: 96, height: 96)
-            .clipShape(Circle())
-            .overlay(Circle().strokeBorder(lcd.accent.opacity(0.7), lineWidth: 3))
-            // A camera badge rather than a caption: the affordance has to be on
-            // the avatar, because the avatar is the target.
-            .overlay(alignment: .bottomTrailing) {
-                Image(systemName: "camera.fill")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(lcd.isLight ? .white : .black)
-                    .frame(width: 30, height: 30)
-                    .background(Circle().fill(lcd.accent))
-                    .overlay(Circle().strokeBorder(lcd.surface, lineWidth: 2))
-            }
-            .shadow(color: .black.opacity(0.45), radius: 4, y: 3)
+        let store = avatar
+        let mode = lcd
+        // No `photoLibrary:` argument, which is what picks the out-of-process
+        // picker the note above promises. Passing `.shared()` selects the
+        // in-process one instead — it reads the library directly, so it wants
+        // an authorisation prompt and an `NSPhotoLibraryUsageDescription` that
+        // this app has nowhere to put (auditS **M6**: there is no Info.plist).
+        return PhotosPicker(selection: $pickedPhoto, matching: .images) {
+            AvatarBadge(store: store, lcd: mode)
         }
         .buttonStyle(DexPressStyle(scale: 0.95))
         .accessibilityLabel(avatar.hasImage ? "Change your picture" : "Add a picture")
-    }
-
-    /// The name, and the one control that edits it.
-    ///
-    /// Resting state is a name and a pencil. Engaged, the name becomes the
-    /// field and the pencil becomes a tick — one row either way, so nothing
-    /// below it moves when you start or finish typing.
-    @ViewBuilder
-    private var nameRow: some View {
-        HStack(spacing: 10) {
-            if editingName {
-                DexSearchField(
-                    text: $displayName,
-                    placeholder: "YOUR NAME",
-                    fontSize: 26,
-                    focusesOnAppear: true
-                )
-                .frame(height: 34)
-            } else {
-                Text(displayName.isEmpty ? "TASTER" : displayName.uppercased())
-                    .font(DexFont.retro(17))
-                    .foregroundStyle(displayName.isEmpty ? lcd.subtext : lcd.text)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                Spacer(minLength: 0)
-            }
-
-            Button {
-                Haptics.select()
-                withAnimation(.easeOut(duration: 0.15)) { editingName.toggle() }
-            } label: {
-                Image(systemName: editingName ? "checkmark" : "square.and.pencil")
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(lcd.accent)
-                    .frame(width: 38, height: 38)
-                    .background(Circle().fill(lcd.well))
-                    .overlay(Circle().strokeBorder(lcd.surfaceEdge, lineWidth: 2))
-            }
-            .buttonStyle(DexPressStyle(scale: 0.9))
-            .accessibilityLabel(editingName ? "Done editing name" : "Edit name")
-        }
-        .frame(minHeight: 44)
     }
 
     /// The streak flame when one is alight, and the way into the passport.
@@ -580,7 +539,7 @@ public struct BookmarksScreen: View {
             action()
         } label: {
             HStack(spacing: 12) {
-                FlagSwatch(country: name, width: 60, height: 38)
+                FlagSwatch(db: db, country: name, width: 60, height: 38)
                 VStack(alignment: .leading, spacing: 5) {
                     Text(name.uppercased())
                         .font(DexFont.retro(13))
@@ -649,6 +608,129 @@ public struct BookmarksScreen: View {
         }
         .padding(30)
         .frame(maxWidth: .infinity)
+    }
+}
+
+/// The name, and the one control that edits it.
+///
+/// Resting state is a name and a pencil. Engaged, the name becomes the field
+/// and the pencil becomes a tick — one row either way, so nothing below it
+/// moves when you start or finish typing.
+///
+/// A view of its own rather than a `nameRow` property on the screen, and that
+/// is the whole point of it (AUDIT **L12**). `displayName` is `@AppStorage`
+/// and `editingName` is `@State`; held on `BookmarksScreen`, every keystroke
+/// invalidated the *screen* — the profile block, the recently-viewed strip and
+/// its twenty icon wells, the shelf picker with its three `saved(in:)` counts,
+/// and every row of the active shelf — to redraw one text field. Owning both
+/// here confines the rebuild to this row.
+///
+/// `lcd` arrives as a value rather than being read from defaults again, so the
+/// row still repaints with the rest of the screen on a mode change.
+private struct ProfileNameRow: View {
+    let lcd: LcdMode
+
+    /// Local only, and deliberately so — there is no account, and inventing a
+    /// backend for a display name would be the tail wagging the dog.
+    @AppStorage(UserProfile.displayNameKey) private var displayName = ""
+    /// Whether the row is showing its field. Off by resting state: the field
+    /// used to be permanently on screen, which made the top of the user screen
+    /// a form.
+    @State private var editingName = false
+
+    var body: some View {
+        HStack(spacing: 10) {
+            if editingName {
+                DexSearchField(
+                    text: $displayName,
+                    placeholder: "YOUR NAME",
+                    fontSize: 26,
+                    focusesOnAppear: true
+                )
+                // See DexSearchField.height — this frame and the field's font
+                // have to move together, or the name row desynchronises from the
+                // search bar it copies. (AUDIT **M50**)
+                .frame(height: DexSearchField.height(nominal: DexSearchField.defaultFontSize, atLeast: 34))
+            } else {
+                Text(displayName.isEmpty ? "TASTER" : displayName.uppercased())
+                    .font(DexFont.retro(17))
+                    .foregroundStyle(displayName.isEmpty ? lcd.subtext : lcd.text)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                Spacer(minLength: 0)
+            }
+
+            Button {
+                Haptics.select()
+                withAnimation(.easeOut(duration: 0.15)) { editingName.toggle() }
+            } label: {
+                Image(systemName: editingName ? "checkmark" : "square.and.pencil")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(lcd.accent)
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(lcd.well))
+                    .overlay(Circle().strokeBorder(lcd.surfaceEdge, lineWidth: 2))
+            }
+            .buttonStyle(DexPressStyle(scale: 0.9))
+            .accessibilityLabel(editingName ? "Done editing name" : "Edit name")
+        }
+        .frame(minHeight: 44)
+    }
+}
+
+/// The picture inside the profile's photo picker.
+///
+/// A view of its own, and at file scope rather than nested, purely so that
+/// nothing about it is main-actor isolated: `PhotosPicker`'s label builder is
+/// `@Sendable`, so it can construct this — the memberwise initialiser is
+/// `nonisolated` and both stored properties are `Sendable` — but it could not
+/// have read `BookmarksScreen`'s state to draw the same thing inline. See
+/// `BookmarksScreen.avatarPicker`.
+///
+/// The store is passed in rather than read from `AvatarStore.shared` here so
+/// this stays exercisable against a throwaway directory (`AvatarStore` takes
+/// one), in the spirit of audit **M27**. `body` is `@MainActor` by protocol, so
+/// reading the `@Observable` store inside it is both legal and what registers
+/// the dependency — holding it in `@State` would only own a lifetime the
+/// singleton already has.
+private struct AvatarBadge: View {
+    let store: AvatarStore
+    let lcd: LcdMode
+
+    var body: some View {
+        ZStack {
+            if let image = store.image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                // The placeholder keeps the old brushed-metal treatment, so
+                // an empty avatar still reads as part of the device.
+                Image(systemName: "person.crop.circle.fill")
+                    .font(.system(size: 78))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Dex.stone200, Dex.stone400, Dex.stone600],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
+        }
+        .frame(width: 96, height: 96)
+        .clipShape(Circle())
+        .overlay(Circle().strokeBorder(lcd.accent.opacity(0.7), lineWidth: 3))
+        // A camera badge rather than a caption: the affordance has to be on
+        // the avatar, because the avatar is the target.
+        .overlay(alignment: .bottomTrailing) {
+            Image(systemName: "camera.fill")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(lcd.isLight ? .white : .black)
+                .frame(width: 30, height: 30)
+                .background(Circle().fill(lcd.accent))
+                .overlay(Circle().strokeBorder(lcd.surface, lineWidth: 2))
+        }
+        .shadow(color: .black.opacity(0.45), radius: 4, y: 3)
     }
 }
 #endif

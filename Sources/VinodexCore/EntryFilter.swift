@@ -126,6 +126,18 @@ public enum EntryFilter: Sendable, Hashable {
             // — that no single grape carries, so the chip returned nothing
             // (0.6.2, D2). Dual-purpose means both colours qualify.
             if target == "dual" { return true }
+            // ROSE and ORANGE are the other two style-side colours no grape
+            // carries, and D2 fixed DUAL without them: `Rosé` and `Orange Wine`
+            // opened their COLOR chip onto an empty list from 0.6.2 until this
+            // (AUDIT **M33**). Both name a *process* applied to a grape of the
+            // opposite-looking colour, and the shipped descriptions say which —
+            // see `StyleColorType.grapeColor`, which is where the mapping lives
+            // so the tile and the filter cannot disagree about it.
+            if let style = StyleColorType(rawValue: target.uppercased()),
+               style == .rose || style == .orange,
+               let implied = style.grapeColor {
+                return g.grapeType == implied
+            }
             if TextNormalize.label(g.grapeStyle) == target { return true }
             if let wineType = g.wineType, TextNormalize.label(wineType) == target { return true }
             return TextNormalize.label(g.grapeType.rawValue) == target

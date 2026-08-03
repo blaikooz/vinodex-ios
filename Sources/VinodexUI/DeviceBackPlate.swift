@@ -13,7 +13,7 @@ import VinodexCore
 /// solid steel back would be two different products. The screws and engraving
 /// stay: fasteners are real parts, and the maker's mark is etched into the
 /// plastic instead of the metal.
-public struct DeviceBackPlate: View {
+struct DeviceBackPlate: View {
     private static let creator = "HORIZON/GODOT"
 
     private var year: Int { Calendar.current.component(.year, from: Date()) }
@@ -25,9 +25,14 @@ public struct DeviceBackPlate: View {
     /// the one interaction the plate has beyond the flip.
     @State private var openStamp: BackPlateStamp?
 
-    public init() {}
+    /// The plate computes a `Passport` from the database (AUDIT **M27**).
+    private let db: WineDatabase
 
-    public var body: some View {
+    init(db: WineDatabase = .shared) {
+        self.db = db
+    }
+
+    var body: some View {
         // Dismissal is a swipe, owned by `DeviceChassis` — the plate is a
         // surface, not a button.
         ZStack {
@@ -114,7 +119,7 @@ public struct DeviceBackPlate: View {
     private var stampField: some View {
         let passport = Passport.compute(
             tried: BookmarkStore.shared.ids(on: .tried),
-            in: WineDatabase.shared,
+            in: db,
             bestStreak: StreakStore.shared.best,
             highestTier: QuizProgress.shared.highestUnlocked
         )

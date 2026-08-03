@@ -10,12 +10,17 @@ public struct PassportScreen: View {
     @State private var bookmarks = BookmarkStore.shared
     @State private var streak = StreakStore.shared
     @State private var progress = QuizProgress.shared
-    private let db = WineDatabase.shared
+    /// The database this screen reads. Defaulted so no call site changes, but
+    /// injectable, which is the whole of **M27**: a screen that hard-reads
+    /// `WineDatabase.shared` cannot be put in front of a fixture.
+    private let db: WineDatabase
 
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
-    public init() {}
+    public init(db: WineDatabase = .shared) {
+        self.db = db
+    }
 
     private var passport: Passport {
         Passport.compute(
@@ -39,7 +44,7 @@ public struct PassportScreen: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    section("TASTINGS") {
+                    DexSection("TASTINGS", rank: .screen) {
                         LazyVGrid(columns: columns, spacing: 8) {
                             statTile(
                                 symbol: "circle.grid.3x3.fill",
@@ -68,7 +73,7 @@ public struct PassportScreen: View {
                         }
                     }
 
-                    section("BY COLOUR") {
+                    DexSection("BY COLOUR", rank: .screen) {
                         VStack(spacing: 10) {
                             progressRow(
                                 label: "RED",
@@ -85,7 +90,7 @@ public struct PassportScreen: View {
                         }
                     }
 
-                    section("BY RARITY") {
+                    DexSection("BY RARITY", rank: .screen) {
                         VStack(spacing: 10) {
                             ForEach(RarityLabel.allCases, id: \.self) { rarity in
                                 progressRow(
@@ -98,7 +103,7 @@ public struct PassportScreen: View {
                         }
                     }
 
-                    section("STAMPS") {
+                    DexSection("STAMPS", rank: .screen) {
                         LazyVGrid(columns: columns, spacing: 8) {
                             ForEach(passport.badges) { badge in
                                 badgeTile(badge)
@@ -124,23 +129,6 @@ public struct PassportScreen: View {
     }
 
     // MARK: Furniture
-
-    /// The settings panels' section heading, verbatim — same size, same rule.
-    private func section<C: View>(
-        _ title: String,
-        @ViewBuilder content: () -> C
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(DexFont.retro(14))
-                .tracking(1.5)
-                .foregroundStyle(lcd.accent)
-                .padding(.bottom, 5)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .overlay(alignment: .bottom) { lcd.accent.opacity(0.45).frame(height: 2) }
-            content()
-        }
-    }
 
     /// The DATA panel's stat tile, at passport duty.
     private func statTile(symbol: String, tint: Color, value: String, label: String) -> some View {

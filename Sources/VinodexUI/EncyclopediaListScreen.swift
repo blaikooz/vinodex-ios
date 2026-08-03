@@ -7,6 +7,8 @@ public struct EncyclopediaListScreen: View {
     let categories: Set<EntryCategory>
     let filter: EntryFilter?
     let showsSearch: Bool
+    /// Whether the field takes focus as the screen opens — see `searchBar`.
+    let focusesSearchOnAppear: Bool
     /// Whether country rows join the results (v0.5.6). Countries are not
     /// entries — their pages are assembled from regions — so master and
     /// world search list them explicitly rather than through the query.
@@ -20,7 +22,10 @@ public struct EncyclopediaListScreen: View {
     @State private var access = AccessStore.shared
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
-    private let db = WineDatabase.shared
+    /// The database this screen reads. Defaulted so no call site changes, but
+    /// injectable, which is the whole of **M27**: a screen that hard-reads
+    /// `WineDatabase.shared` cannot be put in front of a fixture.
+    private let db: WineDatabase
 
     private var searchKey: String {
         SearchStateStore.key(categories: categories, filter: filter)
@@ -55,16 +60,20 @@ public struct EncyclopediaListScreen: View {
     }
 
     public init(
+        db: WineDatabase = .shared,
         categories: Set<EntryCategory>,
         filter: EntryFilter? = nil,
         showsSearch: Bool = true,
+        focusesSearchOnAppear: Bool = false,
         showsCountries: Bool = false,
         onSelect: @escaping (WineEntry) -> Void,
         onSelectCountry: @escaping (String) -> Void = { _ in }
     ) {
+        self.db = db
         self.categories = categories
         self.filter = filter
         self.showsSearch = showsSearch
+        self.focusesSearchOnAppear = focusesSearchOnAppear
         self.showsCountries = showsCountries
         self.onSelect = onSelect
         self.onSelectCountry = onSelectCountry
@@ -166,7 +175,7 @@ public struct EncyclopediaListScreen: View {
                             // on exactly the path that produced the reported
                             // symptom, because the query survives navigation.
                             // (AUDIT M2)
-                            DexEmptyState { emptyState }
+                            DexEmptyState(db: db) { emptyState }
                         } else {
                             ForEach(rows) { row in
                                 switch row {
@@ -231,7 +240,20 @@ public struct EncyclopediaListScreen: View {
     }
 
     private var searchBar: some View {
-        DexSearchBar(text: searchBinding)
+        // Only when the caller asked — MASTER SEARCH does, because typing is
+        // the entire reason that route exists and it used to open with the
+        // field dark and one more tap to go. A category list does not: it is
+        // there to be browsed, and a keyboard over half of it would be in the
+        // way. (AUDIT **L35**)
+        //
+        // Not on a restored query, either. Coming back to a list you had
+        // filtered restores the text (`SearchStateStore`); popping the
+        // keyboard up over the results you came back to look at would undo
+        // the point of restoring them.
+        DexSearchBar(
+            text: searchBinding,
+            focusesOnAppear: focusesSearchOnAppear && search.isEmpty
+        )
     }
 
     /// A country result, in the entry-tile shape — same well size, spacing,
@@ -246,7 +268,7 @@ public struct EncyclopediaListScreen: View {
                 // Rectangular, not the square entry well (v0.5.8, D4): a
                 // cropped-square flag stops looking like a flag. Same swatch
                 // size as the saved screen's place rows.
-                FlagSwatch(country: name, width: 60, height: 38)
+                FlagSwatch(db: db, country: name, width: 60, height: 38)
                 VStack(alignment: .leading, spacing: 6) {
                     Text(name.uppercased())
                         .font(DexFont.retro(13))

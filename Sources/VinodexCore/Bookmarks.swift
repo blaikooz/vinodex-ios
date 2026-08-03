@@ -14,9 +14,9 @@ public enum Shelf: String, CaseIterable, Sendable {
     /// before shelves existed survive the upgrade.
     public var storageKey: String {
         switch self {
-        case .saved: "bookmarkedEntryIDs"
-        case .wantToTry: "wantToTryEntryIDs"
-        case .tried: "triedEntryIDs"
+        case .saved: SavedDataKey.savedShelf.rawValue
+        case .wantToTry: SavedDataKey.wantToTryShelf.rawValue
+        case .tried: SavedDataKey.triedShelf.rawValue
         }
     }
 }
@@ -63,11 +63,11 @@ public struct TriedRating: Codable, Sendable, Equatable {
 public final class BookmarkStore {
     public static let shared = BookmarkStore()
 
-    public static let storageKey = "bookmarkedEntryIDs"
+    public static let storageKey = SavedDataKey.savedShelf.rawValue
     /// The tried shelf's rating map, JSON-encoded. A few dozen bytes per
     /// entry, so defaults is proportionate — the avatar's file-based reasoning
     /// does not apply at this size.
-    public static let ratingsKey = "triedRatings"
+    public static let ratingsKey = SavedDataKey.triedRatings.rawValue
 
     private let defaults: UserDefaults
     /// The saved shelf, by its original name.
@@ -79,6 +79,26 @@ public final class BookmarkStore {
     /// Injectable for tests; defaults to `.standard` in the app.
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        ids = []
+        wantIDs = []
+        triedIDs = []
+        ratings = [:]
+        reload()
+    }
+
+    /// Re-reads every shelf from `defaults`, discarding what is held in memory.
+    ///
+    /// This store — like the five others with the same shape — reads its
+    /// defaults **once, in `init`**, and holds them for the life of the
+    /// process. That is right for every normal path, because nothing else
+    /// writes those keys. It is wrong for exactly one: a restore
+    /// (`SavedDataArchiver.apply`) writes the keys behind the store's back.
+    /// Without this call the import would look like it worked, display
+    /// nothing new, and then overwrite the imported values with the stale
+    /// in-memory ones on the next mutation. `SavedDataReset` has the same
+    /// problem in the other direction and solves it by calling each store's
+    /// own reset first.
+    public func reload() {
         ids = defaults.stringArray(forKey: Shelf.saved.storageKey) ?? []
         wantIDs = defaults.stringArray(forKey: Shelf.wantToTry.storageKey) ?? []
         triedIDs = defaults.stringArray(forKey: Shelf.tried.storageKey) ?? []

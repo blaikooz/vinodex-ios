@@ -18,6 +18,29 @@ public enum StyleColorType: String, Sendable, CaseIterable {
     case rose = "ROSE"
     case orange = "ORANGE"
     case dual = "DUAL"
+
+    /// The colour of grape a wine of this style is actually made from, or nil
+    /// where the style spans both.
+    ///
+    /// **ROSE and ORANGE name a process, not a grape**, and no grape in the
+    /// catalogue carries either — `GrapeColor` has exactly two cases. Before
+    /// this mapping their COLOR chip opened onto an empty list.
+    ///
+    /// The answers are not a judgement call: they are stated in the shipped
+    /// entries' own descriptions. Rosé — *"pink wines made from **red grapes**
+    /// with minimal skin contact"*. Orange Wine — *"**White grapes** vinified
+    /// like red wine, with extended skin contact"*. So the chip on a Rosé page
+    /// leads to the red grapes it is pressed from, which is the question
+    /// someone tapping it is asking.
+    public var grapeColor: GrapeColor? {
+        switch self {
+        case .red: .red
+        case .white: .white
+        case .rose: .red
+        case .orange: .white
+        case .dual: nil
+        }
+    }
 }
 
 public enum EntryDisplay {
@@ -53,12 +76,24 @@ public enum EntryDisplay {
         return .style
     }
 
+    /// ORANGE, ROSE, RED, WHITE, then DUAL — first match wins, and the order
+    /// matters for a name carrying two of them.
+    ///
+    /// **Whole words, not substrings.** A bare `contains` reads "p-*rose*-cco"
+    /// out of `Prosecco` and labelled Italy's best-known sparkling *white* wine
+    /// as a rosé — on the tile, in the chip, and in the filter it opened.
+    /// `matchesWholeTerm` is the same whole-term test `.origin` has always used,
+    /// and it also collapses hyphens, so `Full-Body Red` still resolves.
+    ///
+    /// Prosecco now falls through to `.dual`, which is the documented meaning of
+    /// "the name names no colour" rather than a claim about the wine. Inferring
+    /// it properly would mean reading the style's `notableGrapes` — Glera, a
+    /// white grape — and that is a larger change than fixing the false positive.
     public static func colorType(name: String) -> StyleColorType {
-        let n = TextNormalize.label(name)
-        if n.contains("orange") { return .orange }
-        if n.contains("rose") { return .rose }
-        if n.contains("red") { return .red }
-        if n.contains("white") { return .white }
+        if TextNormalize.matchesWholeTerm(name, "orange") { return .orange }
+        if TextNormalize.matchesWholeTerm(name, "rose") { return .rose }
+        if TextNormalize.matchesWholeTerm(name, "red") { return .red }
+        if TextNormalize.matchesWholeTerm(name, "white") { return .white }
         return .dual
     }
 

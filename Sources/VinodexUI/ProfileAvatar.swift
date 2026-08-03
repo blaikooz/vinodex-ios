@@ -22,10 +22,10 @@ import UIKit
 /// the feature pointless.
 @MainActor
 @Observable
-public final class AvatarStore {
-    public static let shared = AvatarStore()
+final class AvatarStore {
+    static let shared = AvatarStore()
 
-    public private(set) var image: UIImage?
+    private(set) var image: UIImage?
 
     /// Long-edge ceiling and JPEG quality for what gets written.
     private static let maxEdge: CGFloat = 512
@@ -35,7 +35,7 @@ public final class AvatarStore {
 
     /// `directory` is injectable so this can be pointed somewhere disposable in
     /// a preview or a test rather than at the real Application Support folder.
-    public init(directory: URL? = nil) {
+    init(directory: URL? = nil) {
         let base = directory
             ?? (try? FileManager.default.url(
                 for: .applicationSupportDirectory,
@@ -50,13 +50,36 @@ public final class AvatarStore {
         }
     }
 
-    public var hasImage: Bool { image != nil }
+    var hasImage: Bool { image != nil }
+
+    /// The stored bytes, for `SavedDataArchive.avatarJPEG`. Read from disk
+    /// rather than re-encoded from `image`, so a backup round-trips the exact
+    /// file rather than a second-generation JPEG.
+    var storedJPEG: Data? { try? Data(contentsOf: url) }
+
+    /// Writes an imported avatar and adopts it. Distinct from `adopt(_:)`,
+    /// which downscales and re-encodes: these bytes already came out of
+    /// `adopt`, so doing it again would cost a generation of quality for
+    /// nothing.
+    func restore(_ jpeg: Data) {
+        guard let picked = UIImage(data: jpeg) else { return }
+        try? jpeg.write(to: url, options: .atomic)
+        image = picked
+    }
+
+    /// Re-reads the file after a restore wrote it behind this store's back —
+    /// see `BookmarkStore.reload()`. Unlike the five defaults-backed stores,
+    /// this one's state lives in Application Support, so `reload` reaches for
+    /// the file rather than for `UserDefaults`.
+    func reload() {
+        image = (try? Data(contentsOf: url)).flatMap(UIImage.init(data:))
+    }
 
     /// Takes the picker's payload. Silently does nothing if the data is not a
     /// decodable image — the picker can hand back a file it cannot render (an
     /// iCloud placeholder that failed to download), and the honest response to
     /// that is to leave the existing avatar alone rather than to blank it.
-    public func adopt(_ data: Data) {
+    func adopt(_ data: Data) {
         guard let picked = UIImage(data: data) else { return }
         let scaled = Self.downscaled(picked)
         guard let jpeg = scaled.jpegData(compressionQuality: Self.quality) else { return }
@@ -64,7 +87,7 @@ public final class AvatarStore {
         image = scaled
     }
 
-    public func clear() {
+    func clear() {
         try? FileManager.default.removeItem(at: url)
         image = nil
     }

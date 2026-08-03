@@ -21,6 +21,9 @@ public struct WalkthroughScreen: View {
     let onFinish: () -> Void
 
     @State private var index = 0
+    /// Focus target for the copy card, so a step change is announced (AUDIT
+    /// **M48**). See the note on `copy`.
+    @AccessibilityFocusState private var copyFocused: Bool
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
 
@@ -68,6 +71,16 @@ public struct WalkthroughScreen: View {
             }
         }
         .animation(.easeOut(duration: 0.2), value: index)
+        // `.accessibilityValue` on its own — the audit's literal remedy — is a
+        // silent no-op here: `Capsule` is a `Shape`, shapes generate no
+        // accessibility element, so this `HStack` generates none either and a
+        // value modifier applied where no element exists is dropped without a
+        // warning. `.accessibilityElement` is what creates the element the item
+        // assumed was already there. Nothing in this repo can tell the two
+        // apart — it compiles and ships mute. (AUDIT **M48**)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Tour progress")
+        .accessibilityValue("Step \(index + 1) of \(steps.count)")
     }
 
     private var copy: some View {
@@ -89,6 +102,15 @@ public struct WalkthroughScreen: View {
         .overlay(
             RoundedRectangle(cornerRadius: 6).strokeBorder(lcd.surfaceEdge, lineWidth: 2)
         )
+        // The ordinal has to be *here* to be heard at all. VoiceOver focus
+        // stays on NEXT across a step change, and a value change on an
+        // unfocused element is silent — so the progress bar's value above is
+        // correct and never spoken. Moving focus onto the card that now carries
+        // the ordinal is the deterministic fix; an announcement notification
+        // would race the one SwiftUI already posts for the swapped subtree.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Step \(index + 1) of \(steps.count). \(step.title). \(step.body)")
+        .accessibilityFocused($copyFocused)
     }
 
     private var controls: some View {
@@ -97,6 +119,7 @@ public struct WalkthroughScreen: View {
                 Button {
                     Haptics.select()
                     withAnimation(.easeOut(duration: 0.2)) { index -= 1 }
+                    copyFocused = true
                 } label: {
                     pill("BACK", fill: lcd.surface, ink: lcd.subtext, border: lcd.surfaceEdge)
                 }
@@ -109,6 +132,7 @@ public struct WalkthroughScreen: View {
                     onFinish()
                 } else {
                     withAnimation(.easeOut(duration: 0.2)) { index += 1 }
+                    copyFocused = true
                 }
             } label: {
                 pill(
@@ -144,8 +168,9 @@ public struct WalkthroughScreen: View {
 /// which is the whole job.
 struct DeviceDiagram: View {
     let highlight: WalkthroughStep.Highlight
-    /// See `WalkthroughStep.isolated`: the opening step hides everything
-    /// that is not its subject instead of dimming it.
+    /// See `WalkthroughStep.isolated`: hides everything that is not the
+    /// subject instead of dimming it. No shipped step sets it — the comment
+    /// that used to claim the opening step did has been wrong since v0.5.4.
     var isolated: Bool = false
     let skin: ChassisSkin
     let lcd: LcdMode
@@ -453,6 +478,23 @@ struct DeviceDiagram: View {
             }
             .frame(width: w, height: h)
             .frame(maxWidth: .infinity)
+            // One element, not ten (AUDIT **M48**). The diagram is drawn from
+            // SF Symbols standing in for real chrome, and SwiftUI makes every
+            // one of them an accessibility element named after its symbol — so
+            // VoiceOver read "Back, button" (the real one, labelled by H10)
+            // and then "chevron.left" (this drawing of it), interleaving eight
+            // fake controls with the live ones on the same screen.
+            //
+            // `.ignore` rather than `.accessibilityHidden(true)`, which is what
+            // the audit line asked for: hiding it suppresses the mock chrome
+            // and the lesson together, leaving eight paragraphs of "this part
+            // lights up" pointing at nothing. The label is the lesson.
+            //
+            // Inside `body`, not at the call site, so the component cannot be
+            // mounted unlabelled by the next caller.
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(highlight.diagramDescription(isolated: isolated))
+            .accessibilityAddTraits(.isImage)
         }
     }
 }

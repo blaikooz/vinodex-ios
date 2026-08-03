@@ -14,6 +14,11 @@ struct CoverageTests {
     @Test("database loads without decode errors")
     func loads() throws {
         #expect(db.decodeErrors.isEmpty, "decode errors: \(db.decodeErrors)")
+        // Notices are not faults, but a build that ships without its schema
+        // stamp or its countries table should not reach a release either —
+        // and since M45 routed staleness out of `decodeErrors`, this is the
+        // only assertion that still notices. (AUDIT M45)
+        #expect(db.loadNotices.isEmpty, "load notices: \(db.loadNotices)")
         #expect(!db.entries.isEmpty)
     }
 

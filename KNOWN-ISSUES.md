@@ -104,6 +104,45 @@ This is why `ios/xtool.yml` still uses `com.example.Vinodex`: reusing an
 existing App ID is the only way to deploy. Changing it to a real reverse-DNS ID
 needs the quota to free up or a paid account.
 
+### Changing the bundle ID is a one-way door
+
+*(AUDIT **M35**. Read this before touching `xtool.yml:8`.)*
+
+**The intended ID is `com.blaikooz.vinodex`.** It existed once — introduced at
+`b59cafb` with the note that `com.example.Vinodex` is a template value Apple
+rejects, reverted at `b732221` for the quota above. There is no naming decision
+left to make here, only a quota to free.
+
+**On iOS the bundle ID *is* the container identity.** A new App ID gets a new
+`Library/Preferences/<bundleID>.plist` and a new `Library/Application Support/`.
+The old container is not readable from the new binary, not enumerable, and is
+deleted with the old install. **All 20 keys in `SavedDataKey`
+(`Sources/VinodexCore/SavedData.swift`) and the profile photo at
+`Application Support/avatar.jpg` stay behind.** The audit item asked for "a
+data-migration step"; no such step is writable, and code claiming to be one
+would be a lie. What exists instead is BACK UP / RESTORE in
+SETTINGS ▸ STORED DATA, which writes a `SavedDataArchive` the user keeps
+outside the container.
+
+Preconditions, in this order:
+
+1. **Quota freed, or a paid account.** Nothing below is reachable otherwise.
+2. **If — and only if — the account is paid:** register App Group
+   `group.com.blaikooz.vinodex`, add it to the **old** App ID, and move the
+   defaults to `UserDefaults(suiteName:)` **before** changing the ID. A group
+   added *after* the change shares an empty container, which looks identical
+   until someone checks. Note that xtool 1.17 has no entitlements key in
+   `xtool.yml`, so this needs a signing pipeline that is not the current one.
+3. **Ship a build containing BACK UP, and leave a release cycle for people to
+   use it.** A backup taken after the change is a backup of nothing.
+4. Then change `xtool.yml:8`.
+5. The first build under the new ID should put RESTORE where it will be found.
+
+**The residual, plainly:** on this account today, steps 1 and 2 are not
+available, so the archive is the whole of the answer. It is a real one — it
+also survives a reinstall and moves a shelf between phones — but it depends on
+the user having taken it.
+
 ### Pre-flight checklist
 
 1. Phone plugged in, unlocked, trusted. Pairing record:
@@ -169,6 +208,41 @@ Re-check in a **separate** invocation before believing it.
 ---
 
 ## Build & test gotchas
+
+### `swift build` cannot see two-thirds of the app — run the typecheck script
+
+`swift build` reports **"Build complete!"** with a type error sitting in
+`VinodexUI`. UIKit does not exist on macOS or Linux, so every file guarded
+`#if canImport(SwiftUI) && canImport(UIKit)` compiles to *nothing* and its
+errors are never raised. `swift test` needs full Xcode; `xtool` has no `test`
+subcommand. Nothing in this repo checks the UI layer before a push.
+
+On a Mac, this does:
+
+```bash
+scripts/typecheck-ios-surface.sh
+```
+
+It copies the tree, rewrites the genuinely iOS-only constructs, and type-checks
+the whole thing against the macOS SDK with `scripts/typecheck-shim.swift`
+standing in for UIKit. It reproduces the actor-isolation errors CI reports, at
+identical file:line:col.
+
+Three things to know before trusting it:
+
+- **Mac only.** It needs AppKit and SwiftUI, so on the WSL box CI is still the
+  first real check.
+- **A shim gap looks exactly like a bug.** If it names a UIKit member the shim
+  lacks, add the stand-in to `typecheck-shim.swift` — do not "fix" the app.
+- **`scripts/typecheck-baseline.txt` is not a wishlist.** swiftc skips function
+  body type-checking in *every* file once one declaration-level error exists, so
+  a script with a few tolerated errors is a script that silently checks nothing.
+  Each baselined line carries its reason; keep it that way, and prefer fixing to
+  adding.
+
+CI's `iOS compile (Xcode)` job remains authoritative — but note it stops after
+its first batch of files, so one error there hides every file alphabetically
+after it. The script has no such limit, which is most of why it is worth having.
 
 ### The WSL mirror goes stale
 
@@ -272,6 +346,15 @@ itself.** `AppVersionTests` pins the behaviour.
 This is also why releases are marked with **annotated git tags** (`v` +
 `AppVersion.fallback`) rather than by a bundle version: git is the only place the
 real number can live until there is a signing pipeline that sets its own.
+
+The annotations are the release notes, and [`CHANGELOG.md`](CHANGELOG.md) is the
+browsable half of the same record (AUDIT **M37**). Twenty-two of the 28 tags were
+**backfilled on 2026-08-03** with `GIT_COMMITTER_DATE` set to each commit's own
+date, so `git tag --sort=taggerdate` reports release order rather than backfill
+order — every backfilled annotation says so in its last paragraph. Four numbers
+have CHANGELOG entries and no tag on purpose (`0.5.8`–`0.6.1`): they were real
+batches that landed inside one commit, so there is no tree to point a tag at, and
+the table at the foot of CHANGELOG.md records why.
 
 ### Long jobs need an attached session
 

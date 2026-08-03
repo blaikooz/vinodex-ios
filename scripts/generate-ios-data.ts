@@ -847,6 +847,19 @@ function buildIconManifest(entries: readonly WineEntry[]) {
     Object.entries(FLAG_PATHS).filter(([country]) => origins.has(country)),
   );
 
+  // The bundled filename each flag lands under, decided here and only here
+  // (AUDIT **L25**). The rule used to be written twice and shared by nobody:
+  // `tr '[:upper:] ' '[:lower:]-'` in rasterize-icons.sh, which names the file
+  // it copies, and `country.lowercased().replacingOccurrences(of: " ", …)` in
+  // `IconManifest.flagSlug(for:)`, which names the file the app asks for. They
+  // agree on all 29 current keys — every one is ASCII differing only by spaces
+  // — and would part company on the first accented or punctuated country name,
+  // producing a flag that is copied in and then never found. Both sides read
+  // this table now, so there is nothing left to diverge.
+  const flagSlugs = Object.fromEntries(
+    Object.keys(flags).map((country) => [country, flagSlug(country)]),
+  );
+
   // Only ship country shapes for countries actually present.
   const shapeIcons = Object.fromEntries(
     Object.entries(COUNTRY_SHAPE_ICONS).filter(([country]) =>
@@ -901,7 +914,25 @@ function buildIconManifest(entries: readonly WineEntry[]) {
     climateSoilFallback: CLIMATE_SOIL_FALLBACK,
     defaultSoils: DEFAULT_SOILS,
     flags,
+    flagSlugs,
   };
+}
+
+/// The one country -> bundled-flag-filename rule (AUDIT **L25**).
+///
+/// Deliberately wider than the two implementations it replaces: they lowercased
+/// and turned spaces into hyphens, which is all the current keys need, and
+/// nothing at all for `Côte d'Ivoire` or `Bosnia & Herzegovina`. Diacritics are
+/// folded and every other run of non-alphanumerics collapses to one hyphen, so
+/// the answer is always a safe filename. On today's 29 keys the output is
+/// byte-identical to what both old rules produced — no flag is renamed by this.
+function flagSlug(country: string): string {
+  return country
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 // ---------------------------------------------------------------------------
@@ -1093,6 +1124,11 @@ const ICONS_REQUIRED = [
 // no silent degradation for new. (AUDIT M3)
 const ICONS_REQUIRED_NONEMPTY = [
   'flavorClassIcons', 'flavorSubclassIcons', 'flavorArt', 'grapeArt', 'styleArt', 'soilKeywords',
+  // AUDIT **L25**. Both the rasteriser and the app now take the flag filename
+  // from here rather than deriving it, so an empty or missing table is not a
+  // degraded build — it is no flags at all on one side and wrong names on the
+  // other.
+  'flagSlugs',
 ];
 
 // The non-optional properties of each Swift `*Entry` struct, by category. A key

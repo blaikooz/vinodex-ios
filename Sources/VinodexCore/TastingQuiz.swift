@@ -144,7 +144,7 @@ public struct QuizSession: Sendable, Codable, Equatable {
 public final class QuizProgress {
     public static let shared = QuizProgress()
 
-    public static let storageKey = "quizTierUnlocked"
+    public static let storageKey = SavedDataKey.quizTierUnlocked.rawValue
 
     private let defaults: UserDefaults
 
@@ -153,6 +153,13 @@ public final class QuizProgress {
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        highestUnlocked = .novice
+        reload()
+    }
+
+    /// Re-reads from `defaults` after a restore wrote the key behind this
+    /// store's back — see `BookmarkStore.reload()` for the full reasoning.
+    public func reload() {
         highestUnlocked = defaults.string(forKey: Self.storageKey)
             .flatMap(QuizTier.init(rawValue:)) ?? .novice
     }

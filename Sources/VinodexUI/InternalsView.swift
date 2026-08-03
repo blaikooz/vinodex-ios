@@ -1,6 +1,55 @@
 #if canImport(SwiftUI) && canImport(UIKit)
 import SwiftUI
 
+/// The board's materials, named (AUDIT **L33**).
+///
+/// Twenty-odd bare hex literals used to sit inline in the drawing, several of
+/// them the same colour written more than once — `#9CA3AF` is the steel of the
+/// shield, the chip pins, the coin cell's rim and its stamped "+", and nothing
+/// said so. These are deliberately *not* `Dex` tokens and deliberately not
+/// mode-aware: this is a picture of a circuit board seen through smoke plastic,
+/// not a surface the LCD theme has any business recolouring. Naming them is the
+/// whole fix — a palette that can be read, rather than one that has to be
+/// decoded.
+///
+/// File scope, so the nonisolated `Canvas` renderer can reach it — see the note
+/// on `InternalsView`.
+private enum Board {
+    static let ground = Color(dexHex: "#14161A")
+    /// Solder-mask green, the colour every consumer PCB is.
+    static let substrate = Color(dexHex: "#166534")
+    static let copper = Color(dexHex: "#B45309")
+    static let via = Color(dexHex: "#FBBF24")
+
+    /// Brushed steel: the EMI can, the chip pins, the coin cell.
+    static let steel = Color(dexHex: "#9CA3AF")
+    static let steelShade = Color(dexHex: "#6B7280")
+    static let steelEdge = Color(dexHex: "#4B5563")
+    static let steelWeld = Color(dexHex: "#D1D5DB")
+    static let crystalCan = Color(dexHex: "#C0C5CC")
+
+    /// Moulded-black IC packages, and the pin-one dimple pressed into them.
+    static let package = Color(dexHex: "#0A0A0A")
+    static let packageDimple = Color(dexHex: "#3F3F46")
+
+    /// Resistors: tan body, then the three code stripes.
+    static let resistorBody = Color(dexHex: "#C8A165")
+    static let resistorStripes = ["#7C2D12", "#0A0A0A", "#B45309"]
+    /// Enamelled copper, a shade darker than the bare traces.
+    static let coilWinding = Color(dexHex: "#7C3F0A")
+
+    static let ribbon = Color(dexHex: "#475569")
+    static let ribbonConductor = Color(dexHex: "#CBD5E1")
+    static let connector = Color(dexHex: "#E7E5E4")
+
+    /// Electrolytic cans and the bright discs on top of them.
+    static let canBody = Color(dexHex: "#27272A")
+    static let canTop = Color(dexHex: "#D4D4D8")
+
+    /// Speaker magnet, outer ring inwards.
+    static let speakerRings = ["#3F3F46", "#71717A", "#27272A"]
+}
+
 /// The mock electronics behind a translucent shell — GLOUGLOU's whole point.
 ///
 /// One static `Canvas`: no state, no timeline, nothing animated. Everything is
@@ -33,14 +82,14 @@ struct InternalsView: View {
             }
 
             // Ground, then the two boards the rest is mounted on.
-            context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Color(dexHex: "#14161A")))
-            let boardColor = Color(dexHex: "#166534")
+            context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Board.ground))
+            let boardColor = Board.substrate
             context.fill(Path(roundedRect: rect(0.06, 0.05, 0.88, 0.39), cornerRadius: 8 * u), with: .color(boardColor))
             context.fill(Path(roundedRect: rect(0.06, 0.53, 0.88, 0.42), cornerRadius: 8 * u), with: .color(boardColor))
 
             // Copper traces: right-angle runs with a via dot at each end.
-            let copper = Color(dexHex: "#B45309")
-            let via = Color(dexHex: "#FBBF24")
+            let copper = Board.copper
+            let via = Board.via
             func trace(_ points: [(Double, Double)]) {
                 var path = Path()
                 path.move(to: CGPoint(x: points[0].0 * w, y: points[0].1 * h))
@@ -83,25 +132,25 @@ struct InternalsView: View {
             context.fill(
                 Path(roundedRect: shield, cornerRadius: 3 * u),
                 with: .linearGradient(
-                    Gradient(colors: [Color(dexHex: "#9CA3AF"), Color(dexHex: "#6B7280")]),
+                    Gradient(colors: [Board.steel, Board.steelShade]),
                     startPoint: shield.origin,
                     endPoint: CGPoint(x: shield.minX, y: shield.maxY)
                 )
             )
-            context.stroke(Path(roundedRect: shield, cornerRadius: 3 * u), with: .color(Color(dexHex: "#4B5563")), lineWidth: 1.5 * u)
+            context.stroke(Path(roundedRect: shield, cornerRadius: 3 * u), with: .color(Board.steelEdge), lineWidth: 1.5 * u)
             // Spot-weld dimples along the lid's edge.
             for i in 0..<6 {
                 let dx = shield.minX + shield.width * (Double(i) + 0.5) / 6
                 let dr = 1.6 * u
                 context.fill(
                     Path(ellipseIn: CGRect(x: dx - dr, y: shield.minY + 3 * u, width: dr * 2, height: dr * 2)),
-                    with: .color(Color(dexHex: "#D1D5DB"))
+                    with: .color(Board.steelWeld)
                 )
             }
 
             // ICs: black packages with pin stubs marching along the long edges.
-            let package = Color(dexHex: "#0A0A0A")
-            let pin = Color(dexHex: "#9CA3AF")
+            let package = Board.package
+            let pin = Board.steel
             func chip(_ x: Double, _ y: Double, _ cw: Double, _ ch: Double) {
                 let body = rect(x, y, cw, ch)
                 let pinCount = 5
@@ -117,7 +166,7 @@ struct InternalsView: View {
                 let dr = 2.5 * u
                 context.fill(
                     Path(ellipseIn: CGRect(x: body.minX + 4 * u, y: body.minY + 4 * u, width: dr * 2, height: dr * 2)),
-                    with: .color(Color(dexHex: "#3F3F46"))
+                    with: .color(Board.packageDimple)
                 )
             }
             chip(0.34, 0.16, 0.32, 0.10)   // the big SoC, top centre
@@ -129,18 +178,18 @@ struct InternalsView: View {
             let crystal = rect(0.70, 0.18, 0.09, 0.025)
             context.fill(
                 Path(roundedRect: crystal, cornerRadius: crystal.height / 2),
-                with: .color(Color(dexHex: "#C0C5CC"))
+                with: .color(Board.crystalCan)
             )
             context.stroke(
                 Path(roundedRect: crystal, cornerRadius: crystal.height / 2),
-                with: .color(Color(dexHex: "#6B7280")), lineWidth: 1 * u
+                with: .color(Board.steelShade), lineWidth: 1 * u
             )
 
             // Resistors: tan bodies with code stripes.
             func resistor(_ x: Double, _ y: Double) {
                 let body = CGRect(x: x * w, y: y * h, width: 16 * u, height: 6 * u)
-                context.fill(Path(roundedRect: body, cornerRadius: 3 * u), with: .color(Color(dexHex: "#C8A165")))
-                for (i, stripe) in ["#7C2D12", "#0A0A0A", "#B45309"].enumerated() {
+                context.fill(Path(roundedRect: body, cornerRadius: 3 * u), with: .color(Board.resistorBody))
+                for (i, stripe) in Board.resistorStripes.enumerated() {
                     let sx = body.minX + Double(3 + i * 4) * u
                     context.fill(
                         Path(CGRect(x: sx, y: body.minY, width: 1.6 * u, height: body.height)),
@@ -165,24 +214,24 @@ struct InternalsView: View {
                 var winding = Path()
                 winding.move(to: CGPoint(x: coilCenter.x + cos(angle) * coilR * 0.55, y: coilCenter.y + sin(angle) * coilR * 0.55))
                 winding.addLine(to: CGPoint(x: coilCenter.x + cos(angle) * coilR * 1.45, y: coilCenter.y + sin(angle) * coilR * 1.45))
-                context.stroke(winding, with: .color(Color(dexHex: "#7C3F0A")), lineWidth: 1.2 * u)
+                context.stroke(winding, with: .color(Board.coilWinding), lineWidth: 1.2 * u)
             }
 
             // Ribbon cable across the board seam.
             let ribbon = rect(0.28, 0.455, 0.44, 0.065)
-            context.fill(Path(roundedRect: ribbon, cornerRadius: 3 * u), with: .color(Color(dexHex: "#475569")))
+            context.fill(Path(roundedRect: ribbon, cornerRadius: 3 * u), with: .color(Board.ribbon))
             for i in 1..<8 {
                 let ry = ribbon.minY + ribbon.height * Double(i) / 8
                 var line = Path()
                 line.move(to: CGPoint(x: ribbon.minX + 3 * u, y: ry))
                 line.addLine(to: CGPoint(x: ribbon.maxX - 3 * u, y: ry))
-                context.stroke(line, with: .color(Color(dexHex: "#CBD5E1").opacity(0.7)), lineWidth: 1 * u)
+                context.stroke(line, with: .color(Board.ribbonConductor.opacity(0.7)), lineWidth: 1 * u)
             }
             // Connector blocks at the ribbon's ends.
             for cx in [ribbon.minX - 6 * u, ribbon.maxX] {
                 context.fill(
                     Path(roundedRect: CGRect(x: cx, y: ribbon.minY - 2 * u, width: 6 * u, height: ribbon.height + 4 * u), cornerRadius: 1.5 * u),
-                    with: .color(Color(dexHex: "#E7E5E4"))
+                    with: .color(Board.connector)
                 )
             }
 
@@ -192,12 +241,12 @@ struct InternalsView: View {
                 let center = CGPoint(x: x * w, y: y * h)
                 context.fill(
                     Path(ellipseIn: CGRect(x: center.x - r, y: center.y - r, width: r * 2, height: r * 2)),
-                    with: .color(Color(dexHex: "#27272A"))
+                    with: .color(Board.canBody)
                 )
                 let tr = r * 0.55
                 context.fill(
                     Path(ellipseIn: CGRect(x: center.x - tr, y: center.y - tr, width: tr * 2, height: tr * 2)),
-                    with: .color(Color(dexHex: "#D4D4D8"))
+                    with: .color(Board.canTop)
                 )
             }
             capacitor(0.20, 0.34)
@@ -212,11 +261,11 @@ struct InternalsView: View {
             let cellR = 16 * u
             context.fill(
                 Path(ellipseIn: CGRect(x: cell.x - cellR, y: cell.y - cellR, width: cellR * 2, height: cellR * 2)),
-                with: .color(Color(dexHex: "#D4D4D8"))
+                with: .color(Board.canTop)
             )
             context.stroke(
                 Path(ellipseIn: CGRect(x: cell.x - cellR, y: cell.y - cellR, width: cellR * 2, height: cellR * 2)),
-                with: .color(Color(dexHex: "#9CA3AF")),
+                with: .color(Board.steel),
                 lineWidth: 2 * u
             )
             // The "+" stamped into the cell.
@@ -225,11 +274,11 @@ struct InternalsView: View {
             plus.addLine(to: CGPoint(x: cell.x + 5 * u, y: cell.y))
             plus.move(to: CGPoint(x: cell.x, y: cell.y - 5 * u))
             plus.addLine(to: CGPoint(x: cell.x, y: cell.y + 5 * u))
-            context.stroke(plus, with: .color(Color(dexHex: "#9CA3AF")), lineWidth: 1.6 * u)
+            context.stroke(plus, with: .color(Board.steel), lineWidth: 1.6 * u)
 
             // Speaker magnet: concentric rings, bottom centre where the grill is.
             let speaker = CGPoint(x: 0.52 * w, y: 0.955 * h)
-            for (ring, color) in [(13.0, "#3F3F46"), (9.0, "#71717A"), (4.5, "#27272A")] {
+            for (ring, color) in zip([13.0, 9.0, 4.5], Board.speakerRings) {
                 let r = ring * u
                 context.fill(
                     Path(ellipseIn: CGRect(x: speaker.x - r, y: speaker.y - r, width: r * 2, height: r * 2)),

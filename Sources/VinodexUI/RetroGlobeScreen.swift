@@ -23,7 +23,12 @@ public struct RetroGlobeScreen: View {
     /// than left present and inert.
     var showsSearch: Bool
 
-    @State private var model = GlobeModel()
+    /// The database this screen reads. Defaulted so no call site changes, but
+    /// injectable — and here it also seeds `GlobeModel`, which is not a `View`
+    /// and so has no other way to be given one. (AUDIT **M27**)
+    private let db: WineDatabase
+
+    @State private var model: GlobeModel
     /// Whether the flat continent list is showing instead of the globe.
     ///
     /// The globe is a *drag-and-tap-a-moving-target* control, which is not a
@@ -57,10 +62,13 @@ public struct RetroGlobeScreen: View {
     private var freezesGlobe: Bool { reduceMotion || voiceOver }
 
     public init(
+        db: WineDatabase = .shared,
         onSelectContinent: @escaping (Continent) -> Void,
         onWorldSearch: @escaping () -> Void,
         showsSearch: Bool = true
     ) {
+        self.db = db
+        _model = State(initialValue: GlobeModel(db: db))
         self.onSelectContinent = onSelectContinent
         self.onWorldSearch = onWorldSearch
         self.showsSearch = showsSearch
@@ -205,7 +213,8 @@ public struct RetroGlobeScreen: View {
                     // row's swatch is the same colour as the marker it stands
                     // in for, by construction rather than by two tables
                     // agreeing (v0.5.6's rule, and it keeps this screen down to
-                    // its one existing `WineDatabase.shared` read — AUDIT M27).
+                    // its one database read, which M27 has since moved into
+                    // `GlobeModel.init(db:)`).
                     ForEach(model.markers) { marker in
                         continentRow(marker)
                     }
@@ -259,6 +268,15 @@ public struct RetroGlobeScreen: View {
 
     // MARK: Markers
 
+    /// How much of the globe's width one marker plate may claim (AUDIT
+    /// **M49**). Six markers share the sphere and at most three face the
+    /// viewer at once, so a little over a third each is the point at which two
+    /// adjacent plates can still both be read. Measured against the widest
+    /// label — SOUTH/AMERICA breaks to seven characters at `retro(18)`, which
+    /// is `7 × 18f` points before padding, or 188pt at the HUGE step: on a
+    /// 340pt LCD that is 55% of the width unbounded, and 38% with this cap.
+    private static let markerWidthShare: CGFloat = 0.38
+
     private var markerLayer: some View {
         GeometryReader { geo in
             ForEach(model.markers) { marker in
@@ -281,7 +299,19 @@ public struct RetroGlobeScreen: View {
                         // `lcd.text` turned the label near-black over a dark
                         // sphere and made it unreadable in light mode.
                         .foregroundStyle(.white)
-                        .fixedSize()
+                        // Was `.fixedSize()` (AUDIT **M49**). These plates are
+                        // absolutely positioned by projection, so nothing
+                        // reflows them — at a large text step a fixed-size
+                        // AMERICA at `retro(18)` is 7 × 18f points wide and two
+                        // neighbouring markers simply grow into each other. A
+                        // ceiling plus a shrink factor is the only thing that
+                        // can give here: the marker is a doorway, and a doorway
+                        // that overlaps its neighbour is worse than a small one.
+                        // The width is the plate's, so the padding sits outside.
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.6)
+                        .frame(maxWidth: geo.size.width * Self.markerWidthShare)
+                        .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 9)
                         // The plate carries the contrast instead: a black scrim
@@ -348,6 +378,10 @@ struct GlobeSceneView: UIViewRepresentable {
     /// LIGHT mode's inverted-colour globe (0.6.4, F1).
     var invertsTexture: Bool = false
 
+    /// The model itself, so `dismantleUIView` — which is static and is handed
+    /// nothing but the view and the coordinator — can reach it. (AUDIT **L10**)
+    func makeCoordinator() -> GlobeModel { model }
+
     func makeUIView(context: Context) -> SCNView {
         let view = SCNView()
         view.backgroundColor = .clear
@@ -361,7 +395,23 @@ struct GlobeSceneView: UIViewRepresentable {
 
     func updateUIView(_ view: SCNView, context: Context) {}
 
-    static func dismantleUIView(_ view: SCNView, coordinator: ()) {
+    /// Teardown that does not depend on `onDisappear` running (AUDIT **L10**).
+    ///
+    /// `RetroGlobeScreen.onDisappear` calls `stop()`, and for the ordinary
+    /// pop that is enough — but it is not the only way this view dies. The
+    /// globe is mounted a second time inside the scanner flow, and the whole
+    /// root tree is rebuilt by `.id(…)` on a text-size or UI-scale change. A
+    /// display link that survives either of those goes on firing at 60Hz for
+    /// the rest of the process.
+    ///
+    /// `detach(from:)` rather than `stop()`, because the `.id("\(lcd)|\(skin)")`
+    /// on this view means a mode or skin switch rebuilds the representable —
+    /// and SwiftUI is free to make the replacement before dismantling the one
+    /// it replaces. An unconditional `stop()` here would then kill the link the
+    /// new view had just started, freezing the globe the first time the user
+    /// changed skin. Matching on the view makes the order irrelevant.
+    static func dismantleUIView(_ view: SCNView, coordinator: GlobeModel) {
+        coordinator.detach(from: view)
         view.scene = nil
     }
 }
@@ -456,13 +506,21 @@ final class GlobeModel {
     /// Marker colours come from the continent entries themselves (v0.5.6):
     /// the icon well and the globe marker are the same colour by
     /// construction, not by two tables agreeing.
-    var markers: [Marker] = Continent.allCases.map {
-        Marker(
-            continent: $0,
-            position: .zero,
-            visible: false,
-            color: Color(dexHex: WineDatabase.shared.continentEntry($0)?.common.color ?? "#4ADE80")
-        )
+    var markers: [Marker]
+
+    /// The model is not a `View`, so no SwiftUI environment can reach it and
+    /// `markers` cannot be a stored-property initialiser reading `.shared`.
+    /// Taking the database here is what makes the globe injectable at all.
+    /// (AUDIT **M27**)
+    init(db: WineDatabase = .shared) {
+        markers = Continent.allCases.map {
+            Marker(
+                continent: $0,
+                position: .zero,
+                visible: false,
+                color: Color(dexHex: db.continentEntry($0)?.common.color ?? "#4ADE80")
+            )
+        }
     }
 
     var viewportSize: CGSize = .zero
@@ -629,10 +687,20 @@ final class GlobeModel {
 
     // MARK: Loop
 
+    /// Idempotent — `attach(to:)` calls it on every rebuild of the
+    /// representable, and the `.id("\(lcd)|\(skin)")` on `GlobeSceneView` makes
+    /// that once per LCD-mode or skin change. This is also the restart half of
+    /// **L10**: `detach(from:)` clears `displayLink`, so the guard below lets
+    /// the next `attach` start a fresh loop rather than leaving a dead globe.
     private func start() {
         guard displayLink == nil else { return }
-        let link = CADisplayLink(target: DisplayLinkProxy { [weak self] in self?.tick() },
-                                 selector: #selector(DisplayLinkProxy.fire))
+        let proxy = DisplayLinkProxy { [weak self] in
+            guard let self else { return false }
+            self.tick()
+            return true
+        }
+        let link = CADisplayLink(target: proxy, selector: #selector(DisplayLinkProxy.fire))
+        proxy.link = link
         // Ask for 30–60 rather than taking the panel's native rate. The scene
         // is one slowly-rotating sphere and six labels; there is nothing in it
         // a 120Hz sample rate resolves that a 60Hz one does not, and the
@@ -651,6 +719,16 @@ final class GlobeModel {
         displayLink = nil
         lastTimestamp = 0
         saveHeading()
+    }
+
+    /// Stops the loop, but only if `view` is still the view this model is
+    /// driving — see the note on `GlobeSceneView.dismantleUIView` (AUDIT
+    /// **L10**). A stale dismantle arriving after the replacement has attached
+    /// names a view we no longer hold, and is ignored.
+    func detach(from view: SCNView) {
+        guard sceneView === view else { return }
+        sceneView = nil
+        stop()
     }
 
     private func tick() {
@@ -860,15 +938,31 @@ final class GlobeModel {
 }
 
 /// `CADisplayLink` needs an ObjC target; this keeps the model free of NSObject.
+///
+/// It also takes the link off the run loop when the model it was driving has
+/// gone (AUDIT **L10**). A `CADisplayLink` retains its target, so this proxy
+/// outlives the `GlobeModel` by design — the model is held weakly, and nothing
+/// else is in a position to notice that the frames now go nowhere. `deinit` on
+/// the model cannot do it either: the link is what keeps the proxy alive, not
+/// the other way round. This is the last-resort net; the deterministic teardown
+/// is `GlobeSceneView.dismantleUIView`.
 private final class DisplayLinkProxy: NSObject {
-    private let handler: () -> Void
+    /// Returns false once the target is gone.
+    private let handler: () -> Bool
+    /// Weak: the link retains this proxy, so a strong reference back would be
+    /// a cycle that neither end could break.
+    weak var link: CADisplayLink?
 
-    init(handler: @escaping () -> Void) {
+    init(handler: @escaping () -> Bool) {
         self.handler = handler
     }
 
     @objc func fire() {
-        handler()
+        guard handler() else {
+            link?.invalidate()
+            link = nil
+            return
+        }
     }
 }
 #endif

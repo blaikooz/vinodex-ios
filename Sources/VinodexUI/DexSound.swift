@@ -1,15 +1,24 @@
 #if canImport(UIKit) && canImport(AVFoundation)
 import AVFoundation
 import UIKit
+import VinodexCore
 
 /// The device's voice — the authored SFX pack (v0.5.6).
 ///
 /// The 0.5.3 single synthesized ping grew back into a small pack, but from
-/// *files* this time: the sounds are authored in `art/sfx`,
-/// labeled by their intended use, and bundled under `Resources/SFX`. Events
-/// without an authored sound (page sweeps, the wrong-answer buzz, boot) stay
-/// deliberately silent until a labeled file arrives — their entry points
-/// remain so call sites do not churn.
+/// *files* this time: the sounds are authored in `art/sfx`, labeled by their
+/// intended use, and bundled under `Resources/SFX`.
+///
+/// It holds four sounds and exposes four entry points. It used to expose six:
+/// `page()` and `wrong()` were empty bodies kept "so call sites do not churn",
+/// which meant every push and pop called a function that did nothing, and the
+/// quiz's wrong-answer branch read as though it made a noise and did not
+/// (AUDIT **L43**). Both are gone. A screen change already rides the click of
+/// the button that caused it, so `page()` had nothing to add even in
+/// principle; the wrong answer is carried by `Haptics.warning()` (**L38**)
+/// until a file for it is authored. When one is, it arrives as a `Kind` case
+/// and a one-line accessor — which is the whole cost the stubs were there to
+/// avoid.
 ///
 /// Gated at the choke point like `Haptics`, and for the same reason: a call
 /// site that checked the setting itself would be the one that forgets to.
@@ -19,10 +28,12 @@ import UIKit
 public enum Sounds {
     /// Missing key = **off**: sounds are opt-in (since 0.5.1). The mute
     /// switch still wins — the audio session is `.ambient`.
-    public static let storageKey = "soundsEnabled"
+    public static let storageKey = SavedDataKey.soundsEnabled.rawValue
 
+    /// Via `SettingsCache` (AUDIT **L16**) — this is consulted on every one of
+    /// the ~78 feedback call sites, most of which ride a button press.
     private static var enabled: Bool {
-        UserDefaults.standard.bool(forKey: storageKey)
+        SettingsCache.bool(forKey: storageKey) ?? false
     }
 
     /// Launch is not an interaction; no authored boot chime yet. But launch
@@ -38,14 +49,8 @@ public enum Sounds {
     public static func tap() { play(.tap) }
     /// The softer selection blip — the warm ping.
     public static func select() { play(.select) }
-    /// Screen changes ride the button click that caused them; no voice of
-    /// their own.
-    public static func page() {}
     /// The quiz's right-answer sting.
     public static func correct() { play(.correct) }
-    /// No authored wrong-answer sound yet; silence reads better than reusing
-    /// a cheerful one.
-    public static func wrong() {}
     /// The orb pressing in — the flip gesture's own voice.
     public static func orb() { play(.orb) }
 

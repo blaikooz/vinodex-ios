@@ -71,7 +71,7 @@ struct RootView: View {
     /// dismissing it sticks: the errors themselves are immutable for the life
     /// of the process, and re-raising a permanent condition on every render
     /// would make the alert un-dismissable. Detail stays in the DEV panel.
-    @State private var showingDataAlert = !WineDatabase.shared.decodeErrors.isEmpty
+    @State private var showingDataAlert: Bool
     @State private var access = AccessStore.shared
     /// DexFont and DexMetrics read their scales from defaults, which SwiftUI
     /// cannot observe. Keying the chassis on both forces a rebuild so a
@@ -84,7 +84,22 @@ struct RootView: View {
     /// `TextScale.seedIfUnset`. (0.6.4, AUDIT H11)
     @Environment(\.dynamicTypeSize) private var systemType
 
-    private let db = WineDatabase.shared
+    /// **The composition root.** This is the one place in the app where the
+    /// singleton is named, and it stays defaulted rather than injected because
+    /// everything below it now takes a `db:` parameter — which is what M27
+    /// asked for. The two remaining `.shared` reads in this file are the M6
+    /// warm-up (whose entire purpose is to force `swift_once` off the main
+    /// thread) and `Diagnostics.emit`, and both are deliberate.
+    private let db: WineDatabase
+
+    init(db: WineDatabase = .shared) {
+        self.db = db
+        // Seeded from the injected database, not from `.shared` — otherwise a
+        // fixture with a clean load would still raise the alert. Seeded here
+        // rather than checked in `body` so dismissing it sticks: the errors are
+        // immutable for the life of the process.
+        _showingDataAlert = State(initialValue: !db.decodeErrors.isEmpty)
+    }
 
     /// Single gate for every navigation into an entry, wherever it came from —
     /// a list row, a cross-link, a search result or a bookmark. Putting it here
@@ -117,6 +132,10 @@ struct RootView: View {
     var body: some View {
         DeviceChassis(
             title: currentTitle,
+            // Stated, not inferred from the title string (AUDIT **L2**) — the
+            // empty path *is* the definition of the root screen, and it is
+            // known here and nowhere else.
+            isRoot: path.isEmpty,
             marqueeSymbol: currentMarqueeSymbol,
             showsBack: !path.isEmpty,
             onBack: path.isEmpty ? nil : { goBack() },
@@ -128,9 +147,13 @@ struct RootView: View {
             // overlay on the chassis itself would dim the bezel, island and
             // footer too, which reads as the device losing power.
             ZStack {
+                // Content swaps instantly; no push transition. The suppression
+                // lives on the three `path` writes below rather than here,
+                // because a `.transaction` modifier applies to *every* change
+                // under it, not only the ones that swap the screen — this used
+                // to null seventeen in-screen `withAnimation` calls, the daily
+                // reveal and the entry expander among them. (AUDIT **M24**)
                 screen
-                    // Content swaps instantly; no push transition.
-                    .transaction { $0.animation = nil }
 
                 if let entry = lockedAttempt {
                     // Offers the bundle the entry actually belongs to rather than
@@ -207,6 +230,12 @@ struct RootView: View {
         if db.entries.isEmpty {
             return "The wine database failed to load. See SETTINGS > DEV for details."
         }
+        // Since M46 a support table can fail without costing a single entry, so
+        // "some entries may be missing" is no longer a safe thing to say — it
+        // sends someone looking for a gap in the catalog that is not there.
+        if !db.decodeErrors.contains(where: { $0.hasPrefix("entries.json") }) {
+            return "\(failures) problem\(failures == 1 ? "" : "s") loading the wine database — entries are complete, but some colours, icons or map data are missing. See SETTINGS > DEV for details."
+        }
         return "\(failures) problem\(failures == 1 ? "" : "s") loading the wine database — some entries may be missing. See SETTINGS > DEV for details."
     }
 
@@ -238,13 +267,19 @@ struct RootView: View {
         case .list(let category, let filter):
             EncyclopediaListScreen(
                 categories: [category],
-                filter: filter,
-                showsSearch: category != .regions
+                filter: filter
+                // Regions used to be the one category with no search bar
+                // (AUDIT **L39**). The single route that reaches here with
+                // `.regions` is the climate-filtered list from an entry page,
+                // and it can run to dozens of rows — a list long enough to
+                // need scrolling is a list long enough to need searching.
             ) { open($0) }
 
         case .masterSearch:
             EncyclopediaListScreen(
                 categories: Set(EntryCategory.allCases),
+                // The one route whose whole purpose is typing (AUDIT **L35**).
+                focusesSearchOnAppear: true,
                 showsCountries: true,
                 onSelect: { open($0) },
                 onSelectCountry: { push(.country(name: $0)) }
@@ -370,11 +405,18 @@ struct RootView: View {
         }
     }
 
+    /// Every route change goes through `withTransaction(.instant)` — see the
+    /// note in `body`. It has to be explicit rather than merely default,
+    /// because a caller inside `withAnimation` would otherwise donate its
+    /// animation to the screen swap.
+    ///
+    /// No `Sounds.page()` any more: it was an empty function body, called on
+    /// every push and pop for nothing. A screen change already rides the click
+    /// of the button that caused it. (AUDIT **L43**)
     private func push(_ route: DexRoute) {
-        Sounds.page()
         var next = path
         next.append(route)
-        path = next
+        withTransaction(.instant) { path = next }
     }
 
     /// Back pops one route — and, for the daily reveal, ends the visit.
@@ -395,11 +437,11 @@ struct RootView: View {
         // what "back" means there; the route only pops once the scanner says
         // there is nothing left to unwind.
         if leaving == .scanner, ScannerBackRouter.shared.handleBack() {
-            Sounds.page()
             return
         }
-        Sounds.page()
-        path.removeLast()
+        // `_ =` because `removeLast()` hands back the popped route, which
+        // would otherwise become `withTransaction`'s discarded return value.
+        withTransaction(.instant) { _ = path.removeLast() }
         if leaving == .dailyGrape {
             ScreenStateStore.shared.forget(ScreenStateStore.dailyGrape)
         }
@@ -411,11 +453,17 @@ struct RootView: View {
     /// list from the main menu would silently open it pre-filtered by something
     /// you typed several screens ago, and a country would open halfway down.
     private func goHome() {
-        Sounds.page()
-        path.removeAll()
+        withTransaction(.instant) { path.removeAll() }
         SearchStateStore.shared.clear()
         ScreenStateStore.shared.clear()
     }
+}
+
+extension Transaction {
+    /// A transaction that carries no animation, for the navigation writes.
+    /// Named because `Transaction(animation: nil)` at three call sites reads
+    /// like three unrelated defaults rather than one deliberate rule.
+    static var instant: Transaction { Transaction(animation: nil) }
 }
 
 /// Writes startup state to syslog. `idevicescreenshot` needs Developer Mode and
@@ -433,6 +481,7 @@ enum Diagnostics {
         lines.append(contentsOf: DexFont.statusReport.map { "font: " + $0 })
         lines.append("entries: \(db.entries.count)")
         lines.append("decodeErrors: \(db.decodeErrors.isEmpty ? "none" : db.decodeErrors.joined(separator: " | "))")
+        lines.append("loadNotices: \(db.loadNotices.isEmpty ? "none" : db.loadNotices.joined(separator: " | "))")
 
         for continent in Continent.allCases {
             let names = db.regions(in: continent).map(\.name)

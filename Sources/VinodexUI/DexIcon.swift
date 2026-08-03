@@ -9,8 +9,8 @@ import VinodexCore
 /// from the resource bundle by path. `@MainActor` rather than a bare static
 /// cache because Swift 6 strict concurrency rejects mutable global state.
 @MainActor
-public final class IconLoader {
-    public static let shared = IconLoader()
+final class IconLoader {
+    static let shared = IconLoader()
 
     private var cache: [String: UIImage] = [:]
 
@@ -28,13 +28,24 @@ public final class IconLoader {
     /// better than 1x upscales.
     private let preferredScale: Int
 
-    /// Returns the glyph for an Iconify id, or the manifest fallback.
+    /// Returns the glyph for an Iconify id, or nil when nothing is bundled
+    /// under it.
+    ///
+    /// **Not** the manifest fallback, which is what this comment used to
+    /// promise (AUDIT **L45**). `icons.fallback` is a *data* default — it is
+    /// what `IconManifest.flavorClassIcon(_:)` and its sibling return for a
+    /// classification the tables do not name, and by the time an id reaches
+    /// here it has already been through that. Substituting it a second time,
+    /// at load, would mean a glyph that failed to rasterise renders as a
+    /// perfectly ordinary question-mark icon and ships unnoticed. `DexIcon`
+    /// draws a red placeholder instead, on purpose — see the note there, and
+    /// **L26** for the check that catches it before a build goes out.
     ///
     /// Picks the density-matched `@2x`/`@3x` variant (0.6.3, item 2 — AUDIT
     /// H6): every glyph used to load the 64px `@1x` and upscale, visibly soft
     /// app-wide, while the hi-res variants shipped as dead payload. Loaded via
     /// `UIImage(data:scale:)` so the point size stays what it always was.
-    public func image(_ iconID: String) -> UIImage? {
+    func image(_ iconID: String) -> UIImage? {
         if let hit = cache[iconID] { return hit }
 
         let slug = IconManifest.slug(for: iconID)
@@ -71,13 +82,13 @@ public final class IconLoader {
 /// through, so the taxonomy tables could move to drawn art without touching a
 /// single call site. The art ships its own colours and outline, so `color` and
 /// `PixelOutline` do not apply to it.
-public struct DexIcon: View {
+struct DexIcon: View {
     let iconID: String
     var size: CGFloat
     var color: Color
     var outlined: Bool
 
-    public init(iconID: String, size: CGFloat = 30, color: Color = .white, outlined: Bool = true) {
+    init(iconID: String, size: CGFloat = 30, color: Color = .white, outlined: Bool = true) {
         self.iconID = iconID
         self.size = size
         self.color = color
@@ -88,7 +99,7 @@ public struct DexIcon: View {
         iconID.hasPrefix("art:") ? String(iconID.dropFirst(4)) : nil
     }
 
-    public var body: some View {
+    var body: some View {
         let art = artStem.flatMap { PixelArtLoader.shared.image($0) }
         Group {
             // `.interpolation(.none)` on both real branches (0.6.3, item 2 —

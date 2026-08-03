@@ -3,18 +3,29 @@ import SwiftUI
 import VinodexCore
 
 /// Why a screen has nothing on it.
-public enum DexDataState: Sendable {
+enum DexDataState: Sendable {
     /// The database is healthy. The query, or the filter, or the day's shuffle
     /// simply produced nothing — an answer, not a fault.
     case noResults
-    /// Entries decoded, but the loader reported failures alongside them. A
-    /// screen showing nothing may be showing the truth about a short catalog.
+    /// Entries decoded, but the loader dropped some of them. A screen showing
+    /// nothing may be showing the truth about a short catalog.
     case partialLoad
+    /// Every entry decoded; a *support* table did not. Chips, glyphs or the
+    /// globe's country lists are missing, so a screen can be empty while the
+    /// catalog itself is whole (AUDIT **M46**).
+    ///
+    /// This case did not need to exist before M46, because a palette or icon
+    /// failure emptied `entries` and was therefore indistinguishable from
+    /// `.loadFailed`. Now that those failures cost only their own table, saying
+    /// "the catalog is incomplete" would be a lie — and a palette failure in
+    /// particular empties every continent page while the catalog is intact,
+    /// since `continentCountries` is where the globe gets its countries from.
+    case supportTableFailed
     /// Nothing decoded at all. No screen in the app can do its job.
     case loadFailed
 }
 
-public extension WineDatabase {
+extension WineDatabase {
     /// What an empty screen means (AUDIT M2).
     ///
     /// Deliberately **not** a function of the search string. `SearchStateStore`
@@ -24,9 +35,58 @@ public extension WineDatabase {
     /// with a query still in the box, and a database that failed to load reads
     /// as "NO DATA FOUND" — a no-results message — sending you hunting for a
     /// typo in a search that was never the problem.
+    /// The filename prefix every loader fault carries. Faults are already
+    /// spelled `"<file>.json …"` at all ten `faults.append` sites, so the prefix
+    /// *is* the machine-readable channel — cheaper than widening
+    /// `decodeErrors` to a typed array for the one view that needs the
+    /// distinction.
     var dataState: DexDataState {
         if decodeErrors.isEmpty { return .noResults }
-        return entries.isEmpty ? .loadFailed : .partialLoad
+        if entries.isEmpty { return .loadFailed }
+        return decodeErrors.contains { $0.hasPrefix("entries.json") } ? .partialLoad : .supportTableFailed
+    }
+}
+
+/// A section's "nothing here" line — the compact form, for a block inside a
+/// page rather than a whole list screen (AUDIT **L36**).
+///
+/// `StateScreen` and `CountryScreen` both drew an unconditional REGIONS heading
+/// over an unguarded `ForEach`, so a state or country that resolves to nothing
+/// showed a title, a rule, and then the next section: no rows and no
+/// explanation, which reads as a rendering fault rather than as an answer. The
+/// trigger is narrow by construction — you can only reach a state from a region
+/// row that exists — but a *partial* decode failure produces exactly this
+/// (H2/M46), and that is the case where "nothing here" needs to say why.
+///
+/// Wrapped in `DexEmptyState` at the call sites, which is what supplies the
+/// why: a healthy database gets this line alone, a damaged one gets the
+/// footnote or the load-error panel instead.
+struct DexSectionEmpty: View {
+    let symbol: String
+    let message: String
+
+    @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
+    private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: symbol)
+                .font(.system(size: 16, weight: .light))
+                .foregroundStyle(Dex.stone600)
+            Text(message)
+                .font(DexFont.retro(10))
+                .tracking(1)
+                .foregroundStyle(lcd.subtext)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(lcd.surface)
+        .overlay(
+            RoundedRectangle(cornerRadius: 4)
+                .strokeBorder(lcd.surfaceEdge, lineWidth: 2)
+        )
     }
 }
 
@@ -42,19 +102,19 @@ public extension WineDatabase {
 /// Wrap the screen's existing panel; it is shown unchanged on a healthy
 /// database, footnoted on a partial load, and replaced outright when nothing
 /// decoded.
-public struct DexEmptyState<Empty: View>: View {
+struct DexEmptyState<Empty: View>: View {
     private let db: WineDatabase
     private let empty: () -> Empty
 
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
-    public init(db: WineDatabase = .shared, @ViewBuilder empty: @escaping () -> Empty) {
+    init(db: WineDatabase = .shared, @ViewBuilder empty: @escaping () -> Empty) {
         self.db = db
         self.empty = empty
     }
 
-    public var body: some View {
+    var body: some View {
         switch db.dataState {
         case .noResults:
             empty()
@@ -67,6 +127,14 @@ public struct DexEmptyState<Empty: View>: View {
                 note(
                     "SOME RECORDS FAILED TO LOAD",
                     "The catalog is incomplete. See SETTINGS > DEV for details."
+                )
+            }
+        case .supportTableFailed:
+            VStack(spacing: 14) {
+                empty()
+                note(
+                    "SOME DATA FAILED TO LOAD",
+                    "Entries are complete; colours, icons or map data are missing. See SETTINGS > DEV for details."
                 )
             }
         case .loadFailed:

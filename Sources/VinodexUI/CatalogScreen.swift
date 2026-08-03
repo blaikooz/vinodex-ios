@@ -9,7 +9,7 @@ import VinodexCore
 /// single deploy is the difference between a workable loop and an unworkable
 /// one. Every later phase should add its components here rather than checking
 /// them one at a time.
-public struct CatalogScreen: View {
+struct CatalogScreen: View {
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
@@ -18,12 +18,12 @@ public struct CatalogScreen: View {
     /// bottom — it is the longest block here and buried everything after it.
     var showsIcons: Bool = true
 
-    public init(db: WineDatabase = .shared, showsIcons: Bool = true) {
+    init(db: WineDatabase = .shared, showsIcons: Bool = true) {
         self.db = db
         self.showsIcons = showsIcons
     }
 
-    public var body: some View {
+    var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             if showsIcons { IconSheet(db: db) }
             fontSpecimens
@@ -34,15 +34,15 @@ public struct CatalogScreen: View {
     }
 
     /// Every rasterised glyph on one sheet. Split out so it can be placed last.
-    public struct IconSheet: View {
+    struct IconSheet: View {
         @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
         private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
         let db: WineDatabase
 
-        public init(db: WineDatabase = .shared) { self.db = db }
+        init(db: WineDatabase = .shared) { self.db = db }
 
-        public var body: some View {
+        var body: some View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("ICONS (\(db.icons.unique.count))")
                     .font(DexFont.retro(11))
@@ -194,16 +194,16 @@ public struct CatalogScreen: View {
 // MARK: - Shared components
 
 /// The tag pill used across tiles and detail sections.
-public struct ChipView: View {
+struct ChipView: View {
     let label: String
     let chip: Palette.Chip
 
-    public init(label: String, chip: Palette.Chip) {
+    init(label: String, chip: Palette.Chip) {
         self.label = label
         self.chip = chip
     }
 
-    public var body: some View {
+    var body: some View {
         // Soft-hyphenated so a long single word (MEDITERRANEAN) can break
         // across two lines in a narrow tile instead of shrinking to fit.
         Text(
@@ -230,7 +230,7 @@ public struct ChipView: View {
 /// Matches the reference: a fixed-width label, then five thin segments where
 /// unfilled ones are empty rather than greyed, each stat carrying its own
 /// colour (body green, acid yellow, tannin red, aromatics purple, colour amber).
-public struct StatBar: View {
+struct StatBar: View {
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
@@ -239,20 +239,59 @@ public struct StatBar: View {
     var maximum: Double = 5
     var fill: Color = Dex.green
 
-    public init(label: String, value: Double, maximum: Double = 5, fill: Color = Dex.green) {
+    init(label: String, value: Double, maximum: Double = 5, fill: Color = Dex.green) {
         self.label = label
         self.value = value
         self.maximum = maximum
         self.fill = fill
     }
 
-    public var body: some View {
+    /// Nominal type size for the label, and the well it sits in at that size.
+    ///
+    /// 96 was a literal, and it was the tightest ceiling on the whole text axis
+    /// (AUDIT **M49**): VT323's advance is exactly 0.4 em, so AROMATICS — nine
+    /// characters at `mono(19)` with 1.5 tracking — wants `9 × (7.6f + 1.5)`
+    /// points, which passes 96 at **f = 1.206**. That is why `TextScale` stopped
+    /// at 1.15. The well derives from the same resolver the font does now, so
+    /// the two move together and the ceiling is gone.
+    static let labelSize: Double = 19
+    static let labelTracking: Double = 1.5
+    /// AROMATICS, the longest label any caller passes (`GrapeCharacteristics.bars`
+    /// tops out there; `CatalogScreen`'s "LEVEL n" is seven).
+    static let longestLabel = 9
+    /// What shipped, and the floor this must not fall below. Deriving downward
+    /// as well as upward would silently re-lay the stat rows at SMALL and
+    /// LARGE, where the well is already generous — the same `atLeast:`
+    /// reasoning as `DexSearchField.height`. Only HUGE exceeds it — 102.4pt
+    /// against 96 — which is exactly the ceiling that used to cap the axis.
+    static let pinnedLabelWidth: Double = 96
+
+    /// The drawn width of the label well. Pinned by `TypeScaleTests`.
+    static var labelWidth: CGFloat {
+        CGFloat(max(
+            pinnedLabelWidth,
+            TypeScale.monoRunWidth(
+                characters: longestLabel,
+                nominal: labelSize,
+                tracking: labelTracking,
+                step: TextScale.current
+            )
+        ))
+    }
+
+    var body: some View {
         HStack(spacing: 12) {
             Text(label)
-                .font(DexFont.mono(19))
+                .font(DexFont.mono(CGFloat(Self.labelSize)))
                 .foregroundStyle(lcd.text)
                 .tracking(1.5)
-                .frame(width: 96, alignment: .leading)
+                // Derived from the type, not pinned beside it. `lineLimit` and
+                // `minimumScaleFactor` are the backstop for a label longer than
+                // any shipped today — without them an over-long stat name is
+                // silently truncated by the frame rather than shrunk.
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(width: Self.labelWidth, alignment: .leading)
 
             HStack(spacing: 2) {
                 ForEach(0..<Int(maximum), id: \.self) { index in
@@ -268,16 +307,20 @@ public struct StatBar: View {
 
 /// Minimal wrapping layout — SwiftUI has no flow container and the chip
 /// galleries need one.
-public struct FlowLayout: Layout {
+struct FlowLayout: Layout {
     var spacing: CGFloat = 6
 
-    public init(spacing: CGFloat = 6) { self.spacing = spacing }
+    init(spacing: CGFloat = 6) { self.spacing = spacing }
 
-    public func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let maxWidth = proposal.width ?? .infinity
         var x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0
         for view in subviews {
-            let size = view.sizeThatFits(.unspecified)
+            var size = view.sizeThatFits(.unspecified)
+            // Clamped here too, or the measured height disagrees with the
+            // placed one for exactly the over-wide chip `placeSubviews` now
+            // shrinks — see the note there.
+            size.width = min(size.width, maxWidth)
             if x + size.width > maxWidth, x > 0 {
                 x = 0
                 y += rowHeight + spacing
@@ -289,15 +332,24 @@ public struct FlowLayout: Layout {
         return CGSize(width: maxWidth, height: y + rowHeight)
     }
 
-    public func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         var x = bounds.minX, y = bounds.minY, rowHeight: CGFloat = 0
         for view in subviews {
-            let size = view.sizeThatFits(.unspecified)
+            var size = view.sizeThatFits(.unspecified)
             if x + size.width > bounds.maxX, x > bounds.minX {
                 x = bounds.minX
                 y += rowHeight + spacing
                 rowHeight = 0
             }
+            // A chip wider than the whole container cannot be broken onto a
+            // row of its own — it *is* the row — so it was placed at its
+            // natural width and ran off the edge, where `DeviceChassis`'s
+            // clip made it invisible rather than obviously wrong (AUDIT
+            // **M49**). Proposing the container width instead makes the chip
+            // shrink or wrap in the only direction there is room to. This is
+            // reachable today at a large text step: chip labels are unbounded
+            // strings from the data.
+            size.width = min(size.width, bounds.width)
             view.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
             x += size.width + spacing
             rowHeight = max(rowHeight, size.height)

@@ -21,7 +21,10 @@ public struct ContinentScreen: View {
     let continent: ContinentEntry
     let onSelectCountry: (String) -> Void
 
-    private let db = WineDatabase.shared
+    /// The database this screen reads. Defaulted so no call site changes, but
+    /// injectable, which is the whole of **M27**: a screen that hard-reads
+    /// `WineDatabase.shared` cannot be put in front of a fixture.
+    private let db: WineDatabase
     @State private var bookmarks = BookmarkStore.shared
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
@@ -29,7 +32,8 @@ public struct ContinentScreen: View {
     /// Scroll position outlives the view — see `ScreenStateStore`.
     @State private var screens = ScreenStateStore.shared
 
-    public init(continent: ContinentEntry, onSelectCountry: @escaping (String) -> Void) {
+    public init(db: WineDatabase = .shared, continent: ContinentEntry, onSelectCountry: @escaping (String) -> Void) {
+        self.db = db
         self.continent = continent
         self.onSelectCountry = onSelectCountry
     }
@@ -95,64 +99,17 @@ public struct ContinentScreen: View {
     // runtime, so the hedge was protecting against nothing.
 
     private var hero: some View {
-        VStack(spacing: 14) {
-            EntryIconWell(entry: .continent(continent), size: DexMetrics.heroWell, cornerRadius: 20)
-
-            Text(continent.common.name.uppercased())
-                .font(DexFont.retro(21))
-                .foregroundStyle(lcd.text)
-                .shadow(color: lcd.accent.opacity(0.55), radius: 0, x: 4, y: 4)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-
-            saveButton
+        DexHero(title: continent.common.name) {
+            EntryIconWell(db: db, entry: .continent(continent), size: DexMetrics.heroWell, cornerRadius: 20)
+        } actions: {
+            DexSaveButton(id: continent.id, store: bookmarks)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 18)
-        .background(
-            ZStack {
-                lcd.heroWash
-                DexGridBackground(spacing: 34, color: lcd.heroGrid, opacity: 0.5)
-            }
-        )
-        .overlay(alignment: .bottom) {
-            lcd.accent.frame(height: 4)
-        }
-        .padding(.horizontal, -14)
-        .padding(.bottom, 16)
-    }
-
-    /// Continents were the one screen with no SAVE control, so a continent was
-    /// the only thing in the app you could reach and not keep. It needs no
-    /// synthesised id the way a country does — a continent *is* an entry
-    /// (`CONT_EUROPE`), so it resolves straight back out of `BookmarkStore` and
-    /// the saved list renders it with the standard tile.
-    private var saveButton: some View {
-        let saved = bookmarks.contains(continent.id)
-        return Button {
-            Haptics.select()
-            bookmarks.toggle(continent.id)
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: saved ? "bookmark.fill" : "bookmark")
-                    .font(.system(size: 14, weight: .bold))
-                Text(saved ? "SAVED" : "SAVE")
-                    .font(DexFont.retro(10))
-                    .tracking(2)
-            }
-            .foregroundStyle(saved ? .white : lcd.accent)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .background(Capsule().fill(saved ? lcd.accent : lcd.buttonWell))
-            .overlay(Capsule().strokeBorder(lcd.accent, lineWidth: 2))
-        }
-        .buttonStyle(DexPressStyle(scale: 0.94))
     }
 
     // MARK: Info
 
     private var infoSection: some View {
-        section("INFO", symbol: "book") {
+        DexSection("INFO", symbol: "book") {
             Text(continent.common.description)
                 .font(DexFont.mono(21))
                 .foregroundStyle(lcd.bodyText)
@@ -174,7 +131,7 @@ public struct ContinentScreen: View {
     private var countriesSection: some View {
         let countries = continent.details.keyRegions
         if !countries.isEmpty {
-            section("COUNTRIES", symbol: "list.bullet") {
+            DexSection("COUNTRIES", symbol: "list.bullet") {
                 VStack(spacing: 8) {
                     ForEach(countries, id: \.self) { country in
                         countryRow(country)
@@ -198,7 +155,7 @@ public struct ContinentScreen: View {
             }
         } label: {
             HStack(spacing: 10) {
-                FlagSwatch(country: country)
+                FlagSwatch(db: db, country: country)
 
                 Text(country.uppercased())
                     .font(DexFont.retro(11))
@@ -245,34 +202,5 @@ public struct ContinentScreen: View {
         .buttonStyle(DexPressStyle(scale: 0.98))
     }
 
-    /// Section header: symbol plus label over a green rule, matching
-    /// `EntryDetailScreen`'s treatment (duplicated rather than shared — the
-    /// two screens' section helpers are small and independently readable).
-    private func section<C: View>(
-        _ title: String,
-        symbol: String,
-        @ViewBuilder content: () -> C
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: symbol)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(lcd.accent)
-                Text(title)
-                    .font(DexFont.retro(10))
-                    .tracking(1.5)
-                    .foregroundStyle(lcd.accent)
-                Spacer()
-            }
-            .padding(.bottom, 5)
-            .overlay(alignment: .bottom) {
-                Color(dexHex: "#166534").frame(height: 2)
-            }
-
-            content()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.bottom, 22)
-    }
 }
 #endif

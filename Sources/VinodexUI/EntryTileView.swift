@@ -7,7 +7,10 @@ import VinodexCore
 /// The icon slot is a placeholder colour block until the ~30 game-icons are
 /// rasterised — deliberately obvious rather than an SF Symbol stand-in, so it
 /// cannot be mistaken for finished work.
-public struct EntryTileView: View {
+struct EntryTileView: View {
+    /// Defaulted so the row's many construction sites need not change; present
+    /// so the icon well it builds is not pinned to `.shared` (AUDIT **M27**).
+    var db: WineDatabase = .shared
     let entry: WineEntry
     let palette: Palette
     /// Free-tier gating. A locked row still renders and is still tappable —
@@ -22,7 +25,7 @@ public struct EntryTileView: View {
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
-    public init(
+    init(
         entry: WineEntry,
         palette: Palette,
         locked: Bool = false,
@@ -36,7 +39,7 @@ public struct EntryTileView: View {
         self.action = action
     }
 
-    public var body: some View {
+    var body: some View {
         Button {
             Haptics.select()
             action()
@@ -88,30 +91,8 @@ public struct EntryTileView: View {
     }
 
     private var iconSlot: some View {
-        EntryIconWell(entry: entry, size: DexMetrics.iconWell, cornerRadius: 8)
+        EntryIconWell(db: db, entry: entry, size: DexMetrics.iconWell, cornerRadius: 8)
     }
 }
 
-public extension Palette {
-    /// Resolves a tile chip against the generated colour tables, falling back to
-    /// a neutral chip when a key is absent.
-    func resolve(_ chip: TileChip) -> Chip {
-        let fallback = Chip(bg: "#1c1917", border: "#57534e", text: "#e7e5e4")
-        switch chip.table {
-        case .country: return countryChips[chip.key] ?? fallback
-        case .wineType: return wineTypeChips[chip.key] ?? fallback
-        case .climate: return climates[chip.key]?.colors ?? fallback
-        case .styleClass: return styleClassChips[chip.key] ?? fallback
-        case .colorType: return colorTypeChips[chip.key] ?? fallback
-        case .flavorClass: return flavorClassChips[chip.key] ?? fallback
-        case .flavorSubclass: return flavorSubclassChips[chip.key] ?? fallback
-        case .rarity: return rarityChips[chip.key] ?? fallback
-        case .named: return namedChips[chip.key] ?? fallback
-        case .classification:
-            return classificationChips[chip.key]
-                ?? namedChips["SYSTEM"]
-                ?? fallback
-        }
-    }
-}
 #endif

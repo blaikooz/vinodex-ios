@@ -51,9 +51,13 @@ public struct ScannerScreen: View {
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
-    private let db = WineDatabase.shared
+    /// The database this screen reads. Defaulted so no call site changes, but
+    /// injectable, which is the whole of **M27**: a screen that hard-reads
+    /// `WineDatabase.shared` cannot be put in front of a fixture.
+    private let db: WineDatabase
 
-    public init(onOpen: @escaping (WineEntry) -> Void) {
+    public init(db: WineDatabase = .shared, onOpen: @escaping (WineEntry) -> Void) {
+        self.db = db
         self.onOpen = onOpen
     }
 
@@ -378,7 +382,7 @@ public struct ScannerScreen: View {
             VStack(spacing: 10) {
                 if let country = criteria.country {
                     HStack(spacing: 10) {
-                        FlagSwatch(country: country, width: 52, height: 34)
+                        FlagSwatch(db: db, country: country, width: 52, height: 34)
                         Text(country.uppercased())
                             .font(DexFont.retro(12))
                             .foregroundStyle(lcd.text)
@@ -455,7 +459,7 @@ public struct ScannerScreen: View {
                             advance(to: .flavors)
                         } label: {
                             HStack(spacing: 12) {
-                                FlagSwatch(country: country, width: 64, height: 42)
+                                FlagSwatch(db: db, country: country, width: 64, height: 42)
                                 Text(country.uppercased())
                                     .font(DexFont.retro(14))
                                     .foregroundStyle(lcd.text)
@@ -724,7 +728,7 @@ public struct ScannerScreen: View {
             criteria.toggleFlavor(flavor.id)
         } label: {
             VStack(spacing: 6) {
-                EntryIconWell(entry: flavor, size: 44, cornerRadius: 8)
+                EntryIconWell(db: db, entry: flavor, size: 44, cornerRadius: 8)
                 Text(EntryDisplay.hyphenated(flavor.name.uppercased()))
                     .font(DexFont.retro(9))
                     .multilineTextAlignment(.center)
@@ -820,7 +824,7 @@ public struct ScannerScreen: View {
                 .tracking(2)
                 .foregroundStyle(Dex.yellow)
 
-            EntryIconWell(entry: grape, size: 150, cornerRadius: 18)
+            EntryIconWell(db: db, entry: grape, size: 150, cornerRadius: 18)
 
             Text(grape.name.uppercased())
                 .font(DexFont.retro(22))
@@ -863,7 +867,7 @@ public struct ScannerScreen: View {
                             onOpen(other)
                         } label: {
                             HStack(spacing: 10) {
-                                EntryIconWell(entry: other, size: 44, cornerRadius: 8)
+                                EntryIconWell(db: db, entry: other, size: 44, cornerRadius: 8)
                                 Text(other.name.uppercased())
                                     .font(DexFont.retro(13))
                                     .foregroundStyle(lcd.text)

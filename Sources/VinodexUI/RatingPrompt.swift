@@ -12,7 +12,7 @@ import VinodexCore
 ///
 /// SKIP is a first-class exit. A rating you were forced to give is noise in
 /// the journal, and the entry stays tried either way.
-public struct RatingPrompt: View {
+struct RatingPrompt: View {
     let entryName: String
     let initial: TriedRating?
     let onSave: (Int, String) -> Void
@@ -24,7 +24,7 @@ public struct RatingPrompt: View {
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
-    public init(
+    init(
         entryName: String,
         initial: TriedRating?,
         onSave: @escaping (Int, String) -> Void,
@@ -38,7 +38,7 @@ public struct RatingPrompt: View {
         _note = State(initialValue: initial?.note ?? "")
     }
 
-    public var body: some View {
+    var body: some View {
         ZStack {
             // Scrim doubles as SKIP — dismissing an optional form must never
             // cost the tried mark it rode in on.
@@ -74,7 +74,10 @@ public struct RatingPrompt: View {
                 }
 
                 DexSearchField(text: $note, placeholder: "ONE-LINE NOTE…", fontSize: 20)
-                    .frame(height: 40)
+                    // The frame is the *well* here (the background below wraps
+                    // it), and it is the tap target, so it takes the floor rather
+                    // than shrinking at SMALL. (AUDIT **M50**)
+                    .frame(height: DexSearchField.height(nominal: 20, atLeast: 40))
                     .padding(.horizontal, 12)
                     .background(RoundedRectangle(cornerRadius: 6).fill(lcd.well))
                     .overlay(
