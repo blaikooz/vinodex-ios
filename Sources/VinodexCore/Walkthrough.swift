@@ -54,11 +54,14 @@ public struct WalkthroughStep: Sendable, Hashable, Identifiable {
 }
 
 public enum Walkthrough {
-    /// Eight steps. The tour opens on the main screen — the whole app is up
+    /// Nine steps. The tour opens on the main screen — the whole app is up
     /// there — then search, an entry, and the
     /// controls. Rewritten terse in v0.5.4: the old copy read well aloud but
     /// nobody reads a tour aloud; two sentences a page is the budget. The orb
     /// step is gone — an easter egg you are told about is not an easter egg.
+    ///
+    /// The ninth is the marquee's two lamp buttons (0.7.6, A1) — see the note
+    /// beside it for why a tour step is the right home for a hold gesture.
     public static let steps: [WalkthroughStep] = [
         WalkthroughStep(
             id: "screen",
@@ -105,6 +108,26 @@ public enum Walkthrough {
             lost? This one resets everything you didn't save.
             """,
             highlight: .home
+        ),
+        // **The marquee step (0.7.6, A1/F1)**, and the first to use the
+        // `.marquee` highlight — it has been on the diagram and in the enum
+        // since v0.5.4 with no step ever selecting it.
+        //
+        // It earns a step now because A1 put a customisation behind a hold, and a
+        // hidden gesture with no affordance is exactly what 0.6.9's A1 complained
+        // about when it removed the app-wide swipe. The retired drawer carried
+        // the line "HOLD A SHORTCUT TO PIN IT" on its own surface; with the
+        // drawer gone the tour is where that sentence lives, which is also why
+        // F1 moving the tour into SETTINGS > DEVICE and A1 needing somewhere to
+        // teach a gesture are the same batch.
+        WalkthroughStep(
+            id: "marquee",
+            title: "THE TWO LIGHTS",
+            body: """
+            The lights above the panel are buttons: tools and customise. \
+            Hold either one to point it somewhere else.
+            """,
+            highlight: .marquee
         ),
         WalkthroughStep(
             id: "settings",

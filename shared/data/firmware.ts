@@ -39,39 +39,74 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
-  version: "0.7.5",
+  version: "0.7.7",
   date: "2026-08-04",
-  // "THE SHOP" through the A/B sitting, and it stopped being the biggest thing
-  // in this release when D landed. The headline names the release on the
-  // FIRMWARE panel; a 407-question exam under a heading about a storefront was
-  // the panel describing the second-largest feature.
-  headline: "THE WINE EXAM",
+  // A whole batch on one screen, and it is the first screen -- so the headline
+  // is what the screen now calls itself rather than what changed about it.
+  headline: "VINODEX BIOS",
   notes: [
-    "The Wine Exam is rebuilt: 407 written questions across 16 subjects, from grapes to wine law.",
-    "Seven kinds of question. Multiple choice, true or false, select all, matching, ordering, aromas and outlines.",
-    "Every answer is explained. Right or wrong, you are told why before the next question.",
-    "Each paper draws evenly across the subjects, so one sitting is never ten questions about grapes.",
-    "Statistics: papers sat, accuracy, full marks, pass streak, and the subject you should study.",
-    "The Daily Challenge is unchanged and still built from the catalogue.",
-    "New: Grape Lineage. Parents, offspring, mutations and half-siblings, drawn as a family tree.",
-    "68 grapes have a pedigree. Where two sources disagree, the tree shows both and says so.",
-    "Body bars were reading Medium-Full as Full. Sixteen grapes now show the body they were given.",
-    "Expansion Packs move out of Customize. They live in the Shop now.",
-    "Access is renamed Shop: one storefront for everything you can own.",
-    "Every cartridge opens to a splash screen with its mockups and what is in it.",
-    "The whole shop is drawn as cartridges. The toggle rows are gone.",
-    "The status lights on the marquee are bigger, and their glyphs darker.",
-    "The orb is a rounded key rather than a bead, to match the shell.",
-    "Monochrome screens flash as they redraw when you change page.",
-    "The startup BIOS fills the display. Still under two seconds, still skippable.",
-    "The screensaver bounces the real Vinodex mark instead of a drawn stand-in.",
-    "The PET-NAT shell is now FIBERGLASS.",
+    "The startup screen is rebuilt, edge to edge: a proper BIOS boot instead of a panel of text.",
+    "The V and the wordmark sit at the centre, framed by a terminal border with corner brackets and side rails.",
+    "Scanlines and a faint glow behind the logo, like a CRT warming up.",
+    "The checks still run first. They resolve, and the screen settles rather than cutting away.",
+    "It then waits on PRESS ANY BUTTON TO CONTINUE. Any touch carries on, and so does it, after a few seconds.",
+    "The corner reads your real battery level.",
+    "The version in the top corner is the firmware's, so this screen always says what you are actually running.",
     "438 entries, unchanged: 171 grapes, 124 regions, 31 styles, 106 flavours, 26 countries.",
   ],
 };
 
 /** Everything before `CURRENT`, newest first. */
 const PREVIOUS: FirmwareRelease[] = [
+  {
+    version: "0.7.6",
+    date: "2026-08-04",
+    headline: "TWO BUTTONS",
+    notes: [
+      "The two lights on the marquee are the shortcuts now. Always there, one tap.",
+      "Hold either light to point it somewhere else: tools, customise, settings, data or the shop.",
+      "The swipe-out drawer behind the panel is gone, and so are the small pin buttons in its corners.",
+      "Your pinned shortcuts carry over. If you had none, the lights stay on Tools and Customise.",
+      "The screensaver waits 30 seconds instead of 15, and starts from a different spot each time.",
+      "The marquee says cheers on every screen now, not just the menu, and at the same moment the screensaver arrives.",
+      "Nine languages still, one per idle.",
+      "The orb is an elongated pill, matching the notch above it.",
+      "Three more parts in the Workshop: the header lights, the marquee lights, and the footer buttons.",
+      "Ten parts in all. Builds you have already saved are untouched.",
+      "New shell: W64. Purple deck, four coloured face buttons.",
+      "Shop splash screens are bigger, and show what is in the box: the shells, the screens, or a look at the entries.",
+      "The tutorial moves into Settings, under Device, beside firmware and the cheat console.",
+      "The tour has a new page about the two lights.",
+      "438 entries, unchanged: 171 grapes, 124 regions, 31 styles, 106 flavours, 26 countries.",
+    ],
+  },
+  {
+    version: "0.7.5",
+    date: "2026-08-04",
+    headline: "THE WINE EXAM",
+    notes: [
+      "The Wine Exam is rebuilt: 407 written questions across 16 subjects, from grapes to wine law.",
+      "Seven kinds of question. Multiple choice, true or false, select all, matching, ordering, aromas and outlines.",
+      "Every answer is explained. Right or wrong, you are told why before the next question.",
+      "Each paper draws evenly across the subjects, so one sitting is never ten questions about grapes.",
+      "Statistics: papers sat, accuracy, full marks, pass streak, and the subject you should study.",
+      "The Daily Challenge is unchanged and still built from the catalogue.",
+      "New: Grape Lineage. Parents, offspring, mutations and half-siblings, drawn as a family tree.",
+      "68 grapes have a pedigree. Where two sources disagree, the tree shows both and says so.",
+      "Body bars were reading Medium-Full as Full. Sixteen grapes now show the body they were given.",
+      "Expansion Packs move out of Customize. They live in the Shop now.",
+      "Access is renamed Shop: one storefront for everything you can own.",
+      "Every cartridge opens to a splash screen with its mockups and what is in it.",
+      "The whole shop is drawn as cartridges. The toggle rows are gone.",
+      "The status lights on the marquee are bigger, and their glyphs darker.",
+      "The orb is a rounded key rather than a bead, to match the shell.",
+      "Monochrome screens flash as they redraw when you change page.",
+      "The startup BIOS fills the display. Still under two seconds, still skippable.",
+      "The screensaver bounces the real Vinodex mark instead of a drawn stand-in.",
+      "The PET-NAT shell is now FIBERGLASS.",
+      "438 entries, unchanged: 171 grapes, 124 regions, 31 styles, 106 flavours, 26 countries.",
+    ],
+  },
   {
     version: "0.7.4",
     date: "2026-08-04",

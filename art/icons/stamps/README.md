@@ -30,6 +30,12 @@ chunky-pixel style like the flavour portraits, roughly square.
   `sticker-glouglou`, `sticker-smart-grape`, `sticker-champagne`,
   `sticker-nouveau`, `sticker-oaked`, `sticker-nocturne`, `sticker-steel`,
   `sticker-psvino` (0.6.5 — the DualShock skin; PS button glyphs territory)
+- `sticker-w64.png` (0.7.6, D1 — the purple deck). **IP-safe, and this one
+  needs saying out loud:** four coloured points around a centre, in the skin's
+  own green/blue/red/yellow, is the illustration. No console logo, no
+  controller silhouette, no trade dress, and nothing in the filename or the
+  drawing referring to anyone's hardware. Same discipline as `sticker-psvino`
+  above and as the screensaver's `VinodexV`.
 
 Since 0.6.5 (item 8) the per-skin piece renders as a postage stamp on the
 same perforated frame as the badge stamps — the stems above are unchanged;

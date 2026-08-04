@@ -60,7 +60,70 @@ struct DeviceWorkshopTests {
         #expect(symbols.count == DeviceAxis.allCases.count, "two axes share a glyph")
     }
 
-    /// The subscript reaches the field it names, for all eight.
+    /// **The axis roster, pinned** (0.7.6, B1).
+    ///
+    /// A count, and it is a weak gate on purpose — it fails only when somebody
+    /// adds an axis and bumps the number without meaning to. What it is really
+    /// for is the sentence below it: `chosenCount` and the workshop's "n OF m
+    /// PARTS" readout both count `allCases`, and a batch that adds a part without
+    /// noticing that a *saved build* has to keep decoding is the failure
+    /// `buildsFromAnEarlierBuildStillDecode` covers.
+    @Test("the ten axes are the ten the workshop draws")
+    func axisRoster() {
+        // Eight through 0.7.5; ten since 0.7.6 (B1) added the header lamp trio
+        // and the two marquee lamps as separate colour axes.
+        #expect(DeviceAxis.allCases.count == 10)
+        #expect(DeviceAxis.allCases.contains(.headerLamps))
+        #expect(DeviceAxis.allCases.contains(.marqueeLamps))
+        // The two new keys, spelled out. They are `@AppStorage` keys from the
+        // moment this ships, so they are as unmovable as the eight before them.
+        #expect(DeviceAxis.headerLamps.storageKey == "devicePartHeaderLamps")
+        #expect(DeviceAxis.marqueeLamps.storageKey == "devicePartMarqueeLamps")
+    }
+
+    /// **A build saved before this batch must still decode** (0.7.6, B1).
+    ///
+    /// The synthesised `Codable` decoder throws on a missing key, and
+    /// `CustomDeviceStore` reads its list with `try?` — so adding a field would
+    /// have made every device saved under 0.7.3b–0.7.5 fail to decode, the store
+    /// return an empty array, and every saved build vanish on first launch of the
+    /// update. Nothing in the project would have reported it, because the store's
+    /// own defensive `sanitize` never runs on a list that failed to decode at all.
+    ///
+    /// This is that failure, written as the JSON an older build actually wrote.
+    @Test("a build saved by an earlier version still decodes")
+    func buildsFromAnEarlierBuildStillDecode() throws {
+        // Exactly the eight keys 0.7.5 encoded, and no others.
+        let json = """
+        {"shell":"STEEL","buttons":"COBALT","orb":"VIOLET","marquee":"STRAW",\
+        "grilleColor":"SLATE","grilleShape":"MESH","screen":"TERMINAL","font":"IVORY"}
+        """
+        let build = try JSONDecoder().decode(DeviceBuild.self, from: Data(json.utf8))
+        #expect(build.shell == "STEEL")
+        #expect(build.grilleShape == "MESH")
+        #expect(build.font == "IVORY")
+        // The two axes that did not exist arrive unset, which is this type's own
+        // "as the device ships" — so an old build describes the same device it
+        // always did, plus two parts nobody had chosen.
+        #expect(build.headerLamps.isEmpty)
+        #expect(build.marqueeLamps.isEmpty)
+        #expect(build.chosenCount == 8)
+
+        // The whole-store path, which is where the data loss would have landed.
+        let device = try JSONDecoder().decode(
+            [CustomDevice].self,
+            from: Data("[{\"id\":\"abc\",\"name\":\"KEEPER\",\"build\":\(json)}]".utf8)
+        )
+        #expect(device.count == 1)
+        #expect(device[0].build.shell == "STEEL")
+
+        // And an empty object — the most degenerate thing a hand-edited plist
+        // could hold — is the stock device rather than a throw.
+        let empty = try JSONDecoder().decode(DeviceBuild.self, from: Data("{}".utf8))
+        #expect(empty.isStock)
+    }
+
+    /// The subscript reaches the field it names, for all ten.
     ///
     /// The builder draws one row per axis and sets it through this subscript, so
     /// a mis-wired arm would put the orb colour on the marquee with nothing in a
@@ -109,7 +172,9 @@ struct DeviceWorkshopTests {
             shell: "MIDNIGHT",
             buttons: "COBALT",
             orb: "VIOLET",
+            headerLamps: "ABSINTHE",
             marquee: "STRAW",
+            marqueeLamps: "CLARET",
             grilleColor: "SLATE",
             grilleShape: "MESH",
             screen: "TERMINAL",
@@ -117,6 +182,7 @@ struct DeviceWorkshopTests {
         )
         build.apply(to: defaults)
         #expect(DeviceBuild.active(in: defaults) == build)
+        #expect(build.chosenCount == DeviceAxis.allCases.count)
     }
 
     /// An empty axis removes its key rather than storing `""`.

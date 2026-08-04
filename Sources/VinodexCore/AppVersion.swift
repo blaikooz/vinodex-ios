@@ -297,6 +297,87 @@ public enum AppVersion {
     /// No catalog change — 438 stands and `waveMilestones` does not move.
     /// `lineage` is a new *optional* field on grape entries, not a new entry.
     ///
+    /// 0.7.6: **the consolidation.** A patch, and for the reason 0.7.3 and 0.7.5
+    /// were: nothing about what the app *is* changed. What changed is that three
+    /// features stopped being three.
+    ///
+    /// The spec arrived numbered 0.7.5 — a version already shipped and on the
+    /// device — so it lands as 0.7.6, and its own back-references to "0.7.4 B"
+    /// (the shop) and "0.7.4 A2" (the orb) are 0.7.5's. That resolution is the
+    /// same one 0.6.4, 0.6.5, 0.6.8 and 0.6.9 record above: the label names the
+    /// work, the scheme names the build.
+    ///
+    /// **The Decision, which is section A and most of the batch.** Through 0.7.5
+    /// the device offered three ways to reach the same handful of places: two
+    /// marquee lamp buttons hardwired to TOOLS and CUSTOMIZE (0.7.2, A9), two pin
+    /// buttons in the marquee's corners (0.7.2, A7), and a swipe drawer behind
+    /// the panel (0.7.1, B4/B5) whose PINNED row was the only way to choose what
+    /// the corners held. A1 collapses all three into the lamps: always visible,
+    /// one tap, and each reassignable by holding it. `MarqueeDrawer` is deleted,
+    /// the corner buttons and their three metrics go with it, the panel stops
+    /// being a button (reversing B4), and the PINS title-swap (A6) has nothing
+    /// left to name. `QuickPinStore` is reused rather than forked: its key and
+    /// encoding are 0.7.2's, and `MarqueePin`'s raw values are a strict superset
+    /// of `SettingsSection`'s, so **nobody's pins are reset** — one stored pin
+    /// keeps its slot and the other lamp fills from the factory pair.
+    ///
+    /// **The idle timer stopped being two stages** (A3/A4). The screensaver moves
+    /// 15 → 30 seconds and the marquee's greeting, which fired at 10 on the main
+    /// menu only, now arrives *with* it, on any screen. `IdleSchedule.toast` is an
+    /// optional holding `nil`; every consumer still asks `stage >= .toast` and
+    /// `.screensaver` outranks it, so reverting the fold is giving that constant a
+    /// number back rather than a rewrite. A8's nine languages survive intact —
+    /// one per idle period. A2 gives the bouncing mark a random start, kept as a
+    /// *phase* on the existing triangle wave so the closed form and its
+    /// two-hour-exact tests are untouched.
+    ///
+    /// The rest: B1 adds two genuinely new workshop axes (the header lamp trio,
+    /// the two marquee lamps) and relabels the third thing the spec asked for,
+    /// which has been settable as `buttons` since 0.7.3b — eight axes becomes
+    /// ten, and `DeviceBuild` gains a hand-written decoder, because the
+    /// synthesised one would have thrown on every build saved before this batch
+    /// and `CustomDeviceStore`'s `try?` would have deleted the lot. C enlarges the
+    /// shop splashes and gives them previews of what is inside; it stays an
+    /// overlay, deliberately, because everything C adds is content in the same
+    /// scrolling column. D adds the W64 shell — inspired-by colours and nothing
+    /// else, per the rule `buttonSet` has carried since 0.6.7. E makes the orb a
+    /// stadium, spending the elongation on height so the cutout clearance
+    /// `islandOrbInsetLeading` guards does not move. F moves the tutorial into
+    /// SETTINGS > DEVICE, beside 0.7.3a's firmware and cheat-console rows rather
+    /// than into a second section of the same name.
+    ///
+    /// **G, H and I are not in this build.** Sharing, the Wordle result string
+    /// and daily notifications are the spec's own scope note — its growth trio,
+    /// and its own recommendation that they be their own pass.
+    ///
+    /// No catalog change: 438 stands, and `waveMilestones` does not move.
+    ///
+    /// 0.7.7: **the BIOS screen.** A patch, and the narrowest batch since the
+    /// scheme settled — one screen, rebuilt, plus the two Core types it needed.
+    /// The spec arrived titled 0.7.6, which is the batch above; same resolution
+    /// as 0.6.4, 0.6.5, 0.6.8, 0.6.9 and 0.7.6, and its back-reference to
+    /// "0.7.4 A6" is 0.7.5's.
+    ///
+    /// **It matters to this file specifically, which is why it has a note at
+    /// all.** The mockup the redesign was drawn from prints
+    /// `VINODEX BIOS v1.0.0`, and `1.0.0` is a member of `placeholders` below —
+    /// the literal xtool stamps into every bundle, and the value whose *absence*
+    /// from the UI is how anyone would notice the denylist had stopped working.
+    /// A boot screen printing it as decoration would have made that failure
+    /// invisible: the back plate reading `v1.0.0` is a bug report, and a BIOS
+    /// reading it would have been a design. So C3 of the spec beat its own
+    /// mockup, the title goes through `BootSequence.header`, and
+    /// `BiosChromeTests.titleIsNotThePlaceholder` asserts the resolved version
+    /// is not in this set — the first test to check the denylist from the
+    /// direction of a *screen* rather than of `resolve(bundled:)`.
+    ///
+    /// The BIOS also reverses 0.7.3a's "inside the LCD" decision and re-pins
+    /// `BootSequenceTests.brief`; both are argued where they live, in
+    /// `BootScreen` and in the test.
+    ///
+    /// No catalog change: 438 stands, `waveMilestones` does not move, and no
+    /// `shared/` data outside `firmware.ts` was touched.
+    ///
     /// **The value below is no longer edited here.** See the note at the top of
     /// this comment: it reads the head of `shared/data/firmware.ts`.
     static var fallback: String { FirmwareCatalog.shared.version }

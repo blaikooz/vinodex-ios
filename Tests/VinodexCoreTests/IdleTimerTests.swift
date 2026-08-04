@@ -10,31 +10,47 @@ import Foundation
 /// you were in.
 @Suite("Idle timer")
 struct IdleTimerTests {
-    /// The two thresholds F2 names, and their order. The marquee toast has to
-    /// come *first* — the screensaver arriving before the panel had drifted
-    /// would make the toast unreachable.
-    @Test("the schedule is toast then screensaver")
+    /// **The fold, and the two numbers it leaves** (0.7.6, A3/A4).
+    ///
+    /// A3 takes the screensaver to 30 seconds; A4 folds the marquee's pre-idle
+    /// toast into it, so `toast` is `nil` and the greeting is due at the one
+    /// threshold. What is pinned here is the *shape* as much as the value: a
+    /// schedule that is ascending, that ends at the screensaver, and whose
+    /// greeting time is always something a consumer can ask for.
+    @Test("the schedule is one threshold, with the toast folded into it")
     func scheduleOrder() {
-        #expect(IdleSchedule.toast == 10)
-        #expect(IdleSchedule.screensaver == 15)
-        #expect(IdleSchedule.toast < IdleSchedule.screensaver)
-        #expect(IdleSchedule.stages.map(\.stage) == [.toast, .screensaver])
+        #expect(IdleSchedule.screensaver == 30)
+        #expect(IdleSchedule.toast == nil, "A4 folds the toast into the screensaver")
+        // The accessor every consumer reads, whichever shape the schedule is in.
+        #expect(IdleSchedule.cheers == IdleSchedule.screensaver)
+        #expect(IdleSchedule.stages.map(\.stage) == [.screensaver])
         // Ascending, which `stage(after:)` relies on to let the last match win.
+        // Vacuous today and deliberately kept: the day `toast` is given a number
+        // back, this is what catches it being given one above `screensaver`.
         for pair in zip(IdleSchedule.stages, IdleSchedule.stages.dropFirst()) {
             #expect(pair.0.after < pair.1.after)
         }
+        // Reverting is a threshold change, not a rewrite — so the table has to
+        // rebuild itself from the knob rather than being written out. Checked by
+        // construction: whatever `toast` holds, the stages end at the screensaver
+        // and carry one entry per non-nil threshold.
+        #expect(IdleSchedule.stages.count == (IdleSchedule.toast == nil ? 1 : 2))
+        #expect(IdleSchedule.stages.last?.stage == .screensaver)
     }
 
     @Test("a duration resolves to the stage it has reached")
     func stageForDuration() {
         #expect(IdleSchedule.stage(after: 0) == .active)
-        #expect(IdleSchedule.stage(after: 9.99) == .active)
-        // Inclusive at the boundary: at exactly ten seconds it has been ten
-        // seconds.
-        #expect(IdleSchedule.stage(after: 10) == .toast)
-        #expect(IdleSchedule.stage(after: 14.99) == .toast)
-        #expect(IdleSchedule.stage(after: 15) == .screensaver)
+        #expect(IdleSchedule.stage(after: 29.99) == .active)
+        // Inclusive at the boundary: at exactly thirty seconds it has been
+        // thirty seconds.
+        #expect(IdleSchedule.stage(after: 30) == .screensaver)
         #expect(IdleSchedule.stage(after: 6000) == .screensaver)
+        // `.toast` is not separately reachable while the fold is in force — but
+        // it is still *passed*, which is what every `stage >= .toast` consumer
+        // relies on and what makes the fold a threshold change. See `IdleStage`.
+        #expect(IdleStage.screensaver >= IdleStage.toast)
+        #expect(!IdleSchedule.stages.contains { $0.stage == .toast })
     }
 
     /// **The reason `advance` returns an optional.** A consumer that starts an
@@ -44,11 +60,9 @@ struct IdleTimerTests {
     func advanceReportsCrossings() {
         var clock = IdleClock()
         #expect(clock.advance(to: 3) == nil)
-        #expect(clock.advance(to: 9.9) == nil)
-        #expect(clock.advance(to: 10.1) == .toast)
-        #expect(clock.advance(to: 11) == nil, "still in the toast stage; nothing was crossed")
-        #expect(clock.advance(to: 14.9) == nil)
-        #expect(clock.advance(to: 15.2) == .screensaver)
+        #expect(clock.advance(to: 29.9) == nil)
+        #expect(clock.advance(to: 30.1) == .screensaver)
+        #expect(clock.advance(to: 31) == nil, "already there; nothing was crossed")
         #expect(clock.advance(to: 400) == nil)
     }
 
@@ -58,7 +72,7 @@ struct IdleTimerTests {
     @Test("a late tick reports the furthest stage reached")
     func lateTickSkips() {
         var clock = IdleClock()
-        #expect(clock.advance(to: 90) == .screensaver)
+        #expect(clock.advance(to: 900) == .screensaver)
         #expect(clock.stage == .screensaver)
     }
 
@@ -68,7 +82,7 @@ struct IdleTimerTests {
     @Test("the stage never falls without activity")
     func neverRegresses() {
         var clock = IdleClock()
-        clock.advance(to: 16)
+        clock.advance(to: 32)
         #expect(clock.stage == .screensaver)
         #expect(clock.advance(to: 2) == nil)
         #expect(clock.stage == .screensaver, "a low reading must not lower the stage")
@@ -79,15 +93,15 @@ struct IdleTimerTests {
         var clock = IdleClock()
         #expect(clock.noteActivity() == false, "already active and at zero — nothing to do")
 
-        clock.advance(to: 12)
-        #expect(clock.stage == .toast)
+        clock.advance(to: 32)
+        #expect(clock.stage == .screensaver)
         #expect(clock.noteActivity() == true)
         #expect(clock.stage == .active)
         #expect(clock.idle == 0)
 
         // And the stages are reachable again afterwards, which is what makes it
         // a loop rather than a one-shot.
-        #expect(clock.advance(to: 10) == .toast)
+        #expect(clock.advance(to: 30) == .screensaver)
     }
 
     /// Negative durations are clamped rather than trusted: a monotonic clock
@@ -118,7 +132,7 @@ struct IdleTimerTests {
     @Test("the marquee's idle dwell is the shared threshold")
     func marqueeSharesTheSchedule() throws {
         let dwell = try #require(MarqueeStage.menu.timeout)
-        #expect(dwell.after == IdleSchedule.toast)
+        #expect(dwell.after == IdleSchedule.cheers)
         #expect(dwell.then == .cheers)
         #expect(MarqueeStage.menu.awaitsIdleTimer)
         // WELCOME! is a beat, not an idle threshold, and stays the banner's own
@@ -126,16 +140,21 @@ struct IdleTimerTests {
         #expect(!MarqueeStage.welcome.awaitsIdleTimer)
         #expect(!MarqueeStage.cheers.awaitsIdleTimer)
         let beat = try #require(MarqueeStage.welcome.timeout)
-        #expect(beat.after < IdleSchedule.toast)
+        #expect(beat.after < IdleSchedule.cheers)
     }
 
-    /// The screensaver has to arrive *after* the panel has drifted, or the
-    /// toast is a state nobody ever sees.
-    @Test("the toast is reachable before the screensaver covers it")
-    func toastIsReachable() {
+    /// **The greeting and the screensaver arrive together** (0.7.6, A4), which
+    /// is the fold. Before it the toast led by twenty seconds and this test
+    /// asserted the gap; what has to hold now is that the panel's dwell and the
+    /// screensaver's threshold are one number, or the device is idling on two
+    /// reckonings again — the fault 0.7.3's F2 was written to end.
+    @Test("the greeting is due exactly when the screensaver is")
+    func greetingRidesTheScreensaver() {
         var clock = IdleClock()
-        #expect(clock.advance(to: IdleSchedule.toast) == .toast)
-        #expect(clock.stage == .toast)
-        #expect(IdleSchedule.screensaver > IdleSchedule.toast)
+        #expect(clock.advance(to: IdleSchedule.cheers) == .screensaver)
+        // The chassis raises the toast on `stage >= .toast`, so the crossing
+        // that raises the screensaver raises the greeting with it.
+        #expect(clock.stage >= .toast)
+        #expect(IdleSchedule.cheers == IdleSchedule.screensaver)
     }
 }

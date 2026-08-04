@@ -51,10 +51,14 @@ struct MarqueeScriptTests {
         #expect(MarqueeStage.welcome.timeout?.then == .menu)
         #expect(MarqueeStage.menu.timeout?.then == .cheers)
         #expect(MarqueeStage.cheers.timeout == nil)
-        // B3 names ten seconds. Pinned because it is a number a later tidy-up
-        // could plausibly "round" — it is an idle threshold, and shortening it
-        // changes the panel under a user who is still reading the menu.
-        #expect(MarqueeStage.menu.timeout?.after == 10)
+        // **The greeting rides the shared schedule, whatever shape it is in**
+        // (0.7.6, A4). This was pinned at the literal 10 through 0.7.5, which
+        // was B3's figure; A4 folds the pre-idle toast into the screensaver, so
+        // the number is 30 today. Pinned against `IdleSchedule.cheers` rather
+        // than against a fresh literal, because what must never drift is that
+        // the panel and the screensaver agree — the exact reconciliation
+        // 0.7.3's F2 was written for. `IdleTimerTests` pins the value itself.
+        #expect(MarqueeStage.menu.timeout?.after == IdleSchedule.cheers)
         // The greeting is a beat, not a dwell: everything behind it is waiting.
         #expect((MarqueeStage.welcome.timeout?.after ?? 0) < 4)
     }
@@ -212,7 +216,12 @@ struct MarqueeScriptTests {
     }
 }
 
-/// The marquee drawer's pinned shortcuts (0.7.1, B5).
+/// The marquee's two lamp buttons (0.7.1 B5; rebuilt 0.7.6, A1).
+///
+/// The store is the one piece of A1 a Linux gate can see: the lamps themselves,
+/// the hold gesture and the chooser are all `VinodexUI`. What is here is what
+/// would be silently wrong — the migration off the old two-of-five pin set, the
+/// invariant that a lamp is never empty, and the swap rule.
 @Suite("Quick pins")
 struct QuickPinTests {
 
@@ -226,79 +235,142 @@ struct QuickPinTests {
         return defaults
     }
 
+    /// **The migration assertion, and the most important one here.** A lamp
+    /// cannot be empty — it is a moulded part of the shell — so a fresh install
+    /// resolves to the pair the lamps were hardwired to before A1 made them
+    /// assignable. Anyone upgrading from 0.7.5 gets exactly the device they had.
     @MainActor
-    @Test("a fresh install has no pins")
-    func startsEmpty() {
+    @Test("a fresh install has the factory pair")
+    func startsAtDefaults() {
         let store = QuickPinStore(defaults: makeDefaults())
-        #expect(store.pins.isEmpty)
-        #expect(!store.isFull)
-        for section in SettingsSection.allCases {
-            #expect(!store.isPinned(section))
-        }
-    }
-
-    @MainActor
-    @Test("pins survive a relaunch, in order")
-    func pinsPersist() {
-        let defaults = makeDefaults()
-        let store = QuickPinStore(defaults: defaults)
-        #expect(store.toggle(.data))
-        #expect(store.toggle(.access))
-
-        let reloaded = QuickPinStore(defaults: defaults)
-        #expect(reloaded.pins == [.data, .access])
-        #expect(reloaded.isFull)
-    }
-
-    @MainActor
-    @Test("toggling a pinned section unpins it")
-    func toggleIsSymmetric() {
-        let defaults = makeDefaults()
-        let store = QuickPinStore(defaults: defaults)
-        store.toggle(.settings)
-        #expect(store.isPinned(.settings))
-        #expect(!store.toggle(.settings))
-        #expect(store.pins.isEmpty)
-        // The key goes with the last pin, so "empty" and "never set" are one
-        // state — see the note on `persist()`.
-        #expect(defaults.string(forKey: QuickPinStore.storageKey) == nil)
-    }
-
-    /// B5's cap. A third pin evicts the oldest rather than being refused —
-    /// see `toggle(_:)` on why.
-    @MainActor
-    @Test("a third pin pushes the oldest out")
-    func capacityIsTwo() {
-        let store = QuickPinStore(defaults: makeDefaults())
-        store.toggle(.customization)
-        store.toggle(.settings)
-        store.toggle(.data)
-        #expect(store.pins == [.settings, .data])
+        #expect(store.pins == QuickPinStore.defaults)
+        #expect(store.pins == [.tools, .customization])
         #expect(store.pins.count == QuickPinStore.capacity)
     }
 
-    /// Everything a stored string can be wrong about, in one case. None of
-    /// these should be able to produce a `pins` that breaks the invariant.
+    /// The other half of the migration: the vocabulary widened, and every raw
+    /// value that could previously be on disk still means what it meant. `DEV`
+    /// is the one `SettingsSection` with no counterpart, and it is the one the
+    /// chooser has never offered.
     @MainActor
-    @Test("a hostile stored value cannot break the invariant")
-    func decodeIsDefensive() {
-        #expect(QuickPinStore.decode("") == [])
-        #expect(QuickPinStore.decode("NOPE,ALSO NOPE") == [])
-        #expect(QuickPinStore.decode("DATA,DATA") == [.data])
-        #expect(QuickPinStore.decode("DATA,NOPE,ACCESS") == [.data, .access])
-        // Over the cap: truncated, not rejected — a user with three stored
-        // pins should lose the extra, not all of them.
-        #expect(QuickPinStore.decode("DATA,ACCESS,SETTINGS").count == QuickPinStore.capacity)
+    @Test("every storable settings section is still a pin")
+    func vocabularyIsASuperset() {
+        for section in SettingsSection.allCases where section != .dev {
+            #expect(
+                MarqueePin(rawValue: section.rawValue) != nil,
+                "\(section.rawValue) was storable and no longer decodes"
+            )
+        }
+        #expect(MarqueePin(rawValue: SettingsSection.dev.rawValue) == nil)
+        // And the widening itself: TOOLS is the entry `SettingsSection` cannot
+        // express, which is why the type exists at all.
+        #expect(MarqueePin.tools.section == nil)
+        #expect(MarqueePin.tools.route == .minigames)
     }
 
     @MainActor
-    @Test("reset clears everything")
-    func resetClears() {
+    @Test("assignments survive a relaunch, in slot order")
+    func pinsPersist() {
         let defaults = makeDefaults()
         let store = QuickPinStore(defaults: defaults)
-        store.toggle(.data)
+        #expect(store.assign(.data, to: 0))
+        #expect(store.assign(.access, to: 1))
+
+        let reloaded = QuickPinStore(defaults: defaults)
+        #expect(reloaded.pins == [.data, .access])
+        #expect(reloaded.pin(at: 0) == .data)
+        #expect(reloaded.pin(at: 1) == .access)
+    }
+
+    /// **The swap rule.** Assigning a destination the other lamp holds trades
+    /// the two rather than duplicating it — a device with two identical buttons
+    /// is not a choice anybody made, and refusing would make the user clear the
+    /// other lamp first and come back.
+    @MainActor
+    @Test("assigning a pin the other lamp holds swaps them")
+    func assigningSwaps() {
+        let store = QuickPinStore(defaults: makeDefaults())
+        #expect(store.pins == [.tools, .customization])
+        store.assign(.customization, to: 0)
+        #expect(store.pins == [.customization, .tools])
+        // Repeating it puts them back, which is what makes the rule reversible.
+        store.assign(.tools, to: 0)
+        #expect(store.pins == [.tools, .customization])
+    }
+
+    @MainActor
+    @Test("assigning what a lamp already holds changes nothing")
+    func assigningIsIdempotent() {
+        let store = QuickPinStore(defaults: makeDefaults())
+        #expect(!store.assign(.tools, to: 0))
+        #expect(store.pins == [.tools, .customization])
+        // And a slot that does not exist is refused rather than trapped.
+        #expect(!store.assign(.data, to: 7))
+        #expect(store.pins.count == QuickPinStore.capacity)
+    }
+
+    /// The factory pair is stored as *absence*, so "as it ships" and "never
+    /// touched" are one state — the rule `DeviceBuild` and `StampLayoutStore`
+    /// follow, and what keeps `SavedDataReset` from having to know about two.
+    @MainActor
+    @Test("the default pair leaves no key behind")
+    func defaultsAreStoredAsAbsence() {
+        let defaults = makeDefaults()
+        let store = QuickPinStore(defaults: defaults)
+        #expect(defaults.string(forKey: QuickPinStore.storageKey) == nil)
+        store.assign(.data, to: 0)
+        #expect(defaults.string(forKey: QuickPinStore.storageKey) != nil)
         store.reset()
-        #expect(store.pins.isEmpty)
-        #expect(QuickPinStore(defaults: defaults).pins.isEmpty)
+        #expect(store.pins == QuickPinStore.defaults)
+        #expect(defaults.string(forKey: QuickPinStore.storageKey) == nil)
+    }
+
+    /// Everything a stored string can be wrong about, in one case. None of
+    /// these may produce a list that is short, long or repeated — the lamps are
+    /// drawn from it by index.
+    @MainActor
+    @Test("a hostile stored value cannot break the invariant")
+    func decodeIsDefensive() {
+        // Nothing stored, or nothing recognisable: the factory pair.
+        #expect(QuickPinStore.decode("") == QuickPinStore.defaults)
+        #expect(QuickPinStore.decode("NOPE,ALSO NOPE") == QuickPinStore.defaults)
+        // One real pin from an older install keeps its slot; the other fills
+        // from the first unused default.
+        #expect(QuickPinStore.decode("SETTINGS") == [.settings, .tools])
+        #expect(QuickPinStore.decode("CUSTOMIZE") == [.customization, .tools])
+        // Two real pins are untouched — nobody's choice is reset by A1.
+        #expect(QuickPinStore.decode("DATA,ACCESS") == [.data, .access])
+        // Duplicates collapse and then pad, so the two lamps are never the same.
+        #expect(QuickPinStore.decode("DATA,DATA") == [.data, .tools])
+        // The retired 0.7.5 section drops out, exactly as it did before.
+        #expect(QuickPinStore.decode("PACKS,DATA") == [.data, .tools])
+        // Over the cap: truncated, not rejected.
+        #expect(QuickPinStore.decode("DATA,ACCESS,SETTINGS") == [.data, .access])
+
+        // The invariant itself, over everything above and then some.
+        for raw in ["", "  ", ",,,", "DEV", "TOOLS,TOOLS,TOOLS", "ACCESS,DEV"] {
+            let pins = QuickPinStore.decode(raw)
+            #expect(pins.count == QuickPinStore.capacity, "\(raw) gave \(pins)")
+            #expect(Set(pins).count == pins.count, "\(raw) repeated a pin")
+        }
+    }
+
+    /// A pin's label, glyph and destination all come from the thing it names,
+    /// so a lamp can never wear one destination's mark and land on another —
+    /// the rule `DexRoute.marqueeSymbol`'s K2 audit wrote for the whole app.
+    @MainActor
+    @Test("every pin is labelled, glyphed and routed")
+    func pinsAreWellFormed() {
+        var glyphs: Set<String> = []
+        for pin in MarqueePin.allCases {
+            #expect(!pin.displayName.isEmpty)
+            #expect(!pin.symbol.isEmpty)
+            #expect(pin.symbol == pin.route.marqueeSymbol, "\(pin) wears a glyph its route does not")
+            #expect(pin.displayName == pin.route.title, "\(pin) is labelled unlike its route")
+            glyphs.insert(pin.symbol)
+        }
+        #expect(glyphs.count == MarqueePin.allCases.count, "two lamps could look identical")
+        // ACCESS reads as SHOP without this type knowing about the 0.7.5 rename.
+        #expect(MarqueePin.access.displayName == "SHOP")
     }
 }

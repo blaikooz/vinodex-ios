@@ -198,6 +198,14 @@ public enum DexMetrics {
     /// the inset's, not the geometry's, and a rounded rectangle costs nothing
     /// here. The circularity argument would matter again only for a control
     /// placed inside `cornerGuardH`, which nothing is.
+    ///
+    /// **Re-checked in 0.7.6 (E1), and it did not move.** The orb became a
+    /// stadium, and the elongation was deliberately taken out of its *height* —
+    /// see `islandOrbAspect`. Its bounding box therefore starts and ends exactly
+    /// where it did, `islandSlot` is unchanged, and this inset resolves to the
+    /// same number. The re-derivation is recorded rather than skipped because
+    /// "the orb changed shape" is precisely the sentence that ought to send
+    /// somebody to this comment.
     public static var islandTopInset: CGFloat {
         max(islandNotchCenter - islandSlot / 2, 8)
     }
@@ -216,20 +224,48 @@ public enum DexMetrics {
     /// layout nothing either way — `islandSlot` is floored at the 44pt touch
     /// minimum, which the bead has been under since 0.6.6, so the orb's
     /// diameter has not driven the strip's height for two batches.
+    /// The orb's **width**. It was the orb's diameter through 0.7.5, and the
+    /// rename in meaning is the whole of E1 — see `islandOrbAspect`.
     public static var islandOrb: CGFloat { controlButton * 0.55 }
-    /// The orb's corner radius as a fraction of its size (0.7.5, A2).
+
+    /// How much wider than tall the orb is (0.7.6, E1).
     ///
-    /// A2 asks for a rounded rectangle "to fit the hardware aesthetic", and the
-    /// number is what decides whether that reads as a moulded key or as a bug.
-    /// 0.30 of the side puts it between a squircle and a soft square: at the
-    /// shipped 35.2pt orb that is a 10.6pt radius, enough that the part still
-    /// catches the specular the way a domed lamp does, and far enough from 0.5
-    /// (which is a circle again) to be unmistakably deliberate.
+    /// **E1 refines 0.7.5's A2 rather than reversing it.** A2 squared the bead
+    /// into a rounded key; E1 asks for a stadium — "an elongated circle, like the
+    /// notch" — which is the same instinct one step further: the one hardware
+    /// feature this strip is level with is a pill, and a part beside it that is
+    /// almost-but-not-quite that shape reads as a near miss. So the corner
+    /// fraction goes and a `Capsule` takes its place, which is the shape a
+    /// rounded rectangle becomes when the radius reaches half the short side.
     ///
-    /// Applied with `.continuous`, matching every other moulded part on the
-    /// shell — a circular-arc corner beside iOS's own squircles is the tell
-    /// that something was drawn by hand.
-    public static let islandOrbCornerFraction: CGFloat = 0.30
+    /// **The elongation is spent on height, not width, and that is the
+    /// constraint.** `islandOrbInsetLeading` puts the orb's slot at 64pt and the
+    /// narrowest island device starts its cutout at 133 — 69pt of room, of which
+    /// the 44pt slot leaves ~25pt of clearance. Widening the orb to make it a
+    /// pill would eat that directly, and 0.7.1's A4 note is a page about what
+    /// happens when this budget is spent twice by two edits that did not know
+    /// about each other. So the orb keeps the width it has had since 0.6.8 and
+    /// loses height instead: the slot, the inset and the clearance are all
+    /// untouched, and the re-derivation A2's note asks for comes out identical
+    /// because no horizontal number moved.
+    ///
+    /// 1.75 lands the bead at 35.2 × 20.1 at UI SIZE = SMALL and 40 × 22.9 at
+    /// LARGE. That is unmistakably a stadium at a glance, and it puts the orb's
+    /// height within a point of `islandStatusDot` (22 / 24) — so the two clusters
+    /// either side of the cutout become the same visual weight, which is the
+    /// "mirrored pair of blocks" reading 0.6.8's F3 was after and has never quite
+    /// had.
+    public static let islandOrbAspect: CGFloat = 1.75
+
+    /// The orb's height. Derived, so the two axes cannot drift.
+    public static var islandOrbHeight: CGFloat { islandOrb / islandOrbAspect }
+
+    // `islandOrbCornerFraction` retired in 0.7.6 (E1). It was 0.30 of the side —
+    // the radius that made 0.7.5's rounded key — and a stadium has no radius to
+    // choose: `Capsule` is always half the short side, which is the definition of
+    // the shape E1 names. Keeping the constant would have left a number that
+    // nothing reads and that the next reader would try to tune.
+
     /// The row the orb and the lamp cluster share, level with the cutout.
     ///
     /// Floored at 44 rather than sized to the orb: the orb is the flip
@@ -650,22 +686,28 @@ public enum DexMetrics {
     /// now allowed to fill the panel rather than sitting in the middle of it.
     public static let marqueeTextInset: CGFloat = 10
 
-    /// The pinned-shortcut buttons in the marquee's corners (0.7.2, A7).
-    ///
-    /// 26pt is below the 44pt Apple asks for and is the largest thing that fits
-    /// without turning the panel into a toolbar — the marquee is roughly 60pt
-    /// tall and two 44pt circles would leave the title a slot rather than a
-    /// panel. It is a deliberate trade and not a silent one: these are
-    /// *shortcuts*, every one of them is reachable at full size from the drawer
-    /// one tap away and from the settings grid, and the panel behind them is
-    /// itself a 225pt-wide target that opens the same places. Nothing is only
-    /// reachable at 26pt.
-    public static let marqueePinButton: CGFloat = 26
-    /// Inset from the panel's edge. Clears `marqueeInnerCorner`'s rounding so a
-    /// circular button sits *on* the display rather than in its corner radius.
-    public static let marqueePinInset: CGFloat = 4
-    /// The glyph inside a pin button.
-    public static var marqueePinGlyph: CGFloat { marqueePinButton * 0.5 }
+    // `marqueePinButton`, `marqueePinInset` and `marqueePinGlyph` retired in
+    // 0.7.6 (A1), with the corner pin buttons they measured.
+    //
+    // They were 26 / 4 / 13, and the 26 was the interesting one: below the 44pt
+    // Apple asks for, and defended on the grounds that the marquee is roughly
+    // 60pt tall, two 44pt circles would leave the title a slot rather than a
+    // panel, and every destination they reached was also reachable at full size
+    // from the drawer and the settings grid.
+    //
+    // Both halves of that defence are gone in the same batch — the drawer no
+    // longer exists, and the two lamp buttons directly above the panel now carry
+    // the same pins at `bandPillHeight` (24) across half the panel's width each,
+    // which is a target several times the area. Written down rather than deleted
+    // silently because "put small round shortcut buttons in the marquee corners"
+    // is an idea that will come back, and this is where the arithmetic against it
+    // lives.
+
+    // `MarqueeBanner.edgeReserve` — the width the label kept clear for those
+    // buttons — is now zero everywhere. The parameter survives on the banner
+    // rather than being removed, because "keep your ends clear" is a property
+    // worth having the next time something is drawn over the panel, and it costs
+    // one defaulted argument.
 
     /// The ordinary marquee cross-fade — a route title replacing another.
     ///
@@ -677,7 +719,7 @@ public enum DexMetrics {
     /// navigation the rest of the app has already completed.
     public static let marqueeGreetingFade: Double = 0.55
 
-    /// Overlay in and out: alerts, prompts, the marquee drawer, a mode
+    /// Overlay in and out: alerts, prompts, the marquee's lamp chooser, a mode
     /// switching under a picker (0.7.1, F3).
     ///
     /// 0.15s eased out. Not a new number — it is the one thirteen call sites
@@ -935,11 +977,11 @@ public enum DexMetrics {
 /// Reduce Motion is deliberately **not** handled here. It is a decision about
 /// whether a movement should happen at all, and the answer differs per movement
 /// — `PulseGlow` settles on a still glow, `MarqueeBanner` swaps the dissolve
-/// for a cross-fade, the drawer swaps a slide for a fade. A curve that
+/// for a cross-fade, a rising panel swaps a slide for a fade. A curve that
 /// secretly became `nil` would hide all three of those judgements behind one.
 public enum DexMotion {
     /// Something appearing over the screen and going away again: alerts,
-    /// upgrade prompts, the rating sheet, the marquee drawer's scrim.
+    /// upgrade prompts, the rating sheet, the lamp chooser's scrim.
     public static let overlay = Animation.easeOut(duration: DexMetrics.overlayFade)
 
     /// One string replacing another in place — the marquee's route titles, and
@@ -1689,15 +1731,13 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         LcdMode(rawValue: UserDefaults.standard.string(forKey: storageKey) ?? "") ?? .dark
     }
 
-    /// The next mode in the roster, wrapping — the twin of `ChassisSkin.next`
-    /// (0.7.1, B5). The drawer's NEXT SCREEN tile is the only caller; it walks
-    /// `allCases` declaration order rather than picker order, so the cycle
-    /// crosses group boundaries and eventually shows you all nine.
-    public var next: LcdMode {
-        let all = LcdMode.allCases
-        let i = all.firstIndex(of: self) ?? 0
-        return all[(i + 1) % all.count]
-    }
+    // `next` retired in 0.7.6 (A1), with `ChassisSkin.next` and
+    // `ChassisLook.next` beside it. All three existed for one caller: the
+    // marquee drawer's NEXT SCREEN and NEXT SKIN tiles (0.7.1, B5), which cycled
+    // the two axes without leaving the screen you were on. The Decision retires
+    // the drawer, and a cycle-to-the-next helper that nothing cycles is exactly
+    // the code-nothing-reaches `MarqueeBanner`'s own D1 note argues against
+    // keeping. Both pickers still choose either axis directly.
 
     // MARK: Themed chrome (0.7.1, C5)
 
@@ -2204,6 +2244,31 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     /// would read as a bug. It carries the range's only per-skin *control* glyph
     /// — the user button is a drawn pumpkin, see `controlMark`.
     case halloween = "HALLOWEEN"
+    /// **The purple deck** (0.7.6, D1) — a violet shell with four face-button
+    /// colours doing all the talking, in the manner of the mid-nineties consoles
+    /// that made a coloured moulded brick a mainstream object.
+    ///
+    /// **Inspired-by only, and the boundary is drawn where the house has always
+    /// drawn it.** `buttonSet`'s own note has said since 0.6.7 (K2/K3) that a
+    /// console livery takes *colours* and nothing else: the glyphs stay Vinodex's
+    /// own chevron, house, person and cog, no silhouette is reproduced, and no
+    /// mark of anybody's appears anywhere on the device or in this file. That is
+    /// the same discipline the bouncing-mark screensaver was built under — see
+    /// `VinodexV`, drawn from scratch precisely so the most-looked-at thing on an
+    /// idle screen is unambiguously ours.
+    ///
+    /// **The rawValue is three separate commitments and was chosen once,
+    /// carefully.** It is the `chassisSkin` `@AppStorage` value, the FNV-1a seed
+    /// `WornOverlay.seed(skin.rawValue)` draws the back plate's procedural wear
+    /// from, and the stem `stickerStem` derives (`sticker-w64`). Moving it later
+    /// resets the shell, repaints the wear on the devices that survive, and
+    /// orphans the sticker — the three costs FIBERGLASS's and HALLOWINE's rename
+    /// notes were written up to avoid. It is ASCII, it collides with nothing in
+    /// `shared/`, the generated JSON or the art scripts, and it is the label as
+    /// well — `displayName` restates it rather than diverging from it, which is
+    /// the one thing every rename note in this file wishes the earlier names had
+    /// done.
+    case w64 = "W64"
 
     /// Read from `DeviceAxis` since 0.7.3 (B1) rather than spelled out here.
     ///
@@ -2233,7 +2298,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .classic, .midnight, .original: .classic
         case .burgundy, .nocturne, .champagne: .wines
         case .oaked, .steel, .petNat: .vessel
-        case .vinhoVerde, .psvino, .grisDeGris, .riesling, .smartGrape, .orangeWine: .retrofit
+        case .vinhoVerde, .psvino, .grisDeGris, .riesling, .smartGrape, .orangeWine, .w64: .retrofit
         case .glouglou, .nouveau, .waldglas: .clearTech
         case .christmas, .blush, .halloween: .festive
         }
@@ -2285,6 +2350,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .waldglas: Color(dexHex: "#DCEAC0")
         // Jack-o'-lantern light.
         case .halloween: Color(dexHex: "#FFD6A8")
+        // The shell's own violet, paled for the multiply.
+        case .w64: Color(dexHex: "#DCC8F5")
         }
     }
 
@@ -2370,6 +2437,13 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // (see `WornOverlay.seed`), so moving it would both reset every device
         // wearing this shell and repaint the ones that survived.
         case .halloween: "HALLOWINE"
+        // The one skin whose label and stored word are the same string on
+        // purpose (0.7.6, D1). This switch is exhaustive rather than defaulted,
+        // so the entry is required either way — but it is worth saying that the
+        // agreement is deliberate: every rename note in this file is about the
+        // cost of a label that has drifted from its rawValue, and picking a name
+        // that never needs to drift is the cheapest version of that.
+        case .w64: "W64"
         }
     }
 
@@ -2418,6 +2492,12 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // The neutral fallback only. This skin's emblem is a drawing —
         // SF Symbols has no pumpkin at the iOS 17 floor. See `drawnMark`.
         case .halloween: "moon.haze.fill"
+        // Four coloured points around a centre: what this livery *is*, taken
+        // from the house's own symbol set rather than quoted from anyone's
+        // hardware. SF Symbols 2 / iOS 14, well under the floor, and it
+        // collides with nothing — `circle.grid.2x2.fill` is a workshop axis
+        // glyph and `circle.grid.3x3.fill` is GRAPES.
+        case .w64: "circle.grid.cross.fill"
         }
     }
 
@@ -2519,8 +2599,19 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // within a few percent of one luminance is the BLUSH mistake
         // (see its note above): a device with three indistinguishable
         // indicators reads as broken.
+        // Candle, pumpkin, ember — stepped wide on purpose. Three oranges
+        // within a few percent of one luminance is the BLUSH mistake
+        // (see its note above): a device with three indistinguishable
+        // indicators reads as broken.
         case .halloween:
             return trio(("#FFC98A", "#B36A00"), ("#FF8A1F", "#A34C00"), ("#8A2E00", "#3D1200"))
+        // Three of the four face colours, stepped light to deep — green, blue,
+        // red. The fourth (yellow) is the settings cap in `buttonSet`, so all
+        // four appear on the device without any one part carrying a colour
+        // twice. Stepped wide, per BLUSH's note: three lamps within a few
+        // percent of one luminance read as a fault.
+        case .w64:
+            return trio(("#63C86B", "#1E7A2E"), ("#3E7FD8", "#123C74"), ("#D8343E", "#7A0E16"))
         }
     }
 
@@ -2561,6 +2652,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // Not black: a true #000 shell has no moulding in it at all. This
         // is near-black with a violet cast, which is what reads as night.
         case .halloween: Color(dexHex: "#17141A")
+        // Grape violet, and opaque: the reference era is remembered for
+        // translucency, and a fourth clear shell would file this under
+        // CLEARTECH beside three skins it has nothing else in common with.
+        // The colour is the quotation; the plastic is ours.
+        case .w64: Color(dexHex: "#4A2E8C")
         }
     }
 
@@ -2594,6 +2690,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .petNat: Color.clear
         case .waldglas: Color(dexHex: "rgba(160,183,116,0.28)")
         case .halloween: Color(dexHex: "#17141A").opacity(0.75)
+        case .w64: Color(dexHex: "#4A2E8C").opacity(0.75)
         }
     }
 
@@ -2626,6 +2723,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .petNat: Color(dexHex: "#F8F4EA")
         case .waldglas: Color(dexHex: "rgba(214,229,178,0.55)")
         case .halloween: Color(dexHex: "#241E2B")
+        // A deeper violet faceplate, so the LCD is set into the shell rather
+        // than floating on it.
+        case .w64: Color(dexHex: "#33206B")
         }
     }
 
@@ -2656,6 +2756,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .petNat: Color(dexHex: "#2B3244")
         case .waldglas: Color(dexHex: "rgba(122,142,84,0.85)")
         case .halloween: Color(dexHex: "#0C0A10")
+        case .w64: Color(dexHex: "#1D1145")
         }
     }
 
@@ -2687,6 +2788,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // Opaque over the internals, like GLOUGLOU's and RETROVIN's.
         case .waldglas: Color(dexHex: "#6C8348")
         case .halloween: Color(dexHex: "#4A3F55")
+        case .w64: Color(dexHex: "#8B6FD4")
         }
     }
 
@@ -2748,6 +2850,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // The candle inside the lantern — the one lit thing on a shell
         // whose buttons are deliberately unlit.
         case .halloween: Color(dexHex: "#FF8A1F")
+        // The power lamp, in the fourth face colour — the one this livery
+        // has spare once green, blue and red are on the lamp trio.
+        case .w64: Color(dexHex: "#F2C93A")
         }
     }
 
@@ -2776,6 +2881,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .petNat: Color(dexHex: "#3E6FA8")
         case .waldglas: Color(dexHex: "#7A9A2E")
         case .halloween: Color(dexHex: "#B34700")
+        case .w64: Color(dexHex: "#B58A0C")
         }
     }
 
@@ -2877,6 +2983,13 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .halloween:
             ChassisAccent(pale: "#FFEBD4", light: "#FFC98A", bright: "#FF8A1F",
                           mid: "#E0670A", edge: "#8A3A00", ink: "#331500")
+        // Never read on this skin — `buttonSet` below gives Home its own green
+        // ramp, exactly as it does for the two existing console liveries.
+        // Present so the switch stays exhaustive, and so anything asking a skin
+        // for "its one accent" gets the green rather than nothing.
+        case .w64:
+            ChassisAccent(pale: "#E8F8E6", light: "#A8E3A4", bright: "#63C86B",
+                          mid: "#3A9A44", edge: "#1E5C24", ink: "#062A08")
         }
     }
 
@@ -2961,6 +3074,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // two colours.
         case .halloween:
             ChassisControl(top: "#2A2530", bottom: "#0A080C", edge: "#5E5468", glyph: "#FF8A1F")
+        // Never read on this skin either — see `accent` above and `buttonSet`
+        // below. Violet moulding a register off the shell, so a caller that
+        // bypasses the set still gets a cap belonging to this device.
+        case .w64:
+            ChassisControl(top: "#6A4BB8", bottom: "#221448", edge: "#A98EE8", glyph: "#ffffff")
         }
     }
 
@@ -3003,6 +3121,26 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
                 // Dark glyph on the yellow cap, per the Blanc de Blancs
                 // precedent — a pale glyph on this one is unreadable.
                 settings: ChassisControl(top: "#F2C130", bottom: "#7A5A05", edge: "#FBE08C", glyph: "#3A2A00")
+            )
+        // Green / blue / red / yellow (0.7.6, D1). The four-colour face is the
+        // whole of this livery, and — per the note on the case — it is four
+        // *colours*: Back, Home, User and the cog keep the house glyphs they
+        // wear on every other shell, and no shape from any reference hardware
+        // appears here.
+        //
+        // Home takes the green because it is the one control on the device
+        // built to look powered. The yellow goes on the cog rather than on a
+        // lamp, so all four colours appear at once on a device whose trio is
+        // already carrying the other three.
+        case .w64:
+            ChassisButtonSet(
+                home: ChassisAccent(pale: "#E8F8E6", light: "#A8E3A4", bright: "#63C86B",
+                                    mid: "#3A9A44", edge: "#1E5C24", ink: "#062A08"),
+                back: ChassisControl(top: "#D8343E", bottom: "#6E0C14", edge: "#F59098", glyph: "#FFE4E6"),
+                bookmarks: ChassisControl(top: "#3E7FD8", bottom: "#123C74", edge: "#9AC2F0", glyph: "#E2EEFA"),
+                // Dark glyph on the yellow cap, per the Blanc de Blancs
+                // precedent — a pale glyph on this one is unreadable.
+                settings: ChassisControl(top: "#F2C93A", bottom: "#7A6008", edge: "#FBE694", glyph: "#3A2E00")
             )
         default: nil
         }
@@ -3136,6 +3274,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .petNat: "#EFE9DC"
         case .waldglas: "rgba(160,183,116,0.42)"
         case .halloween: "#17141A"
+        case .w64: "#4A2E8C"
         }
     }
 
@@ -3162,6 +3301,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .petNat: "#F8F4EA"
         case .waldglas: "rgba(214,229,178,0.55)"
         case .halloween: "#241E2B"
+        case .w64: "#33206B"
         }
     }
 
@@ -3188,6 +3328,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .petNat: "#2B3244"
         case .waldglas: "rgba(122,142,84,0.85)"
         case .halloween: "#0C0A10"
+        case .w64: "#1D1145"
         }
     }
 
@@ -3251,6 +3392,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .petNat: Color(dexHex: "#E8DF7A")
         case .waldglas: Color(dexHex: "#B8D96A")
         case .halloween: Color(dexHex: "#FFA23C")
+        // Period-correct green, and the fifth green strip in the range —
+        // stepped clear of BOX WINE's #9BBC0F and GRIS DE GRIS's #A6C550 so
+        // the three homages do not glow the identical colour, which is the
+        // note GRIS DE GRIS's own entry above records.
+        case .w64: Color(dexHex: "#7FD98A")
         }
     }
 
@@ -3279,6 +3425,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .petNat: Color(dexHex: "#BFB55A")
         case .waldglas: Color(dexHex: "#8AA83E")
         case .halloween: Color(dexHex: "#E0670A")
+        case .w64: Color(dexHex: "#3A9A44")
         }
     }
 
@@ -3307,14 +3454,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .petNat: Color(dexHex: "#2B3244")
         case .waldglas: Color(dexHex: "#1A240A")
         case .halloween: Color(dexHex: "#2B1200")
+        case .w64: Color(dexHex: "#08240E")
         }
     }
 
-    public var next: ChassisSkin {
-        let all = ChassisSkin.allCases
-        let i = all.firstIndex(of: self) ?? 0
-        return all[(i + 1) % all.count]
-    }
+    // `next` retired in 0.7.6 (A1) — see the note where `LcdMode.next` was.
 }
 
 #endif

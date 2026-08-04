@@ -299,19 +299,22 @@ struct DeviceDiagram: View {
                 VStack(spacing: h * 0.035) {
                     // Island strip: orb + lights on the left, cog on the right.
                     HStack(spacing: 6) {
-                        // Squared with the real orb (0.7.5, A2). This diagram
-                        // exists to point at a specific part of the device the
-                        // user is holding; it has to be the same part.
-                        let orbShape = RoundedRectangle(
-                            cornerRadius: control * DexMetrics.islandOrbCornerFraction,
-                            style: .continuous
-                        )
+                        // A stadium, with the real orb (0.7.5 A2, 0.7.6 E1).
+                        // This diagram exists to point at a specific part of the
+                        // device the user is holding; it has to be the same part.
+                        let orbShape = Capsule(style: .continuous)
                         orbShape
                             .fill(skin.orb)
-                            .frame(width: control, height: control)
+                            .frame(width: control, height: control / DexMetrics.islandOrbAspect)
                             .overlay(orbShape.strokeBorder(.white.opacity(0.8), lineWidth: 1.5))
                             .opacity(dim(.orb))
                             .shadow(color: skin.orbGlow.opacity(lit(.orb) ? 0.9 : 0), radius: 6)
+                            // The row is centred on the orb's old height, so a
+                            // shorter bead must not let the lamp cluster beside
+                            // it drift up: the slot stays what it was and the
+                            // part sits in the middle of it, exactly as the
+                            // chassis does with `islandSlot`.
+                            .frame(height: control)
 
                         HStack(spacing: 2.5) {
                             ForEach(0..<3, id: \.self) { i in
@@ -458,16 +461,36 @@ struct DeviceDiagram: View {
                             .opacity(dim(.saved))
                             .shadow(color: lcd.accent.opacity(lit(.saved) ? 0.8 : 0), radius: 6)
 
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(.black)
-                            .overlay(
+                        // The marquee column: its two lamp buttons over the
+                        // panel, which is how the real footer is stacked.
+                        //
+                        // The lamps are on the diagram since 0.7.6 (A1) because
+                        // there is now a step about them (see `Walkthrough`), and
+                        // a step that lights a part the diagram does not draw is
+                        // a step pointing at nothing. They take the shell's own
+                        // outer two lamp colours, exactly as the chassis does, so
+                        // the picture matches the device the reader is holding.
+                        VStack(spacing: 2) {
+                            HStack(spacing: 3) {
                                 Capsule()
-                                    .fill(skin.marqueeText)
-                                    .frame(height: 2.5)
-                                    .padding(.horizontal, 5)
-                            )
-                            .frame(height: control * 0.62)
-                            .opacity(dim(.marquee))
+                                    .fill(skin.statusLights[0].fill)
+                                    .frame(height: control * 0.16)
+                                Capsule()
+                                    .fill(skin.statusLights[2].fill)
+                                    .frame(height: control * 0.16)
+                            }
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(.black)
+                                .overlay(
+                                    Capsule()
+                                        .fill(skin.marqueeText)
+                                        .frame(height: 2.5)
+                                        .padding(.horizontal, 5)
+                                )
+                                .frame(height: control * 0.62)
+                        }
+                        .opacity(dim(.marquee))
+                        .shadow(color: lcd.accent.opacity(lit(.marquee) ? 0.8 : 0), radius: 6)
 
                         Circle()
                             .fill(

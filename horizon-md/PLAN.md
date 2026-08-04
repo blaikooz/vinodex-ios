@@ -56,6 +56,8 @@ been happening", which is the question a planning doc is for.
 | 0.7.5 | v0.7.5 spec, section D | **THE WINE EXAM.** `sommbot` authored the bank (`shared/data/exam.ts`, 407 questions, 16 subjects, 7 formats, an explanation on every one); `dexbot` built everything that consumes it — the `exam.json` emit and its gate, the Swift decode, the shuffling engine, balanced paper assembly, scoring, the statistics store, the seven answering UIs and the explanation reveal. Plus the two pre-existing TS errors and the missing-outline-art gate. | 438, untouched; `exam.json` is a new generated file | 484 tests, clean build, **not deployed** |
 | 0.7.5 | v0.7.5 spec, section E | **INTERACTIVE GRAPE LINEAGE.** `sommbot` authored the pedigree off VIVC passports — 57 grapes carrying a lineage, 68 of 171 in a relationship after the reverse pass. `dexbot` took the pipeline (`constants.ts` pass-through, `WineEntry` Codable, a `find-missing-refs` arm), the reverse index that derives offspring / mutations / half-siblings, and the tree screen behind a new `Entitlement.lineage`. Plus the approved `bodyFromText` fix: 16 grapes stop drawing a full-body bar they never earned. | 438, untouched; `lineage` is a new optional field on grape entries | 452 tests, clean build, **not deployed** |
 | 0.7.5 | `audit-review/FINDINGS.md` A026–A028 | **THE ASSET GATE.** Three silent-missing-asset bugs in three batches and only the third left a gate behind, so this one is the general case: `assertAssetsExist` in the generator checks that every emitted `icon` / `art:` / portrait-stem / flag id resolves to a file on disk — 337 ids a run. It found a **fourth on its first run**: `icons.json` has named a Brazil flag since 0.7.3c and `Flags/brazil.png` was never copied, so every Brazilian row flew a blank swatch. Plus the pipeline wiring — `import-logo-art.py` was in no roster at all (A026), `import-stamp-art.py` in the rasteriser but not the verifier (A027), and `ArtPipelineRosterTests` now holds the four rosters equal so a seventh importer cannot land in three of them. | 438, untouched; `Flags/brazil.png` added | 489 tests, clean build, `npm run icons` + `icons:verify` green, **not deployed**; no firmware bump — nothing user-visible changed |
+| 0.7.7 | `vinodex-0.7.7-bios.md` (titled 0.7.6) | **THE BIOS SCREEN.** The startup POST rebuilt from a written description of a mockup, **superseding 0.7.3a A1 and 0.7.5 A6 wholesale**: full-screen and opaque over the chassis (reversing 0.7.3a's "inside the LCD", which was an argument about a *translucent* overlay), three zones inside a terminal frame with ticked side rails and corner brackets, scanlines and a vignette, the shipped pixel "V" in cream over a magenta drop shadow. Staged checks now resolve *into* the composition rather than cutting away, then it rests on `PRESS ANY BUTTON TO CONTINUE` — any touch advances, and so does a 3.5s timeout. The mockup's `v1.0.0` was disobeyed: that string is on `AppVersion.placeholders` and printing it would have hidden the failure it signals. Four glyphs, no new art asset — one reuse, three drawn in code. | 438, untouched; `firmware.ts` only | 504 tests, clean build, `npm run generate` + `find-missing-refs` + `npm run icons` + `icons:verify` green, **not deployed** (held at the user's request) |
+| 0.7.6 | v0.7.5 spec (lands as 0.7.6), sections A–F | **THE CONSOLIDATION.** The Decision: three ways to reach the same places become one — the two marquee lamps *are* the pins, always visible, each reassignable by holding it. `MarqueeDrawer` deleted, the corner pin buttons deleted, the panel is a display again. `QuickPinStore` reused, not forked: `MarqueePin`'s raw values are a superset of `SettingsSection`'s, so no pins are reset. The idle timer stops being two stages (screensaver 15→**30s**, the marquee greeting folded into it and firing on **any** screen, revertible by giving `IdleSchedule.toast` a number back); the screensaver gets a random start, kept as a phase so the closed form survives. Plus two new workshop axes (10 in all), the **W64** shell, a stadium orb, bigger shop splashes with previews of their contents, and the tutorial into SETTINGS > DEVICE. | 438, untouched | 501 tests, clean build, `npm run generate` + `find-missing-refs` + `npm run icons` green, **not deployed** |
 
 **0.7.5, The Wine Exam** (v0.7.5 spec, section D). The second split batch:
 `sommbot` authored the 407-question bank, `dexbot` built every consumer of it.
@@ -1189,3 +1191,202 @@ Ordered by risk-times-cheapness; IDs are AUDIT.md's, one row ≈ one sitting.
 - Every new enum value (rarity, climate, system) touches: shared types,
   constants mapping, chipColors, generator probe+coverage lists,
   EntryDisplay names, exhaustive Swift switches (UI ones too), and test pins.
+
+---
+
+**0.7.6, The consolidation** (the v0.7.5-numbered spec, sections A–F). Its own
+scope note splits it: A–F are "quick", and the growth trio — sharing (G), the
+Wordle result string (H), daily notifications (I) — is a pass of its own and was
+**not built**.
+
+- **A1 removes two things this project built on purpose, and that is the point.**
+  The device had three affordances for the same handful of destinations: the two
+  marquee lamps (0.7.2 A9, fixed to TOOLS and CUSTOMIZE), two pin buttons in the
+  marquee's corners (0.7.2 A7), and a swipe drawer behind the panel (0.7.1
+  B4/B5) whose PINNED row was the only way to *choose* what the corners held.
+  One of the three existed solely to configure another. A1 keeps the lamps'
+  hardware feel and the drawer's customisation and drops everything else: tap a
+  lamp to go, hold it to point it somewhere else.
+
+  Retired with it: `MarqueeDrawer.swift`, `pinCorners` / `pinButton` /
+  `pinCornerReserve`, `DexMetrics.marqueePin{Button,Inset,Glyph}` (written down
+  where they were, not deleted silently — "small round shortcut buttons in the
+  marquee corners" is an idea that will come back), the PINS title-swap (0.7.2
+  A6), and the panel being a `Button` at all (reversing 0.7.1 B4). The drawer's
+  breadth is the honest cost: its TOOLS grid and CUSTOMIZE cycles are one tap
+  further away, through the two screens the lamps land on.
+
+  **Nobody's pins are reset.** `QuickPinStore` keeps its key and its encoding;
+  `MarqueePin`'s raw values are a strict superset of `SettingsSection`'s (it adds
+  `TOOLS`, which is `DexRoute.minigames` and was never expressible before), so
+  `"DATA,ACCESS"` decodes to what it always did. A single stored pin keeps its
+  slot and the other lamp fills from the factory pair. `DEV` is the one section
+  with no counterpart and is the one the chooser has never offered.
+
+- **The hold gesture needed somewhere to be taught**, and F1 supplied it. The
+  drawer carried "HOLD A SHORTCUT TO PIN IT" on its own surface; with the drawer
+  gone the walkthrough is where that sentence lives — a ninth step, and the
+  first ever to use `WalkthroughStep.Highlight.marquee`, which has been declared
+  and unused since v0.5.4. The diagram grew the two lamps so the step has
+  something to point at.
+
+- **A3/A4: the idle timer stops being two stages.** The screensaver goes 15 → 30
+  seconds and the marquee greeting, which fired at 10 on the main menu only, now
+  arrives *with* it on any screen. Implemented so reverting is a threshold
+  change: `IdleSchedule.toast` is a `TimeInterval?` holding `nil`, the stage
+  table rebuilds itself from it, `IdleStage.toast` stays in the enum, and every
+  consumer still asks `stage >= .toast` — true the instant `.screensaver` is
+  entered, because the stages are `Comparable`. Give `toast` a number below
+  `screensaver` and 0.7.5's behaviour comes back whole. 0.7.2's A8 rotation
+  survives unchanged: one language per idle period, nine in the ring.
+
+- **A2 keeps the closed form.** A random start is a *phase* on the existing
+  triangle wave rather than a seeded simulation — one pair of numbers buys a
+  random position *and* a random heading, the mark is still a pure function of
+  time, and the two-hour-exactness tests are untouched. `bounces` counts walls
+  since the run began rather than since the origin, so a random start does not
+  also randomise the opening colour.
+
+- **B1 is two axes, not three, and the third is a rename.** The spec asks for
+  "marquee status-light button colour, footer button colour, header
+  colored-lights colour". The first and third had no axis in any form; the
+  second has been settable as `DeviceAxis.buttons` since 0.7.3b, under a heading
+  ("BUTTONS") general enough that the workshop's own row list did not say so. It
+  now reads FOOTER BUTTONS. Eight axes becomes ten.
+
+  **The hazard B1 nearly shipped:** `DeviceBuild` is `Codable` and stored as JSON
+  in `customDevices`, the synthesised decoder throws on a missing key, and
+  `CustomDeviceStore` reads with `try?` — so two new fields would have made every
+  build saved under 0.7.3b–0.7.5 fail to decode, the store return `[]`, and every
+  saved device vanish on first launch. Hand-written `init(from:)` with
+  `decodeIfPresent` on all ten, plus a test that decodes the exact JSON an older
+  build wrote.
+
+- **D1's IP line, and where it is drawn.** Inspired-by colours and silhouette
+  only. The rule is `buttonSet`'s own, unchanged since 0.6.7 (K2/K3): a console
+  livery takes *colours* and nothing else, the glyphs stay the house chevron,
+  house, person and cog. No logo, no trade dress, and no reference in a type
+  name, a comment, an asset filename or a shipped string. The rawValue `"W64"`
+  was picked once for three jobs at once — the `chassisSkin` `@AppStorage` value,
+  the FNV-1a seed for the back plate's procedural wear, and the `sticker-w64`
+  art stem — and `displayName` restates it rather than diverging, which is what
+  every rename note in `DexTheme.swift` wishes the earlier names had done.
+
+- **E1 re-derived the clearance and it did not move.** The orb is a `Capsule`
+  now, and the elongation is spent on *height*: `islandOrbInsetLeading` puts the
+  slot at 64pt against a cutout starting at 133 on the narrowest island device,
+  and 0.7.1's A4 is a page about what happens when that 69pt is spent twice by
+  two edits that did not know about each other. Width unchanged, slot unchanged,
+  inset unchanged. The bead lands at 35.2×20.1 (SMALL), which is within a point
+  of `islandStatusDot` — so the two clusters either side of the cutout are the
+  same height for the first time.
+
+  One reversal it forced: 0.7.5's A2 made the orb's hit shape follow its own
+  outline. That argument holds while the art fills the slot; a pill half the
+  slot's height would have cut a 44pt target to 35×20, on the control carrying
+  the flip gesture. Back to the slot.
+
+- **C stays an overlay.** 0.7.5's B4 argued a route would mean a `DexRoute` case,
+  `ChromeTests` coverage, a marquee title and a glyph for a card dismissed by
+  looking away. Everything C2–C4 adds is content in the same scrolling column —
+  larger type, a bigger product shot, and a preview strip. The line it does not
+  cross: nothing in the strip is a control. Tapping a shell to try it on would
+  make the splash a place you can navigate from, and that is the version that
+  should be a route.
+
+**0.7.7, The BIOS screen** (`vinodex-0.7.7-bios.md`; the document is titled
+0.7.6, which is the batch above). One screen, rebuilt from a written description
+of a mockup, **superseding 0.7.3a's A1 and 0.7.5's A6 wholesale** rather than
+layering on them.
+
+- **The mockup's own version string was the trap, and C3 beat it.** The
+  description shows `VINODEX BIOS v1.0.0`. `1.0.0` is a member of
+  `AppVersion.placeholders` — it is what xtool stamps into every bundle, the
+  denylist is the only reason the app reports a version a human chose, and "the
+  back plate reads 1.0.0" has been the standing signal that the denylist has
+  broken. A BIOS printing it as decoration would have made that failure
+  indistinguishable from the app working. Bound to `FirmwareCatalog` through
+  `BootSequence.header`, and `BiosChromeTests.titleIsNotThePlaceholder` now
+  asserts the denylist from the direction of a screen. The copyright year rides
+  the same source — the current release's `date` — rather than a literal or the
+  device clock.
+
+- **Full-screen, which reverses 0.7.3a and needs the reversal stated.** That
+  release put the POST inside the LCD, arguing that dimming the bezel, island and
+  footer reads as the device losing power at the one moment it is doing the
+  opposite. B1 asks for full-screen and supersedes it, and the argument does not
+  survive the change of shape: what read as power loss was a *translucent overlay
+  dimming* the chassis, and this is opaque and total. The composition also brings
+  its own frame — terminal border, side rails, corner brackets, two status bars —
+  so an inset version would have been a bezel inside a bezel. **The chassis is not
+  visible around it**, deliberately: a plastic border showing at the edges is the
+  dimmed-chassis reading again. Presented as an `.overlay` on `DeviceChassis`
+  rather than a `ZStack` around it, so the scale `id`, the Dynamic Type pin and
+  `onAppear` keep applying to both without being restated.
+
+- **C1/C2 moved a pin, and it was re-pinned rather than widened.** 0.7.3a asserted
+  the whole POST under 2s (`BootSequenceTests.brief`) and 0.7.5's A6 kept that
+  while scaling the type up, on the reasoning that a POST which filled the screen
+  by running longer would be worse rather than bigger. Staged checks plus an
+  auto-advance timeout is a different shape: `duration` now bounds the **checks
+  phase** — same number, same argument, a fourth line still fails it — and a new
+  `neverTraps` bounds the rest, asserting the timeout is non-zero, at least 3s so
+  the prompt is readable before it answers itself, and that the whole untouched
+  launch stays under 6s. Widening `brief` would have quietly retired the only line
+  stopping a fourth check.
+
+- **B4's four glyphs, and why none is a new art asset.** The spec offers "build
+  them in `art/icons/`" *or* "reuse existing equivalents", and since 0.7.5's
+  A026–A028 a new asset is no longer a file in a directory — `assertAssetsExist`,
+  `ArtPipelineRosterTests` and `verify-art.py`'s `DIRS` all have to be satisfied.
+  Right for drawn art, wrong for these: the **wine glass** already ships
+  (`game-icons:wine-glass`, in the manifest since the flavour taxonomy), the
+  **battery** cannot be a sprite because D1 makes its fill a function of
+  `UIDevice.batteryLevel`, the **signal bars** are four rectangles, and the
+  **grape cluster** is six squares and a stem at 14pt — a master would be larger
+  than the thing it draws. Code-drawn is also tintable by role and sharp at every
+  `TextScale` step, which is 0.6.2's argument for recolouring the rarity leaf in
+  `GrapeSpriteLoader`. **The "V" is the one reuse the spec named**, and it is not
+  where the spec says: B4 points at `art/icons/dvd/`, but 0.7.5's A5 moved the
+  shipped mark to `Resources/Logo` as face/shade masks split on luminance —
+  which is exactly what the composition wanted, since it asks for cream pixels
+  over a magenta drop shadow and the two layers were already separate.
+
+- **The one house rule broken on purpose.** Every themed surface reads an `lcd.*`
+  token; `BiosInk` is five fixed hexes. A BIOS runs before the system that knows
+  what the user chose, so a boot screen that already knew your phosphor would be
+  the part of the metaphor that gave the game away. The roles are what keep it to
+  three colours: cream is the system talking about itself, gold is telemetry,
+  magenta is the frame and the prompts.
+
+- **D2's signal bars are drawn full and static, and that is the honest option.**
+  A meter reporting a strength the app never measured would be the quiet lie
+  `AppVersion` spends forty lines on; four full bars are plainly chrome. The one
+  live reading is the battery, which is live because D1 asked for it and
+  `BiosChrome.battery` handles the `-1` that the simulator and every
+  pre-monitoring device return.
+
+### Parked
+
+- ~~**`npm run icons` produces a byte diff on the two wordmark PNGs**~~ —
+  **resolved in 0.7.7**, and it was never a reproducibility failure. Measured:
+  the importer is bit-for-bit deterministic *within* an environment (two runs,
+  identical hashes) and the two environments disagree because they ship different
+  PNG encoders — WSL has Pillow 10.2 on zlib 1.3 and writes 2087 bytes, Windows
+  has Pillow 12.3, which bundles zlib-ng, and writes 1968. `Image.tobytes()`
+  matches exactly, so only the deflate stream differed, and no encoder argument
+  fixes that. The parked note's worry that this "undermines `icons:verify`" is the
+  one thing it did not do: that script already compares pixels and says so in its
+  docstring. What it actually cost was a modified binary in the working tree after
+  every icon run, on a file the batch had not touched. `art_common.save_stable`
+  now writes only when the destination's pixels differ; `import-logo-art.py` uses
+  it, the other five importers can adopt it, and the 0.7.7 run reported both marks
+  `unchanged` with `icons:verify` at 255 identical.
+- **`sticker-w64.png` is unauthored**, like eighteen of the other twenty-two
+  skins. `SkinStickerView` falls back to the emblem symbol, so the back plate is
+  correct rather than empty. Listed in `art/icons/stamps/README.md` with the IP
+  constraint restated, because that file is where an illustrator will read it.
+- **The lamp chooser is reachable only by holding a lamp.** VoiceOver gets a
+  named "Reassign" action, and the walkthrough teaches the gesture; there is no
+  entry point from SETTINGS. If reassignment turns out to be something people
+  look for rather than stumble on, CUSTOMIZE is where a row would go.

@@ -44,12 +44,51 @@ public struct BootLine: Sendable, Hashable, Identifiable {
 /// no memory budget to report, and reporting the process's real resident size
 /// would be both meaningless and alarming.
 public enum BootSequence: Sendable {
-    /// How long the whole sequence runs before the app takes over.
+    /// How long the staged checks run.
+    ///
+    /// **This used to be the whole screen, and 0.7.7 (C1/C2) split it.** Through
+    /// 0.7.5 the POST *was* the lines: they finished, the screen cut, and
+    /// `duration` bounded the entire launch cost. The BIOS redesign makes the
+    /// lines the first of two phases — they resolve, the composition settles,
+    /// and it then holds on `PRESS ANY BUTTON TO CONTINUE` until a touch or
+    /// `autoAdvance`.
+    ///
+    /// The number did not move and neither did the argument behind it. A fourth
+    /// line "since we are here" is still what stops this being brief, and
+    /// `BootSequenceTests.brief` still refuses it. What changed is that the pin
+    /// is now scoped to the phase it was always actually about, with
+    /// `neverTraps` bounding the rest — see that test for why the old single
+    /// assertion could not simply be widened.
     public static let duration: TimeInterval = 1.9
 
     /// The pause after the last line, so the final result is readable rather
     /// than a flash before the cut.
     public static let settle: TimeInterval = 0.45
+
+    /// How long the resting composition holds before advancing itself
+    /// (0.7.7, C2).
+    ///
+    /// **A timeout is the requirement; the length is the judgement.** C2 asks
+    /// for a prompt that any input answers *and* a timeout so the screen can
+    /// never trap someone — a device with a dead digitiser, a screen reader
+    /// user who has not found the tap target, anyone who set the thing down.
+    /// So this is a ceiling on being stuck, not a dwell someone is meant to
+    /// wait out.
+    ///
+    /// 3.5s, from both ends: under about three the prompt is gone before it can
+    /// be read, which makes it a lie rather than an instruction, and much over
+    /// four it stops being a safety net and becomes a splash screen — the tax
+    /// on every single launch forever that 0.7.3a's note is about. The whole
+    /// point of `longestUntouched` is that this number has somewhere to be
+    /// asserted.
+    public static let autoAdvance: TimeInterval = 3.5
+
+    /// The longest a launch can sit on the BIOS with nobody touching it.
+    ///
+    /// Derived rather than declared so it cannot drift from the two constants
+    /// it bounds. A ceiling, not the measured time: the last check lands at
+    /// 1.10 and `duration` is the budget it fits inside.
+    public static var longestUntouched: TimeInterval { duration + autoAdvance }
 
     /// The POST, for a given catalog size and firmware version.
     ///

@@ -37,12 +37,14 @@ import VinodexCore
 /// text scale, would have thrown away this screen's `@State` — including the
 /// REVERT snapshot — every time somebody tried a font colour.
 public struct DeviceWorkshopScreen: View {
-    // The eight axes, live. Declared in `DeviceAxis` order so this block reads
+    // The ten axes, live. Declared in `DeviceAxis` order so this block reads
     // as the device's parts list.
     @AppStorage(DeviceAxis.shell.storageKey) private var shell = ""
     @AppStorage(DeviceAxis.buttons.storageKey) private var buttons = ""
     @AppStorage(DeviceAxis.orb.storageKey) private var orb = ""
+    @AppStorage(DeviceAxis.headerLamps.storageKey) private var headerLamps = ""
     @AppStorage(DeviceAxis.marquee.storageKey) private var marquee = ""
+    @AppStorage(DeviceAxis.marqueeLamps.storageKey) private var marqueeLamps = ""
     @AppStorage(DeviceAxis.grilleColor.storageKey) private var grilleColor = ""
     @AppStorage(DeviceAxis.grilleShape.storageKey) private var grilleShape = ""
     @AppStorage(DeviceAxis.screen.storageKey) private var screen = ""
@@ -107,7 +109,9 @@ public struct DeviceWorkshopScreen: View {
             shell: shell,
             buttons: buttons,
             orb: orb,
+            headerLamps: headerLamps,
             marquee: marquee,
+            marqueeLamps: marqueeLamps,
             grilleColor: grilleColor,
             grilleShape: grilleShape,
             screen: screen,
@@ -117,7 +121,7 @@ public struct DeviceWorkshopScreen: View {
 
     /// Write one axis.
     ///
-    /// A switch rather than eight closures at the call sites: the rows are built
+    /// A switch rather than ten closures at the call sites: the rows are built
     /// by `ForEach(DeviceAxis.allCases)` and each needs a way to set *its* axis,
     /// and a row wired to the wrong property is a bug no Linux test could see.
     private func set(_ axis: DeviceAxis, _ value: String) {
@@ -125,7 +129,9 @@ public struct DeviceWorkshopScreen: View {
         case .shell: shell = value
         case .buttons: buttons = value
         case .orb: orb = value
+        case .headerLamps: headerLamps = value
         case .marquee: marquee = value
+        case .marqueeLamps: marqueeLamps = value
         case .grilleColor: grilleColor = value
         case .grilleShape: grilleShape = value
         case .screen: screen = value
@@ -277,22 +283,22 @@ public struct DeviceWorkshopScreen: View {
         VStack(spacing: 5) {
             // Island: the orb, then the lamp trio.
             HStack(spacing: 4) {
-                // Squared with the real orb (0.7.5, A2) — this is the live
-                // preview of the device being built, so its parts follow the
-                // device's shapes as well as its colours.
-                let orbShape = RoundedRectangle(
-                    cornerRadius: 9 * DexMetrics.islandOrbCornerFraction,
-                    style: .continuous
-                )
-                orbShape
+                // A stadium, with the real orb (0.7.5 A2, 0.7.6 E1) — this is
+                // the live preview of the device being built, so its parts
+                // follow the device's shapes as well as its colours. Width
+                // unchanged and height derived, exactly as up on the chassis.
+                Capsule(style: .continuous)
                     .fill(look.orb)
-                    .frame(width: 9, height: 9)
-                    .overlay(orbShape.strokeBorder(.white, lineWidth: 1))
+                    .frame(width: 11, height: 11 / DexMetrics.islandOrbAspect)
+                    .overlay(Capsule(style: .continuous).strokeBorder(.white, lineWidth: 1))
                     .shadow(color: look.orbGlow, radius: 3)
                 Spacer(minLength: 0)
+                // `headerLights`, not `statusLights` (0.7.6, B1): the schematic
+                // is the fitted device, so it has to show the axis rather than
+                // the shell it falls back to.
                 ForEach(0..<3, id: \.self) { index in
                     Circle()
-                        .fill(look.statusLights[index].fill)
+                        .fill(look.headerLights[index].fill)
                         .frame(width: 4, height: 4)
                 }
             }
@@ -341,13 +347,24 @@ public struct DeviceWorkshopScreen: View {
                     ))
                     .frame(width: 11, height: 11)
                     .overlay(Circle().strokeBorder(look.control.edge, lineWidth: 1))
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(look.marqueeText)
-                    .frame(height: 13)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 2)
-                            .strokeBorder(look.marqueeShadow, lineWidth: 1.5)
-                    )
+                // The marquee column: its two lamp buttons over the panel,
+                // which is how the real footer is stacked. The lamps are on the
+                // schematic since 0.7.6 (B1) because they are an axis now, and a
+                // part you can choose that the diagram does not show is a row
+                // with no preview.
+                VStack(spacing: 2) {
+                    HStack(spacing: 2) {
+                        Capsule().fill(look.marqueeLights[0].fill).frame(height: 3)
+                        Capsule().fill(look.marqueeLights[2].fill).frame(height: 3)
+                    }
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(look.marqueeText)
+                        .frame(height: 13)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 2)
+                                .strokeBorder(look.marqueeShadow, lineWidth: 1.5)
+                        )
+                }
                 Circle()
                     .fill(LinearGradient(
                         colors: [look.accent.light, look.accent.mid],
@@ -377,13 +394,14 @@ public struct DeviceWorkshopScreen: View {
         case .shell: shellChooser
         case .screen: screenChooser
         case .grilleShape: grilleShapeChooser
-        case .buttons, .orb, .marquee, .grilleColor, .font: colorChooser(axis)
+        case .buttons, .orb, .headerLamps, .marquee, .marqueeLamps, .grilleColor, .font:
+            colorChooser(axis)
         }
     }
 
-    /// The five colour axes, all through one grid.
+    /// The seven colour axes, all through one grid.
     ///
-    /// One row builder for five axes rather than five near-identical ones — the
+    /// One row builder for seven axes rather than seven near-identical ones — the
     /// difference between them is which key it writes and which swatch the chip
     /// paints, and both come off `PartColor` and `DeviceAxis`. The FOLLOW chip is
     /// first because "leave this to the shell" is the state the device ships in
@@ -465,6 +483,10 @@ public struct DeviceWorkshopScreen: View {
         switch axis {
         case .buttons: Circle().fill(stock.accent.bright)
         case .orb: Circle().fill(stock.orbGlow)
+        // The middle lamp of the shell's own trio, which is the one stop that
+        // represents a three-lamp set in a single swatch — the outer two are
+        // deliberately its extremes.
+        case .headerLamps, .marqueeLamps: Circle().fill(stock.statusLights[1].fill)
         case .marquee: Circle().fill(stock.marqueeText)
         case .grilleColor: Circle().fill(stock.grill)
         // The screen mode's own ink, which is what an unset font follows —
@@ -472,7 +494,7 @@ public struct DeviceWorkshopScreen: View {
         // whatever the axis is currently set to. See `LcdMode.ownInk`.
         case .font: Circle().fill(lcd.ownInk)
         // Not reachable — the three non-colour axes have their own choosers —
-        // and exhaustive rather than `default:` so a ninth axis has to answer
+        // and exhaustive rather than `default:` so an eleventh axis has to answer
         // here instead of silently painting itself the shell's body colour.
         case .shell, .grilleShape, .screen: Circle().fill(stock.body)
         }

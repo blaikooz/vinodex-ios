@@ -30,6 +30,8 @@ import shutil
 import sys
 from collections import deque
 
+from PIL import Image
+
 WHITE_FLOOR = 240
 
 
@@ -72,6 +74,53 @@ def output_dir(root, name):
     """
     base = os.environ.get("ART_OUT") or os.path.join(root, "Sources", "VinodexUI", "Resources")
     return os.path.join(base, name)
+
+
+def save_stable(img, out):
+    """Write `img` to `out`, but only if the pixels there are different.
+
+    **The churn this exists to stop, and why it is not a reproducibility bug.**
+    `npm run icons` was rewriting `Logo/vinodex-mark-face.png` and
+    `vinodex-mark-shade.png` with different bytes on every machine, with no
+    change to the master and no change to the script -- and 0.7.6 reverted them
+    rather than commit a diff nobody could explain. Measured in 0.7.7: the
+    importer is bit-for-bit deterministic *within* an environment (two runs,
+    identical hashes) and the two environments disagree because they ship
+    different PNG encoders. WSL has Pillow 10.2 against zlib 1.3 and writes 2087
+    bytes; Windows has Pillow 12.3, which bundles zlib-ng, and writes 1968. The
+    decoded images are identical -- `Image.tobytes()` matches exactly.
+
+    So there was never a difference in the art, only in the deflate stream, and
+    no encoder argument fixes that: the two builds compress differently at every
+    level. `verify-art.py` already knew this and compares pixels, which is why
+    `icons:verify` stayed green throughout and the parked note's worry that the
+    churn "undermines icons:verify" turned out to be the one thing it did not do.
+
+    What was actually costing time was the *working tree*: a modified binary
+    after every icon run, on a file the batch had not touched, which has to be
+    inspected and reverted before it can be committed by accident. Comparing
+    pixels before writing removes it at the source. An importer that changes the
+    art still writes; an importer whose output decodes identically leaves the
+    file alone, mtime and all.
+
+    Returns True if the file was written.
+    """
+    out = str(out)
+    if os.path.exists(out):
+        try:
+            with Image.open(out) as existing:
+                same = (
+                    existing.size == img.size
+                    and existing.convert("RGBA").tobytes() == img.convert("RGBA").tobytes()
+                )
+        except OSError:
+            # Unreadable or not an image: write over it. A corrupt destination
+            # is exactly the case that must not be preserved by a skip.
+            same = False
+        if same:
+            return False
+    img.save(out)
+    return True
 
 
 def copy_master(path, out):

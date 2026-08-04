@@ -6,7 +6,7 @@ import VinodexCore
 /// **This is the rule that had forked.** Skins and screen modes were always
 /// stored in the one entitlement set — there was never a second store to unify
 /// — but the *rule* was copy-pasted into four view bodies, twice in the settings
-/// pickers and twice in the marquee drawer:
+/// pickers and twice in the marquee drawer (retired in 0.7.6, A1):
 ///
 /// ```swift
 /// let locked = option != .classic && !access.isUnlocked(.skins)

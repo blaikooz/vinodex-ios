@@ -19,13 +19,9 @@ public struct SettingsPanel: View {
     let onClose: () -> Void
     let onSection: (SettingsSection) -> Void
     let onMinigames: () -> Void
-    let onWalkthrough: () -> Void
-
-    /// Set when TUTORIAL is tapped. The tour is a few minutes of someone's time, so
-    /// it asks before it takes them — and asking is also what makes it findable
-    /// without being imposed: the tile says what it is, the prompt says what it
-    /// will do, and NO costs one tap.
-    @State private var offeringTour = false
+    // `onWalkthrough` retired here in 0.7.6 (F1) — the tour moved into
+    // SETTINGS > DEVICE, so `SettingsSectionPanel` takes the callback now. See
+    // the note on the grid below for what that costs and why it is paid.
 
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
@@ -33,26 +29,38 @@ public struct SettingsPanel: View {
     public init(
         onClose: @escaping () -> Void,
         onSection: @escaping (SettingsSection) -> Void = { _ in },
-        onMinigames: @escaping () -> Void = {},
-        onWalkthrough: @escaping () -> Void = {}
+        onMinigames: @escaping () -> Void = {}
     ) {
         self.onClose = onClose
         self.onSection = onSection
         self.onMinigames = onMinigames
-        self.onWalkthrough = onWalkthrough
     }
 
+    /// **Five tiles since 0.7.6 (F1), in three rows: two, two, and one wide.**
+    ///
+    /// F1 moves the tutorial into SETTINGS > DEVICE, which takes a tile out of a
+    /// grid that was a fixed three-by-two sized to fill the LCD. Five tiles in
+    /// that grid is an orphan on the last row, so the last row is one tile
+    /// instead — and the tile that gets it is SHOP, which is the right one for
+    /// reasons beyond arithmetic: it is the storefront, it is the only tile on
+    /// this grid that leads to something with a price, and C spends this batch
+    /// making its contents larger and clearer. A full-width shelf at the bottom
+    /// of the panel reads as a shop front rather than as a leftover.
+    ///
+    /// **What F1 costs, stated rather than hidden.** TUTORIAL was first on this
+    /// grid deliberately: it is the tile that matters to exactly one person —
+    /// someone who has just opened this thing — and that person must not have to
+    /// hunt for it. It is now two taps away instead of one. Two things pay for
+    /// that. It is *first* in the DEVICE section rather than last, so anyone who
+    /// opens SETTINGS looking for it meets it immediately; and DEVICE is where
+    /// the walkthrough actually belongs — 0.7.3a's own note calls that section
+    /// "three things the device can tell you or do", and a guided tour of the
+    /// device is a fourth.
     public var body: some View {
-        // A fixed three-row grid that fills the LCD (v0.5.6) — six tiles, no
-        // scrolling: the panel is sized by the screen, not by its content.
-        // TUTORIAL first, deliberately: it is the tile that matters to
-        // exactly one person — someone who has just opened this thing — and
-        // that person must not have to hunt for it.
+        // A fixed grid that fills the LCD (v0.5.6) — no scrolling: the panel is
+        // sized by the screen, not by its content.
         VStack(spacing: 10) {
             HStack(spacing: 10) {
-                featureTile(title: "TUTORIAL", symbol: "flag.checkered") {
-                    offeringTour = true
-                }
                 // A wrench, not a gamepad — the hub holds more instruments
                 // than games, and the tile should promise what it opens.
                 featureTile(
@@ -60,59 +68,42 @@ public struct SettingsPanel: View {
                     symbol: "wrench.and.screwdriver.fill",
                     action: onMinigames
                 )
-            }
-            // DEV is deliberately absent from the grid — it lives as a
-            // button inside SETTINGS, where developer plumbing belongs.
-            HStack(spacing: 10) {
                 featureTile(
                     title: SettingsSection.customization.rawValue,
                     symbol: SettingsSection.customization.symbol
                 ) {
                     onSection(.customization)
                 }
+            }
+            // DEV is deliberately absent from the grid — it lives as a
+            // button inside SETTINGS, where developer plumbing belongs.
+            HStack(spacing: 10) {
                 featureTile(
                     title: SettingsSection.settings.rawValue,
                     symbol: SettingsSection.settings.symbol
                 ) {
                     onSection(.settings)
                 }
-            }
-            HStack(spacing: 10) {
                 featureTile(
                     title: SettingsSection.data.rawValue,
                     symbol: SettingsSection.data.symbol
                 ) {
                     onSection(.data)
                 }
-                featureTile(
-                    title: SettingsSection.access.rawValue,
-                    symbol: SettingsSection.access.symbol
-                ) {
-                    onSection(.access)
-                }
+            }
+            // The shop, the width of the panel. `displayName`, not `rawValue`:
+            // this tile is the one place on the grid where the two differ, and
+            // 0.7.5's B2 renamed the label rather than the stored word.
+            featureTile(
+                title: SettingsSection.access.displayName,
+                symbol: SettingsSection.access.symbol
+            ) {
+                onSection(.access)
             }
         }
         .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(lcd.panelGround)
-        // In-LCD, like every other dialog in the app — a system alert would
-        // slide up from the device and break the chassis metaphor.
-        .overlay {
-            if offeringTour {
-                DexAlert(
-                    title: "TAKE THE TOUR?",
-                    message: "A quick walk round the device — what each button does and where things live. About a minute, and you can leave at any point.",
-                    confirmLabel: "YES",
-                    cancelLabel: "NOT NOW",
-                    onConfirm: {
-                        offeringTour = false
-                        onWalkthrough()
-                    },
-                    onCancel: { offeringTour = false }
-                )
-            }
-        }
-        .animation(DexMotion.overlay, value: offeringTour)
     }
 
     /// Per-tile colours, tuned separately for the pale and dark grounds
@@ -120,18 +111,20 @@ public struct SettingsPanel: View {
     /// again — the colour is half the identity — and light mode runs the
     /// deeper cuts because the bright faces washed out on the pale page.
     private func tileColors(_ title: String) -> (face: String, shadow: String, ink: Color) {
+        // Keyed on the label the tile shows. The TUTORIAL entry went with the
+        // tile in 0.7.6 (F1); the green it used is not reassigned, because the
+        // remaining five each already have one and a spare colour is not a
+        // reason to repaint a grid people know.
         if lcd.isLight {
             return switch title {
-            case "TUTORIAL": ("#15803D", "#0B4A24", .white)
             case "TOOLS": ("#B45309", "#7A3606", .white)
             case "CUSTOMIZE": ("#B91C1C", "#7A1010", .white)
             case "SETTINGS": ("#C2410C", "#7C2D12", .white)
             case "DATA": ("#1D6FA8", "#11486E", .white)
-            default: ("#7E22CE", "#4C1D95", .white)   // ACCESS
+            default: ("#7E22CE", "#4C1D95", .white)   // SHOP
             }
         }
         return switch title {
-        case "TUTORIAL": ("#22C55E", "#15803D", .white)
         // White ink like every other tile (0.6.4, E1) — the dark-amber ink
         // made TOOLS the odd one out on the grid. The face deepens a step so
         // white still clears it, rather than sitting white-on-yellow.
@@ -139,7 +132,7 @@ public struct SettingsPanel: View {
         case "CUSTOMIZE": ("#EF4444", "#991B1B", .white)
         case "SETTINGS": ("#F97316", "#9A3412", .white)
         case "DATA": ("#2AB5FF", "#136A99", .white)
-        default: ("#A855F7", "#6B21A8", .white)       // ACCESS
+        default: ("#A855F7", "#6B21A8", .white)       // SHOP
         }
     }
 
@@ -223,6 +216,10 @@ public struct SettingsSectionPanel: View {
     /// the user out of settings entirely.
     let onFirmwareHistory: () -> Void
     let onCheatConsole: () -> Void
+    /// The guided tour (0.7.6, F1). A fourth door in the DEVICE section, and a
+    /// route push like the two above so Back returns to SETTINGS rather than
+    /// dropping the user out of the panel entirely.
+    let onWalkthrough: () -> Void
     /// Starts the attract loop. Not a route — demo mode drives the *whole* route
     /// stack, so it is the app's business rather than a screen to push.
     let onDemoMode: () -> Void
@@ -258,6 +255,11 @@ public struct SettingsSectionPanel: View {
     /// CLEAR SAVED DATA asks first — it is the one control here that cannot be
     /// undone by tapping it again.
     @State private var confirmingWipe = false
+    /// Set when TUTORIAL is tapped (0.7.6, F1). The tour is a few minutes of
+    /// someone's time, so it asks before it takes them — and asking is also what
+    /// makes it findable without being imposed: the row says what it is, the
+    /// prompt says what it will do, and NOT NOW costs one tap.
+    @State private var offeringTour = false
     @AppStorage(Haptics.storageKey) private var hapticsOn = true
     /// Off by default from v0.5.1 — sounds are opt-in. See `Sounds`.
     @AppStorage(Sounds.storageKey) private var soundsOn = false
@@ -283,6 +285,7 @@ public struct SettingsSectionPanel: View {
         onDev: @escaping () -> Void = {},
         onFirmwareHistory: @escaping () -> Void = {},
         onCheatConsole: @escaping () -> Void = {},
+        onWalkthrough: @escaping () -> Void = {},
         onDemoMode: @escaping () -> Void = {},
         onDeviceWorkshop: @escaping () -> Void = {}
     ) {
@@ -290,6 +293,7 @@ public struct SettingsSectionPanel: View {
         self.onDev = onDev
         self.onFirmwareHistory = onFirmwareHistory
         self.onCheatConsole = onCheatConsole
+        self.onWalkthrough = onWalkthrough
         self.onDemoMode = onDemoMode
         self.onDeviceWorkshop = onDeviceWorkshop
     }
@@ -341,6 +345,18 @@ public struct SettingsSectionPanel: View {
             } else if let open = openShopItem,
                       let item = allShopItems.first(where: { $0.id == open }) {
                 shopSplash(item)
+            } else if offeringTour {
+                DexAlert(
+                    title: "TAKE THE TOUR?",
+                    message: "A quick walk round the device — what each button does and where things live. About a minute, and you can leave at any point.",
+                    confirmLabel: "YES",
+                    cancelLabel: "NOT NOW",
+                    onConfirm: {
+                        offeringTour = false
+                        onWalkthrough()
+                    },
+                    onCancel: { offeringTour = false }
+                )
             } else if confirmingWipe {
                 DexAlert(
                     title: "CLEAR SAVED DATA?",
@@ -356,6 +372,7 @@ public struct SettingsSectionPanel: View {
         }
         .animation(DexMotion.overlay, value: lockedBundle)
         .animation(DexMotion.overlay, value: openShopItem)
+        .animation(DexMotion.overlay, value: offeringTour)
         .animation(DexMotion.overlay, value: confirmingWipe)
     }
 
@@ -775,29 +792,49 @@ public struct SettingsSectionPanel: View {
     /// bar, a cosmetic pack has a member count, and a plain upgrade has however
     /// many entries it opens — or nothing at all, if it opens none, which is the
     /// honest answer for the three cosmetic entitlements.
+    ///
+    /// **Larger, and with a preview of what is inside (0.7.6, C2/C3/C4).** B4
+    /// built the shape; C asks it to actually sell something. Three changes, and
+    /// they are all the same change: the type steps up (title 15 → 19, blurb 18 →
+    /// 19, buttons 11 → 13 with more height under them), the mockups grow with
+    /// it, and a **preview strip** sits under the contents line — the shells and
+    /// screens a cosmetic pack contains, drawn as the picker tiles they will
+    /// become, or a handful of the entries an upgrade opens. See `splashPreview`.
+    ///
+    /// **It stays an overlay, and C does not push it past what an overlay should
+    /// carry.** B4's note argued a route would mean a `DexRoute` case per pack or
+    /// one carrying an id, `ChromeTests` coverage, a marquee title and a glyph —
+    /// for a card dismissed by looking away from it. Everything C adds is content
+    /// *inside* the same scrolling column: no new navigation, no state that has
+    /// to survive a back-stack, nothing that wants a title of its own. The line
+    /// this would cross is a splash that could push somewhere — tapping a shell
+    /// in the preview strip to try it on, say — and it deliberately does not:
+    /// the strip is a picture of what is in the box.
     @ViewBuilder
     private func shopSplash(_ item: ShopItem) -> some View {
         let owned = owns(item)
 
         VStack(spacing: 0) {
             ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 16) {
                     cartridgeMockups(item)
 
                     Text(item.title)
-                        .font(DexFont.retro(15))
+                        .font(DexFont.retro(19))
                         .tracking(1)
                         .foregroundStyle(lcd.text)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     Text(item.blurb)
-                        .font(DexFont.mono(18))
+                        .font(DexFont.mono(19))
                         .foregroundStyle(lcd.subtext)
                         .fixedSize(horizontal: false, vertical: true)
 
                     splashContents(item)
+                    splashPreview(item)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(16)
+                .padding(18)
             }
 
             HStack(spacing: 10) {
@@ -806,10 +843,10 @@ public struct SettingsSectionPanel: View {
                     openShopItem = nil
                 } label: {
                     Text("CLOSE")
-                        .font(DexFont.retro(11))
+                        .font(DexFont.retro(13))
                         .tracking(1)
                         .foregroundStyle(lcd.subtext)
-                        .padding(.vertical, 14)
+                        .padding(.vertical, 16)
                         .frame(maxWidth: .infinity)
                         .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
                         .overlay(
@@ -824,10 +861,10 @@ public struct SettingsSectionPanel: View {
                     // cartridge, and a disabled control saying OWNED would be a
                     // thing to try to press.
                     Text("OWNED")
-                        .font(DexFont.retro(11))
+                        .font(DexFont.retro(13))
                         .tracking(1)
                         .foregroundStyle(Dex.green)
-                        .padding(.vertical, 14)
+                        .padding(.vertical, 16)
                         .frame(maxWidth: .infinity)
                         .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
                         .overlay(
@@ -845,17 +882,17 @@ public struct SettingsSectionPanel: View {
                         lockedBundle = item.entitlement
                     } label: {
                         Text("UNLOCK")
-                            .font(DexFont.retro(11))
+                            .font(DexFont.retro(13))
                             .tracking(1)
                             .foregroundStyle(lcd.onAccent)
-                            .padding(.vertical, 14)
+                            .padding(.vertical, 16)
                             .frame(maxWidth: .infinity)
                             .background(RoundedRectangle(cornerRadius: 6).fill(lcd.accent))
                     }
                     .buttonStyle(DexPressStyle(scale: 0.98))
                 }
             }
-            .padding(16)
+            .padding(18)
             .background(lcd.panelGround)
         }
         .background(lcd.panelGround)
@@ -865,10 +902,148 @@ public struct SettingsSectionPanel: View {
         .onTapGesture {}
     }
 
+    // MARK: Splash previews (0.7.6, C2/C4)
+
+    /// What is actually in the box.
+    ///
+    /// **Three shapes, matching the three kinds of thing the shop sells**, and in
+    /// each case the preview is drawn in the vocabulary the contents will arrive
+    /// in — which is the whole of C2's "mockups": a shell pack previews shells as
+    /// the swatches the picker will show, a screen pack previews screens as the
+    /// mode cards, and an upgrade previews entries as the tiles the encyclopedia
+    /// draws. A preview in a vocabulary the app does not otherwise use would be an
+    /// illustration of the product rather than a look at it.
+    ///
+    /// Nothing here is a control. See `shopSplash` for where the line is.
+    @ViewBuilder
+    private func splashPreview(_ item: ShopItem) -> some View {
+        if let pack = item.pack {
+            if let section = ChassisSkinSection.allCases.first(where: { $0.pack.id == pack.id }) {
+                previewStrip("SHELLS IN THIS PACK") {
+                    ForEach(section.skins) { skin in
+                        shellSwatch(skin)
+                    }
+                }
+            } else if let section = LcdModeSection.allCases.first(where: { $0.pack.id == pack.id }) {
+                previewStrip("SCREENS IN THIS PACK") {
+                    ForEach(section.modes) { mode in
+                        screenSwatch(mode)
+                    }
+                }
+            } else {
+                // An atlas pack: real entries, exactly like an upgrade. Its
+                // collection bar is already above this, so the strip is the
+                // "what am I buying" half rather than the "how far am I" half.
+                entryPreview(pack.entries(in: db))
+            }
+        } else {
+            entryPreview(db.entries.filter { item.entitlement.covers($0, in: db) })
+        }
+    }
+
+    /// A sample of the entries something opens (C4).
+    ///
+    /// **Six, and taken off the front of the list rather than at random.** A
+    /// random six would change under the user every time the body re-ran —
+    /// `BookmarkStore` is observed on this panel, so that is often — and a splash
+    /// whose contents shuffle while you read it reads as a bug. Six is two rows
+    /// of three at the tile size below, which is a sample rather than a catalog:
+    /// the count beside the heading is what says how many there really are.
+    @ViewBuilder
+    private func entryPreview(_ entries: [WineEntry]) -> some View {
+        let sample = Array(entries.prefix(6))
+        if !sample.isEmpty {
+            previewStrip("A LOOK INSIDE") {
+                ForEach(sample) { entry in
+                    VStack(spacing: 5) {
+                        EntryIconWell(entry: entry, size: 40)
+                        Text(entry.name)
+                            .font(DexFont.retro(8))
+                            .tracking(0.5)
+                            .foregroundStyle(lcd.subtext)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.6)
+                            .frame(height: 22, alignment: .top)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+        }
+    }
+
+    /// One shell, as the picker draws it: the body colour over the dark ground
+    /// its own swatch uses in the workshop, so a preview and the thing previewed
+    /// are the same picture.
+    private func shellSwatch(_ skin: ChassisSkin) -> some View {
+        VStack(spacing: 5) {
+            Circle()
+                .fill(Color(dexHex: "#1B1D21"))
+                .overlay(Circle().fill(skin.body))
+                .overlay(Circle().strokeBorder(skin.panelEdge, lineWidth: 1.5))
+                .frame(width: 40, height: 40)
+            Text(skin.displayName)
+                .font(DexFont.retro(8))
+                .tracking(0.5)
+                .foregroundStyle(lcd.subtext)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.6)
+                .frame(height: 22, alignment: .top)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    /// One screen mode, as the mode picker draws it.
+    private func screenSwatch(_ mode: LcdMode) -> some View {
+        VStack(spacing: 5) {
+            Circle()
+                .fill(mode.screen)
+                .overlay(Circle().strokeBorder(mode.text.opacity(0.6), lineWidth: 1.5))
+                .frame(width: 40, height: 40)
+            Text(mode.displayName)
+                .font(DexFont.retro(8))
+                .tracking(0.5)
+                .foregroundStyle(lcd.subtext)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.6)
+                .frame(height: 22, alignment: .top)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    /// The heading and grid every preview shares.
+    ///
+    /// A `LazyVGrid` on `pickerColumns` rather than a horizontal scroller: the
+    /// splash already scrolls vertically, and a second scroll axis inside it is
+    /// the one gesture arrangement this app has repeatedly had to unpick.
+    private func previewStrip<C: View>(
+        _ heading: String,
+        @ViewBuilder content: () -> C
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(heading)
+                .font(DexFont.retro(11))
+                .tracking(1.5)
+                .foregroundStyle(lcd.accent)
+            LazyVGrid(columns: pickerColumns, spacing: 10) {
+                content()
+            }
+        }
+        .padding(.top, 4)
+    }
+
     /// The fanned cartridge trio at the top of a splash.
+    ///
+    /// **Bigger since 0.7.6 (C3)**: the strip is 132pt → 168 and the hero takes
+    /// half the width rather than 0.44 of it, so the product shot is the first
+    /// thing the splash is rather than a thumbnail above the copy. It is still
+    /// bounded by the strip's own height, so a short LCD shrinks it rather than
+    /// pushing the title off the card.
     private func cartridgeMockups(_ item: ShopItem) -> some View {
         GeometryReader { geo in
-            let side = min(geo.size.width * 0.44, geo.size.height)
+            let side = min(geo.size.width * 0.50, geo.size.height)
             ZStack {
                 // Two ghosts behind, stepped away from the hero. Drawn as bare
                 // outlines rather than as full cartridges: they are the rest of
@@ -896,7 +1071,7 @@ public struct SettingsSectionPanel: View {
             }
             .frame(width: geo.size.width, height: geo.size.height, alignment: .center)
         }
-        .frame(height: 132)
+        .frame(height: 168)
         .frame(maxWidth: .infinity)
     }
 
@@ -906,12 +1081,12 @@ public struct SettingsSectionPanel: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text("\(progress.collected) / \(progress.total) TRIED")
-                        .font(DexFont.retro(11))
+                        .font(DexFont.retro(13))
                         .tracking(1)
                         .foregroundStyle(progress.isComplete ? Dex.green : lcd.text)
                     Spacer(minLength: 8)
                     Text("\(pack.entries(in: db).count) ENTRIES")
-                        .font(DexFont.retro(11))
+                        .font(DexFont.retro(13))
                         .tracking(1)
                         .foregroundStyle(lcd.subtext)
                 }
@@ -923,21 +1098,21 @@ public struct SettingsSectionPanel: View {
                             .frame(width: geo.size.width * progress.fraction)
                     }
                 }
-                .frame(height: 8)
+                .frame(height: 10)
             }
         } else if let pack = item.pack {
             // A cosmetic pack: members you own or do not, and no denominator
             // `ExpansionPack.progress` is willing to invent. The count is
             // resolved here, in the module that can see `ChassisSkinSection`.
             Text("\(pack.cosmeticMemberCount) IN THIS PACK")
-                .font(DexFont.retro(11))
+                .font(DexFont.retro(13))
                 .tracking(1)
                 .foregroundStyle(lcd.text)
         } else {
             let covered = db.entries.filter { item.entitlement.covers($0, in: db) }.count
             if covered > 0 {
                 Text("\(covered) ENTRIES")
-                    .font(DexFont.retro(11))
+                    .font(DexFont.retro(13))
                     .tracking(1)
                     .foregroundStyle(lcd.text)
             }
@@ -982,8 +1157,8 @@ public struct SettingsSectionPanel: View {
                         tint: owned ? lcd.accent : Dex.yellow,
                         title: owned ? "OPEN" : "UNLOCK",
                         detail: owned
-                            ? "Mix shell, buttons, orb, marquee, grille, screen and font. Save the builds you like."
-                            : "Build your own handheld: eight parts, mixed and matched, saved by name."
+                            ? "Mix shell, buttons, orb, lights, marquee, grille, screen and font. Save the builds you like."
+                            : "Build your own handheld: ten parts, mixed and matched, saved by name."
                     ) {
                         Image(systemName: owned ? "chevron.right" : "lock.open.fill")
                             .font(.system(size: 14, weight: .bold))
@@ -1002,7 +1177,7 @@ public struct SettingsSectionPanel: View {
                         .tracking(1)
                         .foregroundStyle(lcd.accent)
                 } else if !owned {
-                    Text("The shell and screen pickers below stay free. The workshop is the six parts they cannot reach — buttons, orb, marquee, grille colour and pattern, and the font.")
+                    Text("The shell and screen pickers below stay free. The workshop is the eight parts they cannot reach — buttons, the header and marquee lights, the orb, the marquee, the grille colour and pattern, and the font.")
                         .font(DexFont.mono(17))
                         .foregroundStyle(lcd.subtext)
                         .fixedSize(horizontal: false, vertical: true)
@@ -1058,8 +1233,34 @@ public struct SettingsSectionPanel: View {
         // actually come here for — under a stack of device curiosities. They
         // belong together anyway: none of the three is a *setting*, they are
         // three things the device can tell you or do.
+        //
+        // **The tutorial joins it in 0.7.6 (F1)**, and goes first. It is the one
+        // row here somebody might be actively looking for — see the note on
+        // `SettingsPanel.body` for what moving it off the grid cost and how
+        // leading this section pays for it. It also fits the heading's own
+        // argument: none of these is a *setting*, they are things the device can
+        // tell you or do, and a guided tour of the device is squarely that.
         settingsSection("DEVICE") {
             VStack(alignment: .leading, spacing: 10) {
+                Button {
+                    Haptics.screenTap()
+                    offeringTour = true
+                } label: {
+                    settingRow(
+                        // The glyph the grid tile wore, so the row is
+                        // recognisable to anyone who knew where it used to be.
+                        symbol: "flag.checkered",
+                        tint: lcd.accent,
+                        title: "TUTORIAL",
+                        detail: "A guided walk round the device. About a minute, and you can leave at any point."
+                    ) {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(lcd.subtext)
+                    }
+                }
+                .buttonStyle(DexPressStyle(scale: 0.98))
+
                 Button {
                     Haptics.screenTap()
                     onFirmwareHistory()
@@ -1241,17 +1442,16 @@ public struct SettingsSectionPanel: View {
                             .frame(height: 50)
                             .frame(maxWidth: .infinity)
                             .overlay(alignment: .topLeading) {
-                                // Squared with the real orb (0.7.5, A2). A
-                                // mockup whose parts are the wrong shape is
-                                // worse than no mockup — this tile's whole job
-                                // is to say what the device will look like.
-                                RoundedRectangle(
-                                    cornerRadius: 10 * DexMetrics.islandOrbCornerFraction,
-                                    style: .continuous
-                                )
-                                .fill(option.orb)
-                                .frame(width: 10, height: 10)
-                                .padding(5)
+                                // A stadium, with the real orb (0.7.5 A2,
+                                // 0.7.6 E1). A mockup whose parts are the wrong
+                                // shape is worse than no mockup — this tile's
+                                // whole job is to say what the device will look
+                                // like. Width unchanged and height derived, as
+                                // on the chassis.
+                                Capsule(style: .continuous)
+                                    .fill(option.orb)
+                                    .frame(width: 10, height: 10 / DexMetrics.islandOrbAspect)
+                                    .padding(5)
                             }
                             .overlay(alignment: .topTrailing) {
                                 Circle()

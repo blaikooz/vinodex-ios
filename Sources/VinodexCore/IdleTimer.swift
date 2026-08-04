@@ -10,9 +10,16 @@ public enum IdleStage: Int, Comparable, CaseIterable, Sendable {
     /// Someone is using it. The state the device is in almost all the time.
     case active = 0
     /// Long enough that the marquee drifts from MENU to a toast (0.7.1, B3).
+    ///
+    /// **Not separately reachable since 0.7.6 (A4)** — see `IdleSchedule.toast`.
+    /// The case is kept rather than deleted precisely because consumers ask
+    /// `stage >= .toast` rather than `stage == .toast`: the greeting is still due
+    /// at the moment this rank is passed, and it is now passed on the way into
+    /// `.screensaver`. Deleting it would have turned a threshold change back into
+    /// a rewrite, which is the thing A4 was asked not to do.
     case toast = 1
-    /// Long enough for the screensaver (0.7.3, A5). The last stage: nothing
-    /// happens after this but activity.
+    /// Long enough for the screensaver (0.7.3, A5; 30 seconds since 0.7.6, A3).
+    /// The last stage: nothing happens after this but activity.
     case screensaver = 2
 
     public static func < (lhs: IdleStage, rhs: IdleStage) -> Bool {
@@ -26,28 +33,73 @@ public enum IdleStage: Int, Comparable, CaseIterable, Sendable {
 /// an enum case (`MarqueeStage.menu` returned `(10, .cheers)`) where nothing
 /// could find it. F2 asks for one inactivity tracker firing staged events, and a
 /// single tracker with two separately-authored constants is two trackers wearing
-/// one coat. `MarqueeStage` reads `toast` from here now.
+/// one coat. `MarqueeStage` reads its dwell from here now.
+///
+/// **0.7.6 (A3/A4) finishes that job by removing one of the two numbers.** The
+/// screensaver moves to 30 seconds and the marquee's greeting arrives with it
+/// rather than twenty seconds ahead of it, so there is one authored threshold and
+/// one optional knob that would bring the second back. See `toast`.
 public enum IdleSchedule: Sendable {
-    /// 10 seconds — 0.7.1's B3 figure, unchanged. It has to outlast someone
-    /// reading the four menu tiles and deciding, or the panel changes under a
-    /// user who never stopped using the device.
-    public static let toast: TimeInterval = 10
+    /// The pre-idle marquee toast — **folded into the screensaver in 0.7.6 (A4),
+    /// and this optional is the fold.**
+    ///
+    /// It was 10 seconds, from 0.7.1's B3: long enough to outlast someone reading
+    /// the four menu tiles and deciding, and the moment the panel drifted from
+    /// MENU to CHEERS! on the main screen. A4 asks for the toast to arrive *with*
+    /// the screensaver instead, on any screen, and the argument is the same one
+    /// the Decision makes about the drawer: two idle stages that both show a
+    /// greeting are two answers to one question, and the earlier one exists only
+    /// because the later one used to be main-menu-only.
+    ///
+    /// **`nil` means "no separate toast stage" — not "no toast".** `IdleStage`
+    /// keeps `.toast` and every consumer keeps asking `stage >= .toast`, which is
+    /// still true the instant `.screensaver` is entered because the stages are
+    /// `Comparable` and ordered. So the greeting still happens; it just happens at
+    /// the one threshold rather than at a threshold of its own.
+    ///
+    /// **Reverting is this line.** Give it a number below `screensaver` and the
+    /// two-stage behaviour comes back whole: `stages` grows its entry again,
+    /// `stage(after:)` starts returning `.toast`, and `MarqueeStage.menu`'s dwell
+    /// follows it through `cheers` below. Nothing else in the app names either
+    /// number.
+    public static let toast: TimeInterval? = nil
 
-    /// 15 seconds — A5's figure. Deliberately close behind the toast rather than
-    /// a minute out: this device never dims (`ScreenWake` pins
+    /// When the marquee's greeting is due, whichever shape the schedule is in.
+    ///
+    /// The one thing `MarqueeStage` should read, so a stage moving between the
+    /// two clocks never has to know whether the fold is in force.
+    public static var cheers: TimeInterval { toast ?? screensaver }
+
+    /// 30 seconds — **A3's figure, up from A5's 15.**
+    ///
+    /// Still deliberately not a minute: this device never dims (`ScreenWake` pins
     /// `isIdleTimerDisabled`), so the screensaver is the only thing that ever
-    /// changes what a forgotten screen is showing, and a burn-in guard that
-    /// waits a minute is a burn-in guard for a phone in a pocket.
-    public static let screensaver: TimeInterval = 15
+    /// changes what a forgotten screen is showing, and a burn-in guard that waits
+    /// a minute is a burn-in guard for a phone in a pocket. Fifteen was the other
+    /// end of that trade and turned out to be the wrong end: a reference app gets
+    /// read from, and fifteen seconds is inside the time it takes to read a
+    /// region's soil block and look back up.
+    ///
+    /// Thirty is also what makes A4's fold affordable. A greeting that replaced
+    /// the page title after ten seconds of reading would have been the panel
+    /// changing under a user who never stopped using the device — the exact fault
+    /// B3's ten seconds was chosen to avoid, reintroduced by taking the toast
+    /// off the main menu.
+    public static let screensaver: TimeInterval = 30
 
     /// Thresholds paired with the stage they open, ascending.
     ///
     /// The table rather than a chain of `if`s, so `stage(after:)` and any future
-    /// consumer that wants to draw a progress bar read the same source.
-    public static let stages: [(after: TimeInterval, stage: IdleStage)] = [
-        (toast, .toast),
-        (screensaver, .screensaver),
-    ]
+    /// consumer that wants to draw a progress bar read the same source. Computed
+    /// rather than a `static let` since 0.7.6, because `toast` may be absent —
+    /// and a table with a `nil` hole in it would have to be filtered by every
+    /// reader instead of once, here.
+    public static var stages: [(after: TimeInterval, stage: IdleStage)] {
+        var out: [(after: TimeInterval, stage: IdleStage)] = []
+        if let toast { out.append((toast, .toast)) }
+        out.append((screensaver, .screensaver))
+        return out
+    }
 
     /// The stage a given idle duration has reached.
     public static func stage(after idle: TimeInterval) -> IdleStage {

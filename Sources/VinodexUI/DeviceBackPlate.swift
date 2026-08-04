@@ -284,7 +284,7 @@ public struct DeviceBackPlate: View {
     /// release is a tap and would have won even after the hit region was fixed.
     /// The sequence's own comment below already assumed it got first refusal
     /// ("a plain tap fails the press … and falls through to `onTapGesture`");
-    /// this is the modifier that actually grants it. `MarqueeDrawer`'s hold-to-pin
+    /// this is the modifier that actually grants it. The marquee lamps' hold-to-pin
     /// had reached the same conclusion from the other direction.
     private var stampField: some View {
         let passport = Passport.compute(

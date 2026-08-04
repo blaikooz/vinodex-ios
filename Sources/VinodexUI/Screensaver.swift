@@ -138,10 +138,15 @@ struct VinodexV: Shape {
 
 /// The idle screensaver (0.7.3, A5).
 ///
-/// Appears at fifteen seconds of inactivity, via the app's one idle timer (F2),
-/// and leaves on any input — which needs no wiring of its own, because the same
-/// touch that would dismiss it has already reset the timer through
-/// `IdleTouchWatcher` before this view hears anything.
+/// Appears at thirty seconds of inactivity (0.7.6, A3), via the app's one idle
+/// timer (F2), and leaves on any input — which needs no wiring of its own,
+/// because the same touch that would dismiss it has already reset the timer
+/// through `IdleTouchWatcher` before this view hears anything.
+///
+/// **The marquee greets you at the same instant since 0.7.6 (A4).** That is the
+/// chassis's business rather than this view's — see `DeviceChassis.footerText` —
+/// but it is worth knowing here that the screensaver and the toast are now one
+/// event on one threshold rather than two stages twenty seconds apart.
 ///
 /// **Why this device needs one at all.** `ScreenWake.keepAwake(true)` pins
 /// `isIdleTimerDisabled`, so iOS never dims the display — a reference app gets
@@ -155,9 +160,19 @@ struct VinodexV: Shape {
 /// and nothing is stored between frames. That is what keeps the mark inside its
 /// box after an hour instead of drifting out of it.
 struct Screensaver: View {
-    /// When the screensaver appeared, so the mark starts in the corner rather
-    /// than wherever a global clock happens to be.
+    /// When the screensaver appeared, so the mark's path is measured from this
+    /// run rather than from wherever a global clock happens to be.
     let since: Date
+
+    /// Where on each axis's cycle this run began (0.7.6, A2).
+    ///
+    /// Passed in rather than drawn here, and that is load-bearing: this view's
+    /// body runs inside a `TimelineView` at display rate, so a `random()` call in
+    /// it would re-roll sixty times a second and the mark would sit still. The
+    /// chassis rolls it once, when the screensaver is raised, and holds it in
+    /// `@State` for the life of the run. Defaulted so a caller that has no opinion
+    /// gets 0.7.5's top-left corner exactly.
+    var start: ScreensaverStart = .corner
 
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
@@ -195,12 +210,14 @@ struct Screensaver: View {
                 let spot = ScreensaverBounce.origin(
                     at: t,
                     bounds: (width: box.width, height: box.height),
-                    mark: (width: mark.width, height: mark.height)
+                    mark: (width: mark.width, height: mark.height),
+                    from: start
                 )
                 let hits = ScreensaverBounce.bounces(
                     by: t,
                     bounds: (width: box.width, height: box.height),
-                    mark: (width: mark.width, height: mark.height)
+                    mark: (width: mark.width, height: mark.height),
+                    from: start
                 )
 
                 ScreensaverMark(tint: palette[hits % palette.count])

@@ -192,6 +192,36 @@ public enum PartColor: String, CaseIterable, Identifiable, Sendable {
     public var orb: Color { lighter(0.32).color }
     public var orbGlow: Color { rgb.color }
 
+    /// A trio of indicator lamps in this colour, light to deep (0.7.6, B1).
+    ///
+    /// **Three stops of one hue rather than three hues**, because that is what
+    /// the authored trios are: `ChassisSkin.statusLights` steps light-to-deep
+    /// within a colourway on eighteen of its twenty-two skins, and the four that
+    /// do not (CLASSIC's red/amber/green, PSVINO's face buttons) are quoting
+    /// specific hardware rather than expressing a colour. A player who picks
+    /// VIOLET has picked one colour, so the honest trio is that colour three
+    /// times over at three depths — which still reads as three distinguishable
+    /// lamps, the property BLUSH's own note records as the thing a trio must not
+    /// lose.
+    ///
+    /// The spread is wide on purpose for the same reason: a lighter mix, the
+    /// colour itself, and a darker mix, which at the shipped amounts puts roughly
+    /// a third of the luminance range between neighbours. Border and ink follow
+    /// `ChassisSkin.statusLights`' own derivation exactly — 45% toward black from
+    /// the fill for the rim, another 45% from the rim for the glyph — so a
+    /// workshop trio and an authored trio are shaded by the same rule and a
+    /// recoloured marquee lamp keeps a legible glyph on it.
+    public var lampTrio: [(fill: Color, border: Color, ink: Color)] {
+        [lighter(0.42), rgb, darker(0.38)].map { stop in
+            let border = stop.mixed(with: Self.black, amount: 0.45)
+            return (
+                fill: stop.color,
+                border: border.color,
+                ink: border.mixed(with: Self.black, amount: 0.45).color
+            )
+        }
+    }
+
     /// The marquee's lit phosphor ground.
     public var marqueeText: Color { rgb.color }
     /// The grid over it — one register brighter, as CLASSIC's `green` is over
@@ -364,7 +394,9 @@ public struct ChassisLook {
     public let skin: ChassisSkin
     private let buttonsPart: PartColor?
     private let orbPart: PartColor?
+    private let headerLampsPart: PartColor?
     private let marqueePart: PartColor?
+    private let marqueeLampsPart: PartColor?
     private let grillePart: PartColor?
     public let grilleShape: GrilleShape
 
@@ -378,26 +410,32 @@ public struct ChassisLook {
         skinRaw: String,
         buttons: String = "",
         orb: String = "",
+        headerLamps: String = "",
         marquee: String = "",
+        marqueeLamps: String = "",
         grille: String = "",
         grilleShape: String = ""
     ) {
         self.skin = ChassisSkin(rawValue: skinRaw) ?? .classic
         self.buttonsPart = PartColor(rawValue: buttons)
         self.orbPart = PartColor(rawValue: orb)
+        self.headerLampsPart = PartColor(rawValue: headerLamps)
         self.marqueePart = PartColor(rawValue: marquee)
+        self.marqueeLampsPart = PartColor(rawValue: marqueeLamps)
         self.grillePart = PartColor(rawValue: grille)
         self.grilleShape = GrilleShape(rawValue: grilleShape) ?? .slats
     }
 
     /// The whole build at once — the workshop's preview, which has a candidate
-    /// build in hand rather than eight `@AppStorage` reads.
+    /// build in hand rather than ten `@AppStorage` reads.
     public init(build: DeviceBuild) {
         self.init(
             skinRaw: build.shell,
             buttons: build.buttons,
             orb: build.orb,
+            headerLamps: build.headerLamps,
             marquee: build.marquee,
+            marqueeLamps: build.marqueeLamps,
             grille: build.grilleColor,
             grilleShape: build.grilleShape
         )
@@ -423,6 +461,24 @@ public struct ChassisLook {
 
     public var grill: Color { grillePart?.color ?? skin.grill }
 
+    /// The three lamps beside the cutout (0.7.6, B1).
+    public var headerLights: [(fill: Color, border: Color, ink: Color)] {
+        headerLampsPart?.lampTrio ?? skin.statusLights
+    }
+
+    /// The two lamps over the marquee — the pin buttons (0.7.6, B1).
+    ///
+    /// **Falls back to the skin's trio, not to `headerLights`.** Those two are
+    /// the same colours on an unmodified device and are *not* the same axis: the
+    /// chassis has always drawn both pairs off `statusLights`, so inheriting from
+    /// the header row instead would make recolouring the header silently repaint
+    /// the two buttons at the other end of the device — which is exactly the
+    /// coupling this axis exists to break. Each falls back to the shell, which is
+    /// the rule every other axis on this type follows.
+    public var marqueeLights: [(fill: Color, border: Color, ink: Color)] {
+        marqueeLampsPart?.lampTrio ?? skin.statusLights
+    }
+
     // MARK: Forwarded, unchanged
 
     public var body: Color { skin.body }
@@ -437,10 +493,20 @@ public struct ChassisLook {
     /// colour. Restated rather than inferred because this is a forward with an
     /// explicit type, which is exactly the kind of second spelling that only a
     /// clean `xtool` build finds: `swift test` cannot see this module at all.
+    ///
+    /// **Nothing on the chassis reads this any more (0.7.6, B1)** — the island
+    /// trio takes `headerLights` and the two pills take `marqueeLights`. It is
+    /// kept rather than deleted because this type's stated contract is that it
+    /// carries *the same member names the skin does*, so that a view's only
+    /// change when a part becomes overridable is the type of its `skin` property.
+    /// Removing a forward the moment its last caller moves would make that
+    /// contract conditional, and the next surface to want the shell's own trio —
+    /// a picker tile, a preview of a shell you are not wearing — would have to
+    /// reach past this type to `skin`.
     public var statusLights: [(fill: Color, border: Color, ink: Color)] { skin.statusLights }
     public var userMark: SkinMark? { skin.userMark }
     public var drawnMark: SkinMark? { skin.drawnMark }
     public var sketch: SketchStyle? { skin.sketch }
-    public var next: ChassisSkin { skin.next }
+    // `next` retired in 0.7.6 (A1) with the skin's own — see `LcdMode`.
 }
 #endif

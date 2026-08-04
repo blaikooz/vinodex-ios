@@ -22,14 +22,15 @@ public struct DeviceChassis<Content: View>: View {
     var onBookmarks: (() -> Void)?
     /// Opens the settings screen.
     var onSettings: (() -> Void)?
-    /// Pushes any route, from the marquee drawer (0.7.1, B5).
+    /// Pushes any route, from the marquee's two lamp buttons (0.7.1 B5; the
+    /// lamps' own since 0.7.6, A1).
     ///
-    /// One callback for a dozen destinations rather than a dozen callbacks:
-    /// the drawer's whole content is a list of routes, and `DexRoute` already
-    /// travels between the modules. The four above stay as they are because
-    /// they are *chassis controls* — Back, Home, Saved and the cog are physical
-    /// buttons whose meaning is fixed, and collapsing them into this would lose
-    /// that distinction to save four lines.
+    /// One callback for several destinations rather than one per destination:
+    /// a lamp's target is a `MarqueePin`, which resolves to a `DexRoute`, and
+    /// `DexRoute` already travels between the modules. The four above stay as
+    /// they are because they are *chassis controls* — Back, Home, Saved and the
+    /// cog are physical buttons whose meaning is fixed, and collapsing them into
+    /// this would lose that distinction to save four lines.
     var onQuickRoute: ((DexRoute) -> Void)?
     @ViewBuilder var content: () -> Content
 
@@ -54,21 +55,29 @@ public struct DeviceChassis<Content: View>: View {
     /// the life of the app, which is exactly the lifetime "once per launch"
     /// needs.
     @State private var script = MarqueeScript()
-    /// Whether the quick-access drawer is open (0.7.1, B4/B5).
-    @State private var drawerOpen = false
-    /// Pinned shortcuts, for the marquee's corner buttons (0.7.2, A7).
+    // `drawerOpen` retired in 0.7.6 (A1) with `MarqueeDrawer` itself — see the
+    // Decision recorded on `indicatorPills`. The panel is a display again.
+    /// What the two marquee lamp buttons are pointed at (0.7.1 B5; 0.7.6, A1).
     ///
-    /// The same shared store the drawer holds, so pinning something in there
-    /// puts it in a corner out here on the next render with nothing to notify:
-    /// `QuickPinStore` is `@Observable`, and both surfaces read the one
-    /// instance rather than each keeping a copy of the list.
+    /// `QuickPinStore` is `@Observable` and this is the one shared instance, so
+    /// reassigning a lamp in the chooser repaints it here on the next render with
+    /// nothing threaded between them.
     @State private var pins = QuickPinStore.shared
-    /// The app's one idle timer (0.7.3, F2). Drives both the marquee's toast
-    /// dwell and the screensaver below — see `IdleMonitor`.
+    /// Which lamp the reassignment chooser is open for, or nil (0.7.6, A1).
+    @State private var lampBeingAssigned: Int?
+    /// The app's one idle timer (0.7.3, F2). Drives both the marquee's greeting
+    /// and the screensaver below — one threshold for both since 0.7.6 (A4). See
+    /// `IdleMonitor`.
     @State private var idle = IdleMonitor.shared
-    /// When the screensaver appeared, so its mark starts in the corner rather
-    /// than wherever a global clock happens to be. Nil while it is down.
+    /// When the screensaver appeared, so its mark's position is measured from
+    /// this run rather than from a global clock. Nil while it is down.
     @State private var screensaverSince: Date?
+    /// Where on each axis's cycle this run of the screensaver began (0.7.6, A2).
+    ///
+    /// Drawn once, when the screensaver is raised, and held for as long as it is
+    /// up — the position is still a pure function of `(now - since, start)`, so
+    /// nothing is accumulated per frame. See `ScreensaverStart`.
+    @State private var screensaverStart = ScreensaverStart.corner
     // **No app-wide back swipe (0.6.9, A1).** 0.6.8's I1 mounted a
     // `simultaneousGesture` on the LCD so every screen got a swipe-back for
     // free, with `BackSwipeGate` as the opt-out for the one screen that owns
@@ -98,7 +107,12 @@ public struct DeviceChassis<Content: View>: View {
     /// 0.7.2's. See `ChassisLook`.
     @AppStorage(DeviceAxis.buttons.storageKey) private var partButtons = ""
     @AppStorage(DeviceAxis.orb.storageKey) private var partOrb = ""
+    /// The two lamp axes (0.7.6, B1). Both empty on a device nobody has been into
+    /// the workshop with, and both then resolve to the shell's own trio — which
+    /// is byte-identical to what the chassis drew before they existed.
+    @AppStorage(DeviceAxis.headerLamps.storageKey) private var partHeaderLamps = ""
     @AppStorage(DeviceAxis.marquee.storageKey) private var partMarquee = ""
+    @AppStorage(DeviceAxis.marqueeLamps.storageKey) private var partMarqueeLamps = ""
     @AppStorage(DeviceAxis.grilleColor.storageKey) private var partGrille = ""
     @AppStorage(DeviceAxis.grilleShape.storageKey) private var partGrilleShape = ""
     /// Read for VINTAGE mode's monochrome pass over the LCD — see `innerBezel`.
@@ -122,7 +136,9 @@ public struct DeviceChassis<Content: View>: View {
             skinRaw: skinRaw,
             buttons: partButtons,
             orb: partOrb,
+            headerLamps: partHeaderLamps,
             marquee: partMarquee,
+            marqueeLamps: partMarqueeLamps,
             grille: partGrille,
             grilleShape: partGrilleShape
         )
@@ -161,19 +177,24 @@ public struct DeviceChassis<Content: View>: View {
     /// which is where a toast belonged all along. See `MarqueeScript` in Core
     /// for the three stages and the two dwells — this property is only the
     /// wiring.
-    /// **PINS while the drawer is open (0.7.2, A6.)** Takes precedence over both
-    /// branches below: the panel names the frontmost thing, and while the drawer
-    /// is up that is the drawer, not the page behind it. Reverting on close is
-    /// free — `drawerOpen` going false simply falls through to whatever this
-    /// returned before, so there is no "previous text" to stash and nothing that
-    /// can get out of step if the drawer is closed by the scrim, the drag, a
-    /// route or the device being turned over.
-    ///
     /// **Rotating toasts at rest since 0.7.2 (A8)**, which is why this reads
     /// `script.text` rather than `script.stage.text` — the stage knows it is
     /// idle, only the script knows which idle this is. See `MarqueeCheers`.
+    ///
+    /// **The toast is no longer main-screen-only (0.7.6, A4.)** A4 asks for the
+    /// marquee greeting to fire wherever the screensaver does, which is
+    /// everywhere — so the idle stage takes precedence over the page title and
+    /// the panel says CHEERS! over a region scan just as it does over the menu.
+    /// Everything else is unchanged: WELCOME! and MENU are still states of the
+    /// *main* screen, because they are statements about a screen that is showing.
+    ///
+    /// The `.cheers` test rather than a read of `idle.stage` is deliberate. The
+    /// script is what knows *which* toast this idle period is owed (A8's nine
+    /// languages), and asking two sources whether the device is idle is how the
+    /// panel ends up on a different reckoning from the screensaver behind it —
+    /// the exact fault 0.7.3's F2 spent a batch removing.
     private var footerText: String {
-        if drawerOpen { return "PINS" }
+        if script.stage == .cheers { return script.text }
         return isMainScreen ? script.text : title
     }
 
@@ -200,9 +221,14 @@ public struct DeviceChassis<Content: View>: View {
     /// not a page and a glyph beside SANTE! would be decorating a decoration —
     /// which is the mistake K1 caught. So the glyph appears exactly when the
     /// panel is naming somewhere you are, on the main screen and every other.
+    ///
+    /// **A bare panel while the toast is up, on every screen (0.7.6, A4).** The
+    /// rule above already said greetings get no glyph; A4 only widens where a
+    /// greeting can happen, so the branch moves ahead of the page-title one
+    /// rather than changing. A REGION SCAN glyph beside SANTE! would be the
+    /// panel naming a page it has stopped naming.
     private var footerSymbol: String? {
-        // A6: the drawer's own glyph, over everything, for as long as it is up.
-        if drawerOpen { return DexGlyph.pins }
+        if script.stage == .cheers { return nil }
         guard isMainScreen else { return marqueeSymbol }
         return script.stage == .menu ? DexGlyph.menu : nil
     }
@@ -317,9 +343,18 @@ public struct DeviceChassis<Content: View>: View {
         // itself. It is now a stage of the one idle timer — the same timer that
         // raises the screensaver five seconds later — so a finger anywhere on
         // the device resets it, which is what it always claimed to mean.
+        //
+        // **On every screen since 0.7.6 (A4)**, and at 30 seconds rather than 10
+        // (A3). The `isMainScreen` guard is gone: A4 asks for the greeting to
+        // arrive with the screensaver, and the screensaver has never been
+        // main-screen-only. `stage >= .toast` is unchanged and is what makes the
+        // fold a threshold change — `.toast` is no longer separately reachable
+        // (see `IdleSchedule.toast`), but `.screensaver` outranks it, so this
+        // fires at the one threshold today and at two the day the knob comes
+        // back.
         .onChange(of: idle.stage) { _, stage in
             guard stage >= .toast else { return }
-            guard isMainScreen, !reduceMotion else { return }
+            guard !reduceMotion else { return }
             script.timedOut()
         }
         // Any interaction, from anywhere. `MarqueeScript.noteActivity` returns
@@ -378,8 +413,14 @@ public struct DeviceChassis<Content: View>: View {
     /// who had not stopped using the device. The marquee's tap still calls it
     /// directly, which is a harmless double-count — the second call finds the
     /// stage already at MENU and returns.
+    ///
+    /// **The `isMainScreen` guard came off in 0.7.6 (A4).** It was correct while
+    /// the script only ever showed something on the main screen: off it, the
+    /// panel was the page title and there was nothing for activity to reset. Now
+    /// that a toast can be up over any screen, a touch anywhere has to be able to
+    /// take it down — and `MarqueeScript.noteActivity` parks the script at MENU,
+    /// which off the main screen simply means "the panel goes back to the title".
     private func noteActivity() {
-        guard isMainScreen else { return }
         script.noteActivity()
     }
 
@@ -455,18 +496,27 @@ public struct DeviceChassis<Content: View>: View {
 
         return VStack(spacing: 0) {
             HStack(alignment: .center, spacing: 0) {
-                lcdOrb(size: DexMetrics.islandOrb)
+                lcdOrb(width: DexMetrics.islandOrb)
                     .scaleEffect(orbHeld ? 0.88 : 1)
                     .brightness(orbHeld ? -0.18 : 0)
                     .animation(.easeOut(duration: 0.12), value: orbHeld)
                     // The bead is smaller than the slot on purpose: shrinking a
                     // control's art is not a licence to shrink its touch area,
-                    // so the hit shape stays the full 44pt slot around it. It
-                    // follows the part's own outline (0.7.5, A2) — a squared
-                    // key with a circular hit region has dead corners exactly
-                    // where the eye says the part is.
+                    // so the hit shape stays the full 44pt slot around it.
+                    //
+                    // **A rectangle again since 0.7.6 (E1).** 0.7.5's A2 made the
+                    // hit shape follow the part's own outline, on the argument
+                    // that a squared key with a circular hit region has dead
+                    // corners exactly where the eye says the part is. That
+                    // argument holds only while the art fills the slot. The orb
+                    // is now barely half the slot's height, so following its
+                    // outline would cut a 44pt target down to a 35×20 one —
+                    // under the platform minimum, on the control that carries the
+                    // flip gesture. The slot contains the bead either way, so
+                    // there is no region here that looks like the part and does
+                    // not act like it.
                     .frame(width: slot, height: slot)
-                    .contentShape(Self.orbShape(size: slot))
+                    .contentShape(Rectangle())
                     // Hold to flip. A hidden gesture on a decorative-looking
                     // part is a poor primary affordance, but this one is a
                     // deliberate easter egg: the orb depresses under the finger
@@ -607,48 +657,60 @@ public struct DeviceChassis<Content: View>: View {
         .accessibilityLabel("Settings")
     }
 
-    /// The orb's outline (0.7.5, A2).
+    /// The orb's outline (0.7.5, A2; a stadium since 0.7.6, E1).
     ///
-    /// **A rounded rectangle since 0.7.5, and `RecessedLamp`'s seam does not
-    /// cover it.** That modifier is generic over `InsettableShape`, so the
-    /// obvious read is that swapping shapes is a one-line call-site change — but
-    /// the orb has never gone through it, deliberately, and `RecessedLamp`'s own
-    /// note says why: it draws a part *recessed* into the deck, and the orb is a
-    /// bead that stands **proud** of it. Routing the orb through it to get the
-    /// shape would invert the lighting on the one part that is meant to catch
-    /// the light. So the shape is parameterised here instead, in the one place
-    /// that draws a proud part, and `RecessedLamp` is untouched.
-    private static func orbShape(size: CGFloat) -> RoundedRectangle {
-        RoundedRectangle(
-            cornerRadius: size * DexMetrics.islandOrbCornerFraction,
-            style: .continuous
-        )
-    }
+    /// **`RecessedLamp`'s seam still does not cover it.** That modifier is
+    /// generic over `InsettableShape`, so the obvious read is that swapping
+    /// shapes is a one-line call-site change — but the orb has never gone through
+    /// it, deliberately, and `RecessedLamp`'s own note says why: it draws a part
+    /// *recessed* into the deck, and the orb is a bead that stands **proud** of
+    /// it. Routing the orb through it to get the shape would invert the lighting
+    /// on the one part meant to catch the light. So the shape lives here, in the
+    /// one place that draws a proud part, and `RecessedLamp` is untouched.
+    ///
+    /// **E1 is a one-line change to that parameter, which is the point.** A2
+    /// left the shape behind a single value precisely so the next refinement of
+    /// it would not be a rewrite; it takes no size argument now because a
+    /// `Capsule`'s radius is always half its short side, which is what makes a
+    /// stadium a stadium.
+    private static var orbShape: Capsule { Capsule(style: .continuous) }
 
-    private func lcdOrb(size: CGFloat) -> some View {
-        let shape = Self.orbShape(size: size)
+    /// The bead itself.
+    ///
+    /// - Parameter width: the orb's **width**, unchanged from the diameter it was
+    ///   through 0.7.5. The height is derived — see `DexMetrics.islandOrbAspect`
+    ///   for why the elongation is spent downward rather than outward.
+    private func lcdOrb(width: CGFloat) -> some View {
+        let shape = Self.orbShape
+        let height = width / DexMetrics.islandOrbAspect
         return shape
             .fill(skin.orb)
-            .frame(width: size, height: size)
-            .overlay(shape.strokeBorder(.white, lineWidth: max(size * 0.07, 2)))
+            .frame(width: width, height: height)
+            // Sized off the *height* now, not the side. A rim that was 7% of a
+            // 35pt square is 2.5pt; 7% of the 20pt short side would be 1.4, and
+            // the white bezel is most of what says this part is glass rather
+            // than paint. 11% of the short side puts it back where it was.
+            .overlay(shape.strokeBorder(.white, lineWidth: max(height * 0.11, 2)))
             .overlay(alignment: .top) {
-                // Specular highlight, kept proportional to the orb. Still a
-                // circle: it is a reflection on the part's crown, not an inset
-                // of its outline, and a rounded-rectangle highlight would read
-                // as a second smaller key sitting on the first.
+                // Specular highlight, kept proportional to the part's short
+                // axis. Still a circle: it is a reflection on the crown, not an
+                // inset of the outline — a stadium-shaped highlight would read
+                // as a second smaller bead sitting on the first.
                 Circle()
                     .fill(.white.opacity(0.8))
-                    .frame(width: size * 0.26, height: size * 0.26)
+                    .frame(width: height * 0.30, height: height * 0.30)
                     .blur(radius: 1)
-                    .padding(.top, size * 0.1)
+                    .padding(.top, height * 0.16)
             }
             .shadow(color: .black.opacity(0.5), radius: 3, y: 2)
-            .modifier(PulseGlow(color: skin.orbGlow, period: 5.3, minRadius: 2, maxRadius: size * 0.3))
+            .modifier(PulseGlow(color: skin.orbGlow, period: 5.3, minRadius: 2, maxRadius: width * 0.3))
     }
 
     private func statusDots(size: CGFloat) -> some View {
-        // Every skin runs its own lamp trio — see `ChassisSkin.statusLights`.
-        let lights = skin.statusLights
+        // The shell's trio, unless the workshop has fitted a colour (0.7.6, B1).
+        // `headerLights`, not `statusLights`: the two lamps over the marquee are
+        // their own axis now and must not follow this one — see `ChassisLook`.
+        let lights = skin.headerLights
 
         return HStack(spacing: DexMetrics.statusDotSpacing) {
             statusDot(lights[0].fill, border: lights[0].border, period: 6.1, size: size)
@@ -828,36 +890,38 @@ public struct DeviceChassis<Content: View>: View {
             // reintroduce this.
             Color.clear.overlay { content() }
 
-            // The marquee's quick-access drawer (0.7.1, B4/B5).
+            // The lamp-reassignment chooser (0.7.6, A1).
             //
-            // Inside the LCD, above the screen and below the scanlines, so it
-            // is subject to the display's own treatments — the monochrome pass,
-            // the tint, the clip — exactly like every other overlay in this
-            // app. `MarqueeDrawer`'s header sets out why a drawer opened from a
-            // panel *below* the display is nonetheless drawn *in* it.
-            if drawerOpen, let onQuickRoute {
-                MarqueeDrawer(
-                    onRoute: { route in
-                        drawerOpen = false
-                        onQuickRoute(route)
-                    },
-                    onClose: { withAnimation(DexMotion.overlay) { drawerOpen = false } }
+            // Inside the LCD, above the screen and below the scanlines — the
+            // slot the retired drawer used, and for the reason that outlived it:
+            // every overlay in this app is confined to the display, so it is
+            // subject to the monochrome pass, the tint and the clip, and reads as
+            // something this screen is doing rather than as an iOS sheet.
+            //
+            // It is *configuration*, not navigation, which is the distinction the
+            // Decision turns on: the drawer was a second way to go places beside
+            // the lamps, and this is the only way to say where a lamp goes. One
+            // access pattern, one settings surface for it.
+            if let slot = lampBeingAssigned {
+                MarqueeLampChooser(
+                    slot: slot,
+                    onClose: { withAnimation(DexMotion.overlay) { lampBeingAssigned = nil } }
                 )
             }
 
             // The idle screensaver (0.7.3, A5).
             //
-            // Above the content and the drawer, below the scanlines — the same
-            // slot the drawer takes and for the same reason: it is subject to
-            // the display's own treatments (the monochrome pass, the tint, the
-            // clip), so it reads as something this screen is doing rather than
-            // as an overlay floating on top of the device.
+            // Above the content and the chooser, below the scanlines — the
+            // same slot and the same reason: it is subject to the display's own
+            // treatments (the monochrome pass, the tint, the clip), so it reads
+            // as something this screen is doing rather than as an overlay
+            // floating on top of the device.
             //
             // No dismissal wiring of its own. Any touch is seen by
             // `IdleTouchWatcher` on the window before this view hears anything,
             // which drops the stage to `.active` and takes this branch away.
             if let screensaverSince {
-                Screensaver(since: screensaverSince)
+                Screensaver(since: screensaverSince, start: screensaverStart)
             }
 
             // Confined to the LCD, so the bezel, footer and island stay put and
@@ -868,7 +932,7 @@ public struct DeviceChassis<Content: View>: View {
 
             // The refresh flash (0.7.5, A3).
             //
-            // Last in the stack so it covers the screen, the drawer and the
+            // Last in the stack so it covers the screen, the chooser and the
             // scanlines alike — a panel refreshing redraws all of it — but
             // still *inside* the two modifiers below, so it is desaturated and
             // tinted with everything else and comes out in the phosphor's own
@@ -876,19 +940,22 @@ public struct DeviceChassis<Content: View>: View {
             LcdRefreshFlash(screen: title, tint: lcd.monochromeTint, reduceMotion: reduceMotion)
                 .allowsHitTesting(false)
         }
-        .animation(DexMotion.overlay, value: drawerOpen)
+        .animation(DexMotion.overlay, value: lampBeingAssigned)
         .animation(DexMotion.overlay, value: screensaverSince)
-        // Turning the device over closes it: the drawer belongs to the front
+        // Turning the device over closes it: the chooser belongs to the front
         // face, and leaving it open behind the back plate would put it there
         // waiting when the device came back round.
         .onChange(of: showsBackFace) { _, back in
-            if back { drawerOpen = false }
+            if back { lampBeingAssigned = nil }
         }
         // Raise and drop the screensaver from the shared idle stage (0.7.3, A5).
         //
-        // The timestamp is set on the way *up* only, so the mark starts its
-        // bounce at the corner each time rather than resuming wherever the last
-        // idle period left it.
+        // The timestamp and the start phase are both set on the way *up* only,
+        // so each idle period is its own run rather than a resumption of the last
+        // one — and, since 0.7.6 (A2), so the mark begins somewhere different
+        // each time instead of always in the top-left corner. Drawn here rather
+        // than inside `Screensaver` because that view's body runs at display
+        // rate: a random phase read per frame would be static, not a bounce.
         //
         // **Reduce Motion suppresses it**, on the same reading `runScript` makes
         // of the marquee transitions: this is an unprompted, permanently moving
@@ -898,7 +965,10 @@ public struct DeviceChassis<Content: View>: View {
         .onChange(of: idle.stage) { _, stage in
             guard !reduceMotion else { return }
             if stage >= .screensaver {
-                if screensaverSince == nil { screensaverSince = .now }
+                if screensaverSince == nil {
+                    screensaverStart = .random()
+                    screensaverSince = .now
+                }
             } else {
                 screensaverSince = nil
             }
@@ -1059,61 +1129,53 @@ public struct DeviceChassis<Content: View>: View {
                 // The existing banner, restyled into the lit panel it now is —
                 // one view, not a copy. See `MarqueeBanner`.
                 //
-                // **A button since 0.7.1 (B4).** Mounted once for the whole
-                // app, so "tappable from every screen" is what making it a
-                // control here means — there is no per-screen wiring and no
-                // screen that can forget it.
-                // **The panel and the pin buttons are siblings** (0.7.2, A7),
-                // layered rather than nested. A `Button` inside another
-                // `Button`'s label does not become a second control — the outer
-                // one owns the whole region and the inner is decoration — so the
-                // corner pins sit *over* the marquee as an overlay, where they
-                // are ordinary controls that happen to overlap it.
-                Group {
-                    Button {
-                        Haptics.tap()
-                        noteActivity()
-                        // **A toggle since 0.7.2 (A6.)** The panel says PINS
-                        // while the drawer is up, so it is now the drawer's own
-                        // title bar — and a title bar you tapped to open that
-                        // does nothing when you tap it again reads as broken.
-                        // The scrim and the downward drag still close it too;
-                        // this is a third way, not a replacement.
-                        withAnimation(DexMotion.overlay) { drawerOpen.toggle() }
-                    } label: {
-                        MarqueeBanner(
-                            text: footerText,
-                            symbol: footerSymbol,
-                            fontSize: DexMetrics.marqueeTextSize,
-                            // `showsBackFace`, not `isFlipped`: the front face stays
-                            // fully visible through the first half of the turn, and
-                            // freezing a marquee that is still on screen reads as a
-                            // hang. This is the exact instant the face goes to
-                            // `opacity 0`. (AUDIT M8)
-                            paused: showsBackFace,
-                            // B2's dissolve is for the scripted stages only — a
-                            // 1.4s transition in front of every navigation is a
-                            // wait, not a transition.
-                            pixelFades: isMainScreen,
-                            // A3: MENU and PINS are short enough to sit beside
-                            // their glyph, and both are states of this panel
-                            // rather than page titles.
-                            glyphBeside: drawerOpen || isMainScreen,
-                            edgeReserve: pinCornerReserve
-                        )
-                    }
-                    // A press style, not `DexPressStyle`: the panel is a display,
-                    // and a display that shrinks 3% under a finger reads as a
-                    // loose part. The drawer arriving is the feedback.
-                    .buttonStyle(.plain)
-                    // Nothing to open, nothing to press — the drawer is the app
-                    // module's to wire, and the catalog screen mounts a bare
-                    // chassis with no routing at all.
-                    .disabled(onQuickRoute == nil || showsBackFace)
-                    .accessibilityLabel("\(footerText). Quick access")
-                    .accessibilityHint("Opens tools, customisation and pinned shortcuts")
-                    .overlay(alignment: .top) { pinCorners }
-                }
+                // **A display again since 0.7.6 (A1), reversing 0.7.1's B4.**
+                // B4 made the panel a button because the drawer needed a handle
+                // and the marquee is the one surface mounted on every screen.
+                // The Decision retires the drawer, and with it the only thing
+                // this button opened — so rather than leave a control that
+                // toggles nothing, or invent a second destination for it, the
+                // panel goes back to being what it looks like. A display that
+                // does something when you press it and a display that does not
+                // are both fine; a display that used to is the bad option.
+                //
+                // The corner pin buttons (0.7.2, A7) go with it, and for a
+                // sharper reason: they existed to put a pinned section within
+                // reach without opening the drawer, and the lamps two points
+                // above them now *are* the pins. Two pin buttons and two pin
+                // lamps on one panel would be the duplication the Decision is
+                // removing, drawn twice on the same 225pt of chassis.
+                MarqueeBanner(
+                    text: footerText,
+                    symbol: footerSymbol,
+                    fontSize: DexMetrics.marqueeTextSize,
+                    // `showsBackFace`, not `isFlipped`: the front face stays
+                    // fully visible through the first half of the turn, and
+                    // freezing a marquee that is still on screen reads as a
+                    // hang. This is the exact instant the face goes to
+                    // `opacity 0`. (AUDIT M8)
+                    paused: showsBackFace,
+                    // B2's dissolve is for the scripted stages only — a 1.4s
+                    // transition in front of every navigation is a wait, not a
+                    // transition.
+                    //
+                    // **`.cheers` joins the main screen in 0.7.6 (A4)**, because
+                    // the toast can now arrive over any page and it should arrive
+                    // the way A4 asks: pixelated. Note the asymmetry, which is
+                    // deliberate — this is true on the way *in* (the stage is
+                    // `.cheers` when the text changes to the toast) and false on
+                    // the way *out* (activity has already parked the script at
+                    // MENU), so leaving the greeting is the 0.55s cross-fade. The
+                    // user has just touched the device and wants the title back;
+                    // 1.4 seconds of dissolve at that moment is the wait B2 was
+                    // written to avoid.
+                    pixelFades: isMainScreen || script.stage == .cheers,
+                    // A3: MENU is short enough to sit beside its glyph, and it is
+                    // a state of this panel rather than a page title. The toasts
+                    // have no glyph at all (see `footerSymbol`), so this flag
+                    // does not have to name them.
+                    glyphBeside: isMainScreen
+                )
             }
             .frame(maxWidth: DexMetrics.marqueeMaxWidth)
             .frame(maxWidth: .infinity)
@@ -1134,94 +1196,18 @@ public struct DeviceChassis<Content: View>: View {
         .background(skin.footerWash)
     }
 
-    /// The width each end of the marquee label must keep clear (0.7.2, A7).
-    ///
-    /// Symmetric, and driven by whether *anything* is pinned rather than by
-    /// which corner is occupied: one pin reserving only the left would shift the
-    /// centred label off the panel's centre line, and a title that is centred on
-    /// a device with two pins and nudged right on a device with one is a bug
-    /// report waiting to be written. Nothing pinned, nothing reserved.
-    private var pinCornerReserve: CGFloat {
-        pins.pins.isEmpty ? 0 : DexMetrics.marqueePinButton + DexMetrics.marqueePinInset
-    }
-
-    /// Pinned shortcuts, in the marquee's two top corners (0.7.2, A7).
-    ///
-    /// **What A7 changes is the reach, not the feature.** Pins have existed
-    /// since 0.7.1 (B5) and lived one tap inside the drawer, which meant a
-    /// pinned thing was exactly as far away as an unpinned one — open the
-    /// marquee, find it in the PINNED row, tap. A7's "accessible at any time"
-    /// is the part that was missing, and the marquee is where it belongs
-    /// because the marquee is mounted once for the whole app: putting them here
-    /// makes them reachable from every screen with no per-screen wiring, the
-    /// same argument B4 made for the panel being a button at all.
-    ///
-    /// **First pin left, second pin right**, which is the order they were
-    /// pinned in and the order the drawer's own two slots show them. Two
-    /// corners and `QuickPinStore.capacity == 2` are the same number by
-    /// construction, not by coincidence — if the cap ever moves, this is one of
-    /// the places that has to be told, and the `prefix` below fails safe by
-    /// dropping extras rather than drawing them on top of each other.
-    ///
-    /// Empty corners draw nothing at all. The drawer already has dashed EMPTY
-    /// slots teaching that pinning exists, and repeating them out here would put
-    /// two permanent dashed circles on the device's most prominent panel to
-    /// advertise a feature most users will never use.
-    /// Mounted as an `.overlay` on the panel rather than as a `ZStack` sibling:
-    /// an overlay is measured against the view it decorates and contributes
-    /// nothing to layout, so the corner buttons cannot stretch the marquee
-    /// column the way a greedy filler in a stack would. It is still a sibling
-    /// for hit testing, which is the property A7 actually needs — the overlay
-    /// is layered above the button and takes its own touches first.
-    @ViewBuilder
-    private var pinCorners: some View {
-        let slots = Array(pins.pins.prefix(QuickPinStore.capacity))
-        if !slots.isEmpty, onQuickRoute != nil, !showsBackFace {
-            // Top corners rather than the vertical centre: the label is centred
-            // and the glyph now sits beside it (A3), so the middle of the panel
-            // is the one band that is always busy. The inset clears
-            // `marqueeInnerCorner`'s rounding so the buttons read as sitting on
-            // the panel rather than clipped into its edge.
-            HStack {
-                pinButton(slots.first)
-                Spacer(minLength: 0)
-                pinButton(slots.count > 1 ? slots[1] : nil)
-            }
-            .padding(.horizontal, DexMetrics.marqueePinInset)
-            .padding(.top, DexMetrics.marqueePinInset)
-        }
-    }
-
-    @ViewBuilder
-    private func pinButton(_ section: SettingsSection?) -> some View {
-        if let section {
-            Button {
-                Haptics.tap()
-                noteActivity()
-                // Straight to the section, without opening the drawer first.
-                // The whole point of a pin is that it skips the drawer.
-                onQuickRoute?(.settingsSection(section))
-            } label: {
-                Image(systemName: section.symbol)
-                    .font(.system(size: DexMetrics.marqueePinGlyph, weight: .black))
-                    // The panel's own ink, so a pin reads as something printed
-                    // on the display rather than a sticker on top of it — and
-                    // it follows every skin for free.
-                    .foregroundStyle(skin.marqueeShadow)
-                    .frame(width: DexMetrics.marqueePinButton, height: DexMetrics.marqueePinButton)
-                    .background(skin.marqueeText.opacity(0.55), in: Circle())
-                    .overlay(Circle().strokeBorder(skin.marqueeShadow.opacity(0.55), lineWidth: 1))
-                    .contentShape(Circle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("\(section.displayName), pinned")
-        } else {
-            // Holds the other corner's slot open so a single pin stays in the
-            // corner it was pinned into instead of sliding across the panel.
-            Color.clear
-                .frame(width: DexMetrics.marqueePinButton, height: DexMetrics.marqueePinButton)
-        }
-    }
+    // `pinCornerReserve`, `pinCorners` and `pinButton` retired in 0.7.6 (A1),
+    // along with `MarqueeDrawer` and the three metrics they used
+    // (`marqueePinButton`, `marqueePinInset`, `marqueePinGlyph` — kept in
+    // `DexMetrics` with a retirement note rather than deleted, so the arithmetic
+    // 0.7.2 wrote down survives the feature).
+    //
+    // They were 0.7.2's answer to "a pinned thing should be reachable without
+    // opening the drawer", built as two 26pt circles in the panel's top corners.
+    // A1 answers the same question with the two lamp buttons instead, which are
+    // 24pt tall, are already there, and do not have to be paid for out of the
+    // label's width — `edgeReserve` on `MarqueeBanner` was that payment and now
+    // resolves to zero everywhere.
 
     /// **Back over User, in the left-hand well** (0.6.9, C2).
     ///
@@ -1332,13 +1318,12 @@ public struct DeviceChassis<Content: View>: View {
     /// three identical holly berries, they come out identical — which is that
     /// skin working, not this rule failing.
     ///
-    /// **They are buttons now (0.7.2, A9): TOOLS on the left, CUSTOMIZE on the
-    /// right.** Which retires the sentence that used to stand here — "pills, not
-    /// circles, so they cannot be mistaken at a glance for very small buttons" —
-    /// because being mistaken for a button is the point. That rule was written
-    /// when the pair was pure decoration; A9 gives the two lamps the two
-    /// destinations the drawer's own headings already name, so the shape should
-    /// now advertise exactly what it turned out to be.
+    /// **They are buttons since 0.7.2 (A9).** Which retired the sentence that
+    /// used to stand here — "pills, not circles, so they cannot be mistaken at a
+    /// glance for very small buttons" — because being mistaken for a button is
+    /// the point. That rule was written when the pair was pure decoration; A9
+    /// gave the two lamps two destinations, so the shape should advertise
+    /// exactly what it turned out to be.
     ///
     /// Three things follow from it and all three are elsewhere:
     /// `bandPillHeight` goes 14 → 20 because a control has to be worth aiming at
@@ -1346,12 +1331,48 @@ public struct DeviceChassis<Content: View>: View {
     /// colour is not the only thing distinguishing them, and the specular bead
     /// comes off (A4) because it sat exactly where that glyph goes.
     ///
-    /// **Left is TOOLS, right is CUSTOMIZE**, matching the drawer's section
-    /// order top-to-bottom so the two surfaces cannot teach different mappings.
-    /// Nothing is removed by this: the drawer still holds both, the settings
-    /// grid still holds both, and A9 asks only that they also be reachable from
-    /// the band without opening anything. `onQuickRoute` is the same path the
-    /// drawer's own tiles take, so a pill press lands on the identical screen.
+    /// **The two lamps are the pins now (0.7.6, A1), and this is the Decision.**
+    /// A9 hardwired them to TOOLS and CUSTOMIZE; those two are still where they
+    /// point on a device nobody has changed, and each is now reassignable — see
+    /// `QuickPinStore` and `MarqueePin`.
+    ///
+    /// The reasoning for collapsing three affordances into this one is worth
+    /// keeping, because two of the three were built deliberately and are being
+    /// removed deliberately. Through 0.7.5 the device offered: these two lamps
+    /// (fixed destinations, always visible, one tap), two pin buttons in the
+    /// marquee's corners (chosen destinations, always visible, one tap, 26pt), and
+    /// a swipe drawer behind the panel (every destination, hidden, two taps) whose
+    /// PINNED row was the only way to choose what the corners held. Three answers
+    /// to one question, one of which existed only to configure another.
+    ///
+    /// What the merged form keeps from each: the lamps' hardware feel — nothing
+    /// to open, nothing to learn, the buttons are simply *on the device* — and the
+    /// drawer's customisation, which was the whole reason the pin bar was built.
+    /// What it drops is the drawer's breadth, and that is the honest cost: its
+    /// TOOLS grid and CUSTOMIZE shortcuts are one tap further away again, through
+    /// the shelf and the settings panel the lamps land on. Both of those screens
+    /// already existed and both are still one lamp press away, which is what makes
+    /// the trade payable.
+    ///
+    /// **Tap to go, press and hold to reassign.** The same tap/hold split the back
+    /// plate's stamps use (tap opens the story, hold picks it up) and the retired
+    /// drawer's own chips used (tap goes there, hold pins it) — so it is a pair
+    /// this device has taught twice already rather than a new idiom. Hold is a
+    /// hidden gesture and that is accepted here for a reason A7's corner pins
+    /// could not claim: reassignment is a once-a-year act on a control that works
+    /// perfectly without it, and the walkthrough's marquee step (F1) now says so
+    /// out loud, which is the discoverability the drawer's "HOLD A SHORTCUT TO PIN
+    /// IT" line used to carry.
+    ///
+    /// The outer two of the shell's trio, not the first two: `statusLights` is
+    /// ordered light-to-deep in most skins, so `[0]` and `[2]` are the widest pair
+    /// it offers and the lamps stay two distinguishable colours rather than one
+    /// twice. On CHRISTMAS, whose trio is three identical holly berries, they come
+    /// out identical — which is that skin working, not this rule failing.
+    ///
+    /// **`marqueeLights`, not `statusLights`, since 0.7.6 (B1)** — these two are
+    /// their own workshop axis now, so recolouring the header trio no longer
+    /// repaints the pair down here.
     ///
     /// Recessed since 0.7.1 (A6) like every other lamp.
     ///
@@ -1361,41 +1382,32 @@ public struct DeviceChassis<Content: View>: View {
     /// screen width and any `UIScale`. The two fixed widths this replaces (18pt,
     /// then 30) were each only ever right on one phone.
     private var indicatorPills: some View {
-        let lights = skin.statusLights
+        let lights = skin.marqueeLights
 
         return HStack(spacing: DexMetrics.bandPillSpacing) {
-            indicatorPill(
-                lights[0].fill,
-                border: lights[0].border,
-                ink: lights[0].ink,
-                symbol: DexRoute.minigames.marqueeSymbol,
-                label: "Tools",
-                route: .minigames
-            )
-            indicatorPill(
-                lights[2].fill,
-                border: lights[2].border,
-                ink: lights[2].ink,
-                symbol: SettingsSection.customization.symbol,
-                label: "Customise",
-                route: .settingsSection(.customization)
-            )
+            lampButton(slot: 0, fill: lights[0].fill, border: lights[0].border, ink: lights[0].ink)
+            lampButton(slot: 1, fill: lights[2].fill, border: lights[2].border, ink: lights[2].ink)
         }
         .frame(maxWidth: .infinity)
     }
 
-    private func indicatorPill(
-        _ fill: Color,
+    /// One lamp button: its pin's glyph, its pin's destination, and a hold that
+    /// opens the chooser for this slot.
+    private func lampButton(
+        slot: Int,
+        fill: Color,
         border: Color,
-        ink: Color,
-        symbol: String,
-        label: String,
-        route: DexRoute
+        ink: Color
     ) -> some View {
-        Button {
+        // The store always holds `capacity` pins, so this is a formality — but a
+        // chassis that crashed because a list was short would be a poor trade for
+        // one saved line. See `QuickPinStore.decode`.
+        let pin = pins.pin(at: slot) ?? QuickPinStore.defaults[min(slot, QuickPinStore.defaults.count - 1)]
+
+        return Button {
             Haptics.tap()
             noteActivity()
-            onQuickRoute?(route)
+            onQuickRoute?(pin.route)
         } label: {
             Capsule()
                 .fill(fill)
@@ -1413,7 +1425,10 @@ public struct DeviceChassis<Content: View>: View {
                     // further 45% of the same hue toward black — still a shade
                     // the lamp is already wearing, but now a stop below its own
                     // outline instead of level with it.
-                    Image(systemName: symbol)
+                    //
+                    // The glyph comes off the *pin* since 0.7.6 (A1), so a lamp
+                    // can never wear one destination's mark and land on another.
+                    Image(systemName: pin.symbol)
                         .font(.system(size: DexMetrics.bandPillGlyph, weight: .black))
                         .foregroundStyle(ink)
                 }
@@ -1440,7 +1455,24 @@ public struct DeviceChassis<Content: View>: View {
         // loose. Arriving at the screen is the feedback.
         .buttonStyle(.plain)
         .disabled(onQuickRoute == nil || showsBackFace)
-        .accessibilityLabel(label)
+        // `simultaneousGesture` rather than `.gesture` so the button's own tap
+        // is not swallowed — the two do different things and both must survive.
+        // This is the drawer's own hold-to-pin wiring, kept when the surface
+        // carrying it went.
+        .simultaneousGesture(
+            LongPressGesture(minimumDuration: 0.45).onEnded { _ in
+                guard onQuickRoute != nil, !showsBackFace else { return }
+                Haptics.select()
+                noteActivity()
+                withAnimation(DexMotion.overlay) { lampBeingAssigned = slot }
+            }
+        )
+        .accessibilityLabel(pin.displayName)
+        .accessibilityHint("Press and hold to point this button somewhere else")
+        // VoiceOver cannot perform a long press, so the hold needs a named
+        // action or the whole of A1's customisation is unreachable with the
+        // screen reader on — the same provision the drawer's chips carried.
+        .accessibilityAction(named: "Reassign") { lampBeingAssigned = slot }
     }
 }
 

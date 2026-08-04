@@ -145,17 +145,17 @@ struct RootView: View {
             onHome: { goHome() },
             onBookmarks: { push(.bookmarks) },
             onSettings: { push(.settings) },
-            // The marquee drawer (0.7.1, B5). `openRoute`, not `push`, so a
-            // shortcut to an entry would still clear the paywall gate — none of
-            // the drawer's current destinations is a `.detail`, and the point
-            // of routing it through the one gate is that the next one added
-            // cannot forget.
+            // The marquee's two lamp buttons (0.7.1 B5; the lamps' own since
+            // 0.7.6, A1). `openRoute`, not `push`, so a shortcut to an entry
+            // would still clear the paywall gate — no `MarqueePin` resolves to a
+            // `.detail` today, and the point of routing it through the one gate
+            // is that the next one added cannot forget.
             //
-            // **Replaces the stack rather than growing it** when the drawer is
-            // used from a pushed screen: the drawer is a way of *going*
-            // somewhere, not of drilling in, and a Back button that walked you
-            // through every screen you had jumped between would turn a shortcut
-            // into a longer path than the one it saved. Home stays one tap.
+            // **Replaces the stack rather than growing it** when a lamp is
+            // pressed from a pushed screen: a pin is a way of *going* somewhere,
+            // not of drilling in, and a Back button that walked you through every
+            // screen you had jumped between would turn a shortcut into a longer
+            // path than the one it saved. Home stays one tap.
             onQuickRoute: { route in
                 path = []
                 openRoute(route)
@@ -215,28 +215,39 @@ struct RootView: View {
                     )
                 }
 
-                // The boot POST (0.7.3, A1), above everything else in the LCD
-                // and below nothing — it is what the display is doing before
-                // the app has started.
-                //
-                // Inside the LCD rather than over the chassis: a BIOS is
-                // something a *screen* does, and dimming the bezel, island and
-                // footer reads as the device losing power, which is the exact
-                // opposite of what is happening. See `BootScreen`.
-                if booting {
-                    BootScreen(
-                        entries: db.entries.count,
-                        // The MAINFRAME cheat (A4). Reads the entitlement store
-                        // like every other unlock (F1).
-                        verbose: access.hasFound(CheatCodes.verboseBoot),
-                        onFinish: finishBoot
-                    )
-                }
             }
             .animation(DexMotion.overlay, value: lockedAttempt?.id)
             .animation(DexMotion.overlay, value: showingDataAlert)
-            .animation(DexMotion.overlay, value: booting)
         }
+        // The BIOS (0.7.7, B1) — **over the chassis, not inside the LCD**, which
+        // reverses where 0.7.3a put it.
+        //
+        // That release confined the POST to the LCD because a translucent
+        // overlay dimming the bezel, island and footer reads as the device
+        // losing power at the one moment it is doing the opposite. The redesign
+        // is not translucent and does not dim anything: it is an opaque
+        // full-screen composition with its own terminal border, side rails and
+        // two status bars, and nesting that frame inside the plastic one would
+        // have been a bezel inside a bezel. A handheld whose whole face is a
+        // boot screen is a handheld booting — which is what its bottom bar says
+        // in words. See `BootScreen` for the long version.
+        //
+        // An `overlay` on `DeviceChassis` rather than a `ZStack` around it: the
+        // chassis is a `GeometryReader` filling the window, so the overlay gets
+        // the same bounds, and the modifiers below (the scale `id`, the type
+        // pin, `onAppear`) keep applying to both without being restated.
+        .overlay {
+            if booting {
+                BootScreen(
+                    entries: db.entries.count,
+                    // The MAINFRAME cheat (A4). Reads the entitlement store
+                    // like every other unlock (F1).
+                    verbose: access.hasFound(CheatCodes.verboseBoot),
+                    onFinish: finishBoot
+                )
+            }
+        }
+        .animation(DexMotion.overlay, value: booting)
         .id(scaleRaw + "|" + uiScaleRaw)
         // The app's declared position on Dynamic Type (0.6.4, AUDIT H11):
         // Vinodex sizes its own text and does not follow the system control.
@@ -312,8 +323,10 @@ struct RootView: View {
         goHome()
         demoStartedAtTick = idle.activityTick
         // Frozen while it runs. The demo navigates without being touched, so
-        // the screensaver would otherwise cover it fifteen seconds in — the one
-        // case where the device is genuinely busy and genuinely untouched.
+        // the screensaver would otherwise cover it half a minute in (0.7.6, A3)
+        // — the one case where the device is genuinely busy and genuinely
+        // untouched. And it would bring the marquee greeting with it now (A4),
+        // over a loop whose whole job is to show the panel naming each tool.
         idle.isPaused = true
         demoStop = 0
     }
@@ -491,8 +504,7 @@ struct RootView: View {
             SettingsPanel(
                 onClose: { goBack() },
                 onSection: { push(.settingsSection($0)) },
-                onMinigames: { push(.minigames) },
-                onWalkthrough: { push(.walkthrough) }
+                onMinigames: { push(.minigames) }
             )
 
         case .settingsSection(let section):
@@ -501,6 +513,10 @@ struct RootView: View {
                 onDev: { push(.settingsSection(.dev)) },
                 onFirmwareHistory: { push(.firmwareHistory) },
                 onCheatConsole: { push(.cheatConsole) },
+                // The tour moved into SETTINGS > DEVICE in 0.7.6 (F1), so the
+                // callback moved with it — the grid no longer has a TUTORIAL
+                // tile to raise it from.
+                onWalkthrough: { push(.walkthrough) },
                 onDemoMode: { startDemo() },
                 onDeviceWorkshop: { push(.deviceWorkshop) }
             )

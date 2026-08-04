@@ -69,10 +69,17 @@ public enum MarqueeStage: String, CaseIterable, Sendable, Equatable {
     /// idle timer, which is also what raises the screensaver five seconds later.
     /// Two clocks counting the same silence was how the marquee could be idling
     /// on a different reckoning from everything else that cares.
+    ///
+    /// **The idle number is `IdleSchedule.cheers` since 0.7.6 (A4)**, not
+    /// `IdleSchedule.toast`. Those were the same value until A4 folded the
+    /// pre-idle toast into the screensaver; `cheers` is the accessor that answers
+    /// "when is the greeting due" whichever shape the schedule is in, so this
+    /// table does not have to know whether the fold is in force. It resolves to
+    /// 30 today and to 10 the moment `IdleSchedule.toast` is given a number back.
     public var timeout: (after: TimeInterval, then: MarqueeStage)? {
         switch self {
         case .welcome: (2.4, .menu)
-        case .menu: (IdleSchedule.toast, .cheers)
+        case .menu: (IdleSchedule.cheers, .cheers)
         case .cheers: nil
         }
     }

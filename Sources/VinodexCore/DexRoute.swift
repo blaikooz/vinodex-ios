@@ -67,17 +67,18 @@ public enum DexGlyph {
     /// the iOS 17 floor.
     public static let menu = "square.grid.2x2.fill"
 
-    /// The marquee drawer, while it is open (0.7.2, A6).
+    /// Pinning, wherever the app talks about it (0.7.2, A6).
     ///
-    /// A6 asks the panel to say PINS with a glyph for as long as the drawer is
-    /// showing, so the marquee stops naming the screen behind it and starts
-    /// naming the thing in front of it. A pin is the drawer's own vocabulary —
-    /// `MarqueeDrawer` has drawn `pin.fill` on a pinned chip since 0.7.1 and the
-    /// empty slots have said EMPTY under a `pin` outline — so this is the one
-    /// symbol the surface had already taught.
+    /// A6 gave the marquee a PINS title and this glyph for as long as the drawer
+    /// was open, so the panel named the thing in front of it rather than the
+    /// screen behind. **The drawer and that title are gone (0.7.6, A1)** — the
+    /// two lamp buttons are the pins now, and the panel is a display again — but
+    /// the constant is not, because the vocabulary outlived the surface: the lamp
+    /// chooser is where pinning is done, and it is the one place left that needs
+    /// to draw a pin.
     ///
-    /// Not on the route table either: the drawer is an overlay on whatever page
-    /// you were on rather than a destination, which is exactly why it needs a
+    /// Not on the route table, then or now: the chooser is an overlay on whatever
+    /// page you were on rather than a destination, which is exactly why this is a
     /// glyph constant instead of a `DexRoute` case.
     public static let pins = "pin.fill"
 }
@@ -96,12 +97,17 @@ public enum DexGlyph {
 ///
 /// **The raw values are storage, and were mis-documented as display copy until
 /// 0.7.5.** The sentence that stood here said "no `SettingsSection` is persisted
-/// anywhere". That has been untrue since 0.7.2 (A7): `QuickPinStore` writes
-/// these raw values comma-joined into the `marqueeQuickPins` default, and its
-/// decoder drops anything it does not recognise — so a rename does not fail
-/// loudly, it silently unpins whatever the user had pinned. B2 renames ACCESS to
-/// SHOP and therefore does it in `displayName`, per the house rule the skins
-/// have followed since 0.5.1: rename the label, never the stored word.
+/// anywhere". That has been untrue since 0.7.2 (A7): the pin store writes these
+/// raw values comma-joined into the `marqueeQuickPins` default, and its decoder
+/// drops anything it does not recognise — so a rename does not fail loudly, it
+/// silently unpins whatever the user had pinned. B2 renames ACCESS to SHOP and
+/// therefore does it in `displayName`, per the house rule the skins have followed
+/// since 0.5.1: rename the label, never the stored word.
+///
+/// **The pin vocabulary is `MarqueePin` as of 0.7.6 (A1)**, whose raw values are
+/// a strict superset of these — so this paragraph is still exactly true, and the
+/// one case with no counterpart there (`dev`) is the one the pin chooser has
+/// never offered. See `MarqueePin` for why the vocabulary had to widen.
 ///
 /// (CUSTOMIZATION → CUSTOMIZE predates the pin store and is already in the raw
 /// values; it is left alone rather than being unwound into a `displayName` for

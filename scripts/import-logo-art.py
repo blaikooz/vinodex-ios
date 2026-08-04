@@ -38,7 +38,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from art_common import output_dir
+from art_common import output_dir, save_stable
 
 REPO = Path(__file__).resolve().parent.parent
 
@@ -94,8 +94,6 @@ def _shipped(mask: Image.Image, size: tuple[int, int]) -> Image.Image:
     small = mask.resize(size, Image.LANCZOS).point(
         lambda p: 255 if p >= ALPHA_CUT else 0
     )
-    out = Image.new("RGBA", size, (255, 255, 255, 0))
-    out.putalpha(small)
     white = Image.new("RGBA", size, (255, 255, 255, 255))
     white.putalpha(small)
     return white
@@ -121,10 +119,13 @@ def main() -> None:
     size = (max(1, round(w * scale)), max(1, round(h * scale)))
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    _shipped(face, size).save(FACE_OUT)
-    _shipped(shade, size).save(SHADE_OUT)
-    print(f"{FACE_OUT.name}  {size[0]}x{size[1]}")
-    print(f"{SHADE_OUT.name} {size[0]}x{size[1]}")
+    # `save_stable`, not `save`: the two encoders in use across this project's
+    # machines write identical pixels as different bytes, so a plain save leaves
+    # a modified binary in the working tree after every `npm run icons`. See
+    # `art_common.save_stable` for the measurement.
+    for mask, out in ((face, FACE_OUT), (shade, SHADE_OUT)):
+        wrote = save_stable(_shipped(mask, size), out)
+        print(f"{out.name:24} {size[0]}x{size[1]}  {'written' if wrote else 'unchanged'}")
 
 
 if __name__ == "__main__":

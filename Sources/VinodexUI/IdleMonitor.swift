@@ -40,7 +40,7 @@ public final class IdleMonitor {
     /// Two callers, both cases where the device is busy without being touched:
     /// the boot POST (A1), where a screensaver over the boot screen would be
     /// absurd, and demo mode (A2), which drives itself and would otherwise be
-    /// covered by the screensaver fifteen seconds in.
+    /// covered by the screensaver half a minute in.
     public var isPaused = false {
         didSet {
             guard isPaused != oldValue else { return }
@@ -57,11 +57,14 @@ public final class IdleMonitor {
 
     /// How often the clock is re-read.
     ///
-    /// Half a second: the thresholds are ten and fifteen seconds, so this is
-    /// twenty times finer than the finest thing it has to resolve, and the
-    /// worst-case lateness is invisible. Fast enough to be exact, slow enough
-    /// that an idle device is doing nothing thirty times a minute rather than
-    /// sixty times a second.
+    /// Half a second. The schedule is one threshold at thirty seconds since
+    /// 0.7.6 (A3/A4) — it was ten and fifteen — so this is sixty times finer
+    /// than the thing it has to resolve and the worst-case lateness is
+    /// invisible. Deliberately not slackened to match: the tick also has to be
+    /// fine enough for a threshold somebody puts *back*, and `IdleSchedule.toast`
+    /// is a knob that would restore a ten-second one in a line. Fast enough to be
+    /// exact, slow enough that an idle device is doing nothing thirty times a
+    /// minute rather than sixty times a second.
     private static let tick: Duration = .milliseconds(500)
 
     private init() {}

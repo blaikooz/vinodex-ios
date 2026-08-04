@@ -182,6 +182,40 @@ struct ChromeTests {
         #expect(!DexGlyph.challenge.contains("flame"), "E1 asked for the fire to go")
     }
 
+    // MARK: The marquee's lamp buttons (0.7.6, A1)
+
+    /// **Every pin resolves to a route on the table above**, which is what makes
+    /// the lamps subject to `glyphsAreDistinct` for free: a pin draws its
+    /// destination's glyph, and that glyph has already been proved unique against
+    /// every other page in the app.
+    ///
+    /// It is worth being explicit that this is the property A1 needs. The lamps
+    /// used to carry two hardcoded `DexRoute`s; they now carry whatever the user
+    /// assigned, so "the button's mark matches where it goes" stopped being
+    /// something a reader could check by eye and became something a gate has to.
+    @Test("every marquee pin lands on a real route, wearing its glyph")
+    func pinsResolveToRoutes() {
+        for pin in MarqueePin.allCases {
+            #expect(
+                Self.allRoutes.contains(pin.route),
+                "\(pin.rawValue) routes somewhere `allRoutes` does not list"
+            )
+            #expect(pin.symbol == pin.route.marqueeSymbol)
+            #expect(pin.displayName == pin.route.title)
+        }
+    }
+
+    /// The two lamps the device ships with are the two 0.7.2's A9 hardwired.
+    /// Pinned because A1's whole claim is that it adds customisation without
+    /// changing what an untouched device does.
+    @Test("the factory pins are TOOLS and CUSTOMIZE")
+    func factoryPinsAreUnchanged() {
+        #expect(QuickPinStore.defaults == [.tools, .customization])
+        #expect(QuickPinStore.defaults.count == QuickPinStore.capacity)
+        #expect(MarqueePin.tools.route == .minigames)
+        #expect(MarqueePin.customization.route == .settingsSection(.customization))
+    }
+
     /// A2: one magnifying glass, and every search affordance reads it.
     ///
     /// The UI is where the glyph is drawn, so no Linux gate can see a stray
