@@ -1,0 +1,570 @@
+#if canImport(SwiftUI) && canImport(UIKit)
+import PhotosUI
+import SwiftUI
+import VinodexCore
+
+/// LABEL SCAN — photograph a bottle, read the label, match it against the
+/// catalog (0.7.2, LR1).
+///
+/// **This file draws and nothing else.** Every decision — permissions, staging,
+/// recognition, matching, what survives navigation — is in
+/// `LabelReaderViewModel` and `LabelRecognitionService`. A `body` that also owns
+/// an OCR call is the thing the architecture note in the spec is guarding
+/// against, and it is what makes the matcher untestable.
+///
+/// The chrome is the blind-tasting screen's, deliberately: the same centred
+/// prompt, the same `lcd.surface` rounded rectangles, the same accent-tinted
+/// result card and the same full-width action buttons. These are the app's two
+/// identification tools and they sit next to each other on the TOOLS shelf; a
+/// second visual dialect between them would be the reader announcing that it
+/// came from somewhere else.
+public struct LabelReaderView: View {
+    let onOpen: (WineEntry) -> Void
+
+    @State private var model = LabelReaderViewModel()
+    @State private var pickedPhoto: PhotosPickerItem?
+    @State private var showingLibrary = false
+    /// Drives the processing glyph's breath. A plain repeating opacity rather
+    /// than `symbolEffect(.pulse)`: the effect API landed in iOS 17 and the
+    /// floor *is* 17, so it would work — but nothing else in the app animates a
+    /// symbol that way, and the LCD's idiom for waiting is something dimming and
+    /// coming back.
+    @State private var pulsing = false
+    @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
+    private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
+
+    private let db = WineDatabase.shared
+
+    public init(onOpen: @escaping (WineEntry) -> Void) {
+        self.onOpen = onOpen
+    }
+
+    public var body: some View {
+        ZStack {
+            DexScreenBackground()
+
+            GeometryReader { geo in
+                ScrollView {
+                    content
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 22)
+                        .frame(minHeight: geo.size.height, alignment: .center)
+                }
+            }
+        }
+        .onAppear { model.restore() }
+        // `PhotosPicker` runs out-of-process, so the library route needs no
+        // permission of its own and cannot be denied — which is why it is also
+        // the fallback offered whenever the camera is refused.
+        .photosPicker(isPresented: $showingLibrary, selection: $pickedPhoto, matching: .images)
+        .onChange(of: pickedPhoto) { _, item in
+            guard let item else { return }
+            Task {
+                let data = try? await item.loadTransferable(type: Data.self)
+                pickedPhoto = nil
+                await model.process(imageData: data ?? Data())
+            }
+        }
+        .fullScreenCover(isPresented: $model.showingCamera) {
+            CameraCapture(
+                onCapture: { data in
+                    model.showingCamera = false
+                    Task { await model.process(imageData: data) }
+                },
+                onCancel: { model.showingCamera = false }
+            )
+            .ignoresSafeArea()
+        }
+        .animation(DexMotion.overlay, value: model.phase)
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch model.phase {
+        case .idle:
+            chooser
+        case .processing(let stage):
+            processing(stage)
+        case .result(let reading):
+            results(reading)
+        case .failed(let error):
+            failure(error)
+        }
+    }
+
+    // MARK: - Idle
+
+    private var chooser: some View {
+        VStack(spacing: 18) {
+            Image(systemName: "camera.viewfinder")
+                .font(.system(size: 74, weight: .semibold))
+                .foregroundStyle(lcd.accent)
+
+            Text("READ A LABEL")
+                .font(DexFont.retro(20))
+                .tracking(1)
+                .foregroundStyle(lcd.text)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text("Point the camera at the front of the bottle. Everything is read on this device — nothing leaves your phone.")
+                .font(DexFont.mono(21))
+                .foregroundStyle(lcd.subtext)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.bottom, 4)
+
+            bigButton("TAKE PHOTO", symbol: "camera.fill", tint: lcd.accent) {
+                Task { await model.requestCamera() }
+            }
+            bigButton("CHOOSE FROM LIBRARY", symbol: "photo.on.rectangle", tint: lcd.subtext) {
+                showingLibrary = true
+            }
+
+            if let notice = model.cameraNotice {
+                // Inline rather than a `DexAlert`: the library button directly
+                // above is still a working way to use this screen, and a modal
+                // over it would say the tool was broken when only one of its two
+                // doors is.
+                noticeCard(notice.message, symbol: "exclamationmark.triangle.fill", tint: Dex.amber400)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Processing
+
+    /// The staged readout. Five blocks, one per `LabelReaderStage`, filling in
+    /// as the pipeline advances — the LCD's own vocabulary rather than a system
+    /// spinner, which would be the one piece of stock iOS chrome anywhere in the
+    /// app.
+    private func processing(_ stage: LabelReaderStage) -> some View {
+        VStack(spacing: 20) {
+            Image(systemName: "text.viewfinder")
+                .font(.system(size: 62, weight: .semibold))
+                .foregroundStyle(lcd.accent)
+                // A slow breath rather than a spin: nothing in this app rotates,
+                // and a rotating indicator is the one piece of stock iOS chrome
+                // the chassis has managed to avoid everywhere else.
+                .opacity(pulsing ? 1 : 0.45)
+                .animation(
+                    .easeInOut(duration: 0.7).repeatForever(autoreverses: true),
+                    value: pulsing
+                )
+                .onAppear { pulsing = true }
+                .onDisappear { pulsing = false }
+
+            Text(stage.title)
+                .font(DexFont.retro(16))
+                .tracking(1)
+                .foregroundStyle(lcd.text)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 6) {
+                ForEach(LabelReaderStage.allCases, id: \.rawValue) { step in
+                    let reached = step.progress <= stage.progress
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(reached ? lcd.accent : lcd.surfaceEdge.opacity(0.5))
+                        .frame(height: 10)
+                }
+            }
+            .padding(.horizontal, 8)
+
+            Text("\(Int(stage.progress * 100))%")
+                .font(DexFont.retro(12))
+                .tracking(2)
+                .foregroundStyle(lcd.subtext)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(18)
+        .background(RoundedRectangle(cornerRadius: 8).fill(lcd.accent.opacity(0.07)))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8).strokeBorder(lcd.accent.opacity(0.45), lineWidth: 2)
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(stage.title) \(Int(stage.progress * 100)) percent")
+    }
+
+    // MARK: - Results
+
+    @ViewBuilder
+    private func results(_ reading: LabelReading) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if reading.isConfident {
+                confidentCard(reading)
+            } else {
+                noMatchCard(reading)
+            }
+
+            if !reading.grapeIDs.isEmpty {
+                entrySection("POSSIBLE GRAPES", symbol: "circle.grid.3x3.fill", ids: reading.grapeIDs)
+            }
+            if !reading.styleIDs.isEmpty {
+                entrySection("POSSIBLE STYLES", symbol: "wineglass.fill", ids: reading.styleIDs)
+            }
+            if !reading.isConfident {
+                suggestionSections(reading)
+            }
+
+            extractedText(reading)
+
+            bigButton("SCAN AGAIN", symbol: "arrow.counterclockwise", tint: lcd.subtext) {
+                model.reset()
+            }
+        }
+    }
+
+    /// The identification, in the spec's own row order — producer, region,
+    /// country, then whatever else was resolved — with the confidence last.
+    private func confidentCard(_ reading: LabelReading) -> some View {
+        VStack(spacing: 14) {
+            Text("BEST MATCH")
+                .font(DexFont.retro(14))
+                .tracking(2)
+                .foregroundStyle(Dex.yellow)
+
+            // The country's flag is the one image a label read can offer with
+            // certainty, and it is how every other place-shaped screen in the
+            // app opens.
+            if let country = reading.match(.country)?.name {
+                FlagSwatch(country: country, width: 132, height: 84)
+                    .shadow(color: .black.opacity(0.45), radius: 6, y: 3)
+            }
+
+            VStack(spacing: 8) {
+                ForEach(reading.matches) { match in
+                    row(match)
+                }
+            }
+
+            confidenceBar(reading.score)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(14)
+        .background(RoundedRectangle(cornerRadius: 8).fill(lcd.accent.opacity(0.07)))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8).strokeBorder(lcd.accent.opacity(0.45), lineWidth: 2)
+        )
+    }
+
+    /// One resolved field. Tappable when it resolves to an entry the user can
+    /// open, flat text when it does not — the same rule the detail screen's
+    /// cross-links follow, since a country and a vintage have no page to go to.
+    @ViewBuilder
+    private func row(_ match: LabelMatch) -> some View {
+        let entry = match.entryID.flatMap { db.entry(id: $0) }
+
+        HStack(alignment: .top, spacing: 10) {
+            Text(match.field.title)
+                .font(DexFont.retro(10))
+                .tracking(1)
+                .foregroundStyle(lcd.subtext)
+                .frame(width: 96, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(match.name)
+                    .font(DexFont.mono(22))
+                    .foregroundStyle(lcd.text)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                // Where a field came from, whenever it was not simply read off
+                // the bottle. Both captions exist because the alternative is a
+                // screen that presents a guess and a deduction in the same
+                // typeface as a fact — and the score, which discounts both,
+                // is not visible per row.
+                if match.isInferred {
+                    Text("from \(match.readAs)")
+                        .font(DexFont.mono(15))
+                        .foregroundStyle(lcd.subtext)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else if !match.isExact {
+                    Text("read as “\(match.readAs)”")
+                        .font(DexFont.mono(15))
+                        .foregroundStyle(lcd.subtext)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            if entry != nil {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(lcd.subtext)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(8)
+        .background(lcd.surface)
+        .overlay(
+            RoundedRectangle(cornerRadius: 4).strokeBorder(lcd.surfaceEdge, lineWidth: 1)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard let entry else { return }
+            Haptics.select()
+            onOpen(entry)
+        }
+    }
+
+    /// The score, as a bar and a number.
+    ///
+    /// Coloured by band rather than by a gradient so the three states read at a
+    /// glance — a 94 and a 31 should not be the same shade of anything.
+    private func confidenceBar(_ score: Int) -> some View {
+        let tint: Color = score >= 70 ? Dex.green500 : (score >= LabelConfidence.floor ? Dex.amber400 : Dex.red500)
+        return VStack(spacing: 6) {
+            HStack {
+                Text("CONFIDENCE")
+                    .font(DexFont.retro(11))
+                    .tracking(1)
+                    .foregroundStyle(lcd.subtext)
+                Spacer(minLength: 4)
+                Text("\(score)%")
+                    .font(DexFont.retro(16))
+                    .foregroundStyle(tint)
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3).fill(lcd.surfaceEdge.opacity(0.5))
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(tint)
+                        .frame(width: geo.size.width * CGFloat(score) / 100)
+                }
+            }
+            .frame(height: 12)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Confidence \(score) percent")
+    }
+
+    /// The spec's no-match state: says so plainly, then hands over everything it
+    /// did find rather than an apology.
+    private func noMatchCard(_ reading: LabelReading) -> some View {
+        VStack(spacing: 12) {
+            Image(systemName: "questionmark.diamond.fill")
+                .font(.system(size: 54, weight: .semibold))
+                .foregroundStyle(Dex.amber400)
+
+            Text("NO CONFIDENT MATCH FOUND.")
+                .font(DexFont.retro(16))
+                .tracking(1)
+                .foregroundStyle(Dex.amber400)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text("Here is everything the label gave up. A straighter, closer photo of the front label usually settles it.")
+                .font(DexFont.mono(18))
+                .foregroundStyle(lcd.subtext)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if !reading.matches.isEmpty {
+                VStack(spacing: 8) {
+                    ForEach(reading.matches) { match in
+                        row(match)
+                    }
+                }
+            }
+
+            confidenceBar(reading.score)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(16)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Dex.amber400.opacity(0.1)))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8).strokeBorder(Dex.amber400.opacity(0.5), lineWidth: 2)
+        )
+    }
+
+    @ViewBuilder
+    private func suggestionSections(_ reading: LabelReading) -> some View {
+        if !reading.suggestedCountries.isEmpty {
+            section("SUGGESTED COUNTRIES", symbol: "flag.fill") {
+                FlowLayout(spacing: 6) {
+                    ForEach(reading.suggestedCountries, id: \.self) { country in
+                        summaryChip(country.uppercased(), db.palette.chip(country: country))
+                    }
+                }
+            }
+        }
+        if !reading.suggestedRegionIDs.isEmpty {
+            entrySection("SUGGESTED REGIONS", symbol: "map.fill", ids: reading.suggestedRegionIDs)
+        }
+    }
+
+    /// The raw OCR, always available.
+    ///
+    /// Shown on a confident read too, not only on a failure: it is the only way
+    /// a user can tell a wrong answer from a wrong *photo* — a reading that
+    /// looks mad is usually a label half out of frame, and this is where that
+    /// becomes visible. Last section on the page, so it costs a scroll rather
+    /// than a glance.
+    private func extractedText(_ reading: LabelReading) -> some View {
+        section("EXTRACTED TEXT", symbol: "text.alignleft") {
+            VStack(alignment: .leading, spacing: 4) {
+                if reading.recognizedText.isEmpty {
+                    Text("Nothing was legible in that image.")
+                        .font(DexFont.mono(18))
+                        .foregroundStyle(lcd.subtext)
+                } else {
+                    ForEach(Array(reading.recognizedText.enumerated()), id: \.offset) { _, line in
+                        Text(line)
+                            .font(DexFont.mono(17))
+                            .foregroundStyle(lcd.bodyText)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(10)
+            .background(lcd.surface)
+            .overlay(
+                RoundedRectangle(cornerRadius: 4).strokeBorder(lcd.surfaceEdge, lineWidth: 1)
+            )
+        }
+    }
+
+    // MARK: - Failure
+
+    private func failure(_ error: LabelReadError) -> some View {
+        VStack(spacing: 16) {
+            noticeCard(error.message, symbol: "exclamationmark.triangle.fill", tint: Dex.red500)
+            bigButton("TRY AGAIN", symbol: "arrow.counterclockwise", tint: lcd.accent) {
+                model.reset()
+            }
+        }
+    }
+
+    // MARK: - Shared chrome
+    //
+    // Lifted from `ScannerScreen`'s own helpers rather than reinvented — same
+    // surfaces, same rims, same press style. See this type's note.
+
+    private func noticeCard(_ message: String, symbol: String, tint: Color) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: symbol)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(tint)
+            Text(message)
+                .font(DexFont.mono(18))
+                .foregroundStyle(lcd.text)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(RoundedRectangle(cornerRadius: 8).fill(tint.opacity(0.1)))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8).strokeBorder(tint.opacity(0.5), lineWidth: 2)
+        )
+    }
+
+    private func section<C: View>(
+        _ title: String,
+        symbol: String,
+        @ViewBuilder content: () -> C
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: symbol)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(lcd.accent)
+                Text(title)
+                    .font(DexFont.retro(12))
+                    .tracking(1)
+                    .foregroundStyle(lcd.accent)
+            }
+            .padding(.bottom, 2)
+            .overlay(alignment: .bottom) { lcd.accent.opacity(0.4).frame(height: 2) }
+
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// A titled list of entries, each opening its own page.
+    private func entrySection(_ title: String, symbol: String, ids: [String]) -> some View {
+        section(title, symbol: symbol) {
+            VStack(spacing: 8) {
+                ForEach(ids.compactMap { db.entry(id: $0) }) { entry in
+                    Button {
+                        Haptics.select()
+                        onOpen(entry)
+                    } label: {
+                        HStack(spacing: 10) {
+                            EntryIconWell(entry: entry, size: 44, cornerRadius: 8)
+                            Text(entry.name.uppercased())
+                                .font(DexFont.retro(13))
+                                .foregroundStyle(lcd.text)
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Spacer(minLength: 4)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(lcd.subtext)
+                        }
+                        .padding(7)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(lcd.surface)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4)
+                                .strokeBorder(lcd.surfaceEdge, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(DexPressStyle(scale: 0.98))
+                }
+            }
+        }
+    }
+
+    private func summaryChip(_ label: String, _ chip: Palette.Chip?) -> some View {
+        let resolved = chip ?? Palette.Chip(bg: "#1c1917", border: "#57534e", text: "#e7e5e4")
+        return Text(label)
+            .font(DexFont.retro(11))
+            .foregroundStyle(Color(dexHex: resolved.text))
+            .padding(.horizontal, 7)
+            .padding(.vertical, 4)
+            .background(RoundedRectangle(cornerRadius: 4).fill(Color(dexHex: resolved.bg)))
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .strokeBorder(Color(dexHex: resolved.border), lineWidth: 1)
+            )
+    }
+
+    private func bigButton(
+        _ label: String,
+        symbol: String? = nil,
+        tint: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            Haptics.screenTap()
+            action()
+        } label: {
+            HStack(spacing: 12) {
+                if let symbol {
+                    Image(systemName: symbol)
+                        .font(.system(size: 21, weight: .bold))
+                }
+                Text(label)
+                    .font(DexFont.retro(14))
+                    .tracking(1)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+            }
+            .foregroundStyle(tint)
+            .padding(.vertical, 19)
+            .frame(maxWidth: .infinity)
+            .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6).strokeBorder(tint.opacity(0.6), lineWidth: 2)
+            )
+        }
+        .buttonStyle(DexPressStyle(scale: 0.97))
+    }
+}
+#endif

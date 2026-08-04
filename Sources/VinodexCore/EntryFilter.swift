@@ -88,6 +88,34 @@ public enum EntryFilter: Sendable, Hashable {
         }
     }
 
+    /// Marquee glyph while this filter is active (0.7.0, K2).
+    ///
+    /// `scanTitle` has existed since the filters did, and `DexRoute.marqueeSymbol`
+    /// threw the filter away — `case .list(let category, _)` — so a GEOLOGY SCAN
+    /// showed the regions map, a RARITY SCAN showed the grape leaf and a CLIMATE
+    /// SCAN showed the map again. The title said one thing and the glyph beside
+    /// it said another, on nine reachable filter kinds.
+    ///
+    /// Pairs one-to-one with `scanTitle` and sits beside it for that reason: a
+    /// new filter kind that gets a title without a glyph is the bug this fixes.
+    /// All iOS 17-safe — see KNOWN-ISSUES on symbols with a later OS floor
+    /// rendering blank rather than failing to compile.
+    public var marqueeSymbol: String {
+        switch self {
+        // A continent's countries — the sector this scan covers.
+        case .region: "globe.europe.africa.fill"
+        case .type: "wineglass.fill"
+        case .tasting, .flavorSubclass: "leaf.fill"
+        // Rock, for a soil scan. The one filter whose subject is literally
+        // under the vineyard.
+        case .soil: "mountain.2.fill"
+        case .origin: "mappin.and.ellipse"
+        case .rarity: "star.fill"
+        case .system: "checkmark.seal.fill"
+        case .climate: "thermometer.medium"
+        }
+    }
+
     /// Label shown in the filter indicator bar.
     public var indicatorText: String {
         switch self {

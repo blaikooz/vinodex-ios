@@ -120,6 +120,16 @@ public extension Palette {
             return climates[option.value]?.colors ?? fallback
         case .country:
             return chip(country: option.value) ?? fallback
+        // The three 0.7.0 (H2/H3) facets all read palettes the generator
+        // already emits and the detail screens already draw, so a chip and the
+        // tile it filters to are the same colour by construction — the same
+        // argument the BODY note above makes for the scanner.
+        case .styleClass:
+            return styleClassChips[option.value] ?? fallback
+        case .flavorClass:
+            return flavorClassChips[option.value] ?? fallback
+        case .flavorSubclass:
+            return flavorSubclassChips[option.value] ?? fallback
         }
     }
 

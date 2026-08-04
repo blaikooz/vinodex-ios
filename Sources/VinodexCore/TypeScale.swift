@@ -123,3 +123,68 @@ public enum TypeScale {
         max(nominalFloor, nominal) * step.factor
     }
 }
+
+/// How much spare room a fixed, non-scrolling page has (0.7.0, J1/J2/J3).
+///
+/// **The problem this exists to solve.** 0.6.7's I1 made the LCD a genuinely
+/// fixed box that clips, and 0.6.9's K2 then had to make the moon dial actually
+/// fit inside it. 0.7.0's J asks for all three of the fixed pages — the moon
+/// dial, the daily reveal and the exam — to be *larger*. Read naively those are
+/// contradictory: adding points to a page that only just fits is how a page
+/// stops fitting, and inside a clipping LCD the overflow does not scroll into
+/// view, it silently disappears at the bezel.
+///
+/// They are only contradictory if "larger" means a constant. Here it means a
+/// fraction of the room the page actually has, and the room is *measured*:
+///
+/// - **0** means no slack. Every call site is written so that a `growth` of zero
+///   resolves to exactly the numbers that shipped in 0.6.9, which makes the
+///   previously-verified fit the floor case of the new arithmetic rather than a
+///   separate case somebody has to re-check.
+/// - **1** means plenty, on a tall phone at the SMALL text step, where those
+///   pages were leaving room in a trailing `Spacer` and looking sparse for it.
+///
+/// **Why the height is divided by the text factor.** Points are the wrong unit.
+/// What decides whether a page of words fits is height *relative to how big the
+/// words are*, and `TextScale` runs to 1.15 at HUGE — so a 480pt LCD at HUGE has
+/// the same room for content as a ~355pt LCD at LARGE, and this treats them as
+/// equal. That is what makes the growth back off on both of the axes that
+/// actually consume a page, rather than only on the obvious one.
+///
+/// **No floor is introduced.** Whatever minimum a page already had for its own
+/// reasons stays exactly as it was; this only ever adds on top, and only where
+/// there is measured room to add into.
+public enum PageRoom {
+    /// Below this many text units a page gets no growth at all.
+    ///
+    /// **340 is set from the measurement 0.6.9's K2 left behind.** That note
+    /// records the moon dial's ring coming out "around 105pt on the smallest
+    /// supported device" at a fraction of 0.30, which puts the shortest LCD at
+    /// roughly 350pt. 340 units therefore means: at the HUGE text step — the
+    /// worst case, and the one K2 says was actually breaking the fixed pages —
+    /// no growth happens at all below ~391pt, comfortably past that shortest
+    /// screen. The layout 0.6.9 verified is untouched in the case it was
+    /// verified in.
+    ///
+    /// It deliberately does *not* mean "no growth on a short screen at any text
+    /// step". At SMALL every glyph renders at 0.85×, so a short screen genuinely
+    /// does have room, and refusing to use it would be the same mistake as
+    /// adding a constant — a number chosen for a case that is not the one in
+    /// front of the user. The safety property is the one that matters: growth is
+    /// zero wherever the page is tightest.
+    public static let floorUnits: Double = 340
+    /// The window over which growth ramps from 0 to 1.
+    public static let windowUnits: Double = 220
+
+    /// `pageHeight` in points, `step` the active text scale.
+    public static func growth(pageHeight: Double, step: TextScale) -> Double {
+        guard pageHeight > 0 else { return 0 }
+        let units = pageHeight / step.factor
+        return min(max((units - floorUnits) / windowUnits, 0), 1)
+    }
+
+    /// The defaults-reading form, for views that do not thread the step.
+    public static func growth(pageHeight: Double) -> Double {
+        growth(pageHeight: pageHeight, step: TextScale.current)
+    }
+}

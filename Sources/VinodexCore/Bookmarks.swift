@@ -68,6 +68,20 @@ public final class BookmarkStore {
     /// entry, so defaults is proportionate — the avatar's file-based reasoning
     /// does not apply at this size.
     public static let ratingsKey = "triedRatings"
+    /// When each tried entry was marked, as a `DailyPick.dayIndex` (0.7.1, D1).
+    ///
+    /// **Why this is new and not a lookup.** D1 wants entries collected per
+    /// day, and until now nothing recorded the day an entry was collected. The
+    /// nearest thing was `TriedRating.day` — but a rating is optional (the
+    /// prompt has a SKIP), and *editing* one overwrites its `day` with today,
+    /// so a graph built on ratings would have shown a sparse, retroactively
+    /// wrong history. This records the event itself.
+    ///
+    /// Written here rather than at the tap site for the same reason the
+    /// wishlist coupling is: `toggle(_:on:)` is documented as "the one place
+    /// membership changes", so a future second way to mark something tried
+    /// gets dated for free.
+    public static let triedDaysKey = "triedEntryDays"
 
     private let defaults: UserDefaults
     /// The saved shelf, by its original name.
@@ -75,6 +89,8 @@ public final class BookmarkStore {
     private var wantIDs: [String]
     private var triedIDs: [String]
     private var ratings: [String: TriedRating]
+    /// Entry id to the day it joined the tried shelf. See `triedDaysKey`.
+    private var triedDays: [String: Int]
 
     /// Injectable for tests; defaults to `.standard` in the app.
     public init(defaults: UserDefaults = .standard) {
@@ -87,6 +103,12 @@ public final class BookmarkStore {
             ratings = decoded
         } else {
             ratings = [:]
+        }
+        if let data = defaults.data(forKey: Self.triedDaysKey),
+           let decoded = try? JSONDecoder().decode([String: Int].self, from: data) {
+            triedDays = decoded
+        } else {
+            triedDays = [:]
         }
     }
 
@@ -168,8 +190,10 @@ public final class BookmarkStore {
                     wantIDs.remove(at: wantIndex)
                     persist(.wantToTry)
                 }
+                recordTriedDay(for: id)
             } else {
                 clearRating(for: id)
+                clearTriedDay(for: id)
             }
         }
         return added
@@ -180,15 +204,24 @@ public final class BookmarkStore {
         guard let index = list.firstIndex(of: id) else { return }
         list.remove(at: index)
         setIDs(list, on: shelf)
-        if shelf == .tried { clearRating(for: id) }
+        if shelf == .tried {
+            clearRating(for: id)
+            clearTriedDay(for: id)
+        }
     }
 
     public func removeAll(on shelf: Shelf) {
         guard !ids(on: shelf).isEmpty else { return }
         setIDs([], on: shelf)
-        if shelf == .tried, !ratings.isEmpty {
-            ratings.removeAll()
-            persistRatings()
+        if shelf == .tried {
+            if !ratings.isEmpty {
+                ratings.removeAll()
+                persistRatings()
+            }
+            if !triedDays.isEmpty {
+                triedDays.removeAll()
+                persistTriedDays()
+            }
         }
     }
 
@@ -203,6 +236,54 @@ public final class BookmarkStore {
         for shelf in Shelf.allCases { setIDs([], on: shelf) }
         ratings.removeAll()
         persistRatings()
+        triedDays.removeAll()
+        persistTriedDays()
+    }
+
+    // MARK: Tried days (0.7.1, D1)
+
+    /// The day an entry joined the tried shelf, or nil for one marked before
+    /// 0.7.1 started keeping the log.
+    ///
+    /// Nil rather than a guessed date: a back-fill would have to invent one,
+    /// and a graph with fifty entries stacked on the day the user installed the
+    /// update is a worse lie than a graph that starts today. The activity chart
+    /// says so in words — see `Passport.activity`.
+    public func triedDay(for id: String) -> Int? { triedDays[id] }
+
+    /// Entries collected per day, keyed by `DailyPick.dayIndex` — D1's series.
+    ///
+    /// Counts the *log*, not the shelf, so the two cannot drift: an entry with
+    /// no recorded day simply is not in the histogram.
+    public var triedDayCounts: [Int: Int] {
+        triedDays.values.reduce(into: [:]) { counts, day in
+            counts[day, default: 0] += 1
+        }
+    }
+
+    /// The whole log, for `Passport.compute`.
+    public var triedDayLog: [String: Int] { triedDays }
+
+    /// First mark wins. Re-marking something you had un-marked writes a new
+    /// day, which is correct — you tried it again — but the guard means the
+    /// ordinary "toggle twice by accident" does not rewrite history, because
+    /// un-marking cleared the entry first.
+    private func recordTriedDay(for id: String) {
+        triedDays[id] = DailyPick.dayIndex()
+        persistTriedDays()
+    }
+
+    private func clearTriedDay(for id: String) {
+        guard triedDays.removeValue(forKey: id) != nil else { return }
+        persistTriedDays()
+    }
+
+    private func persistTriedDays() {
+        if triedDays.isEmpty {
+            defaults.removeObject(forKey: Self.triedDaysKey)
+        } else if let data = try? JSONEncoder().encode(triedDays) {
+            defaults.set(data, forKey: Self.triedDaysKey)
+        }
     }
 
     // MARK: Ratings

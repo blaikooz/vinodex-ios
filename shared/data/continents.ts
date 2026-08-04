@@ -42,7 +42,15 @@ const CONTINENTS_BASE: ContinentEntry[] = [
     name: "South America",
     description: "A continent of extremes, from Andean foothills to coastal plains, producing bold, expressive wines. Argentina's Malbec and Chile's Cabernet Sauvignon have become global benchmarks for value and quality in the New World.",
     category: "CONTINENTS",
-    color: "#73343A",
+    // Malbec violet, not the merlot #73343A it wore until iOS 0.7.1 (A3).
+    // A continent's `color` is its globe marker and its icon well both — one
+    // value, so the two can never disagree — and #73343A sat one to five
+    // points per channel from North America's #722F37. At marker size, drawn
+    // at 0.2–0.45 opacity over the globe, the two continents were the same
+    // dot. Violet is the only hue more than 100° from anything else in the
+    // set (three dark reds, two pinks and Asia's gold), and it is the colour
+    // of the grape this continent is known for.
+    color: "#6E3B7A",
     icon: "globe",
     tags: ["Continent"],
     details: {

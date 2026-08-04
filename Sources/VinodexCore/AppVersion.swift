@@ -95,7 +95,93 @@ public enum AppVersion {
     /// cycling greeting, a hand-drawn skin and screen mode — plus one catalog
     /// change (Morellino as a Sangiovese synonym), which adds no entry, so
     /// `waveMilestones` still does not move.
-    static let fallback = "0.6.9"
+    /// 0.7.0: **the first batch since 0.4.3 whose label needed no
+    /// reinterpretation.** Five of the last six arrived as "6.3.3", "6.7.1",
+    /// "0.6.7.2" and so on, and each of those notes above records the same
+    /// resolution: the label names the work, the scheme names the build. The
+    /// user named this one 0.7.0, which already *is* the scheme — a minor bump,
+    /// which is the right joint for a batch that adds two chassis skins, three
+    /// new filter facets, a per-skin back plate and a new tool slot, rather than
+    /// the patch a corrective pass would take.
+    ///
+    /// A minor bump has no `waveMilestones` implication, and it is worth saying
+    /// why rather than leaving it as an absence: that list records *catalog
+    /// totals*, not versions. It moves when the entry count moves and at no
+    /// other time. This batch touches no `shared/` data at all — nothing was
+    /// regenerated, `entries.json` is byte-identical, and the total stands at
+    /// 405 — so the list does not move, exactly as it did not for 0.6.6 through
+    /// 0.6.9.
+    ///
+    /// The work: the picker grouped into sections on both axes, the NOTEBOOK
+    /// screen mode removed while the PÉT-NAT shell stays, WALDGLAS and
+    /// HALLOWEEN added, a back plate per skin, the stamp drag rebuilt on the
+    /// right coordinate space, filter chips on the world/styles/flavour scans,
+    /// the tools shelf re-cut, three fixed pages grown into their measured
+    /// slack, and the marquee glyph table audited end to end.
+    ///
+    /// 0.7.1: **the label and the scheme agreed for the second time running**,
+    /// and the second one is what makes it a habit rather than a coincidence.
+    /// A patch, correctly: everything here is a fix, a rename or a feature
+    /// grown out of a surface that already existed, and nothing changes what
+    /// the app *is* the way 0.7.0's two new skins and three new facets did.
+    ///
+    /// The catalog moved for the first time since 0.6.4 — and did not move.
+    /// South America's marker colour changed (A3: `#73343A` sat within five
+    /// points a channel of North America's `#722F37`, so the two continents
+    /// drew the same dot on the globe), which means `shared/` was edited,
+    /// synced, regenerated and re-audited for dangling references. But a colour
+    /// is not an entry: the total stands at 405 and `waveMilestones` does not
+    /// move, exactly as it has not since 0.6.2's 375 was appended.
+    ///
+    /// The work, by section. **A:** FILTER SEARCH became MASTER SEARCH and the
+    /// dead `.masterSearch` route was retired so the two could not both hold
+    /// the name; every search affordance in the app collapsed onto one
+    /// magnifier (`DexGlyph.search`); the header lamps grew from 17pt to 22pt;
+    /// and every lamp on the device — the island trio, the two on the white
+    /// bezel, the one in the vent strip, the two over the marquee — now sits in
+    /// a milled recess (`RecessedLamp`) instead of being a flat disc with a
+    /// hairline. **B:** the marquee is scripted (WELCOME! → MENU → CHEERS!
+    /// after ten idle seconds, `MarqueeScript` in Core so a Linux gate can see
+    /// it), transitions on a pixel dissolve rather than a cross-fade, and is a
+    /// button on every screen that opens a swipeable quick-access drawer with
+    /// a two-slot pin bar. **C:** the VINTAGE picker group became RETRO,
+    /// WINE.OS and GRÜNERBOY swapped groups, HALLOWEEN became HALLOWINE, and
+    /// the Emulator modes now repaint the app's coloured chrome in their own
+    /// ramps. **D:** the passport gained a per-day activity graph (which
+    /// required the tried shelf to start dating its entries at all), a
+    /// stamp-unlock moment, a four-rung rank ladder beginning with VINODEX
+    /// MASTER, and two more fixes to the stamp drag. **E:** the daily
+    /// challenge's fire became a target, and IDENTIFY became BLIND TASTING.
+    ///
+    /// 0.7.2: **LABEL SCAN**, from the `vinodex-label-reader` spec — the first
+    /// batch since 0.7.0 to add a screen rather than rework one, and the first
+    /// feature in the app that takes an input from outside it. Point the camera
+    /// at a bottle, run Apple Vision on-device, and match what it read against
+    /// the catalog: `LabelRecognitionService`, `LabelTextScan` and the result
+    /// models are Foundation-only in Core and gated by `swift test`, while
+    /// Vision, the camera and the pickers sit in `VinodexUI` behind
+    /// `LabelRecognitionProvider`. No network, no API key, no account.
+    ///
+    /// The place walk is the part worth naming: an appellation off the label
+    /// (`BAROLO`) resolves to the region that lists it, which yields the
+    /// country, the notable grapes and — through each grape's own `grapeStyle`
+    /// — the styles. None of that is written down anywhere in this feature. It
+    /// is the catalog's existing cross-references being read in a new direction.
+    ///
+    /// Two things the spec assumed and the code did not have: there is **no
+    /// Producer entity** in Vinodex and there never was, so producer matching is
+    /// text-only and its 50-point weight degrades to 15 (see `LabelConfidence`);
+    /// and `TextNormalize.key` is the app's normaliser, reused here rather than
+    /// reimplemented, which is what makes a phrase off a photograph comparable
+    /// to a catalog key at all.
+    ///
+    /// Also: `xtool.yml` gained `infoPath`, which the file's own comment and
+    /// KNOWN-ISSUES.md had both said did not exist. It does, on the installed
+    /// xtool 1.17. The camera and photo usage strings go through it, and the
+    /// stale claim is corrected in both places.
+    ///
+    /// No catalog change — 405 stands and `waveMilestones` does not move.
+    static let fallback = "0.7.2"
 
     /// Versions no build deliberately chose.
     ///

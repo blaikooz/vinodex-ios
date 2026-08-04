@@ -76,16 +76,24 @@ public struct TastingQuizScreen: View {
             // Centered unless the content overflows the LCD, in which case it
             // scrolls from the top like any other screen.
             GeometryReader { geo in
+                // **Larger where there is room** (0.7.0, J3), on the same
+                // measured-slack rule as the moon dial and the daily reveal —
+                // see `PageRoom`. This page is the least constrained of the
+                // three because it already scrolls when it has to, but it runs
+                // the same helper rather than a second idea of "bigger": three
+                // pages growing by three different rules is how the type scale
+                // drifted apart in the first place.
+                let grow = CGFloat(PageRoom.growth(pageHeight: Double(geo.size.height)))
                 ScrollView {
                     Group {
                         if let session, session.isComplete {
                             results(session)
                         } else if let session, let question {
-                            content(question, session: session)
+                            content(question, session: session, grow: grow)
                         } else if mode == .daily {
                             dailyDone
                         } else {
-                            tierPicker
+                            tierPicker(grow: grow)
                         }
                     }
                     .padding(14)
@@ -119,7 +127,7 @@ public struct TastingQuizScreen: View {
                 )
             }
         }
-        .animation(.easeOut(duration: 0.15), value: lockedTier)
+        .animation(DexMotion.overlay, value: lockedTier)
     }
 
     private func previousTier(of tier: QuizTier) -> QuizTier? {
@@ -225,11 +233,11 @@ public struct TastingQuizScreen: View {
 
     // MARK: Tier picker
 
-    private var tierPicker: some View {
-        VStack(alignment: .leading, spacing: 16) {
+    private func tierPicker(grow: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 16 + 8 * grow) {
             HStack {
                 Text("CHOOSE YOUR EXAM")
-                    .font(DexFont.retro(14))
+                    .font(DexFont.retro(14 + 4 * grow))
                     .tracking(1.5)
                     .foregroundStyle(lcd.accent)
                 Spacer(minLength: 8)
@@ -237,20 +245,20 @@ public struct TastingQuizScreen: View {
             .padding(.bottom, 5)
             .overlay(alignment: .bottom) { lcd.accent.opacity(0.4).frame(height: 2) }
 
-            VStack(spacing: 8) {
+            VStack(spacing: 8 + 4 * grow) {
                 ForEach(QuizTier.allCases) { tier in
-                    tierRow(tier)
+                    tierRow(tier, grow: grow)
                 }
             }
 
             Text("Ten questions, \(QuizSession.passMark) to pass. Passing a paper unlocks the next one.")
-                .font(DexFont.mono(18))
+                .font(DexFont.mono(18 + 4 * grow))
                 .foregroundStyle(lcd.subtext)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
 
-    private func tierRow(_ tier: QuizTier) -> some View {
+    private func tierRow(_ tier: QuizTier, grow: CGFloat) -> some View {
         let locked = !progress.unlocked(tier)
         let passed = progress.isCompleted(tier)
         let flavor = switch tier {
@@ -279,12 +287,12 @@ public struct TastingQuizScreen: View {
                                 .accessibilityLabel("Completed")
                         }
                         Text(tier.displayName)
-                            .font(DexFont.retro(13))
+                            .font(DexFont.retro(13 + 5 * grow))
                             .tracking(1)
                             .foregroundStyle(locked ? lcd.disabledText : lcd.text)
                     }
                     Text(flavor)
-                        .font(DexFont.mono(17))
+                        .font(DexFont.mono(17 + 4 * grow))
                         .foregroundStyle(lcd.subtext)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -299,8 +307,8 @@ public struct TastingQuizScreen: View {
                         .foregroundStyle(lcd.accent)
                 }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 16)
+            .padding(.horizontal, 14 + 5 * grow)
+            .padding(.vertical, 16 + 8 * grow)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
             .overlay(
@@ -314,7 +322,7 @@ public struct TastingQuizScreen: View {
     /// The daily's done card: today's paper is sat, come back tomorrow.
     private var dailyDone: some View {
         VStack(spacing: 18) {
-            Image(systemName: "flame.fill")
+            Image(systemName: DexGlyph.challenge)
                 .font(.system(size: 56, weight: .semibold))
                 .foregroundStyle(streak.current > 0 ? Dex.yellow : lcd.subtext)
                 .shadow(color: Dex.yellow.opacity(streak.current > 0 ? 0.5 : 0), radius: 8)
@@ -363,48 +371,48 @@ public struct TastingQuizScreen: View {
 
     // MARK: Layout
 
-    private func content(_ question: QuizQuestion, session: QuizSession) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            header(question, session: session)
-            prompt(question)
-            options(question)
+    private func content(_ question: QuizQuestion, session: QuizSession, grow: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 16 + 8 * grow) {
+            header(question, session: session, grow: grow)
+            prompt(question, grow: grow)
+            options(question, grow: grow)
         }
     }
 
     /// Topic strip, sized to match the section headers in settings — at the old
     /// 11pt these read as captions rather than as headings.
-    private func header(_ question: QuizQuestion, session: QuizSession) -> some View {
+    private func header(_ question: QuizQuestion, session: QuizSession, grow: CGFloat) -> some View {
         HStack {
             Text(mode == .daily
                 ? "DAILY · \(question.kind.topic)"
                 : "\(session.tier.displayName) · \(question.kind.topic)")
-                .font(DexFont.retro(14))
+                .font(DexFont.retro(14 + 4 * grow))
                 .tracking(1.5)
                 .foregroundStyle(lcd.accent)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
             Spacer(minLength: 8)
             Text("\(min(session.index + 1, session.length))/\(session.length)")
-                .font(DexFont.mono(19))
+                .font(DexFont.mono(19 + 5 * grow))
                 .foregroundStyle(lcd.subtext)
         }
         .padding(.bottom, 5)
         .overlay(alignment: .bottom) { lcd.accent.opacity(0.4).frame(height: 2) }
     }
 
-    private func prompt(_ question: QuizQuestion) -> some View {
+    private func prompt(_ question: QuizQuestion, grow: CGFloat) -> some View {
         Text(question.prompt)
-            .font(DexFont.retro(15))
+            .font(DexFont.retro(15 + 6 * grow))
             .foregroundStyle(lcd.text)
             .lineSpacing(6)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func options(_ question: QuizQuestion) -> some View {
-        VStack(spacing: 8) {
+    private func options(_ question: QuizQuestion, grow: CGFloat) -> some View {
+        VStack(spacing: 8 + 4 * grow) {
             ForEach(question.optionIDs, id: \.self) { id in
-                optionRow(id: id, question: question)
+                optionRow(id: id, question: question, grow: grow)
             }
         }
     }
@@ -412,7 +420,7 @@ public struct TastingQuizScreen: View {
     /// Once answered, the right row goes green whether or not it was picked, and
     /// a wrong pick goes red. Showing only the user's own row would leave
     /// someone who guessed wrong without the answer.
-    private func optionRow(id: String, question: QuizQuestion) -> some View {
+    private func optionRow(id: String, question: QuizQuestion, grow: CGFloat) -> some View {
         let name = db.entry(id: id)?.name ?? id
         let isAnswer = question.isCorrect(id)
         let isChoice = chosenID == id
@@ -428,7 +436,7 @@ public struct TastingQuizScreen: View {
         } label: {
             HStack(spacing: 12) {
                 Text(name.uppercased())
-                    .font(DexFont.retro(13))
+                    .font(DexFont.retro(13 + 5 * grow))
                     .foregroundStyle(answered && !isAnswer && !isChoice ? lcd.disabledText : lcd.text)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
@@ -443,8 +451,8 @@ public struct TastingQuizScreen: View {
                         .foregroundStyle(Dex.red500)
                 }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 16)
+            .padding(.horizontal, 14 + 5 * grow)
+            .padding(.vertical, 16 + 8 * grow)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
             .overlay(

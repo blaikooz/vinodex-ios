@@ -48,6 +48,11 @@ public struct EntryDetailScreen: View {
     var onOpenRoute: (DexRoute) -> Void = { _ in }
 
     private let db = WineDatabase.shared
+
+    /// Stamps earned by the tap that is currently being handled, waiting for
+    /// the rating prompt to close (0.7.1, D2).
+    @State private var pendingUnlocks: [BackPlateStamp] = []
+    @State private var showingUnlock: BackPlateStamp?
     @State private var bookmarks = BookmarkStore.shared
     /// Raised when TRIED turns on, and again from MY RATING's EDIT.
     @State private var showingRating = false
@@ -145,12 +150,19 @@ public struct EntryDetailScreen: View {
                             for: entry.id
                         )
                         showingRating = false
+                        showNextUnlock()
                     },
-                    onSkip: { showingRating = false }
+                    onSkip: {
+                        showingRating = false
+                        showNextUnlock()
+                    }
                 )
+            } else if let stamp = showingUnlock {
+                StampUnlockedPrompt(stamp: stamp) { showNextUnlock() }
             }
         }
-        .animation(.easeOut(duration: 0.15), value: showingRating)
+        .animation(DexMotion.overlay, value: showingRating)
+        .animation(DexMotion.overlay, value: showingUnlock?.id)
         // The recent trail (0.6.3, item 3). Keyed on the id so a cross-link —
         // which swaps the entry without tearing this view down — records the
         // new entry too; a bare `.onAppear` would have credited only the first
@@ -222,12 +234,25 @@ public struct EntryDetailScreen: View {
         VStack(spacing: 14) {
             EntryIconWell(entry: entry, size: DexMetrics.heroWell, cornerRadius: 20, showsRegionDot: true)
 
-            Text(entry.name.uppercased())
+                // **Inset back off the bezel** (0.7.1, A4). The hero's
+                // `.padding(.horizontal, -14)` below cancels the scroll
+                // content margin so the wash goes full-bleed, which is
+                // deliberate and correct — but the title rode along with it
+                // and had *zero* horizontal inset, so its line box was the
+                // whole LCD and the hard 4pt shadow sat against the moulding.
+                // At the HUGE step the retro face fits thirteen characters
+                // across, so GEWURZTRAMINER and NIEDEROSTERREICH broke
+                // mid-glyph — Press Start 2P has no hyphenation and these
+                // titles, unlike the tile chips, were not going through
+                // `EntryDisplay.hyphenated`. Both halves are fixed: the inset
+                // comes back, and a legal break point exists.
+            Text(EntryDisplay.hyphenated(entry.name.uppercased()))
                 .font(DexFont.retro(21))
                 .foregroundStyle(lcd.text)
                 .shadow(color: lcd.accent.opacity(0.55), radius: 0, x: 4, y: 4)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 18)
 
             bookmarkButton
         }
@@ -280,10 +305,44 @@ public struct EntryDetailScreen: View {
                 ) {
                     Haptics.select()
                     let added = bookmarks.toggle(entry.id, on: .tried)
-                    if added { showingRating = true }
+                    if added {
+                        showingRating = true
+                        // **The one moment a passport badge can be earned by
+                        // tasting** (0.7.1, D2). Recorded here, at the tap,
+                        // never in a view body — `TastingQuizScreen` carries
+                        // the same warning for `QuizProgress.recordPass`, and
+                        // for the same reason: `announce` marks what it
+                        // returns, so a second call in a re-render would
+                        // swallow the celebration rather than repeat it.
+                        //
+                        // Queued behind the rating prompt rather than shown
+                        // over it. Two modal cards stacked on one tap is a
+                        // pile; the star form asked a question and gets its
+                        // answer first.
+                        pendingUnlocks = PassportProgress.shared.announce(
+                            Passport.compute(
+                                tried: bookmarks.ids(on: .tried),
+                                in: db,
+                                bestStreak: StreakStore.shared.best,
+                                highestTier: QuizProgress.shared.highestUnlocked,
+                                triedDays: bookmarks.triedDayLog
+                            )
+                        )
+                    }
                 }
             }
         }
+    }
+
+    /// One stamp at a time, in catalog order. Two can genuinely land together
+    /// — a tenth entry that is also a region's last grape — and overlapping
+    /// celebrations would be one unreadable pile.
+    private func showNextUnlock() {
+        guard !pendingUnlocks.isEmpty else {
+            showingUnlock = nil
+            return
+        }
+        showingUnlock = pendingUnlocks.removeFirst()
     }
 
     private func shelfCapsule(
@@ -339,17 +398,30 @@ public struct EntryDetailScreen: View {
     private var headerTiles: some View {
         Group {
             switch entry {
+            // **Two rows, not one** (0.7.0, A1): COLOR and TYPE share the top
+            // row, ORIGIN takes a full-width bar under them.
+            //
+            // Three abreast gave the country a third of the LCD's width, and a
+            // country name is the longest string in the row by a wide margin —
+            // UNITED STATES, SOUTH AFRICA and NEW ZEALAND all had to wrap or
+            // shrink to fit, while COLOR and TYPE (one short word each) sat in
+            // thirds they did not need. This is the same move the *region* tiles
+            // made two batches earlier for the same reason and in the same
+            // shape: the long string rides alone on a bar, the two short ones
+            // pair up. See `keyGrapeBar`'s note directly below.
             case .grape(let g):
-                HStack(alignment: .top, spacing: 8) {
-                    tile(label: "COLOR",
-                         chip: chip(g.grapeType.rawValue.uppercased(), .colorType),
-                         destination: .list(category: .grapes, filter: .type(g.grapeType.rawValue))) { tint in
-                        DexIcon(iconID: db.icons.colorIcon(g.grapeType.rawValue.uppercased()), size: 32, color: tint)
-                    }
-                    tile(label: "TYPE",
-                         chip: chip(EntryDisplay.grapeBodyLabel(g), .wineType, key: g.grapeStyle),
-                         destination: .list(category: .grapes, filter: .type(g.grapeStyle))) { tint in
-                        DexIcon(iconID: db.icons.bodyIcon(g.grapeBodyClass), size: 32, color: tint)
+                VStack(spacing: 10) {
+                    HStack(alignment: .top, spacing: 8) {
+                        tile(label: "COLOR",
+                             chip: chip(g.grapeType.rawValue.uppercased(), .colorType),
+                             destination: .list(category: .grapes, filter: .type(g.grapeType.rawValue))) { tint in
+                            DexIcon(iconID: db.icons.colorIcon(g.grapeType.rawValue.uppercased()), size: 32, color: tint)
+                        }
+                        tile(label: "TYPE",
+                             chip: chip(EntryDisplay.grapeBodyLabel(g), .wineType, key: g.grapeStyle),
+                             destination: .list(category: .grapes, filter: .type(g.grapeStyle))) { tint in
+                            DexIcon(iconID: db.icons.bodyIcon(g.grapeBodyClass), size: 32, color: tint)
+                        }
                     }
                     tile(label: "ORIGIN",
                          chip: chip(g.details.origin.uppercased(), .country, key: g.details.origin),

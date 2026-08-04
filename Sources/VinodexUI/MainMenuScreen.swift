@@ -68,7 +68,13 @@ public struct MainMenuScreen: View {
         shadow: String,
         action: @escaping () -> Void
     ) -> some View {
-        Button {
+        // C5 (0.7.1): under an Emulator mode the four category faces fold
+        // toward that machine's ramp, so the menu stops being four Tailwind
+        // squares bolted to a starship console. Untouched everywhere else.
+        let paint = mode.chrome(face: face, shadow: shadow)
+        let label = mode.chromeInk(over: face, preferring: .white)
+
+        return Button {
             Haptics.screenTap()
             action()
         } label: {
@@ -77,11 +83,11 @@ public struct MainMenuScreen: View {
             VStack(spacing: 13) {
                 Image(systemName: symbol)
                     .font(.system(size: 56, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(label)
                     .shadow(color: .black.opacity(0.3), radius: 0, x: 1, y: 2)
                 Text(title)
                     .font(DexFont.retro(19))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(label)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
                     .shadow(color: .black.opacity(0.35), radius: 0, x: 1, y: 1)
@@ -89,10 +95,10 @@ public struct MainMenuScreen: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: DexMetrics.menuTileCorner)
-                    .fill(Color(dexHex: face))
+                    .fill(paint.face)
                     .overlay(alignment: .bottom) {
                         // The web tiles use a 6px bottom border as a fake extrusion.
-                        Color(dexHex: shadow).frame(height: 6)
+                        paint.shadow.frame(height: 6)
                     }
                     .clipShape(RoundedRectangle(cornerRadius: DexMetrics.menuTileCorner))
             )
@@ -114,15 +120,31 @@ public struct MainMenuScreen: View {
     /// v0.5.3: the search button wears the mode's control livery, like the
     /// chassis buttons around it — in DARK that resolves to the same amber
     /// it has always been.
+    ///
+    /// **It opens MASTER SEARCH.** Since 0.7.0 (I1) the destination is
+    /// `.chipFilter`, which used to be called FILTER SEARCH: a text field over
+    /// the whole database (the identical `.masterSearch(_:)` query the retired
+    /// route ran) *plus* the chips and a live surviving-count. It is a strict
+    /// superset, so the menu's most prominent control leads to the better of
+    /// the two; 0.7.1's A1 finished the job by giving it the name.
+    ///
+    /// **The glyph is the magnifier again (0.7.1, A2).** 0.7.0 swapped it for
+    /// `line.3.horizontal.decrease` so the change of destination would be
+    /// visible from the one screen it happens on. That was right for one
+    /// release and wrong as a resting state: filter bars are a statement about
+    /// a list you are already looking at, and this is the way *in*. A2 puts
+    /// every search affordance in the app on `DexGlyph.search`, and this is the
+    /// largest one. The bare form, not `.circle.fill` — a glyph with its own
+    /// circle inside a 102pt circle reads as a button drawn twice.
     private var searchButton: some View {
         Button {
             Haptics.screenTap()
-            onSelect(.masterSearch)
+            onSelect(.chipFilter)
         } label: {
             ZStack {
                 Circle().fill(mode.controlAccent.bright)
                 Circle().strokeBorder(mode.controlAccent.mid, lineWidth: 6)
-                Image(systemName: "magnifyingglass")
+                Image(systemName: DexGlyph.search)
                     .font(.system(size: 40, weight: .bold))
                     .foregroundStyle(mode.controlAccent.ink)
             }

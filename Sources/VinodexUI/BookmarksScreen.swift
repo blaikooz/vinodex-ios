@@ -208,9 +208,9 @@ public struct BookmarksScreen: View {
                 )
             }
         }
-        .animation(.easeOut(duration: 0.15), value: confirmingClear)
-        .animation(.easeOut(duration: 0.15), value: pendingDelete?.id)
-        .animation(.easeOut(duration: 0.15), value: editingRating?.id)
+        .animation(DexMotion.overlay, value: confirmingClear)
+        .animation(DexMotion.overlay, value: pendingDelete?.id)
+        .animation(DexMotion.overlay, value: editingRating?.id)
     }
 
     /// The shelf switch, in the settings panel's equal-width segment idiom.
@@ -222,7 +222,7 @@ public struct BookmarksScreen: View {
                 let active = shelf == option
                 Button {
                     Haptics.select()
-                    withAnimation(.easeOut(duration: 0.15)) { shelfRaw = option.rawValue }
+                    withAnimation(DexMotion.overlay) { shelfRaw = option.rawValue }
                 } label: {
                     Text("\(title(of: option)) \(count(of: option))")
                         .font(DexFont.retro(11))
@@ -308,10 +308,21 @@ public struct BookmarksScreen: View {
                         } label: {
                             VStack(spacing: 4) {
                                 EntryIconWell(entry: entry, size: 56, cornerRadius: 8)
+                                // Two lines and a scale floor (0.7.1, A4).
+                                // The retro face advances a full em, so a
+                                // 64pt box at one line held seven characters
+                                // at SMALL and *five* at HUGE — CABERNET
+                                // SAUVIGNON came out as CABE…, and this strip
+                                // is the one place in the app where the name
+                                // is the only thing telling two rows apart
+                                // (the wells above are frequently the same
+                                // art).
                                 Text(entry.name.uppercased())
                                     .font(DexFont.retro(10))
                                     .foregroundStyle(lcd.subtext)
-                                    .lineLimit(1)
+                                    .multilineTextAlignment(.center)
+                                    .lineLimit(2)
+                                    .minimumScaleFactor(0.6)
                                     .truncationMode(.tail)
                                     .frame(width: 64)
                             }
@@ -444,7 +455,7 @@ public struct BookmarksScreen: View {
 
             Button {
                 Haptics.select()
-                withAnimation(.easeOut(duration: 0.15)) { editingName.toggle() }
+                withAnimation(DexMotion.overlay) { editingName.toggle() }
             } label: {
                 Image(systemName: editingName ? "checkmark" : "square.and.pencil")
                     .font(.system(size: 17, weight: .bold))
@@ -459,7 +470,7 @@ public struct BookmarksScreen: View {
         .frame(minHeight: 44)
     }
 
-    /// The way into the passport, and the streak flame beneath it when one is
+    /// The way into the passport, and the streak mark beneath it when one is
     /// alight.
     ///
     /// **Stacked rather than side by side since 0.6.7 (D1).** The two shared a
@@ -496,7 +507,7 @@ public struct BookmarksScreen: View {
 
             if streak.current > 0 {
                 HStack(spacing: 6) {
-                    Image(systemName: "flame.fill")
+                    Image(systemName: DexGlyph.challenge)
                         .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(Dex.yellow)
                     Text("\(streak.current) DAY\(streak.current == 1 ? "" : "S")")

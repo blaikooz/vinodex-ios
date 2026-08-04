@@ -83,7 +83,7 @@ public struct ContinentScreen: View {
                 )
             }
         }
-        .animation(.easeOut(duration: 0.15), value: comingSoon)
+        .animation(DexMotion.overlay, value: comingSoon)
     }
 
     // MARK: Hero
@@ -98,12 +98,25 @@ public struct ContinentScreen: View {
         VStack(spacing: 14) {
             EntryIconWell(entry: .continent(continent), size: DexMetrics.heroWell, cornerRadius: 20)
 
-            Text(continent.common.name.uppercased())
+                // **Inset back off the bezel** (0.7.1, A4). The hero's
+                // `.padding(.horizontal, -14)` below cancels the scroll
+                // content margin so the wash goes full-bleed, which is
+                // deliberate and correct — but the title rode along with it
+                // and had *zero* horizontal inset, so its line box was the
+                // whole LCD and the hard 4pt shadow sat against the moulding.
+                // At the HUGE step the retro face fits thirteen characters
+                // across, so GEWURZTRAMINER and NIEDEROSTERREICH broke
+                // mid-glyph — Press Start 2P has no hyphenation and these
+                // titles, unlike the tile chips, were not going through
+                // `EntryDisplay.hyphenated`. Both halves are fixed: the inset
+                // comes back, and a legal break point exists.
+            Text(EntryDisplay.hyphenated(continent.common.name.uppercased()))
                 .font(DexFont.retro(21))
                 .foregroundStyle(lcd.text)
                 .shadow(color: lcd.accent.opacity(0.55), radius: 0, x: 4, y: 4)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 18)
 
             saveButton
         }

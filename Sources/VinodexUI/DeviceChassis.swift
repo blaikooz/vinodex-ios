@@ -22,6 +22,15 @@ public struct DeviceChassis<Content: View>: View {
     var onBookmarks: (() -> Void)?
     /// Opens the settings screen.
     var onSettings: (() -> Void)?
+    /// Pushes any route, from the marquee drawer (0.7.1, B5).
+    ///
+    /// One callback for a dozen destinations rather than a dozen callbacks:
+    /// the drawer's whole content is a list of routes, and `DexRoute` already
+    /// travels between the modules. The four above stay as they are because
+    /// they are *chassis controls* — Back, Home, Saved and the cog are physical
+    /// buttons whose meaning is fixed, and collapsing them into this would lose
+    /// that distinction to save four lines.
+    var onQuickRoute: ((DexRoute) -> Void)?
     @ViewBuilder var content: () -> Content
 
     /// The system panel lives here rather than in the app module so it can be
@@ -38,6 +47,15 @@ public struct DeviceChassis<Content: View>: View {
 
     /// Drives the orb's depress animation while the flip gesture is held.
     @State private var orbHeld = false
+
+    /// The main screen's marquee script (0.7.1, B1-B3) — see `MarqueeScript`.
+    /// State on the chassis rather than on the banner, because the chassis is
+    /// what knows whether the main screen is showing and is mounted once for
+    /// the life of the app, which is exactly the lifetime "once per launch"
+    /// needs.
+    @State private var script = MarqueeScript()
+    /// Whether the quick-access drawer is open (0.7.1, B4/B5).
+    @State private var drawerOpen = false
     // **No app-wide back swipe (0.6.9, A1).** 0.6.8's I1 mounted a
     // `simultaneousGesture` on the LCD so every screen got a swipe-back for
     // free, with `BackSwipeGate` as the opt-out for the one screen that owns
@@ -73,6 +91,7 @@ public struct DeviceChassis<Content: View>: View {
         onHome: (() -> Void)? = nil,
         onBookmarks: (() -> Void)? = nil,
         onSettings: (() -> Void)? = nil,
+        onQuickRoute: ((DexRoute) -> Void)? = nil,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.title = title
@@ -82,29 +101,36 @@ public struct DeviceChassis<Content: View>: View {
         self.onHome = onHome
         self.onBookmarks = onBookmarks
         self.onSettings = onSettings
+        self.onQuickRoute = onQuickRoute
         self.content = content
     }
 
     private var isMainScreen: Bool { title == "VINODEX" }
 
-    /// The main screen's toasts — five ways of saying one thing.
+    /// What the panel says.
     ///
-    /// **Shown one at a time since 0.6.9 (D3).** They used to be five words in
-    /// a single scrolling run, separated by the same gap the strip gave its
-    /// wrap seam; the panel holds still now, so it cycles them instead, dwell
-    /// and cross-fade. See `MarqueeBanner.cycle()`.
-    ///
-    /// ASCII, deliberately: SANTE and GRUNER BOY are spelled the same way and
-    /// for the same reason — the bundled Press Start 2P is a display face with
-    /// a partial Latin-1 range, and a missing glyph on the device's most
-    /// prominent panel is a worse outcome than a missing accent.
-    private var footerSegments: [String] {
-        isMainScreen ? ["CHEERS!", "SANTE!", "SALUTE!", "PROST!", "KANPAI!"] : [title]
+    /// **Scripted on the main screen since 0.7.1 (B1-B3), the page title
+    /// everywhere else, as always.** The five toasts and the endless cycle
+    /// 0.6.9's D3 built are gone; CHEERS! survives as the script's idle state,
+    /// which is where a toast belonged all along. See `MarqueeScript` in Core
+    /// for the three stages and the two dwells — this property is only the
+    /// wiring.
+    private var footerText: String {
+        isMainScreen ? script.stage.text : title
     }
 
-    private var footerSymbol: String? {
-        isMainScreen ? "wineglass.fill" : marqueeSymbol
-    }
+    /// **No glyph on the main screen** (0.7.0, K1).
+    ///
+    /// 0.6.9's D2 put a large glyph above the marquee title on every screen and
+    /// hardcoded a wine glass for the main one. That was the wrong shape twice
+    /// over: `VinodexApp` already resolves `nil` for an empty navigation path —
+    /// the main screen is the one page with no route and therefore no page to be
+    /// accurate to (K2) — and this ternary then put the glyph back. K1 removes
+    /// it, so the panel there is the cycling greeting on its own, at the full
+    /// height 0.6.9's D2 note says a nil symbol gives it.
+    ///
+    /// `isMainScreen` stays: `footerText` still needs it for the script.
+    private var footerSymbol: String? { marqueeSymbol }
 
     public var body: some View {
         // The whole chassis is laid out in physical-screen coordinates so the
@@ -196,6 +222,61 @@ public struct DeviceChassis<Content: View>: View {
         // so it must not show internals — under a translucent skin it is the
         // dark ground the smoke plastic needs, and elsewhere it is the body.
         .background(skin.underlay.ignoresSafeArea())
+        // The script's clock (0.7.1, B1-B3).
+        //
+        // Keyed on the stage *and* on whether the main screen is showing, so a
+        // navigation cancels the pending dwell and returning starts a fresh
+        // one — `task(id:)` owning the lifetime is what makes an open sleep
+        // safe to write, the same argument the retired greeting cycle made.
+        .task(id: scriptKey) { await runScript() }
+        // Leaving the main screen consumes the greeting and parks the script,
+        // so coming back finds MENU rather than a second WELCOME!.
+        .onChange(of: isMainScreen) { _, main in
+            if !main { script.leftMainScreen() }
+        }
+    }
+
+    /// What a script run belongs to. Off the main screen there is nothing to
+    /// run, and the constant key stops a route change from restarting a task
+    /// that immediately returns.
+    private var scriptKey: String {
+        isMainScreen ? "main|" + script.stage.rawValue : "away"
+    }
+
+    /// Sleep out the current stage's dwell, then advance.
+    ///
+    /// **Suspended under Reduce Motion**, and this is the stronger case of the
+    /// two the banner makes: `MarqueeBanner` still cross-fades a *prompted*
+    /// change (you navigated; the title follows), but these two transitions
+    /// have no prompt at all — the device changes what it says while you are
+    /// looking at a still screen. `PulseGlow` in this file settles on the most
+    /// informative still state rather than stopping mid-cycle, and the same
+    /// applies here: WELCOME! is not a resting state, so the script skips
+    /// straight to MENU and holds there.
+    private func runScript() async {
+        guard isMainScreen else { return }
+        guard !reduceMotion else {
+            if script.stage != .menu { script.leftMainScreen() }
+            return
+        }
+        guard let timeout = script.pendingTimeout else { return }
+        try? await Task.sleep(for: .seconds(timeout.after))
+        guard !Task.isCancelled else { return }
+        script.timedOut()
+    }
+
+    /// The user did something. Sends CHEERS! back to MENU and restarts the
+    /// idle dwell — see `MarqueeScript.noteActivity`.
+    ///
+    /// Called from the marquee's own tap. It is deliberately *not* wired to
+    /// every control on the device: the four chassis buttons all navigate, and
+    /// navigating off the main screen already parks the script through
+    /// `leftMainScreen`. What is left for this to catch is the one interaction
+    /// that happens *on* the main screen without leaving it, which is opening
+    /// the drawer.
+    private func noteActivity() {
+        guard isMainScreen else { return }
+        script.noteActivity()
     }
 
     private func frontFace(topStrip: CGFloat, housingTop: CGFloat) -> some View {
@@ -443,11 +524,14 @@ public struct DeviceChassis<Content: View>: View {
         }
     }
 
+    /// Seated in its recess since 0.7.1 (A6) — see `RecessedLamp`. The pulse
+    /// stays outside the recess: the glow is light leaving the lamp, so it
+    /// belongs over the whole part rather than under its rim.
     private func statusDot(_ fill: Color, border: Color, period: Double, size: CGFloat) -> some View {
         Circle()
             .fill(fill)
             .frame(width: size, height: size)
-            .overlay(Circle().strokeBorder(border, lineWidth: 1))
+            .recessedLamp(Circle(), size: size, rim: border)
             .modifier(PulseGlow(color: fill, period: period, minRadius: 1, maxRadius: size * 0.7))
     }
 
@@ -560,13 +644,22 @@ public struct DeviceChassis<Content: View>: View {
 
     /// One red housing lamp. Takes its diameter since 0.6.8 (G3): the pair on
     /// the white top bezel and the lone one in the bottom strip are the same
-    /// bulb at two sizes, not two parts.
+    /// bulb at two sizes, not two parts — which is exactly why A6's "dual red
+    /// indicator lights *and* the bottom-bezel red indicator light" is one
+    /// edit here rather than two.
+    ///
+    /// Seated in its recess since 0.7.1 (A6). These sit on the *white* bezel,
+    /// where a flat red disc with a hairline round it read as a printed dot
+    /// more than anywhere else on the device; the recess is what makes them
+    /// bulbs. The red halo stays — a lamp that is lit throws light on the
+    /// plastic around it — but drops from a flat radius 3 to a fraction of the
+    /// diameter, because the 10pt pair were wearing the 12pt lamp's glow.
     private func ventDot(size: CGFloat) -> some View {
         Circle()
             .fill(Dex.red500)
             .frame(width: size, height: size)
-            .overlay(Circle().strokeBorder(Dex.red800, lineWidth: 1))
-            .shadow(color: Dex.red500.opacity(0.8), radius: 3)
+            .recessedLamp(Circle(), size: size, rim: Dex.red800)
+            .shadow(color: Dex.red500.opacity(0.8), radius: size * 0.26)
     }
 
     private var innerBezel: some View {
@@ -602,11 +695,35 @@ public struct DeviceChassis<Content: View>: View {
             // reintroduce this.
             Color.clear.overlay { content() }
 
+            // The marquee's quick-access drawer (0.7.1, B4/B5).
+            //
+            // Inside the LCD, above the screen and below the scanlines, so it
+            // is subject to the display's own treatments — the monochrome pass,
+            // the tint, the clip — exactly like every other overlay in this
+            // app. `MarqueeDrawer`'s header sets out why a drawer opened from a
+            // panel *below* the display is nonetheless drawn *in* it.
+            if drawerOpen, let onQuickRoute {
+                MarqueeDrawer(
+                    onRoute: { route in
+                        drawerOpen = false
+                        onQuickRoute(route)
+                    },
+                    onClose: { withAnimation(DexMotion.overlay) { drawerOpen = false } }
+                )
+            }
+
             // Confined to the LCD, so the bezel, footer and island stay put and
             // the panel reads as the device's own menu rather than an iOS modal.
             ScanlineOverlay()
                 .opacity(DexMetrics.scanlineOpacity)
                 .allowsHitTesting(false)
+        }
+        .animation(DexMotion.overlay, value: drawerOpen)
+        // Turning the device over closes it: the drawer belongs to the front
+        // face, and leaving it open behind the back plate would put it there
+        // waiting when the device came back round.
+        .onChange(of: showsBackFace) { _, back in
+            if back { drawerOpen = false }
         }
         // No gesture of any kind rides on the display since 0.6.9 (A1) — see
         // the note beside `orbHeld`. The LCD is a surface screens are mounted
@@ -768,17 +885,42 @@ public struct DeviceChassis<Content: View>: View {
                 indicatorPills
                 // The existing banner, restyled into the lit panel it now is —
                 // one view, not a copy. See `MarqueeBanner`.
-                MarqueeBanner(
-                    segments: footerSegments,
-                    symbol: footerSymbol,
-                    fontSize: DexMetrics.marqueeTextSize,
-                    // `showsBackFace`, not `isFlipped`: the front face stays
-                    // fully visible through the first half of the turn, and
-                    // freezing a marquee that is still on screen reads as a
-                    // hang. This is the exact instant the face goes to
-                    // `opacity 0`. (AUDIT M8)
-                    paused: showsBackFace
-                )
+                //
+                // **A button since 0.7.1 (B4).** Mounted once for the whole
+                // app, so "tappable from every screen" is what making it a
+                // control here means — there is no per-screen wiring and no
+                // screen that can forget it.
+                Button {
+                    Haptics.tap()
+                    noteActivity()
+                    withAnimation(DexMotion.overlay) { drawerOpen = true }
+                } label: {
+                    MarqueeBanner(
+                        text: footerText,
+                        symbol: footerSymbol,
+                        fontSize: DexMetrics.marqueeTextSize,
+                        // `showsBackFace`, not `isFlipped`: the front face stays
+                        // fully visible through the first half of the turn, and
+                        // freezing a marquee that is still on screen reads as a
+                        // hang. This is the exact instant the face goes to
+                        // `opacity 0`. (AUDIT M8)
+                        paused: showsBackFace,
+                        // B2's dissolve is for the scripted stages only — a
+                        // 1.4s transition in front of every navigation is a
+                        // wait, not a transition.
+                        pixelFades: isMainScreen
+                    )
+                }
+                // A press style, not `DexPressStyle`: the panel is a display,
+                // and a display that shrinks 3% under a finger reads as a
+                // loose part. The drawer arriving is the feedback.
+                .buttonStyle(.plain)
+                // Nothing to open, nothing to press — the drawer is the app
+                // module's to wire, and the catalog screen mounts a bare
+                // chassis with no routing at all.
+                .disabled(onQuickRoute == nil || showsBackFace)
+                .accessibilityLabel("\(footerText). Quick access")
+                .accessibilityHint("Opens tools, customisation and pinned shortcuts")
             }
             .frame(maxWidth: DexMetrics.marqueeMaxWidth)
             .frame(maxWidth: .infinity)
@@ -889,11 +1031,27 @@ public struct DeviceChassis<Content: View>: View {
     /// The marquee's two indicator lamps (0.6.5, B2): a red and a blue pill,
     /// centred over the panel they belong to.
     ///
-    /// Fixed red and blue rather than skin-tinted, unlike the trio in the top
-    /// corner: these are the same bulbs as the vent lamp — the chassis's plain
-    /// power/link indicators — and the skin's own colours are already spoken for
-    /// by the lamps upstairs. Pills, not circles, so they cannot be mistaken at
-    /// a glance for very small buttons.
+    /// **Skin-tinted since 0.7.1 (A7)**, reversing 0.6.5's decision, which is
+    /// worth stating plainly rather than quietly deleting. That decision was:
+    /// fixed red and blue, because these are the same bulbs as the vent lamp —
+    /// the chassis's plain power/link indicators — and the skin's colours were
+    /// already spoken for by the lamps upstairs. Two things were wrong with it.
+    /// The first is that it was not true of the whole device: HALLOWINE, VINHO
+    /// VERDE and CHAMPAGNE repaint the trio, the orb, the marquee ground, the
+    /// grid and the letters, and then ran a Tailwind red and a Tailwind blue
+    /// across the middle of all of it. The second is that "already spoken for"
+    /// treats a skin's lamp colours as a scarce resource; they are a palette,
+    /// and the two pills reading it is what A7 asks for.
+    ///
+    /// The outer two of the skin's trio, not the first two: `statusLights` is
+    /// ordered light-to-deep in most skins, so `[0]` and `[2]` are the widest
+    /// pair the shell offers and the pills stay two distinguishable lamps
+    /// rather than one colour twice. On CHRISTMAS, whose trio is deliberately
+    /// three identical holly berries, they come out identical — which is that
+    /// skin working, not this rule failing.
+    ///
+    /// Pills, not circles, so they cannot be mistaken at a glance for very
+    /// small buttons. Recessed since 0.7.1 (A6) like every other lamp.
     ///
     /// **As wide as the marquee since 0.6.7 (F4)**, and measured off it rather
     /// than given a width: the pair sits in the marquee's own column, so two
@@ -901,9 +1059,11 @@ public struct DeviceChassis<Content: View>: View {
     /// screen width and any `UIScale`. The two fixed widths this replaces (18pt,
     /// then 30) were each only ever right on one phone.
     private var indicatorPills: some View {
-        HStack(spacing: DexMetrics.bandPillSpacing) {
-            indicatorPill(Dex.red500, border: Dex.red800)
-            indicatorPill(Dex.blue, border: Color(dexHex: "#0B6FA8"))
+        let lights = skin.statusLights
+
+        return HStack(spacing: DexMetrics.bandPillSpacing) {
+            indicatorPill(lights[0].fill, border: lights[0].border)
+            indicatorPill(lights[2].fill, border: lights[2].border)
         }
         .frame(maxWidth: .infinity)
         // Decoration sitting directly above a live control: never a target.
@@ -915,7 +1075,7 @@ public struct DeviceChassis<Content: View>: View {
             .fill(fill)
             .frame(maxWidth: .infinity)
             .frame(height: DexMetrics.bandPillHeight)
-            .overlay(Capsule().strokeBorder(border, lineWidth: 1))
+            .recessedLamp(Capsule(), size: DexMetrics.bandPillHeight, rim: border)
             .modifier(
                 PulseGlow(
                     color: fill,
@@ -958,6 +1118,87 @@ private struct ButtonWell: View {
                     .offset(y: 1.5)
             )
             .allowsHitTesting(false)
+    }
+}
+
+/// One indicator lamp, seated in a milled recess (0.7.1, A6).
+///
+/// **What A6 asked for and why it is one modifier.** Every lamp on this chassis
+/// was drawn the same wrong way: a flat disc of colour with a 1pt keyline round
+/// it. Three of them in the island strip, two on the white top bezel, one in
+/// the bottom vent strip, two more as pills over the marquee — eight lamps,
+/// four separate render functions, and not one of them looked like a part
+/// *fitted into* the shell. The orb is the only thing on the device that did,
+/// and A6 is the instruction to make the rest match it. One modifier rather
+/// than four edits, because the next lamp added should be right by default —
+/// the same argument `DexGlyph` makes for the glyph constants.
+///
+/// **The construction, and why it is not simply the orb's.** The orb is a bead
+/// that stands *proud*: a thick white bezel all the way round, a specular dot,
+/// and a drop shadow outward. Copying that onto a 22pt lamp gives a white ring
+/// wider than the colour inside it. What reads as the orb at lamp scale is its
+/// two halves separated — the bead itself keeps the highlight, and the bezel
+/// becomes the well the bead sits in, which is `ButtonWell`'s rule already
+/// working on the button caps six inches south:
+///
+/// 1. **The wall**, dark and blurred, riding a touch high — the top edge of a
+///    recess is where no light reaches. Blurred because a recess has a radius;
+///    a crisp stroke reads as a printed outline.
+/// 2. **The lip**, pale and low, catching the same light the caps catch.
+/// 3. **The keyline** the lamp always had, in the lamp's own dark tone. Kept,
+///    and kept last, so the colour still terminates crisply instead of being
+///    lost into the shading.
+/// 4. **The bead**, a blurred white dot at the top — the orb's specular,
+///    proportioned to this lamp rather than to that one.
+/// 5. **The seat**, a short dark drop that separates the part from the shell.
+///
+/// Everything is a fraction of `size` with a floor, so the same modifier is
+/// correct on a 10pt vent lamp and a 22pt island lamp. Nothing here is
+/// skin-coloured: shading is a property of the light, not of the plastic, which
+/// is what lets one modifier serve all twenty-one shells.
+///
+/// Generic over `InsettableShape` because the lamps are circles and the marquee
+/// indicators are capsules, and `strokeBorder` — which insets rather than
+/// straddling the edge — is the only stroke that keeps a 2pt wall inside a 10pt
+/// dot.
+private struct RecessedLamp<S: InsettableShape>: ViewModifier {
+    let shape: S
+    /// The lamp's diameter (or, for a capsule, its height). Every measurement
+    /// below is a fraction of it.
+    let size: CGFloat
+    /// The lamp's own dark keyline — the `border` half of the colour pair the
+    /// skin or the palette already supplies.
+    let rim: Color
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                shape
+                    .strokeBorder(.black.opacity(0.34), lineWidth: max(size * 0.16, 1.5))
+                    .blur(radius: max(size * 0.08, 0.7))
+                    .offset(y: -max(size * 0.05, 0.5))
+            )
+            .overlay(
+                shape
+                    .strokeBorder(.white.opacity(0.26), lineWidth: max(size * 0.07, 1))
+                    .offset(y: max(size * 0.06, 0.6))
+            )
+            .overlay(shape.strokeBorder(rim, lineWidth: max(size * 0.06, 1)))
+            .overlay(alignment: .top) {
+                Circle()
+                    .fill(.white.opacity(0.7))
+                    .frame(width: size * 0.24, height: size * 0.24)
+                    .blur(radius: max(size * 0.04, 0.6))
+                    .padding(.top, size * 0.14)
+            }
+            .shadow(color: .black.opacity(0.45), radius: max(size * 0.12, 1), y: max(size * 0.06, 0.5))
+    }
+}
+
+extension View {
+    /// Seat a lamp in its recess — see `RecessedLamp` (0.7.1, A6).
+    func recessedLamp<S: InsettableShape>(_ shape: S, size: CGFloat, rim: Color) -> some View {
+        modifier(RecessedLamp(shape: shape, size: size, rim: rim))
     }
 }
 
@@ -1123,7 +1364,10 @@ private struct ChassisShell: View {
 /// Loads bundled chassis patterns, cached — mirrors `FlagLoader`, misses
 /// recorded so an absent asset is not re-probed every render.
 @MainActor
-private final class ChassisPatternLoader {
+// Internal rather than file-private since 0.7.0 (F1): the *back* plate mounts
+// the same tiled patterns as the front now, and a second loader with a second
+// cache over the same PNGs would be two answers to one question.
+final class ChassisPatternLoader {
     static let shared = ChassisPatternLoader()
 
     private var cache: [String: UIImage?] = [:]
@@ -1294,10 +1538,19 @@ public struct ChassisButton: View {
             Image(systemName: "chevron.left")
                 .font(.system(size: size * 0.47, weight: .heavy))
                 .foregroundStyle(cap.glyph)
+        // The one control whose glyph a skin may replace (0.7.0, B2) —
+        // HALLOWEEN's user button is a drawn pumpkin. `SkinMarkView` resolves
+        // "the skin's mark, or the house symbol if it has none", so twenty of
+        // twenty-one skins render exactly the `person.crop.circle` they always
+        // did. See `ChassisSkin.userMark` for why this is not the console
+        // liveries' colours-only caveat being reopened.
         case .bookmarks:
-            Image(systemName: "person.crop.circle")
-                .font(.system(size: size * 0.44, weight: .semibold))
-                .foregroundStyle(cap.glyph)
+            SkinMarkView(
+                mark: skin.userMark,
+                fallback: "person.crop.circle",
+                size: size * 0.44,
+                tint: cap.glyph
+            )
         case .home:
             Circle()
                 .fill(LinearGradient(colors: [homeAccent.pale, homeAccent.bright], startPoint: .top, endPoint: .bottom))
@@ -1321,7 +1574,7 @@ public struct DexPressStyle: ButtonStyle {
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? scale : 1)
-            .animation(.spring(response: 0.2, dampingFraction: 0.6), value: configuration.isPressed)
+            .animation(DexMotion.press, value: configuration.isPressed)
     }
 }
 
@@ -1363,20 +1616,22 @@ public struct DexScreenBackground: View {
     public var body: some View {
         ZStack {
             mode.ground
-            // **Ruled paper, not a grid, in NOTEBOOK** (0.6.9, M1). This is the
-            // half of M1 that a palette could not have done: the square grid is
-            // an engineering backdrop and reads as CRT in any colour it is
-            // painted, so a "hand-drawn mode" built out of tokens alone would
-            // have been a cream-coloured CRT. See `LcdMode.isSketchPaper`.
-            if mode.isSketchPaper {
-                RuledPaper(rule: mode.gridLine, margin: mode.accent)
-            } else {
-                DexGridBackground(
-                    spacing: 10,
-                    color: mode.gridLine,
-                    opacity: 0.35
-                )
-            }
+            // **Back to one backdrop for every mode** (0.7.0, C1).
+            //
+            // 0.6.9's M1 branched here on `LcdMode.isSketchPaper` to mount
+            // `RuledPaper` for NOTEBOOK. C1 removes that mode, so the branch has
+            // nothing left to select and the grid is unconditional again. The
+            // *shell* half of M1 is untouched — `ChassisSkin.sketch` still draws
+            // PÉT-NAT by hand — which is the documented design: the shell and
+            // the screen are independent choices.
+            //
+            // See the retirement note on `LcdMode` for what happens to
+            // `RuledPaper`, which is kept and unmounted rather than deleted.
+            DexGridBackground(
+                spacing: 10,
+                color: mode.gridLine,
+                opacity: 0.35
+            )
         }
         .ignoresSafeArea()
     }
@@ -1493,28 +1748,50 @@ struct PulseGlow: ViewModifier {
 /// of it. Every skin follows, since both were already per-skin — CLASSIC's green
 /// phosphor is what makes the panel green, and NOCTURNE's or BLUSH's panel is
 /// its own colour rather than a green one bolted onto the wrong shell.
+///
+/// **What it says is scripted now (0.7.1, B1-B3).** 0.6.9's D3 gave the main
+/// screen five toasts on an endless 2.6-second cycle. B1-B3 replace the loop
+/// with three states and an end — WELCOME! on launch, MENU while you are using
+/// it, CHEERS! after ten seconds of not — and the state machine that decides
+/// between them is `MarqueeScript` in Core, where a Linux gate can see it. The
+/// banner keeps the clock and the pixels; it does not keep the rules.
 public struct MarqueeBanner: View {
-    /// The words the panel shows. Most screens pass one — their title; the main
-    /// screen passes its five toasts, which the panel now cycles through rather
-    /// than running past in a single line (0.6.9, D3).
-    let segments: [String]
+    /// The words on the panel. One string since 0.7.1 (B1): the five-toast
+    /// list and the `index` that walked it are gone with the cycle, and the
+    /// main screen now passes whichever of `MarqueeScript`'s three stages is
+    /// current, exactly as every other screen passes its title.
+    let text: String
     /// SF Symbol for the page, drawn **above** the title since 0.6.9 (D2) at
     /// `DexMetrics.marqueeGlyph`. It used to be stamped inline after the words
     /// (v0.5.7, E2), which was the only place a scrolling single line had for
     /// it. Nil runs text-only and the label takes the whole panel.
     let symbol: String?
     let fontSize: CGFloat
-    /// Stops the greeting cycle (AUDIT M8, kept through D3). The panel is inside
-    /// the front face, which the flip merely hides at `opacity 0` — a cycle left
-    /// running behind an opaque metal back plate is a timer nobody can see.
-    ///
-    /// It used to stop the scroll clock as well; there is no longer a clock to
-    /// stop, and on a single-segment screen this now gates nothing at all.
+    /// Freezes the transition (AUDIT M8, through D3, still true). The panel is
+    /// inside the front face, which the flip merely hides at `opacity 0` — a
+    /// dissolve left running behind an opaque metal back plate is a clock
+    /// nobody can see, and it would be halfway through when the device came
+    /// back over.
     var paused: Bool = false
 
-    /// Which greeting is showing (0.6.9, D3). Always 0 on the ~ten screens that
-    /// pass a single segment, where the cycle never starts.
-    @State private var index = 0
+    /// Whether a change of `text` dissolves rather than cross-fades (B2).
+    ///
+    /// **Only the main screen passes `true`, and that is a decision.** B2 asks
+    /// for the slow pixelated fade between the scripted stages; running it on
+    /// every route title too would put a 1.4-second dissolve in front of every
+    /// single navigation in the app, which is not a transition, it is a wait.
+    /// Route titles keep the 0.55s cross-fade they have had since D3 — both
+    /// timings live in `DexMetrics` rather than here, per F3.
+    var pixelFades: Bool = false
+
+    /// The string currently drawn. Distinct from `text` for exactly the length
+    /// of a dissolve, during which both are on the panel at once.
+    @State private var shown = ""
+    /// The string being dissolved *out*, or nil when the panel is at rest.
+    @State private var outgoing: String?
+    /// When the running dissolve began; nil at rest, which is also the
+    /// `TimelineView`'s pause condition.
+    @State private var fadeStart: Date?
 
     /// Resolved in `init`, not per access (AUDIT M8): `DexFont.retro` reads
     /// `TextScale.current`, which is a `UserDefaults` lookup, and `body` is
@@ -1543,25 +1820,18 @@ public struct MarqueeBanner: View {
     /// which is what a segment LCD's glyphs actually look like.
     private var ink: Color { skin.marqueeShadow }
 
-    /// The word on the panel right now, clamped rather than subscripted: the
-    /// cycle and the segment list are separate pieces of state, and a screen
-    /// change can swap a five-segment list for a one-segment list between the
-    /// `index` advancing and the body running.
-    private var current: String {
-        guard !segments.isEmpty else { return "" }
-        return segments[min(index, segments.count - 1)]
-    }
-
     public init(
-        segments: [String],
+        text: String,
         symbol: String? = nil,
         fontSize: CGFloat,
-        paused: Bool = false
+        paused: Bool = false,
+        pixelFades: Bool = false
     ) {
-        self.segments = segments
+        self.text = text
         self.symbol = symbol
         self.fontSize = fontSize
         self.paused = paused
+        self.pixelFades = pixelFades
         self.segmentFont = DexFont.retro(fontSize)
     }
 
@@ -1571,43 +1841,59 @@ public struct MarqueeBanner: View {
             content
         }
         .frame(height: DexMetrics.marqueeHeight)
-        // Keyed on both, so the loop restarts when the screen changes under it
-        // and stops dead when the device is turned over. `task(id:)` cancels
-        // the previous run, which is what makes the sleep below safe to write
-        // as an open loop.
-        .task(id: cycleKey) { await cycle() }
+        .onAppear { if shown.isEmpty { shown = text } }
+        .onChange(of: text) { _, next in change(to: next) }
+        // Ends the dissolve. Keyed on the start instant, so a second change
+        // arriving mid-dissolve cancels the pending teardown rather than
+        // letting it fire late and clear the new one.
+        .task(id: fadeStart) { await endFade() }
     }
 
-    /// What a cycle run belongs to. The joined segments rather than the count:
-    /// two different five-toast lists would otherwise share a run and the new
-    /// one would inherit the old one's phase.
-    private var cycleKey: String {
-        (paused ? "paused|" : "") + segments.joined(separator: "\u{1F}")
-    }
-
-    /// The greeting cycle (0.6.9, D3): dwell, cross-fade, next word, forever.
+    /// The panel's text changed under us.
     ///
-    /// A `Task` loop rather than a `Timer` or a `TimelineView`, because
-    /// `task(id:)` already owns its lifetime — leaving the screen, turning the
-    /// device over or switching to a single-segment title all cancel it, and
-    /// none of those need a matching teardown call to be remembered.
-    ///
-    /// **Held still under Reduce Motion.** A cross-fade is the transition
-    /// Apple's own guidance offers as the substitute for a movement, so the
-    /// fade itself would be defensible — but the change is *unprompted*, and
-    /// Reduce Motion asks for none of that. `PulseGlow` in this same file
-    /// settles on the most informative still state rather than simply stopping,
-    /// and the same reasoning applies here: the panel holds on the first
-    /// greeting, which is a toast rather than a blank.
-    private func cycle() async {
-        guard segments.count > 1, !paused, !reduceMotion else { return }
-        while !Task.isCancelled {
-            try? await Task.sleep(for: .seconds(DexMetrics.marqueeGreetingDwell))
-            guard !Task.isCancelled else { return }
+    /// **Reduce Motion takes the dissolve, not the change.** A pixel dissolve
+    /// is a large unprompted movement and is exactly what the setting asks to
+    /// be spared; the cross-fade is the substitute Apple's own guidance offers
+    /// for one, and it is what a title change has used here since D3.
+    /// `PulseGlow` in this file makes the same distinction — the reduced branch
+    /// settles on the most informative still state rather than simply refusing
+    /// to update.
+    private func change(to next: String) {
+        guard shown != next else { return }
+        guard pixelFades, !reduceMotion, !paused else {
+            outgoing = nil
+            fadeStart = nil
             withAnimation(.easeInOut(duration: DexMetrics.marqueeGreetingFade)) {
-                index = (index + 1) % segments.count
+                shown = next
             }
+            return
         }
+        outgoing = shown
+        shown = next
+        fadeStart = .now
+    }
+
+    private func endFade() async {
+        guard fadeStart != nil else { return }
+        try? await Task.sleep(for: .seconds(DexMetrics.marqueePixelFade))
+        guard !Task.isCancelled else { return }
+        outgoing = nil
+        fadeStart = nil
+    }
+
+    /// How far through the dissolve, smoothstepped.
+    ///
+    /// Eased rather than linear, and eased at both ends: a linear dissolve
+    /// spends its whole duration flipping cells at a constant rate, which reads
+    /// as noise turning on and then off. Easing gives it the two things that
+    /// make it one deliberate event instead — a moment where the old word is
+    /// still legible while the first cells go, and a moment where the new one
+    /// is nearly whole while the last ones arrive. The same
+    /// `p * p * (3 - 2p)` `DataWave` uses, for the same reason.
+    private func fadeProgress(at date: Date) -> Double {
+        guard let fadeStart else { return 1 }
+        let linear = min(max(date.timeIntervalSince(fadeStart) / DexMetrics.marqueePixelFade, 0), 1)
+        return linear * linear * (3 - 2 * linear)
     }
 
     /// The lit plate itself: fill, segment grid, lamp gradient, rim, glow.
@@ -1687,11 +1973,51 @@ public struct MarqueeBanner: View {
     ///    floor, so anything longer still degrades to a visible truncation mark
     ///    rather than to a word chopped mid-glyph.
     ///
-    /// `.id(index)` is what makes D3's cross-fade actually fade: SwiftUI does
+    /// `.id(shown)` is what makes the cross-fade actually fade: SwiftUI does
     /// not animate a `Text`'s *contents* changing, so the identity has to
     /// change for the transition to have an insertion and a removal to run.
+    /// That trick is only good for an alpha ramp, which is why B2's dissolve
+    /// takes the other branch below and masks two live labels instead.
+    @ViewBuilder
     private var title: some View {
-        Text(EntryDisplay.hyphenated(current))
+        if fadeStart == nil {
+            label(shown)
+                .id(shown)
+                .transition(.opacity)
+        } else {
+            // The clock. `TimelineView` rather than an animatable value for the
+            // reason `DataWave` sets out in `SettingsPanel`: `Canvas` has no
+            // animatable content, and `Animatable` on the wrapper is not usable
+            // here under Swift 6.
+            TimelineView(.animation) { context in
+                let p = fadeProgress(at: context.date)
+                ZStack {
+                    if let outgoing {
+                        label(outgoing)
+                            .mask(PixelDissolve(progress: p, cell: fadeCell, incoming: false))
+                    }
+                    label(shown)
+                        .mask(PixelDissolve(progress: p, cell: fadeCell, incoming: true))
+                }
+            }
+        }
+    }
+
+    /// The dissolve's cell edge, in points.
+    ///
+    /// Tied to the type size rather than fixed, so it survives SETTINGS > TEXT
+    /// SIZE: the letters in this face are drawn on a notional grid of about
+    /// eight cells to the cap height, and a dissolve cell around a sixth of the
+    /// point size lands a little coarser than the glyph's own pixels. Coarser
+    /// on purpose — matching the font's grid exactly makes the letters look
+    /// like they are losing strokes rather than dissolving. Floored at 3pt,
+    /// below which the effect is indistinguishable from a plain alpha fade at
+    /// arm's length and costs several hundred more cells to draw.
+    private var fadeCell: CGFloat { max(fontSize * 0.16, 3) }
+
+    /// One string on the panel, with the three fallbacks above applied.
+    private func label(_ string: String) -> some View {
+        Text(EntryDisplay.hyphenated(string))
             .font(segmentFont)
             .foregroundStyle(ink)
             .multilineTextAlignment(.center)
@@ -1703,8 +2029,6 @@ public struct MarqueeBanner: View {
             // it is what makes the letters read as cut into the display rather
             // than printed on it.
             .shadow(color: ground.opacity(0.7), radius: 0, x: 1, y: 1)
-            .id(index)
-            .transition(.opacity)
     }
 }
 

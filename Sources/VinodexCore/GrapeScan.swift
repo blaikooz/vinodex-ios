@@ -132,6 +132,29 @@ public extension WineDatabase {
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
+    /// The style classes present in the data, in descending size (0.7.0, H2).
+    ///
+    /// Beside the flavour taxonomies below and derived the same way, for the
+    /// same reason: `StyleClassType` has five cases and the catalog uses four,
+    /// because `.style` is only ever reached as
+    /// `EntryDisplay.styleClass(name:classification:)`'s fallback. A chip row
+    /// built from the enum offers a fifth chip that empties the list.
+    var styleClasses: [StyleClassType] {
+        var tally: [StyleClassType: Int] = [:]
+        for case .style(let s) in entries(in: .styles) {
+            let cls = EntryDisplay.styleClass(
+                name: s.common.name,
+                classification: s.details.classification
+            )
+            tally[cls, default: 0] += 1
+        }
+        return tally.keys.sorted {
+            let a = tally[$0] ?? 0
+            let b = tally[$1] ?? 0
+            return a == b ? $0.rawValue < $1.rawValue : a > b
+        }
+    }
+
     /// The flavour classes present in the data, in descending size — the
     /// scanner lists them rather than hardcoding five names that the generator
     /// is free to change.

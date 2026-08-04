@@ -118,9 +118,16 @@ public enum Walkthrough {
         WalkthroughStep(
             id: "tools",
             title: "TOOLS",
+            // Rewritten in 0.7.2 (LR1). Two of the five names here had been
+            // renamed out from under this copy — SCANNER became BLIND TASTING
+            // (0.7.1, E3) and FILTER SEARCH became MASTER SEARCH (0.7.1, A1) —
+            // so the tour was naming tiles that no longer exist, which on a
+            // *tour* is worse than saying nothing. LABEL SCAN joins as the
+            // sixth.
             body: """
-            Also behind the cog: the wrench tile. Scanner, filter search, \
-            wine exam, the daily challenge, and the moon dial.
+            Also behind the cog: the wrench tile. Blind tasting, label scan, \
+            master search, the wine exam, the daily challenge, and the moon \
+            dial.
             """,
             highlight: .tools
         ),

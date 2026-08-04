@@ -1,5 +1,57 @@
 import Foundation
 
+/// Glyphs that more than one screen has to agree on.
+///
+/// **Why this exists (0.7.0, D1; still true at 0.7.1, E1).** The streak flame was the literal
+/// `"flame.fill"` typed out in five places — the TOOLS tile, the saved-entries
+/// streak row, the passport badge, the quiz result and the back-plate stamp's
+/// fallback — with the marquee showing a `calendar` instead. D1 asks for a
+/// different fire icon *everywhere it is used*, and the only way to make
+/// "everywhere" checkable is for there to be one place. A new surface that wants
+/// the flame reads this and is correct by default.
+///
+/// In Core rather than VinodexUI because `BackPlateStamps` and `DexRoute` both
+/// need it and neither can see the UI module.
+public enum DexGlyph {
+    /// The daily challenge, and the streak it keeps.
+    ///
+    /// **No longer a fire (0.7.1, E1/E2.)** 0.7.0's D1 asked for "a different
+    /// fire icon" and got one; E1 asks for the fire to stop being fire at all.
+    /// `target` is the challenge itself rather than the reward for keeping one
+    /// — a daily paper you either hit or miss — and unlike the flame it does
+    /// not have to compete with `lucide:flame`, which the *catalog* uses for
+    /// thirty-one spicy and volcanic entries. Two unrelated fires on one screen
+    /// was the real defect behind E2's "no stray fire icons left".
+    ///
+    /// Concentric rings read at every size this appears at: the 10pt streak
+    /// row in the profile, the 13pt tools tile, the marquee glyph and the 56pt
+    /// hero on the daily-done card. SF Symbols 2 / iOS 14, well under the iOS 17
+    /// floor — see KNOWN-ISSUES on symbols that render blank rather than
+    /// failing to compile.
+    ///
+    /// Renamed from `streakFlame`: the constant said what it drew instead of
+    /// what it meant, which is exactly why the next change to it had to touch
+    /// six files.
+    public static let challenge = "target"
+
+    /// Search, everywhere in the app (0.7.1, A2).
+    ///
+    /// A2 asks for one magnifying glass and no other search iconography. Before
+    /// this there were four glyphs doing the job: the plain magnifier in the
+    /// search-bar shell, `line.3.horizontal.decrease` on the main menu's round
+    /// button, `line.3.horizontal.decrease.circle.fill` on the filter screen's
+    /// marquee and summary card, and `sparkle.magnifyingglass` on the scanner.
+    /// The bars are a *filter* glyph, and the screen they opened is the app's
+    /// search — so the button and the magnifier disagreed about what the button
+    /// was for.
+    ///
+    /// The bars survive in exactly one role, and it is not search: the chip
+    /// dropdown's disclosure (`slider.horizontal.3`) and the "a filter is
+    /// narrowing this list" banner, which are statements about a list rather
+    /// than a way in.
+    public static let search = "magnifyingglass"
+}
+
 /// One group of settings, each with its own panel.
 ///
 /// The settings screen is a grid of these rather than one long scroll: the
@@ -54,7 +106,18 @@ public enum SettingsSection: String, CaseIterable, Hashable, Sendable, Identifia
 /// navigation change, and hashing a full entry graph for that is wasteful.
 public enum DexRoute: Hashable, Sendable {
     case list(category: EntryCategory, filter: EntryFilter?)
-    case masterSearch
+    // `case masterSearch` **retired in 0.7.1 (A1).** It was a plain text search
+    // over the whole database, left standing but unreachable through 0.7.0
+    // (I1) on the grounds that deleting a working screen was not what had been
+    // asked. A1 asks for it now, by implication: it renames `.chipFilter`'s
+    // label to MASTER SEARCH, and two routes cannot both be the master search.
+    //
+    // Nothing is lost. This route had no screen of its own — it was one
+    // configuration of `EncyclopediaListScreen`, and `ChipFilterScreen` runs
+    // the very same `EntryQuery.masterSearch(_:)` behind its own field, so the
+    // surviving screen is a strict superset. `EntryQuery.masterSearch(_:)` in
+    // `EntryFilter.swift` is a different thing with the same name — the query
+    // itself — and is very much still in use.
     case detail(entryID: String)
     case globe
     /// Place search: continents and regions, which between them carry the
@@ -75,6 +138,13 @@ public enum DexRoute: Hashable, Sendable {
     /// The guided grape identifier — colour, body, origin and flavours, then a
     /// deduction. See `GrapeScanCriteria`.
     case scanner
+    /// The camera label reader (0.7.2, LR1): photograph a bottle, run on-device
+    /// OCR, and match what it read against the catalog. See
+    /// `LabelRecognitionService`.
+    ///
+    /// The TOOLS tile for this existed from 0.7.0 (I2) as a COMING SOON square;
+    /// this is the route it was waiting for.
+    case labelReader
     /// The biodynamic day readout — see `MoonCalendar`.
     case moonDial
     /// System settings. A pushed screen rather than a side flap: the flap
@@ -114,8 +184,6 @@ public enum DexRoute: Hashable, Sendable {
         switch self {
         case .list(let category, let filter):
             filter?.scanTitle ?? category.listTitle
-        case .masterSearch:
-            "MASTER SEARCH"
         case .detail:
             "SCAN"
         case .globe:
@@ -134,7 +202,23 @@ public enum DexRoute: Hashable, Sendable {
         case .dailyGrape:
             "WHAT'S THAT…?"
         case .scanner:
-            "SCANNER"
+            // SCANNER → IDENTIFY (0.7.0, I3) → BLIND TASTING (0.7.1, E3), the
+            // label only each time, per the same convention `wsetQuiz` and
+            // `chipFilter` already follow: the case, `ScannerScreen`,
+            // `ScannerBackRouter` and every `ScreenStateStore` key keep their
+            // names, because those are vocabulary rather than copy.
+            //
+            // IDENTIFY named the verb; BLIND TASTING names the thing a drinker
+            // is actually doing when they work a glass down from colour to body
+            // to origin to flavour with no label in front of them, which is
+            // exactly this screen's four steps.
+            "BLIND TASTING"
+        // Matches the TOOLS tile that has said LABEL SCAN since 0.7.0. The type
+        // is `LabelReader*` throughout the code — the tile names what you do
+        // with it, the code names what it is — and per house convention the
+        // label is the thing that gets to be copy.
+        case .labelReader:
+            "LABEL SCAN"
         case .moonDial:
             "MOON DIAL"
         case .settings:
@@ -143,8 +227,13 @@ public enum DexRoute: Hashable, Sendable {
             section.rawValue
         case .minigames:
             "TOOLS"
+        // FILTER SEARCH → MASTER SEARCH (0.7.1, A1), label only; the case,
+        // `ChipFilterScreen` and the `chipFilter` state key stay. The screen
+        // was named after its controls rather than its job, and it is the one
+        // door into the whole database — every category, chips and free text
+        // together — which is what MASTER SEARCH always meant here.
         case .chipFilter:
-            "FILTER SEARCH"
+            "MASTER SEARCH"
         case .wsetQuiz:
             // Renamed from TASTING QUIZ (v0.5.9, D1); the case keeps its name
             // — `wsetQuiz` is woven into `ScreenStateStore` keys.
@@ -164,30 +253,74 @@ public enum DexRoute: Hashable, Sendable {
     /// `SYSTEM ⟨gear⟩ SYSTEM ⟨gear⟩ …`. Sits beside `title` because the two
     /// travel together into the footer. All iOS 17-safe — see KNOWN-ISSUES on
     /// symbols with a later OS floor rendering blank rather than failing.
+    ///
+    /// **Audited end to end in 0.7.0 (K2).** The table was written a route at a
+    /// time as routes arrived, and by 0.6.9 a third of it was either generic or
+    /// simply not this page's glyph. Three rules came out of going through all
+    /// twenty-nine of them, and they are worth stating because the next route
+    /// added here will need them:
+    ///
+    /// 1. **A page's glyph is the glyph on the control that opens it.** The
+    ///    marquee confirms where you have arrived; showing something other than
+    ///    what you just tapped is a small lie every time. Six entries disagreed
+    ///    with their own tile.
+    /// 2. **A filter is a page.** `.list` discarded its filter, so GEOLOGY,
+    ///    RARITY and CLIMATE scans all wore their parent category's glyph. See
+    ///    `EntryFilter.marqueeSymbol`.
+    /// 3. **Collisions are only allowed where the pages really are the same
+    ///    kind of page.** `map.fill` stood for the regions listing, a country
+    ///    and a region detail; `globe.americas.fill` for four different world
+    ///    screens; `sparkles` for both FLAVORS and the daily reveal. Those are
+    ///    separated now by what the page actually is — the globe screen keeps
+    ///    the globe, continents take `globe.europe.africa.fill`, a country takes
+    ///    a flag.
+    ///
+    /// The remaining deliberate repeats are a category's glyph appearing on both
+    /// its listing and its detail pages, which is `WineEntry.scanSymbol` agreeing
+    /// with `EntryCategory.marqueeSymbol` on purpose.
     public var marqueeSymbol: String {
         switch self {
-        case .list(let category, _):
-            category.marqueeSymbol
-        case .masterSearch:
-            "magnifyingglass"
+        // The filter's own glyph where there is one — a GEOLOGY SCAN is not a
+        // regions listing wearing a map (K2, rule 2).
+        case .list(let category, let filter):
+            filter?.marqueeSymbol ?? category.marqueeSymbol
         // A fallback: detail titles come from the entry, and so does the
         // symbol — see `WineEntry.scanSymbol`.
         case .detail:
             "viewfinder"
         case .globe:
             "globe.americas.fill"
+        // Places, not text: this searches continents, countries and regions,
+        // and the plain magnifier it once shared with the master search said
+        // nothing about which of the two searches you were in. A2 unifies
+        // *search* on `DexGlyph.search`; this is a search of the world, and the
+        // map disc is what says so.
         case .globeSearch:
-            "magnifyingglass"
+            "map.circle.fill"
         case .bookmarks:
             "bookmark.fill"
+        // A country, not a map — `map.fill` is the regions listing's, and this
+        // is the one screen whose subject is a nation.
         case .country:
-            "map.fill"
+            "flag.fill"
         case .state:
             "mappin.and.ellipse"
+        // Matches the TOOLS tile that opens it (K2, rule 1).
         case .dailyGrape:
-            "questionmark.diamond.fill"
+            "sparkles"
+        // Matches its TOOLS tile, and frees `viewfinder` to be only the
+        // unresolved-entry fallback above. `sparkle.magnifyingglass` until
+        // 0.7.1: A2 reserves every magnifier for search, and once the tool was
+        // called BLIND TASTING (E3) a magnifying glass was describing the
+        // wrong sense entirely. A covered eye is the whole premise.
         case .scanner:
-            "viewfinder"
+            "eye.slash.fill"
+        // The tile's own glyph (K2, rule 1), and the one camera in the app —
+        // `camera.fill` is the avatar picker's badge, which is a control rather
+        // than a page, so nothing on this table collides with it. SF Symbols 2 /
+        // iOS 14, well under the iOS 17 floor.
+        case .labelReader:
+            "camera.viewfinder"
         case .moonDial:
             "moon.stars.fill"
         case .settings:
@@ -196,18 +329,28 @@ public enum DexRoute: Hashable, Sendable {
             section.symbol
         case .minigames:
             "wrench.and.screwdriver.fill"
+        // The magnifier, matching the round button that opens it (K2, rule 1)
+        // now that A2 has made that button a magnifier too.
         case .chipFilter:
-            "line.3.horizontal.decrease.circle.fill"
+            DexGlyph.search
+        // Matches its TOOLS tile. `graduationcap.fill` was a reasonable glyph
+        // for an exam and the wrong one for *this* exam.
         case .wsetQuiz:
-            "graduationcap.fill"
+            "checkmark.seal.fill"
+        // The challenge mark, which is what this page is. `calendar` was the
+        // only hairline glyph in the table and it named the schedule rather
+        // than the thing being kept. Through the constant, so 0.7.0's D1 and
+        // 0.7.1's E1 both moved it in one place.
         case .dailyChallenge:
-            "calendar"
+            DexGlyph.challenge
         case .passport:
             "book.closed.fill"
         case .walkthrough:
             "figure.walk"
+        // Not the globe: the globe screen is the globe, and a continent page is
+        // one continent (K2, rule 3).
         case .continent:
-            "globe.americas.fill"
+            "globe.europe.africa.fill"
         }
     }
 }
@@ -216,11 +359,15 @@ public extension EntryCategory {
     /// The category's marquee glyph — see `DexRoute.marqueeSymbol`.
     var marqueeSymbol: String {
         switch self {
-        case .grapes: "leaf.fill"
+        // The main menu's own GRAPES tile (K2, rule 1). `leaf.fill` was doubly
+        // wrong: it is the glyph on the menu's *FLAVORS* tile, so tapping GRAPES
+        // put the other category's icon on the marquee.
+        case .grapes: "circle.grid.3x3.fill"
         case .regions: "map.fill"
         case .styles: "wineglass.fill"
-        case .flavors: "sparkles"
-        case .continents: "globe.americas.fill"
+        // The menu's FLAVORS tile, now that grapes no longer hold it.
+        case .flavors: "leaf.fill"
+        case .continents: "globe.europe.africa.fill"
         }
     }
 }
