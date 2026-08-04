@@ -60,6 +60,19 @@ public enum CheatCodes: Sendable {
             grants: .easterEgg(CheatCodes.verboseBoot),
             reveal: "VERBOSE BOOT"
         ),
+        // 0.7.3b's code, added with the thing it unlocks, per the note above.
+        //
+        // A *garagiste* is a real wine word — the small-scale Bordeaux
+        // winemakers of the early nineties, working out of garages and
+        // outbuildings and bottling by hand — and it means, quite literally,
+        // somebody building the thing themselves in a workshop. The house rule
+        // that a code should be half-guessable from the subject matter has never
+        // been met this exactly.
+        CheatCode(
+            code: "GARAGISTE",
+            grants: .workshop,
+            reveal: "DEVICE WORKSHOP"
+        ),
     ]
 
     /// The egg id the boot screen checks for its extra POST lines (A1).

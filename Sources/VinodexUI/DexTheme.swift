@@ -1140,7 +1140,9 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// purpose (it persists); the umlaut lives in `displayName`.
     case gruenerBoy = "GRUNER BOY"
 
-    public static let storageKey = "lcdMode"
+    /// Read from `DeviceAxis` since 0.7.3 (B1) — see `ChassisSkin.storageKey`
+    /// for why. The literal is unchanged: `"lcdMode"`.
+    public static var storageKey: String { DeviceAxis.screen.storageKey }
 
     public var id: String { rawValue }
 
@@ -1243,9 +1245,83 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    // MARK: The font axis (0.7.3, B1)
+
+    /// Whether a chosen font colour survives this mode.
+    ///
+    /// **It cannot on the four monochrome modes.** VINTAGE, AMBER, TERMINAL and
+    /// GRÜNERBOY are not colour schemes — they are a `grayscale(1)` and a
+    /// `colorMultiply(tint)` over the whole LCD (see `DeviceChassis.innerBezel`),
+    /// which is exactly what collapses their tokens to one phosphor. A chosen ink
+    /// pushed through that pass arrives as a *lightness* change of the mode's own
+    /// tint: pick COBALT on AMBER and you get slightly darker amber. Rather than
+    /// ship a control that silently does almost nothing, the axis declares itself
+    /// inapplicable and the workshop's FONT row says so on its face.
+    ///
+    /// Derived from `monochromeTint` rather than listed, so a tenth mode arriving
+    /// with a tint is covered by having a tint, not by being remembered here.
+    public var honorsFontInk: Bool { monochromeTint == nil }
+
+    /// Whether this mode will actually draw in a chosen ink.
+    ///
+    /// Two reasons it will not, and they are different in kind: the mode may
+    /// collapse every hue to one phosphor (`honorsFontInk`), or the ink may be
+    /// the wrong side of this mode's ground to read as text at all
+    /// (`PartColor.readsAsInk(onLightGround:)`). Both answer here, because a
+    /// caller only ever wants the one question — *will this show up* — and the
+    /// second reason has a property the first does not: it can become true after
+    /// the fact, when somebody picks an ink on a dark screen and then changes to
+    /// a pale one. A filter in the picker could not have caught that; refusing at
+    /// the point of use can, and does.
+    public func accepts(_ ink: PartColor) -> Bool {
+        honorsFontInk && ink.readsAsInk(onLightGround: isLight)
+    }
+
+    /// The player's chosen text ink, or nil to use this mode's own.
+    ///
+    /// Read straight from defaults rather than through `@AppStorage`, because
+    /// this is consulted from a computed property on an enum that thirty screens
+    /// hold as a value — there is nowhere to put a property wrapper. That has one
+    /// consequence worth stating: a change here does not invalidate any SwiftUI
+    /// view on its own, which is why `RootView` keys the whole chassis on this
+    /// axis. See the note there.
+    ///
+    /// A defaults lookup per token read is the established cost in this file —
+    /// `DexFont.retro` reads `TextScale.current` the same way on every call, and
+    /// AUDIT M8 resolved that in the one hot spot rather than in general. The
+    /// fast path here is a single `string(forKey:)` returning nil, which is what
+    /// every device that has not opened the workshop takes.
+    private var fontInk: Color? {
+        guard
+            let raw = UserDefaults.standard.string(forKey: DeviceAxis.font.storageKey),
+            let part = PartColor(rawValue: raw),
+            accepts(part)
+        else { return nil }
+        return part.color
+    }
+
     /// Primary text on that ground. VINOFD's is deliberately *not* white:
     /// the light-blue glow is what says vacuum-fluorescent rather than BSOD.
+    ///
+    /// **Three tokens, one choice** (0.7.3, B1). A mode declares a primary ink, a
+    /// body ink and a muted one; a chosen font colour replaces all three, as the
+    /// same colour at three weights. Overriding only `text` would leave every
+    /// INFO block and every caption in the previous mode's colour, which reads as
+    /// a half-applied theme rather than as a font choice — and letting the player
+    /// choose three inks separately is three axes, not the one the spec asks for.
     public var text: Color {
+        fontInk ?? modeText
+    }
+
+    /// This mode's own ink, with any chosen font colour ignored (0.7.3, B1).
+    ///
+    /// The workshop's FOLLOW swatch has to show what *unsetting* the font axis
+    /// would give, and `text` cannot answer that because `text` is the axis —
+    /// asking it while a colour is chosen returns the chosen colour, so the
+    /// "leave this to the screen" chip would preview the thing it undoes.
+    public var ownInk: Color { modeText }
+
+    private var modeText: Color {
         switch self {
         case .dark, .amber, .terminal: .white
         case .light: Color(dexHex: "#1F1F1C")
@@ -1277,7 +1353,17 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     }
 
     /// Body copy inside INFO blocks — mint on black, near-black on paper.
+    ///
+    /// 0.86 of the chosen ink when the font axis is set: body copy sits one
+    /// register below a heading in every mode's own table (`#bbf7d0` under white
+    /// on DARK), and an opacity step is the only way to reproduce that from a
+    /// single colour without a second authored value per palette entry.
     public var bodyText: Color {
+        if let fontInk { return fontInk.opacity(0.86) }
+        return modeBodyText
+    }
+
+    private var modeBodyText: Color {
         switch self {
         case .dark, .amber, .terminal: Color(dexHex: "#bbf7d0")
         case .light: Color(dexHex: "#23342A")
@@ -1366,6 +1452,11 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
 
     /// Secondary text — captions, counts, placeholders.
     public var subtext: Color {
+        if let fontInk { return fontInk.opacity(0.62) }
+        return modeSubtext
+    }
+
+    private var modeSubtext: Color {
         switch self {
         case .dark, .amber, .terminal: Dex.stone400
         case .light: Color(dexHex: "#5A5A54")
@@ -1683,6 +1774,26 @@ public struct DexRGB: Sendable, Equatable {
     public var luminance: Double { 0.2126 * r + 0.7152 * g + 0.0722 * b }
 
     public var color: Color { Color(.sRGB, red: r, green: g, blue: b, opacity: 1) }
+
+    /// Back out to `#RRGGBB` (0.7.3, B1).
+    ///
+    /// The round trip exists because `ChassisAccent` and `ChassisControl` take
+    /// *hex strings* rather than colours — deliberately, so a skin author writes
+    /// a ramp the way a paint chip is written — and `PartColor` derives its ramps
+    /// by mixing. Without this, deriving a six-stop ramp would mean either a
+    /// second colour-taking initialiser on both structs (two ways to build one
+    /// part, which is how one of them ends up subtly different) or reimplementing
+    /// the mix in string space.
+    ///
+    /// Clamped and rounded rather than truncated: a channel that lands on
+    /// 254.9999 through a linear mix is 255, and `String(format:)` would floor
+    /// it to `FE`.
+    public var hex: String {
+        func channel(_ value: Double) -> Int {
+            Int((min(max(value, 0), 1) * 255).rounded())
+        }
+        return String(format: "#%02X%02X%02X", channel(r), channel(g), channel(b))
+    }
 }
 
 /// The six-stop colour ramp one lit chassis button is built from.
@@ -2051,7 +2162,14 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     /// — the user button is a drawn pumpkin, see `controlMark`.
     case halloween = "HALLOWEEN"
 
-    public static let storageKey = "chassisSkin"
+    /// Read from `DeviceAxis` since 0.7.3 (B1) rather than spelled out here.
+    ///
+    /// The literal was `"chassisSkin"` and still is — it holds real choices on
+    /// real installs and cannot move. What changed is that the workshop needs the
+    /// same key from Core, where `ChassisSkin` is invisible, and two files each
+    /// carrying their own copy of a persisted key is precisely the arrangement
+    /// that survives right up until somebody improves one of them.
+    public static var storageKey: String { DeviceAxis.shell.storageKey }
 
     public var id: String { rawValue }
 

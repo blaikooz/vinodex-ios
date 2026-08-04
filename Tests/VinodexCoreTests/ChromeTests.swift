@@ -39,6 +39,15 @@ struct ChromeTests {
             .dailyChallenge,
             .passport,
             .walkthrough,
+            // The three 0.7.3 routes. The first two shipped in 0.7.3a and were
+            // *not* added here, which meant `glyphsAreDistinct` below — the whole
+            // reason this list exists — never saw them. `routeListIsComplete`
+            // could not catch it either, because it asserts a count and the count
+            // was correct for the list rather than for the enum; see the note
+            // there for what that gap costs and why it is still a count.
+            .firmwareHistory,
+            .cheatConsole,
+            .deviceWorkshop,
             .continent(entryID: "europe"),
         ]
         routes += EntryCategory.allCases.map { .list(category: $0, filter: nil) }
@@ -129,10 +138,20 @@ struct ChromeTests {
     /// Bump the number *and* add the route to `allRoutes` together.
     @Test("the route list covers the whole enum")
     func routeListIsComplete() {
-        // 18 simple + 5 categories + 5 settings sections = 28. Was 27 until
-        // 0.7.2 (LR1) added `.labelReader`; 28 before that until 0.7.1 (A1)
-        // retired `.masterSearch`, whose title `.chipFilter` now carries.
-        #expect(Self.allRoutes.count == 28, "add the new route to `allRoutes`")
+        // 21 simple + 5 categories + 5 settings sections = 31. Was 28 until
+        // 0.7.3b listed `.firmwareHistory` and `.cheatConsole` — both added to
+        // the enum by 0.7.3a and neither added here, so for one sub-batch the
+        // uniqueness gate below could not see them — and added `.deviceWorkshop`
+        // beside them. 28 since 0.7.2 (LR1) added `.labelReader`; 28 before that
+        // until 0.7.1 (A1) retired `.masterSearch`, whose title `.chipFilter` now
+        // carries.
+        //
+        // **A count is a weak gate and stays a count.** It fails only when
+        // somebody bumps the enum *and* the number without touching the list,
+        // which is a harder mistake to make than forgetting the list entirely —
+        // and `DexRoute` carries associated values, so it cannot be
+        // `CaseIterable` and there is nothing to derive from.
+        #expect(Self.allRoutes.count == 31, "add the new route to `allRoutes`")
     }
 
     // MARK: The shared glyph constants (0.7.0 D1, 0.7.1 E1/A2)

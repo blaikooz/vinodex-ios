@@ -40,7 +40,16 @@ struct MarqueeDrawer: View {
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
-    private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
+    /// The drawer's hairline follows the marquee's phosphor, so it takes the
+    /// workshop's marquee override with it (0.7.3, B1). `skin.next` — the
+    /// shuffle button below — still walks the *shell* list, which is right: the
+    /// shuffle changes the colourway, and a part the player deliberately fitted
+    /// should survive it.
+    @AppStorage(DeviceAxis.marquee.storageKey) private var partMarquee = ""
+
+    private var skin: ChassisLook {
+        ChassisLook(skinRaw: skinRaw, marquee: partMarquee)
+    }
 
     @State private var pins = QuickPinStore.shared
     @State private var access = AccessStore.shared

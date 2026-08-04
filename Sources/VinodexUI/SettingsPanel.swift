@@ -226,8 +226,16 @@ public struct SettingsSectionPanel: View {
     /// Starts the attract loop. Not a route — demo mode drives the *whole* route
     /// stack, so it is the app's business rather than a screen to push.
     let onDemoMode: () -> Void
+    /// CUSTOMIZE's door to the builder (0.7.3, A1). A route push like the two
+    /// above, so the chassis Back button returns here rather than dropping out
+    /// of settings.
+    let onDeviceWorkshop: () -> Void
 
     @State private var access = AccessStore.shared
+    /// Read only to name the saved build the device is currently wearing — see
+    /// `deviceWorkshop`. `@State` on the shared store rather than a fresh one, so
+    /// saving a build in the workshop is reflected here on the way back out.
+    @State private var customDevices = CustomDeviceStore.shared
     /// Set when a gated cosmetic is tapped; drives the same upgrade prompt a
     /// locked entry raises, so a paywalled *setting* behaves like a paywalled
     /// page rather than being a dead control.
@@ -260,13 +268,15 @@ public struct SettingsSectionPanel: View {
         onDev: @escaping () -> Void = {},
         onFirmwareHistory: @escaping () -> Void = {},
         onCheatConsole: @escaping () -> Void = {},
-        onDemoMode: @escaping () -> Void = {}
+        onDemoMode: @escaping () -> Void = {},
+        onDeviceWorkshop: @escaping () -> Void = {}
     ) {
         self.section = section
         self.onDev = onDev
         self.onFirmwareHistory = onFirmwareHistory
         self.onCheatConsole = onCheatConsole
         self.onDemoMode = onDemoMode
+        self.onDeviceWorkshop = onDeviceWorkshop
     }
 
     private var screenKey: String { ScreenStateStore.settings(section.rawValue) }
@@ -288,6 +298,15 @@ public struct SettingsSectionPanel: View {
                     onUnlock: {
                         access.grant(lockedBundle)
                         self.lockedBundle = nil
+                        // **Continue where they were going** (0.7.3, C1). The
+                        // cosmetic bundles have nowhere to continue *to* — the
+                        // picker they were tapped from is already on screen and
+                        // has just unlocked in place — but the workshop is a
+                        // door, and stopping at "unlocked!" beside a button they
+                        // now have to find and press again is the same
+                        // half-finished unlock `RootView` fixed for locked
+                        // entries.
+                        if lockedBundle == .workshop { onDeviceWorkshop() }
                     },
                     onCancel: { self.lockedBundle = nil }
                 )
@@ -424,8 +443,16 @@ public struct SettingsSectionPanel: View {
     /// Country bundles are drawn from the countries that actually have regions,
     /// capped at the three largest — the panel is a test harness, not a store,
     /// and eighteen country rows would bury the cosmetic cases underneath them.
+    /// `.workshop` joined the cosmetics in 0.7.3 (C1). It is a real gate with a
+    /// real surface behind it now, and the ACCESS harness exists so that the
+    /// *unowned* state of a gate can be reached in one tap — which for a premium
+    /// feature is the state most likely to be wrong and least likely to be seen
+    /// by the person who built it.
+    ///
+    /// `.expansion` and `.easterEgg` still stay out: no pack ships yet, and eggs
+    /// are found rather than bought (see the note on `bundleSymbol`).
     private var testableEntitlements: [Entitlement] {
-        [.pro, .flavors] + topCountries.map { Entitlement.country($0) } + [.skins, .lightMode]
+        [.pro, .flavors] + topCountries.map { Entitlement.country($0) } + [.skins, .lightMode, .workshop]
     }
 
     private var topCountries: [String] {
@@ -502,10 +529,85 @@ public struct SettingsSectionPanel: View {
     /// Screen mode, then the shell — what the device looks like. Text size
     /// lived here too until SETTINGS existed; it is a comfort setting, not a
     /// colour choice, and it moved out with the other device behaviour.
+    ///
+    /// **The workshop goes first (0.7.3, B1/A1)**, above the two pickers rather
+    /// than below them, because it is the *superset*: it sets the shell and the
+    /// screen mode as well as the six parts these two panels have never been able
+    /// to touch. Putting it under twenty-one skin tiles and nine mode cards would
+    /// have buried the page's most capable control behind two full screenfuls of
+    /// the two axes it also contains.
     @ViewBuilder
     private var customization: some View {
+        deviceWorkshop
         screenMode
         skinTesting
+    }
+
+    /// The door to the Device Workshop (0.7.3, A1/C1).
+    ///
+    /// **Shown whether or not it is owned, which is C1's instruction and the
+    /// 0.7.3 position on premium.** Premium is an entitlement flag, unlockable
+    /// now and StoreKit-swappable later — not a hard paywall — so the unowned
+    /// state is not a locked door with nothing behind it: the section says what
+    /// the workshop is, and the button offers to unlock it. Hiding the section
+    /// outright was the other option and it is worse in both directions; nobody
+    /// discovers a feature that is invisible, and a device that grows a new
+    /// settings section on purchase looks broken before it.
+    ///
+    /// **No new store.** Ownership is `access.isUnlocked(.workshop)` — the one
+    /// entitlement set F1 left, reached through the one predicate — and the
+    /// unlock path is `UpgradePrompt`, exactly as a locked skin or a locked entry
+    /// takes. It grants and then *continues* into the workshop rather than
+    /// stopping at "unlocked!", which is the correction `RootView`'s own paywall
+    /// note records for the entry gate.
+    private var deviceWorkshop: some View {
+        let owned = access.isUnlocked(.workshop)
+        return settingsSection("DEVICE WORKSHOP") {
+            VStack(alignment: .leading, spacing: 10) {
+                Button {
+                    Haptics.screenTap()
+                    if owned {
+                        onDeviceWorkshop()
+                    } else {
+                        // Granting continues into the builder — see the note
+                        // above. The prompt's own `onUnlock` fires first.
+                        lockedBundle = .workshop
+                    }
+                } label: {
+                    settingRow(
+                        // Matches the marquee glyph the route wears (K2, rule 1)
+                        // — see `DexRoute.deviceWorkshop`.
+                        symbol: owned ? "hammer.fill" : "lock.fill",
+                        tint: owned ? lcd.accent : Dex.yellow,
+                        title: owned ? "OPEN" : "UNLOCK",
+                        detail: owned
+                            ? "Mix shell, buttons, orb, marquee, grille, screen and font. Save the builds you like."
+                            : "Build your own handheld: eight parts, mixed and matched, saved by name."
+                    ) {
+                        Image(systemName: owned ? "chevron.right" : "lock.open.fill")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(lcd.subtext)
+                    }
+                }
+                .buttonStyle(DexPressStyle(scale: 0.98))
+
+                if owned, let fitted = customDevices.matching(DeviceBuild.active()) {
+                    // States which saved build is fitted, derived rather than
+                    // stored — see `CustomDeviceStore.matching(_:)`. Nothing
+                    // shows when the device is wearing something unsaved, which
+                    // is honest: it is not wearing one of your builds.
+                    Text("FITTED: \(fitted.name)")
+                        .font(DexFont.retro(10))
+                        .tracking(1)
+                        .foregroundStyle(lcd.accent)
+                } else if !owned {
+                    Text("The shell and screen pickers below stay free. The workshop is the six parts they cannot reach — buttons, orb, marquee, grille colour and pattern, and the font.")
+                        .font(DexFont.mono(17))
+                        .foregroundStyle(lcd.subtext)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
     }
 
     /// Device behaviour: text size, UI size, haptics, and the stored-data reset.
@@ -1461,11 +1563,15 @@ enum SavedDataReset {
         // run where earning FIRST SIP again actually means something.
         PassportProgress.shared.reset()
         QuickPinStore.shared.reset()
+        // The saved builds (0.7.3, B2). The *fitted* parts are cleared by the
+        // key loop below — every `DeviceAxis` is in it — but the saved recipes
+        // are their own store and would survive a wipe otherwise.
+        CustomDeviceStore.shared.reset()
         ScreenStateStore.shared.clear()
         SearchStateStore.shared.clear()
 
         let defaults = UserDefaults.standard
-        for key in [
+        for key in DeviceAxis.allCases.map(\.storageKey) + [
             // Belt and braces after each store's own reset.
             Shelf.saved.storageKey,
             Shelf.wantToTry.storageKey,
@@ -1481,10 +1587,14 @@ enum SavedDataReset {
             StreakStore.streakKey,
             StreakStore.lastDayKey,
             StreakStore.bestKey,
-            LcdMode.storageKey,
+            CustomDeviceStore.storageKey,
+            // `LcdMode.storageKey` and `ChassisSkin.storageKey` are no longer
+            // listed here: both are `DeviceAxis` entries now (0.7.3, B1) and
+            // arrive through the eight keys prepended above. Listing them twice
+            // was harmless and listing them once is checkable — a ninth part
+            // cannot be forgotten here the way the six new ones would have been.
             TextScale.storageKey,
             UIScale.storageKey,
-            ChassisSkin.storageKey,
             UserProfile.displayNameKey,
             Haptics.storageKey,
             Sounds.storageKey,

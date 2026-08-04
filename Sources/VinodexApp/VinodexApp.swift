@@ -491,7 +491,8 @@ struct RootView: View {
                 onDev: { push(.settingsSection(.dev)) },
                 onFirmwareHistory: { push(.firmwareHistory) },
                 onCheatConsole: { push(.cheatConsole) },
-                onDemoMode: { startDemo() }
+                onDemoMode: { startDemo() },
+                onDeviceWorkshop: { push(.deviceWorkshop) }
             )
 
         case .minigames:
@@ -543,6 +544,16 @@ struct RootView: View {
 
         case .cheatConsole:
             CheatConsoleScreen()
+
+        // The premium builder (0.7.3, B1/B2). Reads and writes the eight
+        // `DeviceAxis` keys directly — the same keys the chassis around this LCD
+        // is reading, which is what makes the device its own live preview — so it
+        // takes no arguments either. The `Entitlement.workshop` gate is on the
+        // CUSTOMIZE button that pushes this, not here: routes in this app are
+        // destinations rather than gates, and the one place a route *is* checked
+        // (`open(_:)`) is checked because entries arrive from twenty screens.
+        case .deviceWorkshop:
+            DeviceWorkshopScreen()
 
         case .continent(let id):
             if let entry = db.entry(id: id), case .continent(let c) = entry {

@@ -48,7 +48,77 @@ been happening", which is the question a planning doc is for.
 | 0.7.1 | `vinodex-0.7.1.md` | UI/UX fixes, the new marquee, polish — see below. | 405; South America's marker colour changed, no entry moved | 282 tests, clean build, deployed |
 | 0.7.2 | `vinodex-label-reader` | **LABEL SCAN.** Camera → Apple Vision OCR on-device → match against the catalog. Matching/scoring/inference in Core (Linux-gated); Vision, camera and pickers in UI behind `LabelRecognitionProvider`. `xtool.yml` gained `infoPath` for the usage strings. | 405, untouched | 320 tests, clean build, **not deployed** |
 | 0.7.2 | `vinodex-0.7.2` | **Consolidation + nine fixes.** All batch branches merged onto `testing`; stamps made draggable at last (A2); the marquee becomes a control surface — lamps are TOOLS/CUSTOMIZE, pins in the corners, PINS on open, MENU glyph, rotating toasts; Africa and Oceania get their own marker colours. | 405, untouched; two continent colours changed | 326 tests, clean build, deployed |
-| 0.7.3 | `vinodex-0.7.3a` | **Device experience + the 0.7.3 Foundation.** F1 one entitlement store behind a protocol; F2 one idle timer where there were two clocks; F3 version + changelog moved into `shared/`. Then A1 boot POST, A2 demo mode, A3 firmware history, A4 cheat console, A5 bouncing-V screensaver. | 405, untouched; `firmware.json` is a new generated file | 384 tests, clean build, **not deployed** |
+| 0.7.3 | `vinodex-0.7.3a` | **Device experience + the 0.7.3 Foundation.** F1 one entitlement store behind a protocol; F2 one idle timer where there were two clocks; F3 version + changelog moved into `shared/`. Then A1 boot POST, A2 demo mode, A3 firmware history, A4 cheat console, A5 bouncing-V screensaver. | 405, untouched; `firmware.json` is a new generated file | 384 tests, clean build, deployed and eyeballed |
+| 0.7.3 | `vinodex-0.7.3b` | **DEVICE WORKSHOP (premium).** The six part axes that did not exist, then the builder over all eight. `DeviceAxis`/`DeviceBuild`/`CustomDeviceStore` in Core; `PartColor`, `GrilleShape` and `ChassisLook` in UI. Gated on F1's `Entitlement.workshop`; GARAGISTE unlocks it. | 405, untouched | 404 tests, clean build, **not deployed** |
+
+**0.7.3b, the Device Workshop** (`vinodex-0.7.3b.md`). Second of the three
+0.7.3 sub-batches, built on 0.7.3a rather than beside it — C1 gates on F1's
+`EntitlementStoring`, `AccessStore(defaults:store:)` and `Entitlement.workshop`,
+all of which are 0.7.3a's.
+
+- **The prerequisite check failed, and that was most of the batch.** The spec
+  assumes the 0.6.x/0.7.1 chassis work left seven parts individually settable.
+  It did not: the device had **two** axes — `chassisSkin` and `lcdMode` — and
+  every other part was a *property of the shell*. `ChassisSkin.orb`, `.accent`,
+  `.control`, `.grill`, `.marqueeText` are all switches over the skin, so
+  choosing BURGUNDY chose a purple orb, purple caps and a pink marquee together;
+  a skin was a dye lot, not a palette. The grille had no shape axis in any form
+  (four hardcoded 64×2 capsules in `bottomVents`, identical on all twenty-one
+  shells), and the font colour was whatever `LcdMode.text` said. Five of the
+  seven parts, plus the grille's shape, had to be *built* before a workshop over
+  them could exist.
+- **`DeviceAxis` is the foundation, and empty means stock.** Eight axes (the
+  grille takes two — colour and pattern), one `UserDefaults` key each, and one
+  invariant that makes it safe to add to a shipped app: `""` and "no stored
+  value" are the same state, so a device nobody has customised is byte-identical
+  to 0.7.2's. `chassisSkin` and `lcdMode` keep their spellings — those hold real
+  choices on real installs — and `ChassisSkin.storageKey`/`LcdMode.storageKey`
+  now *read from* `DeviceAxis` rather than restating the literal.
+- **`ChassisLook` is one resolver, not six fallbacks per call site.** The wrong
+  way to add overridable parts was `partOrb.map(\.orb) ?? skin.orb` at each of
+  twenty call sites — F1's copy-pasted cosmetic rule with six times the surface.
+  `ChassisLook` carries the same member names `ChassisSkin` does, so three views
+  changed one line each: the *type* of their `skin` property. Every `skin.orb`
+  still reads `skin.orb`, and the compiler found the call sites rather than a
+  search doing it.
+- **One authored hex per palette entry, everything else derived.** Thirteen
+  colours across five axes is sixty-five hand-written ramps otherwise — sixty-five
+  chances for one stop to come from the wrong colourway, which is the fault
+  `ChassisAccent`'s own note calls a manufacturing defect. `PartColor` derives
+  the six-stop lit ramp, the moulded cap, the orb bead and halo and the marquee's
+  three phosphors through `DexRGB.mixed(with:amount:)`, calibrated against
+  CLASSIC's hand-authored parts. `DexRGB` gained `hex` for the round trip.
+- **The live preview is the device.** B1 asks for a live preview and the
+  workshop runs *inside the LCD of the thing being customised*, so the rows write
+  the keys the chassis already reads and fitting a violet orb turns the real orb
+  violet under your thumb. Nothing is threaded between the two surfaces because
+  there is nothing to thread. The cost is that editing is destructive, which
+  REVERT (drawn in a fixed red, not an LCD token) answers.
+- **No second source of truth for what the device looks like.** A `CustomDevice`
+  is a *recipe*; applying one writes the same eight keys. There is deliberately
+  no stored "active build id" — `CustomDeviceStore.matching(_:)` compares, so a
+  build that has had one part changed since it was fitted stops matching, which
+  is the truth. That was the specific trap the spec named and F1 had just spent a
+  batch clearing one layer down.
+- **The font axis is the only one with a rule.** Every other part is decoration;
+  the font is what the screen says things with, and IVORY on the paper-white LCD
+  is a device that has stopped working — recoverable only through text you can no
+  longer read. `LcdMode.accepts(_:)` refuses an ink the mode cannot show (the
+  four single-phosphor modes) or that will not read on its ground, and falls back
+  to the mode's own. Enforced at the point of use rather than in the picker,
+  because the failure can arrive *later*: pick an ink on a dark screen, then
+  switch to a pale one.
+- **C1 is an entitlement flag, not a paywall.** The CUSTOMIZE section is always
+  visible; unowned, it describes the workshop and its button says UNLOCK, which
+  raises the ordinary `UpgradePrompt`, grants through the one store, and then
+  *continues into the builder* rather than stopping at "unlocked!". The six new
+  axes ride `.workshop`; the two old ones keep `.skins` and `.lightMode`, so the
+  workshop cannot be used to buy twenty-one shells for the price of one bundle.
+  GARAGISTE is the cheat code — a real wine word for somebody building the thing
+  themselves in a workshop.
+- **A 0.7.3a gap closed on the way past:** `ChromeTests.allRoutes` never listed
+  `.firmwareHistory` or `.cheatConsole`, so for one sub-batch the marquee-glyph
+  uniqueness gate could not see them. All three 0.7.3 routes are listed now.
 
 **0.7.3a, the Foundation batch** (`vinodex-0.7.3a.md`). First of three 0.7.3
 sub-batches. Section 0 (F1–F3) is the deliverable; 0.7.3b and 0.7.3c are built
@@ -109,17 +179,27 @@ A1–A5 happened to need.
   `verboseBoot` egg adds POST lines. A code that reports success and changes
   nothing is the one failure a cheat console cannot survive.
 
-**Parked from 0.7.3a:**
+**Parked from 0.7.3a and 0.7.3b:**
 
-- **Not deployed** — stopped at the clean build by instruction. Everything
-  visual in A1–A5 is unverified on glass: the boot POST's pacing, the demo
-  dwells, the V's size and speed, and whether the screensaver's colour cycle
-  reads well under the monochrome modes.
-- **0.7.2's stamp-drag fix is still unconfirmed on glass** and remains the first
-  thing to check on the next install. This batch did not touch
-  `DeviceBackPlate.swift` or any `contentShape`, and the new activity watcher is
-  incapable of entering gesture arbitration — but that is an argument, not an
-  observation.
+- 0.7.3a **was deployed and eyeballed**: the POST pacing, the demo dwells, the
+  V's size, speed and colour cycle under the monochrome modes all pass, and so
+  does 0.7.2's stamp drag including the top-left-corner falsifier. Both of the
+  entries that stood here are closed.
+- **0.7.3b is not deployed** — stopped at the clean build by instruction. Nothing
+  in it is verified on glass, and it is the batch with the most to eyeball: five
+  derived colour ramps against twenty-one hand-authored ones, five grille
+  patterns at 64×17 on a moulded strip, and a schematic drawn at a third scale.
+  See the batch notes above for what to look at first.
+- **The palette's derivation constants are authored by eye.** The mix amounts in
+  `PartColor` (0.80/0.56 pale, 0.20/0.52 dark, 0.84 for the marquee's letters)
+  are calibrated against CLASSIC's ramps by arithmetic, not by looking at them on
+  a phone. Retuning one is one line and repaints all thirteen colours coherently,
+  which is the whole point of deriving them.
+- **`PartColor` and the font-readability rule are `VinodexUI`**, so neither is
+  reachable from a Linux test — the thresholds in
+  `PartColor.readsAsInk(onLightGround:)` are argued in a doc comment and gated by
+  nothing. Moving the palette's *hex table* to Core would make the rule testable
+  and is the obvious next tidy if the font axis grows.
 - The demo loop's dwells and stop order are authored by eye, like the map
   coordinates. Worth tuning once seen running.
 - `.expansion` covers no entries yet — `Entitlement.covers` answers `false` for

@@ -40,7 +40,7 @@ import type { FirmwareRelease } from '../types';
  */
 const CURRENT: FirmwareRelease = {
   version: "0.7.3",
-  date: "2026-08-03",
+  date: "2026-08-04",
   headline: "DEVICE EXPERIENCE",
   notes: [
     "Boot POST: memory check, database init and the firmware version. Tap to skip.",
@@ -50,6 +50,9 @@ const CURRENT: FirmwareRelease = {
     "Screensaver: the Vinodex V bounces the LCD after 15 seconds idle.",
     "One idle timer behind the marquee toast and the screensaver both.",
     "Ownership moved behind one entitlement store, ready for a real storefront.",
+    "DEVICE WORKSHOP: build your own handheld from eight parts, and save the results.",
+    "Buttons, orb, marquee, grille colour and grille pattern are parts you can fit.",
+    "Five grille patterns where there was one, and the font colour is yours to set.",
   ],
 };
 

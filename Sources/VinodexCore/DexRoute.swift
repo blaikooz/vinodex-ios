@@ -213,6 +213,12 @@ public enum DexRoute: Hashable, Sendable {
     /// The unlock-code console (0.7.3, A4). Typed codes are matched against
     /// `CheatCode.all` and grant through `AccessStore` like any other unlock.
     case cheatConsole
+    /// The premium device builder (0.7.3, B1/B2). Mix the eight `DeviceAxis`
+    /// parts, preview them on the chassis you are holding, and save the result as
+    /// a named `CustomDevice`. Gated on `Entitlement.workshop` at the door that
+    /// opens it — see `SettingsSectionPanel.deviceWorkshop`; the route itself is
+    /// not a gate, exactly as `.detail` is not.
+    case deviceWorkshop
     /// The continent info screen — INFO blurb plus a COUNTRIES list, each
     /// linking to that country's regions. Reached from the globe markers.
     case continent(entryID: String)
@@ -288,6 +294,11 @@ public enum DexRoute: Hashable, Sendable {
             "FIRMWARE"
         case .cheatConsole:
             "CHEAT CODES"
+        // Not "DEVICE WORKSHOP": the marquee fits fourteen characters before it
+        // scales and this is fifteen. The panel's own heading carries the full
+        // name, and WORKSHOP is what the entitlement is called anyway.
+        case .deviceWorkshop:
+            "WORKSHOP"
         case .continent:
             "CONTINENT SCAN"
         }
@@ -400,6 +411,17 @@ public enum DexRoute: Hashable, Sendable {
             "memorychip.fill"
         case .cheatConsole:
             "terminal.fill"
+        // Matches the OPEN button on CUSTOMIZE that leads here (K2, rule 1).
+        //
+        // Not `wrench.and.screwdriver.fill`, which is TOOLS' — the two pages are
+        // not the same kind of page (K2, rule 3) and the crossed pair and the
+        // single wrench are hard to tell apart at the marquee's 26pt anyway. A
+        // hammer is unmistakable at that size, is nowhere else in the app, and
+        // is SF Symbols 1 / iOS 13, well under the floor. It is also the right
+        // sense: the workshop is where the device gets *built*, not where the
+        // tools live.
+        case .deviceWorkshop:
+            "hammer.fill"
         // Not the globe: the globe screen is the globe, and a continent page is
         // one continent (K2, rule 3).
         case .continent:

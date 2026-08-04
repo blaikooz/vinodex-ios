@@ -182,6 +182,11 @@ public final class ScreenStateStore {
     /// tears this screen down, and coming back to the camera instead of to the
     /// result you were reading would make the Back button feel broken.
     public static let labelReader = "labelReader"
+    /// The device workshop (0.7.3, B1). Nine sections deep, and every part
+    /// choice raises an overlay or repaints the schematic at the top — without
+    /// an anchor, fitting a grille pattern from the sixth section would bounce
+    /// the page back to the preview.
+    public static let deviceWorkshop = "deviceWorkshop"
     /// The settings panels are one screen per section, so they key like the
     /// countries do rather than sharing a scroll position between DATA and DEV.
     public static func settings(_ section: String) -> String { "settings:" + section }

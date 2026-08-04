@@ -85,6 +85,22 @@ public struct DeviceChassis<Content: View>: View {
     /// Shared with `SettingsPanel` through `@AppStorage`, so toggling it there
     /// repaints the chassis without any state being threaded between them.
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
+    /// The workshop's part overrides (0.7.3, B1).
+    ///
+    /// `@AppStorage` for the reason the shell above is: it is KVO-backed, so the
+    /// chassis repaints the instant a part changes — which is what makes the
+    /// device itself the workshop's live preview. Nothing is threaded down from
+    /// the builder screen; the builder writes the same keys the chassis reads,
+    /// and the chassis is drawn around the LCD the builder is running inside.
+    ///
+    /// Empty is the default on every one of them and resolves to "whatever the
+    /// shell says", so a device nobody has customised is byte-identical to
+    /// 0.7.2's. See `ChassisLook`.
+    @AppStorage(DeviceAxis.buttons.storageKey) private var partButtons = ""
+    @AppStorage(DeviceAxis.orb.storageKey) private var partOrb = ""
+    @AppStorage(DeviceAxis.marquee.storageKey) private var partMarquee = ""
+    @AppStorage(DeviceAxis.grilleColor.storageKey) private var partGrille = ""
+    @AppStorage(DeviceAxis.grilleShape.storageKey) private var partGrilleShape = ""
     /// Read for VINTAGE mode's monochrome pass over the LCD — see `innerBezel`.
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
 
@@ -93,7 +109,24 @@ public struct DeviceChassis<Content: View>: View {
     /// (AUDIT M18)
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
+    /// **A `ChassisLook`, not a `ChassisSkin`, since 0.7.3 (B1).**
+    ///
+    /// Every `skin.orb` / `skin.grill` / `skin.accent` in this file below still
+    /// reads exactly as it did; the resolution of "the shell's, unless a part
+    /// overrides it" happens once, here, rather than at each of the twenty call
+    /// sites. Changing the type rather than renaming the property is deliberate —
+    /// it let the compiler find every member this view actually uses, where a
+    /// search-and-replace would have found the ones spelled the way I guessed.
+    private var skin: ChassisLook {
+        ChassisLook(
+            skinRaw: skinRaw,
+            buttons: partButtons,
+            orb: partOrb,
+            marquee: partMarquee,
+            grille: partGrille,
+            grilleShape: partGrilleShape
+        )
+    }
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
     public init(
@@ -357,7 +390,11 @@ public struct DeviceChassis<Content: View>: View {
             if skin.isTranslucent {
                 InternalsView()
             }
-            ChassisShell(skin: skin)
+            // The bare `ChassisSkin`, not the resolved look: the moulding, its
+            // tiled pattern and PÉT-NAT's paper grain are the *shell*, and the
+            // shell is the one part the workshop chooses whole rather than
+            // recolours. Reaching through says so.
+            ChassisShell(skin: skin.skin)
 
             VStack(spacing: 0) {
                 // `housingTop`, not `topStrip` (0.6.9, B1): the screen starts
@@ -912,17 +949,15 @@ public struct DeviceChassis<Content: View>: View {
                 .allowsHitTesting(false)
 
             // The grille — plain slats again, now that the letters have their
-            // own room.
-            VStack(spacing: 3) {
-                ventSlat
-                ventSlat
-                ventSlat
-                ventSlat
-            }
-            .allowsHitTesting(false)
-            // Pulled in off the panel's rounded corner, which the slats
-            // were running into at their right end.
-            .padding(.trailing, DexMetrics.headerPaddingH + DexMetrics.screenPanelCorner * 0.5)
+            // own room, and **fitted rather than moulded in since 0.7.3 (B1)**:
+            // the pattern is a part the player chooses. `ChassisGrille` holds
+            // every pattern to the slats' own 64×17 slot, so changing it cannot
+            // move the wordmark or the lamp sharing this run.
+            ChassisGrille(shape: skin.grilleShape, ink: skin.grill)
+                .allowsHitTesting(false)
+                // Pulled in off the panel's rounded corner, which the slats
+                // were running into at their right end.
+                .padding(.trailing, DexMetrics.headerPaddingH + DexMetrics.screenPanelCorner * 0.5)
         }
         // The strip is `ventStripHeight` tall overall, but its bottom
         // `housingRimGuard` points are under the housing's rim (0.6.9, B2), so
@@ -935,13 +970,10 @@ public struct DeviceChassis<Content: View>: View {
         .padding(.bottom, DexMetrics.housingRimGuard)
     }
 
-    /// One grille slat. Faint on purpose — the vent is texture, not a feature.
-    private var ventSlat: some View {
-        Capsule()
-            .fill(skin.grill)
-            .frame(width: 64, height: 2)
-            .opacity(0.5)
-    }
+    // `ventSlat` retired in 0.7.3 (B1). It was one 64×2 capsule at 0.5 opacity,
+    // stamped four times above; `ChassisGrille.slats` is that exact vent and is
+    // still the default, so a device nobody has been into the workshop with is
+    // drawn identically.
 
     // MARK: Footer — the button band
     //
@@ -1720,8 +1752,14 @@ public struct ChassisButton: View {
     /// button, the settings tiles) still follows the mode — pixels on the
     /// screen are the screen's business.
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
+    /// The button axis (0.7.3, B1) — the one part override this view can see.
+    /// Read here for the same reason the shell is: the footer builds these, and
+    /// threading it through would mean every future caller had to remember to.
+    @AppStorage(DeviceAxis.buttons.storageKey) private var partButtons = ""
 
-    private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
+    private var skin: ChassisLook {
+        ChassisLook(skinRaw: skinRaw, buttons: partButtons)
+    }
 
     public init(
         kind: Kind,
@@ -2139,8 +2177,10 @@ public struct MarqueeBanner: View {
     /// re-read.
     private let segmentFont: Font
 
-    /// The strip's phosphor follows the shell — see `ChassisSkin.marqueeText`.
+    /// The strip's phosphor follows the shell — see `ChassisSkin.marqueeText` —
+    /// unless the workshop has fitted a different one (0.7.3, B1).
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
+    @AppStorage(DeviceAxis.marquee.storageKey) private var partMarquee = ""
     /// Read here rather than passed in by `DeviceChassis` so the banner keeps
     /// working wherever else it is mounted. (AUDIT M18)
     ///
@@ -2149,7 +2189,9 @@ public struct MarqueeBanner: View {
     /// to gate is the greeting cycle — see `cycle()`.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
+    private var skin: ChassisLook {
+        ChassisLook(skinRaw: skinRaw, marquee: partMarquee)
+    }
 
     /// The lit ground: the skin's phosphor, filling the panel rather than the
     /// letters (0.6.5, B1).
