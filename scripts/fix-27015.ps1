@@ -6,7 +6,7 @@
 # respawns every 30-60s on a new port, so discover -> prompt -> use always loses
 # the race.
 #
-# Step 2 launches a Store app, which refuses to start elevated — so it is
+# Step 2 launches a Store app, which refuses to start elevated - so it is
 # dispatched through explorer.exe, which runs as the logged-in user even when
 # this script does not.
 

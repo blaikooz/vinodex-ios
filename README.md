@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
 
 <img src="AppIcon.png" alt="Vinodex" width="148" />
 
