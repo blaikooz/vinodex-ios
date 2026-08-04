@@ -15,6 +15,8 @@ not re-verifiable from a checkout.** One new blocking item — **X2** — was ra
 > verified against the tree as it stands: **59 modified and 27 untracked files are
 > uncommitted**, including every AUDIT.md fix from 2026-08-01 and 2026-08-03. That
 > is **X2** below, and it is now the blocking item this document opens with.
+> *(2026-08-04: discharged — everything below is committed, CI-blessed, tagged
+> and on `main`. The caveat is preserved as the state this pass verified against.)*
 
 > **Path note (0.6.5, batch 4).** `pixelflags/` throughout reads as
 > **`shared/pixelflags/`** — the cross-repo master mirrored from `HGapps\shared`,
@@ -38,12 +40,12 @@ renumbered.
 
 | Area | Resolved | Partial | Open | Won't-fix | Unverified | Total |
 |---|---:|---:|---:|---:|---:|---:|
-| Blocking | 1 | — | 1 | — | — | 2 |
+| Blocking | 2 | — | — | — | — | 2 |
 | Repository & git | 7 | 1 | 4 | 1 | — | 13 |
-| GitHub & platform | 4 | 1 | 2 | — | 3 | 10 |
+| GitHub & platform | 5 | — | 2 | — | 3 | 10 |
 | Module architecture | 11 | 5 | 8 | — | — | 24 |
 | Build & pipeline | 5 | 1 | 9 | — | — | 15 |
-| **Total** | **28** | **8** | **24** | **1** | **3** | **64** |
+| **Total** | **30** | **7** | **23** | **1** | **3** | **64** |
 
 **Updated 2026-08-04 (third pass).** The `8bd6838` "gitquickfixes" commit
 (2026-08-03 17:51) closed the document's cheapest open items in one sitting,
@@ -56,6 +58,14 @@ set the upstream tracking refs **P6** asked for. **A6** was also cashed in:
 Five statuses moved; the table above reflects them. **X2** stands — the
 structural chain that closed A6→A22 is itself sitting uncommitted in the tree
 those quickfixes were pushed from (see the item).
+
+**Updated 2026-08-04, later the same day — X2 discharged.** The structural
+chain went up as `3915488` + `be49834`, run `30932029118` came back green on
+all four jobs, the 28 tags were pushed, and `main` was fast-forwarded to the
+same commit. **X2** and **P5** close (P5's bundle-version third deferred to a
+future signing pipeline, with the reopen condition recorded in the item). For
+the first time since this document was written, **no blocking item is open**
+and nothing exists only in a working tree.
 
 **Updated 2026-08-03 (second pass).** The structural chain this document's
 *Recommended order* set out — **A6 → A17 → A15 → A22/A14** — was taken in one
@@ -98,7 +108,7 @@ Three of those seven are now closed — **A17** (57 `@AppStorage` → **0**, one
 
 ---
 
-## X2 · A hundred findings' worth of work exists only in a dirty working tree — **Blocking**
+## X2 · A hundred findings' worth of work exists only in a dirty working tree — **Resolved**
 
 This replaces **X1** as the item everything else is provisional behind, and it is
 the same *class* of problem X1 was: work landed here does not durably exist.
@@ -136,6 +146,18 @@ deleted flat paths — plus `AppSettingsTests` (A6's cash-in) and these document
 updates. The 28 annotated tags (**P5**) also remain unpushed. The item stands:
 the largest refactor yet made currently exists only in a working tree.
 
+**Resolved 2026-08-04, later the same day.** Committed as `3915488` plus the
+one-line fix `be49834` (a `#expect` key-path/rethrows macro expansion — CI-only
+by construction, caught on the first real `swift test` of the new suite),
+pushed, and blessed by the full board on run `30932029118`: the first Xcode
+compile of the five-directory layout, the first execution of
+`AppSettingsTests` on Linux and simulator both, data job clean. The 28 tags
+are on the remote — **P5**'s last unpushed piece — and `main` was
+fast-forwarded to the same green commit. Default branch, working branch, tags
+and CI now agree on one SHA; nothing exists only in a working tree. The
+*habit* this item and **R10** name — batching a hundred findings into one
+uncommitted tree — is still worth breaking; the debt itself is paid.
+
 ---
 
 ## X1 · The publish path is live, and it will overwrite the audit — **Resolved**
@@ -171,7 +193,9 @@ re-verified and closed against later commits.
 
 Highest-leverage items remaining, in the order they unblock each other:
 
-1. **X2** — commit the tree. Everything else is provisional until then.
+1. ~~**X2** — commit the tree.~~ **Done, 2026-08-04**: committed, green on all
+   four jobs (`30932029118`), tagged, and fast-forwarded to `main`. Nothing
+   below is provisional anymore.
 2. ~~**A17** — one `AppSettings` type.~~ **Done.** It was the largest structural
    debt in the package and the only original "High" still fully open. The
    `.id(scaleRaw)` remount it was also meant to retire survives — see the item.
@@ -248,10 +272,10 @@ an inherited default.
 here (xtool's free-profile deploy handles signing material in this working
 directory) and naming both findings: `arch R3 / auditS L11`.
 
-It closed in time to matter: the `git add -A` this item warned about is exactly
-what **X2**'s next commit implies, and the tree it will sweep is dirty again
-with the structural chain. With this, the second of the two original **High**
-items is off the board — **A17** was the first.
+It closed in time to matter: **X2**'s discharge commit (2026-08-04) swept the
+structural chain with exactly the broad `git add` this item wanted guarded —
+one day after the guard went in. With this, the second of the two original
+**High** items is off the board — **A17** was the first.
 
 ### R4 · The commit `640efe9` is authored under a malformed email — **Open, unchanged**
 
@@ -461,23 +485,27 @@ check, no review requirement, owner bypass allowed." The check to require is
 `test` — not `ios` or `ios-test`, which depend on paid-tier-adjacent macOS minutes
 and will occasionally flake on simulator availability.
 
-### P5 · No tags, releases, CHANGELOG, or bundle version — **Partial (two-thirds resolved)**
+### P5 · No tags, releases, CHANGELOG, or bundle version — **Resolved (bundle version deferred to a signing pipeline)**
 
 **Resolved by M37 (2026-08-03):**
 
 - **28 annotated tags**, up from 0 — 22 of them backfilled, each carrying
   `GIT_COMMITTER_DATE` set to its own commit's date so `--sort=taggerdate` reports
   release order rather than backfill order, and each annotation saying it was
-  backfilled. **Created locally and not pushed** — which folds into **X2**.
+  backfilled. ~~Created locally and not pushed~~ — **pushed 2026-08-04**, with
+  **X2**'s discharge; the release history now exists on the remote.
 - **[CHANGELOG.md](../CHANGELOG.md)** exists, Keep a Changelog 1.1, newest first,
   0.6.5 back to 0.2.1.
 - This document's "skip GitHub Releases" advice was taken and remains right.
 
-**Still blocked, genuinely:** the bundle version. xtool 1.17 hardcodes
-`CFBundleShortVersionString = 1.0.0` with no key to override it, which is why
-`AppVersion` has to *reject* the bundled value. Reopens when there is a signing
-pipeline. This is also **A2**'s problem from the other side — there is no Info.plist
-source for it to land in.
+**The remaining third, recorded rather than left open:** the bundle version.
+xtool 1.17 hardcodes `CFBundleShortVersionString = 1.0.0` with no key to
+override it, which is why `AppVersion` has to *reject* the bundled value.
+Reopens when there is a signing pipeline. This is also **A2**'s problem from
+the other side — there is no Info.plist source for it to land in. That named
+reopen condition is why the item can close: everything actionable is done, and
+the blocked piece cannot be worked from this repository today — the same
+treatment **A18** gave its unimplementable migration hook.
 
 The re-dating of **M38** in this item is discharged: the hardcoded `"v0.3.5"` is
 gone, the back plate reads `AppVersion.display`, and `AppVersionTests` pins the
@@ -497,8 +525,8 @@ wip-local -> origin/wip-local
 `wip-local` tracks its own remote branch, not the `origin/main` this item
 suggested — which is better: a default `git push` from it can no longer rewrite
 `main` by accident, and the branch's CI history stays its own. "Nothing to push
-to by default" is gone as a contributing cause; what remains uncommitted is
-**X2**'s subject, not a plumbing problem.
+to by default" is gone as a contributing cause; what remained uncommitted was
+**X2**'s subject, not a plumbing problem — and it has since been discharged too.
 
 ### P7 · Merged branches are not auto-deleted — **Open, worse**
 
@@ -595,7 +623,8 @@ and xtool has no `test` subcommand and no simulator support. Three mechanisms co
 the gap today, in descending order of authority:
 
 1. **CI's `test` / `ios` / `ios-test` jobs** — the only thing that has ever executed
-   a test or type-checked the UI layer. Blocked by **X2** on the current work.
+   a test or type-checked the UI layer. Current on the full tree since
+   2026-08-04 (**X2** discharged; run `30932029118`).
 2. **`scripts/typecheck-ios-surface.sh`** — a local shim harness that type-checks
    `VinodexUI` against a baseline. It caught both **M30** access errors, one **M35**
    UI error, and a `FlagSwatch` scope error in **M27**. It is the only local check
@@ -1558,7 +1587,8 @@ would have silently changed visible pixels on ten shipped glyphs.
 
 1. ~~**The README tells you not to work here** while the next paragraph says
    everything is here.~~ **Fixed.** (**X1**, **P1**) — replaced as the top item by
-   **X2**: the work is here, and it is not committed.
+   **X2**, itself discharged 2026-08-04: the work is here, committed, and on
+   `main`.
 2. **The documented regeneration command is half-fixed.** ~~Resolves unpinned
    ranges~~ — CI installs with `npm ci` under a repo-pinned Node (**B3**, fixed
    2026-08-03). It still needs network and still routes through a runner the
@@ -1581,11 +1611,10 @@ would have silently changed visible pixels on ten shipped glyphs.
 
 ## Recommended order
 
-**Now, and blocking:**
-- **X2** — commit and push the dirty tree. One sitting. Nothing below survives a
-  `git stash` without it. The 2026-08-03 push discharged the original 86 paths;
-  the structural chain and its tests have re-dirtied 63 more, so the item
-  stands.
+**~~Now, and blocking~~ — discharged, 2026-08-04:**
+- ~~**X2** — commit and push the dirty tree~~ — **done**: `3915488` +
+  `be49834`, green board `30932029118`, 28 tags pushed (closing **P5**), and
+  `main` fast-forwarded to the same commit.
 
 **~~Same sitting, because they are one-line each~~ — done, 2026-08-03
 (`8bd6838`, "gitquickfixes"), priced correctly at one commit:**
