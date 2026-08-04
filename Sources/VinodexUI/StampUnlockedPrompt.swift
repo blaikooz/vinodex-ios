@@ -73,7 +73,20 @@ struct StampUnlockedPrompt: View {
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text("IT IS ON THE BACK PLATE — HOLD THE ORB TO TURN THE DEVICE OVER.")
+                // **No longer says where it went** (0.7.2, A5). This line used
+                // to read "IT IS ON THE BACK PLATE — HOLD THE ORB TO TURN THE
+                // DEVICE OVER", which spent the one celebratory moment a stamp
+                // gets on filing instructions, and named an internal part of the
+                // chassis to do it. A stamp is a reward; the card should say
+                // well done and stop.
+                //
+                // The wayfinding is not lost, it is just not here: the plate is
+                // reachable by holding the orb whether or not this card mentions
+                // it, the engraved hint on the plate itself explains the drag,
+                // and PASSPORT lists every stamp earned. Telling someone about a
+                // storage location three seconds after they earned something is
+                // the wrong moment to teach navigation anyway.
+                Text("ADDED TO YOUR COLLECTION.")
                     .font(DexFont.mono(14))
                     .foregroundStyle(lcd.disabledText)
                     .multilineTextAlignment(.center)

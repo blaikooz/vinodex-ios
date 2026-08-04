@@ -242,6 +242,50 @@ public struct DeviceBackPlate: View {
     /// distortion described at the gesture itself. Neither change damps
     /// anything: the translation is applied 1:1 and the stamp is under the
     /// finger.
+    ///
+    /// ## Why no touch ever reached that gesture (0.7.2, A2)
+    ///
+    /// The arithmetic above is right and it never ran once. 0.7.1's D3 shortened
+    /// the hold to 0.25s on the theory that the gesture was firing and failing
+    /// to *enter*; 0.7.2's A2 came back saying stamps are not draggable at all.
+    /// They were not, and neither were they tappable — the same report would
+    /// have been "nothing on this plate does anything" if anyone had tried the
+    /// stamp's own story, because both gestures hung off a hit region that was
+    /// nowhere near the stamp.
+    ///
+    /// When E2 lifted `.frame` and `.offset` up the chain it left
+    /// `.contentShape(Rectangle())` sitting *outside* the offset. `.offset` is a
+    /// render-time translation: it does not change layout, so in this
+    /// `ZStack(alignment: .topLeading)` every stamp's layout frame is the same
+    /// 88×104 box at the plate's top-left corner and only the drawing moves.
+    /// Anything attached outside the offset therefore works in the *un-*offset
+    /// space — and `.contentShape` does not merely describe a hit region, it
+    /// **replaces** the subtree's. So all six stamps shared one touch target,
+    /// stacked in the corner under the top-left screw, while every stamp on
+    /// screen was inert. Pressing a stamp sent the touch nowhere; no recogniser
+    /// was reached, which is why changing its duration could not have helped.
+    ///
+    /// Two rules now, and they are in tension only if you forget which problem
+    /// each solves:
+    ///
+    /// 1. **`.contentShape` goes immediately after `.frame`, inside the offset**,
+    ///    so the hit region is the stamp's own box and the offset carries it
+    ///    along with the pixels. This is what E2's reorder broke.
+    /// 2. **The offset stays inside the gesture** and the drag keeps measuring in
+    ///    `plateSpace`, so E2's feedback loop stays fixed. Rule 1 does not
+    ///    reintroduce it: the shape moves with the stamp, the *measurement* does
+    ///    not come from the stamp.
+    ///
+    /// The gesture is also `highPriorityGesture` now rather than `gesture`.
+    /// `.gesture(_:)` attaches with *lower* precedence than gestures already on
+    /// the view, and `.onTapGesture` is already on the view one line above, so
+    /// the hold-then-drag was the losing side of an exclusive pair — and
+    /// SwiftUI's `TapGesture` has no maximum duration, so a deliberate press and
+    /// release is a tap and would have won even after the hit region was fixed.
+    /// The sequence's own comment below already assumed it got first refusal
+    /// ("a plain tap fails the press … and falls through to `onTapGesture`");
+    /// this is the modifier that actually grants it. `MarqueeDrawer`'s hold-to-pin
+    /// had reached the same conclusion from the other direction.
     private var stampField: some View {
         let passport = Passport.compute(
             tried: BookmarkStore.shared.ids(on: .tried),
@@ -295,8 +339,13 @@ public struct DeviceBackPlate: View {
                         // in the plate's coordinate space, which is what stops
                         // the drag from chasing its own tail.
                         .frame(width: Self.stampSize.width, height: Self.stampSize.height)
-                        .offset(x: at.x, y: at.y)
+                        // **Inside the offset, deliberately** (0.7.2, A2). This
+                        // one line is the whole non-functional-stamps bug: out
+                        // here on the far side of `.offset` it pinned every
+                        // stamp's touch target to the un-offset layout frame in
+                        // the plate's top-left corner. See `stampField`'s note.
                         .contentShape(Rectangle())
+                        .offset(x: at.x, y: at.y)
                         .onTapGesture {
                             // A tap on a lifted stamp puts it back down rather
                             // than opening its story: someone who armed a drag
@@ -354,7 +403,19 @@ public struct DeviceBackPlate: View {
                         // engraved hint on the plate (see `nameplate`) so the
                         // hold is something the device tells you about rather
                         // than something you have to guess.
-                        .gesture(
+                        //
+                        // **`highPriorityGesture`, not `gesture` (0.7.2, A2).**
+                        // The paragraph above this one describes a tap falling
+                        // through to `onTapGesture` *after* failing the press,
+                        // which is the behaviour of a gesture that gets first
+                        // refusal — and `.gesture(_:)` is documented as attaching
+                        // with lower precedence than gestures already declared on
+                        // the view. `onTapGesture` is declared on the view, four
+                        // lines up. So the sequence was the loser of that
+                        // exclusive pair, and since `TapGesture` has no maximum
+                        // duration, holding still and releasing simply read as a
+                        // slow tap.
+                        .highPriorityGesture(
                             LongPressGesture(minimumDuration: 0.25)
                                 .onEnded { _ in
                                     armed = stamp.id

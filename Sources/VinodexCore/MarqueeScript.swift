@@ -35,11 +35,18 @@ public enum MarqueeStage: String, CaseIterable, Sendable, Equatable {
     /// is a worse outcome than a missing accent. All three of these are inside
     /// its range with room to spare — WELCOME! is the longest at eight
     /// characters, against the fourteen the panel fits before it scales.
+    ///
+    /// For `.cheers` this is the *first* toast only. Since 0.7.2 (A8) the idle
+    /// greeting rotates through `MarqueeCheers.all`, which the stage alone
+    /// cannot know — the rotation belongs to the script that has run, not to
+    /// the enum case. Read `MarqueeScript.text` for what the panel actually
+    /// says; this stays as the stage's canonical label so the enum keeps a
+    /// total, testable `text` and `.cheers` still means CHEERS!.
     public var text: String {
         switch self {
         case .welcome: "WELCOME!"
         case .menu: "MENU"
-        case .cheers: "CHEERS!"
+        case .cheers: MarqueeCheers.all[0]
         }
     }
 
@@ -62,6 +69,55 @@ public enum MarqueeStage: String, CaseIterable, Sendable, Equatable {
     }
 }
 
+/// The toasts the idle panel rotates through (0.7.2, A8).
+///
+/// **This is the 0.6.9 list coming back, with a job.** Through 0.6.9 the panel
+/// cycled CHEERS!, SANTE!, SALUTE!, PROST!, KANPAI! forever on a 2.6-second
+/// dwell, and 0.7.1's B1–B3 retired the loop because a device that never stops
+/// talking never says anything. A8 asks for the languages back — and the script
+/// is what makes that affordable now. A toast is no longer something the panel
+/// does *instead of* being useful; it is where it lands after ten seconds of
+/// being ignored, so a different one each time is a small reward for coming
+/// back rather than a carousel demanding attention.
+///
+/// **ASCII, uppercase, and 14 characters or fewer**, the rule every marquee
+/// string has followed since 0.6.9 and the reason SANTE and SAUDE are spelled
+/// without their accents: the bundled Press Start 2P has a partial Latin-1
+/// range, and a missing glyph on the device's most prominent panel is worse
+/// than a missing accent. `MarqueeScriptTests` gates all three.
+///
+/// One language per entry, and the wine world is why the list looks like this:
+/// seven of the nine are the languages of countries in the catalog. KANPAI is
+/// in the spec's own list and stays for the same reason it did in 0.6.9 — it is
+/// the toast most people who do not speak the language still recognise. CIN CIN
+/// takes Italy's slot in place of 0.6.9's SALUTE because A8 names it.
+public enum MarqueeCheers {
+    /// In rotation order. Index 0 is CHEERS! because the first idle of a launch
+    /// should be the one in the user's own interface language — the rotation is
+    /// a flourish on a familiar thing, not a guessing game on first sight.
+    public static let all: [String] = [
+        "CHEERS!",    // English
+        "SANTE!",     // French
+        "SALUD!",     // Spanish
+        "CIN CIN!",   // Italian
+        "PROST!",     // German
+        "SAUDE!",     // Portuguese
+        "YAMAS!",     // Greek
+        "SKAL!",      // Danish, Norwegian, Swedish
+        "KANPAI!",    // Japanese
+    ]
+
+    /// The toast for a given rotation count, wrapping forever.
+    ///
+    /// Takes any `Int` and floors it at zero rather than taking a `UInt`: the
+    /// caller is a counter that only ever goes up, and a modulo on a negative
+    /// would be a silent crash rather than a compile error if that ever stopped
+    /// being true.
+    public static func toast(at index: Int) -> String {
+        all[max(index, 0) % all.count]
+    }
+}
+
 /// The main screen's marquee state machine (0.7.1, B1–B3).
 ///
 /// A value type with `mutating` transitions rather than an observable object:
@@ -79,9 +135,31 @@ public struct MarqueeScript: Sendable, Equatable {
     /// cycling loop B1 replaced wearing a different hat.
     public private(set) var greeted: Bool
 
-    public init(stage: MarqueeStage = .welcome, greeted: Bool = false) {
+    /// How many idle periods this launch has already spent (0.7.2, A8), which
+    /// is the index into `MarqueeCheers.all`.
+    ///
+    /// Advanced on *leaving* CHEERS!, not on arriving: the panel that is on
+    /// screen must not change under the user, and "each idle fade" is one fade
+    /// per idle period. Arriving shows `toast(at: idleCount)`; the increment
+    /// happens when activity or a navigation ends that period, so the next fade
+    /// brings the next language.
+    ///
+    /// Not persisted. A rotation that survived a relaunch would mean the app
+    /// opening on YAMAS! for someone who has no idea why, and the greeting
+    /// ladder is a per-launch story throughout — `greeted` above works the same
+    /// way.
+    public private(set) var idleCount: Int
+
+    public init(stage: MarqueeStage = .welcome, greeted: Bool = false, idleCount: Int = 0) {
         self.stage = stage
         self.greeted = greeted
+        self.idleCount = idleCount
+    }
+
+    /// What the panel says right now — the stage's label, except at rest, where
+    /// it is this launch's current toast (0.7.2, A8).
+    public var text: String {
+        stage == .cheers ? MarqueeCheers.toast(at: idleCount) : stage.text
     }
 
     /// The dwell the current stage is waiting out, if any.
@@ -115,6 +193,10 @@ public struct MarqueeScript: Sendable, Equatable {
     public mutating func noteActivity() -> Bool {
         greeted = true
         guard stage != .menu else { return false }
+        // That idle period is over, so the next one gets the next language
+        // (0.7.2, A8). Guarded on the stage rather than done unconditionally:
+        // activity while WELCOME! is up has not consumed a toast.
+        if stage == .cheers { idleCount += 1 }
         stage = .menu
         return true
     }
@@ -127,6 +209,9 @@ public struct MarqueeScript: Sendable, Equatable {
     /// should find it.
     public mutating func leftMainScreen() {
         greeted = true
+        // Same rule as `noteActivity` (0.7.2, A8): navigating away ends the idle
+        // period, so coming back and idling again brings the next toast.
+        if stage == .cheers { idleCount += 1 }
         stage = .menu
     }
 }

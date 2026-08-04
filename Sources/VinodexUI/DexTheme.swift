@@ -627,6 +627,23 @@ public enum DexMetrics {
     /// now allowed to fill the panel rather than sitting in the middle of it.
     public static let marqueeTextInset: CGFloat = 10
 
+    /// The pinned-shortcut buttons in the marquee's corners (0.7.2, A7).
+    ///
+    /// 26pt is below the 44pt Apple asks for and is the largest thing that fits
+    /// without turning the panel into a toolbar — the marquee is roughly 60pt
+    /// tall and two 44pt circles would leave the title a slot rather than a
+    /// panel. It is a deliberate trade and not a silent one: these are
+    /// *shortcuts*, every one of them is reachable at full size from the drawer
+    /// one tap away and from the settings grid, and the panel behind them is
+    /// itself a 225pt-wide target that opens the same places. Nothing is only
+    /// reachable at 26pt.
+    public static let marqueePinButton: CGFloat = 26
+    /// Inset from the panel's edge. Clears `marqueeInnerCorner`'s rounding so a
+    /// circular button sits *on* the display rather than in its corner radius.
+    public static let marqueePinInset: CGFloat = 4
+    /// The glyph inside a pin button.
+    public static var marqueePinGlyph: CGFloat { marqueePinButton * 0.5 }
+
     /// The ordinary marquee cross-fade — a route title replacing another.
     ///
     /// Was the greeting cycle's fade (0.6.9, D3), and outlived the cycle:
@@ -800,7 +817,23 @@ public enum DexMetrics {
     /// gained the same ~16% it did — but two 8pt slivers over a 149pt panel
     /// read as a hairline, not as lamps. Height is the part that had to be
     /// asked for.
-    public static let bandPillHeight: CGFloat = 14
+    ///
+    /// **20 since 0.7.2 (A9), because they are controls now.** The pills are the
+    /// TOOLS and CUSTOMIZE buttons — see `indicatorPills` — and 14pt was sized
+    /// for a lamp nobody was meant to touch. 20 is the smallest height that
+    /// takes a legible glyph at `bandPillGlyph` with a rim either side of it,
+    /// and it is still short enough that the pair reads as lamps on the
+    /// marquee's housing rather than as a second button row.
+    ///
+    /// The 6pt comes out of `marqueeHeight`, which is the band's remainder — a
+    /// deliberate trade, and the only one available: the band's height is
+    /// `bandBundleHeight`, set by the caps either side, and growing it would
+    /// take the difference out of the LCD instead.
+    public static let bandPillHeight: CGFloat = 20
+    /// The glyph inside a pill (0.7.2, A9). A fraction of the pill so the two
+    /// move together, and well under half of it so the lamp still reads as a
+    /// lamp with a mark on it rather than as a bordered icon.
+    public static var bandPillGlyph: CGFloat { bandPillHeight * 0.52 }
     public static let bandPillSpacing: CGFloat = 8
     /// Gap from the pills down to the panel they belong to. Small — they have
     /// to read as lamps *on* the marquee's housing, not as their own row.

@@ -47,6 +47,64 @@ been happening", which is the question a planning doc is for.
 | 0.7.0 | `vinodex-0.7.0` | Sectioned pickers on both axes, WALDGLAS + HALLOWEEN skins, three chip facets, per-skin back plate, stamp drag rebuilt, tools shelf re-cut, marquee glyph table audited. | 405, untouched | 250 tests, clean build |
 | 0.7.1 | `vinodex-0.7.1.md` | UI/UX fixes, the new marquee, polish — see below. | 405; South America's marker colour changed, no entry moved | 282 tests, clean build, deployed |
 | 0.7.2 | `vinodex-label-reader` | **LABEL SCAN.** Camera → Apple Vision OCR on-device → match against the catalog. Matching/scoring/inference in Core (Linux-gated); Vision, camera and pickers in UI behind `LabelRecognitionProvider`. `xtool.yml` gained `infoPath` for the usage strings. | 405, untouched | 320 tests, clean build, **not deployed** |
+| 0.7.2 | `vinodex-0.7.2` | **Consolidation + nine fixes.** All batch branches merged onto `testing`; stamps made draggable at last (A2); the marquee becomes a control surface — lamps are TOOLS/CUSTOMIZE, pins in the corners, PINS on open, MENU glyph, rotating toasts; Africa and Oceania get their own marker colours. | 405, untouched; two continent colours changed | 326 tests, clean build, **not deployed** |
+
+**0.7.2, the consolidation batch** (`vinodex-0.7.2-consolidation.md`). Shares
+0.7.2 with the label reader rather than taking 0.7.3, because nothing had
+shipped under the number — LABEL SCAN was still uncommitted when this spec
+arrived, so the two land as one release instead of a tag superseded the same
+day.
+
+- **Section 0 was git.** `testing` now contains every batch branch. Most of the
+  0.6.x chain already was an ancestor; the only genuinely dangling branch was
+  `v0.6.4-batch` (also local `main`, tagged `v0.6.4.0`), whose three files —
+  `DeviceChassis`, `DexTheme`, `RetroGlobeScreen` — are precisely the three that
+  0.6.5 through 0.7.1 rewrote. All three conflicts resolved to `testing`, and
+  the merge leaves its tree byte-identical: 0.6.4's globe fix is already in the
+  tree under a later name (`colorized` for `tinted`, carrying the same finding
+  about `SCNMaterial.multiply`), and its island lamps predate the bezel the
+  lamps now live on.
+- **A2, and why two batches missed it.** The stamp drag never fired because no
+  touch reached it. 0.7.0's E2 moved `.frame`/`.offset` up the chain and left
+  `.contentShape(Rectangle())` outside the offset; `.offset` does not change
+  layout, so the contentShape — which *replaces* a subtree's hit region rather
+  than describing it — pinned all six stamps to one box in the plate's top-left
+  corner. Taps were dead as well, which nobody noticed because the drag was
+  what was being tested. 0.7.1's D3 then shortened the hold threshold, which
+  could not have helped. **A threshold change that does nothing is evidence the
+  event never arrived.** The gesture is also `highPriorityGesture` now: it sat
+  under an `onTapGesture`, and `TapGesture` has no maximum duration, so a
+  deliberate press-and-release was a tap.
+- **The marquee stopped being a nameplate.** A9 makes the two status lamps the
+  TOOLS and CUSTOMIZE buttons (which is why `bandPillHeight` is 20 and why A4's
+  bead had to come off — the glyph goes where the highlight was), A7 puts
+  pinned sections in its top corners, A6 makes the tap a toggle that re-titles
+  the panel PINS, A3 gives MENU a glyph beside the word, and A8 brings the
+  0.6.9 language toasts back — now that the script has somewhere for them to
+  belong, one per idle period rather than a carousel.
+- **A1** gives Africa ochre and Oceania eucalypt green. They were the pink pair
+  0.7.1's A3 left behind: both sat at hue 0° with identical G and B, separated
+  only by lightness. Closest pair went 40 → 151.
+
+**Parked from 0.7.2 (consolidation):**
+
+- **Not deployed, and could not be.** `xtool dev run` fails at provisioning with
+  a 409 from the Apple Developer API — "no current iOS devices on this team
+  matching the provided device IDs". The phone's UDID is not registered on the
+  signing team; that is an account problem, not a build one. **A2 and the whole
+  marquee rework are therefore unverified on glass.** A2's fix is a hit-testing
+  correction that no Linux gate can exercise, so it is the first thing to check
+  on the next successful install.
+- North America `#722F37` and Europe `#9B2335` are now the closest marker pair
+  at 42.8 — tighter than the pair A1 just fixed was. Out of scope here because
+  the spec named Africa and Oceania, but it is the same defect one notch
+  quieter and the obvious A1 follow-up.
+- The A4 bead removal is scoped to the two marquee pills. The island trio and
+  the vent lamps keep their specular dots, on the reading that A4 named the
+  marquee lights. If the dots were meant to go everywhere, it is one default
+  on `RecessedLamp.bead`.
+- The corner pin buttons are 26pt, under the 44pt target guidance. Deliberate —
+  see `DexMetrics.marqueePinButton` — but worth an eye on device.
 
 **0.7.2, the label reader** (`vinodex-label-reader_1.md`, "Feature Build Spec
 v7.1"). The first batch since 0.7.0 to add a screen rather than rework one, and

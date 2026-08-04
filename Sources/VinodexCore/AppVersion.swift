@@ -181,6 +181,39 @@ public enum AppVersion {
     /// stale claim is corrected in both places.
     ///
     /// No catalog change — 405 stands and `waveMilestones` does not move.
+    ///
+    /// 0.7.2 also carries the **consolidation batch** (`vinodex-0.7.2`), which
+    /// shares this number rather than taking 0.7.3 because nothing had shipped
+    /// under it: LABEL SCAN was still uncommitted when the fixes arrived, so the
+    /// two land as one release rather than as a version tagged and superseded
+    /// the same day.
+    ///
+    /// Its section 0 was git, not code. Every outstanding batch branch is now
+    /// contained in `testing` — 0.6.5 through 0.6.7.2 already were, and the last
+    /// genuinely dangling one was 0.6.4, whose three files had been rewritten by
+    /// five later batches. That merge resolves wholly to `testing` and changes
+    /// no content; see its commit message for why each conflict went that way.
+    ///
+    /// **A2 is the one that matters.** Stamps had been undraggable since 0.7.0
+    /// and two batches had tried to fix it by tuning the hold threshold. No
+    /// touch was ever reaching the recogniser: E2's reorder left
+    /// `.contentShape(Rectangle())` *outside* `.offset`, and since `.offset`
+    /// does not change layout, that pinned all six stamps' hit regions to one
+    /// 88×104 box in the plate's top-left corner. Taps were dead too — nobody
+    /// reported it because the drag was what people were trying. The lesson is
+    /// in `DeviceBackPlate.stampField`: a threshold that changes nothing is
+    /// evidence the event never arrived, not evidence it needs to be lower.
+    ///
+    /// The rest is the marquee, which is now the app's control surface rather
+    /// than its nameplate: its two status lamps are the TOOLS and CUSTOMIZE
+    /// buttons (A9, and 20pt tall to earn it), pinned sections sit in its top
+    /// corners (A7), tapping it toggles the drawer and re-titles the panel PINS
+    /// (A6), MENU gained a glyph beside the word (A3), the idle toast rotates
+    /// through nine languages (A8) — the 0.6.9 list back, now that the script
+    /// gives it somewhere to belong — and the specular bead came off the two
+    /// pills (A4), which is where A9's glyph goes. Africa and Oceania finally
+    /// have their own marker colours (A1); they were the pink pair 0.7.1's A3
+    /// left behind.
     static let fallback = "0.7.2"
 
     /// Versions no build deliberately chose.

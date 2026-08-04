@@ -50,6 +50,36 @@ public enum DexGlyph {
     /// narrowing this list" banner, which are statements about a list rather
     /// than a way in.
     public static let search = "magnifyingglass"
+
+    /// The main menu itself (0.7.2, A3).
+    ///
+    /// The marquee reads MENU on the main screen and had no glyph beside it,
+    /// because 0.7.0's K1 removed the hardcoded wine glass on the grounds that
+    /// the main screen is the one page with no route and therefore no page to be
+    /// accurate to. That reasoning holds for a glyph taken off the *route table*
+    /// and not for a glyph naming the screen: MENU is as much a place as
+    /// SETTINGS is, and it was the only panel in the app showing a bare word.
+    ///
+    /// Four squares, because that is literally what is on the screen behind it —
+    /// GRAPES, REGIONS, STYLES, FLAVORS, the four category tiles. It collides
+    /// with no route (`ChromeTests` gates that table for uniqueness, and this
+    /// symbol appears nowhere in it) and it is SF Symbols 1 / iOS 13, well under
+    /// the iOS 17 floor.
+    public static let menu = "square.grid.2x2.fill"
+
+    /// The marquee drawer, while it is open (0.7.2, A6).
+    ///
+    /// A6 asks the panel to say PINS with a glyph for as long as the drawer is
+    /// showing, so the marquee stops naming the screen behind it and starts
+    /// naming the thing in front of it. A pin is the drawer's own vocabulary —
+    /// `MarqueeDrawer` has drawn `pin.fill` on a pinned chip since 0.7.1 and the
+    /// empty slots have said EMPTY under a `pin` outline — so this is the one
+    /// symbol the surface had already taught.
+    ///
+    /// Not on the route table either: the drawer is an overlay on whatever page
+    /// you were on rather than a destination, which is exactly why it needs a
+    /// glyph constant instead of a `DexRoute` case.
+    public static let pins = "pin.fill"
 }
 
 /// One group of settings, each with its own panel.

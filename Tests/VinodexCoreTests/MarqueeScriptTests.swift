@@ -103,6 +103,95 @@ struct MarqueeScriptTests {
         #expect(left.stage == .menu)
     }
 
+    // MARK: A8 — the idle toast rotates through languages (0.7.2)
+
+    @Test("A8: the first idle of a launch is still CHEERS!")
+    func firstIdleIsCheers() {
+        var script = MarqueeScript()
+        script.timedOut()   // welcome -> menu
+        script.timedOut()   // menu -> cheers
+        #expect(script.stage == .cheers)
+        #expect(script.text == "CHEERS!")
+        #expect(script.idleCount == 0)
+    }
+
+    @Test("A8: each idle period brings the next language")
+    func idlesRotate() {
+        var script = MarqueeScript()
+        var seen: [String] = []
+
+        // Five idle periods, each ended by a tap, which is the shape of the
+        // interaction A8 describes: drift into a toast, come back, drift again.
+        for _ in 0..<5 {
+            script.timedOut()          // -> menu (or a no-op once already there)
+            while script.stage != .cheers { script.timedOut() }
+            seen.append(script.text)
+            script.noteActivity()      // ends the idle period
+        }
+
+        #expect(seen == ["CHEERS!", "SANTE!", "SALUD!", "CIN CIN!", "PROST!"])
+        // Every one different is the whole point — a rotation that repeated
+        // itself would be indistinguishable from the bug it replaces.
+        #expect(Set(seen).count == seen.count)
+    }
+
+    @Test("A8: navigating away also ends the idle period")
+    func leavingRotates() {
+        var script = MarqueeScript(stage: .cheers, greeted: true)
+        script.leftMainScreen()
+        #expect(script.idleCount == 1)
+        #expect(script.stage == .menu)
+
+        // ...but only from CHEERS!. Leaving the main screen while the panel is
+        // naming the menu has not consumed a toast, and counting it would burn
+        // through the languages during ordinary navigation.
+        var browsing = MarqueeScript(stage: .menu, greeted: true)
+        browsing.leftMainScreen()
+        #expect(browsing.idleCount == 0)
+    }
+
+    @Test("A8: activity during the greeting does not consume a toast")
+    func welcomeDoesNotRotate() {
+        var script = MarqueeScript()
+        #expect(script.stage == .welcome)
+        script.noteActivity()
+        #expect(script.idleCount == 0)
+    }
+
+    @Test("A8: the rotation wraps forever")
+    func rotationWraps() {
+        let all = MarqueeCheers.all
+        #expect(MarqueeCheers.toast(at: 0) == all[0])
+        #expect(MarqueeCheers.toast(at: all.count) == all[0])
+        #expect(MarqueeCheers.toast(at: all.count * 7 + 2) == all[2])
+        // Floored rather than trapped: `toast` takes an Int because its caller
+        // is a counter, and a negative must not be a crash.
+        #expect(MarqueeCheers.toast(at: -3) == all[0])
+    }
+
+    @Test("A8: every toast is panel-safe")
+    func toastsArePanelSafe() {
+        // The same three rules `stagesAreLabelled` applies to the stage labels,
+        // and the reason SANTE and SAUDE are spelled without their accents:
+        // Press Start 2P has a partial Latin-1 range, so an accented character
+        // would be a blank box on the device's most prominent panel.
+        for toast in MarqueeCheers.all {
+            #expect(!toast.isEmpty)
+            let isASCII = toast.allSatisfy(\.isASCII)
+            #expect(isASCII, "\(toast)")
+            #expect(toast == toast.uppercased(), "\(toast)")
+            #expect(toast.count <= 14, "\(toast)")
+        }
+        // No duplicates, or an idle period would silently repeat its neighbour.
+        #expect(Set(MarqueeCheers.all).count == MarqueeCheers.all.count)
+        // The stage's own label and the first toast are the same string by
+        // construction. Pinned because they are read from two different places
+        // — `MarqueeStage.text` and `MarqueeScript.text` — and a panel that
+        // said one thing on arrival and another a frame later would be a
+        // flicker nobody could explain.
+        #expect(MarqueeStage.cheers.text == MarqueeCheers.all[0])
+    }
+
     @Test("every stage has text, and it is panel-safe")
     func stagesAreLabelled() {
         for stage in MarqueeStage.allCases {

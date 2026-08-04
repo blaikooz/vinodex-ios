@@ -284,6 +284,46 @@ own tests. Pure data queries belong in `VinodexCore/WineDatabase.swift`.
 `VinodexUI` and `VinodexApp` have **zero** test coverage; UI work is verified
 visually only.
 
+### `.contentShape` outside `.offset` moves the hit region back
+
+Cost three batches (0.7.0 → 0.7.2). Stamps on the back plate were completely
+undraggable *and* untappable, and two attempts to fix it tuned the long-press
+duration instead.
+
+```swift
+.frame(width: w, height: h)
+.offset(x: at.x, y: at.y)
+.contentShape(Rectangle())   // WRONG — hit region stays at the layout frame
+.gesture(…)                  // never receives a touch
+```
+
+**`.offset` is a render-time translation; it does not change layout.** In a
+`ZStack(alignment: .topLeading)` every child's layout frame is the same box in
+the corner, and only the drawing moves. `.contentShape` applied *outside* the
+offset therefore defines its rectangle in the un-offset space — and it does not
+merely describe a hit region, it **replaces** the subtree's. Six stamps ended up
+sharing one touch target stacked in the plate's top-left corner while every
+stamp on screen was inert.
+
+Put `.contentShape` immediately after `.frame`, inside the offset, so the offset
+carries the hit region along with the pixels.
+
+**The diagnostic lesson is the more general one: a threshold change that alters
+nothing is evidence the event never arrived.** 0.7.1 shortened the hold from
+0.35s to 0.25s and reported no improvement, which should have been read as "no
+touch is reaching this recogniser" rather than "0.25 is still too long". A dead
+gesture and a mistuned one look identical from the outside; the cheap
+discriminator is to check whether a *different* gesture on the same view still
+works. Taps on those stamps had been dead the whole time and nobody had tried.
+
+Second, latent trap in the same chain: **`.gesture(_:)` attaches with *lower*
+precedence than gestures already declared on the view.** A `.gesture(longPress
+→ drag)` sitting below an `.onTapGesture` is the losing side of an exclusive
+pair, and SwiftUI's `TapGesture` has no maximum duration, so a deliberate
+press-and-hold-and-release reads as a tap. Use `.highPriorityGesture` when a
+hold must get first refusal, or `.simultaneousGesture` when both should survive
+(`MarqueeDrawer`'s hold-to-pin).
+
 ### A renamed repo poisons the Actions `.build` cache
 
 Symptom, on every file in the module, for a branch that tests green locally:

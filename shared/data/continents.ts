@@ -62,7 +62,22 @@ const CONTINENTS_BASE: ContinentEntry[] = [
     name: "Africa",
     description: "Africa's wine heritage spans from ancient Egyptian traditions to modern innovations. South Africa's Cape region produces world-class wines that blend Old World elegance with New World vibrancy, while other regions are rapidly developing their vinicultural potential.",
     category: "CONTINENTS",
-    color: "#C48B8B",
+    // Ochre, not the #C48B8B it wore until iOS 0.7.2 (A1) — the same fix South
+    // America got in 0.7.1 (A3), applied to the pair that was left.
+    //
+    // #C48B8B and Oceania's #D4A5A5 both had G == B exactly, so both sat at hue
+    // 0° with near-identical saturation; the only thing telling them apart was
+    // lightness, and at marker size over a lit globe at 0.2–0.45 opacity they
+    // were two shades of one dusty pink. Sixteen points of red and twenty-six
+    // of green and blue is not a colour difference anyone can name.
+    //
+    // Ochre rather than another red because the reds are full: North America,
+    // Europe and the two old pinks were four of the six markers inside a 351°–0°
+    // band. This sits at ~25°, which is the widest gap available without
+    // reaching for a blue — and a blue marker on a globe reads as ocean, which
+    // is the one thing a continent must not look like. Sun-baked earth is also
+    // the right register for the continent whose wine story starts in Egypt.
+    color: "#B95E19",
     icon: "globe",
     tags: ["Continent"],
     details: {
@@ -74,7 +89,17 @@ const CONTINENTS_BASE: ContinentEntry[] = [
     name: "Oceania",
     description: "The southernmost wine regions of the world, where maritime climates and diverse terroirs create distinctive wines. Australia's bold Shiraz and New Zealand's aromatic Sauvignon Blanc have redefined international wine styles.",
     category: "CONTINENTS",
-    color: "#D4A5A5",
+    // Eucalypt green, not the #D4A5A5 it wore until iOS 0.7.2 (A1) — see the
+    // note on Africa above for why the pink pair had to be broken up.
+    //
+    // Green is the only wide hue left once Africa takes the ochre, and it is
+    // the one this continent can actually claim: eucalyptus — mint, menthol,
+    // the smell of the bush — is the textbook descriptor for Coonawarra
+    // Cabernet and Australian Shiraz, and the app already puts tasting notes on
+    // screen. It is also the far side of the wheel from every other marker: its
+    // nearest neighbour is now South America's violet, and no two continents
+    // sit closer than North America and Europe already did.
+    color: "#3E8E63",
     icon: "globe",
     tags: ["Continent"],
     details: {
