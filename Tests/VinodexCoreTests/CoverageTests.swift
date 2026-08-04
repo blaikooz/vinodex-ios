@@ -28,8 +28,12 @@ struct CoverageTests {
         // 0.6 catalog boost (A1): +21 grapes, +38 regions, +3 styles — every
         // cross-reference now resolves; see scripts/find-missing-refs.mjs.
         // 0.6.4 batch 2: +18 grapes, +12 regions (the FR/IT/ES expansion).
+        // 0.7.3c: +2 regions, both Brazilian (Serra Gaúcha, Campanha) — added
+        // because the New World expansion pack names Brazil and the catalog had
+        // no such country. No new grapes: all six notable grapes across the two
+        // regions were already here, which is the house rule for a new country.
         #expect(db.entries(in: .grapes).count == 146)
-        #expect(db.entries(in: .regions).count == 116)
+        #expect(db.entries(in: .regions).count == 118)
         // 31 since 0.6.x: Medium-Full Red removed, its grapes now Full-Body.
         #expect(db.entries(in: .styles).count == 31)
         #expect(db.entries(in: .continents).count == 6)
@@ -63,10 +67,14 @@ struct CoverageTests {
         // 375 since 0.6.2: the rare-grape push (+27 grapes, +6 regions);
         // 405 since 0.6.4 batch 2: the FR/IT/ES expansion (+18 grapes,
         // +12 regions), flavours again unchanged at 106 by note reuse.
-        #expect(stats.total == 405)
-        // Still 25: every new region originates in France, Italy or Spain, and
-        // the coming-soon gates deliberately have no regions to count.
-        #expect(stats.countries == 25)
+        // 407 since 0.7.3c: Brazil, +2 regions. The first data change since
+        // 0.6.4 batch 2 — 405 stood for eight releases, and is now the last
+        // fixed entry in `waveMilestones`.
+        #expect(stats.total == 407)
+        // 26 since 0.7.3c: Brazil is the first *new* origin since Mexico. The
+        // count is distinct region origins, so the coming-soon gates still do
+        // not count and adding a country without a region would not move it.
+        #expect(stats.countries == 26)
         #expect(stats.categoryLines.count == 6)
     }
 

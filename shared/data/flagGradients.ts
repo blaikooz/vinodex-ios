@@ -18,6 +18,7 @@ export const FLAG_GRADIENTS: FlagGradient[] = [
   { key: 'usa', label: 'USA', gradient: 'linear-gradient(90deg,#1d4ed8 0 40%,#e11d48 40% 100%)' },
   { key: 'canada', label: 'Canada', gradient: 'linear-gradient(90deg,#c53030 25%,#ffffff 25% 75%,#c53030 75%)' },
   { key: 'argentina', label: 'Argentina', gradient: 'linear-gradient(90deg,#38bdf8 33%,#e5e7eb 33% 66%,#38bdf8 66%)' },
+  { key: 'brazil', label: 'Brazil', gradient: 'linear-gradient(90deg,#009739 0 35%,#fedd00 35% 65%,#009739 65%)' },
   { key: 'chile', label: 'Chile', gradient: 'linear-gradient(90deg,#1d4ed8 33%,#ffffff 33% 66%,#c53030 66%)' },
   {
     key: 'south africa',

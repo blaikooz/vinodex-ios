@@ -230,12 +230,26 @@ public struct SettingsSectionPanel: View {
     /// above, so the chassis Back button returns here rather than dropping out
     /// of settings.
     let onDeviceWorkshop: () -> Void
+    /// CUSTOMIZE's door to the cartridge shelf (0.7.3c, A1/A2), pushing
+    /// `.settingsSection(.packs)`. A closure like the workshop's rather than a
+    /// grid tile: the settings grid is a fixed three-by-two that fills the LCD
+    /// by construction, and a seventh tile would have been an orphan on a fourth
+    /// row. Seven of the twelve cartridges *are* the two pickers underneath this,
+    /// so CUSTOMIZE is where somebody looking for them already is.
+    let onExpansionPacks: () -> Void
 
     @State private var access = AccessStore.shared
     /// Read only to name the saved build the device is currently wearing — see
     /// `deviceWorkshop`. `@State` on the shared store rather than a fresh one, so
     /// saving a build in the workshop is reflected here on the way back out.
     @State private var customDevices = CustomDeviceStore.shared
+    /// The tried shelf, for the cartridge shelf's collection scores (0.7.3c).
+    /// Observed rather than read once, so marking a tasting elsewhere and coming
+    /// back finds the bars moved.
+    @State private var bookmarks = BookmarkStore.shared
+    /// Which cartridge has its detail strip open, by `ExpansionPack.id`. `nil`
+    /// for none, which is also the state a second tap on the open one returns to.
+    @State private var selectedPack: String?
     /// Set when a gated cosmetic is tapped; drives the same upgrade prompt a
     /// locked entry raises, so a paywalled *setting* behaves like a paywalled
     /// page rather than being a dead control.
@@ -269,7 +283,8 @@ public struct SettingsSectionPanel: View {
         onFirmwareHistory: @escaping () -> Void = {},
         onCheatConsole: @escaping () -> Void = {},
         onDemoMode: @escaping () -> Void = {},
-        onDeviceWorkshop: @escaping () -> Void = {}
+        onDeviceWorkshop: @escaping () -> Void = {},
+        onExpansionPacks: @escaping () -> Void = {}
     ) {
         self.section = section
         self.onDev = onDev
@@ -277,6 +292,7 @@ public struct SettingsSectionPanel: View {
         self.onCheatConsole = onCheatConsole
         self.onDemoMode = onDemoMode
         self.onDeviceWorkshop = onDeviceWorkshop
+        self.onExpansionPacks = onExpansionPacks
     }
 
     private var screenKey: String { ScreenStateStore.settings(section.rawValue) }
@@ -343,6 +359,7 @@ public struct SettingsSectionPanel: View {
                 VStack(alignment: .leading, spacing: 18) {
                     switch section {
                     case .customization: customization
+                    case .packs: packShelf
                     case .settings: systemSettings
                     // Handled by the fixed branch above; unreachable here,
                     // kept so the switch stays exhaustive.
@@ -397,7 +414,14 @@ public struct SettingsSectionPanel: View {
             }
         }
 
-        settingsSection("BUNDLES") {
+        // BUNDLES -> EXPANSION PACKS (0.7.3c, A1). The one user-facing use of
+        // the old word; storage is `Entitlement.id` and the
+        // `"grantedEntitlements"` key, neither of which contains it, so this is
+        // a display rename with nothing behind it. The heading doubles as this
+        // section's scroll anchor (see `settingsSection`), and anchors live in
+        // `ScreenStateStore`, which is explicitly session state — the worst this
+        // costs is one lost scroll position on the build that ships it.
+        settingsSection("EXPANSION PACKS") {
             VStack(spacing: 10) {
                 ForEach(testableEntitlements, id: \.id) { entitlement in
                     settingRow(
@@ -449,10 +473,20 @@ public struct SettingsSectionPanel: View {
     /// feature is the state most likely to be wrong and least likely to be seen
     /// by the person who built it.
     ///
-    /// `.expansion` and `.easterEgg` still stay out: no pack ships yet, and eggs
-    /// are found rather than bought (see the note on `bundleSymbol`).
+    /// **The three atlas packs joined in 0.7.3c (E1)** and the nine cosmetic ones
+    /// deliberately did not. Only the atlas packs cover entries, so only they
+    /// change the browsable count above — which is what this harness is for. A
+    /// device cartridge toggled here would move nothing on this screen, because
+    /// `ExpansionPack.impliedBy` means the skins bundle two rows up already owns
+    /// it; the PACKS shelf is where those are seen, and it reads the same store.
+    ///
+    /// `.easterEgg` still stays out: eggs are found rather than bought (see the
+    /// note on `bundleSymbol`).
     private var testableEntitlements: [Entitlement] {
-        [.pro, .flavors] + topCountries.map { Entitlement.country($0) } + [.skins, .lightMode, .workshop]
+        [.pro, .flavors]
+            + topCountries.map { Entitlement.country($0) }
+            + [.skins, .lightMode, .workshop]
+            + ExpansionPacks.atlas.map(\.entitlement)
     }
 
     private var topCountries: [String] {
@@ -539,8 +573,185 @@ public struct SettingsSectionPanel: View {
     @ViewBuilder
     private var customization: some View {
         deviceWorkshop
+        packsDoor
         screenMode
         skinTesting
+    }
+
+    /// The door to the cartridge shelf (0.7.3c, A1/A2).
+    ///
+    /// Second, beside the workshop, because the two are the only things on this
+    /// panel that are *doors* rather than pickers — and putting it under
+    /// twenty-one skin tiles and nine mode cards would bury it exactly the way
+    /// the workshop's own note says the workshop must not be buried.
+    ///
+    /// **No gate on it.** Nine of the twelve cartridges describe cosmetics the
+    /// user may or may not own, and the other three lock nothing at all — so the
+    /// shelf is a readout, not a purchase, and a padlock on the door would
+    /// promise a paywall that is not behind it. Individual cartridges carry their
+    /// own lock state; see `cartridgeTile`.
+    private var packsDoor: some View {
+        settingsSection("EXPANSION PACKS") {
+            Button {
+                Haptics.screenTap()
+                onExpansionPacks()
+            } label: {
+                settingRow(
+                    // Matches the marquee glyph the section wears (K2, rule 1)
+                    // — see `SettingsSection.packs`.
+                    symbol: SettingsSection.packs.symbol,
+                    tint: lcd.accent,
+                    title: "OPEN",
+                    detail: "Twelve cartridges: the catalog by region, the shells, and the screens. See how much of each you have drunk."
+                ) {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(lcd.subtext)
+                }
+            }
+            .buttonStyle(DexPressStyle(scale: 0.98))
+        }
+    }
+
+    // MARK: The cartridge shelf (0.7.3c, A2/B/C/D/E1)
+
+    /// Three shelves of cartridges, one per `ExpansionPack.Kind`.
+    ///
+    /// **Built out of the skin picker's own parts**, which is what A2 asks for:
+    /// `settingsSection` around each shelf, `pickerColumns` for the grid,
+    /// `DexPickerTile` for the tile, and the picker's interaction model
+    /// unchanged — tap to select, the selected tile takes `lcd.accent`, a gated
+    /// tile dims and raises the ordinary `UpgradePrompt` through `lockedBundle`.
+    /// The one thing a cartridge does that a skin swatch does not is *expand*: a
+    /// skin tile's whole meaning is its picture, and a pack has a blurb, a size
+    /// and a collection score that no 46pt tile can carry. Hence the detail strip
+    /// under the grid, which is the only new shape on this panel.
+    ///
+    /// Selection is plain `@State` rather than `ScreenStateStore`, unlike the
+    /// scroll anchor beside it. Which cartridge you last poked at is not a place
+    /// in the app the way an anchor is, and restoring it on the way back in would
+    /// re-open a strip the user closed by leaving.
+    @ViewBuilder
+    private var packShelf: some View {
+        ForEach(ExpansionPack.Kind.allCases) { kind in
+            settingsSection("\(kind.rawValue) PACKS") {
+                VStack(alignment: .leading, spacing: 12) {
+                    LazyVGrid(columns: pickerColumns, spacing: 8) {
+                        ForEach(ExpansionPacks.packs(of: kind), id: \.id) { pack in
+                            cartridgeTile(pack)
+                        }
+                    }
+                    if let chosen = ExpansionPacks.packs(of: kind).first(where: {
+                        $0.id == selectedPack
+                    }) {
+                        packDetail(chosen)
+                    }
+                }
+            }
+        }
+    }
+
+    /// Everything on the tried shelf, as ids.
+    ///
+    /// Computed per pass rather than cached: `BookmarkStore` is `@Observable` and
+    /// held in `@State` above, so a tasting marked while this panel is open
+    /// invalidates the body and the progress bars move — which is the whole point
+    /// of a collection score being on screen.
+    private var triedIDs: Set<String> {
+        Set(bookmarks.ids(on: .tried))
+    }
+
+    private func cartridgeTile(_ pack: ExpansionPack) -> some View {
+        // The same predicate the shopfront and the cheat console ask — see
+        // `AccessStore.owns`. On a default install this is `true` for every
+        // cartridge, and the tile's interesting state is its completion tick.
+        let owned = access.owns(pack)
+        let chosen = selectedPack == pack.id
+        let progress = pack.progress(tried: triedIDs, in: db)
+
+        return DexPickerTile(
+            label: pack.title,
+            isChosen: chosen,
+            // A padlock replaces the pack's own glyph rather than joining it,
+            // exactly as it does on a workshop part chip.
+            symbol: owned ? nil : "lock.fill",
+            lcd: lcd,
+            swatchSize: 46,
+            labelSize: 9,
+            labelMinHeight: 24,
+            outline: CartridgeShape(),
+            action: {
+                if owned {
+                    // A second tap closes the strip: the tile is a disclosure,
+                    // not a setting, so there is no state to be stuck in.
+                    selectedPack = chosen ? nil : pack.id
+                } else {
+                    lockedBundle = pack.entitlement
+                }
+            },
+            swatch: {
+                PackCartridge(
+                    pack: pack,
+                    ink: chosen ? lcd.onAccent : lcd.subtext,
+                    ground: chosen ? lcd.accent : lcd.surface,
+                    isComplete: progress?.isComplete ?? false
+                )
+            }
+        )
+        .opacity(owned ? 1 : 0.45)
+    }
+
+    /// What the selected cartridge holds.
+    ///
+    /// Two shapes, because the two kinds of pack answer different questions. An
+    /// atlas pack has a *collection*: how many of its grapes and styles you have
+    /// drunk, out of how many there are, over a bar. A device or display pack has
+    /// members you either own or do not, and `ExpansionPack.progress` returns
+    /// `nil` for it rather than inventing a denominator — see the note on
+    /// `ExpansionPack.Contents.cosmetics` for why the count is resolved here, in
+    /// the module that can actually see `ChassisSkinSection`.
+    @ViewBuilder
+    private func packDetail(_ pack: ExpansionPack) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(pack.blurb)
+                .font(DexFont.mono(17))
+                .foregroundStyle(lcd.subtext)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let progress = pack.progress(tried: triedIDs, in: db) {
+                HStack {
+                    Text("\(progress.collected) / \(progress.total) TRIED")
+                        .font(DexFont.retro(11))
+                        .tracking(1)
+                        .foregroundStyle(progress.isComplete ? Dex.green : lcd.text)
+                    Spacer(minLength: 8)
+                    Text("\(pack.entries(in: db).count) ENTRIES")
+                        .font(DexFont.retro(11))
+                        .tracking(1)
+                        .foregroundStyle(lcd.subtext)
+                }
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(lcd.surfaceEdge)
+                        Capsule()
+                            .fill(progress.isComplete ? Dex.green : lcd.accent)
+                            .frame(width: geo.size.width * progress.fraction)
+                    }
+                }
+                .frame(height: 8)
+            } else {
+                Text("\(pack.cosmeticMemberCount) IN THIS PACK")
+                    .font(DexFont.retro(11))
+                    .tracking(1)
+                    .foregroundStyle(lcd.text)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
+        .overlay(
+            RoundedRectangle(cornerRadius: 6).strokeBorder(lcd.surfaceEdge, lineWidth: 1)
+        )
     }
 
     /// The door to the Device Workshop (0.7.3, A1/C1).

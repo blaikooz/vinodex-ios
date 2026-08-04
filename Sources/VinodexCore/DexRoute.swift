@@ -100,6 +100,30 @@ public enum DexGlyph {
 /// that had to shrink to fit its square.
 public enum SettingsSection: String, CaseIterable, Hashable, Sendable, Identifiable {
     case customization = "CUSTOMIZE"
+    /// The cartridge shelf (0.7.3, 0.7.3c — A1/A2). Atlas, device and display
+    /// packs, what each holds, and how much of it you have drunk.
+    ///
+    /// **A settings section rather than a `DexRoute` case of its own**, which is
+    /// the cheaper half of a real argument: the shelf is a panel of grouped
+    /// tiles under headings, which is what CUSTOMIZE already is, and going in
+    /// through `settingsSection` means the marquee title, the marquee glyph, the
+    /// Back behaviour, the pin bar and `ChromeTests`' coverage all arrive without
+    /// a line of new plumbing. A2 asks the packs to reuse the skin picker's
+    /// presentation; sitting on the same kind of surface as the skin picker is
+    /// the first half of that.
+    ///
+    /// **Labelled PACKS, not EXPANSION PACKS.** Same reason CUSTOMIZATION became
+    /// CUSTOMIZE — thirteen characters was already the longest label the grid's
+    /// squares fit, and this would be fifteen. The panel's own heading inside
+    /// carries the full name, exactly as FIRMWARE and WORKSHOP do on the marquee.
+    ///
+    /// **Reached from inside CUSTOMIZE, not from the settings grid.** That grid
+    /// is a fixed three-by-two sized to fill the LCD by construction, so a
+    /// seventh tile would have been an orphan on a fourth row; and nine of the
+    /// twelve cartridges *are* the two pickers on CUSTOMIZE, so it is where
+    /// somebody looking for them already is. Being a section rather than a route
+    /// still buys the marquee title, the glyph, the pin bar and `ChromeTests`.
+    case packs = "PACKS"
     /// Device behaviour rather than device looks: text size, haptics, and the
     /// stored-data reset. Split from CUSTOMIZE so that panel stays purely
     /// cosmetic — a wipe button between two colour pickers is a trap.
@@ -118,6 +142,12 @@ public enum SettingsSection: String, CaseIterable, Hashable, Sendable, Identifia
     public var symbol: String {
         switch self {
         case .customization: "paintpalette.fill"
+        // A cartridge is a box you slot in, and this is the one box glyph in the
+        // app — it collides with nothing on `DexRoute.marqueeSymbol`'s table,
+        // which `ChromeTests.glyphsAreDistinct` covers because every
+        // `SettingsSection` is folded into `allRoutes`. SF Symbols 1 / iOS 13,
+        // well under the iOS 17 floor.
+        case .packs: "shippingbox.fill"
         case .settings: "slider.horizontal.3"
         case .data: "chart.bar.fill"
         case .access: "lock.fill"

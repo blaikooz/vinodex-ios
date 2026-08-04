@@ -53,6 +53,11 @@ const CURRENT: FirmwareRelease = {
     "DEVICE WORKSHOP: build your own handheld from eight parts, and save the results.",
     "Buttons, orb, marquee, grille colour and grille pattern are parts you can fit.",
     "Five grille patterns where there was one, and the font colour is yours to set.",
+    "EXPANSION PACKS: twelve collectible cartridges, on a shelf of their own.",
+    "Atlas packs group the catalog by where it comes from. Nothing is locked away.",
+    "Each cartridge tracks how much of it you have drunk.",
+    "Brazil joins the catalog: Serra Gaucha and Campanha Gaucha, in Rio Grande do Sul.",
+    "407 entries: 146 grapes, 118 regions, 31 styles, 106 flavours, 26 countries.",
   ],
 };
 

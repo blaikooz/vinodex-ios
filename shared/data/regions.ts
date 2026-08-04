@@ -120,6 +120,14 @@ const REGION_CLIMATES: Record<string, { climate: ClimateClass; description?: str
   R114: { climate: 'continental' },
   R115: { climate: 'warm' },
   R116: { climate: 'maritime', description: 'Atlantic air funnels up the canyons of the Sil and Miño.' },
+  // Brazil (0.7.3c). Serra Gaúcha is humid subtropical rather than maritime in
+  // the strict sense, and this was the judgement call of the batch. Its annual
+  // thermal amplitude is 9.9C — smaller than Canelones', which this file already
+  // calls maritime — and 'warm' promises "riper, fuller-bodied wines", which is
+  // the opposite of what the Serra is known for. 'continental' is the one reading
+  // that is simply wrong.
+  R117: { climate: 'maritime', description: 'Humid subtropical hills where rain falls in every month of the year.' },
+  R118: { climate: 'warm', description: 'Brazil\'s driest, sunniest vineyards, with cold nights at harvest.' },
 };
 
 const REGION_BASE: RegionEntry[] = [
@@ -240,6 +248,12 @@ const REGION_BASE: RegionEntry[] = [
   { id: "R114", name: "Navarra", description: "Pilgrim country on the road to Santiago, long Spain's rosado capital and now an open workshop where Garnacha old-timers share terraces with international grapes. Forever in Rioja's shadow, rarely in its price bracket.", category: "REGIONS", color: C.rose, icon: "leaf", tags: ["Spain", "Rosado"], details: { mapPosition: { x: 0.58, y: 0.17 }, origin: "Spain", notableGrapes: ["Grenache", "Tempranillo"], classification: "DO" } },
   { id: "R115", name: "La Mancha", description: "Don Quixote's plateau, the largest vine planting on earth — a sea of Airén stretching past every horizon south of Madrid. Long the continent's brandy tank, now quietly Europe's biggest source of honest cheap wine.", category: "REGIONS", color: C.golden, icon: "sun", tags: ["Spain", "Vast"], details: { mapPosition: { x: 0.5, y: 0.52 }, origin: "Spain", notableGrapes: ["Airén", "Tempranillo"], classification: "DO", soilType: "Limestone, clay" } },
   { id: "R116", name: "Ribeira Sacra", description: "The 'sacred riverbank': Roman terraces stacked up canyon walls so steep the harvest comes down by boat and pulley. Mencía grown here tastes of slate, river fog and the nerve of whoever picked it.", category: "REGIONS", color: C.merlot, icon: "mountain", tags: ["Spain", "Heroic"], details: { mapPosition: { x: 0.17, y: 0.14 }, origin: "Spain", notableGrapes: ["Mencía", "Treixadura"], classification: "DO", soilType: "Slate, granite" } },
+  // Brazil (0.7.3c). Two regions rather than one so the country page is not
+  // a single row, and both in Rio Grande do Sul because that is where the
+  // wine is. No mapPosition on either: there is no outline-brazil.png, so a
+  // hint would be inert — same as Valle de Guadalupe.
+  { id: "R117", name: "Serra Gaúcha", description: "Brazil’s fine-wine heartland, planted by Veneto immigrants from 1875 on basalt hills where rain falls in every month of the year. The humidity is why it turned to sparkling wine, now the country’s strongest suit.", category: "REGIONS", color: C.champagne, icon: "sparkles", tags: ["Brazil", "Espumante"], details: { mapPosition: { x: 0.57, y: 0.87 }, origin: "Brazil", notableGrapes: ["Merlot", "Chardonnay", "Pinot Noir"], classification: "DO", appellations: ["Vale dos Vinhedos", "Pinto Bandeira", "Altos de Pinto Bandeira", "Altos Montes", "Monte Belo", "Farroupilha"], soilType: "Basalt, clay" } },
+  { id: "R118", name: "Campanha Gaúcha", description: "The warm, dry grasslands on the Uruguayan border, where sandy soils and low pre-harvest rain give Brazil its ripest still reds. Flat, mechanisable and cheap to plant — the Serra’s opposite in every way.", category: "REGIONS", color: C.deepBordeaux, icon: "sun", tags: ["Brazil", "Cabernet"], details: { mapPosition: { x: 0.49, y: 0.92 }, origin: "Brazil", notableGrapes: ["Cabernet Sauvignon", "Tannat", "Chardonnay"], classification: "IP", soilType: "Sand, clay" } },
 ];
 
 export const REGIONS: RegionEntry[] = REGION_BASE.map((region) => {

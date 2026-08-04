@@ -492,7 +492,13 @@ struct RootView: View {
                 onFirmwareHistory: { push(.firmwareHistory) },
                 onCheatConsole: { push(.cheatConsole) },
                 onDemoMode: { startDemo() },
-                onDeviceWorkshop: { push(.deviceWorkshop) }
+                onDeviceWorkshop: { push(.deviceWorkshop) },
+                // The cartridge shelf (0.7.3c) is a settings section rather than
+                // a route of its own, so CUSTOMIZE reaches it by pushing another
+                // `.settingsSection` — the same move the DEV button one line up
+                // has always made. The chassis Back button then returns to
+                // CUSTOMIZE rather than dropping out of settings.
+                onExpansionPacks: { push(.settingsSection(.packs)) }
             )
 
         case .minigames:

@@ -138,7 +138,11 @@ struct ChromeTests {
     /// Bump the number *and* add the route to `allRoutes` together.
     @Test("the route list covers the whole enum")
     func routeListIsComplete() {
-        // 21 simple + 5 categories + 5 settings sections = 31. Was 28 until
+        // 21 simple + 5 categories + 6 settings sections = 32. 31 until 0.7.3c
+        // added `SettingsSection.packs` — the cartridge shelf, which is a
+        // settings section rather than a route of its own, so it arrives on this
+        // list through `SettingsSection.allCases` below and `glyphsAreDistinct`
+        // picks up its `shippingbox.fill` for free. Was 28 until
         // 0.7.3b listed `.firmwareHistory` and `.cheatConsole` — both added to
         // the enum by 0.7.3a and neither added here, so for one sub-batch the
         // uniqueness gate below could not see them — and added `.deviceWorkshop`
@@ -151,7 +155,7 @@ struct ChromeTests {
         // which is a harder mistake to make than forgetting the list entirely —
         // and `DexRoute` carries associated values, so it cannot be
         // `CaseIterable` and there is nothing to derive from.
-        #expect(Self.allRoutes.count == 31, "add the new route to `allRoutes`")
+        #expect(Self.allRoutes.count == 32, "add the new route to `allRoutes`")
     }
 
     // MARK: The shared glyph constants (0.7.0 D1, 0.7.1 E1/A2)

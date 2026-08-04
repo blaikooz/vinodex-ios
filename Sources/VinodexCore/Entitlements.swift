@@ -90,14 +90,26 @@ public enum Entitlement: Hashable, Sendable {
     public var title: String {
         switch self {
         case .pro: "VINODEX PRO"
-        case .country(let name): "\(name.uppercased()) BUNDLE"
+        // BUNDLE -> PACK (0.7.3c, A1). A1 renames the concept, and this is the
+        // only other place in the app that printed the old word at a user; the
+        // ACCESS heading saying EXPANSION PACKS over a row saying FRANCE BUNDLE
+        // is exactly the two-vocabularies state a rename is for. Display copy
+        // only — `id` stays `"country:" + name`, which is the storage.
+        case .country(let name): "\(name.uppercased()) PACK"
         case .flavors: "FLAVOR WHEEL"
         case .skins: "CHASSIS SKINS"
         // The id stays "lightMode" — it is persisted, and renaming it would
         // silently revoke the bundle. Only the shopfront copy widened when
         // the vintage and amber modes joined the paper-white one.
         case .lightMode: "SCREEN MODES"
-        case .expansion(let pack): "\(pack.uppercased()) PACK"
+        // Through the catalog, so the shopfront and the cartridge cannot
+        // disagree about what a pack is called. The fallback matters: an id from
+        // a later build has no pack here, and `"OLD-WORLD PACK"` — the raw id,
+        // uppercased, hyphen and all — is what this arm used to print for every
+        // pack including the ones that do exist.
+        case .expansion(let pack):
+            ExpansionPacks.pack(id: pack).map { "\($0.title) PACK" }
+                ?? "\(pack.uppercased()) PACK"
         case .workshop: "WORKSHOP"
         // Never shown in a storefront — nothing here is for sale. The title
         // exists so an unlock *confirmation* has something to print, which is
@@ -113,7 +125,8 @@ public enum Entitlement: Hashable, Sendable {
         case .flavors: "All flavour entries and the full tasting wheel."
         case .skins: "All chassis colourways beyond the default."
         case .lightMode: "Nine alternate LCDs — paper-white, three phosphors, and themed consoles."
-        case .expansion(let pack): "The \(pack) expansion pack."
+        case .expansion(let pack):
+            ExpansionPacks.pack(id: pack)?.blurb ?? "The \(pack) expansion pack."
         case .workshop: "The full workshop, with every tool unlocked."
         case .easterEgg: "Unlocked."
         }
@@ -135,13 +148,25 @@ public enum Entitlement: Hashable, Sendable {
             return TextNormalize.label(entry.origin ?? "") == target
         case .skins, .lightMode, .workshop, .easterEgg:
             return false
-        // Expansion packs *will* cover entries — that is what a content pack is
-        // — and cannot yet, because no pack exists and nothing in the catalog
-        // declares membership of one. Answering `false` is the honest state of
-        // that: an owner of a pack that ships no entries is gated out of
-        // nothing. 0.7.3c adds the membership field and this arm reads it.
-        case .expansion:
-            return false
+        // **0.7.3c fills this in, and it can only ever unlock.** The arm stood
+        // at `false` through 0.7.3a and 0.7.3b because no pack existed; packs
+        // exist now, so an owner of one reaches its entries the way an owner of
+        // `.country("France")` reaches France's.
+        //
+        // Worth being exact about what this does *not* do, since "packs gate
+        // content" was a live reading of the spec: nothing here locks anything.
+        // `covers` is only ever consulted by `AccessStore.isLocked`, which
+        // returns `false` outright unless `starterOnly` is set — and under
+        // `starterOnly` these entries were already locked, because they are not
+        // in `tiers.json`'s free list. Adding an arm that answers `true` more
+        // often strictly widens what an owner can read. See `ExpansionPack` for
+        // the passport regression that ruled the other reading out.
+        //
+        // An unrecognised id covers nothing: a grant written by a later build
+        // and read back by this one is a pack this build has never heard of, and
+        // guessing at its membership is worse than declining to.
+        case .expansion(let pack):
+            return ExpansionPacks.pack(id: pack)?.contains(entry) ?? false
         }
     }
 

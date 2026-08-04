@@ -544,52 +544,34 @@ public struct DeviceWorkshopScreen: View {
     }
 
     /// One part chip: a swatch, an optional glyph over it, and a label.
+    ///
+    /// **The body moved to `DexPickerTile` in 0.7.3c** so the cartridge shelf
+    /// could reuse it instead of becoming the app's fifth hand-written picker
+    /// grid — see the note on that type. This stayed as a wrapper rather than
+    /// being deleted for two reasons: the eight `chooser(for:)` rows call it with
+    /// the workshop's own defaults (26pt swatch, circular outline) and should not
+    /// each restate them, and keeping the signature meant the eight call sites
+    /// and `DeviceWorkshopTests`' references to `shellChooser` did not move in a
+    /// batch that was not about the workshop.
     private func partChip<S: View>(
         label: String,
         isChosen: Bool,
         symbol: String?,
         action: @escaping () -> Void,
-        @ViewBuilder swatch: () -> S
+        // `@escaping` where the old body did not need it: `DexPickerTile` stores
+        // the builder as a property rather than calling it inside this function's
+        // own `body` evaluation.
+        @ViewBuilder swatch: @escaping () -> S
     ) -> some View {
-        Button {
-            Haptics.select()
-            action()
-        } label: {
-            VStack(spacing: 5) {
-                swatch()
-                    .frame(width: 26, height: 26)
-                    .overlay {
-                        if let symbol {
-                            Image(systemName: symbol)
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(.white)
-                                .shadow(color: .black.opacity(0.7), radius: 0, x: 1, y: 1)
-                        }
-                    }
-                    .overlay(
-                        Circle().strokeBorder(
-                            isChosen ? lcd.onAccent : lcd.surfaceEdge,
-                            lineWidth: isChosen ? 2 : 1
-                        )
-                    )
-                Text(label)
-                    .font(DexFont.retro(8))
-                    .tracking(0.5)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.center)
-                    .minimumScaleFactor(0.6)
-                    .frame(minHeight: 20)
-            }
-            .foregroundStyle(isChosen ? lcd.onAccent : lcd.subtext)
-            .padding(.horizontal, 4)
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(isChosen ? lcd.accent : lcd.surface)
-            )
-        }
-        .buttonStyle(DexPressStyle(scale: 0.96))
+        DexPickerTile(
+            label: label,
+            isChosen: isChosen,
+            symbol: symbol,
+            lcd: lcd,
+            outline: Circle(),
+            action: action,
+            swatch: swatch
+        )
     }
 
     /// Four columns: the chip is a 26pt swatch over a two-line label, and at

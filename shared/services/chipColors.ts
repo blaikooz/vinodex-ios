@@ -36,6 +36,9 @@ export const getCountryChipColors = (country?: string): ChipColorStyle => {
     // Batch 2 (0.6.4): the four countries that had been falling through to
     // the grey fallback despite appearing in continent rosters...
     mexico:        { bg: '#14532d', border: '#22c55e', text: '#dcfce7' },
+    // Brazil (0.7.3c), added with the country so its rows chip in colour
+    // from the first build rather than falling through to the grey.
+    brazil:        { bg: '#083d21', border: '#facc15', text: '#fef9c3' },
     morocco:       { bg: '#7f1d1d', border: '#16a34a', text: '#fee2e2' },
     romania:       { bg: '#1e3a8a', border: '#facc15', text: '#fef9c3' },
     switzerland:   { bg: '#7f1d1d', border: '#f8fafc', text: '#fee2e2' },

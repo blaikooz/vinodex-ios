@@ -804,6 +804,9 @@ public struct DatabaseStats: Sendable, Hashable {
             281,  // 0.5.8
             342,  // 0.6.1
             375,  // 0.6.2 — outgoing total, appended by 0.6.4 batch 2
+            405,  // 0.6.4–0.7.3b — outgoing total, appended by 0.7.3c when
+                  // Brazil moved the catalog off the number it had stood at
+                  // for eight releases.
             total,
         ]
     }

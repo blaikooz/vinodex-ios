@@ -157,6 +157,10 @@ public enum EntryDisplay {
         case ("DOCA", _):  return "Denominación de Origen Calificada"
         // Priorat's Catalan form of DOCa (0.6, A2).
         case ("DOQ", _):   return "Denominació d'Origen Qualificada"
+        // Portuguese, not Spanish — the same trap `DOC` below is split three
+        // ways for. Brazil's country chips carry `DO` and would otherwise have
+        // been spelled out in the wrong language on its own page.
+        case ("DO", "brazil"): return "Denominação de Origem"
         case ("DO", _):    return "Denominación de Origen"
         // The 0.6 catalog boost's new systems: Canada, Croatia, Morocco, and
         // the Spanish-American IG countries (Argentina, Uruguay).
@@ -164,6 +168,10 @@ public enum EntryDisplay {
         case ("ZOI", _):   return "Zaštićena Oznaka Izvornosti"
         case ("AOG", _):   return "Appellation d'Origine Garantie"
         case ("IG", _):    return "Indicación Geográfica"
+        // Brazil (0.7.3c). `IP` is the tier most of the Serra's delimited areas
+        // hold; `DO` is the one above it, which only Vale dos Vinhedos and a
+        // handful of others have reached.
+        case ("IP", _):    return "Indicação de Procedência"
 
         // The genuinely ambiguous one: same abbreviation, three languages.
         case ("DOC", "italy"):    return "Denominazione di Origine Controllata"

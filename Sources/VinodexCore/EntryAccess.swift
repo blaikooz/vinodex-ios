@@ -150,6 +150,29 @@ public final class AccessStore {
         return isUnlocked(required)
     }
 
+    /// Whether an expansion pack is owned (0.7.3, 0.7.3c — E1).
+    ///
+    /// E1 asks for pack ownership to live in the F1 store rather than beside it,
+    /// so this is `isUnlocked` with one addition and no state of its own: a pack
+    /// is owned if its own entitlement is, **or** if the bundle it says implies
+    /// it is. That second clause is the whole reason the device and display
+    /// cartridges cost nobody anything — see `ExpansionPack.impliedBy`. Somebody
+    /// who bought CHASSIS SKINS owns all six device cartridges the moment this
+    /// build lands, because they already own every skin inside them.
+    ///
+    /// Deliberately routed through `isUnlocked`, which answers `true` for
+    /// everything while `starterOnly` is off. That looks generous and is simply
+    /// honest: with the free-tier switch off every skin, mode and entry in the
+    /// app *is* available, and a cartridge reading LOCKED over content the user
+    /// can reach in two taps would be the shelf telling a lie the rest of the
+    /// app does not tell. What still moves on a default install is the pack's
+    /// *collection* progress, which is `ExpansionPack.progress(tried:in:)` and
+    /// has nothing to do with ownership.
+    public func owns(_ pack: ExpansionPack) -> Bool {
+        if let implied = pack.impliedBy, isUnlocked(implied) { return true }
+        return isUnlocked(pack.entitlement)
+    }
+
     /// Whether an easter egg has been found (0.7.3, F1).
     ///
     /// Bypasses `starterOnly` entirely, and that is the difference between an

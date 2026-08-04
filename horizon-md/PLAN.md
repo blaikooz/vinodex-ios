@@ -49,7 +49,72 @@ been happening", which is the question a planning doc is for.
 | 0.7.2 | `vinodex-label-reader` | **LABEL SCAN.** Camera → Apple Vision OCR on-device → match against the catalog. Matching/scoring/inference in Core (Linux-gated); Vision, camera and pickers in UI behind `LabelRecognitionProvider`. `xtool.yml` gained `infoPath` for the usage strings. | 405, untouched | 320 tests, clean build, **not deployed** |
 | 0.7.2 | `vinodex-0.7.2` | **Consolidation + nine fixes.** All batch branches merged onto `testing`; stamps made draggable at last (A2); the marquee becomes a control surface — lamps are TOOLS/CUSTOMIZE, pins in the corners, PINS on open, MENU glyph, rotating toasts; Africa and Oceania get their own marker colours. | 405, untouched; two continent colours changed | 326 tests, clean build, deployed |
 | 0.7.3 | `vinodex-0.7.3a` | **Device experience + the 0.7.3 Foundation.** F1 one entitlement store behind a protocol; F2 one idle timer where there were two clocks; F3 version + changelog moved into `shared/`. Then A1 boot POST, A2 demo mode, A3 firmware history, A4 cheat console, A5 bouncing-V screensaver. | 405, untouched; `firmware.json` is a new generated file | 384 tests, clean build, deployed and eyeballed |
-| 0.7.3 | `vinodex-0.7.3b` | **DEVICE WORKSHOP (premium).** The six part axes that did not exist, then the builder over all eight. `DeviceAxis`/`DeviceBuild`/`CustomDeviceStore` in Core; `PartColor`, `GrilleShape` and `ChassisLook` in UI. Gated on F1's `Entitlement.workshop`; GARAGISTE unlocks it. | 405, untouched | 404 tests, clean build, **not deployed** |
+| 0.7.3 | `vinodex-0.7.3b` | **DEVICE WORKSHOP (premium).** The six part axes that did not exist, then the builder over all eight. `DeviceAxis`/`DeviceBuild`/`CustomDeviceStore` in Core; `PartColor`, `GrilleShape` and `ChassisLook` in UI. Gated on F1's `Entitlement.workshop`; GARAGISTE unlocks it. | 405, untouched | 404 tests, clean build, deployed and eyeballed |
+| 0.7.3 | `vinodex-0.7.3c` | **EXPANSION PACKS.** Twelve collectible cartridges on a PACKS shelf — three atlas, six device, three display — owned through F1's `Entitlement.expansion`, which finally covers something. Packs **collect rather than gate**. Brazil added to the catalog so the New World pack has a Brazil to name. | **405 → 407** (+2 Brazilian regions); countries 25 → 26 | 425 tests, clean build, **not deployed** |
+
+**0.7.3c, Expansion Packs** (`vinodex-0.7.3c.md`). Last of the three 0.7.3
+sub-batches, and the one that fills in `Entitlement.expansion` — the case 0.7.3a
+minted and left covering nothing.
+
+- **The decision: packs collect and organise, they do not gate — and the reason
+  is the passport, not caution.** The spec left it open and named collect/organise
+  as the lower-risk default. It is also the only one the code permits. `PassportTier`
+  is absolute counts of *tried* entries and its own doc comment states the
+  invariant — "a rank you had already earned must not be taken back by a data
+  batch" — while `Passport.compute` resolves the tried shelf against the whole
+  database and never consults `AccessStore`. A pack that withdrew twenty
+  countries' entries until bought would drop the tried count, demote a rank
+  already held, empty ALL NOBLE and REGION COMPLETE, and move every denominator
+  on the screen. On a shipped app that is a regression, and it decided the item.
+- **What was *not* true is that gating was ever the risky half.** Reconnaissance
+  found a whole content-paywall already in the tree — `tiers.json`, `db.isFree`,
+  `AccessStore.isLocked`, `Entitlement.covers` — behind `starterOnly`, which is a
+  *developer* switch, off on every install. So `Entitlement.covers` now reads pack
+  membership, because the honest `false` had stopped being honest, and doing so
+  can only ever add a key: under `starterOnly` those entries were already locked
+  (they are not in the free list), and with it off nothing is locked at all. Two
+  tests pin exactly that (`packsLockNothing`, `grantingOnlyUnlocks`).
+- **The device and display cartridges must not re-gate what they group.** Every
+  non-default skin has required `.skins` since long before packs; giving each
+  collection its own entitlement would mean a user who owns the skins bundle no
+  longer owns BURGUNDY. `ChassisSkin.requiredEntitlement` is therefore untouched
+  and `ExpansionPack.impliedBy` names the old bundle, so owning `.skins` owns all
+  six device cartridges the moment this build lands. Ownership is the union,
+  never the intersection.
+- **The pack catalog is Swift, not `shared/`** — the one list in the app that
+  names catalog content from Swift. A pack id is persisted inside
+  `Entitlement.expansion` the moment somebody owns it, so it is storage, and
+  `shared/` is edited by data batches and by the `sommbot` agent. The membership
+  *rules* still point at `shared/`, and `ExpansionPackTests.atlasCountriesResolve`
+  is the gate `find-missing-refs.mjs` cannot be — it audits generated data against
+  itself and knows nothing about a country list in a `.swift` file.
+- **Brazil, because B2 named a country that was not there.** C029 plus Serra
+  Gaúcha and Campanha, both in Rio Grande do Sul, added *before* the pack
+  referenced them. No new grapes — all six notable grapes across the two regions
+  were already in the catalog, which is the house rule for a new country. New
+  `IP` appellation expansion, and `("DO", "brazil")` split off the Spanish `DO`
+  the way `DOC` was already split three ways. Brazil got a chip colour rather
+  than the grey fallback, and its pixel flag had been sitting unused in
+  `shared/pixelflags` since the flag drop.
+- **C and D disagree with the spec's spellings, and the code won.** C1 asks for
+  "Transparent", "Retro Tech" and "Seasonal"; the sections have been CLEARTECH,
+  RETROFIT and FESTIVE since 0.7.0 and those words are already on screen above
+  the skins they group. D1 asks for "Vintage"; 0.7.1's C1 renamed that section to
+  RETRO precisely because a group called VINTAGE containing a mode called VINTAGE
+  read as a mislabelled tile. Taking either literally would have put two names on
+  one grouping.
+- **A2 was answered by promoting a component rather than writing a fifth.**
+  0.7.3b's notes flagged that the workshop's chooser duplicates the settings
+  picker; A2 asks the shelf to reuse that picker's style, which taken at face
+  value means a fifth hand-written grid. The workshop's `partChip` — already the
+  one generalised version, serving all eight axes — became `DexPickerTile`, and
+  the shelf and the workshop both use it. `skinGrid` and `modeGrid` were left
+  alone deliberately: they are 50pt tiles carrying real art, in a module no Linux
+  gate compiles, and rewriting the two pickers a user actually looks at was not
+  this batch's ask. Four bespoke grids became three plus one shared tile.
+- **No cheat code, on purpose.** `CheatCodes`' own note forbids a code that
+  reports success and changes nothing, and that is exactly what a pack-granting
+  code would do: with `starterOnly` off, every pack already reads as owned.
 
 **0.7.3b, the Device Workshop** (`vinodex-0.7.3b.md`). Second of the three
 0.7.3 sub-batches, built on 0.7.3a rather than beside it — C1 gates on F1's
@@ -179,17 +244,43 @@ A1–A5 happened to need.
   `verboseBoot` egg adds POST lines. A code that reports success and changes
   nothing is the one failure a cheat console cannot survive.
 
+**Parked from 0.7.3c:**
+
+- **Not deployed** — stopped at the clean build by instruction. Nothing in it is
+  verified on glass. First things to look at: the cartridge silhouette at 46pt
+  (the stepped shoulder is what makes it read as a cartridge rather than a badge,
+  and it is the detail most likely to disappear at that size), the shelf under
+  the four single-phosphor modes and the Retro group, and the workshop's eight
+  part chips, which now render through `DexPickerTile` and should be pixel-identical
+  to 0.7.3b.
+- **The Brazil prose and its two regions are conservative but unaudited.** The
+  claims worth a `sommbot` pass: "third-largest wine producer in South America",
+  "around nine tenths of the crop in Rio Grande do Sul", the 1875 immigration date,
+  and Serra Gaúcha classified `maritime` — it is humid subtropical, and `maritime`
+  is the least wrong of the five classes rather than the right one. Vale dos
+  Vinhedos is folded into Serra Gaúcha's `appellations` per the house rule rather
+  than minted as its own region.
+- **`find-missing-refs.mjs`'s country-gate arm is dead code**, and this batch is
+  how it was noticed. It reads `COUNTRY_GATE` out of `entries.json`, which the
+  generator deliberately never writes there, so `countries.length` prints 0 and
+  the loop validating a gate's `keyRegions` and `notableGrapes` has never run.
+  Brazil's were checked by hand. Cheap fix: read `countries.ts` directly.
+- **The pack shelf has no route of its own**, so it cannot be linked to from
+  anywhere but the settings grid. If packs ever want a tile on TOOLS or a marquee
+  pin of their own, `SettingsSection.packs` is already pinnable via `QuickPinStore`
+  — the wider element type parked from 0.7.1 is the thing that is missing.
+- `ExpansionPack.symbol` is not policed by `ChromeTests.glyphsAreDistinct`; two
+  cartridges wearing the same glyph would be a cosmetic smudge nobody catches.
+
 **Parked from 0.7.3a and 0.7.3b:**
 
 - 0.7.3a **was deployed and eyeballed**: the POST pacing, the demo dwells, the
   V's size, speed and colour cycle under the monochrome modes all pass, and so
   does 0.7.2's stamp drag including the top-left-corner falsifier. Both of the
   entries that stood here are closed.
-- **0.7.3b is not deployed** — stopped at the clean build by instruction. Nothing
-  in it is verified on glass, and it is the batch with the most to eyeball: five
-  derived colour ramps against twenty-one hand-authored ones, five grille
-  patterns at 64×17 on a moulded strip, and a schematic drawn at a third scale.
-  See the batch notes above for what to look at first.
+- **0.7.3b was deployed and eyeballed** at the head of 0.7.3c: the derived colour
+  ramps against the authored ones, the five grille patterns at real size, the
+  schematic panel and the FONT row under monochrome all pass. Committed then.
 - **The palette's derivation constants are authored by eye.** The mix amounts in
   `PartColor` (0.80/0.56 pale, 0.20/0.52 dark, 0.84 for the marquee's letters)
   are calibrated against CLASSIC's ramps by arithmetic, not by looking at them on
@@ -202,8 +293,8 @@ A1–A5 happened to need.
   and is the obvious next tidy if the font axis grows.
 - The demo loop's dwells and stop order are authored by eye, like the map
   coordinates. Worth tuning once seen running.
-- `.expansion` covers no entries yet — `Entitlement.covers` answers `false` for
-  it, honestly, until 0.7.3c adds pack membership to the catalog.
+- ~~`.expansion` covers no entries yet~~ — closed by 0.7.3c, which gave it a pack
+  catalog to read.
 - `testing`, `v0.7.2-batch` and now `v0.7.3-batch` are all unpushed; `main` vs
   `origin/main` is still diverged and still not reconciled.
 
@@ -435,7 +526,7 @@ Ordered by risk-times-cheapness; IDs are AUDIT.md's, one row ≈ one sitting.
 - Releases: one `feat(ios): vX.Y ...` commit per batch through the protected
   main, annotated tag = release notes. Bump `AppVersion.fallback`; append the
   outgoing total to `waveMilestones` when entry counts move.
-- Data *accuracy* is the `sommelier` agent's beat (`.claude/agents/sommelier.md`):
+- Data *accuracy* is the `sommbot` agent's beat (`.claude/agents/sommbot.md`):
   it audits `shared/` against regulator and ampelography sources, applies
   in-place corrections, and keeps `data-review/FINDINGS.md` (verification
   ledger) + `data-review/CANDIDATES.md` (ranked staging backlog). It hands
