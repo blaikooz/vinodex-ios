@@ -1484,6 +1484,145 @@ function assertOutlineCoverage(entries: readonly WineEntry[]): string[] {
   return [...missing.keys()].sort();
 }
 
+/** Where the app's art actually lives. `assertAssetsExist` is its only reader. */
+const UI_RESOURCES = resolve(REPO_ROOT, 'Sources', 'VinodexUI', 'Resources');
+
+/**
+ * The drawn-art search path, in order — mirrors `PixelArtLoader.subdirectories`
+ * in Sources/VinodexUI/EntryVisual.swift. First hit wins there and here.
+ */
+const ART_DIRS = ['FlavorArt', 'GrapeArt', 'StyleArt', 'ClassArt', 'StampArt'] as const;
+
+/**
+ * Every asset id this generator emits must resolve to a file the app can load
+ * (0.7.5, A028).
+ *
+ * **The fourth silent-missing-asset bug is why this exists, and it was already in
+ * the tree when the gate was written.** `icons.json` has named a Brazil flag
+ * since 0.7.3c and nothing ever copied `brazil.png` into `Resources/Flags`, so
+ * `FlagLoader` returned nil and every Brazilian row flew a blank swatch. Same
+ * shape as `icon: "fruit"` (0.7.4 — an Iconify id that had never been
+ * rasterised), the screensaver layers (0.7.5, A5) and the Brazil/Mexico outlines
+ * (0.7.5, D): an id that resolves in *data* and to nothing on disk.
+ *
+ * The class is invisible to everything else the project runs. `IconLoader.image`
+ * and `PixelArtLoader.image` both end in `return nil` with no diagnostic, over
+ * 207 rasterised glyphs and five art directories; `swift test` cannot see the
+ * art at all because it belongs to `VinodexUI`, which no Linux gate compiles;
+ * and the clean `xtool dev build` cannot see it either, because a missing *file*
+ * is not a compile error. On the phone it is a red `questionmark.square.dashed`
+ * at best and empty space at worst.
+ *
+ * **Why here rather than in `verify-art.py`.** `icons:verify` re-runs the
+ * importers into a temp tree with `ART_OUT` and diffs pixels: it answers "did the
+ * committed art change", and it has no catalog, so it cannot know which ids are
+ * *requested*. This function is the other half — it holds the manifest it just
+ * built and checks it against the bundle. It is also the half that runs in CI:
+ * the `data` job runs `npm run generate` on every push, while `icons:verify`
+ * needs Pillow and is run by hand.
+ *
+ * **It runs after the writes, deliberately.** `rasterize-icons.sh` reads the
+ * `unique` list out of `icons.json`, so a gate that threw before `writeFileSync`
+ * would make a new icon id unbootstrappable — generate would refuse to emit the
+ * manifest the rasteriser needs in order to produce the file generate is
+ * demanding. With the write first, adding an icon is: generate (fails, naming the
+ * id) → `npm run icons` → generate (passes).
+ *
+ * **No backlog list, on purpose.** `OUTLINE_BACKLOG` earns its existence because
+ * drawing an outline to match the other 28 is a job that can be honestly
+ * outstanding. Nothing checked here is: every id below is satisfied by `npm run
+ * icons`, one command and no drawing. An allowlist with nothing in it is rot
+ * waiting to happen. If a genuine stopgap is ever needed, copy `OUTLINE_BACKLOG`
+ * whole — including the staleness check that fails when an entry stops being
+ * missing.
+ *
+ * Returns how many ids were checked, for the summary.
+ */
+function assertAssetsExist(icons: ReturnType<typeof buildIconManifest>): number {
+  const missing: string[] = [];
+  let checked = 0;
+
+  const want = (ok: boolean, what: string, where: string) => {
+    checked += 1;
+    if (!ok) missing.push(`${what} — expected ${where}`);
+  };
+
+  // Rasterised glyphs. `IconLoader.load(slug:)` walks @3x → @2x → the bare name
+  // and takes the first that opens, so any one of the three is a working icon;
+  // requiring all three would fail the icons that shipped before the variants
+  // existed. `unique` is the complete Iconify surface by construction — every
+  // non-`art:` id in every table is folded into it in `buildIconManifest`.
+  for (const id of icons.unique) {
+    const slug = id.replace(':', '--');
+    const ok = ['@3x', '@2x', ''].some((variant) =>
+      existsSync(resolve(UI_RESOURCES, 'Icons', `${slug}${variant}.png`)),
+    );
+    want(ok, id, `Sources/VinodexUI/Resources/Icons/${slug}.png`);
+  }
+
+  // Drawn art reached by `art:` id. Collected by walking the whole manifest
+  // rather than by listing the tables that carry them: `byEntry`, `bodyIcons`,
+  // `climateIcons`, `colorIcons`, `styleClassIcons`, `flavorClassIcons`,
+  // `flavorSubclassIcons`, `countryShapeIcons` and `soilIcons` all do today, in
+  // three different value shapes, and a hand-kept list of them is precisely the
+  // thing that went stale in `COUNTRY_SHAPE_ICONS`. A walk covers the next table
+  // for free.
+  const artIDs = new Map<string, string>();
+  const walk = (node: unknown, path: string): void => {
+    if (typeof node === 'string') {
+      if (node.startsWith('art:') && !artIDs.has(node)) artIDs.set(node, path);
+    } else if (Array.isArray(node)) {
+      node.forEach((child, i) => walk(child, `${path}[${i}]`));
+    } else if (node && typeof node === 'object') {
+      for (const [key, child] of Object.entries(node)) walk(child, `${path}.${key}`);
+    }
+  };
+  walk(icons, 'icons');
+
+  const artFile = (stem: string) =>
+    ART_DIRS.some((dir) => existsSync(resolve(UI_RESOURCES, dir, `${stem}.png`)));
+
+  for (const [id, path] of [...artIDs].sort()) {
+    want(artFile(id.slice(4)), `${id} (${path})`, `${id.slice(4)}.png in one of ${ART_DIRS.join(', ')}`);
+  }
+
+  // The three portrait tables ship bare stems rather than `art:` ids — the well
+  // loads them through the same `PixelArtLoader`, so they resolve the same way,
+  // but the walk above cannot tell one from a caption. Named explicitly.
+  for (const table of ['flavorArt', 'grapeArt', 'styleArt'] as const) {
+    for (const stem of [...new Set(Object.values(icons[table]))].sort()) {
+      want(artFile(stem), `${table}: ${stem}`, `${stem}.png in one of ${ART_DIRS.join(', ')}`);
+    }
+  }
+
+  // Flags. `WineDatabase.flagSlug` lowercases and hyphenates; `rasterize-icons.sh`
+  // derives the same slug with `tr` when it copies out of shared/pixelflags. The
+  // *bundle* is what is checked, not the master — a present master that was never
+  // copied is exactly the Brazil failure.
+  for (const country of Object.keys(icons.flags).sort()) {
+    const slug = country.toLowerCase().replace(/ /g, '-');
+    want(
+      existsSync(resolve(UI_RESOURCES, 'Flags', `${slug}.png`)),
+      `flag: ${country}`,
+      `Sources/VinodexUI/Resources/Flags/${slug}.png`,
+    );
+  }
+
+  if (missing.length > 0) {
+    throw new CoverageError(
+      `${missing.length} of ${checked} emitted asset ids resolve to no file:\n`
+        + missing.map((m) => `  - ${m}`).join('\n')
+        + '\n\nicons.json has already been written, so the usual fix is:\n'
+        + '  npm run icons      # rasterises glyphs, copies flags, runs the art importers\n'
+        + '  npm run generate   # re-runs this gate\n'
+        + 'A drawn-art id additionally needs its master under art/icons/ and a row in\n'
+        + 'the importer that ships it (scripts/import-*-art.py).',
+    );
+  }
+
+  return checked;
+}
+
 /**
  * The question bank's own gate (0.7.5, D).
  *
@@ -1720,6 +1859,11 @@ function main() {
   // AUDIT M3 — fail loudly here (and in CI) if the emitted JSON would not decode.
   validateOutputs(OUT_DIR);
 
+  // 0.7.5 (A028) — and after the writes, for the bootstrap reason spelled out on
+  // the function. Decodable JSON that names a file nobody shipped is still a
+  // blank space on the phone.
+  const assetsChecked = assertAssetsExist(icons);
+
   const hexes = new Set(JSON.stringify(palette).match(/#[0-9a-fA-F]{6}/g) ?? []);
 
   console.log('entries.json');
@@ -1745,6 +1889,7 @@ function main() {
   console.log(`  min cell       ${EXAM_MIN_CELL_COUNT} (bounds a balanced paper's per-category draw)`);
   console.log('icons.json');
   console.log(`  distinct icons ${icons.unique.length}`);
+  console.log(`  assets on disk ${assetsChecked} ids checked, all resolve`);
   // Printed rather than silent, on the lesson 0.7.4's dead COUNTRY_GATE arm
   // taught: an absence nothing mentions reads as "none".
   if (outlineBacklog.length > 0) {

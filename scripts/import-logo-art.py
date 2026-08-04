@@ -38,13 +38,20 @@ from pathlib import Path
 
 from PIL import Image
 
+from art_common import output_dir
+
 REPO = Path(__file__).resolve().parent.parent
 
 # The master's folder name is an artist's filing convention and is not a name
 # this project uses for anything: no type, comment, string or shipped file
 # repeats it. The output below is the naming the app knows.
 MASTER = REPO / "art" / "icons" / "dvd" / "vinodex-dvd-icon.png"
-OUT_DIR = REPO / "Sources" / "VinodexUI" / "Resources" / "Logo"
+# Through `art_common.output_dir` rather than a literal path so `ART_OUT`
+# redirects it, which is what lets `scripts/verify-art.py` re-run this importer
+# into a temp tree instead of rewriting the working copy (0.7.5, A026). Every
+# other importer already went through it; this one was written outside the
+# roster and hard-coded the destination.
+OUT_DIR = Path(output_dir(REPO, "Logo"))
 
 FACE_OUT = OUT_DIR / "vinodex-mark-face.png"
 SHADE_OUT = OUT_DIR / "vinodex-mark-shade.png"

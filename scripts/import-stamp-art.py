@@ -21,11 +21,14 @@ import sys
 
 from PIL import Image
 
-from art_common import strip_background
+from art_common import output_dir, strip_background
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-DST = os.path.join(ROOT, "Sources", "VinodexUI", "Resources", "StampArt")
+# `ART_OUT`-aware for the same reason as every other importer: `verify-art.py`
+# regenerates into a temp tree, and an importer that ignored the redirect would
+# turn `npm run icons:verify` into a write (0.7.5, A027).
+DST = output_dir(ROOT, "StampArt")
 
 
 def source_dir():

@@ -64,6 +64,11 @@ def output_dir(root, name):
     regenerate into a temp tree instead of overwriting the working copy. A
     command called `icons:verify` that silently rewrites 254 tracked binaries
     would be a trap, not a check.
+
+    `root` may be a `str` or a `Path` — `import-logo-art.py` is written in
+    pathlib and would otherwise have to launder its root through `str()`, which
+    puts a nested paren in the one call `ArtPipelineRosterTests` parses to learn
+    where each importer writes.
     """
     base = os.environ.get("ART_OUT") or os.path.join(root, "Sources", "VinodexUI", "Resources")
     return os.path.join(base, name)

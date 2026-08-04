@@ -1,4 +1,4 @@
-﻿# HGapps plan — open issues, cleanup, and next batches
+# HGapps plan — open issues, cleanup, and next batches
 
 **Authored by Horizon.**
 
@@ -55,6 +55,7 @@ been happening", which is the question a planning doc is for.
 | 0.7.5 | v0.7.5 spec, sections A + B | **THE SHOP.** ACCESS becomes SHOP and the expansion packs move into it out of CUSTOMIZE — **superseding 0.7.3c's placement**. The whole storefront is redrawn in 0.7.3c's cartridge tile and every cartridge opens to a splash. `PurchaseProviding` lands beside F1's `EntitlementStoring`; **no StoreKit, no payment path**. Plus six A-list fixes: bigger marquee lamps with darker glyphs, a squared orb, a monochrome-only refresh flash, PÉT-NAT → FIBERGLASS, the real wordmark in the screensaver, and a full-screen POST. | 438, untouched | 438 tests, clean build, **not deployed** |
 | 0.7.5 | v0.7.5 spec, section D | **THE WINE EXAM.** `sommbot` authored the bank (`shared/data/exam.ts`, 407 questions, 16 subjects, 7 formats, an explanation on every one); `dexbot` built everything that consumes it — the `exam.json` emit and its gate, the Swift decode, the shuffling engine, balanced paper assembly, scoring, the statistics store, the seven answering UIs and the explanation reveal. Plus the two pre-existing TS errors and the missing-outline-art gate. | 438, untouched; `exam.json` is a new generated file | 484 tests, clean build, **not deployed** |
 | 0.7.5 | v0.7.5 spec, section E | **INTERACTIVE GRAPE LINEAGE.** `sommbot` authored the pedigree off VIVC passports — 57 grapes carrying a lineage, 68 of 171 in a relationship after the reverse pass. `dexbot` took the pipeline (`constants.ts` pass-through, `WineEntry` Codable, a `find-missing-refs` arm), the reverse index that derives offspring / mutations / half-siblings, and the tree screen behind a new `Entitlement.lineage`. Plus the approved `bodyFromText` fix: 16 grapes stop drawing a full-body bar they never earned. | 438, untouched; `lineage` is a new optional field on grape entries | 452 tests, clean build, **not deployed** |
+| 0.7.5 | `audit-review/FINDINGS.md` A026–A028 | **THE ASSET GATE.** Three silent-missing-asset bugs in three batches and only the third left a gate behind, so this one is the general case: `assertAssetsExist` in the generator checks that every emitted `icon` / `art:` / portrait-stem / flag id resolves to a file on disk — 337 ids a run. It found a **fourth on its first run**: `icons.json` has named a Brazil flag since 0.7.3c and `Flags/brazil.png` was never copied, so every Brazilian row flew a blank swatch. Plus the pipeline wiring — `import-logo-art.py` was in no roster at all (A026), `import-stamp-art.py` in the rasteriser but not the verifier (A027), and `ArtPipelineRosterTests` now holds the four rosters equal so a seventh importer cannot land in three of them. | 438, untouched; `Flags/brazil.png` added | 489 tests, clean build, `npm run icons` + `icons:verify` green, **not deployed**; no firmware bump — nothing user-visible changed |
 
 **0.7.5, The Wine Exam** (v0.7.5 spec, section D). The second split batch:
 `sommbot` authored the 407-question bank, `dexbot` built every consumer of it.
@@ -986,6 +987,84 @@ before the next started):
   deliberately excluded because the chassis already greys and tints the whole
   LCD for it. If those modes ever lose the grayscale pass, they need the blend.
 
+**0.7.5, The asset gate** (`audit-review/FINDINGS.md` A026–A028). A small batch
+that closes the three asset-gate findings, run while `auditbot` worked the
+safe-tier housekeeping.
+
+- **The gate found a live bug on its first run, which is the whole argument for
+  it.** `assertAssetsExist` reported `flag: Brazil — expected
+  Sources/VinodexUI/Resources/Flags/brazil.png`. `icons.json` has listed a Brazil
+  flag since 0.7.3c; the master was in `shared/pixelflags/South America/brazil/`
+  the whole time; nobody re-ran `npm run icons`, so it was never copied into the
+  bundle, and `FlagLoader` returned nil for every Brazilian region. That is the
+  **fourth** silent-missing-asset bug in four batches, after `icon: "fruit"`
+  (0.7.4), the screensaver layers (0.7.5 A5) and the Brazil/Mexico outlines
+  (0.7.5 D) — and the first one found by a machine rather than by reading.
+- **auditbot's placement held: the generator, not `verify-art.py`.** Verified
+  rather than assumed. `verify-art.py` re-runs the importers into a temp tree
+  with `ART_OUT` and diffs pixels, so it can only answer "did the committed art
+  change" — it never loads the catalog and cannot know which ids are
+  *requested*. The generator already holds the manifest it just built. It is
+  also the half that runs in CI: the `data` job runs `npm run generate` on every
+  push, while `icons:verify` needs Pillow and is run by hand.
+- **One refinement to the placement: it runs *after* the writes.** The other
+  assertions throw before `writeFileSync`. This one cannot, because
+  `rasterize-icons.sh` reads the `unique` list *out of* `icons.json` — a gate
+  that threw first would refuse to emit the manifest the rasteriser needs in
+  order to produce the file the gate is demanding, and a new icon id would be
+  unbootstrappable. Ordered after the write, adding an icon is: generate (fails,
+  naming the id) → `npm run icons` → generate (passes).
+- **No backlog list, deliberately.** `OUTLINE_BACKLOG` earns its keep because
+  drawing an outline to match the other 28 is a job that can be honestly
+  outstanding. Nothing this gate checks is: every id is satisfied by `npm run
+  icons`, one command and no drawing. An allowlist with nothing in it is rot
+  waiting to happen.
+- **Proved against injected data, all four resolution classes.** With the file
+  removed, the gate names `game-icons:almond`, `art:outline-france (via
+  icons.countryShapeIcons.france)`, `flavorArt: almond` and `flag: France`
+  respectively. It also matches `IconLoader`'s scale walk exactly: with only
+  `@3x` present and `@1x`/`@2x` gone it **passes**, because that is an icon the
+  app draws.
+- **The `art:` ids are collected by walking the manifest, not by listing tables.**
+  Nine tables carry them today in three value shapes, and a hand-kept list of
+  tables is precisely what went stale in `COUNTRY_SHAPE_ICONS`. The walk covers
+  the tenth for free. The three portrait tables (`flavorArt`, `grapeArt`,
+  `styleArt`) ship bare stems a walk cannot tell from prose, so those are named.
+- **A026/A027: the four rosters now agree, and a test holds them there.**
+  `import-logo-art.py` shipped in A5 wired into nothing — not `package.json`,
+  not `rasterize-icons.sh`, not `verify-art.py` — so the screensaver wordmark was
+  reproducible from `art/icons/dvd/` only by someone who knew the file existed.
+  `import-stamp-art.py` had been in the rasteriser and not the verifier since
+  0.6.4, so `StampArt` was generated and never checked. Both are now in all
+  three, and `ArtPipelineRosterTests` treats `scripts/import-*-art.py` **on
+  disk** as the authority: the rasteriser's roster, `IMPORTERS`, `DIRS` (through
+  each importer's `output_dir(..., "Name")` call) and the `package.json` scripts
+  are all checked against it. Injecting each of the four drifts fails the suite;
+  restoring makes it green.
+- **Two importers had to learn `ART_OUT` first.** `import-logo-art.py` and
+  `import-stamp-art.py` hard-coded their destinations, so adding them to
+  `verify-art.py` as they stood would have turned `npm run icons:verify` — a
+  command whose docstring promises it "can never overwrite" the bundle — into a
+  write over 256 tracked binaries.
+- **`icons:verify` was already red, on six files, and is now green.** Not this
+  batch's doing: the same six `ClassArt/subclass-*` files were CHANGED at
+  `4c308ae`. Measured against `subclass-citrus` and `subclass-floral`, which
+  already carry budgets, they are indistinguishable — 0.009–0.257% of pixels
+  moved (controls 0.115–0.199%), max per-channel delta 17–31 (controls 15–37),
+  and **zero alpha pixels moved** in any of the eight, which is what an actual
+  art edit would show first. So they went into `TOLERANCE` as what the table
+  says it is: a record of the quantiser's imprecision, here crossing a platform
+  boundary — the existing budgets were measured on darwin-arm64 and the pipeline
+  now also runs on win32 and in WSL.
+- **The icon half is byte-reproducible, which is worth writing down.** Rasterised
+  fresh in WSL into a temp tree and diffed against the bundle: all 207 PNGs
+  identical, 0 of 34 flags differing but the one that was absent. `npm run icons`
+  is not a lossy step for the Iconify half.
+- **The silent failure itself is still silent, by design.** `IconLoader.image`
+  and `PixelArtLoader.image` still end in `return nil` with no diagnostic. That
+  is correct at runtime — a shipped build should degrade, not trap — and the
+  point of A028 is that the id can no longer *reach* a shipped build.
+
 ## A. Audit debt — suggested next sittings (from AUDIT.md's 52 open)
 
 Ordered by risk-times-cheapness; IDs are AUDIT.md's, one row ≈ one sitting.
@@ -1011,42 +1090,70 @@ Ordered by risk-times-cheapness; IDs are AUDIT.md's, one row ≈ one sitting.
 
 ## B. File & folder cleanup
 
+> **Swept 0.7.5 (A029).** This section was written at 0.6.2 and four of its
+> items had been done for five releases while still reading as open, which is
+> its own kind of rot — a checklist nobody trusts is a checklist nobody reads.
+> Done items are struck with the release that closed them; the ones still open
+> keep their box, and the three that are now tracked as audit findings say so.
+> The **live** items are: grape-sprite prune, KNOWN-ISSUES.md 0.6.x section,
+> `HGapps` git init (A033), the spec-file move, and the web hardening list.
+
 - **vinodex-ios repo**
   - [ ] Prune retired grape sprites: with the leaf now code-driven, only the
     `-rare` bases (+ blends' rare variants, `green-common` unused?) are
     referenced by `grapeArt`. The `-common`/`-noble` artist variants are
     dormant payload — either delete from Resources (masters stay in
     `art/icons/grapes`) or record why they stay. ~200KB.
-  - [ ] `art/` and `pixelflags/` are untracked working dirs at repo root —
-    decide: commit them (they are the art masters the import scripts need;
-    CI can't run imports without them) or move under `HGapps\` outside the
-    repo and document. Recommendation: commit `art/icons` (small, load-bearing),
-    keep `pixelflags/` as-is (already partially shipped via Resources/Flags).
-  - [ ] `.vscode/` at repo root is untracked — commit if the settings are the
-    Swift/WSL wiring (memory says workspace settings matter), else ignore it.
-  - [ ] Delete `Sources/VinodexUI/Resources/Icons` orphans again after the
-    next `npm run icons` (the prune step exists; just re-run pipeline).
+    *Still live, and now measurable: 0.7.5's asset gate reports `grapeArt` uses
+    **14 distinct stems** against **33 files** in `Resources/GrapeArt`. Note the
+    gate only proves every referenced stem exists — it says nothing about
+    unreferenced ones, so this stays a judgement call.*
+  - [x] ~~`art/` and `pixelflags/` are untracked working dirs at repo root —
+    decide: commit them or move them out.~~ **Done, and the recommendation was
+    taken.** `art/` is tracked (310 files) and `pixelflags/` moved to
+    `shared/pixelflags` in 0.6.5 (batch 4, phase 1) — the cross-repo master,
+    because the flags are the one art asset both apps consume. There is no
+    `pixelflags/` at this repo's root any more.
+  - [x] ~~`.vscode/` at repo root is untracked~~ — committed; it carries the
+    Swift/WSL `swift.path` wiring, as suspected.
+  - [x] ~~Delete `Resources/Icons` orphans again after the next `npm run
+    icons`~~ — the prune step ran clean in 0.7.5: 207 PNGs, 0 orphans, and all
+    207 byte-identical when re-rasterised. Superseded as a standing chore by
+    `assertAssetsExist`, which fails the *other* direction (a referenced id with
+    no file) on every `npm run generate`.
   - [ ] KNOWN-ISSUES.md: add a short section for the 0.6.x additions —
     find-missing-refs.mjs as the data gate, the leaf-recolor loader, and the
-    "art masters vs shipped Resources" relationship.
+    "art masters vs shipped Resources" relationship. *Add the 0.7.5 gates to the
+    same section while there: `assertOutlineCoverage`, `assertAssetsExist` and
+    `ArtPipelineRosterTests`.*
 - **HGapps root**
-  - [ ] Root .md census after this pass: README-layout.md (live),
-    V1-ROADMAP.md (live), PLAN.md (this file), SHIPPING-REVIEW.md +
-    PORT-TO-WEB.md (archived — move to an `archive/` folder or delete once
-    the method notes have been absorbed into the roadmap).
+  - [x] ~~Root .md census: move SHIPPING-REVIEW.md + PORT-TO-WEB.md to an
+    `archive/` folder~~ — done in 0.6.5. Both have lived in `HGapps\archive\`
+    since, alongside four retired scratch drops (including
+    `shared-newicons-retired-0.6.5`). The live root docs are `README-layout.md`
+    and `V1-ROADMAP.md`; this file moved to `vinodex-ios\horizon-md\`.
   - [ ] `HGapps` root is not a git repo — the canonical `shared/` master and
     these planning docs are unversioned. Cheap fix: `git init` at root with a
     .gitignore covering the two repos and `xtool/` — the master data deserves
-    history. (Decide before the next big data batch.)
+    history. **Now tracked as `audit-review/FINDINGS.md` A033**, which adds the
+    consequence: it is *why* the hub↔repo syncs are one-way. Still a user
+    decision.
   - [ ] Downloads spec files (`vinodex-0.5.9.md`, `vinodex-0.6.2.md`,
     `vinodex-missing-data*.md`) — move into `HGapps\specs\` so batches and
-    their specs live together and survive Downloads cleanup.
+    their specs live together and survive Downloads cleanup. *Still open;
+    `HGapps\specs\` does not exist yet, and specs since 0.7.0 have arrived
+    pasted as often as as files.*
 - **vinodex-web repo**
-  - [ ] Commit the synced `shared/` (done this pass if typecheck was green —
-    see commit log) and the new `shared/newicons/` art drop.
+  - [x] ~~Commit the synced `shared/` and the new `shared/newicons/` art
+    drop.~~ The `shared/` sync is standing practice (behind web `npm run
+    typecheck`). **`shared/newicons/` no longer exists** — it was retired in
+    0.6.5 when the drawn-art masters moved to `art/icons/`, and the drop is in
+    `HGapps\archive\shared-newicons-retired-0.6.5`. Committing it is not a thing
+    that can be done.
   - [ ] The SHIPPING-REVIEW hardening list is still open: CI workflow
     (install/typecheck/build), master branch protection, README truth pass
-    (pivot sentence, shared/ ownership table).
+    (pivot sentence, shared/ ownership table). *`paritybot`'s beat; overlaps
+    A001–A004 and A031 in the audit ledger.*
 
 ## C. Product next (from V1-ROADMAP, direction updated)
 

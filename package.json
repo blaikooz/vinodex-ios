@@ -11,6 +11,8 @@
     "grape-art": "python3 scripts/import-grape-art.py",
     "style-art": "python3 scripts/import-style-art.py",
     "class-art": "python3 scripts/import-class-art.py",
+    "stamp-art": "python3 scripts/import-stamp-art.py",
+    "logo-art": "python3 scripts/import-logo-art.py",
     "icons:verify": "python3 scripts/verify-art.py"
   },
   "devDependencies": {
