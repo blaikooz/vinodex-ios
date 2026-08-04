@@ -9,6 +9,16 @@
 # a ten-minute build is spent on it. See KNOWN-ISSUES.md "Deploying to the
 # iPhone" for the reasoning behind each gate.
 #
+# Exit codes: 2 port unhealthy, 3 no WSL default route, 4 no device,
+#             5 sync failed, 6 phone never trusted this computer,
+#             7 phone not connected to Apple Devices,
+#             otherwise xtool's own exit code.
+#
+# The proven opening sequence, when the bridge is down: replug the phone, run
+# fix-27015.ps1 ELEVATED (it relaunches Apple Devices itself, in the order that
+# wins the port race), then run this script with -SkipSync. Do not open Apple
+# Devices by hand first - see step 0.
+#
 # This script never elevates. When the 27015 race needs fixing it prints the
 # elevated command and stops - splitting the fix across a UAC prompt from
 # inside a running deploy is exactly how the race is lost.
@@ -39,6 +49,41 @@ function Note($text)     { Write-Host "    --  $text" -ForegroundColor DarkGray 
 # alternations like grep -E "a|b" - wsl.exe -- bash -lc silently mangles both,
 # and an empty variable downstream is a much worse failure than a syntax error.
 function Wsl($Cmd) { wsl.exe -d $Distro -- bash -lc $Cmd }
+
+# ---------------------------------------------------------- 0. the connection
+#
+# The opening move, always: is Windows actually talking to the phone through
+# Apple Devices? Every later gate assumes it. Apple Devices is not optional
+# scaffolding - it IS the usbmuxd provider, so if it is closed there is nothing
+# on the other end of the bridge no matter how healthy the port looks.
+
+Step 0 'Phone connected to Apple Devices'
+
+$usb = @(Get-PnpDevice -ErrorAction SilentlyContinue |
+    Where-Object { $_.FriendlyName -match 'Apple Mobile Device USB|Apple iPhone' -and $_.Status -eq 'OK' })
+
+if (-not $usb) {
+    Bad 'Windows does not see the phone on USB.'
+    Note 'Unplug, replug, unlock the phone, then re-run.'
+    Note 'A node stuck at status Unknown usually means a replug in progress.'
+    exit 7
+}
+Ok "$($usb.Count) Apple USB node(s) enumerated."
+
+$appleProcs = @(Get-Process -ErrorAction SilentlyContinue |
+    Where-Object { $_.ProcessName -match 'Apple|AMPDevices' })
+
+if (-not $appleProcs) {
+    Bad 'Apple Devices is not running - it IS the usbmuxd provider.'
+    Note 'Do NOT simply open it. While the portproxy still holds 27015, Apple'
+    Note 'cannot bind 127.0.0.1:27015, falls back to an ephemeral port, and'
+    Note 'starts respawning every 30-60s - which outruns the fix.'
+    Note 'Run the elevated fix instead. It frees the port, relaunches Apple'
+    Note 'Devices in the right order, and re-adds the proxy only if Apple won:'
+    Write-Host "  Start-Process powershell -Verb RunAs -ArgumentList '-ExecutionPolicy','Bypass','-File','$WinRepo\scripts\fix-27015.ps1'" -ForegroundColor Yellow
+    exit 7
+}
+Ok 'Apple Devices is running.'
 
 # ---------------------------------------------------------------- 1. the port
 
@@ -106,6 +151,47 @@ if (-not $udid.Trim()) {
 }
 Ok "UDID $($udid.Trim())"
 
+# ------------------------------------------------------------ 3b. the pairing
+#
+# The computer recognising the phone comes FIRST, before any build is spent.
+# idevice_id lists a device over raw usbmuxd whether or not it is trusted, so a
+# green step 3 is not evidence of trust. Everything downstream - provisioning,
+# install, launch - is a lockdown conversation that needs the pairing record,
+# and those fail LATE, after the build. Ask for trust up front instead.
+
+Step '3b' 'Trust / pairing'
+
+$pairEnv  = "env USBMUXD_SOCKET_ADDRESS=$usbmuxd"
+$validate = (Wsl "timeout 20 $pairEnv idevicepair validate 2>&1") -join "`n"
+
+if ($validate -match 'SUCCESS') {
+    Ok 'Phone is paired and trusting this computer.'
+} else {
+    Note 'Not validated - asking the phone to trust this computer now.'
+    Note 'UNLOCK the phone and tap Trust when the dialog appears.'
+
+    $pair = (Wsl "timeout 30 $pairEnv idevicepair pair 2>&1") -join "`n"
+    foreach ($line in ($pair -split "`n")) { if ($line.Trim()) { Note $line.Trim() } }
+
+    # Poll rather than assume: the dialog waits on a human, and pair returns
+    # before the phone has answered it.
+    $trusted = $false
+    foreach ($i in 1..20) {
+        Start-Sleep -Seconds 3
+        $validate = (Wsl "timeout 20 $pairEnv idevicepair validate 2>&1") -join "`n"
+        if ($validate -match 'SUCCESS') { $trusted = $true; break }
+    }
+
+    if (-not $trusted) {
+        Bad 'The phone never accepted the trust dialog.'
+        Note 'Unlock it, tap Trust, then re-run this script.'
+        Note 'No dialog at all? Settings > General > Transfer or Reset iPhone >'
+        Note 'Reset > Reset Location & Privacy, then unplug/replug and retry.'
+        exit 6
+    }
+    Ok 'Trust accepted.'
+}
+
 if ($CheckOnly) { Write-Host "`nPreflight clean - ready to deploy." -ForegroundColor Green; exit 0 }
 
 # ---------------------------------------------------------------- 4. the sync
@@ -127,7 +213,15 @@ if (-not $SkipSync) {
 # --------------------------------------------------------------- 5. the build
 
 if ($Clean) { Step 5 'Build + install (clean)' } else { Step 5 'Build + install' }
-Note 'A clean build takes several minutes; xtool streams progress below.'
+
+# Measured, so nobody has to sit and watch it. Clean build: 210-230s. Warm
+# build: under 10s. Install after the build: well under a minute. Check back
+# near the end of that window rather than polling the whole way through.
+if ($Clean) {
+    Note 'Clean build: expect 210-230s, then install. Check back at ~3.5 min.'
+} else {
+    Note 'Warm build: under 10s, then install. Expect this within a minute.'
+}
 
 if ($Clean) { Wsl "rm -rf $WslDst/.build" }
 

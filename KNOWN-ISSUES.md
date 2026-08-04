@@ -144,6 +144,14 @@ separate reasons (below). An agent or session that cannot prompt for UAC should
 pairing record — so that when the user does elevate, the fix plus a `-SkipSync`
 re-run is all that remains, rather than discovering a second problem afterwards.
 
+**Do not launch the Apple Devices app as a consolation move.** Added 2026-08-03.
+It is unelevated, so it is available, and it looks like partial progress toward
+the fix — it is the opposite. In state 2 (proxy alone, no Apple process) the
+`netsh` delete is uncontested; launching the app first only moves the system
+into state 1, where the launcher respawns on a new ephemeral port every 30-60 s
+and actively races the fix. `fix-27015.ps1` relaunches the app itself, in the
+right order, inside the elevated pass. Leave it closed and hand over.
+
 ### Free-profile App ID cap is 3
 
 ```
@@ -159,6 +167,62 @@ stay held.
 This is why `ios/xtool.yml` still uses `com.example.Vinodex`: reusing an
 existing App ID is the only way to deploy. Changing it to a real reverse-DNS ID
 needs the quota to free up or a paid account.
+
+### Provisioning fails with a 409 `ENTITY_ERROR` about device IDs
+
+Seen 2026-08-03. The deploy clears all three preflight gates, gets through
+`Unpacking` and `Preparing device`, and dies in **Provisioning**:
+
+```
+Error: Unexpected response, expected status code: created, response: conflict(
+  ... status: "409", code: "ENTITY_ERROR",
+  detail: "There are no current IOS devices on this team matching the provided
+  device IDs.")
+```
+
+**This is not the 27015 race** — the port was healthy and the device was visible.
+It is Apple Developer Services being eventually consistent with itself, and it
+resolves on its own. Diagnose it before touching anything:
+
+```bash
+wsl -d xtool-ubuntu -- bash -lc "xtool auth status"        # which Apple ID / team
+wsl -d xtool-ubuntu -- bash -lc "xtool ds teams list"      # free vs paid, and how many
+wsl -d xtool-ubuntu -- bash -lc "xtool ds devices list"    # is the UDID registered?
+wsl -d xtool-ubuntu -- bash -lc "xtool ds profiles list"   # did a profile get made?
+```
+
+None of those need the phone, the port, or elevation — they are pure web API
+calls, so **this whole diagnosis is available while the bridge is down.**
+
+What the timestamps showed here: the device record was created at 13:26 and the
+`com.example.Vinodex` profile at 14:01, both on the day of the failure. So
+xtool *had* registered the device — the failing run registered it itself — and
+then the profile-creation call in the same run raced ahead of the registration
+propagating to the profile service. The device was `ENABLED` and the profile
+`ACTIVE` by the time anyone looked.
+
+**The rule: on a 409 here, re-run. Do not "fix" it.** Specifically do not change
+the bundle ID (the App ID quota is 3 and burning one is unrecoverable — see
+above), do not `xtool auth logout`, and do not go to the Developer portal to add
+the device by hand. Every one of those is a plausible-looking response to the
+error text and all three make things worse. If `xtool ds devices list` shows the
+UDID present and `ENABLED`, the account side is *already correct* and the only
+missing ingredient is time.
+
+Escalate to the user only if the device genuinely is **absent** from
+`xtool ds devices list` after a re-run, since `xtool ds devices` has `list` as
+its only subcommand — there is no CLI path to register one.
+
+Two things that make this recur rather than being a one-off:
+
+- **Free-provisioning device registrations lapse.** Profiles from 27-28 July
+  referenced this same UDID, yet the device record was re-created on 3 August.
+  The registration had expired and xtool silently re-made it — which is what
+  opened the propagation window in the first place.
+- **Free-team profiles expire after 7 days**, same clock as the signed build.
+  `xtool ds profiles list` showing `profile state: INVALID` for old bundle IDs
+  is normal and not worth chasing; only the row for the App ID in `xtool.yml`
+  matters.
 
 ### Pre-flight checklist
 
