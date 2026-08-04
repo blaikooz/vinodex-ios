@@ -249,11 +249,12 @@ struct AccessTests {
     /// Extended in 0.7.3 (F1) with the three cases the later sub-batches read:
     /// an expansion pack, the workshop, and an easter egg. All three are stored
     /// in the same set as a purchase, which is the point — see `Entitlement`.
+    /// `.lineage` joined them in 0.7.5 (E1).
     @Test("every entitlement round-trips through its id")
     func entitlementIDsRoundTrip() {
         let all: [Entitlement] = [
             .pro, .flavors, .skins, .lightMode, .country("New Zealand"),
-            .expansion("champagne"), .workshop, .easterEgg("verboseBoot"),
+            .expansion("champagne"), .workshop, .lineage, .easterEgg("verboseBoot"),
         ]
         for entitlement in all {
             #expect(Entitlement(id: entitlement.id) == entitlement, "\(entitlement.id) did not round-trip")

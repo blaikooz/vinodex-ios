@@ -72,7 +72,17 @@ const legacyColorMap: Record<string, LegacyGrapeMeta> =
 
 const GRAPE_ENTRIES: GrapeEntry[] = GRAPE_CARDS.map((card) => {
   const legacy = legacyColorMap[card.id];
-  const bodyClass = getGrapeBodyClass(legacy?.wineType, card.style, LEGACY_GRAPES.find((grape) => grape.id === card.id)?.details.body);
+  // The whole legacy record, hoisted (0.7.5, E). `bodyClass` below already did
+  // this find inline and `lineage` needs the same record, so the second reader
+  // is the one that makes it worth naming rather than scanning 171 records
+  // twice per card.
+  const record = LEGACY_GRAPES.find((grape) => grape.id === card.id);
+  // The authored pedigree (0.7.5, E). `GRAPE_CARDS` does not carry it -- a card
+  // is the stat-bar projection -- so it comes off the legacy record. Passed
+  // through by name because this object is built field by field; see
+  // `GrapeEntry.lineage` for why it is top level rather than in `details`.
+  const lineage = record?.lineage;
+  const bodyClass = getGrapeBodyClass(legacy?.wineType, card.style, record?.details.body);
   const rarityMap: Record<string, RarityLabel> = {
     common: 'COMMON',
     uncommon: 'UNCOMMON',
@@ -101,6 +111,11 @@ const GRAPE_ENTRIES: GrapeEntry[] = GRAPE_CARDS.map((card) => {
     tastingProfile: legacy?.tastingProfile,
     grapeCard: card,
     rarity: rarityMap[card.rarityTier] || 'UNCOMMON',
+    // Omitted entirely when absent rather than written as `undefined`: the
+    // generator's JSON pass would drop it either way, but `vinodex-web`
+    // typechecks this under `exactOptionalPropertyTypes`-adjacent strictness and
+    // an explicit `undefined` reads as "authored blank" rather than "no data".
+    ...(lineage ? { lineage } : {}),
     details: {
       origin: card.countryOfOrigin,
       synonyms: card.alternateNames.map(canonicalizeGrapeName),

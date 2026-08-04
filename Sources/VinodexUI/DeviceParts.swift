@@ -433,7 +433,11 @@ public struct ChassisLook {
     public var bodyPatternAsset: String? { skin.bodyPatternAsset }
     public var isTranslucent: Bool { skin.isTranslucent }
     public var rimGlow: Color? { skin.rimGlow }
-    public var statusLights: [(fill: Color, border: Color)] { skin.statusLights }
+    /// The trio gained an `ink` member in 0.7.5 (A1) — the marquee pills' glyph
+    /// colour. Restated rather than inferred because this is a forward with an
+    /// explicit type, which is exactly the kind of second spelling that only a
+    /// clean `xtool` build finds: `swift test` cannot see this module at all.
+    public var statusLights: [(fill: Color, border: Color, ink: Color)] { skin.statusLights }
     public var userMark: SkinMark? { skin.userMark }
     public var drawnMark: SkinMark? { skin.drawnMark }
     public var sketch: SketchStyle? { skin.sketch }

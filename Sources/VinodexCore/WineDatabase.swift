@@ -289,6 +289,14 @@ public final class WineDatabase: Sendable {
     /// rather than swallowed so a schema drift is visible instead of silent.
     public let decodeErrors: [String]
 
+    /// The pedigree graph (0.7.5, E).
+    ///
+    /// Built here for the reason `byID` and `byName` are: it is a reverse index
+    /// over the whole grape list, the screen that reads it would otherwise
+    /// rebuild it on every navigation, and this type is where "one pass at load"
+    /// already lives. One pass over 171 records; see `GrapeLineageIndex`.
+    public let lineage: GrapeLineageIndex
+
     /// id -> entry, so `entry(id:)` is a hash lookup rather than a scan of the
     /// whole entry array. Every navigation used to pay that scan.
     private let byID: [String: WineEntry]
@@ -390,6 +398,13 @@ public final class WineDatabase: Sendable {
         }
         self.sortedEntries = sorted
         self.searchHaystacks = sorted.map(\.searchHaystack)
+
+        self.lineage = GrapeLineageIndex(
+            grapes: entries.compactMap {
+                if case .grape(let g) = $0 { return g }
+                return nil
+            }
+        )
     }
 
     /// Whether an entry is in the free tier.

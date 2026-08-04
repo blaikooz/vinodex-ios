@@ -104,6 +104,22 @@ export interface GrapeEntry extends BaseEntry {
   grapeCard: GrapeCard;
   rarity: RarityLabel;
   details: GrapeDetails;
+  /**
+   * Authored genetics, carried through from `LegacyGrapeRecord` (0.7.5, E).
+   *
+   * **Top level, not inside `details`, and that is the whole reason this line
+   * exists.** The iOS generator's `STRIP_ENTRY_FIELDS` drops `grapeCard` on the
+   * way out, so anything reached only through the card never lands in
+   * `entries.json`; `details` is built field by field in `constants.ts` rather
+   * than spread, so a field nobody names there is dropped just as silently.
+   * This sits beside the other `grape*` projections, which is the shape that
+   * already travels.
+   *
+   * Optional because 40% of the catalog has a relationship and 60% does not —
+   * see `GrapeLineage`, and `GrapeLineageIndex` on the Swift side for what the
+   * missing 60% is shown instead of an empty tree.
+   */
+  lineage?: GrapeLineage;
 }
 
 export interface RegionDetails {
@@ -198,6 +214,65 @@ export const isFlavorEntry = (e: WineEntry): e is FlavorEntry => e.category === 
 export const isContinentEntry = (e: WineEntry): e is ContinentEntry => e.category === 'CONTINENTS';
 export const isCountryGateEntry = (e: WineEntry): e is CountryGateEntry => e.category === 'COUNTRY_GATE';
 
+/**
+ * One end of a lineage edge (0.7.5 E, sommbot).
+ *
+ * `id` when the other variety is a catalog entry, `name` when it is not —
+ * exactly one of the two, never both.
+ *
+ * **In-catalog links are by id, not by name, and that is deliberate.** Every
+ * other cross-reference in this file resolves through the app's name normaliser,
+ * and the grape-name index is precisely where that breaks: "Espadeiro" answers
+ * to five VIVC prime names, "Nerello" to seven, "Colorino" to three. A pedigree
+ * graph resolved by name would quietly wire a Galician vine to a Portuguese one.
+ * Ids are also stable by house rule — renames touch `name` only.
+ *
+ * Off-catalog ancestors are *named* rather than dropped. Gouais Blanc is the
+ * mother of a third of France's varieties and will never be a collectible
+ * entry; refusing to name it would throw away most of the tree. A renderer
+ * draws these as flat, untappable nodes; `data-review/CANDIDATES.md` is where
+ * one goes if it earns a slot of its own.
+ */
+export interface LineageRef {
+  /** Catalog grape id, e.g. `"G008"`. Mutually exclusive with `name`. */
+  id?: string;
+  /** Display name of a variety the catalog does not carry. */
+  name?: string;
+  /** Seed vs pollen parent, set only where the cross direction is established. */
+  role?: 'mother' | 'father';
+  /** The relationship is real, but its direction or the identity is disputed. */
+  contested?: boolean;
+}
+
+/**
+ * A grape's marker-confirmed relatives (0.7.5 E, sommbot).
+ *
+ * **Only the child-facing direction is stored.** `offspring`, `mutations` and
+ * `siblings` are all derived by one reverse pass over the grape list — offspring
+ * of X is every grape whose `parents` contains X; half-siblings are the grapes
+ * that share a parent key (`id ?? normalised name`, which is why off-catalog
+ * ancestors must be spelled the same way everywhere). Storing both directions
+ * would mean two places to be wrong and a list that silently rots every time a
+ * grape is added; deriving costs one pass over 171 records at load.
+ *
+ * Nothing goes in here that is not marker-confirmed. Where markers establish the
+ * relationship but not its *direction*, the ref carries `contested` and `note`
+ * explains it, rather than the entry asserting or omitting it.
+ */
+export interface GrapeLineage {
+  /** At most two. An unidentified second parent is absent, never a placeholder. */
+  parents?: LineageRef[];
+  /** A somatic mutation of that variety — same genotype, different skin. */
+  mutationOf?: LineageRef;
+  /**
+   * A first-degree relative whose direction is unresolved, or a confirmed
+   * half-sibling whose shared parent the catalog cannot name.
+   */
+  related?: LineageRef[];
+  /** One sentence for the tree's footnote wherever the above is contested. */
+  note?: string;
+}
+
 // Raw legacy grape source — not part of the WineEntry union.
 // Consumed by grapeCards.ts and constants.ts to derive the canonical GrapeEntry shape.
 export interface LegacyGrapeRecord {
@@ -220,6 +295,17 @@ export interface LegacyGrapeRecord {
     synonyms?: string[];
     classification?: string;
   };
+  /**
+   * Authored genetics. Absent on most entries — a sparse correct tree beats a
+   * dense speculative one, and 0.7.5 E ships only what markers confirm.
+   *
+   * Not yet carried onto `GrapeEntry`: `constants.ts` builds that shape field by
+   * field rather than spreading, so a pass-through there (and a `lineage` on
+   * `GrapeEntry`, and `WineEntry.swift`) is what makes this reach the app.
+   * `STRIP_ENTRY_FIELDS` in the iOS generator is a blacklist, so nothing needs
+   * to change there.
+   */
+  lineage?: GrapeLineage;
 }
 
 /**

@@ -94,36 +94,20 @@ public enum DexGlyph {
 /// with a trip back to the grid between each. Their panels were also the three
 /// shortest in the app, so a combined one still fits a screenful.
 ///
-/// The raw values are display copy, not storage: no `SettingsSection` is
-/// persisted anywhere, so CUSTOMIZATION could simply be shortened to CUSTOMIZE
-/// — thirteen characters was the longest label on the grid and the only one
-/// that had to shrink to fit its square.
+/// **The raw values are storage, and were mis-documented as display copy until
+/// 0.7.5.** The sentence that stood here said "no `SettingsSection` is persisted
+/// anywhere". That has been untrue since 0.7.2 (A7): `QuickPinStore` writes
+/// these raw values comma-joined into the `marqueeQuickPins` default, and its
+/// decoder drops anything it does not recognise — so a rename does not fail
+/// loudly, it silently unpins whatever the user had pinned. B2 renames ACCESS to
+/// SHOP and therefore does it in `displayName`, per the house rule the skins
+/// have followed since 0.5.1: rename the label, never the stored word.
+///
+/// (CUSTOMIZATION → CUSTOMIZE predates the pin store and is already in the raw
+/// values; it is left alone rather than being unwound into a `displayName` for
+/// the sake of it.)
 public enum SettingsSection: String, CaseIterable, Hashable, Sendable, Identifiable {
     case customization = "CUSTOMIZE"
-    /// The cartridge shelf (0.7.3, 0.7.3c — A1/A2). Atlas, device and display
-    /// packs, what each holds, and how much of it you have drunk.
-    ///
-    /// **A settings section rather than a `DexRoute` case of its own**, which is
-    /// the cheaper half of a real argument: the shelf is a panel of grouped
-    /// tiles under headings, which is what CUSTOMIZE already is, and going in
-    /// through `settingsSection` means the marquee title, the marquee glyph, the
-    /// Back behaviour, the pin bar and `ChromeTests`' coverage all arrive without
-    /// a line of new plumbing. A2 asks the packs to reuse the skin picker's
-    /// presentation; sitting on the same kind of surface as the skin picker is
-    /// the first half of that.
-    ///
-    /// **Labelled PACKS, not EXPANSION PACKS.** Same reason CUSTOMIZATION became
-    /// CUSTOMIZE — thirteen characters was already the longest label the grid's
-    /// squares fit, and this would be fifteen. The panel's own heading inside
-    /// carries the full name, exactly as FIRMWARE and WORKSHOP do on the marquee.
-    ///
-    /// **Reached from inside CUSTOMIZE, not from the settings grid.** That grid
-    /// is a fixed three-by-two sized to fill the LCD by construction, so a
-    /// seventh tile would have been an orphan on a fourth row; and nine of the
-    /// twelve cartridges *are* the two pickers on CUSTOMIZE, so it is where
-    /// somebody looking for them already is. Being a section rather than a route
-    /// still buys the marquee title, the glyph, the pin bar and `ChromeTests`.
-    case packs = "PACKS"
     /// Device behaviour rather than device looks: text size, haptics, and the
     /// stored-data reset. Split from CUSTOMIZE so that panel stays purely
     /// cosmetic — a wipe button between two colour pickers is a trap.
@@ -132,25 +116,56 @@ public enum SettingsSection: String, CaseIterable, Hashable, Sendable, Identifia
     /// here — it is a readout rather than a setting, but the settings grid is
     /// where a user goes looking for "what is in this thing".
     case data = "DATA"
+    /// **The shop (0.7.5, B1/B2).** Displayed as SHOP; stored as `"ACCESS"`,
+    /// which is what the pin store already has on disk.
+    ///
+    /// It holds the expansion-pack shelves as of B1 — they were reached from
+    /// inside CUSTOMIZE, which was always a compromise: that door existed
+    /// because the settings grid is a fixed three-by-two sized to fill the LCD
+    /// and a seventh tile would have been an orphan on a fourth row. B1 resolves
+    /// it without touching the grid at all, because packs are paid content and
+    /// this is the tile paid content already had.
+    ///
+    /// **`case packs` retired here.** It existed to give the shelf a marquee
+    /// title, a glyph, Back behaviour and `ChromeTests` coverage; the shelf now
+    /// gets all four from this case instead. The grid is six tiles either way,
+    /// and the marquee's chip row is back to four — which is what its own
+    /// comment has claimed since 0.7.1 and stopped being true when PACKS landed.
+    /// Anyone who had pinned PACKS loses that pin, the same trivially recoverable
+    /// cost a rename would have had.
     case access = "ACCESS"
     case dev = "DEV"
 
     public var id: String { rawValue }
+
+    /// What the device calls this section on screen.
+    ///
+    /// Defaults to the raw value, so a section only appears here when its label
+    /// and its storage have diverged — which makes the list of divergences the
+    /// list of cases in this switch rather than something to be grepped for.
+    public var displayName: String {
+        switch self {
+        // ACCESS → SHOP (0.7.5, B2). Label only; see the note on the case.
+        case .access: "SHOP"
+        default: rawValue
+        }
+    }
 
     /// SF Symbol for the grid tile. All iOS 17-safe — see KNOWN-ISSUES on
     /// symbols with a later OS floor rendering blank rather than failing.
     public var symbol: String {
         switch self {
         case .customization: "paintpalette.fill"
-        // A cartridge is a box you slot in, and this is the one box glyph in the
-        // app — it collides with nothing on `DexRoute.marqueeSymbol`'s table,
-        // which `ChromeTests.glyphsAreDistinct` covers because every
-        // `SettingsSection` is folded into `allRoutes`. SF Symbols 1 / iOS 13,
-        // well under the iOS 17 floor.
-        case .packs: "shippingbox.fill"
         case .settings: "slider.horizontal.3"
         case .data: "chart.bar.fill"
-        case .access: "lock.fill"
+        // `bag.fill` since 0.7.5 (B2), replacing `lock.fill`. A padlock was the
+        // right glyph for a panel about what you could not reach; this is a
+        // storefront, and a shop marked with a padlock reads as closed. SF
+        // Symbols 1 / iOS 13, well under the iOS 17 floor, and it collides with
+        // nothing on `DexRoute.marqueeSymbol`'s table —
+        // `ChromeTests.glyphsAreDistinct` covers that, because every
+        // `SettingsSection` is folded into `allRoutes`.
+        case .access: "bag.fill"
         case .dev: "ladybug.fill"
         }
     }
@@ -249,6 +264,14 @@ public enum DexRoute: Hashable, Sendable {
     /// opens it — see `SettingsSectionPanel.deviceWorkshop`; the route itself is
     /// not a gate, exactly as `.detail` is not.
     case deviceWorkshop
+    /// One grape's pedigree, drawn as a tree (0.7.5, E1). Parents and the
+    /// variety it mutated from above, offspring and mutations below, half-
+    /// siblings beside. See `GrapeLineageIndex`.
+    ///
+    /// Carries an id for the reason `.detail` does, and gated the same way
+    /// `.deviceWorkshop` is — on the button that pushes it, not here. Routes in
+    /// this app are destinations rather than gates.
+    case lineage(entryID: String)
     /// The continent info screen — INFO blurb plus a COUNTRIES list, each
     /// linking to that country's regions. Reached from the globe markers.
     case continent(entryID: String)
@@ -297,7 +320,10 @@ public enum DexRoute: Hashable, Sendable {
         case .settings:
             "SYSTEM"
         case .settingsSection(let section):
-            section.rawValue
+            // The label, not the stored word (0.7.5, B2) — see
+            // `SettingsSection.displayName`. For every section but SHOP the two
+            // are the same string.
+            section.displayName
         case .minigames:
             "TOOLS"
         // FILTER SEARCH → MASTER SEARCH (0.7.1, A1), label only; the case,
@@ -329,6 +355,11 @@ public enum DexRoute: Hashable, Sendable {
         // name, and WORKSHOP is what the entitlement is called anyway.
         case .deviceWorkshop:
             "WORKSHOP"
+        // The screen's own hero names the grape, so the marquee names the kind
+        // of page — the same trade `.country` makes, and it fits the marquee's
+        // fourteen characters where "GRAPE LINEAGE" plus a name never would.
+        case .lineage:
+            "LINEAGE"
         case .continent:
             "CONTINENT SCAN"
         }
@@ -452,6 +483,12 @@ public enum DexRoute: Hashable, Sendable {
         // tools live.
         case .deviceWorkshop:
             "hammer.fill"
+        // Matches the LINEAGE button on a grape's scan that leads here (K2,
+        // rule 1). A forking branch is the shape of the thing — and it is the
+        // only branch in the app, so it collides with nothing on this table.
+        // SF Symbols 2 / iOS 14, well under the iOS 17 floor.
+        case .lineage:
+            "arrow.triangle.branch"
         // Not the globe: the globe screen is the globe, and a continent page is
         // one continent (K2, rule 3).
         case .continent:

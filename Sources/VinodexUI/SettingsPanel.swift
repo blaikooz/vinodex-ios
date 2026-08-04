@@ -230,13 +230,9 @@ public struct SettingsSectionPanel: View {
     /// above, so the chassis Back button returns here rather than dropping out
     /// of settings.
     let onDeviceWorkshop: () -> Void
-    /// CUSTOMIZE's door to the cartridge shelf (0.7.3c, A1/A2), pushing
-    /// `.settingsSection(.packs)`. A closure like the workshop's rather than a
-    /// grid tile: the settings grid is a fixed three-by-two that fills the LCD
-    /// by construction, and a seventh tile would have been an orphan on a fourth
-    /// row. Seven of the twelve cartridges *are* the two pickers underneath this,
-    /// so CUSTOMIZE is where somebody looking for them already is.
-    let onExpansionPacks: () -> Void
+    // `onExpansionPacks` retired in 0.7.5 (B1) along with `packsDoor` and
+    // `SettingsSection.packs`. The shelf is not pushed from anywhere any more —
+    // it is part of the shop's own body.
 
     @State private var access = AccessStore.shared
     /// Read only to name the saved build the device is currently wearing — see
@@ -247,9 +243,14 @@ public struct SettingsSectionPanel: View {
     /// Observed rather than read once, so marking a tasting elsewhere and coming
     /// back finds the bars moved.
     @State private var bookmarks = BookmarkStore.shared
-    /// Which cartridge has its detail strip open, by `ExpansionPack.id`. `nil`
-    /// for none, which is also the state a second tap on the open one returns to.
-    @State private var selectedPack: String?
+    /// Which cartridge's splash is open, by `Entitlement.id` (0.7.5, B4). `nil`
+    /// for none.
+    ///
+    /// Plain `@State` rather than `ScreenStateStore`, unlike the scroll anchor
+    /// beside it: which cartridge you last opened is not a place in the app the
+    /// way an anchor is, and restoring it on the way back in would re-open a
+    /// splash the user closed by leaving.
+    @State private var openShopItem: String?
     /// Set when a gated cosmetic is tapped; drives the same upgrade prompt a
     /// locked entry raises, so a paywalled *setting* behaves like a paywalled
     /// page rather than being a dead control.
@@ -283,8 +284,7 @@ public struct SettingsSectionPanel: View {
         onFirmwareHistory: @escaping () -> Void = {},
         onCheatConsole: @escaping () -> Void = {},
         onDemoMode: @escaping () -> Void = {},
-        onDeviceWorkshop: @escaping () -> Void = {},
-        onExpansionPacks: @escaping () -> Void = {}
+        onDeviceWorkshop: @escaping () -> Void = {}
     ) {
         self.section = section
         self.onDev = onDev
@@ -292,7 +292,6 @@ public struct SettingsSectionPanel: View {
         self.onCheatConsole = onCheatConsole
         self.onDemoMode = onDemoMode
         self.onDeviceWorkshop = onDeviceWorkshop
-        self.onExpansionPacks = onExpansionPacks
     }
 
     private var screenKey: String { ScreenStateStore.settings(section.rawValue) }
@@ -312,20 +311,36 @@ public struct SettingsSectionPanel: View {
                 UpgradePrompt(
                     entitlement: lockedBundle,
                     onUnlock: {
-                        access.grant(lockedBundle)
+                        let bundle = lockedBundle
                         self.lockedBundle = nil
-                        // **Continue where they were going** (0.7.3, C1). The
-                        // cosmetic bundles have nowhere to continue *to* — the
-                        // picker they were tapped from is already on screen and
-                        // has just unlocked in place — but the workshop is a
-                        // door, and stopping at "unlocked!" beside a button they
-                        // now have to find and press again is the same
-                        // half-finished unlock `RootView` fixed for locked
-                        // entries.
-                        if lockedBundle == .workshop { onDeviceWorkshop() }
+                        // **Through the purchase provider since 0.7.5 (B2).**
+                        // It was `access.grant(bundle)`; it is now the same
+                        // grant reached through `AccessStore.purchase`, which is
+                        // where a payment step would go. `LocalPurchaseProvider`
+                        // succeeds immediately, so this is today's behaviour
+                        // with a seam in it — the `await` resumes in the same
+                        // run loop pass on this build.
+                        Task {
+                            let outcome = await access.purchase(bundle)
+                            // **Continue where they were going** (0.7.3, C1).
+                            // The cosmetic bundles have nowhere to continue
+                            // *to* — the picker they were tapped from is
+                            // already on screen and has just unlocked in
+                            // place — but the workshop is a door, and stopping
+                            // at "unlocked!" beside a button they now have to
+                            // find and press again is the same half-finished
+                            // unlock `RootView` fixed for locked entries.
+                            //
+                            // Gated on the outcome now: a cancelled or failed
+                            // purchase must not open the door it did not buy.
+                            if outcome.entitlement == .workshop { onDeviceWorkshop() }
+                        }
                     },
                     onCancel: { self.lockedBundle = nil }
                 )
+            } else if let open = openShopItem,
+                      let item = allShopItems.first(where: { $0.id == open }) {
+                shopSplash(item)
             } else if confirmingWipe {
                 DexAlert(
                     title: "CLEAR SAVED DATA?",
@@ -340,6 +355,7 @@ public struct SettingsSectionPanel: View {
             }
         }
         .animation(DexMotion.overlay, value: lockedBundle)
+        .animation(DexMotion.overlay, value: openShopItem)
         .animation(DexMotion.overlay, value: confirmingWipe)
     }
 
@@ -359,12 +375,11 @@ public struct SettingsSectionPanel: View {
                 VStack(alignment: .leading, spacing: 18) {
                     switch section {
                     case .customization: customization
-                    case .packs: packShelf
                     case .settings: systemSettings
                     // Handled by the fixed branch above; unreachable here,
                     // kept so the switch stays exhaustive.
                     case .data: EmptyView()
-                    case .access: paywallTesting
+                    case .access: shop
                     case .dev: dev
                     }
                 }
@@ -384,16 +399,45 @@ public struct SettingsSectionPanel: View {
         }
     }
 
-    /// Free-tier switch, then the individual bundles.
+    // MARK: The shop (0.7.5, B1/B2/B3)
+
+    /// The storefront: upgrade cartridges, the three pack shelves, and the
+    /// developer switch at the bottom.
     ///
-    /// One boolean could only produce two states — all locked or all open — so
-    /// every interesting case went untested. The bundle rows below reproduce
-    /// them: own one country and nothing else, own the flavour wheel but no
-    /// atlas, own a cosmetic but no content. The counter under the master
-    /// switch reports what the current combination actually yields, which is
-    /// the fastest way to see a coverage rule behaving wrongly.
+    /// **This replaces the ACCESS harness rather than dressing it up.** What was
+    /// here was a column of `settingRow`s with `DexToggle`s — a developer's test
+    /// rig for reaching the unowned state of every gate in one tap, under a
+    /// heading that 0.7.3c had already renamed from BUNDLES to EXPANSION PACKS.
+    /// B1 gives that heading's *name* to the real cartridge shelves, B2 makes
+    /// this the route for paid content, and B3 says the whole surface is drawn
+    /// in the cartridge style. A toggle switch is not a storefront, so the
+    /// toggles are gone and every purchasable thing is a cartridge that opens to
+    /// a splash (B4).
+    ///
+    /// **The test rig is not lost, it moved into the splash.** The unowned state
+    /// of any gate is still one tap away — tap the cartridge, and its splash
+    /// carries the same UNLOCK the upgrade prompt does; REVOKE ALL PURCHASES at
+    /// the bottom still puts every gate back. What is lost is the ability to
+    /// revoke *one* entitlement without revoking the rest, which was a
+    /// convenience of the toggle shape rather than a thing the harness needed:
+    /// FREE TIER plus REVOKE ALL still reaches every combination, one more tap
+    /// at a time.
+    ///
+    /// **Ordering.** What is for sale first, the developer switch last. It reads
+    /// as a shop with a service panel at the bottom rather than as a test rig
+    /// with some products in it.
     @ViewBuilder
-    private var paywallTesting: some View {
+    private var shop: some View {
+        settingsSection("UPGRADES") {
+            LazyVGrid(columns: pickerColumns, spacing: 8) {
+                ForEach(shopUpgrades) { item in
+                    shopTile(item)
+                }
+            }
+        }
+
+        packShelf
+
         settingsSection("FREE TIER") {
             VStack(alignment: .leading, spacing: 10) {
                 settingRow(
@@ -407,37 +451,10 @@ public struct SettingsSectionPanel: View {
                     DexToggle(isOn: access.starterOnly) { access.starterOnly.toggle() }
                 }
 
-                Text("Off means everything is open regardless of bundles — turn it on to test the locked experience.")
+                Text("Off means everything is open regardless of what you own — turn it on to see the locked experience.")
                     .font(DexFont.mono(17))
                     .foregroundStyle(lcd.subtext)
                     .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-
-        // BUNDLES -> EXPANSION PACKS (0.7.3c, A1). The one user-facing use of
-        // the old word; storage is `Entitlement.id` and the
-        // `"grantedEntitlements"` key, neither of which contains it, so this is
-        // a display rename with nothing behind it. The heading doubles as this
-        // section's scroll anchor (see `settingsSection`), and anchors live in
-        // `ScreenStateStore`, which is explicitly session state — the worst this
-        // costs is one lost scroll position on the build that ships it.
-        settingsSection("EXPANSION PACKS") {
-            VStack(spacing: 10) {
-                ForEach(testableEntitlements, id: \.id) { entitlement in
-                    settingRow(
-                        symbol: bundleSymbol(entitlement),
-                        tint: access.granted.contains(entitlement) ? Dex.green : lcd.subtext,
-                        title: entitlement.title,
-                        detail: entitlement.blurb
-                    ) {
-                        DexToggle(
-                            isOn: access.granted.contains(entitlement),
-                            tint: Dex.green
-                        ) {
-                            access.toggle(entitlement)
-                        }
-                    }
-                }
 
                 if !access.granted.isEmpty {
                     Button {
@@ -458,35 +475,84 @@ public struct SettingsSectionPanel: View {
                     }
                     .buttonStyle(DexPressStyle(scale: 0.98))
                 }
+
+                // **No RESTORE PURCHASES button, deliberately.**
+                // `LocalPurchaseProvider.restore()` returns nothing and says why:
+                // a local restore hands back the set it was given. A button that
+                // reports success and changes nothing is the exact fault
+                // `CheatCodes`' own note forbids, so the control arrives with the
+                // adapter that can honour it — see `PurchaseProviding`.
             }
         }
     }
 
-    /// The bundles the ACCESS panel offers as test cases.
+    /// One thing the shop sells, whether or not it is a pack.
+    ///
+    /// A small value type rather than two parallel tile builders: B3 asks for one
+    /// presentation across the whole shop, and the way to get one presentation is
+    /// one input. `pack` is the only thing that differs — it is what gives a
+    /// splash a collection score instead of a plain entry count.
+    private struct ShopItem: Identifiable {
+        let entitlement: Entitlement
+        let symbol: String
+        let title: String
+        let blurb: String
+        /// Non-nil for the twelve cartridges; nil for the plain upgrades.
+        let pack: ExpansionPack?
+
+        var id: String { entitlement.id }
+
+        init(entitlement: Entitlement, symbol: String, title: String, blurb: String) {
+            self.entitlement = entitlement
+            self.symbol = symbol
+            self.title = title
+            self.blurb = blurb
+            self.pack = nil
+        }
+
+        init(pack: ExpansionPack) {
+            self.entitlement = pack.entitlement
+            self.symbol = pack.symbol
+            self.title = pack.title
+            self.blurb = pack.blurb
+            self.pack = pack
+        }
+    }
+
+    /// Everything on sale that is not a cartridge.
     ///
     /// Country bundles are drawn from the countries that actually have regions,
-    /// capped at the three largest — the panel is a test harness, not a store,
-    /// and eighteen country rows would bury the cosmetic cases underneath them.
-    /// `.workshop` joined the cosmetics in 0.7.3 (C1). It is a real gate with a
-    /// real surface behind it now, and the ACCESS harness exists so that the
-    /// *unowned* state of a gate can be reached in one tap — which for a premium
-    /// feature is the state most likely to be wrong and least likely to be seen
-    /// by the person who built it.
+    /// capped at the three largest — eighteen country cartridges would bury
+    /// everything else, and the storefront that sells all of them is a decision
+    /// for whoever writes the product table (see `PurchaseProviding`).
     ///
-    /// **The three atlas packs joined in 0.7.3c (E1)** and the nine cosmetic ones
-    /// deliberately did not. Only the atlas packs cover entries, so only they
-    /// change the browsable count above — which is what this harness is for. A
-    /// device cartridge toggled here would move nothing on this screen, because
-    /// `ExpansionPack.impliedBy` means the skins bundle two rows up already owns
-    /// it; the PACKS shelf is where those are seen, and it reads the same store.
+    /// **The twelve packs are deliberately absent**: they are the three shelves
+    /// underneath, which is the whole of B1. The atlas three used to be listed
+    /// here as harness rows because only they move the browsable count, and that
+    /// reason went with the harness.
     ///
-    /// `.easterEgg` still stays out: eggs are found rather than bought (see the
-    /// note on `bundleSymbol`).
-    private var testableEntitlements: [Entitlement] {
-        [.pro, .flavors]
+    /// `.easterEgg` stays out, and now says so in code as well as in a comment —
+    /// `LocalPurchaseProvider.canPurchase` refuses it, so it could not be sold
+    /// even if it were listed.
+    private var shopUpgrades: [ShopItem] {
+        let entitlements: [Entitlement] =
+            [.pro, .flavors]
             + topCountries.map { Entitlement.country($0) }
-            + [.skins, .lightMode, .workshop]
-            + ExpansionPacks.atlas.map(\.entitlement)
+            // `.lineage` joins the two premium *features* (0.7.5, E1). Beside
+            // `.workshop` rather than up with `.pro`, because the order here is
+            // the shelf order and these two are the same kind of thing: a screen
+            // you buy, not a slice of the catalog.
+            + [.skins, .lightMode, .workshop, .lineage]
+        return entitlements
+            .filter { access.granted.contains($0) || access.isPurchasable($0) }
+            .map {
+                ShopItem(
+                    entitlement: $0,
+                    symbol: bundleSymbol($0),
+                    title: $0.title,
+                    blurb: $0.blurb
+                )
+            }
     }
 
     private var topCountries: [String] {
@@ -508,12 +574,17 @@ public struct SettingsSectionPanel: View {
         case .country: "flag.fill"
         case .skins: "paintpalette.fill"
         case .lightMode: "sun.max.fill"
-        // Not in `testableEntitlements`, so these never reach the ACCESS
-        // harness today — the switch is exhaustive because `Entitlement` is,
-        // and 0.7.3b/0.7.3c will want them listed here when they have something
-        // to sell. `key.fill` matches the cheat console's own progress row.
+        // `.expansion` does not reach here — a pack's `ShopItem` takes the
+        // pack's own glyph, which is what distinguishes twelve cartridges from
+        // one another. Kept because `Entitlement` is exhaustive and a shipping
+        // box is the right answer if one ever arrives by another route.
         case .expansion: "shippingbox.fill"
         case .workshop: "wrench.and.screwdriver.fill"
+        // The same branch the LINEAGE button and the route's marquee wear
+        // (K2, rule 1 — a page's glyph is the glyph on the control that opens it).
+        case .lineage: "arrow.triangle.branch"
+        // Never reachable: eggs are found rather than bought, and
+        // `LocalPurchaseProvider.canPurchase` refuses them.
         case .easterEgg: "key.fill"
         }
     }
@@ -573,47 +644,21 @@ public struct SettingsSectionPanel: View {
     @ViewBuilder
     private var customization: some View {
         deviceWorkshop
-        packsDoor
         screenMode
         skinTesting
     }
 
-    /// The door to the cartridge shelf (0.7.3c, A1/A2).
-    ///
-    /// Second, beside the workshop, because the two are the only things on this
-    /// panel that are *doors* rather than pickers — and putting it under
-    /// twenty-one skin tiles and nine mode cards would bury it exactly the way
-    /// the workshop's own note says the workshop must not be buried.
-    ///
-    /// **No gate on it.** Nine of the twelve cartridges describe cosmetics the
-    /// user may or may not own, and the other three lock nothing at all — so the
-    /// shelf is a readout, not a purchase, and a padlock on the door would
-    /// promise a paywall that is not behind it. Individual cartridges carry their
-    /// own lock state; see `cartridgeTile`.
-    private var packsDoor: some View {
-        settingsSection("EXPANSION PACKS") {
-            Button {
-                Haptics.screenTap()
-                onExpansionPacks()
-            } label: {
-                settingRow(
-                    // Matches the marquee glyph the section wears (K2, rule 1)
-                    // — see `SettingsSection.packs`.
-                    symbol: SettingsSection.packs.symbol,
-                    tint: lcd.accent,
-                    title: "OPEN",
-                    detail: "Twelve cartridges: the catalog by region, the shells, and the screens. See how much of each you have drunk."
-                ) {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(lcd.subtext)
-                }
-            }
-            .buttonStyle(DexPressStyle(scale: 0.98))
-        }
-    }
+    // `packsDoor` retired in 0.7.5 (B1). It was a `settingsSection("EXPANSION
+    // PACKS")` here holding one OPEN row, and it existed because the settings
+    // grid is a fixed three-by-two that fills the LCD, so the shelf could not
+    // have a tile of its own without orphaning one on a fourth row. B1 moves the
+    // shelf into the shop, which had a tile already — so the door is not
+    // relocated, it is deleted, and CUSTOMIZE goes back to being three pickers
+    // and one workshop door with nothing else to say about its layout: it is a
+    // scrolling column of sections, so removing one shortens it and moves
+    // nothing.
 
-    // MARK: The cartridge shelf (0.7.3c, A2/B/C/D/E1)
+    // MARK: The cartridge shelf (0.7.3c, A2/B/C/D/E1; in the shop since 0.7.5, B1)
 
     /// Three shelves of cartridges, one per `ExpansionPack.Kind`.
     ///
@@ -622,33 +667,29 @@ public struct SettingsSectionPanel: View {
     /// `DexPickerTile` for the tile, and the picker's interaction model
     /// unchanged — tap to select, the selected tile takes `lcd.accent`, a gated
     /// tile dims and raises the ordinary `UpgradePrompt` through `lockedBundle`.
-    /// The one thing a cartridge does that a skin swatch does not is *expand*: a
-    /// skin tile's whole meaning is its picture, and a pack has a blurb, a size
-    /// and a collection score that no 46pt tile can carry. Hence the detail strip
-    /// under the grid, which is the only new shape on this panel.
     ///
-    /// Selection is plain `@State` rather than `ScreenStateStore`, unlike the
-    /// scroll anchor beside it. Which cartridge you last poked at is not a place
-    /// in the app the way an anchor is, and restoring it on the way back in would
-    /// re-open a strip the user closed by leaving.
+    /// **The detail strip became a splash in 0.7.5 (B4).** 0.7.3c expanded a
+    /// blurb and a progress bar in place under the grid, which is as much as a
+    /// strip between two rows of tiles can carry. B4 asks for a screen, so
+    /// tapping a cartridge now raises `shopSplash` over the whole panel — see
+    /// there for why it is an overlay rather than a route.
     @ViewBuilder
     private var packShelf: some View {
         ForEach(ExpansionPack.Kind.allCases) { kind in
             settingsSection("\(kind.rawValue) PACKS") {
-                VStack(alignment: .leading, spacing: 12) {
-                    LazyVGrid(columns: pickerColumns, spacing: 8) {
-                        ForEach(ExpansionPacks.packs(of: kind), id: \.id) { pack in
-                            cartridgeTile(pack)
-                        }
-                    }
-                    if let chosen = ExpansionPacks.packs(of: kind).first(where: {
-                        $0.id == selectedPack
-                    }) {
-                        packDetail(chosen)
+                LazyVGrid(columns: pickerColumns, spacing: 8) {
+                    ForEach(ExpansionPacks.packs(of: kind), id: \.id) { pack in
+                        shopTile(ShopItem(pack: pack))
                     }
                 }
             }
         }
+    }
+
+    /// Every cartridge in the shop, for resolving `openShopItem` back to what it
+    /// names. Order matters only in that it is stable.
+    private var allShopItems: [ShopItem] {
+        shopUpgrades + ExpansionPacks.all.map { ShopItem(pack: $0) }
     }
 
     /// Everything on the tried shelf, as ids.
@@ -661,18 +702,34 @@ public struct SettingsSectionPanel: View {
         Set(bookmarks.ids(on: .tried))
     }
 
-    private func cartridgeTile(_ pack: ExpansionPack) -> some View {
-        // The same predicate the shopfront and the cheat console ask — see
-        // `AccessStore.owns`. On a default install this is `true` for every
-        // cartridge, and the tile's interesting state is its completion tick.
-        let owned = access.owns(pack)
-        let chosen = selectedPack == pack.id
-        let progress = pack.progress(tried: triedIDs, in: db)
+    /// Whether the user owns a shop item. Packs answer through `impliedBy`.
+    private func owns(_ item: ShopItem) -> Bool {
+        if let pack = item.pack { return access.owns(pack) }
+        return access.granted.contains(item.entitlement)
+    }
+
+    /// One cartridge on any shelf in the shop (0.7.5, B3).
+    ///
+    /// **`DexPickerTile` and `CartridgeShape`, unchanged.** 0.7.3c consolidated
+    /// four bespoke grids into three plus this shared tile and noted that
+    /// finishing the job was a sitting of its own. B3 is that sitting for the
+    /// shop: what was a column of toggle rows is this, and the shop now has one
+    /// tile shape for everything it sells rather than a fourth grid of its own.
+    /// `skinGrid` and `modeGrid` are still hand-written — see the note on
+    /// `skinGrid` for what remains.
+    ///
+    /// Tapping always opens the splash, owned or not. An owned tile that did
+    /// nothing would be a dead control, and the splash is where the unowned one
+    /// is bought — so there is one gesture and one destination whatever state a
+    /// cartridge is in.
+    private func shopTile(_ item: ShopItem) -> some View {
+        let owned = owns(item)
+        let chosen = openShopItem == item.id
 
         return DexPickerTile(
-            label: pack.title,
+            label: item.title,
             isChosen: chosen,
-            // A padlock replaces the pack's own glyph rather than joining it,
+            // A padlock replaces the item's own glyph rather than joining it,
             // exactly as it does on a workshop part chip.
             symbol: owned ? nil : "lock.fill",
             lcd: lcd,
@@ -680,45 +737,173 @@ public struct SettingsSectionPanel: View {
             labelSize: 9,
             labelMinHeight: 24,
             outline: CartridgeShape(),
-            action: {
-                if owned {
-                    // A second tap closes the strip: the tile is a disclosure,
-                    // not a setting, so there is no state to be stuck in.
-                    selectedPack = chosen ? nil : pack.id
-                } else {
-                    lockedBundle = pack.entitlement
-                }
-            },
+            action: { openShopItem = item.id },
             swatch: {
                 PackCartridge(
-                    pack: pack,
+                    symbol: item.symbol,
                     ink: chosen ? lcd.onAccent : lcd.subtext,
                     ground: chosen ? lcd.accent : lcd.surface,
-                    isComplete: progress?.isComplete ?? false
+                    // On a pack this is a finished collection; on an upgrade it
+                    // is simply ownership. Both mean "you are done here", which
+                    // is what the tick has always said.
+                    isComplete: item.pack.map {
+                        $0.progress(tried: triedIDs, in: db)?.isComplete ?? owned
+                    } ?? owned
                 )
             }
         )
         .opacity(owned ? 1 : 0.45)
     }
 
-    /// What the selected cartridge holds.
+    /// The splash a cartridge opens to (0.7.5, B4).
     ///
-    /// Two shapes, because the two kinds of pack answer different questions. An
-    /// atlas pack has a *collection*: how many of its grapes and styles you have
-    /// drunk, out of how many there are, over a bar. A device or display pack has
-    /// members you either own or do not, and `ExpansionPack.progress` returns
-    /// `nil` for it rather than inventing a denominator — see the note on
-    /// `ExpansionPack.Contents.cosmetics` for why the count is resolved here, in
-    /// the module that can actually see `ChassisSkinSection`.
+    /// **An overlay over the panel rather than a route.** A route would mean a
+    /// `DexRoute` case per pack or one carrying an id, plus `ChromeTests`
+    /// coverage, a marquee title and a glyph — for a card that is dismissed by
+    /// looking away from it. The overlay sits exactly where `UpgradePrompt` and
+    /// the wipe alert already do, inside the LCD, and the chassis Back button
+    /// still means "leave the shop", which is the behaviour a splash should not
+    /// steal.
+    ///
+    /// **Cartridge mockups, plural.** Three plates fanned behind one another,
+    /// the hero on top carrying the glyph — a product shot rather than a bigger
+    /// version of the tile that was just tapped. They are `CartridgeShape` all
+    /// the way down, so the splash cannot drift from the shelf.
+    ///
+    /// The contents line has three shapes because the three kinds of thing
+    /// answer different questions: an atlas pack has a collection score over a
+    /// bar, a cosmetic pack has a member count, and a plain upgrade has however
+    /// many entries it opens — or nothing at all, if it opens none, which is the
+    /// honest answer for the three cosmetic entitlements.
     @ViewBuilder
-    private func packDetail(_ pack: ExpansionPack) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(pack.blurb)
-                .font(DexFont.mono(17))
-                .foregroundStyle(lcd.subtext)
-                .fixedSize(horizontal: false, vertical: true)
+    private func shopSplash(_ item: ShopItem) -> some View {
+        let owned = owns(item)
 
-            if let progress = pack.progress(tried: triedIDs, in: db) {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    cartridgeMockups(item)
+
+                    Text(item.title)
+                        .font(DexFont.retro(15))
+                        .tracking(1)
+                        .foregroundStyle(lcd.text)
+
+                    Text(item.blurb)
+                        .font(DexFont.mono(18))
+                        .foregroundStyle(lcd.subtext)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    splashContents(item)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
+            }
+
+            HStack(spacing: 10) {
+                Button {
+                    Haptics.select()
+                    openShopItem = nil
+                } label: {
+                    Text("CLOSE")
+                        .font(DexFont.retro(11))
+                        .tracking(1)
+                        .foregroundStyle(lcd.subtext)
+                        .padding(.vertical, 14)
+                        .frame(maxWidth: .infinity)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .strokeBorder(lcd.surfaceEdge, lineWidth: 2)
+                        )
+                }
+                .buttonStyle(DexPressStyle(scale: 0.98))
+
+                if owned {
+                    // Not a button. There is nothing left to do to an owned
+                    // cartridge, and a disabled control saying OWNED would be a
+                    // thing to try to press.
+                    Text("OWNED")
+                        .font(DexFont.retro(11))
+                        .tracking(1)
+                        .foregroundStyle(Dex.green)
+                        .padding(.vertical, 14)
+                        .frame(maxWidth: .infinity)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .strokeBorder(Dex.green.opacity(0.55), lineWidth: 2)
+                        )
+                } else {
+                    Button {
+                        Haptics.select()
+                        openShopItem = nil
+                        // Straight to the ordinary upgrade prompt, which is
+                        // where the purchase happens for a locked entry and a
+                        // locked skin alike — see `body`'s overlay. The shop
+                        // deliberately does not grow a second confirm step.
+                        lockedBundle = item.entitlement
+                    } label: {
+                        Text("UNLOCK")
+                            .font(DexFont.retro(11))
+                            .tracking(1)
+                            .foregroundStyle(lcd.onAccent)
+                            .padding(.vertical, 14)
+                            .frame(maxWidth: .infinity)
+                            .background(RoundedRectangle(cornerRadius: 6).fill(lcd.accent))
+                    }
+                    .buttonStyle(DexPressStyle(scale: 0.98))
+                }
+            }
+            .padding(16)
+            .background(lcd.panelGround)
+        }
+        .background(lcd.panelGround)
+        // Swallows anything aimed at the panel underneath, which is still
+        // mounted and still scrollable without this.
+        .contentShape(Rectangle())
+        .onTapGesture {}
+    }
+
+    /// The fanned cartridge trio at the top of a splash.
+    private func cartridgeMockups(_ item: ShopItem) -> some View {
+        GeometryReader { geo in
+            let side = min(geo.size.width * 0.44, geo.size.height)
+            ZStack {
+                // Two ghosts behind, stepped away from the hero. Drawn as bare
+                // outlines rather than as full cartridges: they are the rest of
+                // the box, not three separate products.
+                ForEach([2, 1], id: \.self) { depth in
+                    CartridgeShape()
+                        .fill(lcd.surface)
+                        .overlay(
+                            CartridgeShape()
+                                .strokeBorder(lcd.surfaceEdge, lineWidth: 1)
+                        )
+                        .frame(width: side, height: side)
+                        .offset(x: CGFloat(depth) * side * 0.16, y: CGFloat(-depth) * side * 0.07)
+                        .opacity(1 - Double(depth) * 0.28)
+                }
+
+                PackCartridge(
+                    symbol: item.symbol,
+                    ink: lcd.accent,
+                    ground: lcd.panelGround,
+                    isComplete: false
+                )
+                .frame(width: side, height: side)
+                .offset(x: -side * 0.16, y: side * 0.07)
+            }
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .center)
+        }
+        .frame(height: 132)
+        .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private func splashContents(_ item: ShopItem) -> some View {
+        if let pack = item.pack, let progress = pack.progress(tried: triedIDs, in: db) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text("\(progress.collected) / \(progress.total) TRIED")
                         .font(DexFont.retro(11))
@@ -739,19 +924,24 @@ public struct SettingsSectionPanel: View {
                     }
                 }
                 .frame(height: 8)
-            } else {
-                Text("\(pack.cosmeticMemberCount) IN THIS PACK")
+            }
+        } else if let pack = item.pack {
+            // A cosmetic pack: members you own or do not, and no denominator
+            // `ExpansionPack.progress` is willing to invent. The count is
+            // resolved here, in the module that can see `ChassisSkinSection`.
+            Text("\(pack.cosmeticMemberCount) IN THIS PACK")
+                .font(DexFont.retro(11))
+                .tracking(1)
+                .foregroundStyle(lcd.text)
+        } else {
+            let covered = db.entries.filter { item.entitlement.covers($0, in: db) }.count
+            if covered > 0 {
+                Text("\(covered) ENTRIES")
                     .font(DexFont.retro(11))
                     .tracking(1)
                     .foregroundStyle(lcd.text)
             }
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
-        .overlay(
-            RoundedRectangle(cornerRadius: 6).strokeBorder(lcd.surfaceEdge, lineWidth: 1)
-        )
     }
 
     /// The door to the Device Workshop (0.7.3, A1/C1).
@@ -1051,10 +1241,17 @@ public struct SettingsSectionPanel: View {
                             .frame(height: 50)
                             .frame(maxWidth: .infinity)
                             .overlay(alignment: .topLeading) {
-                                Circle()
-                                    .fill(option.orb)
-                                    .frame(width: 10, height: 10)
-                                    .padding(5)
+                                // Squared with the real orb (0.7.5, A2). A
+                                // mockup whose parts are the wrong shape is
+                                // worse than no mockup — this tile's whole job
+                                // is to say what the device will look like.
+                                RoundedRectangle(
+                                    cornerRadius: 10 * DexMetrics.islandOrbCornerFraction,
+                                    style: .continuous
+                                )
+                                .fill(option.orb)
+                                .frame(width: 10, height: 10)
+                                .padding(5)
                             }
                             .overlay(alignment: .topTrailing) {
                                 Circle()
@@ -1766,6 +1963,10 @@ enum SavedDataReset {
         AvatarStore.shared.clear()
         QuizProgress.shared.reset()
         StreakStore.shared.reset()
+        // The Wine Exam's history and pass streak (0.7.5, D6). Its own store,
+        // its own two keys — an un-reset history would leave a fresh start
+        // claiming a hundred papers' worth of statistics.
+        ExamRecordStore.shared.reset()
         // The back plate goes back to the scatter it ships with (0.6.7, C1).
         StampLayoutStore.shared.reset()
         // The stamp-unlock ledger and the pin bar (0.7.1, D2/B5). Both are
@@ -1798,6 +1999,8 @@ enum SavedDataReset {
             StreakStore.streakKey,
             StreakStore.lastDayKey,
             StreakStore.bestKey,
+            ExamRecordStore.storageKey,
+            ExamRecordStore.bestStreakKey,
             CustomDeviceStore.storageKey,
             // `LcdMode.storageKey` and `ChassisSkin.storageKey` are no longer
             // listed here: both are `DeviceAxis` entries now (0.7.3, B1) and

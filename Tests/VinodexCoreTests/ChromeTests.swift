@@ -48,6 +48,9 @@ struct ChromeTests {
             .firmwareHistory,
             .cheatConsole,
             .deviceWorkshop,
+            // 0.7.5 (E1). Added here in the same edit that added the case, which
+            // is the discipline 0.7.3a's two missing routes were the argument for.
+            .lineage(entryID: "G001"),
             .continent(entryID: "europe"),
         ]
         routes += EntryCategory.allCases.map { .list(category: $0, filter: nil) }
@@ -138,11 +141,16 @@ struct ChromeTests {
     /// Bump the number *and* add the route to `allRoutes` together.
     @Test("the route list covers the whole enum")
     func routeListIsComplete() {
-        // 21 simple + 5 categories + 6 settings sections = 32. 31 until 0.7.3c
-        // added `SettingsSection.packs` — the cartridge shelf, which is a
-        // settings section rather than a route of its own, so it arrives on this
-        // list through `SettingsSection.allCases` below and `glyphsAreDistinct`
-        // picks up its `shippingbox.fill` for free. Was 28 until
+        // 22 simple + 5 categories + 5 settings sections = 32. **32 again in
+        // 0.7.5 (E1)**, which adds `.lineage` — a grape's pedigree tree, pushed
+        // from its scan. Was 31 earlier in the same version (B1), which retired
+        // `SettingsSection.packs`: the cartridge
+        // shelf moved into the shop, so it no longer needs a section of its own
+        // to earn a marquee title and a glyph. Was 32 from 0.7.3c, which added
+        // that section — it arrived on this list through
+        // `SettingsSection.allCases` below and `glyphsAreDistinct` picked up its
+        // `shippingbox.fill` for free; the shop's own `bag.fill` (B2, replacing
+        // `lock.fill`) is covered the same way. Was 28 until
         // 0.7.3b listed `.firmwareHistory` and `.cheatConsole` — both added to
         // the enum by 0.7.3a and neither added here, so for one sub-batch the
         // uniqueness gate below could not see them — and added `.deviceWorkshop`

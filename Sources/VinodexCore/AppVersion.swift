@@ -255,6 +255,48 @@ public enum AppVersion {
     /// generated set grew by one file, `firmware.json`, which is data the app
     /// reads rather than an entry anyone can browse.
     ///
+    /// 0.7.5: **the shop.** A patch again, and for the 0.7.3 reason: nothing
+    /// about what the app *is* changed. B moves the expansion packs out of
+    /// CUSTOMIZE into a renamed ACCESS — SHOP, the route for paid content — and
+    /// redraws the whole of it in 0.7.3c's cartridge tile, which finishes the
+    /// grid consolidation that batch started for every surface but the two
+    /// pickers carrying real art. `SettingsSection.packs` retires into the shop
+    /// that now holds its shelves, so `ChromeTests`' route count goes 32 → 31.
+    /// Underneath it, `PurchaseProviding` beside F1's `EntitlementStoring`: the
+    /// step where money would change hands, with the local implementation doing
+    /// exactly what 0.7.4 did inline. **No StoreKit and no payment path** — see
+    /// `LocalPurchaseProvider` for what an adapter would have to supply.
+    ///
+    /// A is six fixes: bigger marquee lamps paid for out of the panel again
+    /// (A1), a squared orb (A2), a refresh flash on the four single-phosphor
+    /// modes (A3), PÉT-NAT → FIBERGLASS (A4), the real wordmark bouncing in the
+    /// screensaver instead of a drawn stand-in (A5), and the POST scaled up to
+    /// fill the LCD (A6) — still inside it, still skippable, still under two
+    /// seconds, and `BootSequenceTests` unchanged.
+    ///
+    /// E is **interactive grape lineage**: `sommbot` authored a pedigree off VIVC
+    /// passports (57 grapes carrying one, 68 of 171 in a relationship once the
+    /// reverse pass runs, 42 in-catalog edges and 36 off-catalog ancestors), and
+    /// this batch built everything that consumes it — the `constants.ts`
+    /// pass-through, `GrapeLineage`/`LineageRef` on `GrapeEntry`,
+    /// `GrapeLineageIndex` deriving offspring, mutations and half-siblings from
+    /// the one child-facing direction that is stored, a `find-missing-refs.mjs`
+    /// arm, and the tree screen behind a new `Entitlement.lineage`. `DexRoute`
+    /// gains `.lineage`, so `ChromeTests`' route count goes 31 → 32.
+    ///
+    /// **The tree is not offered on the 103 grapes with no relatives.** A screen
+    /// that opens empty for three grapes in five is worse than a feature you find
+    /// in the shop; see PLAN.md.
+    ///
+    /// E also carries the `bodyFromText` fix `levelFromText`'s note pointed at in
+    /// 0.7.4: `full` was tested above `medium-full` and every test in the function
+    /// is a substring test, so **16 grapes drew a 5/5 body bar they never
+    /// earned**. Unlike the tannin fix, this one moves rendered values — 16 of
+    /// them, on iOS and on web.
+    ///
+    /// No catalog change — 438 stands and `waveMilestones` does not move.
+    /// `lineage` is a new *optional* field on grape entries, not a new entry.
+    ///
     /// **The value below is no longer edited here.** See the note at the top of
     /// this comment: it reads the head of `shared/data/firmware.ts`.
     static var fallback: String { FirmwareCatalog.shared.version }

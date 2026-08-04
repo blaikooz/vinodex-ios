@@ -461,9 +461,12 @@ public struct DeviceChassis<Content: View>: View {
                     .animation(.easeOut(duration: 0.12), value: orbHeld)
                     // The bead is smaller than the slot on purpose: shrinking a
                     // control's art is not a licence to shrink its touch area,
-                    // so the hit shape stays a full 44pt circle around it.
+                    // so the hit shape stays the full 44pt slot around it. It
+                    // follows the part's own outline (0.7.5, A2) — a squared
+                    // key with a circular hit region has dead corners exactly
+                    // where the eye says the part is.
                     .frame(width: slot, height: slot)
-                    .contentShape(Circle())
+                    .contentShape(Self.orbShape(size: slot))
                     // Hold to flip. A hidden gesture on a decorative-looking
                     // part is a poor primary affordance, but this one is a
                     // deliberate easter egg: the orb depresses under the finger
@@ -604,13 +607,35 @@ public struct DeviceChassis<Content: View>: View {
         .accessibilityLabel("Settings")
     }
 
+    /// The orb's outline (0.7.5, A2).
+    ///
+    /// **A rounded rectangle since 0.7.5, and `RecessedLamp`'s seam does not
+    /// cover it.** That modifier is generic over `InsettableShape`, so the
+    /// obvious read is that swapping shapes is a one-line call-site change — but
+    /// the orb has never gone through it, deliberately, and `RecessedLamp`'s own
+    /// note says why: it draws a part *recessed* into the deck, and the orb is a
+    /// bead that stands **proud** of it. Routing the orb through it to get the
+    /// shape would invert the lighting on the one part that is meant to catch
+    /// the light. So the shape is parameterised here instead, in the one place
+    /// that draws a proud part, and `RecessedLamp` is untouched.
+    private static func orbShape(size: CGFloat) -> RoundedRectangle {
+        RoundedRectangle(
+            cornerRadius: size * DexMetrics.islandOrbCornerFraction,
+            style: .continuous
+        )
+    }
+
     private func lcdOrb(size: CGFloat) -> some View {
-        Circle()
+        let shape = Self.orbShape(size: size)
+        return shape
             .fill(skin.orb)
             .frame(width: size, height: size)
-            .overlay(Circle().strokeBorder(.white, lineWidth: max(size * 0.07, 2)))
+            .overlay(shape.strokeBorder(.white, lineWidth: max(size * 0.07, 2)))
             .overlay(alignment: .top) {
-                // Specular highlight, kept proportional to the orb.
+                // Specular highlight, kept proportional to the orb. Still a
+                // circle: it is a reflection on the part's crown, not an inset
+                // of its outline, and a rounded-rectangle highlight would read
+                // as a second smaller key sitting on the first.
                 Circle()
                     .fill(.white.opacity(0.8))
                     .frame(width: size * 0.26, height: size * 0.26)
@@ -839,6 +864,16 @@ public struct DeviceChassis<Content: View>: View {
             // the panel reads as the device's own menu rather than an iOS modal.
             ScanlineOverlay()
                 .opacity(DexMetrics.scanlineOpacity)
+                .allowsHitTesting(false)
+
+            // The refresh flash (0.7.5, A3).
+            //
+            // Last in the stack so it covers the screen, the drawer and the
+            // scanlines alike — a panel refreshing redraws all of it — but
+            // still *inside* the two modifiers below, so it is desaturated and
+            // tinted with everything else and comes out in the phosphor's own
+            // colour rather than white.
+            LcdRefreshFlash(screen: title, tint: lcd.monochromeTint, reduceMotion: reduceMotion)
                 .allowsHitTesting(false)
         }
         .animation(DexMotion.overlay, value: drawerOpen)
@@ -1179,7 +1214,7 @@ public struct DeviceChassis<Content: View>: View {
                     .contentShape(Circle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("\(section.rawValue), pinned")
+            .accessibilityLabel("\(section.displayName), pinned")
         } else {
             // Holds the other corner's slot open so a single pin stays in the
             // corner it was pinned into instead of sliding across the panel.
@@ -1332,6 +1367,7 @@ public struct DeviceChassis<Content: View>: View {
             indicatorPill(
                 lights[0].fill,
                 border: lights[0].border,
+                ink: lights[0].ink,
                 symbol: DexRoute.minigames.marqueeSymbol,
                 label: "Tools",
                 route: .minigames
@@ -1339,6 +1375,7 @@ public struct DeviceChassis<Content: View>: View {
             indicatorPill(
                 lights[2].fill,
                 border: lights[2].border,
+                ink: lights[2].ink,
                 symbol: SettingsSection.customization.symbol,
                 label: "Customise",
                 route: .settingsSection(.customization)
@@ -1350,6 +1387,7 @@ public struct DeviceChassis<Content: View>: View {
     private func indicatorPill(
         _ fill: Color,
         border: Color,
+        ink: Color,
         symbol: String,
         label: String,
         route: DexRoute
@@ -1366,13 +1404,18 @@ public struct DeviceChassis<Content: View>: View {
                 .overlay {
                     // Dark ink rather than the panel's: the lamp faces are lit
                     // colours chosen to glow, and a light glyph on CHAMPAGNE's
-                    // pale gold would not be there at all. The skin's own
-                    // `border` is the deepest shade of the same hue by
-                    // construction, so this can never be a colour the lamp is
-                    // not already wearing.
+                    // pale gold would not be there at all.
+                    //
+                    // **`ink`, not `border`, since 0.7.5 (A1).** It was the
+                    // border, which is also the rim this lamp is drawn with, so
+                    // the glyph and the keyline around it were the same colour
+                    // and the mark read as a thickening of the rim. `ink` is a
+                    // further 45% of the same hue toward black — still a shade
+                    // the lamp is already wearing, but now a stop below its own
+                    // outline instead of level with it.
                     Image(systemName: symbol)
                         .font(.system(size: DexMetrics.bandPillGlyph, weight: .black))
-                        .foregroundStyle(border)
+                        .foregroundStyle(ink)
                 }
                 // No bead (0.7.2, A4) — it would sit on the glyph.
                 .recessedLamp(
@@ -1941,6 +1984,92 @@ public struct ScanlineOverlay: View {
             }
         }
         .allowsHitTesting(false)
+    }
+}
+
+/// The panel refresh when the screen changes (0.7.5, A3).
+///
+/// **Monochrome modes only, and the gate is derived rather than listed.** A
+/// single-phosphor panel is the only display this belongs on: VINTAGE, AMBER,
+/// TERMINAL and GRÜNERBOY are a reflective LCD and three phosphor tubes, all of
+/// which visibly *redraw* when their contents change, and none of which can
+/// show a hue. The colour modes are meant to read as a modern screen and get
+/// nothing. The test is `lcd.monochromeTint != nil` — the same predicate
+/// `honorsFontInk` uses — so a fifth single-phosphor mode is covered the day it
+/// is added, and a colour mode can never accidentally opt in.
+///
+/// **It draws in white, not in the tint.** This view is mounted inside
+/// `innerBezel`'s `grayscale`/`colorMultiply` pass, so white comes out as
+/// whatever phosphor the mode is running. Painting the tint here would send it
+/// through `grayscale(1)` first and land on a muddier version of the same
+/// colour. The tint is passed in only as the gate.
+///
+/// **Subtle by construction.** Two things happen and both are brief: the panel
+/// lifts to a quarter-strength wash and falls away over `Self.duration`, and a
+/// soft band crosses it once in the same window — the sweep a dot-matrix LCD
+/// makes when every row is rewritten. Nothing blanks: at no point is the screen
+/// unreadable, because this fires on *arriving* somewhere and the first thing a
+/// user does is read.
+///
+/// **Reduce Motion removes it entirely**, which is the same reading the
+/// screensaver gets one stack slot up rather than the boot POST's. The POST
+/// keeps its content because the content is information; this has no content —
+/// it is an unprompted movement over a screen the user just asked for, and its
+/// settled state is nothing at all. Skipping the animation and showing the end
+/// state *is* showing nothing.
+private struct LcdRefreshFlash: View {
+    /// The screen's identity. The chassis's marquee `title`, which is
+    /// `DexRoute.title` — one string that changes on every navigation, already
+    /// threaded to this view, and already the thing the device itself claims is
+    /// on screen. Keying off the route stack instead would mean routing the
+    /// stack down here to learn something the title already says.
+    let screen: String
+    /// The mode's phosphor, or nil on a colour display. Gate only — see above.
+    let tint: Color?
+    let reduceMotion: Bool
+
+    /// How long the whole refresh takes. Short enough that it reads as the
+    /// panel settling rather than as a transition being played at you; long
+    /// enough at 60Hz to be a movement rather than a dropped frame.
+    private static let duration: Double = 0.22
+
+    /// Peak opacity of the full-panel wash.
+    private static let wash: Double = 0.26
+
+    /// 1 at the instant the screen changes, falling to 0 as the panel settles.
+    @State private var charge: Double = 0
+
+    private var active: Bool { tint != nil && !reduceMotion }
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                Color.white.opacity(charge * Self.wash)
+
+                // The rewrite sweep. Travels the panel's height once, its own
+                // length either side of the bounds so it enters and leaves
+                // rather than appearing and vanishing mid-screen.
+                let band = geo.size.height * 0.34
+                LinearGradient(
+                    colors: [.clear, .white.opacity(0.5), .clear],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: band)
+                .opacity(charge)
+                .offset(y: -geo.size.height / 2 - band + (1 - charge) * (geo.size.height + band * 2))
+            }
+        }
+        .blendMode(.plusLighter)
+        .opacity(active ? 1 : 0)
+        // `screen`, not `tint`: switching *into* a monochrome mode must not
+        // fire a refresh, or the screen-mode picker flashes under the thumb
+        // every time a card is tapped.
+        .onChange(of: screen) { _, _ in
+            guard active else { return }
+            charge = 1
+            withAnimation(.easeOut(duration: Self.duration)) { charge = 0 }
+        }
     }
 }
 

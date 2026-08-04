@@ -299,10 +299,17 @@ struct DeviceDiagram: View {
                 VStack(spacing: h * 0.035) {
                     // Island strip: orb + lights on the left, cog on the right.
                     HStack(spacing: 6) {
-                        Circle()
+                        // Squared with the real orb (0.7.5, A2). This diagram
+                        // exists to point at a specific part of the device the
+                        // user is holding; it has to be the same part.
+                        let orbShape = RoundedRectangle(
+                            cornerRadius: control * DexMetrics.islandOrbCornerFraction,
+                            style: .continuous
+                        )
+                        orbShape
                             .fill(skin.orb)
                             .frame(width: control, height: control)
-                            .overlay(Circle().strokeBorder(.white.opacity(0.8), lineWidth: 1.5))
+                            .overlay(orbShape.strokeBorder(.white.opacity(0.8), lineWidth: 1.5))
                             .opacity(dim(.orb))
                             .shadow(color: skin.orbGlow.opacity(lit(.orb) ? 0.9 : 0), radius: 6)
 

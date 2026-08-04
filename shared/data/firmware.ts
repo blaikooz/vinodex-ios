@@ -39,24 +39,55 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
-  version: "0.7.4",
+  version: "0.7.5",
   date: "2026-08-04",
-  headline: "GRAPE OVERHAUL",
+  // "THE SHOP" through the A/B sitting, and it stopped being the biggest thing
+  // in this release when D landed. The headline names the release on the
+  // FIRMWARE panel; a 407-question exam under a heading about a storefront was
+  // the panel describing the second-largest feature.
+  headline: "THE WINE EXAM",
   notes: [
-    "25 grapes join the catalog, most of them grown almost nowhere else.",
-    "Pais and Cinsault from Itata, Callet from Mallorca, Babic from Dalmatia.",
-    "Cabernet Pfeffer: about four hectares exist, and nobody agrees what it is.",
-    "Six regions added so those grapes point at a real home, not a famous neighbour.",
-    "Ribeiro, Mallorca, the Azores, South West France, San Benito, Itata Valley.",
-    "Marselan and Cabernet Gernischt are French by birth. Both entries rewritten.",
-    "Cabernet Gernischt is Carmenere. The card now says so.",
-    "White grapes show an empty tannin bar. It had read half full since the import.",
-    "438 entries: 171 grapes, 124 regions, 31 styles, 106 flavours, 26 countries.",
+    "The Wine Exam is rebuilt: 407 written questions across 16 subjects, from grapes to wine law.",
+    "Seven kinds of question. Multiple choice, true or false, select all, matching, ordering, aromas and outlines.",
+    "Every answer is explained. Right or wrong, you are told why before the next question.",
+    "Each paper draws evenly across the subjects, so one sitting is never ten questions about grapes.",
+    "Statistics: papers sat, accuracy, full marks, pass streak, and the subject you should study.",
+    "The Daily Challenge is unchanged and still built from the catalogue.",
+    "New: Grape Lineage. Parents, offspring, mutations and half-siblings, drawn as a family tree.",
+    "68 grapes have a pedigree. Where two sources disagree, the tree shows both and says so.",
+    "Body bars were reading Medium-Full as Full. Sixteen grapes now show the body they were given.",
+    "Expansion Packs move out of Customize. They live in the Shop now.",
+    "Access is renamed Shop: one storefront for everything you can own.",
+    "Every cartridge opens to a splash screen with its mockups and what is in it.",
+    "The whole shop is drawn as cartridges. The toggle rows are gone.",
+    "The status lights on the marquee are bigger, and their glyphs darker.",
+    "The orb is a rounded key rather than a bead, to match the shell.",
+    "Monochrome screens flash as they redraw when you change page.",
+    "The startup BIOS fills the display. Still under two seconds, still skippable.",
+    "The screensaver bounces the real Vinodex mark instead of a drawn stand-in.",
+    "The PET-NAT shell is now FIBERGLASS.",
+    "438 entries, unchanged: 171 grapes, 124 regions, 31 styles, 106 flavours, 26 countries.",
   ],
 };
 
 /** Everything before `CURRENT`, newest first. */
 const PREVIOUS: FirmwareRelease[] = [
+  {
+    version: "0.7.4",
+    date: "2026-08-04",
+    headline: "GRAPE OVERHAUL",
+    notes: [
+      "25 grapes join the catalog, most of them grown almost nowhere else.",
+      "Pais and Cinsault from Itata, Callet from Mallorca, Babic from Dalmatia.",
+      "Cabernet Pfeffer: about four hectares exist, and nobody agrees what it is.",
+      "Six regions added so those grapes point at a real home, not a famous neighbour.",
+      "Ribeiro, Mallorca, the Azores, South West France, San Benito, Itata Valley.",
+      "Marselan and Cabernet Gernischt are French by birth. Both entries rewritten.",
+      "Cabernet Gernischt is Carmenere. The card now says so.",
+      "White grapes show an empty tannin bar. It had read half full since the import.",
+      "438 entries: 171 grapes, 124 regions, 31 styles, 106 flavours, 26 countries.",
+    ],
+  },
   {
     version: "0.7.3",
     date: "2026-08-04",

@@ -2,14 +2,108 @@
 import SwiftUI
 import VinodexCore
 
-/// The Vinodex V (0.7.3, A5).
+/// The wordmark's two tinted layers, loaded once (0.7.5, A5).
+///
+/// **Cached in statics because the screensaver redraws at display rate.** The
+/// mark's position is a function of time inside a `TimelineView`, so the body
+/// below is re-evaluated every frame; `LogoMark` reads its PNG off disk on each
+/// render, which is fine for a still on the back plate and would be sixty file
+/// reads a second here.
+///
+/// `Resources/Logo` rather than `Resources/Icons` on purpose. `IconLoader` is
+/// the wrong door for a hand-made asset twice over: it resolves ids through
+/// `IconManifest.slug`, which is an Iconify convention this file has no id in,
+/// and `rasterize-icons.sh` **deletes** any PNG in `Resources/Icons` that the
+/// generated `icons.json` does not list — so an asset parked there would
+/// survive exactly until the next `npm run icons`. `Resources/Logo` is outside
+/// that prune and already holds the wordmark.
+///
+/// Both layers are `.alwaysTemplate`: the shipped PNGs are white-on-alpha
+/// silhouettes and every colour they wear comes from `foregroundStyle` at the
+/// call site. See `scripts/import-logo-art.py` for why the mark ships as two
+/// masks rather than as the master's own white-and-grey.
+@MainActor
+enum ScreensaverMarkArt {
+    static let face: UIImage? = load("vinodex-mark-face")
+    static let shade: UIImage? = load("vinodex-mark-shade")
+
+    /// Whether the mark can be drawn at all. False means a build shipped
+    /// without the two PNGs, which `LogoLayerTests` exists to catch first.
+    static var isAvailable: Bool { face != nil && shade != nil }
+
+    /// Width over height, taken from the art rather than written down, so a
+    /// re-import at a different size cannot leave the bounce box stretched.
+    /// Falls back to the fallback shape's own proportion.
+    static var aspect: CGFloat {
+        guard let size = face?.size, size.height > 0 else { return 1 / 1.05 }
+        return size.width / size.height
+    }
+
+    private static func load(_ name: String) -> UIImage? {
+        guard let url = DexResources.url(named: name, ext: "png", subdirectory: "Resources/Logo"),
+              let image = UIImage(contentsOfFile: url.path)
+        else { return nil }
+        return image.withRenderingMode(.alwaysTemplate)
+    }
+}
+
+/// The bouncing mark (0.7.5, A5) — the wordmark itself, in two tinted layers.
+///
+/// **Supersedes 0.7.3a's drawn placeholder.** That release had no logo asset in
+/// the tree, so it drew the wordmark's initial from scratch; `VinodexV` below is
+/// still here, now as the fallback rather than as the mark.
+///
+/// The two layers are the master's lit face and its extruded edge, split on
+/// luminance at import time. They are tinted separately here rather than shipped
+/// pre-coloured because this is drawn on the LCD, whose ink the user chooses —
+/// baking the master's white and grey into the PNGs would put two fixed colours
+/// on a screen that has twenty-one colourways, and would look wrong on all of
+/// them the moment the phosphor is not white.
+///
+/// `.interpolation(.none)`: the mark is pixel art with hard edges, and the
+/// import deliberately re-thresholds alpha after downscaling to keep them.
+struct ScreensaverMark: View {
+    /// The face colour. The shade is derived from it, so a bounce changes both
+    /// together and the relief never comes from two unrelated hues.
+    let tint: Color
+
+    var body: some View {
+        if let face = ScreensaverMarkArt.face, let shade = ScreensaverMarkArt.shade {
+            ZStack {
+                Image(uiImage: shade)
+                    .resizable()
+                    .interpolation(.none)
+                    // Not a second colour: the same ink, dimmed. On the
+                    // monochrome modes the whole LCD collapses to one phosphor
+                    // anyway, and an opacity step is the only depth cue that
+                    // survives that pass.
+                    .foregroundStyle(tint.opacity(0.45))
+                Image(uiImage: face)
+                    .resizable()
+                    .interpolation(.none)
+                    .foregroundStyle(tint)
+            }
+        } else {
+            // Visible on purpose, exactly as `DexIcon`'s missing-glyph branch
+            // is: a mark that failed to load must not be an empty box bouncing
+            // silently around the screen. This is 0.7.3a's drawn letterform,
+            // which needs no asset and cannot fail.
+            VinodexV().fill(tint)
+        }
+    }
+}
+
+/// The drawn wordmark initial (0.7.3, A5; the fallback since 0.7.5, A5).
 ///
 /// **Drawn here, from scratch**, for the same reason `SkinSigil` is: a mark that
 /// bounces around a screen is the most-looked-at thing in the app while it is
 /// up, and the one shape that must unambiguously be *ours*. The brief names the
 /// bounce as a familiar idea and is explicit that the familiar logo is not to be
 /// reproduced — so what bounces is the wordmark's own initial, and nothing about
-/// this file, its names or its geometry refers to anything else.
+/// this file, its names or its geometry refers to anything else. That still
+/// holds now that the real wordmark has arrived: it is *our* mark, and no name
+/// in this file, in the shipped PNGs or in any string the app prints says
+/// otherwise.
 ///
 /// The letterform is the chevron the wordmark's V already is: two strokes down
 /// to a point, cut square at the top and mitred at the bottom, with the interior
@@ -88,9 +182,13 @@ struct Screensaver: View {
         GeometryReader { geo in
             let box = geo.size
             let side = min(box.width, box.height) * Self.markFraction
-            // A V is wider than it is tall by a little; keeping the box square
-            // and letting the shape fill it would squash the letter.
-            let mark = CGSize(width: side, height: side * 1.05)
+            // The mark is wider than it is tall; keeping the box square and
+            // letting it fill would squash the wordmark. The ratio comes from
+            // the art (see `ScreensaverMarkArt.aspect`) rather than from a
+            // literal here, so re-importing at a different size cannot leave
+            // the bounce box the wrong shape — which is a fault nothing would
+            // catch, because a stretched logo still bounces correctly.
+            let mark = CGSize(width: side * ScreensaverMarkArt.aspect, height: side)
 
             TimelineView(.animation) { timeline in
                 let t = timeline.date.timeIntervalSince(since)
@@ -105,8 +203,7 @@ struct Screensaver: View {
                     mark: (width: mark.width, height: mark.height)
                 )
 
-                VinodexV()
-                    .fill(palette[hits % palette.count])
+                ScreensaverMark(tint: palette[hits % palette.count])
                     .frame(width: mark.width, height: mark.height)
                     .position(x: spot.x + mark.width / 2, y: spot.y + mark.height / 2)
             }

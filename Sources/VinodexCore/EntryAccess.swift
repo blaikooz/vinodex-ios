@@ -39,6 +39,13 @@ public final class AccessStore {
 
     private let defaults: UserDefaults
     private let store: any EntitlementStoring
+    /// How an entitlement is bought (0.7.5, B2) — see `PurchaseProviding`.
+    ///
+    /// Alongside `store` rather than inside it: the store records what is owned,
+    /// the provider decides whether it may be. `AccessStore` is where the two
+    /// meet, which is why `purchase(_:)` below is the only place in the app
+    /// where a successful purchase becomes a grant.
+    private let purchases: any PurchaseProviding
 
     /// `true` = free tier: only the starter selection plus whatever bundles
     /// have been granted are browsable.
@@ -60,12 +67,17 @@ public final class AccessStore {
 
     /// - Parameter store: defaults to the on-device store. Injected by tests,
     ///   and the seam a `StoreKitEntitlementStore` slots into.
+    /// - Parameter purchases: defaults to the free, instant local provider —
+    ///   which is what every build before 0.7.5 did inline. The seam a
+    ///   `StoreKitPurchaseProvider` slots into; see `PurchaseProviding`.
     public init(
         defaults: UserDefaults = .standard,
-        store: (any EntitlementStoring)? = nil
+        store: (any EntitlementStoring)? = nil,
+        purchases: (any PurchaseProviding)? = nil
     ) {
         self.defaults = defaults
         self.store = store ?? LocalEntitlementStore(defaults: defaults)
+        self.purchases = purchases ?? LocalPurchaseProvider()
         // `bool(forKey:)` returns false for a missing key, which is the default
         // we want anyway.
         self.starterOnly = defaults.bool(forKey: Self.storageKey)
@@ -113,6 +125,46 @@ public final class AccessStore {
     public func refresh() {
         store.refresh()
         sync()
+    }
+
+    // MARK: Purchases (0.7.5, B2)
+
+    /// Whether the shop may offer this at all — see `PurchaseProviding`.
+    ///
+    /// Owned things are not for sale, which is a rule about this app rather than
+    /// about the provider: `Entitlement` is non-consumable throughout, so buying
+    /// one twice can only ever be a mistake.
+    public func isPurchasable(_ entitlement: Entitlement) -> Bool {
+        !granted.contains(entitlement) && purchases.canPurchase(entitlement)
+    }
+
+    /// Buy it, and record it if it was bought.
+    ///
+    /// **The only place a purchase becomes a grant.** The provider deliberately
+    /// does not write to the store — it cannot know whether this app wants to
+    /// record what Apple just confirmed — so the two steps meet here, and the
+    /// mirror is refreshed by `grant` on the way through. A StoreKit adapter's
+    /// out-of-band transactions must come back through this method or
+    /// `restorePurchases()` for the same reason.
+    @discardableResult
+    public func purchase(_ entitlement: Entitlement) async -> PurchaseOutcome {
+        let outcome = await purchases.purchase(entitlement)
+        if let bought = outcome.entitlement { grant(bought) }
+        return outcome
+    }
+
+    /// Re-grant anything the provider can prove was already paid for.
+    ///
+    /// Returns what it added rather than what it found, so a caller can say
+    /// "nothing to restore" honestly. Empty locally, by design — see
+    /// `LocalPurchaseProvider.restore()`.
+    @discardableResult
+    public func restorePurchases() async -> Set<Entitlement> {
+        let found = await purchases.restore()
+        let added = found.subtracting(granted)
+        for entitlement in added { store.grant(entitlement) }
+        sync()
+        return added
     }
 
     /// Pull the store's answer back into the observed property.

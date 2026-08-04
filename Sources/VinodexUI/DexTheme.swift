@@ -188,6 +188,16 @@ public enum DexMetrics {
     /// *circles*: the widest point of the orb sits half a slot lower, where the
     /// arc has closed to ~2pt. Going below 8 starts cutting the button's actual
     /// edge rather than the empty corner of its bounding box.
+    ///
+    /// **Re-derived in 0.7.5 (A2), when the orb stopped being a circle.** The
+    /// sentence above is still true of the lamp trio, which is unchanged. It is
+    /// *not* what saves the orb, and it never was: the orb's bounding box starts
+    /// at `islandOrbInsetLeading` + half the slack, which is 68.4pt at SMALL and
+    /// 68.0 at LARGE — 42pt inboard of the worst-case 26pt cut. Squaring the
+    /// shape fills more of that box but does not move it, so the clearance is
+    /// the inset's, not the geometry's, and a rounded rectangle costs nothing
+    /// here. The circularity argument would matter again only for a control
+    /// placed inside `cornerGuardH`, which nothing is.
     public static var islandTopInset: CGFloat {
         max(islandNotchCenter - islandSlot / 2, 8)
     }
@@ -207,6 +217,19 @@ public enum DexMetrics {
     /// minimum, which the bead has been under since 0.6.6, so the orb's
     /// diameter has not driven the strip's height for two batches.
     public static var islandOrb: CGFloat { controlButton * 0.55 }
+    /// The orb's corner radius as a fraction of its size (0.7.5, A2).
+    ///
+    /// A2 asks for a rounded rectangle "to fit the hardware aesthetic", and the
+    /// number is what decides whether that reads as a moulded key or as a bug.
+    /// 0.30 of the side puts it between a squircle and a soft square: at the
+    /// shipped 35.2pt orb that is a 10.6pt radius, enough that the part still
+    /// catches the specular the way a domed lamp does, and far enough from 0.5
+    /// (which is a circle again) to be unmistakably deliberate.
+    ///
+    /// Applied with `.continuous`, matching every other moulded part on the
+    /// shell — a circular-arc corner beside iOS's own squircles is the tell
+    /// that something was drawn by hand.
+    public static let islandOrbCornerFraction: CGFloat = 0.30
     /// The row the orb and the lamp cluster share, level with the cutout.
     ///
     /// Floored at 44 rather than sized to the orb: the orb is the flip
@@ -829,7 +852,27 @@ public enum DexMetrics {
     /// deliberate trade, and the only one available: the band's height is
     /// `bandBundleHeight`, set by the caps either side, and growing it would
     /// take the difference out of the LCD instead.
-    public static let bandPillHeight: CGFloat = 20
+    ///
+    /// **24 since 0.7.5 (A1), and the trade is the same one A9 made.** The band
+    /// is `bandBundleHeight` whatever happens (134 at SMALL, 152 at LARGE), and
+    /// this column is `bandPillHeight + bandPillGap + marqueeHeight` summing to
+    /// exactly that — so 4pt onto the pills is 4pt off the panel and nothing
+    /// else in the chassis moves. `marqueeHeight` goes 109 → 105 (SMALL) and
+    /// 127 → 123 (LARGE), still well clear of its `bandControl` floor of 60/69,
+    /// and `marqueeGlyph` follows it down 34.9 → 33.6 / 40.6 → 39.4.
+    ///
+    /// **This is not the trio that had the clearance problem.** The pills live
+    /// in the footer; the lamps that nearly touched the Dynamic Island are
+    /// `islandStatusDot`, at the top of the device, and they share no budget
+    /// with this. Their clearance is untouched at 22.1pt (SMALL) / 15.2pt
+    /// (LARGE) — see `islandStatusInsetTrailing`, which is where that sum is
+    /// written down and where it must be re-derived before anything up there
+    /// grows again.
+    ///
+    /// The floor on shrinking a pill is `RecessedLamp`'s stroke stack, which
+    /// eats ~5.8pt off the top edge of a 20pt capsule; 24 gives the glyph more
+    /// room inside the recess rather than less.
+    public static let bandPillHeight: CGFloat = 24
     /// The glyph inside a pill (0.7.2, A9). A fraction of the pill so the two
     /// move together, and well under half of it so the lamp still reads as a
     /// lamp with a mark on it rather than as a bordered icon.
@@ -2308,7 +2351,19 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .psvino: "PSVINO"
         case .grisDeGris: "GRIS DE GRIS"
         case .orangeWine: "ORANGE WINE"
-        case .petNat: "PÉT-NAT"
+        // PÉT-NAT → FIBERGLASS (0.7.5, A4). Label only, per the note above,
+        // and the note is load-bearing on this case in particular: the rawValue
+        // `"PET NAT"` is the `chassisSkin` `@AppStorage` value on every install
+        // wearing this shell, the FNV-1a seed `WornOverlay.seed(skin.rawValue)`
+        // draws the back plate's procedural wear from, and the stem
+        // `stickerStem` derives (`sticker-pet-nat`). Moving it would reset the
+        // shell, repaint the wear on the devices that survived, and orphan the
+        // sticker — the exact three costs HALLOWINE's rename was written up to
+        // avoid. Checked rather than assumed: `"PET NAT"` appears nowhere in
+        // `shared/`, the generated JSON or the art scripts. (The `petnat`
+        // hits in `icons.json` and `art/icons/styles/` are the *wine style*
+        // Pétillant Naturel and have nothing to do with this skin.)
+        case .petNat: "FIBERGLASS"
         case .waldglas: "WALDGLAS"
         // HALLOWEEN → HALLOWINE (0.7.1, C4). Label only — the rawValue is the
         // `@AppStorage` key *and* the seed for the back plate's procedural wear
@@ -2366,12 +2421,37 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// The three status lamps, left to right, as (fill, border) pairs — a
+    /// The three status lamps, left to right, as (fill, border, ink) triples — a
     /// unique trio per skin (v0.5.6, generalising WINE XMAS's all-red set,
     /// which used to be the one override on a fixed red/yellow/green).
-    public var statusLights: [(fill: Color, border: Color)] {
-        func trio(_ a: (String, String), _ b: (String, String), _ c: (String, String)) -> [(fill: Color, border: Color)] {
-            [a, b, c].map { (Color(dexHex: $0.0), Color(dexHex: $0.1)) }
+    ///
+    /// **`ink` is new in 0.7.5 (A1) and is derived, not authored.** The two
+    /// marquee pills print a glyph inside the lamp, and until now that glyph was
+    /// drawn in `border` — the same stop as the lamp's own keyline, so the mark
+    /// and the rim around it were one colour and the mark read as part of the
+    /// rim rather than as a symbol on a lamp. A1 asks for a darker glyph, and
+    /// the honest way to get one is a further stop of the *lamp's own hue*
+    /// rather than a chassis token: forty-two authored hexes would have to be
+    /// re-picked otherwise, and a glyph in `marqueeShadow` would be the same
+    /// near-black on all twenty-one skins.
+    ///
+    /// Mixed 45% toward black through `DexRGB`, the same primitive `PartColor`
+    /// derives its ramps with — one derivation, twenty-one skins, and a new skin
+    /// gets an ink by writing the two hexes it was always going to write.
+    ///
+    /// Adding a third *named* member is source-compatible: every call site
+    /// reads `.fill` / `.border` by name, so the island trio and the vent lamps
+    /// did not move.
+    public var statusLights: [(fill: Color, border: Color, ink: Color)] {
+        func trio(_ a: (String, String), _ b: (String, String), _ c: (String, String)) -> [(fill: Color, border: Color, ink: Color)] {
+            [a, b, c].map {
+                let border = DexRGB(hex: $0.1)
+                return (
+                    fill: Color(dexHex: $0.0),
+                    border: border.color,
+                    ink: border.mixed(with: DexRGB(r: 0, g: 0, b: 0), amount: 0.45).color
+                )
+            }
         }
         switch self {
         // The classic trio, exactly as it always was.

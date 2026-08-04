@@ -81,6 +81,123 @@ public struct GrapeCharacteristics: Codable, Sendable, Hashable {
     }
 }
 
+/// One end of a pedigree edge (0.7.5, E).
+///
+/// Mirrors `LineageRef` in `shared/types.ts`, where the two decisions behind the
+/// shape are argued at length. The short version, because it is the thing to get
+/// wrong here:
+///
+/// **An in-catalog link is an `id`; an off-catalog ancestor is a `name`.**
+/// Exactly one is set. Every other cross-reference in this app resolves through
+/// `TextNormalize` — `keyRegions`, `notableGrapes`, `wineType` — and the grape
+/// *name* index is precisely where that breaks down: "Espadeiro" answers to five
+/// VIVC prime names and "Nerello" to seven, so a pedigree resolved by name would
+/// wire a Galician vine to a Portuguese one. Ids are stable by house rule.
+///
+/// A named ancestor is not a broken link. Gouais Blanc is the mother of ten
+/// grapes in this catalog and will never be a collectible entry; the renderer
+/// draws it as a **terminal** node — present, legible, not tappable — rather
+/// than dropping the most-pointed-at variety in the dataset. See
+/// `GrapeLineageIndex`.
+public struct LineageRef: Codable, Sendable, Hashable {
+    /// Seed vs pollen parent, where the cross direction is established.
+    public enum Role: String, Codable, Sendable {
+        case mother, father
+    }
+
+    /// Catalog grape id. Mutually exclusive with `name`.
+    public let id: String?
+    /// Display name of a variety the catalog does not carry.
+    public let name: String?
+    public let role: Role?
+    /// The relationship is real; its direction or one party's identity is not.
+    public let contested: Bool
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, role, contested
+    }
+
+    public init(id: String? = nil, name: String? = nil, role: Role? = nil, contested: Bool = false) {
+        self.id = id
+        self.name = name
+        self.role = role
+        self.contested = contested
+    }
+
+    /// Hand-written for two reasons, both about what a bad value should cost.
+    ///
+    /// `contested` defaults to `false` rather than being optional: absent means
+    /// settled, and an optional `Bool` would make every reader write
+    /// `?? false` and one of them eventually forget.
+    ///
+    /// **`role` is decoded leniently, and deliberately.** Entries decode
+    /// element-wise (0.6.3), so a throw here costs the whole grape — its
+    /// description, its stats, its art — for the sake of one word of garnish
+    /// that only ever decorates a tree node. An unrecognised role is worth
+    /// dropping; it is not worth a missing Cabernet Sauvignon. Everything else
+    /// on this type is load-bearing and still throws.
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decodeIfPresent(String.self, forKey: .id)
+        name = try c.decodeIfPresent(String.self, forKey: .name)
+        role = (try? c.decodeIfPresent(Role.self, forKey: .role)) ?? nil
+        contested = try c.decodeIfPresent(Bool.self, forKey: .contested) ?? false
+    }
+}
+
+/// A grape's marker-confirmed relatives, as authored (0.7.5, E).
+///
+/// **Only the child-facing direction is stored.** Offspring, mutations and
+/// siblings are derived by one reverse pass — see `GrapeLineageIndex`. Storing
+/// both directions would mean two places to be wrong and an offspring list that
+/// rots every time a grape is added.
+///
+/// Nothing in here is asserted beyond what markers confirm. Where the markers
+/// establish the relationship but not its direction, the ref carries
+/// `contested` and `note` says why, rather than the entry quietly picking a
+/// side.
+public struct GrapeLineage: Codable, Sendable, Hashable {
+    /// At most two. An unidentified second parent is absent, never a placeholder.
+    public let parents: [LineageRef]
+    /// A somatic mutation of that variety — same genotype, different skin.
+    public let mutationOf: LineageRef?
+    /// A first-degree relative whose direction is unresolved, or a half-sibling
+    /// whose shared parent the catalog cannot name.
+    public let related: [LineageRef]
+    /// One sentence for the tree's footnote wherever the above is contested.
+    public let note: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case parents, mutationOf, related, note
+    }
+
+    public init(
+        parents: [LineageRef] = [],
+        mutationOf: LineageRef? = nil,
+        related: [LineageRef] = [],
+        note: String? = nil
+    ) {
+        self.parents = parents
+        self.mutationOf = mutationOf
+        self.related = related
+        self.note = note
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        parents = try c.decodeIfPresent([LineageRef].self, forKey: .parents) ?? []
+        mutationOf = try c.decodeIfPresent(LineageRef.self, forKey: .mutationOf)
+        related = try c.decodeIfPresent([LineageRef].self, forKey: .related) ?? []
+        note = try c.decodeIfPresent(String.self, forKey: .note)
+    }
+
+    /// Whether this block says anything at all. A grape can carry the key and
+    /// still have no edges if every ref were stripped; treat that as absent.
+    public var isEmpty: Bool {
+        parents.isEmpty && mutationOf == nil && related.isEmpty
+    }
+}
+
 // MARK: - Shared fields
 
 /// Fields common to every variant. Kept as a struct rather than a protocol so
@@ -122,13 +239,20 @@ public struct GrapeEntry: Codable, Sendable, Hashable, Identifiable {
     public let wineType: String?
     public let tastingProfile: [TastingNote]?
     public let details: GrapeDetails
+    /// Authored genetics (0.7.5, E), absent on 114 of the 171 grapes.
+    ///
+    /// Top level rather than inside `details` because that is where the
+    /// generator can see it: `grapeCard` is stripped on the way out and
+    /// `details` is assembled field by field in `constants.ts`, so a field that
+    /// travelled by either route would silently never arrive.
+    public let lineage: GrapeLineage?
 
     public var id: String { common.id }
 
     private enum CodingKeys: String, CodingKey {
         case grapeType, grapeStyle, grapeBodyClass, grapeCharacteristics
         case grapeAlternateNames, grapeNotableRegions, grapeCountryOfOrigin
-        case rarity, wineType, tastingProfile, details
+        case rarity, wineType, tastingProfile, details, lineage
     }
 
     public init(from decoder: any Decoder) throws {
@@ -145,6 +269,7 @@ public struct GrapeEntry: Codable, Sendable, Hashable, Identifiable {
         wineType = try c.decodeIfPresent(String.self, forKey: .wineType)
         tastingProfile = try c.decodeIfPresent([TastingNote].self, forKey: .tastingProfile)
         details = try c.decode(GrapeDetails.self, forKey: .details)
+        lineage = try c.decodeIfPresent(GrapeLineage.self, forKey: .lineage)
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -161,6 +286,7 @@ public struct GrapeEntry: Codable, Sendable, Hashable, Identifiable {
         try c.encodeIfPresent(wineType, forKey: .wineType)
         try c.encodeIfPresent(tastingProfile, forKey: .tastingProfile)
         try c.encode(details, forKey: .details)
+        try c.encodeIfPresent(lineage, forKey: .lineage)
     }
 }
 

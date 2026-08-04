@@ -181,6 +181,41 @@ struct CoverageTests {
         #expect(g.grapeBodyClass == "Full")
     }
 
+    /// **The body bar distinguishes medium-full from full (0.7.5, E).**
+    ///
+    /// `bodyFromText` tested `full` before `medium-full`, and every test in it is
+    /// a substring test — so `'Medium-Full'.includes('full')` was true and the
+    /// 16 grapes authored `"Medium-Full"` drew the same 5/5 bar as the 34
+    /// authored `"Full"`. The identical defect in `levelFromText` cost the
+    /// tannin bar in 0.7.4.
+    ///
+    /// Cabernet Sauvignon above is the only grape whose characteristics were
+    /// pinned anywhere, and it is genuinely `"Full"` — so nothing caught this.
+    /// The distribution is pinned here instead of one more grape, because what
+    /// broke was a *branch*, and a branch is only observable across the set.
+    @Test("the body bar separates Medium-Full from Full")
+    func bodyBarsAreDistinct() throws {
+        var counts: [Int: Int] = [:]
+        for entry in db.entries(in: .grapes) {
+            guard case .grape(let grape) = entry else { continue }
+            counts[Int(grape.grapeCharacteristics.body), default: 0] += 1
+        }
+        // 41 Light, 80 Medium (58 authored `"Medium"` plus 22 `"Light-Medium"`,
+        // which rounds to the same bar), 16 Medium-Full, 34 Full. Moves with a
+        // data batch; say which one when it does. Before the fix the 4 bucket
+        // was empty and the 5 held 50.
+        #expect(counts == [2: 41, 3: 80, 4: 16, 5: 34])
+
+        // Chardonnay is authored `body: "Medium-Full"` and drew a full bar.
+        // (`grapeBodyClass` still reads "Full" for it — that is a *different*
+        // derivation, `getGrapeBodyClass`, which consults the grape's style
+        // label "Full-Body White" before its authored body. Out of scope here
+        // and parked in PLAN.md.)
+        let chardonnay = try #require(db.entry(named: "Chardonnay"))
+        guard case .grape(let c) = chardonnay else { return }
+        #expect(c.grapeCharacteristics.body == 4, "Medium-Full must not render as Full")
+    }
+
     /// Napa is the only region exercising `state` and `synonyms`; if it is ever
     /// swapped out, those fields go untested.
     @Test("Napa exercises the state and synonyms fields")
@@ -395,5 +430,51 @@ struct CoverageTests {
             == "Denominación de Origen Controlada")
         // Unknown systems pass through rather than rendering empty.
         #expect(EntryDisplay.appellationName(classification: "XYZ", country: "Nowhere") == "XYZ")
+    }
+
+    /// **The gate that was missing (0.7.5, D).**
+    ///
+    /// `icons.countryShapeIcons` is a hand-kept table in the generator, and
+    /// nothing checked it against the catalog. Both consumers resolve region art
+    /// through it by `details.origin`: `EntryVisual.regionVisual` degrades
+    /// quietly to a climate glyph, and `CountryOutlineMap` has no `else` at all
+    /// — its `if let` fails and the country page draws **nothing** where the
+    /// dotted map belongs. Brazil (added in 0.7.3c) and Mexico both shipped that
+    /// way and were found by reading, which is the third silent-missing-asset
+    /// bug in three batches after `icon: "fruit"` (0.7.4) and the two logo
+    /// layers (0.7.5, A5).
+    ///
+    /// It is pinned as an **exact set**, not a `<=`, so it fails in both
+    /// directions and both failures are the right ones:
+    ///
+    /// - a *new* place with regions and no outline fails immediately, at the
+    ///   batch that adds it, rather than four batches later;
+    /// - a place whose outline gets drawn also fails, which is the pleasant
+    ///   failure — it says "delete this from the list and from the generator's
+    ///   `OUTLINE_BACKLOG`".
+    ///
+    /// Brazil and Mexico stay on the list because drawing them is an art job,
+    /// not a data one — the 28 existing outlines are hand-drawn pixel art in
+    /// `art/icons/countries/`, and a silhouette synthesised by a script would be
+    /// visibly not of that set. Four more countries (UK, Slovenia, Bulgaria,
+    /// Lebanon) have flag gradients and no outline but no regions either, so
+    /// they are latent rather than live and this gate correctly says nothing
+    /// about them.
+    @Test("every region's place has outline art, or is a known gap")
+    func regionsHaveOutlineArt() {
+        var missing = Set<String>()
+        for entry in db.entries(in: .regions) {
+            guard case .region(let r) = entry else { continue }
+            // State first, exactly as `EntryVisual.regionVisual` resolves it.
+            if let state = r.details.state,
+               db.icons.countryShapeIcons[TextNormalize.label(state)] != nil { continue }
+            let origin = r.details.origin.isEmpty ? r.common.name : r.details.origin
+            if db.icons.countryShapeIcons[TextNormalize.label(origin)] != nil { continue }
+            missing.insert(origin)
+        }
+        #expect(
+            missing == ["Brazil", "Mexico"],
+            "the set of places with regions but no outline art moved: \(missing.sorted())"
+        )
     }
 }

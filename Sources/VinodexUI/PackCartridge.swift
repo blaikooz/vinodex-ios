@@ -94,8 +94,16 @@ struct CartridgeShape: InsettableShape {
 /// that make the silhouette read as a cartridge rather than as a badge; all
 /// three are proportional, so the same view is honest at the 46pt shelf size and
 /// would be at twice that.
+/// **Takes a glyph rather than a pack since 0.7.5 (B3).** B3 replaces the shop's
+/// remaining hand-written rows with this cartridge, and the things on sale there
+/// are `Entitlement`s — PRO, the flavour wheel, a country — which are not packs
+/// and never will be. Depending on `ExpansionPack` for one string was the only
+/// thing stopping one cartridge serving both, so it now takes the string. The
+/// pack-shaped call site is unchanged; see the convenience initialiser below.
 struct PackCartridge: View {
-    let pack: ExpansionPack
+    /// The SF Symbol on the label plate. The cartridge's whole identity — see
+    /// the note above on why it is not a colour.
+    let symbol: String
     /// The tile's foreground — `lcd.onAccent` on the chosen tile, `lcd.subtext`
     /// otherwise. Taken as a parameter rather than derived, so the cartridge
     /// cannot disagree with the label underneath it.
@@ -104,7 +112,20 @@ struct PackCartridge: View {
     let ground: Color
     /// A completed collection gets a tick on the shoulder — the flat area the
     /// step leaves free, which is what that step is for on a real cartridge too.
+    /// On the shop's upgrade cartridges this means "owned".
     let isComplete: Bool
+
+    init(symbol: String, ink: Color, ground: Color, isComplete: Bool) {
+        self.symbol = symbol
+        self.ink = ink
+        self.ground = ground
+        self.isComplete = isComplete
+    }
+
+    /// The 0.7.3c call: a pack draws its own glyph.
+    init(pack: ExpansionPack, ink: Color, ground: Color, isComplete: Bool) {
+        self.init(symbol: pack.symbol, ink: ink, ground: ground, isComplete: isComplete)
+    }
 
     var body: some View {
         GeometryReader { geo in
@@ -120,7 +141,7 @@ struct PackCartridge: View {
                     RoundedRectangle(cornerRadius: side * 0.06)
                         .fill(ink.opacity(0.45))
                         .overlay {
-                            Image(systemName: pack.symbol)
+                            Image(systemName: symbol)
                                 .font(.system(size: side * 0.26, weight: .bold))
                                 .foregroundStyle(ground)
                         }

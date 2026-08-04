@@ -52,6 +52,452 @@ been happening", which is the question a planning doc is for.
 | 0.7.3 | `vinodex-0.7.3b` | **DEVICE WORKSHOP (premium).** The six part axes that did not exist, then the builder over all eight. `DeviceAxis`/`DeviceBuild`/`CustomDeviceStore` in Core; `PartColor`, `GrilleShape` and `ChassisLook` in UI. Gated on F1's `Entitlement.workshop`; GARAGISTE unlocks it. | 405, untouched | 404 tests, clean build, deployed and eyeballed |
 | 0.7.3 | `vinodex-0.7.3c` | **EXPANSION PACKS.** Twelve collectible cartridges on a PACKS shelf — three atlas, six device, three display — owned through F1's `Entitlement.expansion`, which finally covers something. Packs **collect rather than gate**. Brazil added to the catalog so the New World pack has a Brazil to name. | **405 → 407** (+2 Brazilian regions); countries 25 → 26 | 425 tests, clean build, **not deployed** |
 | 0.7.4 | `vinodex-0.7.4-grapes.md` | **GRAPE OVERHAUL.** `sommbot` authored the data (+25 grapes, +6 regions, corrections to Marselan, Cabernet Gernischt, Sangiovese, Palomino, Tannat, Négrette, Fer Servadou, and the Chile/Croatia gates); `dexbot` took the code side. Two logic fixes sommbot found and left: `levelFromText` and the dead country-gate arm of `find-missing-refs.mjs`. | **407 → 438** (+25 grapes, +6 regions); flavours held at 106, countries 26 unchanged | tests green, clean build, **not deployed** |
+| 0.7.5 | v0.7.5 spec, sections A + B | **THE SHOP.** ACCESS becomes SHOP and the expansion packs move into it out of CUSTOMIZE — **superseding 0.7.3c's placement**. The whole storefront is redrawn in 0.7.3c's cartridge tile and every cartridge opens to a splash. `PurchaseProviding` lands beside F1's `EntitlementStoring`; **no StoreKit, no payment path**. Plus six A-list fixes: bigger marquee lamps with darker glyphs, a squared orb, a monochrome-only refresh flash, PÉT-NAT → FIBERGLASS, the real wordmark in the screensaver, and a full-screen POST. | 438, untouched | 438 tests, clean build, **not deployed** |
+| 0.7.5 | v0.7.5 spec, section D | **THE WINE EXAM.** `sommbot` authored the bank (`shared/data/exam.ts`, 407 questions, 16 subjects, 7 formats, an explanation on every one); `dexbot` built everything that consumes it — the `exam.json` emit and its gate, the Swift decode, the shuffling engine, balanced paper assembly, scoring, the statistics store, the seven answering UIs and the explanation reveal. Plus the two pre-existing TS errors and the missing-outline-art gate. | 438, untouched; `exam.json` is a new generated file | 484 tests, clean build, **not deployed** |
+| 0.7.5 | v0.7.5 spec, section E | **INTERACTIVE GRAPE LINEAGE.** `sommbot` authored the pedigree off VIVC passports — 57 grapes carrying a lineage, 68 of 171 in a relationship after the reverse pass. `dexbot` took the pipeline (`constants.ts` pass-through, `WineEntry` Codable, a `find-missing-refs` arm), the reverse index that derives offspring / mutations / half-siblings, and the tree screen behind a new `Entitlement.lineage`. Plus the approved `bodyFromText` fix: 16 grapes stop drawing a full-body bar they never earned. | 438, untouched; `lineage` is a new optional field on grape entries | 452 tests, clean build, **not deployed** |
+
+**0.7.5, The Wine Exam** (v0.7.5 spec, section D). The second split batch:
+`sommbot` authored the 407-question bank, `dexbot` built every consumer of it.
+
+- **D1's naming collision resolved to *absorb*, and the code decided it rather
+  than taste.** The question was whether the Wine Exam replaces, absorbs or sits
+  beside the existing `TastingQuiz` ladder. Four pieces of shipped evidence, all
+  found by reading before writing: `DexRoute.wsetQuiz.title` has been the string
+  `"WINE EXAM"` since 0.5.9; that screen's picker is headed CHOOSE YOUR EXAM and
+  its way out says BACK TO EXAMS; and `StampCatalog`'s SOMMELIER stamp — a
+  *shipped, earned* back-plate stamp — describes itself as "The Wine Exam's top
+  tier, unlocked". There was never a second feature to sit beside. D1 asks to
+  expand the Wine Exam, so `.wsetQuiz` is the same door with a different room
+  behind it.
+- **Two tier vocabularies, one ladder, and the device's words win.** The bank is
+  authored `beginner`/`intermediate`/`advanced`; the device's ladder is
+  `QuizTier`'s NOVICE/ENTHUSIAST/SOMMELIER. `ExamTier.ladder` maps them 1:1 and
+  in order (`examTierMatchesLadder` pins the bijection both ways). The device's
+  words win for two reasons that are not preference: `QuizTier`'s raw values are
+  **persisted** in `quizTierUnlocked`/`quizTiersCompleted`, so a user's SOMMELIER
+  unlock is a string on somebody's disk; and they are printed on a stamp that has
+  already shipped. The bank's words never reach the screen. Everything the old
+  practice paper had — the ladder, the locks, the completion stars, the passport
+  badge — carries over untouched, because none of it was ever about where the
+  questions came from.
+- **`TastingQuiz` was not retired, and the split is deliberate rather than
+  leftover.** It keeps the **daily challenge**, and it should: an authored bank
+  is finite (407 questions at five a day is under three months before repeats)
+  and a daily that must be the same paper for everyone, every day, forever is
+  exactly what a generator answers and a bank cannot. The generated paper also
+  cannot contradict an entry. What *did* go is `TastingQuizScreen`'s `.practice`
+  mode and the `QuizMode` enum with it — a two-case enum with one case left is a
+  parameter every call site passes and none can vary.
+- **The shuffle is the whole reason the engine exists, and it is falsifiable.**
+  Authored option order *is* answer order, matching pairs are authored paired and
+  ordering items authored in sequence — the only sane way to author them and
+  completely unusable as a presentation. `ExamPrompt` is the presentation layer:
+  a seeded permutation stored alongside the question, so grading is a lookup
+  rather than a second guess at what the user saw. `shufflingMovesTheAnswer` is
+  the falsifier — it measures the share of questions whose answer lands in slot 0
+  across every single-answer question in the bank and fails at 100% (never
+  shuffled) *and* at 0% (always moved off zero, which would make slot 0 never
+  correct — a bigger tell than the one it fixes).
+- **Ordering is the one format where the identity permutation is a bug.** A
+  three-item ordering shuffles to its authored order one run in six, and an
+  ordering question presented in the authored order is presented *already
+  solved*. `ExamPrompt` swaps the first two when the permutation comes back as
+  the identity, and `orderingIsNeverPreSolved` checks all 18 ordering questions
+  against 200 seeds each rather than sampling — the identity is precisely the
+  case a sampled test misses. Options are deliberately **not** corrected this
+  way, for the reason above.
+- **A paper that runs dry says so.** The brief's line — a generator that silently
+  repeats when a cell runs dry is worse than one that says it cannot — is
+  `ExamAssemblyFailure`, returned rather than papered over. `EXAM_MIN_CELL_COUNT`
+  (6), not the 407 total, is the real bound: `balancedCapacity` is the thinnest
+  cell times sixteen categories, and past it a paper leans on the fat categories
+  rather than failing. Both behaviours are pinned —
+  `fullLengthPaperIsDistinct` asserts an exactly-even split at the ceiling and
+  `beyondCeilingStillDistinct` asserts no repeat when the *whole tier* is drawn.
+- **Balance is a seed-rotated round robin, which buys three things at once.** Ten
+  questions over sixteen categories means ten *different* subjects per paper
+  rather than three about grapes; the rotation moves *which* ten with the seed,
+  so consecutive papers examine different ground rather than the same ten
+  subjects with different questions; and an exhausted category is skipped, never
+  re-drawn, which is what makes "no question twice" structural rather than
+  checked afterwards.
+- **`ExamRun` stores the seed, not the paper.** `ExamPaper.assemble` is pure, so
+  a run round-trips through `ScreenStateStore` as one integer and re-derives ten
+  questions with their options, explanations and shuffles exactly. `QuizSession`'s
+  arrangement, applied to a much larger payload — the alternative was a few
+  kilobytes of question text re-encoded on every tap.
+- **All-or-nothing on `selectAll`, and the reveal is where the nuance goes.**
+  Partial credit was considered and rejected: `correct` is an integer out of
+  `length` on a results card and against a pass mark, and a paper where one
+  question is worth two thirds makes both numbers a lie. The reveal still marks
+  each option individually, so nothing is hidden — the *score* just does not
+  claim a precision it has no scale for.
+- **Matching and ordering are tap-only, and 0.7.2's A2 is why.** They are the two
+  formats a desktop would do with drag and drop. Adding a third drag gesture to a
+  2.5-inch LCD that already arbitrates the stamp drag and the globe pan is how
+  0.7.2 spent two batches on a control that never received a touch — and
+  `VinodexUI` is invisible to the Linux tests, so nothing would have caught it.
+  Matching is *arm a left row, tap its right*; ordering is *tap in order, tap
+  again to unset*. Neither negotiates with anything.
+- **D7 is the reveal, not a results-screen appendix.** Verdict, then the
+  explanation, then the source where the claim needed one, then the question's
+  `entryRefs` as the same `EntryTileView`s they are everywhere else — which
+  **generalises the old quiz's best idea** rather than losing it. The generated
+  quiz's reveal worked because every option was a real entry with a page behind
+  it; an authored bank cannot promise that, but 316 of 407 questions carry
+  catalog ids, so a question you got wrong still ends one tap from the page that
+  would have told you. Capped at three tiles: a reveal is a moment, not a reading
+  list.
+- **D6 reuses three stores and forks none.** `QuizProgress` keeps the ladder
+  (`ExamRecordStore.record` calls straight through to `recordPass`), `StreakStore`
+  keeps the *calendar* streak, and the new store holds only what neither had: a
+  bounded history of results. Every statistic is **derived** from it —
+  accuracy, full marks, best-by-tier, per-category — rather than incremented
+  beside it, because a counter and a list are two facts that can disagree and it
+  is always the counter that is wrong. `passStreak` is deliberately not folded
+  into `StreakStore`: that one counts *days* at one sitting per day, and you can
+  sit four papers in an evening.
+- **The pass streak saturates at 100 and the test says so rather than being
+  written around it.** It is derived from a history bounded at `historyLimit`, so
+  120 consecutive passes read as 100. The test was written expecting 120, failed,
+  and the *finding* was kept: the alternative is a stored counter beside a stored
+  list, which is the thing the store exists to avoid. Pinned at
+  `historyLimit` with the reasoning, so the saturation is a decision.
+- **The statistics screen's useful half is the weakest subject, and it has a
+  sample floor.** One wrong answer in one FORTIFIED question is 0% and would sit
+  atop a weakness list forever, ahead of a subject genuinely being failed half
+  the time. `weakest(minimumAsked: 3)` is the floor, and
+  `weakestNeedsASample` pins that removing it changes the answer.
+- **`sommbot`'s handoff item 1 was half wrong, and checking it saved an edit.**
+  It asked for `Package.swift` resource wiring alongside the `exam.json` emit.
+  `VinodexCore` declares `.copy("Resources")` — the whole directory, not a file
+  list — so a new `Resources/*.json` needs no Package.swift change at all. The
+  emit was real and is done; the wiring never existed to do.
+- **The exam arm of `find-missing-refs.mjs` is the lineage arm's shape and was
+  proved the same way.** Like lineage it does **not** go through the name index,
+  for the reason sommbot gives: `entryRefs` are ids because the grape-name index
+  over-lumps, so a *name* here is a mis-authored ref rather than a resolvable one
+  — and it is tested against the name index precisely so it can be reported as
+  "write this as an id". Three failure modes, all verified against injected data
+  (bad id, a name where an id belongs, a bad `entryIcon` image key), all three
+  named correctly, exit 1. **774 refs to 205 distinct entries, 47% of the
+  catalog, printed rather than asserted** — editorial reach is not correctness,
+  but an unmeasured number is one that quietly goes to zero.
+- **The split of who checks what is by ownership.** `find-missing-refs` walks
+  references *into the catalog*; the generator's new `assertExam` walks
+  everything the generator itself owns — the closed vocabularies, per-format
+  payload invariants (empty and all-correct `selectAll` answers, a repeated
+  matching *right* column, out-of-range indices), the tier counts against
+  `EXAM_AUTHORED_TIER_COUNTS`, every cell against `EXAM_MIN_CELL_COUNT`, and the
+  two asset tables (`FLAVOR_ART`, `COUNTRY_SHAPE_ICONS`) that exist nowhere else.
+  ASCII on every shipped string, on `assertFirmware`'s precedent: the question
+  card is Press Start 2P over VT323 and a pasted accented place name renders as a
+  blank box.
+- **The missing outline art is a real art job, and the gate is the deliverable.**
+  Verified: `countryShapeIcons` has 28 keys against 34 flag gradients, and three
+  live regions fall through — R117 Serra Gaúcha, R118 Campanha Gaúcha (Brazil)
+  and R098 Valle de Guadalupe (Mexico). The brief's diagnosis was right about
+  `CountryOutlineMap.swift:29` (its `if let` has **no `else`** — the country page
+  draws nothing) and slightly off about `EntryVisual.swift:186`, which has a
+  `?? db.icons.climateIcon(...)` fallback and degrades to a climate glyph rather
+  than to nothing. **Drawing them was declined**: the 28 existing outlines are
+  hand-drawn pixel art in `art/icons/countries/` at sizes from 50x185 to 232x140,
+  and a silhouette synthesised by a script would be visibly not of that set. So
+  **two gates instead**, in both places that can hold one: the generator's
+  `assertOutlineCoverage` hard-fails on any place with regions and no outline
+  unless it is named in `OUTLINE_BACKLOG` (and *also* fails if a backlog entry
+  stops being missing, so the list cannot rot into an excuse), and
+  `CoverageTests.regionsHaveOutlineArt` pins the set as **exactly** `["Brazil",
+  "Mexico"]` — failing in both directions, the pleasant one being "somebody drew
+  it, delete this line". This is the third silent-missing-asset bug in three
+  batches, after `icon: "fruit"` (0.7.4) and the two logo layers (0.7.5, A5), and
+  it is the first of the three to leave a gate behind.
+- **The two pre-existing TS errors were `noUncheckedIndexedAccess` and are fixed
+  at the cause.** `FIRMWARE_RELEASES[i - 1]` was read twice under an `i > 0`
+  guard, which does not narrow an index expression. Bound once into a local,
+  behaviour identical. `npx tsc -p tsconfig.json` is clean for the first time in
+  the repo's history.
+- **`exam.json` is the eighth generated file and it carries its own
+  vocabularies.** Labels, tier order and `minCellCount` ship *with* the bank
+  rather than being restated as Swift literals, on the same reasoning F3 used for
+  the firmware version travelling with its changelog: a literal here would
+  silently disagree with the bank the first time somebody added questions.
+  `ExamCatalog` decodes element-wise like `WineDatabase`, so a malformed question
+  costs one question — which makes it silent by construction, which is why
+  `DiagnosticsReport` now prints the bank's count and its decode errors.
+- The FIRMWARE headline moved from THE SHOP to **THE WINE EXAM**. The headline
+  names the release on the panel, and a release whose largest item is a
+  407-question exam was describing its second-largest feature.
+
+**Parked from 0.7.5 (D):**
+
+- **Brazil and Mexico still have no outline art**, and four more countries (UK,
+  Slovenia, Bulgaria, Lebanon) have flag gradients and no outline — *latent*,
+  because no region names them, so the new gate correctly says nothing about
+  them. Both gates are set to fail the moment either changes. This is the art
+  backlog's item, not a data one.
+- **Not deployed** — stopped at the clean build by instruction, and this is the
+  section with the most that only glass can settle. Worth an eye, in order: the
+  **matching** card at four pairs (the right column is a hand-rolled flow layout,
+  `DexFlowRow`, and "Grapes dried after picking" beside "Chardonnay" is the case
+  it was written for); the **ordering** card at seven items, which is the longest
+  authored and the one most likely to need scrolling mid-answer; the three
+  **aroma glyphs** at 62pt on a real display; the **country outlines** at 128pt,
+  which have never been drawn at that size before; and the reveal card when a
+  question carries three entry tiles *and* a long explanation.
+- **`selectAll` has no "how many" hint**, deliberately — the count is part of the
+  question. Worth watching whether that reads as under-specified on device.
+- **The `entryIcon` image kind is implemented and unexercised.** All 11
+  `imageIdentification` questions authored are `countryOutline`; the `entryIcon`
+  arm is covered by the refs gate's negative test but by no live data.
+- **No new passport badge.** D6 asks for achievement unlocks and the exam already
+  has one — SOMMELIER, which `Passport.compute` earns from
+  `QuizProgress.highestUnlocked` and which now means the authored top paper. A
+  seventh badge (full marks, say) is cheap — `Passport.Badge` plus a
+  `BackPlateStamp`, 1:1 and pinned by `StampCatalogTests` — but `PassportProgress.seed`
+  runs **once ever**, so a badge shipped to existing users fires one popup for
+  something they already qualified for. Worth doing deliberately in its own
+  sitting rather than as the tail of this one.
+
+**0.7.5, Interactive Grape Lineage** (v0.7.5 spec, section E; `sommbot` ran D in
+parallel and owns `shared/data/exam.ts`).
+
+- **The tree is not offered on 103 of the 171 grapes, and that is the design
+  rather than a gap in it.** Coverage is 40% and will stay short of 100% —
+  Zinfandel's parents are genuinely unresolved and Rkatsiteli's marker line names
+  a reconstructed genotype rather than a variety. The three options were an
+  always-present section that opens an empty tree (three grapes in five, and the
+  fastest way to teach somebody a button does nothing), a greyed NO LINEAGE DATA
+  row (a paywall-shaped reminder of an absence on every second grape), and
+  drawing nothing. `EntryDetailScreen.lineageSection` draws nothing, gated on
+  `WineDatabase.lineage.hasLineage`, and the SHOP listing is where the feature is
+  discoverable independently of which grape you happen to have open. The button
+  that *is* drawn carries its own counts — "2 PARENTS · 6 OFFSPRING · 3
+  MUTATIONS" — so a thin tree is honest about being thin before you open it.
+- **Off-catalog ancestors are terminal, not broken.** Gouais Blanc is the mother
+  of ten grapes here and will never be an entry; half the pedigree would go with
+  it if named ancestors were dropped. `LineageTile` draws them on the *well* with
+  a dashed border and no art — a different kind of thing, plainly not a door —
+  rather than through `LinkedRow`'s greyed-out treatment, which in this app means
+  "a cross-link that failed to resolve" and would say the data is broken. They
+  still do one job in the graph: they are **sibling keys**, which is the only
+  reason Chardonnay and Riesling know they are half-siblings at all.
+- **Contested edges are drawn as contested from both ends.** The reverse pass
+  carries `contested` through, so Palomino's offspring row for Listán Negro says
+  what Listán Negro's parents row says — without that, the app declines to assert
+  a direction from one side and quietly asserts it from the other. A dashed
+  connector and a `?` badge mark it; the authored sentence lands in an ON THE
+  RECORD footnote block, de-duplicated by the index. A question mark rather than
+  a warning triangle: nothing here is wrong, two sources disagree.
+- **`related` is reversed even though nothing in today's data reverses.** Both
+  authored `related` refs are Sangiovese's and both are off-catalog. It is built
+  anyway because "first-degree relative of undetermined direction" is symmetric
+  by definition, and the day one names a catalog grape, that grape's tree would
+  otherwise be missing an edge its partner draws. Exercised by a fixture
+  (`relatedIsSymmetric`) rather than left as untested scaffolding.
+- **The tree is a column, not a canvas.** The LCD is about 2.5 inches wide;
+  pan-and-zoom on it would be a worse list. What a graph gives that a list cannot
+  is *direction*, so ancestors sit above the subject with rails running down into
+  it, descendants below with rails running out, and everything sideways is a
+  labelled section underneath. Half-siblings are **grouped by the relative they
+  came through** — Chardonnay's eleven are nine Gouais Blanc children and two
+  Pinot Noir ones, and a flat list of eleven names says none of that. The rails
+  are a single `Canvas` path in `lcd.accent`, so they come out as ink in VINTAGE
+  and as phosphor in the four single-colour modes.
+- **A new `Entitlement.lineage`, not a fold into `.pro`.** The shop can only sell
+  what the entitlement set can name, and this behaves exactly as `.workshop`
+  does: it gates a door, `covers(_:)` answers `false` because it is not a slice of
+  the catalog, and `.pro` supersedes it. It sells through B2's
+  `PurchaseProviding` / `AccessStore.purchase` like everything else — no second
+  store — and continues to the tree on success (0.7.3's C1), which is the first
+  time `EntryDetailScreen` has raised an `UpgradePrompt` of its own; every *entry*
+  paywall is still handled a level up in `RootView.open(_:)`.
+- **`bodyFromText` had `levelFromText`'s exact defect and it cost a rendered
+  value.** `t.includes('full')` sat above the `medium-full` branch and every test
+  in the function is a substring test, so `'Medium-Full'.includes('full')` was
+  true and that branch had never once executed: **16 grapes authored
+  `"Medium-Full"` drew the same 5/5 bar as the 34 authored `"Full"`**. Chardonnay
+  and Merlot read as full-bodied as Cabernet Sauvignon. They are 4/5 now, on iOS
+  and on web, which read the same `GRAPE_CARDS`. `light-medium` was dead the same
+  way and is corrected for the function's sake only — those 22 grapes round to 3
+  either way, because `Math.round(2.5) === 3` is what `medium` already returned.
+  Nothing caught this because Cabernet Sauvignon is the only grape whose
+  characteristics are pinned anywhere and it is genuinely `"Full"`;
+  `CoverageTests.bodyBarsAreDistinct` now pins the whole distribution, because
+  what broke was a *branch* and a branch is only observable across the set.
+- **The lineage gate is the only arm of `find-missing-refs.mjs` that does not go
+  through the name index**, deliberately: in-catalog links are ids, so a typo'd id
+  is a hard failure and a *name* is never checked against the grape list — a hit
+  would mean the ref was mis-authored, not resolved. Four failure modes are
+  caught (bad id, both keys, neither key, and a name matching a catalog grape's
+  primary name), all four verified against injected data. The off-catalog count
+  is **printed rather than asserted**: 47 refs to 36 distinct ancestors is
+  backlog, not breakage, and silence there would read as "none", which is the
+  exact failure the dead COUNTRY_GATE arm taught in 0.7.4.
+
+**Parked from 0.7.5 (E):**
+
+- **`grapeBodyClass` still disagrees with the body bar on some grapes, and it is
+  a different derivation.** `getGrapeBodyClass` in `constants.ts` reads
+  `legacy.wineType` *first* — so Chardonnay, whose style label is "Full-Body
+  White" and whose authored body is `"Medium-Full"`, resolves to the class `Full`
+  while its bar now reads 4/5. The function's own ordering is correct (it tests
+  `medium full` before `full`); what is arguable is that a *style label* outranks
+  an authored body at all. Out of scope here — only `bodyFromText` was approved —
+  and worth a ruling of its own, because fixing it moves the body **chip** on an
+  unmeasured number of grapes.
+- **`Mammolo` is both an authored off-catalog ancestor of Verdicchio and a
+  synonym of G168 Sciaccarellu.** VIVC folds Sciaccarellu and Mammolo into one
+  record; whether Verdicchio's parent is that entry is a factual question for
+  `data-review/FINDINGS.md`. The gate prints it as an authored, non-fault
+  collision rather than ruling on it, and the index does **not** resolve it —
+  in-catalog links are ids, and a name that resolves through synonyms is exactly
+  the wiring the id rule exists to prevent.
+- **Not deployed** — stopped at the clean build by instruction. Worth an eye: the
+  fan connectors at their widest (Pinot Noir, nine descendants, which wrap), the
+  dashed external tiles against the well in the light modes, and the `?` badge at
+  its 13pt size on a real display.
+
+**0.7.5, The Shop** (v0.7.5 spec, sections A and B; C, D and E are separate and
+were deliberately not speculated about).
+
+- **B supersedes 0.7.3c's placement, and the reason 0.7.3c gave was never about
+  the packs.** That batch put the shelf behind a door inside CUSTOMIZE because
+  the settings grid is a fixed three-by-two sized to fill the LCD, so a seventh
+  tile would have been an orphan on a fourth row — a constraint about the *grid*,
+  which the packs then paid for. B1 dissolves it without touching the grid at
+  all: packs are paid content and ACCESS was already the paid-content tile, so
+  the shelf moves into a tile that exists. `SettingsSection.packs` retires with
+  the door — it was minted only to buy a marquee title, a glyph, Back behaviour
+  and `ChromeTests` coverage, all of which SHOP now provides — which takes the
+  route count 32 → 31 and the marquee's chip row back to four, the number its own
+  comment has claimed since 0.7.1 and which stopped being true when PACKS landed.
+  CUSTOMIZE is a scrolling column of sections, so losing one shortens it and
+  moves nothing.
+- **"Bundles" was already gone, and the word that had to move was ACCESS.**
+  B1 asks the packs to replace BUNDLES in the access area; 0.7.3c had already
+  renamed that heading to EXPANSION PACKS, so the check was worth doing and the
+  answer was "nothing to rename". ACCESS was the real one, and it is
+  **persisted** — `QuickPinStore` writes `SettingsSection` raw values into
+  `marqueeQuickPins` and its decoder silently drops what it does not recognise,
+  so a rename unpins rather than failing. `displayName` per the house rule; the
+  doc comment claiming "no `SettingsSection` is persisted anywhere" has been
+  wrong since 0.7.2 (A7) and is corrected.
+- **The shop's Decision #2 was not in the spec, so nothing was invented for it.**
+  What was built is the shape F1 already argued for, one layer up:
+  `PurchaseProviding` / `LocalPurchaseProvider` beside `EntitlementStoring` /
+  `LocalEntitlementStore`, injected through `AccessStore(defaults:store:purchases:)`
+  exactly as the store is. It is `async` because `Product.purchase()` is, and a
+  synchronous seam would be unimplementable by the one adapter it exists for.
+  The local provider grants immediately, which is precisely what the three
+  `UpgradePrompt` call sites did inline before — **no StoreKit, no payment
+  path, and no empty shell of one**. What an adapter must fill in is written out
+  on `LocalPurchaseProvider`: a product-id table (`Entitlement.id` is *storage*
+  and pinned by tests, so it cannot double as one), twenty-one products, a
+  `Transaction.updates` listener that must land through `AccessStore` or the
+  observable mirror goes stale, restore, and verification.
+- **No RESTORE PURCHASES button.** `LocalPurchaseProvider.restore()` returns
+  nothing, so the button would report success and change nothing — the exact
+  fault `CheatCodes`' own note forbids. It arrives with the adapter.
+- **B3 finished the grid consolidation for every surface but the two that carry
+  art.** 0.7.3c took four bespoke grids to three plus `DexPickerTile` and said
+  the rest was a sitting of its own. The shop's toggle rows are now cartridges,
+  and `PackCartridge` takes a glyph rather than an `ExpansionPack` so one
+  cartridge serves packs and plain upgrades alike. **`skinGrid` and `modeGrid`
+  remain hand-written** — 50pt tiles carrying real art (a fake device, a fake
+  LCD running the monochrome pass), which is not the same problem and was not
+  this batch's ask.
+- **The old ACCESS harness was a developer test rig, and B replaced it rather
+  than dressing it up.** What is lost is revoking *one* entitlement without the
+  rest; FREE TIER plus REVOKE ALL still reaches every combination, one more tap
+  at a time.
+- **A1's clearance is the footer's, not the island's, and that was worth
+  checking.** The lamps that nearly touched the Dynamic Island are
+  `islandStatusDot` and are untouched at 22.1pt (SMALL) / 15.2pt (LARGE). The
+  marquee pills share a column with the panel that sums to `bandHeight` exactly,
+  so 20 → 24 is 4pt straight out of `marqueeHeight` (109 → 105 SMALL, 127 → 123
+  LARGE, floor 60/69) and nothing else in the chassis moves — the same trade
+  0.7.2's A9 made, made again with the sum re-derived rather than assumed.
+- **A2 does not go through `RecessedLamp`, and the spec's hunch was worth
+  testing.** That modifier is generic over `InsettableShape`, but it draws parts
+  *recessed* into the deck and the orb is the one part that stands **proud** —
+  its own note says so. Routing the orb through it to get a rounded rectangle
+  would invert the lighting on the only part meant to catch light. The shape is
+  parameterised in `lcdOrb` instead. `islandTopInset`'s corner-arc note claimed
+  the controls survive the 26pt cut "because they are circles"; re-derived, that
+  is true of the trio and never was what saved the orb, whose box starts 68pt in.
+- **A5 does not go through `IconLoader` either, and 0.7.4's parked finding is
+  why.** `IconLoader` resolves Iconify slugs, and `rasterize-icons.sh` *deletes*
+  any PNG in `Resources/Icons` absent from the generated manifest — an asset
+  parked there survives until the next `npm run icons`. The mark ships in
+  `Resources/Logo`, beside the wordmark, loaded the way `LogoMark` already loads.
+  It is split on luminance into a face and a shade mask by
+  `scripts/import-logo-art.py` and tinted in code, because the LCD's ink is the
+  user's choice and the master's white-and-grey would be two fixed colours on a
+  screen with twenty-one colourways. **The folder the master sits in is not a
+  name this project uses**: no type, comment, shipped string or shipped file
+  repeats it, which is the line 0.7.3a drew and this keeps.
+- **`LogoLayerTests` is the gate 0.7.4 could only write down.** It reads the two
+  PNGs off disk through `#filePath` — `VinodexUI` has no test target and linking
+  it would make the test uncompilable on the host, which is the whole reason no
+  such gate existed — and checks the PNG signature, the IHDR dimensions, that the
+  two layers register, and that the mark is landscape. **Scoped to these two
+  files on purpose**: auditing all 207 rasterised icons and the five drawn-art
+  directories belongs in the generator or `verify-art.py`, next to the tables it
+  would check, and is still open.
+- **A6 moved no timing.** `BootSequence.duration` is still 1.9s and
+  `BootSequenceTests.brief` is untouched: A6 is entirely type sizes, and a POST
+  that filled the screen by running longer would be a worse POST. Both of 0.7.3a's
+  rules survive — inside the LCD, skippable on a tap. The sizes are bounded by two
+  faces with very different metrics (`VT323` advances ~0.4em, `PressStart2P` a
+  full em), which is why the lines went 16 → 28 and the header only 11 → 15, and
+  why all three gained a `lineLimit(1)` they did not need at the old sizes.
+- **A3's gate is derived, not listed.** `lcd.monochromeTint != nil`, the same
+  predicate `honorsFontInk` uses, so a fifth single-phosphor mode is covered the
+  day it is added and a colour mode cannot opt in. The flash draws white *inside*
+  the existing `grayscale`/`colorMultiply` pass, so it comes out in the mode's
+  own phosphor. It keys off the chassis's marquee `title` — one string that
+  changes on every navigation and is already threaded there — and Reduce Motion
+  removes it outright, on the screensaver's reading rather than the POST's: the
+  POST keeps its content because the content is information, and this has none.
+- **A4 was checked before it was done.** `"PET NAT"` is the `chassisSkin`
+  `@AppStorage` value, the FNV-1a seed for the back plate's procedural wear
+  (`WornOverlay.seed`), and the stem `stickerStem` derives — all three of
+  HALLOWINE's reasons, present on this skin too. Label only. The `petnat` hits in
+  `icons.json` and `art/icons/styles/` are the wine style Pétillant Naturel and
+  are unrelated.
+- **A data batch that is not this one was sitting in the master `shared/`, and
+  it was separated rather than absorbed.** `npm run generate` after the version
+  bump moved `entries.json` as well as `firmware.json`: four grapes (G159
+  Colorino, G162 Espadeiro, G166 Nerello Cappuccio, G169 St. Laurent) carrying
+  identity rulings that postdate the 0.7.4 commit — descriptions, one synonym,
+  one `keyRegions` entry. `vinodex-ios/shared/data/grapes.ts` was reverted to
+  HEAD and regenerated, so this commit carries only `firmware.ts`. **Nothing is
+  lost**: `HGapps\shared` is the master and still holds the work for whichever
+  batch lands it. This is 0.7.4's own lesson applied on the first run rather than
+  hunk by hunk afterwards.
+
+**Parked from 0.7.5:**
+
+- **Not deployed** — stopped at the clean build by instruction. Worth an eye:
+  the refresh flash on VINTAGE/AMBER/TERMINAL/GRÜNERBOY (subtle by design, and
+  the one item here that is a judgement call about *how much*), the squared orb
+  against the shell it sits on, the POST at its new size on a real display, and
+  the splash's fanned cartridge trio.
+- **`skinGrid` and `modeGrid` are the last two hand-written pickers.** See above;
+  they carry real art and are a sitting of their own, still.
+- **The general icon-asset gate is still open.** `LogoLayerTests` covers two
+  files. The 207 in `Resources/Icons` and the five drawn-art directories do not
+  have one.
+- **`vinodex-web` was left where 0.7.4 parked it.** `sync-shared.ps1` writes into
+  that repo too, so the version bump landed `shared/data/firmware.ts` there as a
+  new untracked file (web has never carried it) on top of the uncommitted
+  `batch4-into-testing` tree. Nothing was reconciled and nothing was reverted —
+  unwinding that tree would have risked the parked 0.7.4 work — but the release
+  pass should know the file is there.
+- **`bodyFromText`'s `medium-full` defect is untouched**, as instructed. It did
+  not collide with anything here. (**Fixed in section E**, same version — see the
+  0.7.5 lineage entry above for the measurement.)
 
 **0.7.4, Grape Overhaul** (`vinodex-0.7.4-grapes.md`). The first batch split
 across two agents: `sommbot` authored and landed the data in `shared/`, `dexbot`
@@ -148,6 +594,15 @@ are in `data-review/FINDINGS.md`, which is the record for anything factual.
 **0.7.3c, Expansion Packs** (`vinodex-0.7.3c.md`). Last of the three 0.7.3
 sub-batches, and the one that fills in `Entitlement.expansion` — the case 0.7.3a
 minted and left covering nothing.
+
+> **Superseded in part by 0.7.5 (B).** The packs no longer live behind a door
+> inside CUSTOMIZE and `SettingsSection.packs` no longer exists — the shelves are
+> the shop's own body, IAP-backed. Everything below about *what a pack is* stands
+> unchanged: they still collect rather than gate, ownership is still the union
+> through `impliedBy`, the catalog is still Swift, and Brazil is still Brazil.
+> What changed is where the shelf is and what the tile beside it is called. See
+> the 0.7.5 entry above for why the grid constraint that put it in CUSTOMIZE
+> stopped applying.
 
 - **The decision: packs collect and organise, they do not gate — and the reason
   is the passport, not caution.** The spec left it open and named collect/organise

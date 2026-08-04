@@ -195,7 +195,7 @@ struct MarqueeDrawer: View {
             HStack(spacing: 6) {
                 Image(systemName: section.symbol)
                     .font(.system(size: 14, weight: .bold))
-                Text(section.rawValue)
+                Text(section.displayName)
                     .font(DexFont.retro(10))
                     .tracking(1)
                     .lineLimit(1)
@@ -207,7 +207,7 @@ struct MarqueeDrawer: View {
             .background(RoundedRectangle(cornerRadius: 8).fill(lcd.accent))
         }
         .buttonStyle(DexPressStyle(scale: 0.97))
-        .accessibilityLabel("\(section.rawValue), pinned shortcut")
+        .accessibilityLabel("\(section.displayName), pinned shortcut")
     }
 
     /// An empty slot says what it is for rather than being blank.
@@ -251,7 +251,12 @@ struct MarqueeDrawer: View {
                 // resolved near 0.64, about 7pt of a face whose pixels stop
                 // being legible below that. Two lines is the cheaper fix than
                 // shrinking further (0.7.1, A4).
-                Text(section.rawValue)
+                //
+                // Four again as of 0.7.5 (B1). 0.7.3c made it five by adding
+                // PACKS without re-deriving this, which took the columns to
+                // ~55pt; retiring that section for the shop's own shelves put
+                // the sum back where this note assumes it is.
+                Text(section.displayName)
                     .font(DexFont.retro(10))
                     .tracking(0.5)
                     .multilineTextAlignment(.center)
@@ -291,7 +296,7 @@ struct MarqueeDrawer: View {
                 pins.toggle(section)
             }
         )
-        .accessibilityLabel("\(section.rawValue)\(pinned ? ", pinned" : "")")
+        .accessibilityLabel("\(section.displayName)\(pinned ? ", pinned" : "")")
         .accessibilityHint("Press and hold to \(pinned ? "unpin" : "pin") this shortcut")
         .accessibilityAction(named: pinned ? "Unpin" : "Pin") { pins.toggle(section) }
     }

@@ -61,6 +61,11 @@ public struct EntryDetailScreen: View {
     @State private var expandedSections: Set<String> = []
     /// Scroll position outlives the view — see `ScreenStateStore`.
     @State private var screens = ScreenStateStore.shared
+    /// The bundle a tap just ran into, raising `UpgradePrompt` (0.7.5, E1).
+    /// Only LINEAGE reaches it from here — every *entry* paywall is handled a
+    /// level up in `RootView.open(_:)`, which is why this screen had none.
+    @State private var lockedBundle: Entitlement?
+    @State private var access = AccessStore.shared
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
 
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
@@ -159,10 +164,31 @@ public struct EntryDetailScreen: View {
                 )
             } else if let stamp = showingUnlock {
                 StampUnlockedPrompt(stamp: stamp) { showNextUnlock() }
+            } else if let bundle = lockedBundle {
+                UpgradePrompt(
+                    entitlement: bundle,
+                    onUnlock: {
+                        lockedBundle = nil
+                        // Through the provider, like every other unlock since
+                        // 0.7.5 (B2) — and it continues where the tap was going
+                        // (0.7.3, C1), which for a door is the whole point:
+                        // "unlocked!" beside a button you now have to find again
+                        // is a half-finished unlock. Gated on the outcome, so a
+                        // cancelled purchase opens nothing.
+                        Task {
+                            let outcome = await access.purchase(bundle)
+                            if outcome.entitlement == .lineage {
+                                onOpenRoute(.lineage(entryID: entry.id))
+                            }
+                        }
+                    },
+                    onCancel: { lockedBundle = nil }
+                )
             }
         }
         .animation(DexMotion.overlay, value: showingRating)
         .animation(DexMotion.overlay, value: showingUnlock?.id)
+        .animation(DexMotion.overlay, value: lockedBundle)
         // The recent trail (0.6.3, item 3). Keyed on the id so a cross-link —
         // which swaps the entry without tearing this view down — records the
         // new entry too; a bare `.onAppear` would have credited only the first
@@ -661,6 +687,7 @@ public struct EntryDetailScreen: View {
             if !g.grapeAlternateNames.isEmpty {
                 chipSection("ALSO KNOWN AS", symbol: "character.book.closed", names: g.grapeAlternateNames)
             }
+            lineageSection(g)
             linkedSection("NOTABLE REGIONS", symbol: "mappin.and.ellipse", names: g.grapeNotableRegions)
 
         case .region(let r):
@@ -799,6 +826,86 @@ public struct EntryDetailScreen: View {
         "AROMATICS": "#c084fc",
         "COLOR": "#f59e0b",
     ]
+
+    /// The door into the pedigree tree (0.7.5, E1).
+    ///
+    /// **It is not drawn at all when the grape has no relatives**, which is 103
+    /// of the 171. That is the decision this feature turned on. The alternatives
+    /// were a section that opens an empty tree — three grapes in five, and the
+    /// fastest way to teach somebody that a button does nothing — or a greyed
+    /// row saying NO LINEAGE DATA on those 103, which is a paywall-shaped
+    /// reminder of an absence on every second grape you open. Neither is worth
+    /// the discoverability. The 68 grapes that *do* have a tree carry it, and
+    /// the shop entry is where somebody finds out the feature exists.
+    ///
+    /// The counts on the button are the pitch. "2 PARENTS · 6 OFFSPRING" says
+    /// what is behind the door, which a bare LINEAGE does not, and it is honest
+    /// about a thin tree as well as a rich one.
+    ///
+    /// The gate is here rather than on the route, exactly as the workshop's is
+    /// on the CUSTOMIZE button rather than on `.deviceWorkshop` — routes in this
+    /// app are destinations, not gates.
+    @ViewBuilder
+    private func lineageSection(_ g: GrapeEntry) -> some View {
+        let family = db.lineage.relatives(of: g.id)
+        if !family.isEmpty {
+            section("LINEAGE", symbol: "arrow.triangle.branch") {
+                Button {
+                    Haptics.select()
+                    if access.isUnlocked(.lineage) {
+                        onOpenRoute(.lineage(entryID: g.id))
+                    } else {
+                        lockedBundle = .lineage
+                    }
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: access.isUnlocked(.lineage) ? "arrow.triangle.branch" : "lock.fill")
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundStyle(lcd.accent)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("FAMILY TREE")
+                                .font(DexFont.retro(11))
+                                .foregroundStyle(lcd.text)
+                            Text(Self.lineageTeaser(family))
+                                .font(DexFont.retro(8))
+                                .tracking(0.8)
+                                .foregroundStyle(lcd.subtext)
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 4)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(Dex.stone600)
+                    }
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(lcd.surface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .strokeBorder(lcd.accent.opacity(0.5), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(DexPressStyle(scale: 0.98))
+            }
+        }
+    }
+
+    /// "2 PARENTS · 6 OFFSPRING · 3 MUTATIONS" — only the non-empty parts, and
+    /// half-siblings last because they are the largest number and the least
+    /// surprising one.
+    private static func lineageTeaser(_ family: GrapeRelatives) -> String {
+        var parts: [String] = []
+        if !family.parents.isEmpty {
+            parts.append("\(family.parents.count) PARENT\(family.parents.count == 1 ? "" : "S")")
+        }
+        if family.mutationOf != nil { parts.append("A MUTATION") }
+        if !family.offspring.isEmpty { parts.append("\(family.offspring.count) OFFSPRING") }
+        if !family.mutations.isEmpty { parts.append("\(family.mutations.count) MUTATIONS") }
+        if !family.siblings.isEmpty { parts.append("\(family.siblings.count) HALF-SIBLINGS") }
+        if !family.related.isEmpty { parts.append("\(family.related.count) RELATED") }
+        return parts.joined(separator: " · ")
+    }
 
     private func statsSection(_ g: GrapeEntry) -> some View {
         section("CHARACTERISTICS", symbol: "waveform.path.ecg") {

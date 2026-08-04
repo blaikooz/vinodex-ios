@@ -30,6 +30,17 @@ public enum Entitlement: Hashable, Sendable {
     case expansion(String)
     /// The premium workshop (0.7.3, F1 — for 0.7.3b).
     case workshop
+    /// The interactive pedigree graph (0.7.5, E1).
+    ///
+    /// A case of its own rather than a fold into `.pro`, for the reason
+    /// `.workshop` is one: E1 asks for a premium *feature*, and the shop can
+    /// only sell what the entitlement set can name. It behaves like `.workshop`
+    /// throughout — it gates a door, covers no entry, and `.pro` supersedes it.
+    ///
+    /// Note what it does **not** gate: the lineage *data* travels on every grape
+    /// entry and costs nothing to read, exactly as the workshop's eight axes
+    /// exist for everyone. What is bought is the screen that draws it.
+    case lineage
     /// One hidden feature, unlocked rather than bought (0.7.3, F1).
     ///
     /// The odd one out: nothing about an easter egg is for sale, and it is here
@@ -48,6 +59,7 @@ public enum Entitlement: Hashable, Sendable {
         case .lightMode: "lightMode"
         case .expansion(let pack): "pack:" + pack
         case .workshop: "workshop"
+        case .lineage: "lineage"
         case .easterEgg(let egg): "egg:" + egg
         }
     }
@@ -59,6 +71,7 @@ public enum Entitlement: Hashable, Sendable {
         case "skins": self = .skins
         case "lightMode": self = .lightMode
         case "workshop": self = .workshop
+        case "lineage": self = .lineage
         default:
             // The namespaced forms. A table rather than a chain of `hasPrefix`
             // guards because there are three of them now and a fourth would
@@ -111,6 +124,7 @@ public enum Entitlement: Hashable, Sendable {
             ExpansionPacks.pack(id: pack).map { "\($0.title) PACK" }
                 ?? "\(pack.uppercased()) PACK"
         case .workshop: "WORKSHOP"
+        case .lineage: "GRAPE LINEAGE"
         // Never shown in a storefront — nothing here is for sale. The title
         // exists so an unlock *confirmation* has something to print, which is
         // what the cheat console does with it.
@@ -128,6 +142,7 @@ public enum Entitlement: Hashable, Sendable {
         case .expansion(let pack):
             ExpansionPacks.pack(id: pack)?.blurb ?? "The \(pack) expansion pack."
         case .workshop: "The full workshop, with every tool unlocked."
+        case .lineage: "Every grape's parents, offspring and mutations, drawn as a family tree."
         case .easterEgg: "Unlocked."
         }
     }
@@ -146,7 +161,7 @@ public enum Entitlement: Hashable, Sendable {
             let target = TextNormalize.label(name)
             guard !target.isEmpty else { return false }
             return TextNormalize.label(entry.origin ?? "") == target
-        case .skins, .lightMode, .workshop, .easterEgg:
+        case .skins, .lightMode, .workshop, .lineage, .easterEgg:
             return false
         // **0.7.3c fills this in, and it can only ever unlock.** The arm stood
         // at `false` through 0.7.3a and 0.7.3b because no pack existed; packs

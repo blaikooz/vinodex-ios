@@ -181,9 +181,19 @@ struct RootView: View {
                             // was trying to open. Stopping at "unlocked!" and making
                             // them find their way back was the other half of why
                             // this button felt broken.
-                            access.grant(offer)
+                            //
+                            // Through `AccessStore.purchase` since 0.7.5 (B2) —
+                            // the same grant, reached through the seam a payment
+                            // step would live in. The push is inside the `Task`
+                            // and gated on the outcome, so a purchase that did
+                            // not happen does not open the entry.
+                            let destination = entry.destination
                             lockedAttempt = nil
-                            push(entry.destination)
+                            Task {
+                                if await access.purchase(offer).entitlement != nil {
+                                    push(destination)
+                                }
+                            }
                         },
                         onCancel: { lockedAttempt = nil }
                     )
@@ -492,13 +502,7 @@ struct RootView: View {
                 onFirmwareHistory: { push(.firmwareHistory) },
                 onCheatConsole: { push(.cheatConsole) },
                 onDemoMode: { startDemo() },
-                onDeviceWorkshop: { push(.deviceWorkshop) },
-                // The cartridge shelf (0.7.3c) is a settings section rather than
-                // a route of its own, so CUSTOMIZE reaches it by pushing another
-                // `.settingsSection` — the same move the DEV button one line up
-                // has always made. The chassis Back button then returns to
-                // CUSTOMIZE rather than dropping out of settings.
-                onExpansionPacks: { push(.settingsSection(.packs)) }
+                onDeviceWorkshop: { push(.deviceWorkshop) }
             )
 
         case .minigames:
@@ -517,11 +521,15 @@ struct RootView: View {
                 onSelectCountry: { push(.country(name: $0)) }
             )
 
+        // WINE EXAM. The authored bank since 0.7.5 (D) — the same route, the
+        // same ladder, a different room behind the door. See `WineExamScreen`.
         case .wsetQuiz:
-            TastingQuizScreen(onOpen: { open($0) }, onExit: { goBack() })
+            WineExamScreen(onOpen: { open($0) }, onExit: { goBack() })
 
+        // The daily paper is still generated from the catalog, and deliberately
+        // — see `Exam.swift` on why the split is not leftover.
         case .dailyChallenge:
-            TastingQuizScreen(mode: .daily, onOpen: { open($0) }, onExit: { goBack() })
+            TastingQuizScreen(onOpen: { open($0) }, onExit: { goBack() })
 
         case .walkthrough:
             // FINISH goes Home rather than Back: the tour's last step tells you
@@ -560,6 +568,16 @@ struct RootView: View {
         // (`open(_:)`) is checked because entries arrive from twenty screens.
         case .deviceWorkshop:
             DeviceWorkshopScreen()
+
+        // The pedigree tree (0.7.5, E1). Gated on `Entitlement.lineage` at the
+        // LINEAGE button that pushes it, not here — see `.deviceWorkshop` above
+        // for the same reasoning.
+        case .lineage(let id):
+            if let entry = db.entry(id: id), case .grape(let g) = entry {
+                GrapeLineageScreen(grape: g) { open($0) }
+            } else {
+                notFound
+            }
 
         case .continent(let id):
             if let entry = db.entry(id: id), case .continent(let c) = entry {

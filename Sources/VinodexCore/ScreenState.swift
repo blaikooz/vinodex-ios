@@ -167,6 +167,10 @@ public final class ScreenStateStore {
     public static func state(_ name: String) -> String { "state:" + name }
     public static func detail(_ entryID: String) -> String { "detail:" + entryID }
     public static func continent(_ entryID: String) -> String { "continent:" + entryID }
+    /// One grape's pedigree tree (0.7.5, E1). Its own prefix rather than
+    /// `detail`'s: walking up a tree and coming back must land you where you
+    /// were on *the tree*, not where you were on the scan behind it.
+    public static func lineage(_ entryID: String) -> String { "lineage:" + entryID }
     /// One instance each — unlike the countries and entries, there is only ever
     /// one saved list, one questionnaire, one reveal and one globe.
     public static let bookmarks = "bookmarks"

@@ -157,8 +157,12 @@ public struct DeviceWorkshopScreen: View {
                 UpgradePrompt(
                     entitlement: lockedBundle,
                     onUnlock: {
-                        access.grant(lockedBundle)
+                        // Through the purchase provider since 0.7.5 (B2) — the
+                        // same grant, reached through the seam a payment step
+                        // would live in. See `PurchaseProviding`.
+                        let bundle = lockedBundle
                         self.lockedBundle = nil
+                        Task { await access.purchase(bundle) }
                     },
                     onCancel: { self.lockedBundle = nil }
                 )
@@ -273,10 +277,17 @@ public struct DeviceWorkshopScreen: View {
         VStack(spacing: 5) {
             // Island: the orb, then the lamp trio.
             HStack(spacing: 4) {
-                Circle()
+                // Squared with the real orb (0.7.5, A2) — this is the live
+                // preview of the device being built, so its parts follow the
+                // device's shapes as well as its colours.
+                let orbShape = RoundedRectangle(
+                    cornerRadius: 9 * DexMetrics.islandOrbCornerFraction,
+                    style: .continuous
+                )
+                orbShape
                     .fill(look.orb)
                     .frame(width: 9, height: 9)
-                    .overlay(Circle().strokeBorder(.white, lineWidth: 1))
+                    .overlay(orbShape.strokeBorder(.white, lineWidth: 1))
                     .shadow(color: look.orbGlow, radius: 3)
                 Spacer(minLength: 0)
                 ForEach(0..<3, id: \.self) { index in

@@ -1,7 +1,7 @@
 /**
  * Generates the iOS app's bundled data from the shared data + colour tables.
  *
- * Emits seven files into the VinodexCore resource directory:
+ * Emits eight files into the VinodexCore resource directory:
  *   entries.json   — the WineEntry set for the current selection
  *   tiers.json     — which entry ids the free tier unlocks
  *   palette.json   — the full colour tables, materialised by probing the
@@ -14,8 +14,10 @@
  *                    side (0.6.3, item 1 — AUDIT M3)
  *   firmware.json  — the authored version and the per-release changelog the
  *                    boot POST and the FIRMWARE HISTORY panel read (0.7.3, F3)
+ *   exam.json      — the authored Wine Exam question bank plus its closed
+ *                    vocabularies (0.7.5, D)
  *
- * All seven are committed so a Swift build never needs Node. Scaling the starter
+ * All eight are committed so a Swift build never needs Node. Scaling the starter
  * to the full database is a matter of setting STARTER_SELECTION to `undefined`.
  *
  * Everything this reads lives under `shared/`, a sibling of `scripts/` in this
@@ -38,6 +40,17 @@ import type { WineEntry } from '../shared/types.ts';
 import { CONTINENTS } from '../shared/data/continents.ts';
 import { COUNTRIES } from '../shared/data/countries.ts';
 import { CLIMATE_CLASS_MAP } from '../shared/data/climateClasses.ts';
+import {
+  EXAM_QUESTIONS,
+  EXAM_TIERS,
+  EXAM_CATEGORIES,
+  EXAM_FORMATS,
+  EXAM_CATEGORY_LABELS,
+  EXAM_TIER_LABELS,
+  EXAM_AUTHORED_TIER_COUNTS,
+  EXAM_MIN_CELL_COUNT,
+  type ExamQuestion,
+} from '../shared/data/exam.ts';
 import { FIRMWARE_RELEASES, FIRMWARE_VERSION } from '../shared/data/firmware.ts';
 import { getFlagGradient } from '../shared/data/flagGradients.ts';
 import { GRAPE_CARDS } from '../shared/data/grapeCards.ts';
@@ -1291,6 +1304,26 @@ function validateOutputs(dir: string): void {
     problems.push('firmware.json missing version/releases');
   }
 
+  // `ExamCatalog`'s non-optional keys. `assertExam` has already validated the
+  // bank's *contents*; this checks the envelope actually reached disk, which is
+  // the half a rename in this file would break silently.
+  const exam = read('exam.json');
+  for (const key of ['questions', 'tiers', 'categories', 'formats', 'categoryLabels', 'tierLabels', 'minCellCount']) {
+    if (!has(exam, key)) problems.push(`exam.json missing ${key}`);
+  }
+  const questions = (exam as { questions?: unknown }).questions;
+  if (!Array.isArray(questions) || questions.length === 0) {
+    problems.push('exam.json questions is not a non-empty array');
+  } else {
+    // Every key `ExamQuestion.init(from:)` decodes unconditionally. The payload
+    // keys are per-format and are checked by `assertExam`.
+    for (const q of questions as Record<string, unknown>[]) {
+      for (const key of ['id', 'tier', 'category', 'format', 'prompt', 'explanation']) {
+        if (typeof q[key] !== 'string') problems.push(`exam.json ${String(q.id)}.${key} missing or not string`);
+      }
+    }
+  }
+
   if (problems.length > 0) {
     throw new Error(
       `schema self-check failed — the Swift structs would not decode:\n  - ${problems.join('\n  - ')}`,
@@ -1364,9 +1397,15 @@ function assertFirmware(): void {
       if (!isAscii(note)) problems.push(`${where}.notes[${n}]: not printable ASCII — ${note}`);
     });
 
-    if (i > 0 && compare(FIRMWARE_RELEASES[i - 1].version, release.version) <= 0) {
+    // Bound once rather than indexed twice. `noUncheckedIndexedAccess` types
+    // every element access as possibly-undefined, and `i > 0` does not narrow
+    // an index expression — so the two reads below were the only two type
+    // errors in this repo (0.7.5, D). Behaviour is unchanged: the guard was
+    // already `i > 0`, and `previous` cannot be undefined when it holds.
+    const previous = i > 0 ? FIRMWARE_RELEASES[i - 1] : undefined;
+    if (previous && compare(previous.version, release.version) <= 0) {
       problems.push(
-        `${where}: the list is newest-first, but ${FIRMWARE_RELEASES[i - 1].version} does not sort above it`,
+        `${where}: the list is newest-first, but ${previous.version} does not sort above it`,
       );
     }
   });
@@ -1377,6 +1416,214 @@ function assertFirmware(): void {
 
   if (problems.length > 0) {
     throw new Error(`firmware changelog failed its own rules:\n  - ${problems.join('\n  - ')}`);
+  }
+}
+
+/**
+ * Country/state outline art must exist for every place a shipped region names
+ * (0.7.5, D).
+ *
+ * **This is the gate that was missing.** `COUNTRY_SHAPE_ICONS` is a hand-kept
+ * table and nothing checked it against the catalog, so a country could be added
+ * — regions, prose, flag gradient, chip colour, pack membership — and simply
+ * have no outline. `EntryVisual.regionVisual` degrades quietly to a climate
+ * glyph, and `CountryOutlineMap` has no `else` at all: its `if let` fails and
+ * the country page draws *nothing* where the dotted map belongs. Brazil (0.7.3c)
+ * and Mexico both shipped that way, and both were found by reading rather than
+ * by any gate. It is the third silent-missing-asset bug in three batches, after
+ * `icon: "fruit"` (0.7.4) and the two logo layers (0.7.5, A5).
+ *
+ * `OUTLINE_BACKLOG` is the honest part: those two are a drawing job, not a data
+ * one — the 28 existing outlines are hand-drawn pixel art in
+ * `art/icons/countries/`, at sizes from 50x185 to 232x140, and a silhouette
+ * synthesised by a script would be visibly not of that set. So they are *named*
+ * here rather than allowed by silence, and anything **not** on the list fails
+ * the build. The list is meant to shrink to `[]`; when it does, delete it and
+ * the `known`/`missing` split with it.
+ */
+const OUTLINE_BACKLOG = new Set(['brazil', 'mexico']);
+
+function assertOutlineCoverage(entries: readonly WineEntry[]): string[] {
+  const label = (s: string) => s.toLowerCase().trim();
+  const missing = new Map<string, string[]>();
+
+  for (const entry of entries) {
+    if (entry.category !== 'REGIONS') continue;
+    const details = entry.details as { origin?: string; state?: string };
+    const state = details.state ? label(details.state) : undefined;
+    // State first, exactly as `EntryVisual.regionVisual` resolves it: a
+    // Willamette row reads as Oregon, not as the whole USA.
+    if (state && COUNTRY_SHAPE_ICONS[state]) continue;
+    const place = label(details.origin || entry.name);
+    if (COUNTRY_SHAPE_ICONS[place]) continue;
+    const held = missing.get(place) ?? [];
+    held.push(`${entry.id} ${entry.name}`);
+    missing.set(place, held);
+  }
+
+  const unexpected = [...missing.keys()].filter((p) => !OUTLINE_BACKLOG.has(p)).sort();
+  if (unexpected.length > 0) {
+    throw new CoverageError(
+      'regions name places with no outline art, and no entry in OUTLINE_BACKLOG:\n'
+        + unexpected.map((p) => `  - ${p}: ${(missing.get(p) ?? []).join(', ')}`).join('\n')
+        + '\nDraw the outline into art/icons/countries/, wire it through '
+        + 'COUNTRY_SHAPE_ICONS and scripts/import-class-art.py, or add the place '
+        + 'to OUTLINE_BACKLOG with a reason.',
+    );
+  }
+
+  // A backlog entry that has been drawn should stop being a backlog entry —
+  // otherwise the list rots into a permanent excuse.
+  const stale = [...OUTLINE_BACKLOG].filter((p) => !missing.has(p)).sort();
+  if (stale.length > 0) {
+    throw new CoverageError(
+      `OUTLINE_BACKLOG names places that no longer lack art: ${stale.join(', ')} — remove them.`,
+    );
+  }
+
+  return [...missing.keys()].sort();
+}
+
+/**
+ * The question bank's own gate (0.7.5, D).
+ *
+ * Written for the same reason `assertFirmware` was: `exam.json` is authored
+ * prose in a shape nothing else in the pipeline can check. `find-missing-refs`
+ * walks the *catalog* references (`entryRefs`, and the `entryIcon` image keys,
+ * which are entry ids); this walks everything the generator itself owns — the
+ * closed vocabularies, the per-format payload invariants, and the two asset
+ * tables (`FLAVOR_ART`, `COUNTRY_SHAPE_ICONS`) that only exist in this file.
+ *
+ * The split is by ownership: a table defined here is checked here, a reference
+ * into the catalog is checked against the catalog.
+ *
+ * ASCII is asserted on every *shipped* string. The question card is Press Start
+ * 2P over VT323, both of which have partial Latin-1 coverage — a curly
+ * apostrophe or an accented place name pasted from a source would render as a
+ * blank box, exactly the failure `assertFirmware` exists to prevent one panel
+ * over. The bank is already clean; this keeps it that way.
+ */
+function assertExam(): void {
+  const problems: string[] = [];
+  const tiers = new Set<string>(EXAM_TIERS);
+  const categories = new Set<string>(EXAM_CATEGORIES);
+  const formats = new Set<string>(EXAM_FORMATS);
+  const seen = new Set<string>();
+  const cells = new Map<string, number>();
+  const perTier = new Map<string, number>();
+
+  const isAscii = (s: string) => [...s].every((c) => c.charCodeAt(0) >= 0x20 && c.charCodeAt(0) <= 0x7e);
+  const text = (where: string, field: string, value: string): void => {
+    if (value.trim().length === 0) problems.push(`${where}: ${field} is empty`);
+    if (!isAscii(value)) problems.push(`${where}: ${field} is not printable ASCII — ${value}`);
+  };
+  const list = (where: string, field: string, values: readonly string[], min: number): void => {
+    if (values.length < min) problems.push(`${where}: ${field} has ${values.length}, needs >= ${min}`);
+    values.forEach((v, i) => text(where, `${field}[${i}]`, v));
+    if (new Set(values.map((v) => v.toLowerCase())).size !== values.length) {
+      problems.push(`${where}: ${field} repeats an entry`);
+    }
+  };
+
+  for (const q of EXAM_QUESTIONS as readonly ExamQuestion[]) {
+    const where = `EXAM_QUESTIONS ${q.id}`;
+    if (!/^EXQ-[A-Z]{3}-\d{3}$/.test(q.id)) problems.push(`${where}: id is not EXQ-XXX-nnn`);
+    if (seen.has(q.id)) problems.push(`${where}: duplicate id`);
+    seen.add(q.id);
+    if (!tiers.has(q.tier)) problems.push(`${where}: unknown tier ${q.tier}`);
+    if (!categories.has(q.category)) problems.push(`${where}: unknown category ${q.category}`);
+    if (!formats.has(q.format)) problems.push(`${where}: unknown format ${q.format}`);
+    text(where, 'prompt', q.prompt);
+    text(where, 'explanation', q.explanation);
+    if (q.source !== undefined) text(where, 'source', q.source);
+    if (q.entryRefs !== undefined && q.entryRefs.length === 0) {
+      problems.push(`${where}: entryRefs is present but empty — omit it instead`);
+    }
+
+    cells.set(`${q.tier}|${q.category}`, (cells.get(`${q.tier}|${q.category}`) ?? 0) + 1);
+    perTier.set(q.tier, (perTier.get(q.tier) ?? 0) + 1);
+
+    switch (q.format) {
+      case 'multipleChoice':
+      case 'imageIdentification':
+      case 'aromaIdentification': {
+        list(where, 'options', q.options, 2);
+        if (q.answerIndex < 0 || q.answerIndex >= q.options.length) {
+          problems.push(`${where}: answerIndex ${q.answerIndex} is outside options`);
+        }
+        if (q.format === 'aromaIdentification') {
+          if (q.noteKeys.length === 0) problems.push(`${where}: no noteKeys`);
+          for (const key of q.noteKeys) {
+            if (!(key in FLAVOR_ART)) problems.push(`${where}: noteKey "${key}" is not a flavorArt key`);
+          }
+        }
+        if (q.format === 'imageIdentification' && q.image.kind === 'countryOutline') {
+          if (!(q.image.key in COUNTRY_SHAPE_ICONS)) {
+            problems.push(`${where}: image key "${q.image.key}" is not a countryShapeIcons key`);
+          }
+        }
+        break;
+      }
+      case 'trueFalse':
+        if (typeof q.answer !== 'boolean') problems.push(`${where}: answer is not a boolean`);
+        break;
+      case 'selectAll': {
+        list(where, 'options', q.options, 3);
+        const picks = new Set(q.answerIndices);
+        if (picks.size !== q.answerIndices.length) problems.push(`${where}: answerIndices repeats`);
+        // Both degenerate cases are the same defect: a "select all that apply"
+        // with nothing or everything correct teaches the candidate nothing and
+        // is unscoreable against partial credit.
+        if (picks.size === 0) problems.push(`${where}: answerIndices is empty`);
+        if (picks.size === q.options.length) problems.push(`${where}: every option is correct`);
+        for (const i of q.answerIndices) {
+          if (i < 0 || i >= q.options.length) problems.push(`${where}: answerIndex ${i} is outside options`);
+        }
+        break;
+      }
+      case 'matching': {
+        if (q.pairs.length < 2) problems.push(`${where}: matching needs >= 2 pairs`);
+        list(where, 'pairs.left', q.pairs.map((p) => p.left), 2);
+        // The right column is what gets shuffled, so a repeat there is not a
+        // cosmetic duplicate — it makes two different lefts indistinguishably
+        // correct and the score a lie.
+        list(where, 'pairs.right', q.pairs.map((p) => p.right), 2);
+        break;
+      }
+      case 'ordering': {
+        list(where, 'items', q.items, 3);
+        text(where, 'axis.from', q.axis.from);
+        text(where, 'axis.to', q.axis.to);
+        break;
+      }
+      default:
+        problems.push(`${where}: unhandled format`);
+    }
+  }
+
+  for (const tier of EXAM_TIERS) {
+    const authored = EXAM_AUTHORED_TIER_COUNTS[tier];
+    const actual = perTier.get(tier) ?? 0;
+    if (authored !== actual) {
+      problems.push(`EXAM_AUTHORED_TIER_COUNTS.${tier} says ${authored}, the bank holds ${actual}`);
+    }
+    for (const category of EXAM_CATEGORIES) {
+      const count = cells.get(`${tier}|${category}`) ?? 0;
+      // The floor, not the total, is what bounds balanced generation (D4): an
+      // exam cannot draw more distinct questions from a category than its
+      // thinnest cell holds without repeating, and `ExamPaper` refuses to
+      // repeat.
+      if (count < EXAM_MIN_CELL_COUNT) {
+        problems.push(`cell ${tier}/${category} holds ${count}, below EXAM_MIN_CELL_COUNT (${EXAM_MIN_CELL_COUNT})`);
+      }
+    }
+  }
+
+  for (const category of EXAM_CATEGORIES) text(`EXAM_CATEGORY_LABELS.${category}`, 'label', EXAM_CATEGORY_LABELS[category]);
+  for (const tier of EXAM_TIERS) text(`EXAM_TIER_LABELS.${tier}`, 'label', EXAM_TIER_LABELS[tier]);
+
+  if (problems.length > 0) {
+    throw new Error(`the exam bank failed its own rules:\n  - ${problems.join('\n  - ')}`);
   }
 }
 
@@ -1394,6 +1641,8 @@ function main() {
   const summary = assertCoverage(entries, palette);
   const icons = buildIconManifest(entries);
   assertFirmware();
+  assertExam();
+  const outlineBacklog = assertOutlineCoverage(entries);
 
   mkdirSync(OUT_DIR, { recursive: true });
 
@@ -1448,6 +1697,25 @@ function main() {
     resolve(OUT_DIR, 'firmware.json'),
     serialize({ version: FIRMWARE_VERSION, releases: FIRMWARE_RELEASES }),
   );
+  // The bank and its closed vocabularies travel together, for the reason the
+  // firmware version travels with its changelog: `ExamCatalog` should never
+  // have to restate a label or a tier order that `shared/` already decides.
+  // `minCellCount` is the one number `ExamPaper` reasons about — it bounds how
+  // many distinct questions a balanced paper can draw per category — so it
+  // ships as data rather than as a Swift literal that could drift from the bank.
+  writeFileSync(
+    resolve(OUT_DIR, 'exam.json'),
+    serialize({
+      questions: EXAM_QUESTIONS,
+      tiers: EXAM_TIERS,
+      categories: EXAM_CATEGORIES,
+      formats: EXAM_FORMATS,
+      categoryLabels: EXAM_CATEGORY_LABELS,
+      tierLabels: EXAM_TIER_LABELS,
+      authoredTierCounts: EXAM_AUTHORED_TIER_COUNTS,
+      minCellCount: EXAM_MIN_CELL_COUNT,
+    }),
+  );
 
   // AUDIT M3 — fail loudly here (and in CI) if the emitted JSON would not decode.
   validateOutputs(OUT_DIR);
@@ -1469,8 +1737,19 @@ function main() {
   console.log('firmware.json');
   console.log(`  version        ${FIRMWARE_VERSION}`);
   console.log(`  releases       ${FIRMWARE_RELEASES.length}`);
+  console.log('exam.json');
+  console.log(`  questions      ${EXAM_QUESTIONS.length}`);
+  console.log(
+    `  by tier        ${EXAM_TIERS.map((t) => `${t} ${EXAM_AUTHORED_TIER_COUNTS[t]}`).join(' · ')}`,
+  );
+  console.log(`  min cell       ${EXAM_MIN_CELL_COUNT} (bounds a balanced paper's per-category draw)`);
   console.log('icons.json');
   console.log(`  distinct icons ${icons.unique.length}`);
+  // Printed rather than silent, on the lesson 0.7.4's dead COUNTRY_GATE arm
+  // taught: an absence nothing mentions reads as "none".
+  if (outlineBacklog.length > 0) {
+    console.log(`  no outline art: ${outlineBacklog.join(', ')} — see OUTLINE_BACKLOG`);
+  }
   const missing = Object.entries(icons.byEntry)
     .filter(([, id]) => id === icons.fallback)
     .map(([entryId]) => entryId);
