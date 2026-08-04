@@ -57,16 +57,33 @@ public enum MarqueeStage: String, CaseIterable, Sendable, Equatable {
     /// The two numbers are the two the spec gives, and they are very different
     /// on purpose. WELCOME! is a *beat* — long enough to read eight characters
     /// and no longer, because everything behind it is waiting. The 10 seconds
-    /// before CHEERS! is B3's own figure and is an idle threshold: it has to
-    /// outlast someone reading the four menu tiles and deciding, or the panel
-    /// changes under a user who never stopped using the device.
+    /// before CHEERS! is an *idle threshold*: it has to outlast someone reading
+    /// the four menu tiles and deciding, or the panel changes under a user who
+    /// never stopped using the device.
+    ///
+    /// **That difference is now structural (0.7.3, F2).** The two dwells are
+    /// still both described here — this stays the whole state machine, and a
+    /// table with a hole in it would be worse than one with a footnote — but
+    /// only the beat is still *timed* here. `MarqueeBanner` runs the 2.4-second
+    /// sleep; the 10-second one is `IdleSchedule.toast`, driven by the app's one
+    /// idle timer, which is also what raises the screensaver five seconds later.
+    /// Two clocks counting the same silence was how the marquee could be idling
+    /// on a different reckoning from everything else that cares.
     public var timeout: (after: TimeInterval, then: MarqueeStage)? {
         switch self {
         case .welcome: (2.4, .menu)
-        case .menu: (10, .cheers)
+        case .menu: (IdleSchedule.toast, .cheers)
         case .cheers: nil
         }
     }
+
+    /// Whether this stage's dwell is the shared idle timer's to fire rather than
+    /// the banner's own (0.7.3, F2).
+    ///
+    /// The banner asks this instead of hardcoding "run a sleep for `.welcome`
+    /// and not for `.menu`", so the day a stage moves from one clock to the
+    /// other, it moves here and the view does not change.
+    public var awaitsIdleTimer: Bool { self == .menu }
 }
 
 /// The toasts the idle panel rotates through (0.7.2, A8).

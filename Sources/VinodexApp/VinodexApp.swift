@@ -79,6 +79,22 @@ struct RootView: View {
     /// would make the alert un-dismissable. Detail stays in the DEV panel.
     @State private var showingDataAlert = !WineDatabase.shared.decodeErrors.isEmpty
     @State private var access = AccessStore.shared
+    /// The boot POST (0.7.3, A1). True for the first ~1.9 seconds of a launch,
+    /// or until the screen is tapped.
+    @State private var booting = true
+    /// The app's one idle timer (0.7.3, F2), held here so the boot screen and
+    /// demo mode can pause it. The chassis reads the same instance.
+    @State private var idle = IdleMonitor.shared
+    /// Which stop demo mode is on, or nil when it is not running (0.7.3, A2).
+    @State private var demoStop: Int?
+    /// The activity count when demo mode started.
+    ///
+    /// **The tap that starts the demo must not also stop it.**
+    /// `IdleTouchWatcher` sees a touch on the way *down*, and the button's
+    /// action runs on the way *up*, so by the time the demo begins the counter
+    /// has already moved once. Comparing against the value captured at start is
+    /// exact, where a grace period would be a guess.
+    @State private var demoStartedAtTick = 0
     /// DexFont and DexMetrics read their scales from defaults, which SwiftUI
     /// cannot observe. Keying the chassis on both forces a rebuild so a
     /// change takes effect immediately rather than on the next navigation.
@@ -188,9 +204,28 @@ struct RootView: View {
                         onCancel: { showingDataAlert = false }
                     )
                 }
+
+                // The boot POST (0.7.3, A1), above everything else in the LCD
+                // and below nothing — it is what the display is doing before
+                // the app has started.
+                //
+                // Inside the LCD rather than over the chassis: a BIOS is
+                // something a *screen* does, and dimming the bezel, island and
+                // footer reads as the device losing power, which is the exact
+                // opposite of what is happening. See `BootScreen`.
+                if booting {
+                    BootScreen(
+                        entries: db.entries.count,
+                        // The MAINFRAME cheat (A4). Reads the entitlement store
+                        // like every other unlock (F1).
+                        verbose: access.hasFound(CheatCodes.verboseBoot),
+                        onFinish: finishBoot
+                    )
+                }
             }
             .animation(DexMotion.overlay, value: lockedAttempt?.id)
             .animation(DexMotion.overlay, value: showingDataAlert)
+            .animation(DexMotion.overlay, value: booting)
         }
         .id(scaleRaw + "|" + uiScaleRaw)
         // The app's declared position on Dynamic Type (0.6.4, AUDIT H11):
@@ -214,11 +249,88 @@ struct RootView: View {
             // The power-on chime, once per launch — this view appears exactly
             // once, so no flag is needed.
             Sounds.boot()
+            // The app-wide activity sink (0.7.3, F2). On the window, so it sees
+            // touches on the chassis furniture and the LCD alike without either
+            // knowing it exists — and it never competes for a gesture. See
+            // `IdleTouchWatcher`.
+            IdleTouchWatcher.install()
+            // Held frozen through the boot POST: a screensaver over a boot
+            // screen would be absurd, and the boot screen is not idleness.
+            idle.isPaused = booting
+            idle.start()
         }
-        .onDisappear { ScreenWake.keepAwake(false) }
+        .onDisappear {
+            ScreenWake.keepAwake(false)
+            idle.stop()
+        }
+        // **Any input exits demo mode** (0.7.3, A2). One line, because F2 gave
+        // the app a single place that hears about every touch — before it, this
+        // would have meant a recogniser per screen.
+        .onChange(of: idle.activityTick) { _, tick in
+            if demoStop != nil, tick > demoStartedAtTick { stopDemo() }
+        }
+        // The demo's own clock. Keyed on the stop, so each assignment cancels
+        // the previous sleep and starts the next dwell — the same `task(id:)`
+        // lifetime argument the marquee script makes.
+        .task(id: demoStop) { await runDemo() }
         // The system panel (settings, diagnostics, catalog) is owned by
         // DeviceChassis so it can be confined to the LCD; the app module no
         // longer presents it.
+    }
+
+    // MARK: Boot (0.7.3, A1)
+
+    /// The POST finished, or was tapped through.
+    ///
+    /// Idempotent: the tap and the sequence's own completion race by design —
+    /// tapping on the last frame is a legitimate thing to do — and whichever
+    /// arrives second must not restart the idle timer a second time.
+    private func finishBoot() {
+        guard booting else { return }
+        booting = false
+        idle.isPaused = false
+    }
+
+    // MARK: Demo mode (0.7.3, A2)
+
+    /// Start the attract loop from the System panel.
+    ///
+    /// Goes Home first: the demo drives the whole route stack, and starting it
+    /// from three screens deep would leave those screens underneath it for Back
+    /// to walk out through once it stopped.
+    private func startDemo() {
+        goHome()
+        demoStartedAtTick = idle.activityTick
+        // Frozen while it runs. The demo navigates without being touched, so
+        // the screensaver would otherwise cover it fifteen seconds in — the one
+        // case where the device is genuinely busy and genuinely untouched.
+        idle.isPaused = true
+        demoStop = 0
+    }
+
+    /// Any input stopped it. Returns to the main menu rather than leaving the
+    /// user on whichever tool the loop happened to be showing — they did not
+    /// choose to be there.
+    private func stopDemo() {
+        guard demoStop != nil else { return }
+        demoStop = nil
+        idle.isPaused = false
+        goHome()
+    }
+
+    /// Hold the current stop, then move to the next.
+    ///
+    /// Assigns `path` directly rather than going through `push`: the demo
+    /// *replaces* where you are on every stop, so a stack would grow twelve
+    /// deep per cycle, and `push` plays the page sound — twelve chirps a minute
+    /// from a device nobody is holding.
+    private func runDemo() async {
+        guard let index = demoStop else { return }
+        let stop = DemoTour.stop(at: index)
+        path = [stop.route]
+        try? await Task.sleep(for: .seconds(stop.dwell))
+        guard !Task.isCancelled, demoStop == index else { return }
+        demoStop = index + 1
     }
 
     /// Counts, not the raw error strings — those are developer diagnostics
@@ -374,7 +486,13 @@ struct RootView: View {
             )
 
         case .settingsSection(let section):
-            SettingsSectionPanel(section: section, onDev: { push(.settingsSection(.dev)) })
+            SettingsSectionPanel(
+                section: section,
+                onDev: { push(.settingsSection(.dev)) },
+                onFirmwareHistory: { push(.firmwareHistory) },
+                onCheatConsole: { push(.cheatConsole) },
+                onDemoMode: { startDemo() }
+            )
 
         case .minigames:
             ToolsScreen(
@@ -415,6 +533,16 @@ struct RootView: View {
 
         case .moonDial:
             MoonDialScreen()
+
+        // The two System-panel panels (0.7.3, A3/A4). Both read `AccessStore`
+        // and `FirmwareCatalog` directly rather than taking them as arguments —
+        // neither offers an entry, so neither needs the `open(_:)` gate every
+        // catalog screen goes through.
+        case .firmwareHistory:
+            FirmwareHistoryScreen()
+
+        case .cheatConsole:
+            CheatConsoleScreen()
 
         case .continent(let id):
             if let entry = db.entry(id: id), case .continent(let c) = entry {

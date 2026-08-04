@@ -63,6 +63,12 @@ public struct DeviceChassis<Content: View>: View {
     /// `QuickPinStore` is `@Observable`, and both surfaces read the one
     /// instance rather than each keeping a copy of the list.
     @State private var pins = QuickPinStore.shared
+    /// The app's one idle timer (0.7.3, F2). Drives both the marquee's toast
+    /// dwell and the screensaver below — see `IdleMonitor`.
+    @State private var idle = IdleMonitor.shared
+    /// When the screensaver appeared, so its mark starts in the corner rather
+    /// than wherever a global clock happens to be. Nil while it is down.
+    @State private var screensaverSince: Date?
     // **No app-wide back swipe (0.6.9, A1).** 0.6.8's I1 mounted a
     // `simultaneousGesture` on the LCD so every screen got a swipe-back for
     // free, with `BackSwipeGate` as the opt-out for the one screen that owns
@@ -258,7 +264,8 @@ public struct DeviceChassis<Content: View>: View {
         // so it must not show internals — under a translucent skin it is the
         // dark ground the smoke plastic needs, and elsewhere it is the body.
         .background(skin.underlay.ignoresSafeArea())
-        // The script's clock (0.7.1, B1-B3).
+        // The script's clock (0.7.1, B1-B3) — now only the WELCOME! beat
+        // (0.7.3, F2).
         //
         // Keyed on the stage *and* on whether the main screen is showing, so a
         // navigation cancels the pending dwell and returning starts a fresh
@@ -269,6 +276,24 @@ public struct DeviceChassis<Content: View>: View {
         // so coming back finds MENU rather than a second WELCOME!.
         .onChange(of: isMainScreen) { _, main in
             if !main { script.leftMainScreen() }
+        }
+        // **The marquee's ten seconds, now the app's ten seconds** (0.7.3, F2).
+        //
+        // The MENU→CHEERS! dwell used to be a `Task.sleep` in `runScript`
+        // below, reset by exactly one thing in the app: a tap on the marquee
+        // itself. It is now a stage of the one idle timer — the same timer that
+        // raises the screensaver five seconds later — so a finger anywhere on
+        // the device resets it, which is what it always claimed to mean.
+        .onChange(of: idle.stage) { _, stage in
+            guard stage >= .toast else { return }
+            guard isMainScreen, !reduceMotion else { return }
+            script.timedOut()
+        }
+        // Any interaction, from anywhere. `MarqueeScript.noteActivity` returns
+        // early when the panel is already at MENU, which is the overwhelming
+        // majority of these.
+        .onChange(of: idle.activityTick) { _, _ in
+            noteActivity()
         }
     }
 
@@ -296,6 +321,12 @@ public struct DeviceChassis<Content: View>: View {
             return
         }
         guard let timeout = script.pendingTimeout else { return }
+        // **Only the beat is timed here now** (0.7.3, F2). `awaitsIdleTimer`
+        // marks the stages whose dwell belongs to the shared idle timer instead
+        // — currently just MENU, whose ten seconds is `IdleSchedule.toast`. The
+        // stage asks rather than this function hardcoding a case, so a stage
+        // moving between the two clocks moves in `MarqueeScript` and not here.
+        guard !script.stage.awaitsIdleTimer else { return }
         try? await Task.sleep(for: .seconds(timeout.after))
         guard !Task.isCancelled else { return }
         script.timedOut()
@@ -304,12 +335,16 @@ public struct DeviceChassis<Content: View>: View {
     /// The user did something. Sends CHEERS! back to MENU and restarts the
     /// idle dwell — see `MarqueeScript.noteActivity`.
     ///
-    /// Called from the marquee's own tap. It is deliberately *not* wired to
-    /// every control on the device: the four chassis buttons all navigate, and
-    /// navigating off the main screen already parks the script through
-    /// `leftMainScreen`. What is left for this to catch is the one interaction
-    /// that happens *on* the main screen without leaving it, which is opening
-    /// the drawer.
+    /// **Now called for every touch in the app** (0.7.3, F2), via
+    /// `IdleMonitor.activityTick`. It used to have exactly one call site — the
+    /// marquee's own tap — on the argument that the four chassis buttons all
+    /// navigate, and navigating off the main screen already parks the script.
+    /// That was true and it was not enough: tapping a menu tile, scrolling, or
+    /// any interaction that stayed on the main screen without opening the drawer
+    /// counted as idleness, so the panel could drift to CHEERS! under somebody
+    /// who had not stopped using the device. The marquee's tap still calls it
+    /// directly, which is a harmless double-count — the second call finds the
+    /// stage already at MENU and returns.
     private func noteActivity() {
         guard isMainScreen else { return }
         script.noteActivity()
@@ -748,6 +783,21 @@ public struct DeviceChassis<Content: View>: View {
                 )
             }
 
+            // The idle screensaver (0.7.3, A5).
+            //
+            // Above the content and the drawer, below the scanlines — the same
+            // slot the drawer takes and for the same reason: it is subject to
+            // the display's own treatments (the monochrome pass, the tint, the
+            // clip), so it reads as something this screen is doing rather than
+            // as an overlay floating on top of the device.
+            //
+            // No dismissal wiring of its own. Any touch is seen by
+            // `IdleTouchWatcher` on the window before this view hears anything,
+            // which drops the stage to `.active` and takes this branch away.
+            if let screensaverSince {
+                Screensaver(since: screensaverSince)
+            }
+
             // Confined to the LCD, so the bezel, footer and island stay put and
             // the panel reads as the device's own menu rather than an iOS modal.
             ScanlineOverlay()
@@ -755,11 +805,31 @@ public struct DeviceChassis<Content: View>: View {
                 .allowsHitTesting(false)
         }
         .animation(DexMotion.overlay, value: drawerOpen)
+        .animation(DexMotion.overlay, value: screensaverSince)
         // Turning the device over closes it: the drawer belongs to the front
         // face, and leaving it open behind the back plate would put it there
         // waiting when the device came back round.
         .onChange(of: showsBackFace) { _, back in
             if back { drawerOpen = false }
+        }
+        // Raise and drop the screensaver from the shared idle stage (0.7.3, A5).
+        //
+        // The timestamp is set on the way *up* only, so the mark starts its
+        // bounce at the corner each time rather than resuming wherever the last
+        // idle period left it.
+        //
+        // **Reduce Motion suppresses it**, on the same reading `runScript` makes
+        // of the marquee transitions: this is an unprompted, permanently moving
+        // image, which is the exact category that setting exists for. The screen
+        // simply stays as it was, which on a device that never dims is the same
+        // behaviour every build before 0.7.3 had.
+        .onChange(of: idle.stage) { _, stage in
+            guard !reduceMotion else { return }
+            if stage >= .screensaver {
+                if screensaverSince == nil { screensaverSince = .now }
+            } else {
+                screensaverSince = nil
+            }
         }
         // No gesture of any kind rides on the display since 0.6.9 (A1) — see
         // the note beside `orbHeld`. The LCD is a surface screens are mounted

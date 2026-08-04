@@ -216,6 +216,16 @@ public struct SettingsSectionPanel: View {
     /// developer plumbing, not a setting — and lives behind a button at the
     /// bottom of SETTINGS instead. A route push, so Back still works.
     let onDev: () -> Void
+    /// The DEVICE section's three doors (0.7.3, A2–A4).
+    ///
+    /// Route pushes rather than local state, for the same reason `onDev` is: the
+    /// chassis Back button has to return to the System panel rather than drop
+    /// the user out of settings entirely.
+    let onFirmwareHistory: () -> Void
+    let onCheatConsole: () -> Void
+    /// Starts the attract loop. Not a route — demo mode drives the *whole* route
+    /// stack, so it is the app's business rather than a screen to push.
+    let onDemoMode: () -> Void
 
     @State private var access = AccessStore.shared
     /// Set when a gated cosmetic is tapped; drives the same upgrade prompt a
@@ -245,9 +255,18 @@ public struct SettingsSectionPanel: View {
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
     private var totalCount: Int { db.entries.count }
 
-    public init(section: SettingsSection, onDev: @escaping () -> Void = {}) {
+    public init(
+        section: SettingsSection,
+        onDev: @escaping () -> Void = {},
+        onFirmwareHistory: @escaping () -> Void = {},
+        onCheatConsole: @escaping () -> Void = {},
+        onDemoMode: @escaping () -> Void = {}
+    ) {
         self.section = section
         self.onDev = onDev
+        self.onFirmwareHistory = onFirmwareHistory
+        self.onCheatConsole = onCheatConsole
+        self.onDemoMode = onDemoMode
     }
 
     private var screenKey: String { ScreenStateStore.settings(section.rawValue) }
@@ -428,6 +447,13 @@ public struct SettingsSectionPanel: View {
         case .country: "flag.fill"
         case .skins: "paintpalette.fill"
         case .lightMode: "sun.max.fill"
+        // Not in `testableEntitlements`, so these never reach the ACCESS
+        // harness today — the switch is exhaustive because `Entitlement` is,
+        // and 0.7.3b/0.7.3c will want them listed here when they have something
+        // to sell. `key.fill` matches the cheat console's own progress row.
+        case .expansion: "shippingbox.fill"
+        case .workshop: "wrench.and.screwdriver.fill"
+        case .easterEgg: "key.fill"
         }
     }
 
@@ -519,6 +545,75 @@ public struct SettingsSectionPanel: View {
                     .font(DexFont.mono(17))
                     .foregroundStyle(lcd.subtext)
                     .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+
+        // **The System panel's new row of doors (0.7.3, A2–A4).** One section
+        // rather than three: A3 and A4 both ask for "a new button in the System
+        // panel", A2 for one "in Settings", and three more headings in a panel
+        // that already had six would have buried TEXT SIZE — the setting people
+        // actually come here for — under a stack of device curiosities. They
+        // belong together anyway: none of the three is a *setting*, they are
+        // three things the device can tell you or do.
+        settingsSection("DEVICE") {
+            VStack(alignment: .leading, spacing: 10) {
+                Button {
+                    Haptics.screenTap()
+                    onFirmwareHistory()
+                } label: {
+                    settingRow(
+                        symbol: "memorychip.fill",
+                        tint: lcd.accent,
+                        title: "FIRMWARE",
+                        // States the installed version on the row itself. The
+                        // panel behind it is the history; the number is the
+                        // thing most people opening this want, and making them
+                        // tap through for it would be a step for nothing.
+                        detail: "\(AppVersion.display) — what changed, release by release."
+                    ) {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(lcd.subtext)
+                    }
+                }
+                .buttonStyle(DexPressStyle(scale: 0.98))
+
+                Button {
+                    Haptics.screenTap()
+                    onCheatConsole()
+                } label: {
+                    settingRow(
+                        symbol: "terminal.fill",
+                        tint: lcd.accent,
+                        title: "CHEAT CODES",
+                        detail: "Enter unlock codes for cosmetics and hidden features."
+                    ) {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(lcd.subtext)
+                    }
+                }
+                .buttonStyle(DexPressStyle(scale: 0.98))
+
+                Button {
+                    Haptics.select()
+                    onDemoMode()
+                } label: {
+                    settingRow(
+                        symbol: "play.rectangle.fill",
+                        tint: lcd.accent,
+                        title: "DEMO MODE",
+                        detail: "Cycles the tools unattended. Any input stops it."
+                    ) {
+                        // No chevron: this one does not open a panel, it starts
+                        // something and closes settings behind it. A chevron
+                        // would promise a page to come back from.
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(lcd.subtext)
+                    }
+                }
+                .buttonStyle(DexPressStyle(scale: 0.98))
             }
         }
 
@@ -615,7 +710,11 @@ public struct SettingsSectionPanel: View {
     private func skinGrid(_ skins: [ChassisSkin]) -> some View {
         LazyVGrid(columns: pickerColumns, spacing: 8) {
             ForEach(skins) { option in
-                let locked = option != .classic && !access.isUnlocked(.skins)
+                // The option names its own bundle since 0.7.3 (F1) — see
+                // `CosmeticEntitlements`. This line used to be
+                // `option != .classic && !access.isUnlocked(.skins)`, written
+                // out here and three more times elsewhere.
+                let locked = !access.isUnlocked(option)
 
                 Button {
                     Haptics.select()
@@ -762,8 +861,10 @@ public struct SettingsSectionPanel: View {
             ForEach(modes) { option in
                 // Every mode past the default gates on the same cosmetic
                 // bundle — a paywall case that costs nothing to test and
-                // touches every screen.
-                let locked = option != .dark && !access.isUnlocked(.lightMode)
+                // touches every screen. Which mode is the default, and which
+                // bundle the rest ride, is the option's own business since
+                // 0.7.3 (F1) — see `CosmeticEntitlements`.
+                let locked = !access.isUnlocked(option)
 
                 Button {
                     Haptics.select()

@@ -22,6 +22,22 @@ public enum Entitlement: Hashable, Sendable {
     case skins
     /// The light LCD mode.
     case lightMode
+    /// One expansion pack of catalog content (0.7.3, F1 — for 0.7.3c).
+    ///
+    /// Named by pack id rather than by case for the same reason `country` is:
+    /// packs are content, content ships on its own schedule, and an enum case
+    /// per pack would mean a Swift change for every one.
+    case expansion(String)
+    /// The premium workshop (0.7.3, F1 — for 0.7.3b).
+    case workshop
+    /// One hidden feature, unlocked rather than bought (0.7.3, F1).
+    ///
+    /// The odd one out: nothing about an easter egg is for sale, and it is here
+    /// anyway because F1 is explicit that ownership is *one* question. An egg
+    /// unlocked by a cheat code and a bundle unlocked by a purchase are the same
+    /// question asked of the same store — a second store for "things you have
+    /// but did not pay for" is precisely the parallel store F1 forbids.
+    case easterEgg(String)
 
     public var id: String {
         switch self {
@@ -30,6 +46,9 @@ public enum Entitlement: Hashable, Sendable {
         case .flavors: "flavors"
         case .skins: "skins"
         case .lightMode: "lightMode"
+        case .expansion(let pack): "pack:" + pack
+        case .workshop: "workshop"
+        case .easterEgg(let egg): "egg:" + egg
         }
     }
 
@@ -39,11 +58,31 @@ public enum Entitlement: Hashable, Sendable {
         case "flavors": self = .flavors
         case "skins": self = .skins
         case "lightMode": self = .lightMode
+        case "workshop": self = .workshop
         default:
-            guard id.hasPrefix("country:") else { return nil }
-            let name = String(id.dropFirst("country:".count))
-            guard !name.isEmpty else { return nil }
-            self = .country(name)
+            // The namespaced forms. A table rather than a chain of `hasPrefix`
+            // guards because there are three of them now and a fourth would
+            // have been another copy-paste of the empty-name check below —
+            // which is the one part of this that is easy to forget and silently
+            // mints an entitlement nobody can name.
+            //
+            // A local rather than a `static let`: an array of tuples holding
+            // closures is not `Sendable`, so at file scope it is a strict-
+            // concurrency error under Swift 6. Building three of them per call
+            // costs nothing next to the string work already happening here.
+            let namespaces: [(prefix: String, make: (String) -> Entitlement)] = [
+                ("country:", Entitlement.country),
+                ("pack:", Entitlement.expansion),
+                ("egg:", Entitlement.easterEgg),
+            ]
+            // First match wins, and the prefixes are disjoint.
+            for (prefix, make) in namespaces where id.hasPrefix(prefix) {
+                let name = String(id.dropFirst(prefix.count))
+                guard !name.isEmpty else { return nil }
+                self = make(name)
+                return
+            }
+            return nil
         }
     }
 
@@ -58,6 +97,12 @@ public enum Entitlement: Hashable, Sendable {
         // silently revoke the bundle. Only the shopfront copy widened when
         // the vintage and amber modes joined the paper-white one.
         case .lightMode: "SCREEN MODES"
+        case .expansion(let pack): "\(pack.uppercased()) PACK"
+        case .workshop: "WORKSHOP"
+        // Never shown in a storefront — nothing here is for sale. The title
+        // exists so an unlock *confirmation* has something to print, which is
+        // what the cheat console does with it.
+        case .easterEgg(let egg): egg.uppercased()
         }
     }
 
@@ -68,6 +113,9 @@ public enum Entitlement: Hashable, Sendable {
         case .flavors: "All flavour entries and the full tasting wheel."
         case .skins: "All chassis colourways beyond the default."
         case .lightMode: "Nine alternate LCDs — paper-white, three phosphors, and themed consoles."
+        case .expansion(let pack): "The \(pack) expansion pack."
+        case .workshop: "The full workshop, with every tool unlocked."
+        case .easterEgg: "Unlocked."
         }
     }
 
@@ -85,7 +133,14 @@ public enum Entitlement: Hashable, Sendable {
             let target = TextNormalize.label(name)
             guard !target.isEmpty else { return false }
             return TextNormalize.label(entry.origin ?? "") == target
-        case .skins, .lightMode:
+        case .skins, .lightMode, .workshop, .easterEgg:
+            return false
+        // Expansion packs *will* cover entries — that is what a content pack is
+        // — and cannot yet, because no pack exists and nothing in the catalog
+        // declares membership of one. Answering `false` is the honest state of
+        // that: an owner of a pack that ships no entries is gated out of
+        // nothing. 0.7.3c adds the membership field and this arm reads it.
+        case .expansion:
             return false
         }
     }

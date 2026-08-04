@@ -206,6 +206,13 @@ public enum DexRoute: Hashable, Sendable {
     case passport
     /// The guided tour. Opt-in from the settings grid, never shown unasked.
     case walkthrough
+    /// The installed firmware and every release before it (0.7.3, A3). Reads
+    /// `FirmwareCatalog`, which is the same source the boot POST states its
+    /// version from.
+    case firmwareHistory
+    /// The unlock-code console (0.7.3, A4). Typed codes are matched against
+    /// `CheatCode.all` and grant through `AccessStore` like any other unlock.
+    case cheatConsole
     /// The continent info screen — INFO blurb plus a COUNTRIES list, each
     /// linking to that country's regions. Reached from the globe markers.
     case continent(entryID: String)
@@ -274,6 +281,13 @@ public enum DexRoute: Hashable, Sendable {
             "PASSPORT"
         case .walkthrough:
             "WALKTHROUGH"
+        // Not "FIRMWARE HISTORY": the marquee fits fourteen characters before it
+        // scales, and this is sixteen. The panel's own heading says HISTORY
+        // underneath it, so nothing is lost by the marquee naming the subject.
+        case .firmwareHistory:
+            "FIRMWARE"
+        case .cheatConsole:
+            "CHEAT CODES"
         case .continent:
             "CONTINENT SCAN"
         }
@@ -377,6 +391,15 @@ public enum DexRoute: Hashable, Sendable {
             "book.closed.fill"
         case .walkthrough:
             "figure.walk"
+        // Both match the System-panel rows that open them (K2, rule 1). A chip
+        // for the firmware, a console prompt for the codes — and neither
+        // collides, because `gearshape.fill` is the settings grid's and
+        // `ladybug.fill` is DEV's. SF Symbols 4 and 2 respectively, both under
+        // the iOS 17 floor.
+        case .firmwareHistory:
+            "memorychip.fill"
+        case .cheatConsole:
+            "terminal.fill"
         // Not the globe: the globe screen is the globe, and a continent page is
         // one continent (K2, rule 3).
         case .continent:

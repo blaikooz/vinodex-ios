@@ -222,6 +222,31 @@ export interface LegacyGrapeRecord {
   };
 }
 
+/**
+ * One shipped release, as the device itself describes it (iOS 0.7.3, F3).
+ *
+ * This is the *user-facing* changelog — what the FIRMWARE HISTORY panel prints
+ * and what the boot POST reads its version number off. It is deliberately not
+ * the engineering record: `AppVersion.swift` still carries the long "why does
+ * this build have this number" notes, because those answer a question no player
+ * asks. Anything here is written to be read on a 320pt LCD in a fixed-width
+ * font.
+ *
+ * ASCII only, and `headline` uppercase and short: the panel's headings are set
+ * in Press Start 2P, which has a partial Latin-1 range, and a missing glyph is
+ * a worse outcome than a missing accent. The generator gates all of that.
+ */
+export interface FirmwareRelease {
+  /** Three dot-separated integers — the scheme since iOS 0.4.3. */
+  version: string;
+  /** ISO `YYYY-MM-DD`, the day the batch landed. */
+  date: string;
+  /** ASCII, uppercase, <= 24 characters. The panel's per-release heading. */
+  headline: string;
+  /** One line each, in the order they should be read. ASCII, sentence case. */
+  notes: string[];
+}
+
 export interface Pairing {
   code: string;
   name: string;

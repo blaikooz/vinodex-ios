@@ -340,19 +340,26 @@ struct MarqueeDrawer: View {
         VStack(alignment: .leading, spacing: 8) {
             heading("CUSTOMIZE")
             LazyVGrid(columns: Self.gridColumns, spacing: 8) {
+                // Asks about the option it would actually land on, since 0.7.3
+                // (F1), rather than naming the bundle. Marginally more generous
+                // — cycling *into* the free default is no longer refused — and
+                // the point is that neither tile now restates which option is
+                // free. See `CosmeticEntitlements`.
                 actionTile(title: "NEXT\nSKIN", symbol: "paintbrush.fill") {
-                    guard access.isUnlocked(.skins) else {
+                    let next = skin.next
+                    guard access.isUnlocked(next) else {
                         onRoute(.settingsSection(.customization))
                         return
                     }
-                    skinRaw = skin.next.rawValue
+                    skinRaw = next.rawValue
                 }
                 actionTile(title: "NEXT\nSCREEN", symbol: "display") {
-                    guard access.isUnlocked(.lightMode) else {
+                    let next = lcd.next
+                    guard access.isUnlocked(next) else {
                         onRoute(.settingsSection(.customization))
                         return
                     }
-                    lcdRaw = lcd.next.rawValue
+                    lcdRaw = next.rawValue
                 }
                 actionTile(title: "ALL\nOPTIONS", symbol: SettingsSection.customization.symbol) {
                     onRoute(.settingsSection(.customization))

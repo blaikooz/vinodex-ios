@@ -28,6 +28,9 @@ export { STYLES } from './data/styles.ts';
 export { GRAPE_CARDS } from './data/grapeCards.ts';
 export { CONTINENTS } from './data/continents.ts';
 export { COUNTRIES } from './data/countries.ts';
+// Not a wine collection, but the same rule applies: anything the apps read as
+// data is reachable from here (iOS 0.7.3, F3).
+export { FIRMWARE_RELEASES, FIRMWARE_VERSION } from './data/firmware.ts';
 
 const canonicalizeGrapeName = (value: string) =>
   /^syrah\s*\/\s*shiraz$/i.test(value.trim()) ? 'Syrah' : value;

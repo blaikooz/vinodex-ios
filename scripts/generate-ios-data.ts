@@ -1,7 +1,7 @@
 /**
  * Generates the iOS app's bundled data from the shared data + colour tables.
  *
- * Emits six files into the VinodexCore resource directory:
+ * Emits seven files into the VinodexCore resource directory:
  *   entries.json   — the WineEntry set for the current selection
  *   tiers.json     — which entry ids the free tier unlocks
  *   palette.json   — the full colour tables, materialised by probing the
@@ -12,8 +12,10 @@
  *                    their own to carry a description
  *   schema.json    — the SCHEMA_VERSION stamp, asserted at load on the Swift
  *                    side (0.6.3, item 1 — AUDIT M3)
+ *   firmware.json  — the authored version and the per-release changelog the
+ *                    boot POST and the FIRMWARE HISTORY panel read (0.7.3, F3)
  *
- * All six are committed so a Swift build never needs Node. Scaling the starter
+ * All seven are committed so a Swift build never needs Node. Scaling the starter
  * to the full database is a matter of setting STARTER_SELECTION to `undefined`.
  *
  * Everything this reads lives under `shared/`, a sibling of `scripts/` in this
@@ -36,6 +38,7 @@ import type { WineEntry } from '../shared/types.ts';
 import { CONTINENTS } from '../shared/data/continents.ts';
 import { COUNTRIES } from '../shared/data/countries.ts';
 import { CLIMATE_CLASS_MAP } from '../shared/data/climateClasses.ts';
+import { FIRMWARE_RELEASES, FIRMWARE_VERSION } from '../shared/data/firmware.ts';
 import { getFlagGradient } from '../shared/data/flagGradients.ts';
 import { GRAPE_CARDS } from '../shared/data/grapeCards.ts';
 import { REGIONS } from '../shared/data/regions.ts';
@@ -1280,10 +1283,97 @@ function validateOutputs(dir: string): void {
     problems.push(`schema.json missing/wrong schemaVersion (expected ${SCHEMA_VERSION})`);
   }
 
+  const firmware = read('firmware.json');
+  if (!has(firmware, 'version') || !has(firmware, 'releases')) {
+    problems.push('firmware.json missing version/releases');
+  }
+
   if (problems.length > 0) {
     throw new Error(
       `schema self-check failed — the Swift structs would not decode:\n  - ${problems.join('\n  - ')}`,
     );
+  }
+}
+
+/**
+ * The firmware changelog's own gate (0.7.3, F3).
+ *
+ * `firmware.json` is the only generated file whose contents nothing else in the
+ * pipeline can check: an entry with a dangling grape reference trips
+ * `find-missing-refs.mjs`, a missing palette key trips the self-check, but a
+ * changelog is prose and prose validates against nothing. So the rules it *does*
+ * have are asserted here, loudly, at generation time:
+ *
+ * - **Three dot-separated integers.** The scheme since iOS 0.4.3, and the shape
+ *   `CFBundleShortVersionString` accepts. `AppVersionTests.versionShape` pins the
+ *   same rule on the Swift side; this stops a bad number ever reaching it.
+ * - **Newest first, strictly descending, no duplicates.** `FIRMWARE_VERSION` is
+ *   `releases[0].version`, so an out-of-order list would silently ship the wrong
+ *   number as the current one — the single failure this whole file exists to
+ *   prevent.
+ * - **ASCII throughout**, and `headline` uppercase and short. The panel's
+ *   headings are Press Start 2P, which has a partial Latin-1 range; a curly
+ *   apostrophe pasted out of a spec would render as a blank box on the device's
+ *   most-read panel and nothing would say so.
+ * - **Every release has notes.** A version with an empty body is a row that
+ *   opens onto nothing.
+ */
+function assertFirmware(): void {
+  const problems: string[] = [];
+  const seen = new Set<string>();
+  /** -1 / 0 / +1, comparing three-integer versions component by component. */
+  const compare = (a: string, b: string): number => {
+    const x = a.split('.').map(Number);
+    const y = b.split('.').map(Number);
+    for (let k = 0; k < Math.max(x.length, y.length); k += 1) {
+      const d = (x[k] ?? 0) - (y[k] ?? 0);
+      if (d !== 0) return Math.sign(d);
+    }
+    return 0;
+  };
+
+  const isAscii = (s: string) => [...s].every((c) => c.charCodeAt(0) >= 0x20 && c.charCodeAt(0) <= 0x7e);
+
+  if (FIRMWARE_RELEASES.length === 0) problems.push('FIRMWARE_RELEASES is empty');
+
+  FIRMWARE_RELEASES.forEach((release, i) => {
+    const where = `FIRMWARE_RELEASES[${i}] (${release.version})`;
+    const parts = release.version.split('.');
+    if (parts.length !== 3 || parts.some((p) => p === '' || !/^\d+$/.test(p))) {
+      problems.push(`${where}: version is not three dot-separated integers`);
+    }
+    if (seen.has(release.version)) problems.push(`${where}: duplicate version`);
+    seen.add(release.version);
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(release.date)) {
+      problems.push(`${where}: date is not ISO YYYY-MM-DD`);
+    }
+    if (release.headline !== release.headline.toUpperCase()) {
+      problems.push(`${where}: headline must be uppercase`);
+    }
+    if (release.headline.length === 0 || release.headline.length > 24) {
+      problems.push(`${where}: headline is ${release.headline.length} chars; the panel fits 24`);
+    }
+    if (!isAscii(release.headline)) problems.push(`${where}: headline is not printable ASCII`);
+    if (release.notes.length === 0) problems.push(`${where}: no notes`);
+    release.notes.forEach((note, n) => {
+      if (note.trim().length === 0) problems.push(`${where}.notes[${n}]: empty`);
+      if (!isAscii(note)) problems.push(`${where}.notes[${n}]: not printable ASCII — ${note}`);
+    });
+
+    if (i > 0 && compare(FIRMWARE_RELEASES[i - 1].version, release.version) <= 0) {
+      problems.push(
+        `${where}: the list is newest-first, but ${FIRMWARE_RELEASES[i - 1].version} does not sort above it`,
+      );
+    }
+  });
+
+  if (FIRMWARE_VERSION !== FIRMWARE_RELEASES[0]?.version) {
+    problems.push(`FIRMWARE_VERSION (${FIRMWARE_VERSION}) is not the head of the list`);
+  }
+
+  if (problems.length > 0) {
+    throw new Error(`firmware changelog failed its own rules:\n  - ${problems.join('\n  - ')}`);
   }
 }
 
@@ -1300,6 +1390,7 @@ function main() {
 
   const summary = assertCoverage(entries, palette);
   const icons = buildIconManifest(entries);
+  assertFirmware();
 
   mkdirSync(OUT_DIR, { recursive: true });
 
@@ -1346,6 +1437,14 @@ function main() {
   writeFileSync(resolve(OUT_DIR, 'icons.json'), serialize(icons));
   writeFileSync(resolve(OUT_DIR, 'countries.json'), serialize(countries));
   writeFileSync(resolve(OUT_DIR, 'schema.json'), serialize({ schemaVersion: SCHEMA_VERSION }));
+  // The authored version travels *with* the changelog rather than being derived
+  // again on the Swift side: `FIRMWARE_VERSION` is already the head of the list,
+  // and shipping it as its own key means `AppVersion` never has to reason about
+  // ordering to answer "what is this build".
+  writeFileSync(
+    resolve(OUT_DIR, 'firmware.json'),
+    serialize({ version: FIRMWARE_VERSION, releases: FIRMWARE_RELEASES }),
+  );
 
   // AUDIT M3 — fail loudly here (and in CI) if the emitted JSON would not decode.
   validateOutputs(OUT_DIR);
@@ -1364,6 +1463,9 @@ function main() {
   console.log(`  free tier      ${tiers.free.length} of ${entries.length}`);
   console.log('countries.json');
   console.log(`  country blurbs ${Object.keys(countries).length}`);
+  console.log('firmware.json');
+  console.log(`  version        ${FIRMWARE_VERSION}`);
+  console.log(`  releases       ${FIRMWARE_RELEASES.length}`);
   console.log('icons.json');
   console.log(`  distinct icons ${icons.unique.length}`);
   const missing = Object.entries(icons.byEntry)

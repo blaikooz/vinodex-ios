@@ -18,7 +18,7 @@ V1-ROADMAP.md and the archived shipping/port reviews. Run batches with the
 
 ## Where things stand
 
-> **Updated 2026-08-02, at iOS v0.7.1.** The line below is the 0.6.2 baseline
+> **Updated 2026-08-04, at iOS v0.7.3.** The line below is the 0.6.2 baseline
 > this file was written at and is kept for context; the current state is the
 > batch log immediately after it.
 
@@ -47,7 +47,85 @@ been happening", which is the question a planning doc is for.
 | 0.7.0 | `vinodex-0.7.0` | Sectioned pickers on both axes, WALDGLAS + HALLOWEEN skins, three chip facets, per-skin back plate, stamp drag rebuilt, tools shelf re-cut, marquee glyph table audited. | 405, untouched | 250 tests, clean build |
 | 0.7.1 | `vinodex-0.7.1.md` | UI/UX fixes, the new marquee, polish — see below. | 405; South America's marker colour changed, no entry moved | 282 tests, clean build, deployed |
 | 0.7.2 | `vinodex-label-reader` | **LABEL SCAN.** Camera → Apple Vision OCR on-device → match against the catalog. Matching/scoring/inference in Core (Linux-gated); Vision, camera and pickers in UI behind `LabelRecognitionProvider`. `xtool.yml` gained `infoPath` for the usage strings. | 405, untouched | 320 tests, clean build, **not deployed** |
-| 0.7.2 | `vinodex-0.7.2` | **Consolidation + nine fixes.** All batch branches merged onto `testing`; stamps made draggable at last (A2); the marquee becomes a control surface — lamps are TOOLS/CUSTOMIZE, pins in the corners, PINS on open, MENU glyph, rotating toasts; Africa and Oceania get their own marker colours. | 405, untouched; two continent colours changed | 326 tests, clean build, **not deployed** |
+| 0.7.2 | `vinodex-0.7.2` | **Consolidation + nine fixes.** All batch branches merged onto `testing`; stamps made draggable at last (A2); the marquee becomes a control surface — lamps are TOOLS/CUSTOMIZE, pins in the corners, PINS on open, MENU glyph, rotating toasts; Africa and Oceania get their own marker colours. | 405, untouched; two continent colours changed | 326 tests, clean build, deployed |
+| 0.7.3 | `vinodex-0.7.3a` | **Device experience + the 0.7.3 Foundation.** F1 one entitlement store behind a protocol; F2 one idle timer where there were two clocks; F3 version + changelog moved into `shared/`. Then A1 boot POST, A2 demo mode, A3 firmware history, A4 cheat console, A5 bouncing-V screensaver. | 405, untouched; `firmware.json` is a new generated file | 384 tests, clean build, **not deployed** |
+
+**0.7.3a, the Foundation batch** (`vinodex-0.7.3a.md`). First of three 0.7.3
+sub-batches. Section 0 (F1–F3) is the deliverable; 0.7.3b and 0.7.3c are built
+on it, so it was written to be depended on rather than shaped around what
+A1–A5 happened to need.
+
+- **F1 — one entitlement store.** The honest finding on reconnaissance was that
+  most of the unifying had already happened: `AccessStore` has always been the
+  only entitlement set, and there was no parallel store to fold in. What *had*
+  forked was the cosmetic *rule*, copy-pasted into four view bodies as
+  `option != .classic && !access.isUnlocked(.skins)` and its screen-mode twin —
+  four places encoding which option is free, none reachable from a test, in a
+  module Linux cannot compile. Persistence moved out into
+  `LocalEntitlementStore` behind `EntitlementStoring` (same key, same encoding —
+  a "cleaner" key would silently revoke every grant on real installs), and the
+  cosmetic rule moved onto the options themselves via `CosmeticOption`.
+  `Entitlement` gained `.expansion`, `.workshop` and `.easterEgg` for the two
+  sub-batches to come.
+- **F2 — one idle timer, folding in the marquee's.** The marquee kept its own
+  clock (a `Task.sleep` on the chassis) and it was reset by exactly one thing in
+  the entire app: tapping the marquee. Tapping a menu tile or scrolling a list
+  counted as idleness. Survivable for a panel that changes a word; not
+  survivable for a screensaver, which would have covered the screen of somebody
+  actively reading. `IdleClock`/`IdleSchedule` in Core now hold the policy and
+  the two thresholds together (10s toast, 15s screensaver), and `MarqueeStage`
+  reads the 10 from `IdleSchedule` rather than restating it. Only the WELCOME!
+  *beat* is still the banner's own sleep — it is a dwell, not inactivity, and
+  `awaitsIdleTimer` is how the stage says which clock owns it.
+- **The activity sink is a window `UIGestureRecognizer`, not a SwiftUI
+  gesture.** 0.6.9's A1 removed the app-wide LCD `simultaneousGesture` for good
+  reason, and adding one back would have put the stamp drag, the globe pan and
+  the quiz taps back into negotiation. `IdleTouchWatcher` fails itself in
+  `touchesBegan` with `cancelsTouchesInView = false`, so it never enters
+  arbitration — a tap on the shoulder, not a gate. **`DeviceBackPlate.swift` is
+  untouched by this batch.**
+- **F3 — the version moved into `shared/`.** `AppVersion.fallback` was a Swift
+  literal with forty lines of release notes above it. The number and a
+  user-facing changelog now live in `shared/data/firmware.ts`, generate into
+  `firmware.json`, and arrive through `FirmwareCatalog`; `fallback` reads it.
+  **`AppVersion` is not a second source of truth** — it kept the half that was
+  always its own, the resolution rule (a genuinely declared bundle version wins,
+  xtool's stamped `1.0.0` wins nothing), and stopped restating the number. The
+  long "why does this build carry this number" notes stay in `AppVersion.swift`
+  as the engineering record; the changelog is what the device says about itself.
+  The generator gates ordering, three-component shape, ASCII and headline
+  length, and that gate was verified to fail on a deliberately mis-ordered list.
+- **A1–A5.** Boot POST inside the LCD (a BIOS is something a screen does; over
+  the chassis it reads as power loss), under two seconds and pinned there by a
+  test. Demo mode assigns `path` directly rather than pushing — twelve stops per
+  cycle would otherwise grow a stack and chirp the page sound at a device nobody
+  is holding. Firmware history and the cheat console are two new System-panel
+  rows under one DEVICE heading rather than three new headings. The screensaver
+  bounces a `VinodexV` drawn from scratch — **no DVD trademark, asset or naming
+  anywhere**, and position is a closed form in Core (`ScreensaverBounce`) so it
+  cannot drift out of its box the way a per-frame simulation would.
+- **Cheat codes grant real entitlements.** CELLARDOOR, PHOSPHOR, GRANDCRU and
+  MAINFRAME, all four wired to something visible today — MAINFRAME's
+  `verboseBoot` egg adds POST lines. A code that reports success and changes
+  nothing is the one failure a cheat console cannot survive.
+
+**Parked from 0.7.3a:**
+
+- **Not deployed** — stopped at the clean build by instruction. Everything
+  visual in A1–A5 is unverified on glass: the boot POST's pacing, the demo
+  dwells, the V's size and speed, and whether the screensaver's colour cycle
+  reads well under the monochrome modes.
+- **0.7.2's stamp-drag fix is still unconfirmed on glass** and remains the first
+  thing to check on the next install. This batch did not touch
+  `DeviceBackPlate.swift` or any `contentShape`, and the new activity watcher is
+  incapable of entering gesture arbitration — but that is an argument, not an
+  observation.
+- The demo loop's dwells and stop order are authored by eye, like the map
+  coordinates. Worth tuning once seen running.
+- `.expansion` covers no entries yet — `Entitlement.covers` answers `false` for
+  it, honestly, until 0.7.3c adds pack membership to the catalog.
+- `testing`, `v0.7.2-batch` and now `v0.7.3-batch` are all unpushed; `main` vs
+  `origin/main` is still diverged and still not reconciled.
 
 **0.7.2, the consolidation batch** (`vinodex-0.7.2-consolidation.md`). Shares
 0.7.2 with the label reader rather than taking 0.7.3, because nothing had

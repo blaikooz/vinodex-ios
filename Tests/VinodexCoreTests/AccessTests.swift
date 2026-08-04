@@ -245,14 +245,38 @@ struct AccessTests {
     }
 
     /// The ids are the persisted vocabulary, so they have to round-trip exactly.
+    ///
+    /// Extended in 0.7.3 (F1) with the three cases the later sub-batches read:
+    /// an expansion pack, the workshop, and an easter egg. All three are stored
+    /// in the same set as a purchase, which is the point — see `Entitlement`.
     @Test("every entitlement round-trips through its id")
     func entitlementIDsRoundTrip() {
-        let all: [Entitlement] = [.pro, .flavors, .skins, .lightMode, .country("New Zealand")]
+        let all: [Entitlement] = [
+            .pro, .flavors, .skins, .lightMode, .country("New Zealand"),
+            .expansion("champagne"), .workshop, .easterEgg("verboseBoot"),
+        ]
         for entitlement in all {
             #expect(Entitlement(id: entitlement.id) == entitlement, "\(entitlement.id) did not round-trip")
         }
         #expect(Entitlement(id: "nonsense") == nil)
+        // Every namespaced form rejects an empty name rather than minting an
+        // entitlement nobody can name.
         #expect(Entitlement(id: "country:") == nil)
+        #expect(Entitlement(id: "pack:") == nil)
+        #expect(Entitlement(id: "egg:") == nil)
+    }
+
+    /// The id namespaces have to stay disjoint, or one kind of unlock decodes as
+    /// another and grants the wrong thing.
+    @Test("the id namespaces do not collide")
+    func namespacesAreDisjoint() {
+        let ids: [Entitlement] = [
+            .country("Chablis"), .expansion("Chablis"), .easterEgg("Chablis"),
+        ]
+        #expect(Set(ids.map(\.id)).count == ids.count)
+        for entitlement in ids {
+            #expect(Entitlement(id: entitlement.id) == entitlement)
+        }
     }
 
     /// The prompt should offer the bundle that actually covers what you tapped,

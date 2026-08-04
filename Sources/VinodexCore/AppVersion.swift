@@ -53,8 +53,36 @@ import Foundation
 /// signing eventually matters — Apple takes at most three integers, so the old
 /// five-part strings could never have been stamped into a real bundle anyway.
 public enum AppVersion {
-    /// Bump with the batch. This is the single source of truth until the build
-    /// stamps one into the bundle.
+    /// The authored version — what this build reports when the bundle does not
+    /// declare one it chose itself.
+    ///
+    /// **No longer a literal (0.7.3, F3).** From 0.4.3 to 0.7.2 this was a
+    /// `static let` string bumped by hand each batch, and the release notes below
+    /// grew underneath it because there was nowhere else for them to go. F3 asks
+    /// for one data source behind both the boot POST and the FIRMWARE HISTORY
+    /// panel, so the number and a per-release changelog now live in
+    /// `shared/data/firmware.ts`, generate into `firmware.json`, and arrive here
+    /// through `FirmwareCatalog`.
+    ///
+    /// **This file kept the half of the job that was actually its own.**
+    /// Everything below `placeholders` is a *resolution* rule — a version the
+    /// build genuinely declares wins, xtool's stamped `1.0.0` wins nothing — and
+    /// that reasoning has nothing to do with where the authored number is
+    /// written down. What changed is that this constant no longer restates a
+    /// number that also exists somewhere else. There is one place to bump, and
+    /// it is the head of the array in `shared/data/firmware.ts`.
+    ///
+    /// The long notes that follow stay here rather than moving into the
+    /// changelog data. They are the engineering record — why 0.6.4 is not
+    /// "0.6.3", why the scheme has three components, why a batch labelled
+    /// "0.6.7.2" shipped as 0.6.9 — and they answer a question no player asks.
+    /// `shared/data/firmware.ts` carries what the device is willing to say about
+    /// itself; this carries what a maintainer needs to know. Both describe the
+    /// same releases and neither is the other's summary.
+    ///
+    /// Historical note on the entries below: through 0.7.2 they were attached to
+    /// the literal directly, so "bump with the batch" and "explain the bump"
+    /// were one edit. They are now two, and the changelog is the one users see.
     ///
     /// 0.6.4: the spec was authored as "0.6.3", but that number shipped with
     /// the robustness/audit batch and is already tagged — a version that names
@@ -214,7 +242,22 @@ public enum AppVersion {
     /// pills (A4), which is where A9's glyph goes. Africa and Oceania finally
     /// have their own marker colours (A1); they were the pink pair 0.7.1's A3
     /// left behind.
-    static let fallback = "0.7.2"
+    ///
+    /// 0.7.3: **the Foundation batch.** First of three 0.7.3 sub-batches, and
+    /// the number is a patch because what a user can point at — a boot screen, a
+    /// demo loop, two new panels, a screensaver — is device furniture rather
+    /// than a change to what the app *is*. Most of the work is underneath it:
+    /// one entitlement store behind a protocol (F1), one idle timer where there
+    /// were two clocks (F2), and this constant's own contents moving into
+    /// `shared/` (F3). 0.7.3b and 0.7.3c build on those three.
+    ///
+    /// No catalog change — 405 stands and `waveMilestones` does not move. The
+    /// generated set grew by one file, `firmware.json`, which is data the app
+    /// reads rather than an entry anyone can browse.
+    ///
+    /// **The value below is no longer edited here.** See the note at the top of
+    /// this comment: it reads the head of `shared/data/firmware.ts`.
+    static var fallback: String { FirmwareCatalog.shared.version }
 
     /// Versions no build deliberately chose.
     ///
