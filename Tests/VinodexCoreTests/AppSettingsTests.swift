@@ -64,7 +64,11 @@ struct AppSettingsTests {
         for raw in UIScale.allCases.map(\.rawValue)
             + LcdMode.allCases.map(\.rawValue)
             + ChassisSkin.allCases.map(\.rawValue) {
-            #expect(raw.allSatisfy(\.isASCII), "\(raw) is not ASCII")
+            // A closure, not `\.isASCII`: #expect decomposes a top-level call
+            // into its expression tree, and a *key-path* argument to a
+            // `rethrows` function expands into a wrapper the compiler flags
+            // as un-`try`'d. Trailing closures are never decomposed.
+            #expect(raw.allSatisfy { $0.isASCII }, "\(raw) is not ASCII")
         }
         // The chrome factors ride along, as `TypeScaleTests.stepsAreStable`
         // does for text: SMALL is the pre-0.5.8 layout and must stay 1.0;
