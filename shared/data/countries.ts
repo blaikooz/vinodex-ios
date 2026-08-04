@@ -972,8 +972,8 @@ export const COUNTRIES: CountryGateEntry[] = [
     details: {
       origin: 'Chile',
       classification: 'COUNTRY',
-      keyRegions: ['Maipo Valley'],
-      notableGrapes: ['Cabernet Sauvignon', 'Carmenere', 'Merlot']
+      keyRegions: ['Maipo Valley', 'Itata Valley'],
+      notableGrapes: ['Cabernet Sauvignon', 'Carmenere', 'País']
     }
   },
   {
@@ -1108,7 +1108,7 @@ export const COUNTRIES: CountryGateEntry[] = [
       origin: 'Croatia',
       classification: 'COUNTRY',
       keyRegions: ['Dalmatia'],
-      notableGrapes: ['Zinfandel', 'Grenache', 'Syrah']
+      notableGrapes: ['Zinfandel', 'Babić']
     }
   },
   {

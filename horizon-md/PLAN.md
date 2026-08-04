@@ -51,6 +51,99 @@ been happening", which is the question a planning doc is for.
 | 0.7.3 | `vinodex-0.7.3a` | **Device experience + the 0.7.3 Foundation.** F1 one entitlement store behind a protocol; F2 one idle timer where there were two clocks; F3 version + changelog moved into `shared/`. Then A1 boot POST, A2 demo mode, A3 firmware history, A4 cheat console, A5 bouncing-V screensaver. | 405, untouched; `firmware.json` is a new generated file | 384 tests, clean build, deployed and eyeballed |
 | 0.7.3 | `vinodex-0.7.3b` | **DEVICE WORKSHOP (premium).** The six part axes that did not exist, then the builder over all eight. `DeviceAxis`/`DeviceBuild`/`CustomDeviceStore` in Core; `PartColor`, `GrilleShape` and `ChassisLook` in UI. Gated on F1's `Entitlement.workshop`; GARAGISTE unlocks it. | 405, untouched | 404 tests, clean build, deployed and eyeballed |
 | 0.7.3 | `vinodex-0.7.3c` | **EXPANSION PACKS.** Twelve collectible cartridges on a PACKS shelf — three atlas, six device, three display — owned through F1's `Entitlement.expansion`, which finally covers something. Packs **collect rather than gate**. Brazil added to the catalog so the New World pack has a Brazil to name. | **405 → 407** (+2 Brazilian regions); countries 25 → 26 | 425 tests, clean build, **not deployed** |
+| 0.7.4 | `vinodex-0.7.4-grapes.md` | **GRAPE OVERHAUL.** `sommbot` authored the data (+25 grapes, +6 regions, corrections to Marselan, Cabernet Gernischt, Sangiovese, Palomino, Tannat, Négrette, Fer Servadou, and the Chile/Croatia gates); `dexbot` took the code side. Two logic fixes sommbot found and left: `levelFromText` and the dead country-gate arm of `find-missing-refs.mjs`. | **407 → 438** (+25 grapes, +6 regions); flavours held at 106, countries 26 unchanged | tests green, clean build, **not deployed** |
+
+**0.7.4, Grape Overhaul** (`vinodex-0.7.4-grapes.md`). The first batch split
+across two agents: `sommbot` authored and landed the data in `shared/`, `dexbot`
+took the pins, the two logic fixes and the gates. Findings and identity rulings
+are in `data-review/FINDINGS.md`, which is the record for anything factual.
+
+- **Two batches were layered uncommitted in one working tree, and they were
+  separated rather than merged.** 0.7.3c was deployed but not yet eyeballed, and
+  0.7.4's data sat on top of it in the same four `shared/data/*.ts` files. They
+  are separable by content but not by path, so the split was done hunk by hunk —
+  sommbot had labelled every line it added with the batch it belonged to, which
+  is the only reason this was cheap. 0.7.3c was committed first, at its own
+  catalog total of 407, with its `Resources/*.json` regenerated from the reduced
+  `shared/` so the commit is internally consistent rather than carrying 0.7.4's
+  data under 0.7.3c's pins. A `v0.7.4-wip-snapshot` branch holds the combined
+  pre-split tree and can be deleted once both commits are confirmed on glass.
+- **`levelFromText`'s default swallowed `"None"`, and 60 grapes paid for it.**
+  Every test in that function is a substring test against a lowercased string,
+  and `"None"` matched none of them, so all 60 whites carrying
+  `details.tannin: "None"` fell through to the default of 3 and drew a
+  half-full tannin bar — the one value the bar exists to communicate, rendered
+  as the middle of the scale. Now 0. The ordering bugs sommbot flagged
+  alongside it (`medium-high` dead below `high`; `Medium-Low`/`Low-Medium`
+  falling into `medium`) are corrected in the same pass but **move nothing on
+  screen**: both call sites round, and `Math.round(3.5) == 4` and
+  `Math.round(2.5) == 3` are what those inputs already produced. Verified
+  against the live catalog before and after — 60 tannin values moved, 0 acidity
+  values moved, and Cabernet Sauvignon's pinned characteristics are untouched
+  because it is a red reading "High".
+- **`find-missing-refs.mjs` had a gate that had never once executed.** Its
+  country arm read `COUNTRY_GATE` out of `entries.json`, a category the
+  generator deliberately drops, so the array was always empty, the validation
+  loop never ran, and the summary line reported "0 countries" — an honest
+  number that read like a pass. It now parses `shared/data/countries.ts`
+  directly and reports 30. Proved live with a negative test (a bogus grape
+  injected into the Croatia gate is caught and named) rather than by trusting
+  the zero.
+- **Sommbot's "no Swift change needed for the six new regions" claim held, and
+  was checked rather than assumed.** All six use classification strings
+  `EntryDisplay.appellationName` already resolves (DO, DOC, AOC, AVA), all six
+  origins are countries the catalog already had, and every soil string hits a
+  covered keyword. The Azores deliberately take `DOC` over the formally correct
+  EU `DOP` to avoid minting a classification string and a chip-colour probe.
+- **One thing the data audit could not have caught: `icon: "fruit"`.** Two of
+  the new grapes (G150 Alfrocheiro, G160 Corvinone) use an icon key that was
+  present in the generator's `LUCIDE_ICONIFY` table but had never been used by
+  any entry, so `lucide:apple` had never been rasterised and those two rows
+  would have drawn nothing — `IconLoader.image` returns nil for a missing
+  asset, and no test or build gate covers icon assets. The glyph was rasterised
+  at all three scales. **`scripts/rasterize-icons.sh` was deliberately not
+  used**: it prunes every PNG absent from the manifest it is handed, so a
+  one-icon manifest would have deleted the other 200.
+
+**Parked from 0.7.4:**
+
+- **Not deployed** — stopped at the clean build by instruction. Worth an eye:
+  the tannin bar on any white grape (should be empty, not half), and the apple
+  glyph on Alfrocheiro and Corvinone, which is a real fruit glyph on two reds
+  and may read oddly next to the grape glyph everything else uses.
+- **`bodyFromText` has the same defect shape as `levelFromText` and was left
+  alone on purpose.** `t.includes('full')` is tested first, so the
+  `medium-full` branch below it is dead and **16 grapes reading
+  `body: "Medium-Full"` render a full 5/5 body bar**, indistinguishable from
+  the 34 that are actually `"Full"`. (`Light-Medium` likewise falls into
+  `medium`, but rounds to the same 3 it already produced, so it is inert.)
+  Unlike the tannin fix this is not a clear correction — 5/5 for "nearly full"
+  is arguable — and it changes a rendered value on 16 entries, so it wants a
+  decision rather than a quiet fix. Cabernet Sauvignon's pin is `"Full"` and
+  would be unaffected either way.
+- **`vinodex-web` was brought green rather than parked, because the sync had
+  already broken it.** `sync-shared.ps1` writes into that repo too, so the
+  moment 0.7.4's data landed its suite went red — leaving it there would have
+  been leaving damage, not deferring work. Changes are uncommitted, on
+  `batch4-into-testing`, for the release pass to pick up: coverage pins (GRAPES
+  146 → 171, REGIONS 116 → 124, total 405 → 438, origins 25 → 26 — two batches
+  of drift, since web never re-pinned 0.7.3c's Brazil), the quiz determinism
+  goldens for both seeds, and one genuine parity bug below. `npm run typecheck`
+  and all 363 tests pass.
+- **Running web's suite found a 0.7.3c parity gap that iOS's own gates could
+  not see.** `web/src/services/entryDisplay.ts` never got the two cases iOS
+  added with the Brazilian regions: `IP` was missing outright, and Brazil's
+  `DO` was not split off the Spanish one — so Campanha Gaúcha showed a bare
+  abbreviation and **Serra Gaúcha printed its system in Spanish**, which no
+  test was ever going to catch because a wrong-language expansion still reads
+  like prose. Both mirrored from `EntryDisplay.swift`. The lesson is that
+  0.7.3c's Swift-side appellation work needed a web pass and did not get one.
+- **`FilterTests.filterPlusSearch` moved, and it is not a regression.** Free
+  text search covers `entryDescription`, and R122 South West France is
+  described as "the arc of country between Bordeaux and the Pyrenees", so the
+  France-filtered search for "bordeaux" now returns two regions. Re-pinned with
+  the reason recorded; if the intent is that search should *not* reach
+  descriptions, that is a separate and much larger decision.
 
 **0.7.3c, Expansion Packs** (`vinodex-0.7.3c.md`). Last of the three 0.7.3
 sub-batches, and the one that fills in `Entitlement.expansion` — the case 0.7.3a

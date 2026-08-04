@@ -807,6 +807,9 @@ public struct DatabaseStats: Sendable, Hashable {
             405,  // 0.6.4–0.7.3b — outgoing total, appended by 0.7.3c when
                   // Brazil moved the catalog off the number it had stood at
                   // for eight releases.
+            407,  // 0.7.3c — outgoing total, appended by 0.7.4's grape
+                  // overhaul (+25 grapes, +6 regions). It stood for one
+                  // release, which is why two milestones sit this close.
             total,
         ]
     }

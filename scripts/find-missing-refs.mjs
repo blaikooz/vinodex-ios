@@ -2,9 +2,11 @@
 // Cross-reference audit over the shipped data (0.6 A1 acceptance gate).
 //
 // Reads the generated entries.json rather than the shared/ sources, so it
-// checks exactly what the app resolves against. Matching mirrors the app's
-// resolver (TextNormalize.label): lowercase, diacritics folded, punctuation
-// collapsed; an entry answers to its name and its synonyms.
+// checks exactly what the app resolves against — with one deliberate
+// exception, the country gates, which never reach entries.json at all and are
+// read from shared/ instead (see the COUNTRY_GATE note below). Matching
+// mirrors the app's resolver (TextNormalize.label): lowercase, diacritics
+// folded, punctuation collapsed; an entry answers to its name and its synonyms.
 //
 // Exit 0 with "zero dangling" only when every cross-reference resolves:
 //   - grape/style/continent/country keyRegions -> a REGION (or, for
@@ -55,9 +57,30 @@ const regions = byCategory('REGIONS');
 const styles = byCategory('STYLES');
 const flavors = byCategory('FLAVORS');
 const continents = byCategory('CONTINENTS');
-const countries = byCategory('COUNTRY_GATE').filter(
-  (e) => e.details?.classification !== 'STATE',
+// **The country gates are read from `shared/`, not from `entries.json`.**
+//
+// This arm used to be `byCategory('COUNTRY_GATE')`, and the generator
+// deliberately drops that category on the way out (`generate-ios-data.ts`) —
+// so the list was always empty, the loop at the bottom of this file had never
+// executed once, and the summary line reported an honest, useless "0
+// countries". Thirty gates' worth of `keyRegions` and `notableGrapes` went
+// unchecked from the day the gate was written until 0.7.4, when sommbot
+// noticed and hand-verified them.
+//
+// `countries.ts` is object literals under an erased `import type`, so the
+// array literal is valid JS exactly as it sits on disk.
+//
+// STATE gates stay excluded: their references are authored free text by
+// design, and whether that is right is an open question in
+// data-review/FINDINGS.md rather than something this gate should rule on.
+const countriesSource = readFileSync(
+  resolve(HERE, '..', 'shared', 'data', 'countries.ts'),
+  'utf8',
 );
+const countriesStart = countriesSource.indexOf('[', countriesSource.search(/=\s*\[/));
+const countries = Function(
+  `return ${countriesSource.slice(countriesStart, countriesSource.lastIndexOf(']') + 1)}`,
+)().filter((e) => e.details?.classification !== 'STATE');
 
 const grapeKeys = index(grapes);
 const regionKeys = index(regions);

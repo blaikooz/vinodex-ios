@@ -39,30 +39,46 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
-  version: "0.7.3",
+  version: "0.7.4",
   date: "2026-08-04",
-  headline: "DEVICE EXPERIENCE",
+  headline: "GRAPE OVERHAUL",
   notes: [
-    "Boot POST: memory check, database init and the firmware version. Tap to skip.",
-    "Demo mode cycles the tools unattended. Any input drops you back out.",
-    "FIRMWARE HISTORY: this panel. The changelog now ships as data.",
-    "CHEAT CODES console for unlock codes.",
-    "Screensaver: the Vinodex V bounces the LCD after 15 seconds idle.",
-    "One idle timer behind the marquee toast and the screensaver both.",
-    "Ownership moved behind one entitlement store, ready for a real storefront.",
-    "DEVICE WORKSHOP: build your own handheld from eight parts, and save the results.",
-    "Buttons, orb, marquee, grille colour and grille pattern are parts you can fit.",
-    "Five grille patterns where there was one, and the font colour is yours to set.",
-    "EXPANSION PACKS: twelve collectible cartridges, on a shelf of their own.",
-    "Atlas packs group the catalog by where it comes from. Nothing is locked away.",
-    "Each cartridge tracks how much of it you have drunk.",
-    "Brazil joins the catalog: Serra Gaucha and Campanha Gaucha, in Rio Grande do Sul.",
-    "407 entries: 146 grapes, 118 regions, 31 styles, 106 flavours, 26 countries.",
+    "25 grapes join the catalog, most of them grown almost nowhere else.",
+    "Pais and Cinsault from Itata, Callet from Mallorca, Babic from Dalmatia.",
+    "Cabernet Pfeffer: about four hectares exist, and nobody agrees what it is.",
+    "Six regions added so those grapes point at a real home, not a famous neighbour.",
+    "Ribeiro, Mallorca, the Azores, South West France, San Benito, Itata Valley.",
+    "Marselan and Cabernet Gernischt are French by birth. Both entries rewritten.",
+    "Cabernet Gernischt is Carmenere. The card now says so.",
+    "White grapes show an empty tannin bar. It had read half full since the import.",
+    "438 entries: 171 grapes, 124 regions, 31 styles, 106 flavours, 26 countries.",
   ],
 };
 
 /** Everything before `CURRENT`, newest first. */
 const PREVIOUS: FirmwareRelease[] = [
+  {
+    version: "0.7.3",
+    date: "2026-08-04",
+    headline: "DEVICE EXPERIENCE",
+    notes: [
+      "Boot POST: memory check, database init and the firmware version. Tap to skip.",
+      "Demo mode cycles the tools unattended. Any input drops you back out.",
+      "FIRMWARE HISTORY: this panel. The changelog now ships as data.",
+      "CHEAT CODES console for unlock codes.",
+      "Screensaver: the Vinodex V bounces the LCD after 15 seconds idle.",
+      "One idle timer behind the marquee toast and the screensaver both.",
+      "Ownership moved behind one entitlement store, ready for a real storefront.",
+      "DEVICE WORKSHOP: build your own handheld from eight parts, and save the results.",
+      "Buttons, orb, marquee, grille colour and grille pattern are parts you can fit.",
+      "Five grille patterns where there was one, and the font colour is yours to set.",
+      "EXPANSION PACKS: twelve collectible cartridges, on a shelf of their own.",
+      "Atlas packs group the catalog by where it comes from. Nothing is locked away.",
+      "Each cartridge tracks how much of it you have drunk.",
+      "Brazil joins the catalog: Serra Gaucha and Campanha Gaucha, in Rio Grande do Sul.",
+      "407 entries: 146 grapes, 118 regions, 31 styles, 106 flavours, 26 countries.",
+    ],
+  },
   {
     version: "0.7.2",
     date: "2026-08-03",

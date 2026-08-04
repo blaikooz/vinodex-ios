@@ -12,13 +12,36 @@ const toRarityTier = (old?: string): RarityTier => {
   }
 };
 
+/**
+ * Descriptive level -> a 0-5 stat bar (0.7.4, sommbot's audit).
+ *
+ * **Tests run longest-match-first, and that is load-bearing**, because every
+ * test is a substring test: `'Medium-High'.includes('high')` is true, so a bare
+ * `high` placed above `medium-high` swallows it. Two things were wrong here.
+ *
+ * The consequential one: **`"None"` matched nothing and fell through to the
+ * default of 3**, so all 60 white grapes carrying `tannin: "None"` drew a
+ * half-full tannin bar -- the one value the bar exists to distinguish, rendered
+ * as the middle of the scale. It is now 0, an empty bar, which is the truth.
+ *
+ * The lesser one: `medium-high` sat below `high` and was dead code, and
+ * `Medium-Low`/`Low-Medium` fell into `medium`. Both are corrected here for the
+ * function's sake; neither moves a rendered value, because the two call sites
+ * round and `Math.round(3.5) === 4` and `Math.round(2.5) === 3` are what those
+ * inputs already produced. Only the `none` line changes what anybody sees.
+ *
+ * `bodyFromText` below has the same defect shape and is deliberately NOT
+ * touched in this batch -- see PLAN.md.
+ */
 const levelFromText = (text?: string) => {
   if (!text) return 3;
   const t = text.toLowerCase();
+  if (t.includes('none')) return 0;
   if (t.includes('very high')) return 5;
-  if (t.includes('high')) return 4;
   if (t.includes('medium-high') || t.includes('high-medium')) return 3.5;
   if (t.includes('medium-full') || t.includes('full-medium')) return 4;
+  if (t.includes('medium-low') || t.includes('low-medium')) return 2.5;
+  if (t.includes('high')) return 4;
   if (t.includes('medium')) return 3;
   if (t.includes('low')) return 2;
   return 3;

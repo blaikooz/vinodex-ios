@@ -32,8 +32,13 @@ struct CoverageTests {
         // because the New World expansion pack names Brazil and the catalog had
         // no such country. No new grapes: all six notable grapes across the two
         // regions were already here, which is the house rule for a new country.
-        #expect(db.entries(in: .grapes).count == 146)
-        #expect(db.entries(in: .regions).count == 118)
+        // 0.7.4 grape overhaul: +25 grapes and +6 regions (Ribeiro, Mallorca,
+        // Azores, South West France, San Benito, Itata Valley) — the regions
+        // exist so the new varieties point at a real home rather than the
+        // nearest famous neighbour. Flavours held at 106: all 75 new tasting
+        // notes were drawn from the existing vocabulary on purpose.
+        #expect(db.entries(in: .grapes).count == 171)
+        #expect(db.entries(in: .regions).count == 124)
         // 31 since 0.6.x: Medium-Full Red removed, its grapes now Full-Body.
         #expect(db.entries(in: .styles).count == 31)
         #expect(db.entries(in: .continents).count == 6)
@@ -70,7 +75,9 @@ struct CoverageTests {
         // 407 since 0.7.3c: Brazil, +2 regions. The first data change since
         // 0.6.4 batch 2 — 405 stood for eight releases, and is now the last
         // fixed entry in `waveMilestones`.
-        #expect(stats.total == 407)
+        // 438 since 0.7.4: the grape overhaul (+25 grapes, +6 regions), with
+        // flavours unchanged at 106 for the fourth data batch running.
+        #expect(stats.total == 438)
         // 26 since 0.7.3c: Brazil is the first *new* origin since Mexico. The
         // count is distinct region origins, so the coming-soon gates still do
         // not count and adding a country without a region would not move it.
