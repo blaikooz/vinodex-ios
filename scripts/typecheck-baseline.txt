@@ -19,9 +19,9 @@
 #    at DexIcon.swift. The first CI run that gets past BookmarksScreen settles
 #    it. Delete these six lines the moment it does, either way.
 #
-Sources/VinodexUI/DexIcon.swift: warning: 'current' was deprecated in macOS 12.0: Use -performAsCurrentDrawingAppearance: to temporarily set the drawing appearance, or +currentDrawingAppearance to access the currently drawing appearance. [#DeprecatedDeclaration]
-Sources/VinodexUI/DexSearchField.swift: warning: call to main actor-isolated instance method 'resignFirstResponder()' in a synchronous nonisolated context [#ActorIsolatedCall]
-Sources/VinodexUI/DexSearchField.swift: warning: main actor-isolated property 'selectedTextRange' can not be mutated from a nonisolated context
-Sources/VinodexUI/DexSearchField.swift: warning: main actor-isolated property 'selectedTextRange' can not be referenced from a nonisolated context
-Sources/VinodexUI/DexSearchField.swift: warning: main actor-isolated property 'text' can not be mutated from a nonisolated context
-Sources/VinodexUI/DexSearchField.swift: warning: main actor-isolated property 'text' can not be referenced from a nonisolated context
+Sources/VinodexUI/Components/DexIcon.swift: warning: 'current' was deprecated in macOS 12.0: Use -performAsCurrentDrawingAppearance: to temporarily set the drawing appearance, or +currentDrawingAppearance to access the currently drawing appearance. [#DeprecatedDeclaration]
+Sources/VinodexUI/Components/DexSearchField.swift: warning: call to main actor-isolated instance method 'resignFirstResponder()' in a synchronous nonisolated context [#ActorIsolatedCall]
+Sources/VinodexUI/Components/DexSearchField.swift: warning: main actor-isolated property 'selectedTextRange' can not be mutated from a nonisolated context
+Sources/VinodexUI/Components/DexSearchField.swift: warning: main actor-isolated property 'selectedTextRange' can not be referenced from a nonisolated context
+Sources/VinodexUI/Components/DexSearchField.swift: warning: main actor-isolated property 'text' can not be mutated from a nonisolated context
+Sources/VinodexUI/Components/DexSearchField.swift: warning: main actor-isolated property 'text' can not be referenced from a nonisolated context

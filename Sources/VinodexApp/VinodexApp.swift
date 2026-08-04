@@ -73,11 +73,18 @@ struct RootView: View {
     /// would make the alert un-dismissable. Detail stays in the DEV panel.
     @State private var showingDataAlert: Bool
     @State private var access = AccessStore.shared
-    /// DexFont and DexMetrics read their scales from defaults, which SwiftUI
-    /// cannot observe. Keying the chassis on both forces a rebuild so a
-    /// change takes effect immediately rather than on the next navigation.
-    @AppStorage(TextScale.storageKey) private var scaleRaw = TextScale.small.rawValue
-    @AppStorage(UIScale.storageKey) private var uiScaleRaw = UIScale.small.rawValue
+    /// The eight stored settings, as one model (arch **A17**) — and this is
+    /// the composition root for them, exactly as it is for `db` below.
+    ///
+    /// `DexFont` and `DexMetrics` read their scales from `TextScale.current` /
+    /// `UIScale.current`, which are nonisolated statics SwiftUI cannot observe
+    /// — see the note on `AppSettings` for why they stay that way. Keying the
+    /// chassis on both raw values (`.id`, below) forces the rebuild that makes
+    /// a change take effect immediately rather than on the next navigation.
+    /// That is **H3**'s residual, and A17 narrows rather than closes it: the
+    /// key now comes from the one settings model instead of from a parallel
+    /// pair of `@AppStorage` declarations.
+    var settings: AppSettings = .shared
     /// The system text size, read *above* the pin below so it is the real
     /// setting rather than the capped one. Used once, to seed TEXT SIZE for
     /// someone who had already enlarged their system text — see
@@ -92,8 +99,9 @@ struct RootView: View {
     /// thread) and `Diagnostics.emit`, and both are deliberate.
     private let db: WineDatabase
 
-    init(db: WineDatabase = .shared) {
+    init(db: WineDatabase = .shared, settings: AppSettings = .shared) {
         self.db = db
+        self.settings = settings
         // Seeded from the injected database, not from `.shared` — otherwise a
         // fixture with a clean load would still raise the alert. Seeded here
         // rather than checked in `body` so dismissing it sticks: the errors are
@@ -194,7 +202,7 @@ struct RootView: View {
             .animation(.easeOut(duration: 0.15), value: lockedAttempt?.id)
             .animation(.easeOut(duration: 0.15), value: showingDataAlert)
         }
-        .id(scaleRaw + "|" + uiScaleRaw)
+        .id(settings.textScale.rawValue + "|" + settings.uiScale.rawValue)
         // The app's declared position on Dynamic Type (0.6.4, AUDIT H11):
         // Vinodex sizes its own text and does not follow the system control.
         // `DexFont` already builds every font at a fixed size, so this pin is a
@@ -209,7 +217,12 @@ struct RootView: View {
         .onAppear {
             // Before anything reads TEXT SIZE. A no-op on every launch after the
             // first, and on any device where the user has set it themselves.
-            TextScale.seedIfUnset(
+            //
+            // Through `settings`, not `TextScale.seedIfUnset` directly: this
+            // view is constructed before `onAppear`, so the model has already
+            // snapshotted the unseeded value and a bare defaults write would
+            // never reach it. See the note on `seedTextScaleIfUnset`.
+            settings.seedTextScaleIfUnset(
                 systemOrdinal: DynamicTypeSize.allCases.firstIndex(of: systemType) ?? 3
             )
             ScreenWake.keepAwake(true)

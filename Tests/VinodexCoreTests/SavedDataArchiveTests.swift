@@ -36,13 +36,17 @@ struct SavedDataArchiveTests {
     /// Without this the registry is a *second* copy of the strings, which is
     /// worse than none.
     ///
-    /// **The seven UI-side keys cannot be checked from here** — `uiScale`,
-    /// `lcdMode`, `chassisSkin`, `hapticsEnabled`, `soundsEnabled`,
-    /// `keepAwakeEnabled` and `userDisplayName` are declared in `VinodexUI`,
-    /// which is invisible to Linux and to this target. They are derived from
-    /// the same cases at their declaration sites, and
-    /// `scripts/typecheck-ios-surface.sh` is the only local check that sees
-    /// them. This is a stated gap, not a covered one.
+    /// Arch **A6** shrank the stated gap that used to sit here: `uiScale`,
+    /// `lcdMode` and `chassisSkin` were UI-side then and are Core types now,
+    /// checked below like the rest. `hapticsEnabled`, `soundsEnabled`,
+    /// `keepAwakeEnabled` and `userDisplayName` have no Core declaring
+    /// constant — `AppSettings` spells the registry case at each use — so
+    /// there is nothing left to drift on this side. **What still cannot be
+    /// checked from here** are the three UI-side reader constants
+    /// (`Haptics.storageKey`, `Sounds.storageKey`, `ScreenWake.storageKey`),
+    /// derived from the same cases at declaration sites only
+    /// `scripts/typecheck-ios-surface.sh` sees. `AppSettingsTests` pins the
+    /// raw strings all of these resolve to.
     @Test("every Core storage constant derives from the registry")
     func coreConstantsMatchRegistry() {
         #expect(Shelf.saved.storageKey == SavedDataKey.savedShelf.rawValue)
@@ -59,6 +63,9 @@ struct SavedDataArchiveTests {
         #expect(AccessStore.storageKey == SavedDataKey.starterTierOnly.rawValue)
         #expect(AccessStore.entitlementsKey == SavedDataKey.grantedEntitlements.rawValue)
         #expect(TextScale.storageKey == SavedDataKey.textScale.rawValue)
+        #expect(UIScale.storageKey == SavedDataKey.uiScale.rawValue)
+        #expect(LcdMode.storageKey == SavedDataKey.lcdMode.rawValue)
+        #expect(ChassisSkin.storageKey == SavedDataKey.chassisSkin.rawValue)
     }
 
     /// The saved shelf keeps the key bookmarks were made under before shelves

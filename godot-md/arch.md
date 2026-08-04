@@ -39,11 +39,34 @@ renumbered.
 | Area | Resolved | Partial | Open | Won't-fix | Unverified | Total |
 |---|---:|---:|---:|---:|---:|---:|
 | Blocking | 1 | — | 1 | — | — | 2 |
-| Repository & git | 6 | 1 | 5 | 1 | — | 13 |
-| GitHub & platform | 3 | 1 | 3 | — | 3 | 10 |
-| Module architecture | 6 | 6 | 12 | — | — | 24 |
-| Build & pipeline | 2 | 3 | 10 | — | — | 15 |
-| **Total** | **18** | **11** | **31** | **1** | **3** | **64** |
+| Repository & git | 7 | 1 | 4 | 1 | — | 13 |
+| GitHub & platform | 4 | 1 | 2 | — | 3 | 10 |
+| Module architecture | 11 | 5 | 8 | — | — | 24 |
+| Build & pipeline | 5 | 1 | 9 | — | — | 15 |
+| **Total** | **28** | **8** | **24** | **1** | **3** | **64** |
+
+**Updated 2026-08-04 (third pass).** The `8bd6838` "gitquickfixes" commit
+(2026-08-03 17:51) closed the document's cheapest open items in one sitting,
+exactly as the *Recommended order* priced them: **R3** (the seven `.gitignore`
+patterns), **B3** (`npm ci` + `.nvmrc` + `engines`) and **B5**
+(`"typecheck": "tsc --noEmit"` plus the CI step) — and **B1** resolves with B5,
+since that was the last of its four proposed checks. The push that carried it
+set the upstream tracking refs **P6** asked for. **A6** was also cashed in:
+`AppSettingsTests` is the 22nd Core test file and the first about settings.
+Five statuses moved; the table above reflects them. **X2** stands — the
+structural chain that closed A6→A22 is itself sitting uncommitted in the tree
+those quickfixes were pushed from (see the item).
+
+**Updated 2026-08-03 (second pass).** The structural chain this document's
+*Recommended order* set out — **A6 → A17 → A15 → A22/A14** — was taken in one
+sitting, in that order, because each genuinely did cheapen the next: A6 put the
+persisted vocabulary somewhere `AppSettings` could own it, A17 opened every file
+in the module, A15 was free while they were open, and A22 was one more pass over
+files A17 had already touched. Five findings closed and the section's Open count
+went 12 → 8. What did *not* close is recorded honestly in **A17** below: the
+`.id(scaleRaw)` remount survives, because retiring it means threading a settings
+instance through 206 `DexFont` and 62 `DexMetrics` call sites, which is a
+different change of a different size.
 
 **What closed, and why it mostly was not this document's doing.** Fourteen of the
 eighteen closures came from AUDIT.md work aimed at something else — **A1** by
@@ -68,6 +91,10 @@ grew with it: **A17** (24 → 57 `@AppStorage`), **A15** (21 → 49 flat files),
 **A22** (5 → 12 unshared path literals), **A7** (2 → 11 asset directories behind an
 uncheckable contract), **R2** (2.89 MiB → **42.32 MiB** pack), **B9** (4 → 6
 non-atomic writes), **P7** (1 → 11 undeleted remote branches).
+
+Three of those seven are now closed — **A17** (57 `@AppStorage` → **0**, one
+`AppSettings`), **A15** (49 flat files → **50 in five directories**), **A22**
+(12 literals → **one `DexAsset` enum**). The remaining four are unchanged.
 
 ---
 
@@ -97,6 +124,17 @@ of it.
 
 → Commit and push. This is the highest-value action available in the repository and
 it costs one sitting. Nothing below is worth doing before it.
+
+**Updated 2026-08-04 — partially discharged, immediately re-opened at a smaller
+radius.** Four commits (`7b3e920`…`c6c7672`, 2026-08-03) carried the audit-final
+batches and the R3/B3/B5 quickfixes to `origin/wip-local`, and the branch now has
+the tracking ref it lacked (**P6** — the parenthetical above is stale). The
+numbers above describe what that push cleared, not the present tree: **63 paths
+are dirty again**, and they are the structural chain this document recommended —
+**A6/A17/A15/A22**, as three new Core files, five new UI directories and 50
+deleted flat paths — plus `AppSettingsTests` (A6's cash-in) and these document
+updates. The 28 annotated tags (**P5**) also remain unpushed. The item stands:
+the largest refactor yet made currently exists only in a working tree.
 
 ---
 
@@ -134,19 +172,20 @@ re-verified and closed against later commits.
 Highest-leverage items remaining, in the order they unblock each other:
 
 1. **X2** — commit the tree. Everything else is provisional until then.
-2. **A17** — one `AppSettings` type. The largest structural debt in the package and
-   the only original "High" still fully open; it has more than doubled since.
+2. ~~**A17** — one `AppSettings` type.~~ **Done.** It was the largest structural
+   debt in the package and the only original "High" still fully open. The
+   `.id(scaleRaw)` remount it was also meant to retire survives — see the item.
 3. **R7 / M36** — LICENSE and NOTICE. A public repo in breach of OFL and CC BY,
    with 68 attributed-license glyphs, 465 flags of unknown provenance, two OFL
    fonts, a 217 KB map and four SFX. Blocked on **two one-sentence answers from the
    owner**, not on engineering. See auditS **H1 H2 M1 M2 L1**.
 4. **A2** — `PrivacyInfo.xcprivacy`. A hard App Store gate (ITMS-91053), still
    absent, still unlisted in AUDIT.md. See auditS **H3**.
-5. **R3** — seven `.gitignore` patterns. The most likely route by which a
-   credential enters this repo, unchanged in six days. See auditS **L11**.
-6. **B5** — `"typecheck": "tsc --noEmit"`. The strict config still runs nowhere;
-   three update logs claim it was run by hand, which is the failure mode this whole
-   document is about.
+5. ~~**R3** — seven `.gitignore` patterns.~~ **Done, 2026-08-03** (`8bd6838`),
+   with a comment naming both findings. See auditS **L11**.
+6. ~~**B5** — `"typecheck": "tsc --noEmit"`.~~ **Done, 2026-08-03** (`8bd6838`):
+   the script exists and the `data` job runs it on every push. The
+   run-by-hand era this document made its clearest case is over.
 
 ---
 
@@ -201,20 +240,18 @@ smudge-filter cost buys nothing. It is no longer obviously right for
 a build step. That is the exact shape LFS exists for. Worth a decision rather than
 an inherited default.
 
-### R3 · No ignore rules for iOS signing material — **Open, unchanged**
+### R3 · No ignore rules for iOS signing material — **Resolved**
 
-`.gitignore` covers `.build/`, `.swiftpm/`, `DerivedData/`, `xcuserdata/`,
-`*.xcuserstate`, `xtool/`, `node_modules/`, `scripts/.generate.mjs`,
-`scripts/__pycache__/`, `.DS_Store`, `*.log` — and still **not**
-`*.mobileprovision`, `*.p12`, `*.cer`, `*.certSigningRequest`, `*.ipa`, `*.dSYM/`
-or `.env`. Re-verified line by line; nothing was added.
+**Resolved 2026-08-03 (`8bd6838`).** All seven patterns are in `.gitignore` —
+`*.mobileprovision`, `*.p12`, `*.cer`, `*.certSigningRequest`, `*.ipa`,
+`*.dSYM/`, `.env` — under a comment stating *why* they can never be committable
+here (xtool's free-profile deploy handles signing material in this working
+directory) and naming both findings: `arch R3 / auditS L11`.
 
-This repo deploys via xtool with a free Apple profile, so provisioning material is
-handled in this working directory — and **X2** means `git add -A` is exactly the
-command someone is about to run on a tree with 86 dirty paths.
-
-→ Append the seven patterns. Duplicate of auditS **L11**, also open. Two minutes,
-and it is the cheapest open item in either document.
+It closed in time to matter: the `git add -A` this item warned about is exactly
+what **X2**'s next commit implies, and the tree it will sweep is dirty again
+with the structural chain. With this, the second of the two original **High**
+items is off the board — **A17** was the first.
 
 ### R4 · The commit `640efe9` is authored under a malformed email — **Open, unchanged**
 
@@ -332,7 +369,7 @@ directories already use, or close auditS **L10** and leave the names alone. Pick
 
 ### R13 · `package-lock.json` neither tracked nor ignored — **Resolved**
 
-Tracked. `npm ci` is now possible — see **B3** for why it is still not *used*.
+Tracked. `npm ci` is now possible — and, since 2026-08-03, used (**B3**).
 
 ### Confirmed clean — re-verified 2026-08-03
 
@@ -399,7 +436,8 @@ This document's prediction that the `xcodebuild`-on-a-bare-SwiftPM-package job w
 need "a couple of pushes rather than getting it right first try" was correct and the
 iteration happened.
 
-**Residual, and it is the whole of B5:** nothing runs `tsc --noEmit`.
+**Residual discharged (2026-08-03):** the `data` job now runs
+`npm run typecheck` — **B5** closed, and this item's last loose end with it.
 
 ### P3 · Fork `main` is 4 commits behind upstream, 0 ahead — **Resolved (inverted)**
 
@@ -445,20 +483,22 @@ The re-dating of **M38** in this item is discharged: the hardcoded `"v0.3.5"` is
 gone, the back plate reads `AppVersion.display`, and `AppVersionTests` pins the
 placeholder denylist that a regression at `0a446d3` needed.
 
-### P6 · `audit` has no upstream tracking ref — **Open, and now two branches**
+### P6 · `audit` has no upstream tracking ref — **Resolved**
+
+**Resolved 2026-08-03**, by pushing the branches with tracking rather than by
+the command this item prescribed. Verified 2026-08-04:
 
 ```
-audit     -> (none)
+audit     -> origin/audit
 main      -> origin/main
-wip-local -> (none)
+wip-local -> origin/wip-local
 ```
 
-`wip-local` is where all the work is (**X2**) and it has nothing to push to by
-default. That upgrades this from a cosmetic nit to a contributing cause.
-
-```bash
-git branch --set-upstream-to=origin/main wip-local
-```
+`wip-local` tracks its own remote branch, not the `origin/main` this item
+suggested — which is better: a default `git push` from it can no longer rewrite
+`main` by accident, and the branch's CI history stays its own. "Nothing to push
+to by default" is gone as a contributing cause; what remains uncommitted is
+**X2**'s subject, not a plumbing problem.
 
 ### P7 · Merged branches are not auto-deleted — **Open, worse**
 
@@ -521,10 +561,10 @@ complete plan and a checkable fingerprint recorded in the item.
 ```mermaid
 graph TD
   subgraph swiftpm["SwiftPM package · product: Vinodex (library)"]
-    App["VinodexApp<br/>1 file · 497 loc<br/>#if canImport(SwiftUI) && canImport(UIKit)"]
-    UI["VinodexUI<br/>49 files · 16,386 loc<br/>#if canImport(SwiftUI) && canImport(UIKit)"]
-    Core["VinodexCore<br/>29 files · 6,102 loc<br/>Foundation + Observation only"]
-    Tests["VinodexCoreTests<br/>21 files · 4,835 loc"]
+    App["VinodexApp<br/>1 file · 505 loc<br/>#if canImport(SwiftUI) && canImport(UIKit)"]
+    UI["VinodexUI<br/>50 files · 16,262 loc<br/>Screens · Components · Chassis · Theme · Platform — A15<br/>#if canImport(SwiftUI) && canImport(UIKit)"]
+    Core["VinodexCore<br/>32 files · 6,628 loc<br/>Foundation + Observation only"]
+    Tests["VinodexCoreTests<br/>22 files · 5,297 loc"]
   end
   BUI["Vinodex_VinodexUI.bundle<br/>11 directories · 501 files<br/>Fonts Icons Flags Maps SFX Chassis<br/>ClassArt FlavorArt GrapeArt StyleArt Logo"]
   BCore["Vinodex_VinodexCore.bundle<br/>entries palette icons tiers countries schema"]
@@ -560,7 +600,7 @@ the gap today, in descending order of authority:
    `VinodexUI` against a baseline. It caught both **M30** access errors, one **M35**
    UI error, and a `FlagSwatch` scope error in **M27**. It is the only local check
    that sees the module at all.
-3. **`scripts/typecheck-core-tests.py`** — type-checks all 21 test files with the
+3. **`scripts/typecheck-core-tests.py`** — type-checks all 22 test files with the
    swift-testing macros stripped. First thing to ever check the test target locally.
 
 None of the three is `swift test`. Every AUDIT update log since 2026-08-01 says so
@@ -586,13 +626,15 @@ it belongs.
 
 | Module | Files | Lines | Compiled by `swift test` | Compiled by CI |
 |---|---:|---:|---|---|
-| VinodexCore | 8 → **29** | 1,593 → **6,102** | yes | yes |
-| VinodexUI | 21 → **49** | 5,503 → **16,386** | **no** | **yes** (`ios`, `ios-test`) |
-| VinodexApp | 1 → **1** | 235 → **497** | **no** | **yes** |
-| **Total** | **30 → 79** | **7,331 → 22,985** | **21.7% → 26.5%** | **100%** |
+| VinodexCore | 8 → **32** | 1,593 → **6,628** | yes | yes |
+| VinodexUI | 21 → **50** | 5,503 → **16,262** | **no** | **yes** (`ios`, `ios-test`) |
+| VinodexApp | 1 → **1** | 235 → **505** | **no** | **yes** |
+| **Total** | **30 → 83** | **7,331 → 23,395** | **21.7% → 28.3%** | **100%** |
 
-`swift test` still sees only a quarter of the source, and the uncompiled remainder
-grew from 5,738 lines to **16,883**. What changed is that "uncompiled" no longer
+`swift test` still sees a bit over a quarter of the source, and the uncompiled
+remainder grew from 5,738 lines to **16,767**. The ratio moved for the first time,
+and **A6** is why: moving `LcdMode`, `ChassisSkin` and `UIScale` to Core, plus
+`AppSettings` and `SettingsDefault`, is 526 lines that crossed the guard. What changed is that "uncompiled" no longer
 means "unchecked": the `ios` job is a full Xcode-grade type check of all of it on
 every push to every branch.
 
@@ -605,11 +647,94 @@ shim harness plus CI. **The Darwin-SDK path is still worth having** — it would
 seconds-long full-package feedback on the dev host instead of a push-and-wait — but
 it is now an ergonomics item, not a correctness one.
 
-### A17 · There is no state architecture — there are four uncoordinated mechanisms — **Open, and it more than doubled**
+### A17 · There is no state architecture — there are four uncoordinated mechanisms — **Resolved, with one mechanism deliberately left standing**
 
-The largest structural debt in the package, and one of two original **High** items
-still fully open — the other is **R3**, which is seven lines of `.gitignore`.
-Re-measured against this item's own four mechanisms:
+The largest structural debt in the package, and the first of the two original
+**High** items to close — the other was **R3**, which followed on 2026-08-03 and
+retired the High row entirely.
+`Sources/VinodexCore/AppSettings.swift` is now the state architecture this
+item said did not exist: one `@MainActor @Observable final class` owning the eight
+keys, plus a nonisolated `SettingsDefault` enum holding every declared default.
+**All 57 `@AppStorage` declarations are gone**, replaced by 42 `settings`
+properties — fewer, because the pairs that used to declare `lcdMode` *and*
+`chassisSkin` in one view now declare one thing.
+
+**Taken as this item and M27 jointly specified: a defaulted stored property, not
+an `EnvironmentKey`.** Every reader declares `var settings: AppSettings = .shared`
+and reads `settings.lcdMode`; `RootView.init(db:settings:)` names both singletons
+in the composition root, exactly as it already did for the database. The
+environment was the wrong injection point for the reason **M27** found the hard
+way — `ChipFilterScreen`, `CountryScreen` and `RootView` read their dependencies
+in `init` on purpose, and `.id(…)`-keyed screens re-run `init` on every TEXT SIZE
+change, which is exactly when an environment value is invisible.
+
+**Three things this closes that were not on its own list.** `SettingsPanel` is now
+the only writer in the app, and each declared default it used to carry (`= true`,
+`= false`, `LcdMode.dark.rawValue`) comes from `SettingsDefault`, so a reader and
+the toggle that writes it can no longer disagree about what an absent key means.
+**M13**'s residue — `DexSearchField.applyColors` reading the `LcdMode.current`
+static — is gone, and so is the same static in `TileLink`, the one part of the
+detail screen that did not repaint until something else forced a rebuild. And
+`UserProfile` is retired: the display name's key lives in `SavedDataKey` and its
+value in `AppSettings`, rather than in a two-line enum in `BookmarksScreen.swift`.
+
+**`AppSettings` is the seventh instance of M35's trap, and is wired for it.** Like
+the six `@Observable` stores before it, it reads defaults once in `init` and holds
+them for the life of the process — which the `@AppStorage` declarations it
+replaced did not, since KVO did that work. `SavedDataRestore.apply` and
+`SavedDataReset.wipeAll` both call `reload()`.
+
+**Two defects that trap produced, both caught in review of this change and both
+worth knowing before touching this type.** They are the same bug from two
+directions — *something writes the keys and the model does not hear about it* —
+and neither is visible to any check this repository runs.
+
+1. **`reload()` must not write.** A `didSet` guarded only on `oldValue` fires on
+   every reload where the value actually moved, so `wipeAll()` — which deletes
+   the twenty keys and then reloads — re-created each of the eight the user had
+   moved off its default, with the default in it. Behaviourally identical, and
+   yet: `TextScale.seedIfUnset` keys on the text-size key being *absent*, so a
+   single CLEAR SAVED DATA would have permanently disabled the first-launch
+   accessibility seed for anyone who had ever changed their text size. An
+   `@ObservationIgnored isAdopting` flag now separates *adopting* what storage
+   says from *deciding* it.
+2. **`TextScale.seedIfUnset` cannot be called past the model.** It writes
+   `UserDefaults` directly, by design — it runs before anything has been decided.
+   But `RootView`'s `settings` property is resolved when the view is
+   *constructed*, which is before `onAppear`, so the model had already
+   snapshotted `.small` by the time the seed ran. `DexFont` drew the seeded step
+   (it reads `TextScale.current`), SETTINGS ▸ TEXT SIZE highlighted SMALL, and
+   tapping SMALL did nothing at all, because the `oldValue` guard saw no change.
+   Seeding now goes through `AppSettings.seedTextScaleIfUnset(systemOrdinal:)`.
+
+Under `@AppStorage` neither could happen, because KVO made every write a
+re-render. That is the tax an observable model charges, and it is the same tax
+**M35** documented for the other six stores.
+
+**What did not close, stated rather than buried.** This item's remedy also
+promised to retire **H3**'s `.id(scaleRaw)` remount. It survives.
+`DexFont.retro(_:)` and `DexMetrics.footerControl` are statics reached from
+**206** and **62** call sites with no view in scope, and they read
+`TextScale.current` / `UIScale.current` through `SettingsCache`. SwiftUI cannot
+observe a static, so the remount is still the mechanism by which a text-size
+change takes effect. Threading a settings instance through 268 call sites is a
+change of a different order and was not taken here. What changed is that the key
+it remounts on now comes from the one settings model rather than from a parallel
+pair of `@AppStorage` declarations — H3's residual is narrowed, not closed, and
+it is now the only reason `SettingsCache` and `AppSettings` are two mechanisms
+instead of one.
+
+`SettingsCache` is otherwise this type's storage layer rather than a rival, which
+is what this item asked for: writes go to `UserDefaults`, whose
+`didChangeNotification` fires synchronously on the writing thread and drops the
+cache, so the nonisolated static readers see the new value on the next read —
+before SwiftUI re-renders. One write path, and one decode rule per key
+(`LcdMode.current(in:)` and its siblings), which is the property that makes the
+two agree.
+
+---
+
+**The four mechanisms as this item measured them, for the record:**
 
 1. **Navigation** — `@State private var path: [DexRoute]` rendered as `path.last`.
    **M26** closed the user-visible half via route-keyed stores (`SearchStateStore`,
@@ -638,23 +763,13 @@ Re-measured against this item's own four mechanisms:
    still unobservable by SwiftUI. **H3**'s `.id(scaleRaw)` remount is still the
    mechanism by which a text-size change takes effect.
 
-Two of four mechanisms closed, one got 2.4× worse, one got faster without changing
-shape. The diagnosis is unchanged and now better evidenced: **settings are stored,
-not modelled.**
+Two of four mechanisms closed on their own, one got 2.4× worse, one got faster
+without changing shape. The diagnosis was: **settings are stored, not modelled.**
 
-→ One `@Observable final class AppSettings` in Core owning the eight keys, injected
-once via `.environment(settings)`, with a UI-side extension supplying the
-`Color`/`CGFloat` mappings. `SettingsCache` becomes its storage layer rather than a
-parallel mechanism. That retires **M13**, retires **H3**'s residual `.id` hack, and
-removes 57 scattered declarations.
-
-**One caveat M27 discovered the hard way, and it applies directly here.** The
-environment is the wrong injection point for anything read in `init`:
-`ChipFilterScreen`, `CountryScreen` and `RootView` read the database in `init` *on
-purpose* (moving it to `onAppear` reopens the first-frame "0 MATCHES" flash **M5**
-closed), and `.id(…)`-keyed screens re-run `init` on every TEXT SIZE change —
-exactly when an environment value is invisible. `AppSettings` should follow **M27**'s
-precedent: a defaulted init parameter, not an `EnvironmentKey`.
+Mechanism 3 is now zero. Mechanism 4 is the one still standing, and the paragraph
+above says why: `SettingsCache` serves statics, and a static cannot be observed.
+It is no longer a *parallel* mechanism — it is where `AppSettings`' writes land —
+but the `.id(scaleRaw)` remount it necessitates is genuinely still there.
 
 ### A19 · Nothing verifies that the app compiles — **Resolved**
 
@@ -682,24 +797,52 @@ This is auditS **H3**, and **M6** there covers the missing Info.plist source
 the case that **no AUDIT.md item owns the privacy manifest**, which is why this
 entry exists.
 
-### A6 · The settings model is stranded in the untestable module — **Partial (one of three)**
+### A6 · The settings model is stranded in the untestable module — **Resolved**
 
-**`TextScale` moved to Core.** **H11** relocated it to
+**`TextScale` moved to Core first.** **H11** relocated it to
 `Sources/VinodexCore/TypeScale.swift` along with the size resolver, precisely so the
 arithmetic is reachable from `swift test` at all — and `TypeScaleTests` now pins
 1,540 assertions across four text steps, plus **M49**'s `monoRunWidth` /
-`retroRunWidth` derivations read out of the shipped `.ttf` `hmtx` tables. A
-`DexTheme.swift` comment records the move.
+`retroRunWidth` derivations read out of the shipped `.ttf` `hmtx` tables.
 
-**`LcdMode` and `ChassisSkin` did not move.** They live in
-`Sources/VinodexUI/ScreenModes.swift` and `ChassisSkins.swift` (both split out of
-`DexTheme.swift` by **M30**), still owning persistence keys, defaults and
-fallback-on-garbage behaviour, still in the module purely because each also exposes
-SwiftUI `Color` properties.
+**`LcdMode` and `ChassisSkin` followed, by the split this item proposed.** The
+persisted half of each is now in `Sources/VinodexCore/ScreenMode.swift` and
+`Sources/VinodexCore/ChassisSkin.swift` — cases, raw values, `storageKey`,
+`displayName`, `symbol`, `isLight`, `isTranslucent`, `bodyPatternAsset`, `next`,
+`current`. Every `Color` member stayed behind as an `extension`, in
+`Sources/VinodexUI/Theme/ScreenModes.swift` and
+`Sources/VinodexUI/Chassis/ChassisSkins.swift`. `ChassisAccent` and
+`ChassisControl` — the two part descriptions, both structs of `Color` — stayed
+too, which is why the `LcdMode` extension is `internal` rather than `public`:
+`controlAccent` returns a UI-only type, and widening the extension because the
+*enum* is now public would export a surface with no consumer, which is the
+accident **L9** spent 195 `public` keywords undoing.
 
-The `extension LcdMode { var screen: Color … }` split this item proposed is exactly
-what H11 did for `TextScale`, and it worked. The remaining two are the same edit
-twice, and both are prerequisites for **A17**.
+**`UIScale` moved as well**, which this item did not ask for and **A17** made
+necessary: `AppSettings` owns all eight keys, so all eight vocabularies have to
+be reachable from Core. It is the smallest of the three — a raw value and a
+factor — and it cost one type change: `factor` is `Double` rather than `CGFloat`,
+following `TextScale.factor`, with `CGFloat(…)` at the six `DexMetrics` members
+that consume it. Core stays Foundation-only, which is the constraint that made
+the whole move worth making.
+
+**What this bought, concretely.** The vocabulary a device has already written to
+disk is now readable from `swift test`. Nine `LcdMode` raw values, sixteen
+`ChassisSkin` raw values and two `UIScale` raw values were, until this, declared
+in a module no test in this repository can execute a line of — and a renamed raw
+value silently resets that user's stored choice. That is precisely the class of
+thing **M35** built `SavedDataKey` to protect, and the enums it protects were
+themselves out of reach.
+
+**And cashed in (2026-08-04).** "Readable from `swift test`" was, for a day,
+a capability nothing used — 21 Core test files, none about settings.
+`AppSettingsTests` now pins the 27 raw values in order, the eight key strings,
+the decode round-trip and fallback per axis, the label/raw-value splits
+(including the VINHO VERDE house-move), `SettingsDefault` against what an
+absent key resolves to through both `SettingsCache` and `AppSettings`, the
+model's write discipline — a wipe's `reload()` leaves the keys *absent* rather
+than re-created at their defaults — and `seedTextScaleIfUnset` moving model
+and storage together, exactly once.
 
 ### A7 · `IconManifest` lives in Core; the assets it indexes ship in UI's bundle — **Open, and the surface grew 5×**
 
@@ -743,22 +886,55 @@ The `// MARK: - Public surface` block was not added and is no longer needed — 
 count *is* the statement now, because it was derived from the app's own references
 rather than left to accumulate.
 
-### A15 · `Sources/VinodexUI/` is 21 flat files with no directory structure — **Open, worse: 49 files**
+### A15 · `Sources/VinodexUI/` is 21 flat files with no directory structure — **Resolved**
 
-Still one namespace-less list; `Resources/` is still the only subdirectory. **M30**
-added nine files to it (`ChassisButton`, `ChassisEffects`, `MarqueeBanner`,
-`EntryDetailSections`, `EntryDetailRows`, `ScreenModes`, `ChassisSkins`,
-`SettingsControls`, `SavedDataActions`) and the eight screens added since the audit
-went in flat too.
+The five directories this item proposed, taken in the same sitting as **A17** for
+the reason it gave — that refactor had most of the module open anyway:
 
-The five-directory proposal is more obviously right at 49 files than at 21, and the
-groupings now write themselves — `ChassisButton` / `ChassisEffects` /
-`ChassisSkins` / `DeviceChassis` / `DeviceBackPlate` / `MarqueeBanner` is a
-`Chassis/` directory that already exists in everything but the filesystem.
+```
+Screens/     22   the LCD's pages, one per DexRoute, plus M30's splits of them
+Components/  15   what the pages are built from
+Chassis/      7   the device around the screen
+Theme/        2   DexTheme + the LcdMode colour extension
+Platform/     4   DexAsset, DexAssetAudit, DexSound, Haptics
+Resources/        unmoved — see below
+```
 
-→ `Screens/` · `Components/` · `Chassis/` · `Theme/` · `Platform/`. Directory moves
-are free in SwiftPM. Do it in the same sitting as **A17**, since that refactor
-touches most of the module anyway.
+Fifty files, up from the 49 this item counted: `DexAsset.swift` is new, from
+**A22**. The groupings did write themselves, as predicted — `ChassisButton` /
+`ChassisEffects` / `ChassisSkins` / `DeviceChassis` / `DeviceBackPlate` /
+`MarqueeBanner` was already a `Chassis/` directory in everything but the
+filesystem, and `InternalsView` (the mock circuit board behind the translucent
+skins) joins them.
+
+Free in SwiftPM, as claimed: the target globs its sources, `Package.swift` needed
+no edit, and `.copy("Resources")` is a path relative to the target directory, so
+leaving `Resources/` where it is was the whole of the care required. `swift
+build`, `scripts/typecheck-ios-surface.sh` and `scripts/typecheck-core-tests.py`
+are all green across the move.
+
+**One cost, and it is real.** `scripts/typecheck-baseline.txt` keys its six
+tolerated diagnostics on file path, so it was regenerated — the six are
+unchanged in substance, and the note explaining each still applies. More
+broadly, **every `Sources/VinodexUI/<Name>.swift` anchor in AUDIT.md and
+auditS.md now names the pre-move layout.** They were not rewritten: those
+documents already re-verify against current source rather than against their own
+line anchors (this one says so in its opening), and rewriting sixty historical
+anchors would edit the record of where a defect *was*. Read them as names, not
+as paths.
+
+Seven of those anchors are on **open** items, so they are live navigation rather
+than history, and they are the ones to fix in place when each is next worked:
+
+| Item | Names | Now under |
+|---|---|---|
+| AUDIT **M31** | `DeviceChassis.swift` | `Chassis/` |
+| auditS **M3** | `DexTheme.swift` | `Theme/` |
+| auditS **M18** | `CountryScreen.swift` | `Screens/` |
+| auditS **L2** | `DeviceBackPlate.swift` | `Chassis/` |
+| auditS **L8** | `CatalogScreen.swift` | `Screens/` |
+| auditS **L19** | `DiagnosticsReport.swift` | `Components/` |
+| auditS **L20** | `DexSearchField.swift` | `Components/` |
 
 ### A18 · Persistence has no namespace, no version, no migration hook — **Partial, and half of it is unimplementable**
 
@@ -811,8 +987,8 @@ The `WineDatabase.init(entries:palette:icons:freeIDs:decodeErrors:)` this item
 identified as "public and no test calls it" is now reached through the reader seam.
 
 **Note a stale disagreement:** auditS **L13** still lists this as open. It is not;
-`DatabaseFixture.swift` is one of the 27 untracked files in **X2**, which is
-probably why.
+`DatabaseFixture.swift` was one of **X2**'s untracked files when that document
+last looked, and has since been committed (`7b3e920`, 2026-08-03).
 
 ### A21 · Resource loading is structurally untestable — **Partial**
 
@@ -833,57 +1009,71 @@ files in `Sources/VinodexUI/` already are, compiling to an empty module on Linux
 That target does not exist yet. Creating it is the fix for this item, for **A21**'s
 half of **A7**, and for **M49**'s outstanding device pass.
 
-### A22 · Every asset lookup is an unverified string path — **Open, worse: 5 sites → 12**
+### A22 · Every asset lookup is an unverified string path — **Resolved**
 
-Re-counted across the tree:
+`Sources/VinodexUI/Platform/DexAsset.swift` — a twelve-case enum owning every
+`Resources/…` path in the module, consumed by both the loaders and the audit.
+`DexResources.url(named:ext:in:)` takes a case instead of a `String`, so a rename
+is one edit and a typo does not compile. `PixelArtLoader.directories` is
+`[DexAsset]`, in its original order, which matters: the loader returns the first
+hit, so re-ordering it would change which PNG wins for a stem that exists in two
+directories.
+
+The point this item made about `DexAssetAudit` is the one that mattered most, and
+it is what makes the enum rather than a set of constants the right shape: the
+audit caught a *missing file* and structurally could not catch a *wrong literal*,
+because it re-spelled the same literals. Both sides read the path from the same
+case now.
+
+The twelve sites, all migrated:
 
 ```
-Resources/Icons    DexIcon.swift:66, DexAssetAudit.swift:132
-Resources/Chassis  DeviceChassis.swift:709
-Resources/Logo     DeviceChassis.swift:721
-Resources/Fonts    DexTheme.swift:401
-Resources/SFX      DexSound.swift:118
-Resources/Flags    EntryVisual.swift:316
-Resources/Maps     RetroGlobeScreen.swift:572
-(variable subdir)  EntryVisual.swift:281, DexAssetAudit.swift:138
+.icons      DexIcon.swift, DexAssetAudit.swift
+.flags      EntryVisual.swift, DexAssetAudit.swift
+.flavorArt  .grapeArt  .styleArt  .classArt  .stampArt
+            EntryVisual.swift (PixelArtLoader.directories), DexAssetAudit.swift
+.fonts      DexTheme.swift
+.sfx        DexSound.swift
+.maps       RetroGlobeScreen.swift
+.chassis    .logo   DeviceChassis.swift
 ```
 
-Eight files, no shared constant, and the failure mode this item named still holds:
-a typo or directory rename compiles, tests green, and ships as a red questionmark
-glyph, a grey block, a system monospace font, a silent tap, or a flat green sphere.
-**Most of these are visually plausible enough to survive a device check.**
+`.stampArt` names a directory that does not exist in the bundle, and that is
+deliberate and documented on the case: the stamp glyphs are unauthored and a miss
+falls through to the SF stand-ins (0.6.4, F2/F3). Naming it here is what keeps
+that a stated condition rather than a silent one.
 
-`DexAssetAudit` catches a *missing file* at runtime. It does not catch a *wrong
-literal* — it uses the same literals.
+What the enum still does **not** buy is a build-time check that each directory
+holds what the manifest expects — that is **A7**, and its cheaper version is a
+test in the `ios-test` job (see **A21**).
 
-→ A `DexAsset` enum owning the paths, consumed by both the loaders and the audit, so
-a rename is one edit. Cheap, mechanical, and now protected by the `ios` job.
+### A10 · The guard is drawn at the module, but the module is not all UI — **Open, narrowed twice**
 
-### A10 · The guard is drawn at the module, but the module is not all UI — **Open, narrowed**
+All three examples this item named have now moved out from behind the guard.
+**H11** took `TextScale`; **M29** took `Palette.resolve`, `styleToneKey(for:)` and
+`grapeWellFallbackHex(style:body:)` into `Sources/VinodexCore/EntryPalette.swift`;
+and **A6** took the persisted half of `LcdMode` and `ChassisSkin` (plus `UIScale`),
+leaving only their `Color` members behind.
 
-Two of the three examples this item named have moved out from behind the guard:
-**A6**/**H11** took `TextScale`, and **M29** took `Palette.resolve`,
-`styleToneKey(for:)` and `grapeWellFallbackHex(style:body:)` into
-`Sources/VinodexCore/EntryPalette.swift` — a file move rather than a refactor, since
-all three were already pure over Core-only types.
-
-The structural point is unchanged and the number behind it is 3× larger: **16,386
-lines** sit behind `#if canImport(SwiftUI) && canImport(UIKit)`, and the manifest
-slug consumption, `LcdMode`, `ChassisSkin` and `DexAssetAudit`'s probe logic are all
-still among them. The fix is still to shrink what sits behind the guard, not to move
-the guard.
+The structural point is unchanged and the number behind it is still 3× what it was:
+**16,262 lines** sit behind `#if canImport(SwiftUI) && canImport(UIKit)`. What is
+left in there that arguably should not be is narrower and more specific now — the
+manifest slug consumption, and `DexAssetAudit`'s probe logic, which is **A21**. The
+fix is still to shrink what sits behind the guard, not to move the guard.
 
 ### A11 · Three different guard spellings across the tree — **Open, unchanged in kind**
 
 Re-counted across `Sources/VinodexUI/`:
 
 ```
-47  #if canImport(SwiftUI) && canImport(UIKit)
- 1  #if canImport(UIKit) && canImport(AVFoundation)   — DexSound.swift
- 1  #if canImport(UIKit)                              — Haptics.swift
+48  #if canImport(SwiftUI) && canImport(UIKit)
+ 1  #if canImport(UIKit) && canImport(AVFoundation)   — Platform/DexSound.swift
+ 1  #if canImport(UIKit)                              — Platform/Haptics.swift
 ```
 
-`Haptics.swift:1` still carries **A1**'s exact failure shape one module down. The
+47 → 48 with **A22**'s `Platform/DexAsset.swift`, which took the majority
+spelling. `Haptics.swift:1` still carries **A1**'s exact failure shape one module
+down. The
 `AVFoundation` variant is new and is *correct* — `DexSound` genuinely needs both —
 so the count is three spellings for two reasons, which is one more than necessary.
 
@@ -893,33 +1083,34 @@ Harmless today. It was harmless in `VinodexApp.swift` too, until it was not.
 
 **Resolved by L9.** `DexResources` is now `enum DexResources` — internal.
 
-**Correction to this item:** `DexResources` was never in `VinodexCore`. It lives in
-`Sources/VinodexUI/DexTheme.swift:485` and always did, so this item mislocated it.
-`EntryTiers` no longer appears in the tree under that name.
+**Correction to this item:** `DexResources` was never in `VinodexCore`. It lived in
+`DexTheme.swift` and always did, so this item mislocated it; **A22** has since
+moved it to `Sources/VinodexUI/Platform/DexAsset.swift`, beside the enum that is
+now the only way to name a directory to it. `EntryTiers` no longer appears in the
+tree under that name.
 
-### A14 · A fallback lookup that can never fire — **Open, unchanged**
+### A14 · A fallback lookup that can never fire — **Resolved**
 
-`Sources/VinodexUI/DexTheme.swift:486-493`:
+Deleted, with **A22**, which is what made it free: once the subdirectory is a
+`DexAsset` rather than an optional `String`, the branch has no argument that can
+reach it. `DexResources.url` is now one line, in
+`Sources/VinodexUI/Platform/DexAsset.swift`.
+
+The old shape and why it was dead are preserved in that file's doc comment rather
+than only here — under `.copy("Resources")` SwiftPM keeps the directory structure
+verbatim, so nothing is at the bundle root and
 
 ```swift
-static func url(named name: String, ext: String, subdirectory: String? = nil) -> URL? {
-    if let subdirectory,
-       let hit = Bundle.module.url(forResource: name, withExtension: ext, subdirectory: subdirectory) {
-        return hit
-    }
-    return Bundle.module.url(forResource: name, withExtension: ext)
-}
+return Bundle.module.url(forResource: name, withExtension: ext)
 ```
 
-Under `.copy("Resources")` the directory structure is preserved verbatim, so the
-subdirectory-less lookup on the last line cannot succeed for any of the 12 call
-sites in **A22**. A miss reads as "handled" and returns `nil` one line later anyway.
+could not succeed for any of the twelve call sites. It returned `nil` one line
+later than the lookup above it did, while reading as though a miss had been
+handled — inside the project's only asset guard rail, since `DexAssetAudit`
+(**L26**) resolves every manifest id through this exact function.
 
-Now slightly more than cosmetic: `DexAssetAudit` (**L26**) resolves every manifest id
-through this exact function, so the dead branch sits inside the project's only asset
-guard rail.
-
-→ Delete the fallback, or make the miss loud. It is four lines.
+Checked rather than assumed: `Package.swift` uses `.copy`, not `.process`, and
+`Sources/VinodexUI/Resources/` holds eleven directories and no loose files.
 
 ### A16 · File names understate contents — **Partial**
 
@@ -928,7 +1119,7 @@ the two it named, taking this document's and its own corrections seriously:
 
 | File | Was | Now |
 |---|---:|---:|
-| `DexTheme.swift` | 1,661 | **499** |
+| `DexTheme.swift` | 1,661 | **489** |
 | `DeviceChassis.swift` | 1,220 | **735** |
 | `EntryDetailScreen.swift` | 1,079 | **574** |
 | `SettingsPanel.swift` | 1,617 | **1,250** |
@@ -937,9 +1128,10 @@ All pure code motion. The move immediately earned its keep: two `private` member
 meant "this file," which is exactly the coupling being removed, and both were caught
 by `typecheck-ios-surface.sh`.
 
-**Still true:** `SettingsPanel.swift` is 1,250 lines and remains the largest file in
-the module; `ScannerScreen.swift` is **1,078** and has never been audited by anything
-— it postdates every pass in all three documents.
+**Still true:** `SettingsPanel.swift` is 1,260 lines and remains the largest file in
+the module; `ScannerScreen.swift` is **1,079** and has never been audited by anything
+— it postdates every pass in all three documents. **A15** put both under
+`Screens/`, which is a better address, not a smaller file.
 
 ### A3 · `.copy("Resources")` is right but unexplained — **Open, Low**
 
@@ -1078,21 +1270,20 @@ graph TD
 The `art/` branch is entirely new since this audit — created by **H12** on
 2026-07-31 and covered by `npm run icons:verify`.
 
-### B1 · There is no automated gate of any kind on this pipeline — **Partial**
+### B1 · There is no automated gate of any kind on this pipeline — **Resolved**
 
-**Three of the four checks this item proposed exist.** CI's `data` job runs
+**All four checks this item proposed now exist.** CI's `data` job runs
 `npm run generate` and fails on drift (**M41**). `validateOutputs` is a real schema
-contract (**M3**, see **A24**). `swift test` runs on Linux. `npm run icons:verify`
-re-runs the four art importers into a temp tree and compares against the committed
-bundle — **244 of 254 pixel-identical, 10 within a recorded budget, 0 changed, 0
-without a source** (**H12**).
+contract (**M3**, see **A24**). `swift test` runs on Linux. And `tsc --noEmit` —
+the last of the four to remain manual — landed 2026-08-03 (**B5**). Beyond the
+proposal: `npm run icons:verify` re-runs the four art importers into a temp tree
+and compares against the committed bundle — **244 of 254 pixel-identical, 10
+within a recorded budget, 0 changed, 0 without a source** (**H12**).
 
-**Two gaps remain, and both are named below:**
-
-- `tsc --noEmit` runs nowhere (**B5**).
-- The manifest-vs-PNG filename check is a *runtime* probe in the DEV panel
-  (`DexAssetAudit`, **L26**), not a CI step. The iconify half of the rasterizer
-  still has no `--check` mode (**B2**).
+**One gap survives this item, and it is owned elsewhere:** the manifest-vs-PNG
+filename check is a *runtime* probe in the DEV panel (`DexAssetAudit`, **L26**),
+not a CI step, and the iconify half of the rasterizer still has no `--check`
+mode. That is **B2**, still partial on exactly that point.
 
 The `JSONDecoder` asymmetry this item identified as the danger — extra keys silently
 ignored, missing keys fatal for the whole file — is now handled on both sides.
@@ -1140,24 +1331,20 @@ recompressible, 78,661 B (10.8%)**.
 Also relevant: `npm run icons:verify` covers the **drawn art**, not the iconify
 half. The two are separate pipelines and only one is verified.
 
-### B3 · The one documented regeneration path is unpinnable — **Partial**
+### B3 · The one documented regeneration path is unpinnable — **Resolved**
 
-**`package-lock.json` is tracked** (**R13**), so the hard blocker is gone —
-`npm ci` is now possible.
+**Resolved 2026-08-03 (`8bd6838`), by exactly the three changes the remedy
+priced.** The `data` job runs `npm ci --no-audit --no-fund`; Node comes from
+`node-version-file: '.nvmrc'`, so the version lives with the repo rather than in
+the workflow; and `package.json` declares `"engines": { "node": ">=22" }`. The
+workflow comment names this item.
 
-**It is not used.** CI's `data` job runs `npm install --no-audit --no-fund`, not
-`npm ci`, and pins Node in the workflow (`node-version: '22'`) rather than in the
-repo. Still no `.nvmrc`, no `engines`, no `.tool-versions`, no `.swift-version`. All
-three devDependencies still float (`^22.14.0`, `^10.9.2`, `~5.8.2`).
-
-So the lockfile exists and nothing enforces it — which means CI can resolve a
-different `ts-node` than a maintainer's clone and the drift check would still pass,
-because the drift check compares *output*, and the output is deterministic. That is
-luck, not design.
-
-→ Two one-word changes: `npm ci` in the workflow, and an `engines` floor in
-`package.json`. Add `.nvmrc` so the Node version lives with the repo rather than in
-the workflow.
+The devDependency ranges still float, and that is now the normal npm posture
+rather than a gap: floating ranges plus an *enforced* lockfile means CI and a
+maintainer's clone resolve identically by construction, not by the
+output-determinism luck this item called out. What `npm ci` does not fix is
+**B4** — the command still routes through `ts-node --esm`, which is the
+remaining fragile half of the regeneration story.
 
 ### B4 · The declared runner is unnecessary and is the fragile path — **Open, unchanged**
 
@@ -1166,25 +1353,26 @@ item rests on is re-confirmed: `shared/` and `scripts/` contain no TS-only runti
 syntax, so native type stripping handles them, and this host runs Node **v25.3.0**
 where ts-node 10.9's ESM loader is the known-fragile combination.
 
-→ Unchanged advice: make bare `node` the primary path, keep ts-node as the
-documented fallback for Node < 22.6, pin the floor in `engines` (see **B3**).
+→ Narrowed advice: make bare `node` the primary path, keep ts-node as the
+documented fallback for Node < 22.6. The `engines` floor half landed with
+**B3** (2026-08-03); this runner swap is what remains.
 
-### B5 · tsconfig strictness is never enforced by any command — **Open, unchanged, and now the clearest case in the document**
+### B5 · tsconfig strictness is never enforced by any command — **Resolved**
 
-`tsconfig.json` is still genuinely strict — `strict`, `noUncheckedIndexedAccess`,
-`noUnusedLocals`, `noUnusedParameters`, over both `shared/**` and `scripts/**`.
-`package.json` still defines no `typecheck` script. `.github/workflows/ci.yml` still
-invokes no `tsc`. Grepped both; zero hits.
+**Resolved 2026-08-03 (`8bd6838`), as specified:** `"typecheck": "tsc --noEmit"`
+in `package.json` and one step in the `data` job, whose comment records what
+this item established — that until then, only a human remembering to run `tsc`
+ever enforced a genuinely strict config. The strict flags themselves are
+unchanged (`strict`, `noUncheckedIndexedAccess`, `noUnusedLocals`,
+`noUnusedParameters`, over both `shared/**` and `scripts/**`); what changed is
+that forgetting them is no longer possible. The check three update logs ran by
+hand runs on every push, and the "clearest case in the document" title retires.
 
-**What makes this the clearest case:** three separate AUDIT update logs record
-"`tsc --noEmit` clean" as a verification step, run by hand. So the check is
-demonstrably useful, demonstrably being run, and demonstrably not automated — which
-is precisely the "discipline a human is asked to remember" this document's opening
-verdict named.
+That closes the last of the original "three of the four data checks pass today"
+set — and **B1** with it.
 
-→ Add `"typecheck": "tsc --noEmit"` and one step to the `data` job. Five minutes,
-and it is the last of this document's original "three of the four data checks pass
-today" set to remain manual.
+One expectation it corrects: **B12** predicted its extensionless imports "would
+be caught the moment B5 lands." They were not — see the note there.
 
 ### B6 · The layout probe is a silent output redirect — **Resolved**
 
@@ -1277,8 +1465,11 @@ shared/services/entryUtils.ts:1 import type { DataCategory, ... } from '../types
 
 Thirteen siblings use `'../types.ts'`. They are `import type` and erased before
 resolution, so nothing breaks today — but adding `verbatimModuleSyntax`, or
-converting any to a value import, turns them into `ERR_MODULE_NOT_FOUND`. Would be
-caught the moment **B5** lands.
+converting any to a value import, turns them into `ERR_MODULE_NOT_FOUND`. This
+item predicted they "would be caught the moment **B5** lands"; B5 landed
+(2026-08-03) and they were not — `moduleResolution: "bundler"` tolerates
+extensionless type-only imports — so the fix is still the three one-line edits,
+not the typecheck.
 
 ### B13 · `FLAGDIR` is derived from an overridable `OUTDIR` — **Open, unchanged**
 
@@ -1317,7 +1508,8 @@ Four of six steps done. Re-checked against the tree:
 3. **Resolve `countries.ts` (B7)** — **done**, by building the screen.
 4. **Retire web-only exports** — **not done, and still needs a tool.**
    `noUnusedLocals` does not catch unused *exports*; this needs `ts-prune` or
-   `knip`, or delete-and-typecheck — which needs **B5** first.
+   `knip`, or delete-and-typecheck — which **B5** unblocked on 2026-08-03: the
+   typecheck half of that loop is now one `npm run typecheck` away.
 5. **Rename the vocabulary** — **the premise is now wrong.** This step argued
    `shared/` "shares with nothing once the web app pivots." It shares with the web
    app *today*: `shared/pixelflags/` is a cross-repo master mirrored from
@@ -1367,17 +1559,19 @@ would have silently changed visible pixels on ten shipped glyphs.
 1. ~~**The README tells you not to work here** while the next paragraph says
    everything is here.~~ **Fixed.** (**X1**, **P1**) — replaced as the top item by
    **X2**: the work is here, and it is not committed.
-2. **The documented regeneration command is still the fragile one.** Needs network,
-   resolves unpinned ranges, and routes through a runner the script does not need —
-   but it *can* now use `npm ci`, and doesn't. (**B3**, **B4**)
+2. **The documented regeneration command is half-fixed.** ~~Resolves unpinned
+   ranges~~ — CI installs with `npm ci` under a repo-pinned Node (**B3**, fixed
+   2026-08-03). It still needs network and still routes through a runner the
+   script does not need (**B4**).
 3. ~~**`npm run icons` cannot run on macOS at all.**~~ **Fixed** by **M43**. The
    iconify fetch is still unpinned (**M40**, deferred) and there is still no
    `--check` mode (**B2**).
 4. ~~**Nothing verifies anything.**~~ **Substantially fixed.** Four CI jobs, a
-   schema contract on both sides, a regen-diff, an art-verify, and two local
-   typecheck harnesses. What remains unverified: TypeScript types (**B5**), the
-   iconify PNG set against its manifest at build time (**B2**), and anything at all
-   inside `VinodexUI` from a *test* rather than a compile (**A21**).
+   schema contract on both sides, a regen-diff, an art-verify, a `tsc --noEmit`
+   step (**B5**, fixed 2026-08-03), and two local typecheck harnesses. What
+   remains unverified: the iconify PNG set against its manifest at build time
+   (**B2**), and anything at all inside `VinodexUI` from a *test* rather than a
+   compile (**A21**).
 5. **Four binary asset trees still sit outside the pipeline entirely** — Fonts,
    Maps, Logo, AppIcon — plus Chassis and SFX, added since. Produced by no script,
    traced to no source, shipped with no license text. (**R7**, **M36**, auditS
@@ -1388,32 +1582,41 @@ would have silently changed visible pixels on ten shipped glyphs.
 ## Recommended order
 
 **Now, and blocking:**
-- **X2** — commit and push the 86 dirty paths. One sitting. Nothing below survives a
-  `git stash` without it.
+- **X2** — commit and push the dirty tree. One sitting. Nothing below survives a
+  `git stash` without it. The 2026-08-03 push discharged the original 86 paths;
+  the structural chain and its tests have re-dirtied 63 more, so the item
+  stands.
 
-**Same sitting, because they are one-line each:**
-- **R3** — seven `.gitignore` patterns. Especially before the `git add -A` that
-  X2 implies. (= auditS **L11**)
-- **P6** — `git branch --set-upstream-to=origin/main wip-local`.
-- **B5** — `"typecheck": "tsc --noEmit"` plus one CI step. The last manual check.
-- **B3** — `npm ci` instead of `npm install` in the `data` job; `.nvmrc` and
-  `engines`.
+**~~Same sitting, because they are one-line each~~ — done, 2026-08-03
+(`8bd6838`, "gitquickfixes"), priced correctly at one commit:**
+- ~~**R3** — seven `.gitignore` patterns~~ — **done**, with a comment naming
+  both findings. (= auditS **L11**)
+- ~~**P6** — upstream tracking~~ — **done**, as `origin/wip-local` rather than
+  the `origin/main` suggested here — better, see the item.
+- ~~**B5** — `"typecheck": "tsc --noEmit"` plus one CI step~~ — **done.** The
+  last manual check is automated, and **B1** closed with it.
+- ~~**B3** — `npm ci` in the `data` job; `.nvmrc` and `engines`~~ — **done**,
+  all three.
 
 **Owner decisions, which no engineer can take:**
 - **R7 / M36** — the top-level LICENSE (ownership call) and the SFX provenance
   answer (factual). Two sentences unblock a NOTICE, the OFL texts, an in-app
   credits surface, and five auditS findings. The repo is in breach today.
 
-**Structural, in this order because each cheapens the next:**
-- **A6** — move `LcdMode` and `ChassisSkin` to Core, keeping their `Color`
-  extensions in UI. Same edit **H11** already did for `TextScale`, twice.
-- **A17** — one `AppSettings` in Core, injected as a defaulted init parameter (not
-  an `EnvironmentKey` — see **M27**'s three reasons). Retires **M13**, retires
-  **H3**'s `.id(scaleRaw)` remount, removes 57 `@AppStorage` declarations.
-- **A15** — five directories. Free in SwiftPM, and cheapest while **A17** already
-  has the module open.
-- **A22 / A14** — a `DexAsset` enum owning the 12 path literals, consumed by both
-  the loaders and `DexAssetAudit`; delete the dead fallback branch on the way past.
+**Structural — ~~in this order because each cheapens the next~~ done, 2026-08-03:**
+- ~~**A6** — move `LcdMode` and `ChassisSkin` to Core~~ — **done**, and `UIScale`
+  with them, because **A17** needs all eight vocabularies in Core.
+- ~~**A17** — one `AppSettings` in Core~~ — **done**, as a defaulted stored
+  property per **M27**'s precedent. Retired **M13**; removed all 57 `@AppStorage`
+  declarations. **Did not retire H3's `.id(scaleRaw)` remount** — 268 static
+  `DexFont`/`DexMetrics` call sites stand in the way; see the item.
+- ~~**A15** — five directories~~ — **done**, and free, as predicted.
+- ~~**A22 / A14** — a `DexAsset` enum~~ — **done**, dead fallback deleted with it.
+
+The ordering claim held up: A6 was a prerequisite in fact and not only on paper,
+A15 cost almost nothing while A17 had the module open, and A22 was one more pass
+over files A17 had already touched. What remains structural is **A7** and
+**A21**, and both wait on the same thing — a `VinodexUITests` target.
 
 **Release gates, scheduled together:**
 - **A2** — `PrivacyInfo.xcprivacy` (= auditS **H3**) and an Info.plist source

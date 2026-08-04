@@ -93,11 +93,11 @@ public enum TextScale: String, CaseIterable, Identifiable, Sendable {
     /// dropped by `UserDefaults.didChangeNotification` on the same write that
     /// changes the key `RootView` is keyed on.
     public static func current(in defaults: UserDefaults = .standard) -> TextScale {
-        TextScale(rawValue: defaults.string(forKey: storageKey) ?? "") ?? .small
+        TextScale(rawValue: defaults.string(forKey: storageKey) ?? "") ?? SettingsDefault.textScale
     }
 
     public static var current: TextScale {
-        TextScale(rawValue: SettingsCache.string(forKey: storageKey) ?? "") ?? .small
+        TextScale(rawValue: SettingsCache.string(forKey: storageKey) ?? "") ?? SettingsDefault.textScale
     }
 
     /// First-launch courtesy for someone who had already enlarged their system
