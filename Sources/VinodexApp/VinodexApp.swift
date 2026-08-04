@@ -12,13 +12,19 @@ import VinodexUI
 /// edge. Landscape does not degrade it, it dismantles it: the island band eats
 /// most of a landscape screen's height and the LCD collapses to a strip.
 ///
-/// A delegate rather than the Info.plist because the Info.plist is not ours to
-/// write. xtool generates the whole thing and exposes only `bundleID` and
-/// `iconPath` through `xtool.yml` — it does not even let the app set its own
-/// version (see KNOWN-ISSUES.md, "xtool stamps a fake version into every
-/// bundle"), so `UISupportedInterfaceOrientations` has nowhere to be declared.
-/// This callback is consulted per window and overrides the plist in any case,
-/// so it is both the available lock and the authoritative one.
+/// A delegate rather than the Info.plist, and **still a delegate now that the
+/// Info.plist is ours to write** (corrected 0.7.2). This note used to say xtool
+/// exposed only `bundleID` and `iconPath` and that
+/// `UISupportedInterfaceOrientations` therefore had nowhere to be declared; that
+/// was wrong about xtool 1.17.0, which takes an `infoPath:` passthrough, and the
+/// repo has an `Info.plist` going through it since LABEL SCAN needed camera
+/// usage strings.
+///
+/// The reasoning survives the correction intact, because it was never really
+/// about availability: this callback is consulted per window and **overrides**
+/// the plist, so declaring the orientation in both places would leave two
+/// things to keep in agreement and only one of them deciding. The lock stays
+/// here, and `Info.plist` stays free of it.
 final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(
         _ application: UIApplication,
@@ -376,7 +382,8 @@ struct RootView: View {
                 onScanner: { push(.scanner) },
                 onMoonDial: { push(.moonDial) },
                 onQuiz: { push(.wsetQuiz) },
-                onDailyChallenge: { push(.dailyChallenge) }
+                onDailyChallenge: { push(.dailyChallenge) },
+                onLabelReader: { push(.labelReader) }
             )
 
         case .chipFilter:
@@ -399,6 +406,12 @@ struct RootView: View {
 
         case .scanner:
             ScannerScreen { open($0) }
+
+        // Through `open(_:)` like every other screen that offers an entry, so a
+        // label that resolves to a locked grape hits the paywall gate rather
+        // than walking past it (0.7.2, LR1).
+        case .labelReader:
+            LabelReaderView { open($0) }
 
         case .moonDial:
             MoonDialScreen()

@@ -152,7 +152,36 @@ public enum AppVersion {
     /// stamp-unlock moment, a four-rung rank ladder beginning with VINODEX
     /// MASTER, and two more fixes to the stamp drag. **E:** the daily
     /// challenge's fire became a target, and IDENTIFY became BLIND TASTING.
-    static let fallback = "0.7.1"
+    ///
+    /// 0.7.2: **LABEL SCAN**, from the `vinodex-label-reader` spec — the first
+    /// batch since 0.7.0 to add a screen rather than rework one, and the first
+    /// feature in the app that takes an input from outside it. Point the camera
+    /// at a bottle, run Apple Vision on-device, and match what it read against
+    /// the catalog: `LabelRecognitionService`, `LabelTextScan` and the result
+    /// models are Foundation-only in Core and gated by `swift test`, while
+    /// Vision, the camera and the pickers sit in `VinodexUI` behind
+    /// `LabelRecognitionProvider`. No network, no API key, no account.
+    ///
+    /// The place walk is the part worth naming: an appellation off the label
+    /// (`BAROLO`) resolves to the region that lists it, which yields the
+    /// country, the notable grapes and — through each grape's own `grapeStyle`
+    /// — the styles. None of that is written down anywhere in this feature. It
+    /// is the catalog's existing cross-references being read in a new direction.
+    ///
+    /// Two things the spec assumed and the code did not have: there is **no
+    /// Producer entity** in Vinodex and there never was, so producer matching is
+    /// text-only and its 50-point weight degrades to 15 (see `LabelConfidence`);
+    /// and `TextNormalize.key` is the app's normaliser, reused here rather than
+    /// reimplemented, which is what makes a phrase off a photograph comparable
+    /// to a catalog key at all.
+    ///
+    /// Also: `xtool.yml` gained `infoPath`, which the file's own comment and
+    /// KNOWN-ISSUES.md had both said did not exist. It does, on the installed
+    /// xtool 1.17. The camera and photo usage strings go through it, and the
+    /// stale claim is corrected in both places.
+    ///
+    /// No catalog change — 405 stands and `waveMilestones` does not move.
+    static let fallback = "0.7.2"
 
     /// Versions no build deliberately chose.
     ///

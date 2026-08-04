@@ -6,9 +6,13 @@ import VinodexCore
 ///
 /// This began as MINIGAMES, when the daily reveal was promoted out of the
 /// settings list and needed a shelf of its own. It has since collected things
-/// with no play in them at all — BLIND TASTING is an identification aid, LABEL
-/// SCAN will be another — so the name was promising the wrong thing to anyone
+/// with no play in them at all — BLIND TASTING is an identification aid and
+/// LABEL SCAN is another — so the name was promising the wrong thing to anyone
 /// looking for either. TOOLS covers both; a game is a tool you use for fun.
+///
+/// Both identification tools are real as of 0.7.2: BLIND TASTING deduces from a
+/// glass with no label, LABEL SCAN reads the label when there is one. They sit
+/// side by side in the top row for that reason.
 ///
 /// **The shelf is still six tiles** (0.7.0, I1/I2). MASTER SEARCH left it — it
 /// was called FILTER SEARCH then — because the main menu's big round button is
@@ -26,6 +30,7 @@ public struct ToolsScreen: View {
     let onMoonDial: () -> Void
     let onQuiz: () -> Void
     let onDailyChallenge: () -> Void
+    let onLabelReader: () -> Void
 
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
@@ -35,13 +40,15 @@ public struct ToolsScreen: View {
         onScanner: @escaping () -> Void = {},
         onMoonDial: @escaping () -> Void = {},
         onQuiz: @escaping () -> Void = {},
-        onDailyChallenge: @escaping () -> Void = {}
+        onDailyChallenge: @escaping () -> Void = {},
+        onLabelReader: @escaping () -> Void = {}
     ) {
         self.onDailyGrape = onDailyGrape
         self.onScanner = onScanner
         self.onMoonDial = onMoonDial
         self.onQuiz = onQuiz
         self.onDailyChallenge = onDailyChallenge
+        self.onLabelReader = onLabelReader
     }
 
     public var body: some View {
@@ -72,16 +79,28 @@ public struct ToolsScreen: View {
                         face: "#22c55e", shadow: "#15803d",
                         action: onScanner
                     )
-                    // **LABEL SCAN, coming soon** (0.7.0, I2). No action and no
-                    // route: `comingSoon` is the country gates' own treatment
-                    // (see `DexEmptyState` / the gated country rows), reused
-                    // rather than a second disabled style invented here.
+                    // **LABEL SCAN, built** (0.7.2, LR1). Announced as COMING
+                    // SOON in 0.7.0 (I2) and given its route here: point the
+                    // camera at a bottle, read the label on-device, match it
+                    // against the catalog. See `LabelReaderView`.
+                    //
+                    // Off the placeholder slate and onto a face of its own now
+                    // that it does something — the grey was the COMING SOON
+                    // treatment, not this tool's colour.
+                    //
+                    // **Blue, because it is the one hue the shelf was not
+                    // already using.** The other five are green, purple, red,
+                    // amber and cyan, and the six squares are meant to be told
+                    // apart at a glance from the far side of a table; an amber
+                    // here (tried first) sat a few points from WHAT'S THAT…?'s
+                    // `#EAB308` and turned the grid into two pairs. White ink
+                    // clears `#3B82F6` comfortably, so this needs none of the
+                    // dark-ink handling the yellow and cyan faces once did.
                     tile(
                         title: "LABEL\nSCAN",
                         symbol: "camera.viewfinder",
-                        face: "#64748B", shadow: "#334155",
-                        comingSoon: true,
-                        action: {}
+                        face: "#3B82F6", shadow: "#1d4ed8",
+                        action: onLabelReader
                     )
                 }
                 // The quiz family sits together: the practice ladder, then
@@ -135,6 +154,12 @@ public struct ToolsScreen: View {
     /// follows.
     ///
     /// `comingSoon` marks a tile that is announced but not built (0.7.0, I2).
+    ///
+    /// **No tile passes it as of 0.7.2** — LABEL SCAN was the only one and it is
+    /// built now. Kept rather than deleted because it is not a flag, it is a
+    /// documented treatment that the country gates and this shelf agreed on, and
+    /// the next announced-but-unbuilt tool would otherwise have to re-derive the
+    /// three rules below from scratch.
     ///
     /// The same three ideas the country gates settled on: the row still exists
     /// and still *looks like* what it will be, its ink dims, and it says COMING

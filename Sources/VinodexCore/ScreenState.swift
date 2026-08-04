@@ -176,6 +176,12 @@ public final class ScreenStateStore {
     public static let chipFilter = "chipFilter"
     public static let wsetQuiz = "wsetQuiz"
     public static let dailyChallenge = "dailyChallenge"
+    /// The label reader's last result (0.7.2, LR1). The reading is a structure,
+    /// so it round-trips through `encode(_:_:for:)` like the scanner's criteria
+    /// do — and for the same reason: opening a suggested grape from the results
+    /// tears this screen down, and coming back to the camera instead of to the
+    /// result you were reading would make the Back button feel broken.
+    public static let labelReader = "labelReader"
     /// The settings panels are one screen per section, so they key like the
     /// countries do rather than sharing a scroll position between DATA and DEV.
     public static func settings(_ section: String) -> String { "settings:" + section }

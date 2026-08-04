@@ -338,15 +338,32 @@ let allNumeric = part.allSatisfy(\.isNumber)   // not inside #expect
 ### xtool stamps a fake version into every bundle
 
 xtool 1.17 writes `CFBundleShortVersionString = 1.0.0` and `CFBundleVersion = 1`
-into the built `.app` unconditionally, and **there is no `xtool.yml` key to
-override either** (`version:` in that file is the config-schema version, not the
-app's). So anything reading the bundle for a version gets `1.0.0`.
+into the built `.app` unconditionally. So anything reading the bundle for a
+version gets `1.0.0` unless the build says otherwise.
 
 `AppVersion` therefore keeps a `placeholders` denylist and prefers its own
 constant over those values — without it the back plate reported `v1.0.0` on
 every build ever made, which it silently did until 2026-07-29. **The day this app
 genuinely ships 1.0.0, that denylist has to change or the release under-reports
 itself.** `AppVersionTests` pins the behaviour.
+
+> **Corrected 0.7.2.** This section used to assert that "there is no `xtool.yml`
+> key to override either". That is false of the installed xtool 1.17.0, whose
+> schema is `version, orgID, bundleID, product, infoPath, entitlementsPath,
+> iconPath, resources, extensions[]`. **`infoPath:` is a real Info.plist
+> passthrough**: xtool builds its default dictionary, then shallow-merges the
+> referenced file's top-level keys over it with the file winning. Only four keys
+> are stamped *after* the merge and are therefore genuinely unsettable —
+> `UIRequiredDeviceCapabilities`, `LSRequiresIPhoneOS`,
+> `CFBundleSupportedPlatforms` and `CFBundleIconFile`. `CFBundleShortVersionString`
+> is **not** among them.
+>
+> The repo now has an `Info.plist` (added for LABEL SCAN's camera and photo
+> usage strings, 0.7.2, LR1) wired up through `infoPath:`. The denylist above
+> stays regardless: it is the belt against a build that declares nothing, and
+> stamping the version from two places — this constant and a plist — would be
+> two things to keep in agreement. Verify a merge landed with
+> `plutil -p /root/projects/vinodex-ios/xtool/Vinodex.app/Info.plist` in WSL.
 
 This is also why releases are marked with **annotated git tags** (`v` +
 `AppVersion.fallback`) rather than by a bundle version: git is the only place the

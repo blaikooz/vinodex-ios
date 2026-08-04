@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Partial Info.plist, merged over xtool's generated one (0.7.2, LR1).
+
+  Referenced by `infoPath:` in xtool.yml. xtool 1.17 builds its own plist in
+  memory, then shallow-merges this file's top-level keys over it with ours
+  winning, so only the keys we actually want to state belong here — this is not
+  a full plist and must not become one.
+
+  Four keys are stamped *after* the merge and cannot be overridden from here:
+  UIRequiredDeviceCapabilities, LSRequiresIPhoneOS, CFBundleSupportedPlatforms
+  and CFBundleIconFile. Everything else is fair game, including the version
+  string — see the note in AppVersion.swift, which predates this file.
+
+  The orientation lock is deliberately NOT here. It lives in
+  AppDelegate.application(_:supportedInterfaceOrientationsFor:), which is
+  consulted per window and takes precedence over the plist regardless; adding a
+  second declaration would create two places to keep in agreement and no new
+  guarantee. See the note in xtool.yml.
+-->
+<plist version="1.0">
+<dict>
+    <!--
+      LABEL SCAN. Says what the camera is for and where the photograph goes,
+      because "Vinodex would like to access the camera" is the prompt a user
+      declines. The on-device claim is literally true: OCR is Apple Vision
+      running locally and nothing is uploaded anywhere.
+    -->
+    <key>NSCameraUsageDescription</key>
+    <string>Vinodex uses the camera to read wine labels. Photos are processed on this device and never uploaded.</string>
+    <!--
+      The library route runs through PhotosPicker, which is out-of-process and
+      does not strictly require this string. It is here anyway: the moment
+      anything touches PHPhotoLibrary directly the app would crash on launch
+      without it, and a usage description that is merely unused costs nothing.
+    -->
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Vinodex can read a wine label from a photo you choose. Photos are processed on this device and never uploaded.</string>
+</dict>
+</plist>

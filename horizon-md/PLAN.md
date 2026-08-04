@@ -46,6 +46,51 @@ been happening", which is the question a planning doc is for.
 | 0.6.3–0.6.9 | assorted | Chassis work: button band, top-bar chrome, per-mode globe, recessed button bundles, two skins, back swipe removed, still marquee. See `AppVersion.swift`. | 405 from 0.6.4 | green |
 | 0.7.0 | `vinodex-0.7.0` | Sectioned pickers on both axes, WALDGLAS + HALLOWEEN skins, three chip facets, per-skin back plate, stamp drag rebuilt, tools shelf re-cut, marquee glyph table audited. | 405, untouched | 250 tests, clean build |
 | 0.7.1 | `vinodex-0.7.1.md` | UI/UX fixes, the new marquee, polish — see below. | 405; South America's marker colour changed, no entry moved | 282 tests, clean build, deployed |
+| 0.7.2 | `vinodex-label-reader` | **LABEL SCAN.** Camera → Apple Vision OCR on-device → match against the catalog. Matching/scoring/inference in Core (Linux-gated); Vision, camera and pickers in UI behind `LabelRecognitionProvider`. `xtool.yml` gained `infoPath` for the usage strings. | 405, untouched | 320 tests, clean build, **not deployed** |
+
+**0.7.2, the label reader** (`vinodex-label-reader_1.md`, "Feature Build Spec
+v7.1"). The first batch since 0.7.0 to add a screen rather than rework one, and
+the first feature that takes an input from outside the app.
+
+- **The split is the point.** `LabelReading` / `LabelTextScan` /
+  `LabelRecognitionService` are Foundation-only in `VinodexCore` and covered by
+  `LabelReaderTests` (38 tests), so normalisation, fuzzy matching, confidence
+  scoring and the inference walk are gated by the Linux CI. `OCRService`,
+  `VisionOCRProvider`, `CameraCapture` and `CameraPermission` are in
+  `VinodexUI`, reachable only through the `LabelRecognitionProvider` protocol —
+  which is also the swap point for a future `OpenAIProvider` if the no-paid-API
+  constraint is ever lifted.
+- **There is no Producer entity and there never was.** The spec's heaviest
+  weight (50) is for a field the catalog cannot confirm, so producer matching is
+  text-only — an estate-keyword pass then the most prominent unclaimed line —
+  and the weight degrades to 15 (`LabelConfidence.producerTextOnly`). A producer
+  guess alone can never carry a reading over the confidence floor.
+- **§8 is a walk, not a table.** `BAROLO` → the region whose `appellations` list
+  it (Piedmont) → `details.origin` (Italy) → `notableGrapes` (Nebbiolo) →
+  `grapeStyle` (Full-Body Red). Nothing about that is written down in the
+  feature; both spec examples (Barolo and Vouvray) are pinned as tests.
+- **`isInferred`** was added mid-batch: a walked field is *shown* and scores
+  *nothing*, so Barolo's 35 points do not silently become 80 for consulting the
+  catalog about its own cross-references.
+- **`xtool.yml` gained `infoPath`.** Both that file's comment and KNOWN-ISSUES.md
+  asserted no Info.plist passthrough existed; false of xtool 1.17.0. Corrected
+  in both places, and `CFBundleShortVersionString` turns out to be settable too
+  (M6/M37 unblocked — not taken here).
+
+**Parked from 0.7.2:**
+
+- Not deployed. The last attempt failed provisioning with a 409 from the Apple
+  Developer API ("no current iOS devices on this team matching the provided
+  device IDs") — an account/device-registration problem, not a build one. The
+  label reader has therefore **never been seen on a phone**, and it is the one
+  feature in the app whose core input (the camera) the simulator cannot supply.
+- The vintage floor is 1900 and the ceiling is next year. Sparkling
+  disgorgement dates and multi-vintage labels are unhandled by design.
+- Fuzzy suggestions in the no-match state are edit-distance only. Ranking them
+  by OCR confidence as well is the obvious next refinement.
+- `AppVersion.fallback` could now be stamped into the bundle via `infoPath`
+  rather than living only in the constant. Deliberately not done: two places to
+  keep in agreement, one source of truth.
 
 **0.7.1, by section** (all six landed; the spec's suggested A+C+E / B / D split
 was used as the *sequencing* rather than as a scope cut, each phase gated

@@ -291,15 +291,28 @@ struct MarqueeDrawer: View {
 
     /// The tools shelf, at drawer scale.
     ///
-    /// The same five routes `ToolsScreen` offers, minus LABEL SCAN, which is a
-    /// coming-soon placeholder and has no business taking a slot in a shortcut
-    /// list. MASTER SEARCH leads because it is the app's most-used destination
-    /// and the one the drawer most obviously saves a trip to.
+    /// Every route `ToolsScreen` offers. MASTER SEARCH leads because it is the
+    /// app's most-used destination and the one the drawer most obviously saves
+    /// a trip to.
+    ///
+    /// **LABEL SCAN joined in 0.7.2 (LR1)**, next to BLIND TASTING. It was
+    /// excluded before on the grounds that a coming-soon placeholder "has no
+    /// business taking a slot in a shortcut list", which stopped being true the
+    /// moment it had a route — and it is the one tool here you reach for with a
+    /// bottle already in your other hand, which is exactly what a shortcut is
+    /// for.
+    ///
+    /// Seven tiles in a three-column grid leaves MOON DIAL alone on the last
+    /// row. Accepted rather than padded: the ordering puts the two
+    /// identification tools together and the two quiz tools together, so the
+    /// odd one out is the tool that is genuinely unlike the rest, and this is a
+    /// scrolling drawer rather than the shelf's fixed grid.
     private var tools: some View {
         VStack(alignment: .leading, spacing: 8) {
             heading("TOOLS")
             LazyVGrid(columns: Self.gridColumns, spacing: 8) {
                 quickTile(.chipFilter)
+                quickTile(.labelReader)
                 quickTile(.scanner)
                 quickTile(.wsetQuiz)
                 quickTile(.dailyChallenge)

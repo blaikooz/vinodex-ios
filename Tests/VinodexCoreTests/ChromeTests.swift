@@ -30,6 +30,7 @@ struct ChromeTests {
             .state(name: "California"),
             .dailyGrape,
             .scanner,
+            .labelReader,
             .moonDial,
             .settings,
             .minigames,
@@ -128,10 +129,10 @@ struct ChromeTests {
     /// Bump the number *and* add the route to `allRoutes` together.
     @Test("the route list covers the whole enum")
     func routeListIsComplete() {
-        // 17 simple + 5 categories + 5 settings sections = 27. Was 28 until
-        // 0.7.1 (A1) retired `.masterSearch`, whose title `.chipFilter` now
-        // carries.
-        #expect(Self.allRoutes.count == 27, "add the new route to `allRoutes`")
+        // 18 simple + 5 categories + 5 settings sections = 28. Was 27 until
+        // 0.7.2 (LR1) added `.labelReader`; 28 before that until 0.7.1 (A1)
+        // retired `.masterSearch`, whose title `.chipFilter` now carries.
+        #expect(Self.allRoutes.count == 28, "add the new route to `allRoutes`")
     }
 
     // MARK: The shared glyph constants (0.7.0 D1, 0.7.1 E1/A2)

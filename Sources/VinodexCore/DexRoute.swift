@@ -138,6 +138,13 @@ public enum DexRoute: Hashable, Sendable {
     /// The guided grape identifier — colour, body, origin and flavours, then a
     /// deduction. See `GrapeScanCriteria`.
     case scanner
+    /// The camera label reader (0.7.2, LR1): photograph a bottle, run on-device
+    /// OCR, and match what it read against the catalog. See
+    /// `LabelRecognitionService`.
+    ///
+    /// The TOOLS tile for this existed from 0.7.0 (I2) as a COMING SOON square;
+    /// this is the route it was waiting for.
+    case labelReader
     /// The biodynamic day readout — see `MoonCalendar`.
     case moonDial
     /// System settings. A pushed screen rather than a side flap: the flap
@@ -206,6 +213,12 @@ public enum DexRoute: Hashable, Sendable {
             // to origin to flavour with no label in front of them, which is
             // exactly this screen's four steps.
             "BLIND TASTING"
+        // Matches the TOOLS tile that has said LABEL SCAN since 0.7.0. The type
+        // is `LabelReader*` throughout the code — the tile names what you do
+        // with it, the code names what it is — and per house convention the
+        // label is the thing that gets to be copy.
+        case .labelReader:
+            "LABEL SCAN"
         case .moonDial:
             "MOON DIAL"
         case .settings:
@@ -302,6 +315,12 @@ public enum DexRoute: Hashable, Sendable {
         // wrong sense entirely. A covered eye is the whole premise.
         case .scanner:
             "eye.slash.fill"
+        // The tile's own glyph (K2, rule 1), and the one camera in the app —
+        // `camera.fill` is the avatar picker's badge, which is a control rather
+        // than a page, so nothing on this table collides with it. SF Symbols 2 /
+        // iOS 14, well under the iOS 17 floor.
+        case .labelReader:
+            "camera.viewfinder"
         case .moonDial:
             "moon.stars.fill"
         case .settings:
