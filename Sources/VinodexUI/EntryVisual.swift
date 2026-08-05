@@ -325,17 +325,17 @@ public final class PixelArtLoader {
     public static let shared = PixelArtLoader()
 
     private static let subdirectories = [
-        "Resources/FlavorArt",
-        "Resources/GrapeArt",
-        "Resources/StyleArt",
+        "FlavorArt",
+        "GrapeArt",
+        "StyleArt",
         // Taxonomy + outline art (v0.5.7): classes, subclasses, colour, body,
         // climate, soils, style classes and country outlines, reached through
         // `art:` icon ids — see `DexIcon`.
-        "Resources/ClassArt",
+        "ClassArt",
         // Back-plate stamp and sticker glyphs (0.6.4, F2/F3), imported from
         // art/icons/stamps/ — the directory ships empty-of-art until the
         // glyphs are authored; a miss falls through to the SF stand-ins.
-        "Resources/StampArt",
+        "StampArt",
     ]
 
     private var cache: [String: UIImage?] = [:]
@@ -376,7 +376,7 @@ public final class FlagLoader {
         if let hit = cache[country] { return hit }
 
         let loaded: UIImage? = WineDatabase.shared.icons.flagSlug(for: country)
-            .flatMap { DexResources.url(named: $0, ext: "png", subdirectory: "Resources/Flags") }
+            .flatMap { DexResources.url(named: $0, ext: "png", subdirectory: "Flags") }
             .flatMap { UIImage(contentsOfFile: $0.path) }
 
         cache[country] = loaded

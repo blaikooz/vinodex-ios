@@ -24,14 +24,43 @@ let package = Package(
         ),
     ],
     targets: [
+        // Each subfolder/file is copied individually rather than the Resources
+        // folder itself: a shallow (iOS-style) bundle whose root contains a
+        // directory literally named "Resources" makes codesign refuse it as
+        // "bundle format unrecognized, invalid, or unsuitable" — it can no
+        // longer tell a flat bundle from a deep (macOS-style) one. Copying the
+        // children keeps the source tree (and the art pipeline that writes
+        // into it) exactly where it was; only the bundle layout loses the
+        // wrapper. New top-level resource files or folders must be listed here.
         .target(
             name: "VinodexCore",
-            resources: [.copy("Resources")]
+            resources: [
+                .copy("Resources/countries.json"),
+                .copy("Resources/entries.json"),
+                .copy("Resources/exam.json"),
+                .copy("Resources/firmware.json"),
+                .copy("Resources/icons.json"),
+                .copy("Resources/palette.json"),
+                .copy("Resources/schema.json"),
+                .copy("Resources/tiers.json"),
+            ]
         ),
         .target(
             name: "VinodexUI",
             dependencies: ["VinodexCore"],
-            resources: [.copy("Resources")]
+            resources: [
+                .copy("Resources/Chassis"),
+                .copy("Resources/ClassArt"),
+                .copy("Resources/Flags"),
+                .copy("Resources/FlavorArt"),
+                .copy("Resources/Fonts"),
+                .copy("Resources/GrapeArt"),
+                .copy("Resources/Icons"),
+                .copy("Resources/Logo"),
+                .copy("Resources/Maps"),
+                .copy("Resources/SFX"),
+                .copy("Resources/StyleArt"),
+            ]
         ),
         .target(
             name: "VinodexApp",

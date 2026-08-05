@@ -574,7 +574,7 @@ final class GlobeModel {
         sphere.segmentCount = 96
         let material = SCNMaterial()
         material.lightingModel = .physicallyBased
-        if let url = DexResources.url(named: "updatedglobemap", ext: "jpg", subdirectory: "Resources/Maps"),
+        if let url = DexResources.url(named: "updatedglobemap", ext: "jpg", subdirectory: "Maps"),
            let image = UIImage(contentsOfFile: url.path) {
             // Both treatments happen to the TEXTURE, once per rebuild
             // (`buildScene` only runs from `makeUIView`): invert first

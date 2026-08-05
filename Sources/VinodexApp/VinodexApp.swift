@@ -690,4 +690,8 @@ enum Diagnostics {
         }
     }
 }
+
+#Preview {
+    RootView()
+}
 #endif

@@ -39,25 +39,36 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
-  version: "0.7.7",
-  date: "2026-08-04",
-  // A whole batch on one screen, and it is the first screen -- so the headline
-  // is what the screen now calls itself rather than what changed about it.
-  headline: "VINODEX BIOS",
+  version: "0.7.9",
+  date: "2026-08-05",
+  // A build-plumbing release, so the headline names the toolchain it unblocks
+  // rather than anything the player sees change.
+  headline: "XCODE BUILD",
   notes: [
-    "The startup screen is rebuilt, edge to edge: a proper BIOS boot instead of a panel of text.",
-    "The V and the wordmark sit at the centre, framed by a terminal border with corner brackets and side rails.",
-    "Scanlines and a faint glow behind the logo, like a CRT warming up.",
-    "The checks still run first. They resolve, and the screen settles rather than cutting away.",
-    "It then waits on PRESS ANY BUTTON TO CONTINUE. Any touch carries on, and so does it, after a few seconds.",
-    "The corner reads your real battery level.",
-    "The version in the top corner is the firmware's, so this screen always says what you are actually running.",
+    "The app now builds and runs straight from Xcode, not only from xtool.",
+    "Resource folders are bundled one by one, so the signed app is accepted where the old layout was refused.",
+    "Fonts, artwork, sound and the globe texture all load from the new layout.",
     "438 entries, unchanged: 171 grapes, 124 regions, 31 styles, 106 flavours, 26 countries.",
   ],
 };
 
 /** Everything before `CURRENT`, newest first. */
 const PREVIOUS: FirmwareRelease[] = [
+  {
+    version: "0.7.7",
+    date: "2026-08-04",
+    headline: "VINODEX BIOS",
+    notes: [
+      "The startup screen is rebuilt, edge to edge: a proper BIOS boot instead of a panel of text.",
+      "The V and the wordmark sit at the centre, framed by a terminal border with corner brackets and side rails.",
+      "Scanlines and a faint glow behind the logo, like a CRT warming up.",
+      "The checks still run first. They resolve, and the screen settles rather than cutting away.",
+      "It then waits on PRESS ANY BUTTON TO CONTINUE. Any touch carries on, and so does it, after a few seconds.",
+      "The corner reads your real battery level.",
+      "The version in the top corner is the firmware's, so this screen always says what you are actually running.",
+      "438 entries, unchanged: 171 grapes, 124 regions, 31 styles, 106 flavours, 26 countries.",
+    ],
+  },
   {
     version: "0.7.6",
     date: "2026-08-04",
