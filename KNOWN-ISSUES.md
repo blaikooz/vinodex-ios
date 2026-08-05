@@ -152,6 +152,61 @@ into state 1, where the launcher respawns on a new ephemeral port every 30-60 s
 and actively races the fix. `fix-27015.ps1` relaunches the app itself, in the
 right order, inside the elevated pass. Leave it closed and hand over.
 
+### State 3: Apple holds 27015 but the portproxy is gone
+
+Seen 2026-08-04, and it is the **inverse** of everything above — which makes the
+section you just read actively misleading if you reach for it here. Symptoms:
+
+```
+netsh interface portproxy show all   -> empty table
+127.0.0.1 <- AppleMobileDeviceProcess   (present)
+0.0.0.0   <- svchost                    (ABSENT)
+```
+
+Preflight passes steps 0-2 and fails **step 3** with `No device`; from the
+distro, `idevice_id -l` returns empty with exit 0 and `xtool devices` says
+`Operation now in progress` — note that is *not* `Operation not permitted`,
+which is the classic race. Apple's side is healthy and holding the port
+correctly; there is simply nothing on `0.0.0.0`, so WSL's connection goes
+nowhere.
+
+How it happens: `fix-27015.ps1` ran and won the hard half (freeing the port so
+Apple binds `127.0.0.1:27015`) but the proxy was not re-added, or was dropped
+afterwards. The script's own step 1 names this case - *"Apple holds the port
+but the portproxy is missing; WSL cannot reach it"* - but it is easy to see
+"step 3 failed" and re-run the whole script.
+
+**Do not re-run `fix-27015.ps1`.** Its first act is to kill Apple's processes,
+which throws away the state you just won and makes you re-run the race for
+nothing. The missing half is one elevated line:
+
+```powershell
+netsh interface portproxy add v4tov4 listenport=27015 listenaddress=0.0.0.0 `
+  connectport=27015 connectaddress=127.0.0.1
+```
+
+**And then check the process list, not just the ports.** In this instance the
+proxy came back and step 3 *still* failed, because only
+`AppleMobileDeviceLauncher` and `AppleMobileDeviceProcess` were running -
+`AppleDevices` and `AMPDevicesAgent` were not. The app itself is the usbmuxd
+provider, so the bridge was intact and had nothing behind it.
+
+Here - unlike the "consolation move" warning above - **launching the Apple
+Devices app is exactly right**, because Apple already owns `127.0.0.1:27015`
+and there is no race left to lose. The warning applies only while the *proxy*
+holds the port. Launch it unelevated:
+
+```powershell
+explorer.exe 'shell:AppsFolder\AppleInc.AppleDevices_nzyj5cx40ttqa!App'
+```
+
+Roughly twelve seconds later the process list gained `AMPDevicesAgent`,
+`AppleDevices` and `AppleMobileDeviceHelper`, `idevice_id -l` returned the
+UDID, and the deploy ran clean. Healthy is **five** Apple processes, not two.
+
+Diagnosis rule: both listeners present but no device means look at the process
+list before touching the port again.
+
 ### Free-profile App ID cap is 3
 
 ```
