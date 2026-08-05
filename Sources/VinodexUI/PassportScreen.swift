@@ -21,6 +21,45 @@ public struct PassportScreen: View {
     @State private var unlockQueue: [BackPlateStamp] = []
     @State private var showingUnlock: BackPlateStamp?
     @State private var passportProgress = PassportProgress.shared
+    /// The rendered card waiting on the share sheet (0.7.8, B2/B3/B4).
+    @State private var sharePayload: SharePayload?
+
+    /// What the profile card calls the player's device.
+    ///
+    /// **There is no "favourite device" in this app.** B2's phrase has no
+    /// counterpart in the code — nothing is favourited, and grepping for it
+    /// finds nothing. The nearest true fact is the device they are *running*,
+    /// which is what the DEVICE row in Settings already reports: a fitted
+    /// workshop build by name, or the shell otherwise. That is what the card
+    /// says, rather than inventing a favouriting mechanic to satisfy a word.
+    private var deviceName: String {
+        let build = DeviceBuild.active()
+        if let fitted = CustomDeviceStore.shared.matching(build) { return fitted.name }
+        return ChassisSkin(rawValue: build.shell)?.displayName ?? ChassisSkin.classic.displayName
+    }
+
+    private func shareProfile(_ passport: Passport) {
+        Haptics.select()
+        let card = ShareCard.profile(
+            from: passport,
+            streak: streak.current,
+            bestStreak: streak.best,
+            device: deviceName
+        )
+        if let image = ShareCardRenderer.image({ ProfileShareCard(card: card) }) {
+            sharePayload = .image(image)
+        }
+    }
+
+    private func shareBadge(_ badge: Passport.Badge) {
+        Haptics.select()
+        let achievement = ShareCard.Achievement.unlocked(badge.title, blurb: badge.blurb)
+        if let image = ShareCardRenderer.image({
+            AchievementShareCard(achievement: achievement, symbol: badgeSymbol(badge.id))
+        }) {
+            sharePayload = .image(image)
+        }
+    }
 
     private var passport: Passport {
         Passport.compute(
@@ -126,6 +165,7 @@ public struct PassportScreen: View {
                 StampUnlockedPrompt(stamp: stamp) { advanceUnlockQueue() }
             }
         }
+        .shareCard($sharePayload)
         .animation(DexMotion.overlay, value: showingUnlock?.id)
         // The backstop (0.7.1, D2). Unlocks are announced at the moment they
         // happen — see `EntryDetailScreen` — but three of the six badges can be
@@ -187,6 +227,22 @@ public struct PassportScreen: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 0)
+
+                // The profile's share affordance (0.7.8, B4). On the rank card
+                // because that is the line the card leads with.
+                Button { shareProfile(passport) } label: {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(lcd.accent)
+                        .frame(width: 34, height: 34)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(lcd.buttonWell))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .strokeBorder(lcd.accent, lineWidth: 2)
+                        )
+                }
+                .buttonStyle(DexPressStyle(scale: 0.94))
+                .accessibilityLabel("Share your passport")
             }
 
             if let next = passport.nextTier {
@@ -390,7 +446,21 @@ public struct PassportScreen: View {
         }
     }
 
+    /// An earned stamp is a button that shares it (0.7.8, B3/B4); an unearned
+    /// one stays inert, because there is nothing yet to announce.
+    @ViewBuilder
     private func badgeTile(_ badge: Passport.Badge) -> some View {
+        if badge.earned {
+            Button { shareBadge(badge) } label: { badgeFace(badge) }
+                .buttonStyle(DexPressStyle(scale: 0.97))
+                .accessibilityLabel("Share \(badge.title)")
+                .accessibilityHint("Earned")
+        } else {
+            badgeFace(badge)
+        }
+    }
+
+    private func badgeFace(_ badge: Passport.Badge) -> some View {
         VStack(spacing: 8) {
             Image(systemName: badge.earned ? badgeSymbol(badge.id) : "lock.fill")
                 .font(.system(size: 26, weight: .semibold))
@@ -421,6 +491,17 @@ public struct PassportScreen: View {
                     lineWidth: badge.earned ? 2 : 1
                 )
         )
+        // The affordance, small and in the corner: without it an earned stamp
+        // is a button nobody knows to press, which is the exact failure B4
+        // singles out.
+        .overlay(alignment: .topTrailing) {
+            if badge.earned {
+                Image(systemName: "square.and.arrow.up")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(lcd.subtext)
+                    .padding(6)
+            }
+        }
         .opacity(badge.earned ? 1 : 0.75)
     }
 

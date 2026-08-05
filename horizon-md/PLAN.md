@@ -57,6 +57,7 @@ been happening", which is the question a planning doc is for.
 | 0.7.5 | v0.7.5 spec, section E | **INTERACTIVE GRAPE LINEAGE.** `sommbot` authored the pedigree off VIVC passports — 57 grapes carrying a lineage, 68 of 171 in a relationship after the reverse pass. `dexbot` took the pipeline (`constants.ts` pass-through, `WineEntry` Codable, a `find-missing-refs` arm), the reverse index that derives offspring / mutations / half-siblings, and the tree screen behind a new `Entitlement.lineage`. Plus the approved `bodyFromText` fix: 16 grapes stop drawing a full-body bar they never earned. | 438, untouched; `lineage` is a new optional field on grape entries | 452 tests, clean build, **not deployed** |
 | 0.7.5 | `audit-review/FINDINGS.md` A026–A028 | **THE ASSET GATE.** Three silent-missing-asset bugs in three batches and only the third left a gate behind, so this one is the general case: `assertAssetsExist` in the generator checks that every emitted `icon` / `art:` / portrait-stem / flag id resolves to a file on disk — 337 ids a run. It found a **fourth on its first run**: `icons.json` has named a Brazil flag since 0.7.3c and `Flags/brazil.png` was never copied, so every Brazilian row flew a blank swatch. Plus the pipeline wiring — `import-logo-art.py` was in no roster at all (A026), `import-stamp-art.py` in the rasteriser but not the verifier (A027), and `ArtPipelineRosterTests` now holds the four rosters equal so a seventh importer cannot land in three of them. | 438, untouched; `Flags/brazil.png` added | 489 tests, clean build, `npm run icons` + `icons:verify` green, **not deployed**; no firmware bump — nothing user-visible changed |
 | 0.7.7 | `vinodex-0.7.7-bios.md` (titled 0.7.6) | **THE BIOS SCREEN.** The startup POST rebuilt from a written description of a mockup, **superseding 0.7.3a A1 and 0.7.5 A6 wholesale**: full-screen and opaque over the chassis (reversing 0.7.3a's "inside the LCD", which was an argument about a *translucent* overlay), three zones inside a terminal frame with ticked side rails and corner brackets, scanlines and a vignette, the shipped pixel "V" in cream over a magenta drop shadow. Staged checks now resolve *into* the composition rather than cutting away, then it rests on `PRESS ANY BUTTON TO CONTINUE` — any touch advances, and so does a 3.5s timeout. The mockup's `v1.0.0` was disobeyed: that string is on `AppVersion.placeholders` and printing it would have hidden the failure it signals. Four glyphs, no new art asset — one reuse, three drawn in code. | 438, untouched; `firmware.ts` only | 504 tests, clean build, `npm run generate` + `find-missing-refs` + `npm run icons` + `icons:verify` green, **not deployed** (held at the user's request) |
+| 0.7.8 | 0.7.8 spec, sections B–D | **THE GROWTH TRIO.** Scoped three times and built here, fully local. **B** one card renderer reused three ways — entry, profile, earned stamp — through `ImageRenderer` at a fixed 3× into the share sheet, framed by a purpose-built still that takes the chassis's *tokens* rather than rendering `DeviceChassis` (which exports a blank marquee and dim lamps off-screen). **C** the spoiler-free result string, `DailyResult` in Core, two tiles not three because the paper has no third state; C2's three preconditions confirmed against the code and one caveat found — the paper depends on the shipped catalog, so cross-version strings are not comparable, which is why it carries no puzzle number. **D** `NotificationPlan` in Core, a 7-day horizon of one-shots re-cut whenever the app can see whether today's paper is done; the toggle renders real `UNAuthorizationStatus`, not a stored bool. `QuizSession` gained `marks` with a hand-written decoder so a paper half-sat across the upgrade survives. | 438, untouched; `firmware.ts` only | 542 tests, clean build, `npm run generate` + `find-missing-refs` green, **not deployed** (held per the spec) |
 | 0.7.6 | v0.7.5 spec (lands as 0.7.6), sections A–F | **THE CONSOLIDATION.** The Decision: three ways to reach the same places become one — the two marquee lamps *are* the pins, always visible, each reassignable by holding it. `MarqueeDrawer` deleted, the corner pin buttons deleted, the panel is a display again. `QuickPinStore` reused, not forked: `MarqueePin`'s raw values are a superset of `SettingsSection`'s, so no pins are reset. The idle timer stops being two stages (screensaver 15→**30s**, the marquee greeting folded into it and firing on **any** screen, revertible by giving `IdleSchedule.toast` a number back); the screensaver gets a random start, kept as a phase so the closed form survives. Plus two new workshop axes (10 in all), the **W64** shell, a stadium orb, bigger shop splashes with previews of their contents, and the tutorial into SETTINGS > DEVICE. | 438, untouched | 501 tests, clean build, `npm run generate` + `find-missing-refs` + `npm run icons` green, **not deployed** |
 
 **0.7.5, The Wine Exam** (v0.7.5 spec, section D). The second split batch:
@@ -1563,10 +1564,11 @@ answered before the batch started. Four items, no `shared/` data touched outside
   restated, because that file is where an illustrator will read it. The six
   `stamp-*` badge glyphs are equally unauthored and now have that README to
   themselves.
-- **The 0.7.8 spec's sections B–D are unbuilt** — sharing, the Wordle result
-  string and daily notifications, the same growth trio 0.7.6's G/H/I parked, and
-  the spec's own scope note asks for them as a separate pass. Section F was
-  answered before the batch; E was `auditbot`'s, run concurrently.
+- **The 0.7.8 spec's sections B–D were unbuilt at section A** — sharing, the
+  Wordle result string and daily notifications, the same growth trio 0.7.6's
+  G/H/I parked. They landed in the follow-up pass; see the 0.7.8 B–D entry
+  below. Section F was answered before the batch; E was `auditbot`'s, run
+  concurrently.
 - **A3's orb is worth an eyeball before the next batch treats 2.35 as settled.**
   It gives up the orb-height ≈ `islandStatusDot` balance 0.7.6's E1 bought on
   purpose; the derived ceiling is 2.51 if it wants to go further, and the lever
@@ -1575,3 +1577,100 @@ answered before the batch started. Four items, no `shared/` data touched outside
   named "Reassign" action, and the walkthrough teaches the gesture; there is no
   entry point from SETTINGS. If reassignment turns out to be something people
   look for rather than stumble on, CUSTOMIZE is where a row would go.
+
+**0.7.8 B–D, The growth trio** (spec pasted). Sharing, the Wordle result string
+and daily notifications — scoped three times (0.7.6 G/H/I, then 0.7.8 B/C/D) and
+built here. Fully local: no backend, no network, no account. No `shared/` data
+touched outside `firmware.ts`, so **438 stands and `waveMilestones` does not
+move**.
+
+- **C2's three preconditions were checked against the code, and all three hold.**
+  The spec asked for confirmation rather than assumption, so: the daily paper is
+  `DailyChallenge.seed = DailyPick.dayIndex &* 8093`, and `TastingQuiz.question`
+  takes only that seed, a **fixed** `.enthusiast` tier and the shipped
+  `WineDatabase` — no account, no network, and deliberately not the player's own
+  unlocked tier. The streak is `StreakStore.current`, a real calendar streak. And
+  there is no retry: `StreakStore.record` consumes the day on the first sitting
+  win or lose, and the daily screen offers no RETRY (the exam owns that button).
+- **The one caveat found, and it is recorded rather than fixed.** The paper is a
+  pure function of the day index *and the shipped catalog*, and the catalog grows
+  every data batch. Two players on different app versions therefore hold
+  **different papers on the same date**, and their strings are not comparable.
+  Nothing in the build can detect this. It is why the result string carries **no
+  puzzle number** — a "Vinodex #238" would assert "we sat the same paper", which
+  is the one claim this architecture cannot honour.
+- **The streak the string prints is `StreakStore`, not `ExamRecordStore.passStreak`.**
+  The brief's note about a streak saturating at 100 points at the wrong one:
+  `passStreak` counts consecutive *exam papers*, is derived from a bounded
+  history, and its own doc comment says it is deliberately not a calendar streak.
+  The passport prints `StreakStore`, so the card does too — unbounded, and
+  `streakPassesThrough` pins that it is not clamped at `historyLimit`.
+- **Two tiles, not three, and that is a finding rather than a shortcut.** The
+  brief illustrates `🟩🟩🟨🟩⬛`, borrowing Wordle's three states. The daily paper
+  has no third state to encode: `QuizQuestion` is four options and one
+  `answerID`, `QuizSession.choose` takes the first tap and cannot be changed, and
+  `isCorrect` returns a `Bool`. A yellow tile would have had to mean something
+  invented. Green right, black wrong.
+- **Spoiler-freeness is a test, not a paragraph.** `resultStringLeaksNoAnswer`
+  sits four real papers and checks the rendered string against every answer id,
+  every question id, every topic and **every option's display name** — the wrong
+  ones included, since naming a wrong option eliminates it just as usefully. The
+  near-miss worth recording: `QuizQuestion.id` is `kind.rawValue + ":" + answerID`,
+  so the answer is literally inside the identifier, and any encoding that reached
+  for a question id would have leaked. `closedCharacterSet` is the second gate.
+- **`QuizSession` gained `marks`, and the migration is the interesting part.**
+  A tile grid needs per-question outcomes and the session stored only a `correct`
+  *count*. Adding the field breaks synthesised `Codable` decoding of the sessions
+  already on disk — Swift treats a missing key as a failure, not a default — so a
+  paper half-sat across the upgrade would have been silently thrown away. Hence
+  the hand-written `init(from:)` with `decodeIfPresent`, and
+  `DailyResult.Card.hasGrid`, which drops the grid rather than padding it when
+  the record is short. An invented tile is a wrong tile.
+- **B3 does not render `DeviceChassis`, and the reasons are concrete.** Rendering
+  the live chassis off-screen fails in five ways that would all ship silently: its
+  `body` reads `geo.safeAreaInsets.top`, which `ImageRenderer` does not supply;
+  `StretchedWordmark` measures itself in `onAppear`, which a one-shot render never
+  runs; `MarqueeBanner`'s text arrives via `task`/`onChange`, so the marquee would
+  export **blank**; `PulseGlow` animates `@State`, so every lamp renders at its dim
+  extreme; and `Screensaver`/`MarqueeLampChooser` branch on live state, so an
+  export could catch the chooser open. `ShareCardFrame` therefore takes the
+  *tokens* — `ChassisLook`, `LcdMode`, the real `ChamferedPanel` silhouette (made
+  `public` for this), `ScanlineOverlay` — and is deterministic. It still reads as
+  the user's own device because every colour on it is theirs, including the
+  monochrome pass, so an AMBER device exports an amber card.
+- **`ImageRenderer.scale` is fixed at 3, not `UIScreen.main.scale`.** 1× exports a
+  360pt-wide PNG that Messages upscales into mush; but taking the *screen's* scale
+  is the subtler bug, because the same card would then export 1080px from a Pro
+  and 720px from an SE and the product would look inconsistent for reasons the
+  user cannot see. The export is not a screen render, so it does not inherit a
+  screen's scale. 1080×1350 from every device.
+- **B4 was the finish pass, so every renderer has a button.** SHARE on every
+  entry (glyph-only — a fourth *labelled* pill shrank SAVE/WANT/TRIED toward
+  illegibility), on the passport's rank card, and on each **earned** stamp, which
+  became a button with a corner glyph so the affordance is visible. The result
+  string gets COPY and SHARE both, because pasting into an open thread and
+  picking an app are different jobs.
+- **The notification toggle renders permission, not preference.** `isOn` is the
+  conjunction of the stored key *and* a freshly-read `UNAuthorizationStatus`;
+  `refresh()` re-reads it on every foreground, because permission can be revoked
+  in iOS Settings while the app is not running. Denied is a distinct state with
+  its own copy and a deep link, since the system prompt is one-shot and asking
+  again returns the old answer silently. `.provisional` counts as on — those
+  notifications really are delivered.
+- **"Don't nag someone who already played" is why the plan is one-shots.** A
+  repeating calendar trigger cannot express it: whether today's paper is done is
+  known only while the app runs. So `NotificationPlan` emits a 7-day horizon of
+  individually-identified one-shots, re-cut on foreground, on opt-in, and at the
+  moment a paper completes — 14 pending at most, far under iOS's 64 cap, where it
+  silently drops the overflow. `doneDayIsSilent` and `noStreakNoWarning` pin the
+  two rules.
+- **"Favourite device" does not exist in this app.** B2's phrase has no
+  counterpart in the code — nothing is favourited, and grepping finds nothing.
+  The card states the device they are *running*, which is what the DEVICE row in
+  Settings already reports: a fitted workshop build by name, or the shell. An
+  approximation, and the one item here worth a second opinion.
+- **Completion % did not exist either.** The passport reports honest fractions
+  and a rank ladder, never a percent. `ShareCard.Profile.completionPercent`
+  **floors** and only returns 100 when genuinely complete — rounding would print
+  `100%` at 437 of 438, which is the one number on an outward-facing card a
+  reader would check and the one claim the player has not earned.

@@ -66,6 +66,8 @@ public struct EntryDetailScreen: View {
     /// level up in `RootView.open(_:)`, which is why this screen had none.
     @State private var lockedBundle: Entitlement?
     @State private var access = AccessStore.shared
+    /// The rendered card waiting on the share sheet (0.7.8, B1/B4).
+    @State private var sharePayload: SharePayload?
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
 
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
@@ -139,6 +141,7 @@ public struct EntryDetailScreen: View {
         // a new entry has none. See `ScreenStateStore`.
         .scrollPosition(id: anchorBinding)
         .background(lcd.page)
+        .shareCard($sharePayload)
         // Following a cross-link swaps the entry but keeps the same ScrollView,
         // so the new entry opened at the previous one's scroll offset — halfway
         // down a screen you had never seen. Keying on the id gives each entry a
@@ -357,7 +360,39 @@ public struct EntryDetailScreen: View {
                     }
                 }
             }
+
+            // **Every entry, tastable or not** (0.7.8, B4). The three pills
+            // above are shelf state and two of them are conditional; this one
+            // is an export and applies to anything with a page.
+            shareCapsule
         }
+    }
+
+    /// SHARE, as a glyph without a word.
+    ///
+    /// A fourth *labelled* pill does not fit: SAVE/WANT/TRIED already run the
+    /// width of the LCD at `minimumScaleFactor(0.7)`, and adding SHARE shrank
+    /// all four toward illegibility. The share glyph is the one system symbol
+    /// a phone user reads without a caption, so this pill drops the caption
+    /// rather than the button — which is the half B4 actually asks for.
+    private var shareCapsule: some View {
+        Button {
+            Haptics.select()
+            if let image = ShareCardRenderer.image({ EntryShareCard(entry: entry) }) {
+                sharePayload = .image(image)
+            }
+        } label: {
+            Image(systemName: "square.and.arrow.up")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(lcd.accent)
+                .frame(width: 20, height: 20)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(Capsule().fill(lcd.buttonWell))
+                .overlay(Capsule().strokeBorder(lcd.accent, lineWidth: 2))
+        }
+        .buttonStyle(DexPressStyle(scale: 0.94))
+        .accessibilityLabel("Share \(entry.name)")
     }
 
     /// One stamp at a time, in catalog order. Two can genuinely land together

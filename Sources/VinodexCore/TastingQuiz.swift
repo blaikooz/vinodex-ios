@@ -89,6 +89,19 @@ public struct QuizSession: Sendable, Codable, Equatable {
     public private(set) var correct: Int
     /// The option picked for the current question; nil while unanswered.
     public private(set) var chosenID: String?
+    /// Right or wrong per question answered so far, oldest first (0.7.8, C1).
+    ///
+    /// **Correctness only, and that is the whole security argument.** The share
+    /// string built from this is published to people holding the same daily
+    /// paper, so what it encodes has to be something they cannot invert. A
+    /// per-question *chosen option* would be exactly that leak — four options
+    /// and a "wrong" marker eliminates one for everybody who reads it. A bare
+    /// boolean says how you did and nothing about what the answer was. See
+    /// `DailyResult`.
+    ///
+    /// `correct` is kept rather than derived from this so `passed` reads the
+    /// same field it always has; `marksAgreeWithCount` pins the two together.
+    public private(set) var marks: [Bool]
 
     public init(
         seed: Int,
@@ -103,6 +116,25 @@ public struct QuizSession: Sendable, Codable, Equatable {
         index = 0
         correct = 0
         chosenID = nil
+        marks = []
+    }
+
+    /// Decoded by hand for one reason: `marks` did not exist before 0.7.8, and
+    /// the synthesised initialiser treats a missing key as a failure rather
+    /// than as a default. A paper half-sat across the upgrade would decode to
+    /// nil and be silently thrown away — the exact "losing a half-finished
+    /// paper" cost this type's storage note weighs. `decodeIfPresent` keeps it,
+    /// minus a grid it never recorded; `DailyResult.card` handles that case.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        seed = try container.decode(Int.self, forKey: .seed)
+        length = try container.decode(Int.self, forKey: .length)
+        passMark = try container.decode(Int.self, forKey: .passMark)
+        tier = try container.decode(QuizTier.self, forKey: .tier)
+        index = try container.decode(Int.self, forKey: .index)
+        correct = try container.decode(Int.self, forKey: .correct)
+        chosenID = try container.decodeIfPresent(String.self, forKey: .chosenID)
+        marks = try container.decodeIfPresent([Bool].self, forKey: .marks) ?? []
     }
 
     public var isComplete: Bool { index >= length }
@@ -114,7 +146,9 @@ public struct QuizSession: Sendable, Codable, Equatable {
     public mutating func choose(_ id: String, in question: QuizQuestion) {
         guard chosenID == nil, !isComplete else { return }
         chosenID = id
-        if question.isCorrect(id) { correct += 1 }
+        let right = question.isCorrect(id)
+        if right { correct += 1 }
+        marks.append(right)
     }
 
     /// Steps to the next question once the current one is answered. Stepping

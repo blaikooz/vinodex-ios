@@ -85,6 +85,7 @@ struct RootView: View {
     /// The app's one idle timer (0.7.3, F2), held here so the boot screen and
     /// demo mode can pause it. The chassis reads the same instance.
     @State private var idle = IdleMonitor.shared
+    @Environment(\.scenePhase) private var scenePhase
     /// Which stop demo mode is on, or nil when it is not running (0.7.3, A2).
     @State private var demoStop: Int?
     /// The activity count when demo mode started.
@@ -306,6 +307,15 @@ struct RootView: View {
         // the previous sleep and starts the next dwell — the same `task(id:)`
         // lifetime argument the marquee script makes.
         .task(id: demoStop) { await runDemo() }
+        // Reminders re-read their real permission and re-cut their plan on every
+        // foreground (0.7.8, D1). Both halves have to happen here: authorization
+        // can be withdrawn in iOS Settings while the app is not running, and the
+        // pending week goes stale the moment a paper is sat or a day rolls over.
+        // A no-op when the user has never opted in.
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Task { await NotificationScheduler.shared.syncFromStores() }
+        }
         // The system panel (settings, diagnostics, catalog) is owned by
         // DeviceChassis so it can be confined to the LCD; the app module no
         // longer presents it.

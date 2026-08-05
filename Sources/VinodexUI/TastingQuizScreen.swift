@@ -1,5 +1,6 @@
 #if canImport(SwiftUI) && canImport(UIKit)
 import SwiftUI
+import UIKit
 import VinodexCore
 
 /// THE DAILY CHALLENGE — one five-question paper per local day.
@@ -35,6 +36,13 @@ public struct TastingQuizScreen: View {
     @State private var session: QuizSession?
     @State private var screens = ScreenStateStore.shared
     @State private var streak = StreakStore.shared
+    /// The result string waiting on the share sheet (0.7.8, C1).
+    @State private var sharePayload: SharePayload?
+    /// Latches once COPY is pressed. Not reset on a timer: the card is
+    /// dismissed by EXIT and rebuilt fresh next time, so there is no stale
+    /// state to clear, and a label that flips back to COPY on its own reads as
+    /// though the copy expired.
+    @State private var copied = false
 
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
@@ -95,6 +103,7 @@ public struct TastingQuizScreen: View {
         }
         .onAppear(perform: restore)
         .onChange(of: session) { _, _ in persist() }
+        .shareCard($sharePayload)
         // The verdict as a popup over the question (v0.5.9, D2), not a panel
         // appended below the options — inline, it landed off-screen exactly
         // when the question was long enough to scroll, and NEXT QUESTION with
@@ -149,6 +158,12 @@ public struct TastingQuizScreen: View {
         // never in a view body where re-renders would double-fire it.
         if current.isComplete {
             StreakStore.shared.record(passed: current.passed)
+            // Today's reminders are now wrong in both directions — the paper is
+            // no longer waiting, and the streak the warning quotes has just
+            // moved. Re-cut the plan here rather than waiting for the next
+            // foreground, which is the one moment the nag would still fire
+            // after the thing it nags about is done (0.7.8, D1).
+            Task { await NotificationScheduler.shared.syncFromStores() }
         }
         withAnimation(.easeOut(duration: 0.2)) { session = current }
     }
@@ -409,6 +424,10 @@ public struct TastingQuizScreen: View {
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
 
+            if let card = DailyResult.card(for: session, streak: streak.current) {
+                resultString(card)
+            }
+
             VStack(spacing: 10) {
                 Button(action: exit) {
                     Text("EXIT")
@@ -431,6 +450,67 @@ public struct TastingQuizScreen: View {
             RoundedRectangle(cornerRadius: 6).strokeBorder(tint.opacity(0.5), lineWidth: 2)
         )
         .transition(.opacity)
+    }
+
+    /// The shareable result (0.7.8, C1): the tile grid, then copy and share.
+    ///
+    /// The string is shown before it is sent. A user about to post something is
+    /// entitled to read it first, and seeing the grid is also what teaches the
+    /// format — the tiles have to be recognisable to a reader who has never
+    /// seen one.
+    ///
+    /// Both affordances, because they are not the same action: COPY is for
+    /// pasting into a thread that is already open, SHARE is for picking an app.
+    /// Wordle ships both for the same reason.
+    private func resultString(_ card: DailyResult.Card) -> some View {
+        let line = DailyResult.string(for: card)
+
+        return VStack(spacing: 10) {
+            if card.hasGrid {
+                Text(card.grid)
+                    .font(.system(size: 22))
+                    .tracking(2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+            }
+
+            HStack(spacing: 10) {
+                Button {
+                    Haptics.select()
+                    UIPasteboard.general.string = line
+                    withAnimation(.easeOut(duration: 0.2)) { copied = true }
+                } label: {
+                    resultAction(copied ? "COPIED" : "COPY", symbol: copied ? "checkmark" : "doc.on.doc")
+                }
+                .buttonStyle(DexPressStyle(scale: 0.96))
+
+                Button {
+                    Haptics.select()
+                    sharePayload = .text(line)
+                } label: {
+                    resultAction("SHARE", symbol: "square.and.arrow.up")
+                }
+                .buttonStyle(DexPressStyle(scale: 0.96))
+            }
+        }
+        .padding(.top, 2)
+    }
+
+    private func resultAction(_ title: String, symbol: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: symbol)
+                .font(.system(size: 13, weight: .bold))
+            Text(title)
+                .font(DexFont.retro(11))
+                .tracking(1.5)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .foregroundStyle(lcd.accent)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity)
+        .background(Capsule().fill(lcd.buttonWell))
+        .overlay(Capsule().strokeBorder(lcd.accent, lineWidth: 2))
     }
 
     private func label(_ text: String, fill: Color, ink: Color) -> some View {

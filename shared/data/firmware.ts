@@ -41,11 +41,20 @@ import type { FirmwareRelease } from '../types';
 const CURRENT: FirmwareRelease = {
   version: "0.7.8",
   date: "2026-08-05",
-  // Section A is the whole of this build, and three of its four items are the
-  // device looking more like itself: a sticker that is a sticker, a shell that
-  // wins, and the boot screen back on the screen.
-  headline: "BACK IN THE SCREEN",
+  // Sections B-D landed after A, and they are the bigger story: the device can
+  // now put something of yours in front of someone else. A's headline was BACK
+  // IN THE SCREEN -- its four items are still listed below, under the new one.
+  headline: "SHOW SOMEBODY",
   notes: [
+    "Every encyclopedia entry has a share button. It exports the entry as a pixel-art card, framed in your device.",
+    "Your passport shares too: rank, completion, the counts and your streak, on a card in your own shell and screen colours.",
+    "Earned stamps are shareable one at a time. Tap any stamp you have to send just that one.",
+    "Finish the daily challenge and you get a result to post: a row of tiles, your score and your streak.",
+    "The tiles say how you did and never what the answers were, so sharing yours cannot spoil anyone else's paper.",
+    "Copy it or send it straight on. Both, because pasting into a thread and picking an app are different jobs.",
+    "New in Settings > Device: DAILY REMINDER. Off until you turn it on, and it only asks permission at that moment.",
+    "It sends at most two a day -- today's paper is live, and a streak about to break -- and neither one arrives if you have already played.",
+    "Turn notifications off for Vinodex in iOS Settings and the switch says so instead of pretending it is on.",
     "The BIOS boots inside the display again, with the device around it instead of covering it.",
     "Its drawn border, rails and corner brackets are gone. The chassis does the framing now.",
     "The version, the copyright, the scanlines and the glow all stay. The two top lines stack, so neither is squeezed.",

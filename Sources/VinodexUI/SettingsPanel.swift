@@ -1,6 +1,8 @@
 #if canImport(SwiftUI) && canImport(UIKit)
 import Foundation
 import SwiftUI
+import UIKit
+import UserNotifications
 import VinodexCore
 
 /// The device's own menu: a grid of square feature tiles.
@@ -272,6 +274,9 @@ public struct SettingsSectionPanel: View {
     /// DATA are both taller than the LCD, so opening the upgrade prompt from a
     /// bundle row near the bottom used to bounce the panel back to the top.
     @State private var screens = ScreenStateStore.shared
+    /// Reminders (0.7.8, D1). Observed rather than read from a stored bool —
+    /// see `dailyReminderRow`.
+    @State private var notifications = NotificationScheduler.shared
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
     @AppStorage(TextScale.storageKey) private var scaleRaw = TextScale.small.rawValue
     @AppStorage(UIScale.storageKey) private var uiScaleRaw = UIScale.small.rawValue
@@ -645,6 +650,81 @@ public struct SettingsSectionPanel: View {
     /// How many entries the *current* combination of tier and bundles opens.
     private var browsableCount: Int {
         db.entries.filter { !access.isLocked($0, in: db) }.count
+    }
+
+    /// DAILY REMINDER (0.7.8, D1).
+    ///
+    /// In DEVICE rather than a new section: the device is where the things that
+    /// change how the hardware behaves live — the tutorial, the firmware, the
+    /// cheat console — and a reminder the device sends is one of those. A
+    /// NOTIFICATIONS section holding exactly one switch would be a heading for
+    /// its own sake.
+    ///
+    /// **The switch renders `isOn`, not the stored preference.** Permission can
+    /// be denied at the prompt or withdrawn later in iOS Settings without this
+    /// app running, and a switch that shows ON while the system drops every
+    /// request is the failure this row is arranged around. `refresh()` re-reads
+    /// the real status whenever the panel appears, and the denied case says so
+    /// and offers the only thing that can actually fix it.
+    private var dailyReminderRow: some View {
+        Button {
+            Haptics.screenTap()
+            if notifications.isOn {
+                notifications.disable()
+            } else if notifications.status == .denied {
+                // The system prompt is one-shot; asking again returns the old
+                // answer silently. iOS Settings is the only way back.
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            } else {
+                Task {
+                    await notifications.enable(
+                        todayDone: StreakStore.shared.isTodayDone(),
+                        streak: StreakStore.shared.current
+                    )
+                }
+            }
+        } label: {
+            settingRow(
+                symbol: notifications.isOn ? "bell.fill" : "bell.slash.fill",
+                tint: notifications.isOn ? Dex.green : lcd.subtext,
+                title: "DAILY REMINDER",
+                detail: reminderDetail
+            ) {
+                if notifications.status == .denied {
+                    Image(systemName: "arrow.up.forward.app")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(lcd.subtext)
+                } else {
+                    DexToggle(isOn: notifications.isOn, tint: Dex.green) {
+                        Haptics.screenTap()
+                        if notifications.isOn {
+                            notifications.disable()
+                        } else {
+                            Task {
+                                await notifications.enable(
+                                    todayDone: StreakStore.shared.isTodayDone(),
+                                    streak: StreakStore.shared.current
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .buttonStyle(DexPressStyle(scale: 0.98))
+        .task { await notifications.refresh() }
+    }
+
+    private var reminderDetail: String {
+        if notifications.status == .denied {
+            return "Notifications are switched off for Vinodex in iOS Settings. Tap to open them."
+        }
+        if notifications.isOn {
+            return "A nudge when today's paper is live, and again if a streak is about to break."
+        }
+        return "Get told when today's challenge is live, and before your streak runs out."
     }
 
     /// The shared shape of a settings row: glyph, title, one line of
@@ -1278,6 +1358,8 @@ public struct SettingsSectionPanel: View {
         // tell you or do, and a guided tour of the device is squarely that.
         settingsSection("DEVICE") {
             VStack(alignment: .leading, spacing: 10) {
+                dailyReminderRow
+
                 Button {
                     Haptics.screenTap()
                     offeringTour = true
@@ -2258,9 +2340,14 @@ enum SavedDataReset {
             UserProfile.displayNameKey,
             Haptics.storageKey,
             Sounds.storageKey,
+            NotificationScheduler.enabledKey,
         ] {
             defaults.removeObject(forKey: key)
         }
+        // Clearing the preference is not the same as cancelling what it already
+        // scheduled: a wiped device with a week of pending reminders would keep
+        // firing them at somebody who just erased everything (0.7.8, D1).
+        NotificationScheduler.shared.disable()
     }
 }
 

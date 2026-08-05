@@ -1639,12 +1639,22 @@ extension View {
 /// `InsettableShape` because the housing's rim is a `strokeBorder`, which needs
 /// to inset the shape rather than stroke it centred — a centred stroke would
 /// spill half its width past the clip and leave the chamfer's edge ragged.
-private struct ChamferedPanel: InsettableShape {
-    var corner: CGFloat
-    var chamfer: CGFloat
-    var inset: CGFloat = 0
+/// Made `public` in 0.7.8 (B3) so the share cards can be cut to the device's
+/// own silhouette. The card is a *still* — see `ShareCardFrame` for why it does
+/// not render `DeviceChassis` itself — but the outline it traces is this one,
+/// which is what stops the exported image from being a generic rounded box.
+public struct ChamferedPanel: InsettableShape {
+    public var corner: CGFloat
+    public var chamfer: CGFloat
+    public var inset: CGFloat = 0
 
-    func path(in rect: CGRect) -> Path {
+    public init(corner: CGFloat, chamfer: CGFloat, inset: CGFloat = 0) {
+        self.corner = corner
+        self.chamfer = chamfer
+        self.inset = inset
+    }
+
+    public func path(in rect: CGRect) -> Path {
         let r = rect.insetBy(dx: inset, dy: inset)
         guard r.width > 0, r.height > 0 else { return Path() }
 
@@ -1679,7 +1689,7 @@ private struct ChamferedPanel: InsettableShape {
         return p
     }
 
-    func inset(by amount: CGFloat) -> ChamferedPanel {
+    public func inset(by amount: CGFloat) -> ChamferedPanel {
         var copy = self
         copy.inset += amount
         return copy
