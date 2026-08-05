@@ -221,7 +221,7 @@ if [ "${SKIP_ART:-0}" = "1" ]; then
 elif [ "$art_ready" -eq 0 ]; then
   echo "  skipping drawn-art importers — see the preflight message above"
 else
-  for importer in import-flavor-art.py import-grape-art.py import-style-art.py import-class-art.py import-stamp-art.py import-logo-art.py; do
+  for importer in import-flavor-art.py import-grape-art.py import-style-art.py import-class-art.py import-stamp-art.py import-sticker-art.py import-logo-art.py; do
     if ! python3 "$HERE/$importer"; then
       echo "  FAIL $importer"
       failed=$((failed + 1))

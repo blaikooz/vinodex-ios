@@ -332,10 +332,21 @@ public final class PixelArtLoader {
         // climate, soils, style classes and country outlines, reached through
         // `art:` icon ids — see `DexIcon`.
         "Resources/ClassArt",
-        // Back-plate stamp and sticker glyphs (0.6.4, F2/F3), imported from
+        // Back-plate Passport stamp glyphs (0.6.4, F2), imported from
         // art/icons/stamps/ — the directory ships empty-of-art until the
         // glyphs are authored; a miss falls through to the SF stand-ins.
         "Resources/StampArt",
+        // Per-skin back-plate sticker glyphs (0.7.8, A1), imported from
+        // art/icons/stickers/. Its own directory since the sticker stopped
+        // being a stamp — the two families are commissioned separately and a
+        // shared folder was how a decal could be filed as a badge unnoticed.
+        // Also ships empty-of-art; a miss falls through to the skin emblem.
+        //
+        // Two directories on this search path can never collide because the
+        // stems are disjoint by construction (`stamp-*` from `StampCatalog`,
+        // `sticker-*` from `ChassisSkin.stickerStem`), so "first hit wins"
+        // stays a statement about ordering rather than about precedence.
+        "Resources/StickerArt",
     ]
 
     private var cache: [String: UIImage?] = [:]

@@ -46,93 +46,6 @@ struct PerforatedStampShape: Shape {
     }
 }
 
-// MARK: - Worn treatment
-
-/// The shared "aged object" pass (0.6.4, F2/F3), applied over stamps and
-/// stickers alike so both read as the same handled material: a seeded
-/// paper-grain speckle, a faint tea-stain tint, and the uneven press the
-/// 0.6.2 ink stamps already used — heavier at one corner, lighter at the
-/// other. Ageing in code means no asset is hand-aged and every future glyph
-/// arrives pre-weathered.
-struct WornOverlay: ViewModifier {
-    /// Seeds the grain so each object wears differently — but identically
-    /// from launch to launch; the plate must not re-weather itself.
-    let seed: UInt64
-
-    /// FNV-1a over the id, NOT `hashValue`: Swift's hashing is per-process
-    /// seeded, and a seed that changes each launch would regrain every
-    /// object every time the app opens.
-    static func seed(_ id: String) -> UInt64 {
-        var hash: UInt64 = 0xcbf29ce484222325
-        for byte in id.utf8 {
-            hash ^= UInt64(byte)
-            hash = hash &* 0x100000001b3
-        }
-        return hash
-    }
-
-    func body(content: Content) -> some View {
-        content
-            .overlay(
-                GrainSpeckle(seed: seed)
-                    .blendMode(.multiply)
-                    .allowsHitTesting(false)
-            )
-            .overlay(
-                // Tea-stain: warm, faint, heavier toward one edge.
-                LinearGradient(
-                    colors: [
-                        Color(dexHex: "#8A6B3F").opacity(0.16),
-                        Color(dexHex: "#8A6B3F").opacity(0.05),
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .blendMode(.multiply)
-                .allowsHitTesting(false)
-            )
-            .compositingGroup()
-            // The angled press, verbatim from the 0.6.2 stamps: opacity
-            // carried in a gradient mask so the fade is directional.
-            .opacity(0.92)
-            .mask(
-                LinearGradient(
-                    colors: [.black, .black.opacity(0.78)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-    }
-}
-
-/// Deterministic paper-grain: a couple hundred dark speckles from a seeded
-/// linear congruential generator. A `Canvas`, not an image asset — it scales
-/// with its object and ships no bytes.
-private struct GrainSpeckle: View {
-    let seed: UInt64
-
-    var body: some View {
-        Canvas { context, size in
-            var state = seed == 0 ? 0x9E3779B9 : seed
-            func next() -> CGFloat {
-                // Numerical Recipes LCG — quality is irrelevant, stability is not.
-                state = state &* 6364136223846793005 &+ 1442695040888963407
-                return CGFloat(state >> 33) / CGFloat(UInt32.max)
-            }
-            let count = Int(size.width * size.height / 38)
-            for _ in 0..<count {
-                let x = next() * size.width
-                let y = next() * size.height
-                let edge = 0.6 + next() * 0.9
-                context.fill(
-                    Path(CGRect(x: x, y: y, width: edge, height: edge)),
-                    with: .color(.black.opacity(0.05 + Double(next()) * 0.07))
-                )
-            }
-        }
-    }
-}
-
 // MARK: - The stamp
 
 /// One back-plate postage stamp (0.6.4, F2): code-drawn perforated paper in
@@ -243,80 +156,18 @@ struct BackPlateStampView: View {
     }
 }
 
-// MARK: - The skin stamp
-
-/// The per-skin back-plate artifact, as a postage stamp (0.6.5, item 8 —
-/// replacing 0.6.4's die-cut sticker outright). The Passport stamps set the
-/// plate's visual dialect and the skin piece now speaks it: the same
-/// perforated fringe, the same paper stock and keyline, the same worn pass —
-/// square where the badge stamps are portrait, so it still reads as its own
-/// issue. Per-skin identity survives in the glyph and the ink.
-///
-/// Each skin brings its own art: `sticker-<skin>` through the stamps art
-/// pipeline once authored (Santa hat for WINE XMAS, the cat for BLUSH, a
-/// detailed take on the skin's emblem elsewhere), with the skin's emblem
-/// symbol standing in until then.
-struct SkinStickerView: View {
-    let skin: ChassisSkin
-    var size: CGFloat = 70
-
-    var body: some View {
-        let paper = Color(dexHex: "#E9E6DA")
-        let ink = skin.accent.mid
-
-        ZStack {
-            PerforatedStampShape()
-                .fill(paper, style: FillStyle(eoFill: true))
-
-            glyph
-                .frame(width: size * 0.52, height: size * 0.52)
-
-            // Thin inner keyline — the printed frame inside the perforation,
-            // exactly as the badge stamps wear it.
-            Rectangle()
-                .strokeBorder(ink.opacity(0.7), lineWidth: 1)
-                .padding(6)
-        }
-        .frame(width: size, height: size)
-        .modifier(WornOverlay(seed: WornOverlay.seed(skin.rawValue)))
-        .shadow(color: .black.opacity(0.25), radius: 1, y: 1)
-    }
-
-    @ViewBuilder
-    private var glyph: some View {
-        if let art = PixelArtLoader.shared.image(skin.stickerStem) {
-            Image(uiImage: art)
-                .interpolation(.none)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-        } else if skin.drawnMark != nil {
-            // The drawn mark outranks the SF-Symbol stand-in (0.6.7, K1) — it
-            // *is* this skin's emblem, not a placeholder for one.
-            SkinEmblem(skin: skin, size: size * 0.36, tint: skin.accent.mid)
-        } else {
-            Image(systemName: skin.stickerSymbol)
-                .font(.system(size: size * 0.36, weight: .semibold))
-                .foregroundStyle(skin.accent.mid)
-        }
-    }
-}
-
-extension ChassisSkin {
-    /// The authored sticker art's stem under `Resources/StampArt` — e.g.
-    /// `sticker-wine-xmas` for the Christmas skin. Derived from the persisted
-    /// raw value, so renamed display labels never orphan an asset.
-    var stickerStem: String {
-        "sticker-" + rawValue.lowercased().replacingOccurrences(of: " ", with: "-")
-    }
-
-    /// The SF Symbol standing in until the sticker art lands. WINE XMAS's
-    /// Santa hat has no SF Symbol, so its gift emblem holds the slot; BLUSH
-    /// gets the little cat the brief names (SF Symbols 5, clears iOS 17).
-    var stickerSymbol: String {
-        switch self {
-        case .blush: "cat.fill"
-        default: symbol
-        }
-    }
-}
+// The per-skin back-plate artifact used to live here, as a postage stamp on
+// the frame above (0.6.5, item 8). **It moved out in 0.7.8 (A1)** and stopped
+// being a stamp at all: it is the shell's own aged decal now, drawn in
+// `SkinSticker.swift` on a die-cut silhouette with nothing in common with this
+// file. This note is left because a reader looking for `SkinStickerView` in
+// the stamps' file is a reader who remembers the two being one thing.
+//
+// What went with it: `ChassisSkin.stickerStem` / `.stickerSymbol`, and the art
+// namespace — `sticker-*` now imports from `art/icons/stickers/` into
+// `Resources/StickerArt`, leaving `art/icons/stamps/` -> `Resources/StampArt`
+// to the six Passport badges alone. `WornOverlay` was declared here and used
+// by both; it is a material rather than either object's identity, so it is now
+// in `AgedMaterial.swift` and this file imports it on the same terms the
+// sticker does.
 #endif

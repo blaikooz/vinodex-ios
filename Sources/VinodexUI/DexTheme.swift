@@ -249,13 +249,43 @@ public enum DexMetrics {
     /// untouched, and the re-derivation A2's note asks for comes out identical
     /// because no horizontal number moved.
     ///
-    /// 1.75 lands the bead at 35.2 × 20.1 at UI SIZE = SMALL and 40 × 22.9 at
-    /// LARGE. That is unmistakably a stadium at a glance, and it puts the orb's
+    /// 1.75 landed the bead at 35.2 × 20.1 at UI SIZE = SMALL and 40 × 22.9 at
+    /// LARGE. That is unmistakably a stadium at a glance, and it put the orb's
     /// height within a point of `islandStatusDot` (22 / 24) — so the two clusters
-    /// either side of the cutout become the same visual weight, which is the
+    /// either side of the cutout became the same visual weight, which is the
     /// "mirrored pair of blocks" reading 0.6.8's F3 was after and has never quite
     /// had.
-    public static let islandOrbAspect: CGFloat = 1.75
+    ///
+    /// **2.35 since 0.7.8 (A3): longer again, and again entirely out of height.**
+    /// The paragraph above is the rule and this batch obeys it to the letter —
+    /// `islandOrb`, `islandSlot`, `islandOrbInsetLeading` and
+    /// `islandStatusInsetTrailing` are all untouched, so A4's "do not spend this
+    /// again without re-deriving the span" is satisfied by there being no span
+    /// to re-derive: not one horizontal number moved. Re-derived anyway, because
+    /// that instruction is about proving it rather than asserting it — the slot
+    /// still runs 64 → 108 against a cutout starting at 133 (~25pt of leading
+    /// clearance), and the lamp trio still runs 3 × 22 + 2 × 6.72 = 79.4 in from
+    /// `cornerGuardH + 6` = 32 at SMALL, 85.4 at LARGE. Both identical to 0.7.6.
+    ///
+    /// **The ceiling, and why 2.35 rather than more.** The bead's white rim is
+    /// `max(height × 0.11, 2)` (`DeviceChassis.lcdOrb`), so below a height of
+    /// 18.2 the 2pt floor takes over and every further point of elongation comes
+    /// straight out of the coloured core rather than off the whole bead
+    /// proportionally. Requiring that core to stay at least 10pt at SMALL — thin
+    /// enough to read as a slot, thick enough to still read as *lit* — gives
+    /// height ≥ 14, i.e. an aspect ceiling of 35.2 / 14 = 2.51. 2.35 sits inside
+    /// it with room: **35.2 × 15.0 at SMALL and 40 × 17.0 at LARGE**, a core of
+    /// 11.0 and 13.0 points respectively.
+    ///
+    /// **What it costs, said out loud.** E1's paragraph above bought a deliberate
+    /// thing — orb height ≈ `islandStatusDot`, so the two clusters flanking the
+    /// cutout weighed the same. At 15 against 22 that is now given up: the orb is
+    /// the lighter of the pair. The device's own cutout is roughly 125 × 37, an
+    /// aspect near 3.4, and A3 asks the bead to go further toward it; it cannot
+    /// arrive there without width, which is forbidden, so the trade is between
+    /// matching the notch's proportion and matching the trio's mass. A3 chooses
+    /// the notch. Worth an eyeball on the device before it is treated as settled.
+    public static let islandOrbAspect: CGFloat = 2.35
 
     /// The orb's height. Derived, so the two axes cannot drift.
     public static var islandOrbHeight: CGFloat { islandOrb / islandOrbAspect }

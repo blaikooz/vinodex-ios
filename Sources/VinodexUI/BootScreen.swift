@@ -52,23 +52,32 @@ private enum BiosInk {
 /// in Core where a test can hold them, and that is exactly as true of the new
 /// two-phase shape as it was of the old one.
 ///
-/// **Full-screen, which reverses a decision 0.7.3a argued at length.** That
-/// release kept the POST inside the LCD on the reasoning that a BIOS is
-/// something a *screen* does, and that dimming the bezel, island and footer
-/// reads as the device losing power at the one moment it is doing the opposite.
-/// B1 asks for full-screen and safe-area aware, and the composition it describes
-/// — its own terminal border, side rails, corner brackets and two status bars —
-/// is a frame, so drawing it inside a second frame would have nested one bezel
-/// in another.
+/// **Inside the LCD, framed by the chassis (0.7.8, A4)** — which puts back what
+/// 0.7.3a had and 0.7.7 took away one batch ago.
 ///
-/// The old argument does not survive the change of shape, and it is worth saying
-/// why rather than just overruling it: what read as power *loss* was a
-/// **translucent overlay dimming** the chassis. This is opaque and total. A
-/// handheld whose entire face is a boot screen is not a handheld with a dimmed
-/// bezel; it is a handheld booting, which is what the bottom bar says in so many
-/// words. So the chassis is covered rather than dimmed, and it is not visible
-/// around the edges — an inset BIOS with a plastic border showing would be the
-/// dimmed-chassis reading all over again.
+/// The argument 0.7.7 made was sound and it is the reason this composition
+/// changed rather than moved: an inset BIOS carrying *its own* terminal border,
+/// side rails and corner brackets, sitting inside the plastic one, is a bezel
+/// inside a bezel. A4 agrees with that diagnosis and reverses the prescription.
+/// The device already owns a frame — a chamfered panel, a stone band, a white
+/// bezel and a vent strip, all of it drawn to look like a screen surround — so
+/// the right thing to delete was the drawn one. `BiosFrame` is gone entirely:
+/// no border, no rails, no brackets. What encloses the terminal is the machine
+/// the terminal is running on.
+///
+/// That also settles 0.7.3a's original objection, which 0.7.7 answered by
+/// covering the chassis. The objection was that a **translucent overlay dimming**
+/// the bezel, island and footer reads as the device losing power at the one
+/// moment it is doing the opposite. This screen is opaque and it is not an
+/// overlay: it is what the display is showing, so the chassis around it is lit
+/// and normal rather than dimmed. A handheld with a boot screen on its screen is
+/// a handheld booting.
+///
+/// Everything else 0.7.7 built is untouched — the three zones, the palette, the
+/// scanlines, the tinted logo masks, the derived title. The type scale is
+/// re-derived for the narrower region (see the block below), the scanlines are
+/// pitch-locked to the display's own, and the advance gesture is reasoned out
+/// again from scratch in `BootAdvanceCatcher` rather than carried over.
 ///
 /// **Two phases, one composition** (C1). The frame, both status bars and the
 /// identity stack are on screen from the first frame. What changes is one slot
@@ -115,10 +124,41 @@ public struct BootScreen: View {
     //
     // `PressStart2P` (the `retro` face) advances a full em, so a string's width
     // is its character count times its size — which is what sets the two status
-    // bars. `(c)2026 VINODEX SOFTWARE` is 24 characters, so at 8pt it is 192 of
-    // the ~357 a 393pt phone offers inside the rails, and the title opposite it
-    // is another 152. They fit at the default step and ride the scale factor at
-    // the top of it, which is the right trade for a line nobody reads twice.
+    // bars.
+    //
+    // **Re-derived for the LCD (0.7.8, A4), and the first thing the re-derivation
+    // found was an error in the numbers it replaces.** The block here used to
+    // read "at 8pt it is 192 of the ~357 a 393pt phone offers inside the rails".
+    // Both halves were wrong. `DexFont.retro` routes through
+    // `TypeScale.resolve`, which applies `nominalFloor` (10) *before* the step
+    // factor, so `retro(8)` has never rendered at 8pt — it renders at
+    // `max(10, 8) x factor`, i.e. **8.5pt at the shipped default** and 11.5 at
+    // HUGE. This is the same trap `BackPlateStampView`'s title note records.
+    //
+    // So the real 0.7.7 top bar was 24 x 8.5 = 204 for the copyright plus
+    // 19 x 8.5 = 161.5 for the title plus 14 of gap — **379.5pt against 353**
+    // (393 less two 20pt content insets; "~357" double-counted the rule). It has
+    // been riding `minimumScaleFactor` at the default text step since it
+    // shipped, which is exactly what 0.7.5's A6 note forbids: "the scale factor
+    // is there for the narrower phones and the larger steps, not to absorb a
+    // size that never fitted."
+    //
+    // **The budget inside the LCD.** On a 393pt phone the display's content box
+    // is 393 less `screenPanelInset` (8) each side, less
+    // `bezelInsetH - bezelFrame` (8) each side, less `bezelFrame` (4) each side
+    // = **353pt** — the same number the full-viewport version had, because the
+    // chassis's own surround costs what that version spent on `contentInset`.
+    // A 12pt content inset inside it leaves **329pt**, and 12 is enough that
+    // nothing lands under the display's 28pt corner clip (at 12pt in, the clip
+    // has already reached within 5pt of the top edge).
+    //
+    // Everything on the screen clears 329 at the default step except the top
+    // bar, which cannot: 43 characters of retro face need 7.65pt each and the
+    // nominal floor is 10. So **the top bar is two lines now** — the title over
+    // the copyright, same strings, same colours, same roles. Each is then 204
+    // and 161.5 at the default and 276 and 218.5 at HUGE, both comfortably
+    // inside 329 at every step. That is the one change the smaller region
+    // forced, and it is a layout change rather than a smaller size, per A6.
 
     /// The two top-bar labels, and the bottom bar's pill.
     private static let barSize: CGFloat = 8
@@ -134,8 +174,25 @@ public struct BootScreen: View {
     /// into. `VT323` advances about 0.4em, so 22pt buys a 40-character line in
     /// the width available.
     private static let terminalSize: CGFloat = 22
-    /// The mark's drawn height. Its width follows the art's own aspect.
+    /// The mark's drawn height, as a ceiling. Its width follows the art's own
+    /// aspect.
+    ///
+    /// **A ceiling rather than a fixed height since 0.7.8 (A4).** Horizontally
+    /// the LCD turned out to offer what the viewport did; vertically it plainly
+    /// does not — the display is the window less the island strip, less the
+    /// whole footer, less four bands of bezel — and unlike the width there is no
+    /// single number to derive it from, because the footer's height follows
+    /// `UIScale` and the device. So the mark is the member that gives: it is the
+    /// one element here with no text in it, so shrinking it costs legibility
+    /// nothing, and it is the element a shorter screen should spend first.
+    /// `markFloor` is where it stops being a logo and starts being a bullet.
     private static let markHeight: CGFloat = 92
+    private static let markFloor: CGFloat = 40
+    /// The gap between members of the identity stack.
+    private static let identitySpacing: CGFloat = 14
+    /// The drawn divider's band, and the wine glass's.
+    private static let dividerHeight: CGFloat = 12
+    private static let glassSize: CGFloat = 26
 
     public init(entries: Int, verbose: Bool, onFinish: @escaping () -> Void) {
         self.onFinish = onFinish
@@ -150,49 +207,30 @@ public struct BootScreen: View {
     }
 
     public var body: some View {
-        ZStack {
-            // The ground and the CRT treatment run edge to edge, under the
-            // safe area — a boot screen with a black bar above it is a boot
-            // screen in a window.
-            BiosInk.background.ignoresSafeArea()
-            BiosVignette().ignoresSafeArea()
+        // **No `ignoresSafeArea` anywhere in this view any more** (0.7.8, A4).
+        // It is mounted as the display's content, so its bounds are the LCD's
+        // and the display is already wholly inside the safe area — the chassis
+        // reserves the island strip above it and the home indicator sits on
+        // bare chassis below. An escape hatch out of an inset that no longer
+        // applies would just have pushed the composition under the clip.
+        GeometryReader { geo in
+            ZStack {
+                BiosInk.background
+                BiosVignette(diagonal: hypot(geo.size.width, geo.size.height))
 
-            VStack(spacing: 0) {
-                topBar
-                Spacer(minLength: 12)
-                identity
-                Spacer(minLength: 12)
-                bottomBar
+                VStack(spacing: 0) {
+                    topBar
+                    Spacer(minLength: 8)
+                    identity(markCeiling: markCeiling(in: geo.size.height))
+                    Spacer(minLength: 8)
+                    bottomBar
+                }
+                .padding(BiosMetrics.contentInset)
+
+                // Over the content — a scanline that stopped short would read as
+                // a texture on the background rather than as the raster.
+                BiosScanlines()
             }
-            .padding(.horizontal, BiosMetrics.contentInset)
-            .padding(.vertical, BiosMetrics.contentInset)
-
-            // Over the content, inside the safe area: the frame is the terminal's
-            // own border and has to enclose what the terminal prints.
-            BiosFrame()
-
-            // Over everything including the frame — a scanline that stopped at
-            // the border would read as a texture on the background rather than
-            // as the display's own raster.
-            BiosScanlines().ignoresSafeArea()
-
-            // **Any input advances (C2), and this is a layer rather than a
-            // modifier on the stack for a reason.** The composition is
-            // safe-area aware, so the stack's own bounds stop at the insets —
-            // a `.gesture` there would leave the notch strip and the home
-            // indicator strip untouchable, and those touches would fall
-            // *through* to the chassis underneath, where the island orb is a
-            // control. A tap above the notch during boot would have pressed it.
-            // This layer ignores the safe area, so the whole display advances.
-            //
-            // A zero-distance drag rather than `onTapGesture`: it catches taps,
-            // swipes and touches that land mid-check alike, where a slow press
-            // that moves a few points is not a tap and would have been ignored
-            // on the one screen where being ignored is the failure.
-            Color.clear
-                .ignoresSafeArea()
-                .contentShape(Rectangle())
-                .gesture(DragGesture(minimumDistance: 0).onEnded { _ in onFinish() })
         }
         .task { await run() }
         .onAppear(perform: readBattery)
@@ -208,22 +246,51 @@ public struct BootScreen: View {
 
     // MARK: Top bar
 
+    /// **Two lines since 0.7.8 (A4)**, for the arithmetic in the type-scale
+    /// block above: 43 characters of a full-em face do not fit in 329pt at any
+    /// step, and the nominal floor means there is no smaller size to ask for.
+    ///
+    /// The pair keeps everything that carried meaning — the title is cream
+    /// because it is the system naming itself, the copyright is gold because it
+    /// is telemetry, and the version in it is still `BootSequence.header`'s
+    /// rather than the mockup's `1.0.0` (C3, and `BiosChromeTests`). Only the
+    /// axis they are separated on changed, from horizontal to vertical.
     private var topBar: some View {
-        VStack(spacing: 8) {
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
+        VStack(spacing: 6) {
+            // The two labels keep their ends of the bar — cream leading, gold
+            // trailing — they are simply on their own lines now.
+            VStack(alignment: .leading, spacing: 3) {
                 Text(title)
                     .font(DexFont.retro(Self.barSize))
                     .foregroundStyle(BiosInk.cream)
-                Spacer(minLength: 4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 Text(BiosChrome.copyright(releaseDate: FirmwareCatalog.shared.current?.date))
                     .font(DexFont.retro(Self.barSize))
                     .foregroundStyle(BiosInk.gold)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
             .lineLimit(1)
             .minimumScaleFactor(0.4)
 
+            // **The rule stays.** A4 drops the *frame* — border, side rails,
+            // corner brackets — and this is not it: `BiosRule` divides the
+            // composition's zones from each other, which is the job the chassis
+            // cannot do for it. All three uses of it are unchanged.
             BiosRule { BiosHexBadge() }
         }
+    }
+
+    /// The height the top bar costs, so the identity stack can be derived
+    /// against it rather than guessed at. Two label lines, their gap, the stack
+    /// spacing, and the rule's own centre piece.
+    private var topBarHeight: CGFloat {
+        DexFont.resolvedSize(Self.barSize) * 2 + 3 + 6 + BiosMetrics.badgeHeight
+    }
+
+    /// And the bottom bar's, on the same terms: the battery row, the gap, and
+    /// the rule's pill (label plus its two 5pt paddings and border).
+    private var bottomBarHeight: CGFloat {
+        max(DexFont.resolvedSize(Self.barSize), 12) + 8 + DexFont.resolvedSize(Self.barSize) + 12
     }
 
     // MARK: Bottom bar
@@ -264,15 +331,52 @@ public struct BootScreen: View {
 
     // MARK: Centre stack
 
-    private var identity: some View {
-        VStack(spacing: 14) {
+    /// Everything in the identity stack except the mark, measured rather than
+    /// written down — each term is the resolved size of the thing it names, so
+    /// the sum follows `TextScale` and the MAINFRAME cheat's two extra check
+    /// lines on its own.
+    private var identityFixedHeight: CGFloat {
+        DexFont.resolvedSize(Self.wordmarkSize)
+            + Self.dividerHeight
+            + DexFont.resolvedSize(Self.taglineSize)
+            + Self.glassSize
+            + statusSlotHeight
+            + Self.identitySpacing * 5
+    }
+
+    /// How tall the mark may be in a display of `available` points.
+    ///
+    /// **The vertical derivation A4 needs, and the reason it is a function.**
+    /// The width came out to a number (353, less the content inset); the height
+    /// cannot, because the display is the window less the island strip, less the
+    /// footer, less four bands of bezel, and the footer follows `UIScale` and the
+    /// device. So this measures what is left after everything with words in it
+    /// has been paid for, and gives the difference to the mark — clamped to
+    /// `markHeight` so a tall display does not inflate the logo past the size
+    /// 0.7.7 chose, and to `markFloor` so a short one clips rather than
+    /// dissolving the composition. A device short enough to hit the floor is
+    /// showing a mark at 40pt with everything else intact, which is the right
+    /// order to lose things in.
+    private func markCeiling(in available: CGFloat) -> CGFloat {
+        let spent = BiosMetrics.contentInset * 2
+            + topBarHeight
+            + bottomBarHeight
+            + 16                      // the two inter-zone spacers at their minimum
+            + identityFixedHeight
+        return min(Self.markHeight, max(Self.markFloor, available - spent))
+    }
+
+    private func identity(markCeiling: CGFloat) -> some View {
+        VStack(spacing: Self.identitySpacing) {
+            // `maxHeight`, not `height`: `BiosMark` fits its art to an aspect
+            // ratio, so a ceiling lets it shrink and a fixed height would not.
             BiosMark()
-                .frame(height: Self.markHeight)
+                .frame(maxHeight: markCeiling)
 
             wordmark
 
             BiosDivider()
-                .frame(height: 12)
+                .frame(height: Self.dividerHeight)
 
             Text(BiosChrome.tagline)
                 .font(DexFont.retro(Self.taglineSize))
@@ -283,7 +387,7 @@ public struct BootScreen: View {
 
             DexIcon(
                 iconID: "game-icons:wine-glass",
-                size: 26,
+                size: Self.glassSize,
                 color: BiosInk.cream,
                 // `PixelOutline` stacks eight black shadows to reproduce the web
                 // app's outline. On a near-black ground that is invisible at
@@ -342,12 +446,19 @@ public struct BootScreen: View {
     /// because of the MAINFRAME cheat (0.7.3a, A4): verbose boot adds two lines,
     /// and a slot sized for the plain sequence would have let the cheat print
     /// through the wine glass above it and the status bar below.
+    private var statusSlotHeight: CGFloat {
+        CGFloat(max(lines.count, 2)) * terminalLineHeight
+    }
+
     private var statusSlot: some View {
         ZStack {
             checkLines.opacity(settled ? 0 : 1)
             resting.opacity(settled ? 1 : 0)
         }
-        .frame(height: CGFloat(max(lines.count, 2)) * terminalLineHeight)
+        .frame(height: statusSlotHeight)
+        // 320 was chosen against the full viewport's 353 and it still clears the
+        // LCD's 329 (0.7.8, A4), so it is left alone: a 40-character VT323 line
+        // at the default step is 40 x 18.7 x 0.4 = 299, inside it either way.
         .frame(maxWidth: 320)
     }
 
@@ -468,82 +579,91 @@ public struct BootScreen: View {
 
 /// The composition's fixed geometry.
 ///
-/// Named together because they are relative to each other: the frame is inset
-/// by `frameInset`, the content by `contentInset`, and the gap between them is
-/// what the corner brackets and rail ticks are drawn in. Changing one alone is
-/// how a bracket ends up under a label.
+/// `frameInset` retired in 0.7.8 (A4): there is no drawn frame to inset. It was
+/// 6, and the pair of numbers only ever meant anything relative to each other —
+/// the gap between them was where the brackets and rail ticks lived. With the
+/// border gone, `contentInset` is measured against the display's own edge.
 private enum BiosMetrics {
-    /// The terminal border, in from the safe area.
-    static let frameInset: CGFloat = 6
-    /// The content, in from the safe area — far enough inside the border that
-    /// the rail ticks have somewhere to be.
-    static let contentInset: CGFloat = 20
+    /// The content, in from the LCD's edge.
+    ///
+    /// **20 -> 12 in 0.7.8 (A4).** 20 was buying room for the rail ticks
+    /// between the border and the content; the chassis's surround is the border
+    /// now and it is outside this view entirely, so paying for it twice would
+    /// have been the "bezel inside a bezel" cost by another route. 12 is set by
+    /// the display's clip rather than by taste: `bezelCorner` is 28, so at 12pt
+    /// in from the side the corner curve has already risen to within 5pt of the
+    /// top edge and nothing in the top bar is under it.
+    static let contentInset: CGFloat = 12
+    /// The hex badge's drawn height, named here because the top bar's height
+    /// derivation has to include it.
+    static let badgeHeight: CGFloat = 30
     /// The wordmark's shear, as a fraction of its point size. About 10°, which
     /// is the slant of the mark's own extrusion.
     static let shear: CGFloat = 0.18
 }
 
-// MARK: - Frame
+// MARK: - Advancing
 
-/// The terminal border, side rails and corner brackets (B1).
+/// The layer that lets any touch anywhere finish the BIOS (C2), mounted over the
+/// whole window while `BootScreen` is mounted inside the display.
 ///
-/// One `Canvas` rather than a stack of shapes: this is six elements that all
-/// derive from the same inset rectangle, and drawing them together is both the
-/// cheapest way to do it and the only way to guarantee they agree about where
-/// the corner is.
-private struct BiosFrame: View {
-    /// Pitch of the rail ticks.
-    private let tickPitch: CGFloat = 12
-    private let tickLength: CGFloat = 5
-    private let bracket: CGFloat = 18
+/// **A4 required re-deriving this rather than keeping or deleting it, and the
+/// answer came back the same with a different reason.** 0.7.7's version was a
+/// `Color.clear.ignoresSafeArea()` inside `BootScreen` itself, and its note
+/// explained why: the composition was safe-area aware, so a gesture on the stack
+/// would have left the notch strip and the home-indicator strip untouchable, and
+/// touches there would have fallen *through* to the chassis, where the island
+/// orb is a live control. A tap above the notch during boot would have pressed
+/// it.
+///
+/// **Every clause of that is now false.** The screen is mounted inside the LCD,
+/// which is bounded by the chassis and never overlaps either strip; and the
+/// display's `clipShape` would have confined an `ignoresSafeArea` layer to the
+/// display regardless, so keeping it would have been a modifier that did
+/// nothing. The literal reading — delete it, let the screen take its own taps —
+/// is worse than either: the chassis is *visible* now, which is the whole point
+/// of A4, and everything on it is live. A tap on the footer buttons, the marquee
+/// lamps or the orb during boot would press them instead of advancing, and a
+/// one-second hold on the orb would flip a device that has not finished starting
+/// up. 0.7.7 found that hazard by accident; A4 hands it back on purpose.
+///
+/// So the capture layer survives its own justification: **the picture belongs
+/// inside the display, the input belongs to the window.** It is over the chassis
+/// rather than inside the LCD for exactly the reason 0.7.7 put it over the
+/// composition — what is underneath must not be pressed — and it is a separate
+/// view rather than a modifier so that reason is written where it applies.
+///
+/// A zero-distance drag rather than `onTapGesture`: it catches taps, swipes and
+/// touches that land mid-check alike, where a slow press that moves a few points
+/// is not a tap and would have been ignored on the one screen where being
+/// ignored is the failure.
+public struct BootAdvanceCatcher: View {
+    let onAdvance: () -> Void
 
-    var body: some View {
-        Canvas { context, size in
-            let inset = BiosMetrics.frameInset
-            let rect = CGRect(
-                x: inset,
-                y: inset,
-                width: max(size.width - inset * 2, 0),
-                height: max(size.height - inset * 2, 0)
-            )
-            guard rect.width > 0, rect.height > 0 else { return }
+    public init(onAdvance: @escaping () -> Void) {
+        self.onAdvance = onAdvance
+    }
 
-            // The border itself, thin and dim — it frames the screen rather
-            // than competing with the rules in the two status bars.
-            context.stroke(
-                Path(rect),
-                with: .color(BiosInk.magenta.opacity(0.45)),
-                lineWidth: 1
-            )
-
-            // The ticked side rails. Drawn inward from each edge, skipping the
-            // span the corner brackets occupy so the two never overprint.
-            var ticks = Path()
-            var y = rect.minY + bracket + tickPitch
-            while y < rect.maxY - bracket {
-                ticks.move(to: CGPoint(x: rect.minX, y: y))
-                ticks.addLine(to: CGPoint(x: rect.minX + tickLength, y: y))
-                ticks.move(to: CGPoint(x: rect.maxX, y: y))
-                ticks.addLine(to: CGPoint(x: rect.maxX - tickLength, y: y))
-                y += tickPitch
-            }
-            context.stroke(ticks, with: .color(BiosInk.magenta.opacity(0.35)), lineWidth: 1)
-
-            // Corner brackets, at full strength: they are what makes the frame
-            // read as a terminal's rather than as a box someone drew.
-            var corners = Path()
-            for (x, sx) in [(rect.minX, CGFloat(1)), (rect.maxX, CGFloat(-1))] {
-                for (y, sy) in [(rect.minY, CGFloat(1)), (rect.maxY, CGFloat(-1))] {
-                    corners.move(to: CGPoint(x: x + sx * bracket, y: y))
-                    corners.addLine(to: CGPoint(x: x, y: y))
-                    corners.addLine(to: CGPoint(x: x, y: y + sy * bracket))
-                }
-            }
-            context.stroke(corners, with: .color(BiosInk.magenta), lineWidth: 2)
-        }
-        .allowsHitTesting(false)
+    public var body: some View {
+        Color.clear
+            .ignoresSafeArea()
+            .contentShape(Rectangle())
+            .gesture(DragGesture(minimumDistance: 0).onEnded { _ in onAdvance() })
+            .accessibilityHidden(true)
     }
 }
+
+// MARK: - Rules
+
+// `BiosFrame` was here and is deleted (0.7.8, A4). It drew the terminal's own
+// border, its two side rails of inward ticks and its four corner brackets, off
+// one inset rectangle in a single `Canvas`. All of it is what the spec means by
+// "the drawn frame": the device already surrounds this display with a chamfered
+// panel, a stone band, a white bezel and a vent strip, and a second frame inside
+// that one is the bezel-inside-a-bezel 0.7.7 correctly refused — which is why
+// A4 removes the frame rather than the composition. `tickPitch`, `tickLength`,
+// `bracket` and `BiosMetrics.frameInset` went with it; none of them describes
+// anything now.
 
 /// A thin magenta rule interrupted at its centre by `centre` (B1).
 ///
@@ -580,10 +700,23 @@ private struct BiosScanlines: View {
     var body: some View {
         Canvas { context, size in
             var path = Path()
-            var y: CGFloat = 0
+            // **Pitch-locked to the display's own raster (0.7.8, A4).** This
+            // used to be a 1pt line every 3pt over the whole window, where
+            // nothing else was drawing lines. Inside the LCD there already is a
+            // raster: `ScanlineOverlay` fills 2pt every `scanlineSpacing` (4) in
+            // the same coordinate space, one `ZStack` layer above. Two grids at
+            // 3 and 4 beat against each other with a 12pt period — 30-odd
+            // visible bands down the display, which is a moiré rather than a
+            // CRT.
+            //
+            // So this rides the same 4pt pitch and lands in the gap the
+            // display's own lines leave, which is what makes the BIOS's raster
+            // *finer* than the rest of the app's rather than merely different
+            // from it. The half-point keeps the line off the boundary at 3x.
+            var y: CGFloat = DexMetrics.scanlineThickness + 0.5
             while y < size.height {
                 path.addRect(CGRect(x: 0, y: y, width: size.width, height: 1))
-                y += 3
+                y += DexMetrics.scanlineSpacing
             }
             context.fill(path, with: .color(.black.opacity(0.22)))
         }
@@ -596,20 +729,30 @@ private struct BiosScanlines: View {
 /// Two radials rather than one: a screen that is only vignetted looks dirty, and
 /// a screen that only glows looks flat. The warm centre is what gives the cream
 /// mark something to sit in.
+/// **Radii are fractions of the diagonal since 0.7.8 (A4).** They were 0/260 and
+/// 180/560 in points, chosen against a 393x852 window whose diagonal is ~938 —
+/// i.e. 0.277, and 0.192 to 0.597. Left as points they would have been drawn at
+/// full window scale inside a display roughly half that size, which puts the
+/// whole vignette outside the LCD and leaves a flat magenta wash where the
+/// corner darkening should be. The fractions reproduce 0.7.7's look at whatever
+/// size the display turns out to be, which is the same argument
+/// `terminalLineHeight` makes about deriving rather than writing down.
 private struct BiosVignette: View {
+    let diagonal: CGFloat
+
     var body: some View {
         ZStack {
             RadialGradient(
                 colors: [BiosInk.magentaDeep.opacity(0.30), .clear],
                 center: .center,
                 startRadius: 0,
-                endRadius: 260
+                endRadius: diagonal * 0.277
             )
             RadialGradient(
                 colors: [.clear, .black.opacity(0.55)],
                 center: .center,
-                startRadius: 180,
-                endRadius: 560
+                startRadius: diagonal * 0.192,
+                endRadius: diagonal * 0.597
             )
         }
         .allowsHitTesting(false)

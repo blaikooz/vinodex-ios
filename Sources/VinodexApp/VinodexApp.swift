@@ -215,37 +215,49 @@ struct RootView: View {
                     )
                 }
 
+                // The BIOS (0.7.7, B1) — **inside the LCD, framed by the
+                // chassis** (0.7.8, A4), which puts back where 0.7.3a had it and
+                // reverses 0.7.7's move to a full-viewport overlay.
+                //
+                // 0.7.7's argument was that its composition carried its own
+                // terminal border, side rails and corner brackets, and nesting
+                // that inside the plastic one would be a bezel inside a bezel.
+                // A4 agrees and deletes the drawn frame instead: the device's
+                // own surround is the frame, so the screen can go back in the
+                // screen. The 0.7.3a objection it was answering — a translucent
+                // overlay dimming the chassis reads as power *loss* — does not
+                // apply either, because this is opaque and it is not an overlay.
+                // See `BootScreen` for the long version.
+                //
+                // Last in this stack, so it covers the two prompts above rather
+                // than booting underneath them.
+                if booting {
+                    BootScreen(
+                        entries: db.entries.count,
+                        // The MAINFRAME cheat (A4). Reads the entitlement store
+                        // like every other unlock (F1).
+                        verbose: access.hasFound(CheatCodes.verboseBoot),
+                        onFinish: finishBoot
+                    )
+                }
             }
             .animation(DexMotion.overlay, value: lockedAttempt?.id)
             .animation(DexMotion.overlay, value: showingDataAlert)
         }
-        // The BIOS (0.7.7, B1) — **over the chassis, not inside the LCD**, which
-        // reverses where 0.7.3a put it.
-        //
-        // That release confined the POST to the LCD because a translucent
-        // overlay dimming the bezel, island and footer reads as the device
-        // losing power at the one moment it is doing the opposite. The redesign
-        // is not translucent and does not dim anything: it is an opaque
-        // full-screen composition with its own terminal border, side rails and
-        // two status bars, and nesting that frame inside the plastic one would
-        // have been a bezel inside a bezel. A handheld whose whole face is a
-        // boot screen is a handheld booting — which is what its bottom bar says
-        // in words. See `BootScreen` for the long version.
+        // **The picture is in the display; the input is the window's** (0.7.8,
+        // A4). Everything on the chassis is live and now visible around the
+        // booting screen — the footer buttons, the marquee lamps, and the island
+        // orb, which flips the device on a one-second hold. A touch during boot
+        // must advance the BIOS rather than press any of them, so the capture
+        // layer stays over the whole window even though the composition no
+        // longer is. `BootAdvanceCatcher` carries the full re-derivation.
         //
         // An `overlay` on `DeviceChassis` rather than a `ZStack` around it: the
         // chassis is a `GeometryReader` filling the window, so the overlay gets
         // the same bounds, and the modifiers below (the scale `id`, the type
         // pin, `onAppear`) keep applying to both without being restated.
         .overlay {
-            if booting {
-                BootScreen(
-                    entries: db.entries.count,
-                    // The MAINFRAME cheat (A4). Reads the entitlement store
-                    // like every other unlock (F1).
-                    verbose: access.hasFound(CheatCodes.verboseBoot),
-                    onFinish: finishBoot
-                )
-            }
+            if booting { BootAdvanceCatcher(onAdvance: finishBoot) }
         }
         .animation(DexMotion.overlay, value: booting)
         .id(scaleRaw + "|" + uiScaleRaw)

@@ -252,6 +252,11 @@ public struct SettingsSectionPanel: View {
     /// locked entry raises, so a paywalled *setting* behaves like a paywalled
     /// page rather than being a dead control.
     @State private var lockedBundle: Entitlement?
+    /// A preset tapped in CUSTOMIZE that is waiting on the user to confirm it
+    /// may clear fitted parts (0.7.8, A2). `nil` on any device that has not
+    /// been through the workshop, because `fit(_:)` only sets it when there is
+    /// something to say.
+    @State private var pendingPreset: PendingPreset?
     /// CLEAR SAVED DATA asks first — it is the one control here that cannot be
     /// undone by tapping it again.
     @State private var confirmingWipe = false
@@ -368,12 +373,43 @@ public struct SettingsSectionPanel: View {
                     },
                     onCancel: { confirmingWipe = false }
                 )
+            } else if let pending = pendingPreset {
+                DexAlert(
+                    title: "FIT \(pending.label)?",
+                    message: pending.message(fitted: customDevices.matching(DeviceBuild.active())),
+                    confirmLabel: "FIT",
+                    cancelLabel: "KEEP MINE",
+                    onConfirm: {
+                        pendingPreset = nil
+                        pending.commit()
+                    },
+                    onCancel: { pendingPreset = nil }
+                )
             }
         }
         .animation(DexMotion.overlay, value: lockedBundle)
         .animation(DexMotion.overlay, value: openShopItem)
         .animation(DexMotion.overlay, value: offeringTour)
         .animation(DexMotion.overlay, value: confirmingWipe)
+        .animation(DexMotion.overlay, value: pendingPreset)
+    }
+
+    /// Apply a preset, asking first only when there is something to ask about
+    /// (0.7.8, A2).
+    ///
+    /// **The prompt is the exception, not the rule.** A device that has never
+    /// been through the workshop has no fitted parts, `cleared` is empty, and
+    /// the tap lands exactly as it always did — a picker that raised a modal
+    /// every time you tried a shell on would be a worse screen than the one A2
+    /// is fixing. The prompt exists for the one user this changes anything for:
+    /// somebody who spent a while choosing ten parts and would otherwise lose
+    /// seven of them to a stray tap with no undo.
+    private func fit(_ preset: PendingPreset) {
+        if preset.cleared.isEmpty {
+            preset.commit()
+        } else {
+            pendingPreset = preset
+        }
     }
 
     /// DATA is a fixed page (0.6.4, C2) — everything else scrolls.
@@ -1425,7 +1461,12 @@ public struct SettingsSectionPanel: View {
                     if locked {
                         lockedBundle = .skins
                     } else {
-                        skinRaw = option.rawValue
+                        // **The shell wins over the workshop** (0.7.8, A2) —
+                        // see `PendingPreset` and `DeviceBuild.choose`.
+                        fit(PendingPreset(axis: .shell,
+                                          value: option.rawValue,
+                                          defaultValue: ChassisSkin.classic.rawValue,
+                                          label: option.displayName))
                     }
                 } label: {
                     VStack(spacing: 8) {
@@ -1581,7 +1622,12 @@ public struct SettingsSectionPanel: View {
                     if locked {
                         lockedBundle = .lightMode
                     } else {
-                        lcdRaw = option.rawValue
+                        // Same rule as the shell above, over the one axis a
+                        // screen mode governs — its font ink (0.7.8, A2).
+                        fit(PendingPreset(axis: .screen,
+                                          value: option.rawValue,
+                                          defaultValue: LcdMode.dark.rawValue,
+                                          label: option.displayName))
                     }
                 } label: {
                     VStack(spacing: 8) {
@@ -2215,6 +2261,69 @@ enum SavedDataReset {
         ] {
             defaults.removeObject(forKey: key)
         }
+    }
+}
+
+// MARK: - Fitting a preset
+
+/// A preset the user has tapped in CUSTOMIZE, and what fitting it will cost
+/// (0.7.8, A2).
+///
+/// **Why this is a value rather than two `if` branches in the two grids.** The
+/// SHELL and SCREEN pickers are the same instrument with different contents —
+/// they were written that way on purpose in 0.5.6 — and A2's rule is one rule
+/// about presets, not two rules about skins and modes. Modelling the tap as a
+/// value lets both grids raise the same alert, and lets the alert be built from
+/// what the tap *is* rather than from a copy of the rule per call site. It also
+/// means the eleventh axis, whenever it arrives, changes `DeviceAxis.inherits`
+/// and nothing here.
+///
+/// The three things it holds beyond the choice itself are all things Core
+/// cannot know: `label` is a `displayName` (a `VinodexUI` concept), and
+/// `defaultValue` is which raw value means "as it ships" for this particular
+/// enum, which is `ChassisSkin.classic` / `LcdMode.dark` — again UI's.
+struct PendingPreset: Equatable {
+    let axis: DeviceAxis
+    let value: String
+    let defaultValue: String
+    let label: String
+
+    /// The fitted parts this choice would clear. Read once, at the moment of
+    /// the tap, so the alert cannot describe a device that has since changed.
+    let cleared: [DeviceAxis]
+
+    init(axis: DeviceAxis, value: String, defaultValue: String, label: String) {
+        self.axis = axis
+        self.value = value
+        self.defaultValue = defaultValue
+        self.label = label
+        self.cleared = DeviceBuild.overrides(clearedByChoosing: axis)
+    }
+
+    func commit() {
+        DeviceBuild.choose(axis, value, defaultValue: defaultValue)
+    }
+
+    /// What the alert says.
+    ///
+    /// `fitted` is the saved build the device currently matches, if any. It is
+    /// named when there is one because "your build stops being fitted" and
+    /// "your build is gone" are the two readings of what is about to happen and
+    /// only one of them is true — `customDevices` is untouched by any of this,
+    /// and saying so is cheaper than a user discovering it or not.
+    func message(fitted: CustomDevice?) -> String {
+        let parts = cleared.map(\.title).joined(separator: ", ")
+        let count = cleared.count == 1 ? "part" : "parts"
+        var lines = [
+            "\(label) brings its own colours, so the \(cleared.count) \(count) you fitted "
+            + "(\(parts)) go back to following it.",
+        ]
+        if let fitted {
+            lines.append("\(fitted.name) stays saved in the Workshop — fit it again there whenever you like.")
+        } else {
+            lines.append("Save a build in the Workshop first if you want to come back to it.")
+        }
+        return lines.joined(separator: " ")
     }
 }
 #endif

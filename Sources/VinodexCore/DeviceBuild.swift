@@ -145,6 +145,50 @@ public enum DeviceAxis: String, CaseIterable, Identifiable, Sendable {
         case .font: "textformat"
         }
     }
+
+    /// The preset axis this one falls back to when it is unset (0.7.8, A2).
+    ///
+    /// **This is not new information — it is `ChassisLook` written down.** That
+    /// resolver is ten lines of `partOverride ?? skin.something`, and `LcdMode`
+    /// does the same for `font` with `fontInk ?? modeText`. So every axis
+    /// already *has* an answer to "whose look shows through when I am empty?";
+    /// it was just spelled once per member, in `VinodexUI`, where no gate can
+    /// read it. Naming it here is what lets A2 be a rule rather than a list.
+    ///
+    /// A2 asks that choosing a preset override an active workshop build. The
+    /// question that makes it answerable is *which* overrides a given preset is
+    /// entitled to clear, and this is the answer: exactly the axes that would
+    /// have inherited from it. Choosing a SHELL clears the seven parts that
+    /// read `skin.*`; choosing a SCREEN clears the one that reads the mode's
+    /// own ink. Neither reaches into the other's, which is what keeps the two
+    /// pickers on the CUSTOMIZE screen independent — picking a shell must not
+    /// silently undo the screen mode sitting in the list below it, and that is
+    /// a bug this rule prevents rather than a case it happens to miss.
+    ///
+    /// `grilleShape` is the one axis whose fallback is a constant (`.slats`)
+    /// rather than a skin member, because no shell carries a grille pattern.
+    /// It is still shell-governed: "as this shell ships" is what clearing it
+    /// restores, which is the same sentence for all seven.
+    ///
+    /// Exhaustive on purpose. An eleventh axis cannot be added without saying
+    /// which preset owns it, and `DeviceWorkshopTests.everyAxisDeclaresItsPreset`
+    /// fails if the answer is a preset that is itself governed.
+    public var inherits: DeviceAxis? {
+        switch self {
+        case .shell, .screen: nil
+        case .buttons, .orb, .headerLamps, .marquee, .marqueeLamps, .grilleColor, .grilleShape: .shell
+        case .font: .screen
+        }
+    }
+
+    /// Whether this axis is one of the two the CUSTOMIZE screen offers presets
+    /// for, rather than a part fitted in the workshop.
+    public var isPreset: Bool { inherits == nil }
+
+    /// The axes this preset governs, in `allCases` order. Empty for a part.
+    public var governs: [DeviceAxis] {
+        DeviceAxis.allCases.filter { $0.inherits == self }
+    }
 }
 
 /// Every part selection that makes up one device (0.7.3, B1/B2).
@@ -351,6 +395,67 @@ public struct DeviceBuild: Codable, Hashable, Sendable {
             } else {
                 defaults.set(value, forKey: axis.storageKey)
             }
+        }
+    }
+
+    // MARK: Choosing a preset
+
+    /// The fitted parts that choosing `preset` would clear (0.7.8, A2).
+    ///
+    /// Returned so the UI can say what it is about to do *before* it does it,
+    /// and — because it is empty on any device that has not been through the
+    /// workshop — so the common case can skip asking entirely. Order is
+    /// `allCases` order, i.e. the order the workshop lists them, so a prompt
+    /// naming them reads down the same list the user built.
+    public static func overrides(clearedByChoosing preset: DeviceAxis,
+                                 in defaults: UserDefaults = .standard) -> [DeviceAxis] {
+        preset.governs.filter { axis in
+            !(defaults.string(forKey: axis.storageKey) ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
+
+    /// Fit a preset, and let it win (0.7.8, A2).
+    ///
+    /// **The behaviour A2 asks for, and the thing it is careful not to do.**
+    /// Before this, tapping a shell in CUSTOMIZE wrote `chassisSkin` and
+    /// nothing else, so a device that had been through the workshop kept its
+    /// overridden orb, buttons, lamps, marquee and grille sitting on top of the
+    /// new shell — the shell changed and most of the device did not. Choosing a
+    /// preset now clears the axes that preset governs, so what shows through is
+    /// the preset's own palette. That is the whole of "a preset overrides the
+    /// custom config", expressed against a design that deliberately stores no
+    /// active-build id.
+    ///
+    /// **No saved build is touched.** `customDevices` is a separate key holding
+    /// a separate list, and nothing here reads or writes it. A build the user
+    /// had fitted is still saved, still named, still in the workshop, and one
+    /// tap from being fitted again; what it stops being is *fitted*, because
+    /// `CustomDeviceStore.matching(_:)` derives that by comparing values and
+    /// the values have just changed. That is the same thing that already
+    /// happened when a single part was changed in the workshop — A2 does not
+    /// introduce a new way to lose a build, and there was no near-miss here of
+    /// the kind 0.7.6's decoder had, because no decoding is involved.
+    ///
+    /// **The default value is stored as absence**, which fixes a live
+    /// inconsistency rather than inventing a rule: `skinGrid` wrote the literal
+    /// `"CLASSIC"` while the workshop's own shell chooser wrote `""` for the
+    /// same choice, so picking CLASSIC in Settings produced a device that was
+    /// visually stock and reported `isStock == false`, and could never match a
+    /// saved build whose shell was empty. Same for DARK and `lcdMode`. One
+    /// spelling per choice is this type's founding invariant; this is the last
+    /// writer that was not obeying it.
+    public static func choose(_ preset: DeviceAxis,
+                              _ value: String,
+                              defaultValue: String,
+                              in defaults: UserDefaults = .standard) {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty || trimmed == defaultValue {
+            defaults.removeObject(forKey: preset.storageKey)
+        } else {
+            defaults.set(trimmed, forKey: preset.storageKey)
+        }
+        for axis in preset.governs {
+            defaults.removeObject(forKey: axis.storageKey)
         }
     }
 }

@@ -1366,6 +1366,180 @@ layering on them.
   `BiosChrome.battery` handles the `-1` that the simulator and every
   pre-monitoring device return.
 
+**0.7.8, Chassis & device** (spec pasted, section A only). Sections B–D — the
+sharing / Wordle-string / notifications trio — are the spec's own scope note and
+are a separate pass; section E ran concurrently as an `auditbot` sitting; F was
+answered before the batch started. Four items, no `shared/` data touched outside
+`firmware.ts`, so **438 stands and `waveMilestones` does not move**.
+
+- **The branch note is part of the record.** The spec said "branch off `testing`",
+  which was at `fc2c194` and did not contain 0.7.3 through 0.7.7 — taken literally
+  it would have been destructive. The user had already verified `testing` was a
+  strict ancestor of `v0.7.7-batch` with zero divergence and fast-forwarded it to
+  `e6a8d1c`, so `v0.7.8-batch` is cut from a `testing` that holds all nine commits.
+
+- **A1 undoes 0.6.5's item 8, and the thing it undoes is a category error.** That
+  release replaced the per-skin die-cut sticker with a postage stamp on the badge
+  stamps' own perforated frame, reasoning that the Passport stamps set the plate's
+  visual dialect and the skin piece should speak it. The dialect argument was
+  about *materials*; the answer it gave was about *identity*, and the plate has
+  read as carrying seven collectibles ever since when it carries six and a
+  decoration. The two now differ on every axis that means anything: silhouette
+  (perforated portrait rectangle vs die-cut square with a lifted corner), stock,
+  printing, surface (the sticker gets a gloss sweep, vinyl catches light and paper
+  does not), and interaction — the stamps are tapped and dragged, the sticker is
+  inert.
+
+- **The hit-testing warning was taken seriously and cost nothing.** 0.7.2's A2
+  found that `.contentShape(Rectangle())` outside `.offset` had pinned all six
+  stamps' hit regions to one box in the plate's corner, dead to tap and drag for
+  three releases. So: the sticker declines hits **in its own body** as well as at
+  the call site, it is mounted *below* `stampField` in the plate's `ZStack` so
+  even a decoration that accepted a touch could not take one from them, and there
+  is deliberately no `contentShape` anywhere in `SkinSticker.swift`. The stamp
+  drag chain in `DeviceBackPlate.stampField` is byte-identical.
+
+- **`WornOverlay` is the one thing the two still share, and it moved out of both
+  files.** It was declared in the stamps' file and reached across by the sticker,
+  which is the shape A1 exists to undo. Sun, thumbs and shelf dust do not care
+  what they are working on, so it is a material rather than either object's
+  identity: `AgedMaterial.swift` now holds it and `GrainSpeckle`, and neither
+  side imports the other's file. Nothing in it mentions stamps or stickers, which
+  is the test of whether the split was drawn in the right place.
+
+- **The art namespace split was free of bytes and not free of wiring.** There is
+  no authored art for either family — `art/icons/stamps/` held a README and
+  nothing else, and `Resources/StampArt` has never existed — so this is a pure
+  rename of a contract. But `import-sticker-art.py` is a **seventh** importer, and
+  since 0.7.5's A027 that means four rosters plus two search paths:
+  `rasterize-icons.sh`, `verify-art.py`'s `IMPORTERS` and `DIRS`, a `package.json`
+  script, `PixelArtLoader.subdirectories` and the generator's `ART_DIRS`.
+  `ArtPipelineRosterTests` is exactly what turns "remember six places" into a
+  failing test, which is the return on that batch. The two READMEs are now
+  separate briefs, and the sticker one names all 22 skins — the old list silently
+  omitted five, and a roster that disagrees with the enum is what an illustrator
+  would have worked from.
+
+- **A2's rule was already written down, ten times, in the wrong place.**
+  `ChassisLook` is ten lines of `partOverride ?? skin.something` and `LcdMode` does
+  the same for the font ink, so every axis already had an answer to "whose look
+  shows through when I am empty?" — spelled once per member, in `VinodexUI`, where
+  no gate can read it. `DeviceAxis.inherits` names it in Core, and A2 becomes a
+  rule rather than a list: **a preset clears exactly the axes that would have
+  inherited from it.** Seven parts follow the shell; the font follows the screen.
+  That is also what keeps the two CUSTOMIZE pickers independent — picking a shell
+  must not undo the screen mode in the list below it, which is a bug the rule
+  prevents rather than a case it happens to miss.
+
+- **No saved build is destroyed, and the honest statement is narrower than
+  "nothing happens".** `customDevices` is a different key holding a different
+  list and nothing in this batch reads or writes it; a build survives a relaunch
+  byte-identical (`choosingAPresetDoesNotTouchSavedBuilds` asserts through a
+  fresh store). What a fitted build stops being is *fitted*, because
+  `matching(_:)` derives that by comparing values and the values just changed —
+  the same thing that already happened when one part was swapped in the workshop.
+  It is one tap from being fitted again. This is not the 0.7.6 decoder hazard in
+  another guise: no decoding is involved.
+
+- **The confirmation is the exception, not the rule.** A device that has never
+  been through the workshop has nothing to clear, so the tap lands exactly as it
+  always did — a picker raising a modal every time you tried a shell on would be
+  worse than the bug. It appears only when parts would actually be lost, names
+  them, and names the saved build if one is fitted.
+
+- **A2 also closed a live inconsistency nobody had filed.** `skinGrid` wrote the
+  literal `"CLASSIC"` while the workshop's own chooser wrote `""` for the same
+  choice, so picking CLASSIC in Settings produced a device that was visually stock,
+  reported `isStock == false` forever, and could never match a saved build whose
+  shell was empty. Same for DARK and `lcdMode`. One spelling per choice is
+  `DeviceBuild`'s founding invariant and this was the last writer disobeying it.
+
+- **A3 spent the elongation on height for the third batch running.** 1.75 → 2.35,
+  and **not one horizontal number moved** — `islandOrb`, `islandSlot`,
+  `islandOrbInsetLeading` and `islandStatusInsetTrailing` are untouched, so the
+  69pt cutout budget 0.7.1's A4 is a page about is unspent. Re-derived anyway,
+  because that note's standing instruction is about proving it: the slot still
+  runs 64 → 108 against a cutout at 133 (~25pt clearance) and the lamp trio still
+  runs 79.4 in from 32 at SMALL, 85.4 at LARGE. The bead resolves to **35.2 × 15.0
+  at SMALL and 40 × 17.0 at LARGE**.
+- **A3's ceiling is derived, not chosen.** The rim is `max(height × 0.11, 2)`, so
+  below a height of 18.2 the 2pt floor takes over and further elongation comes
+  straight out of the coloured core rather than off the bead proportionally.
+  Holding that core at ≥ 10pt at SMALL gives height ≥ 14, i.e. an aspect ceiling
+  of 2.51; 2.35 sits inside it with a core of 11.0 (SMALL) and 13.0 (LARGE).
+- **What A3 costs, stated rather than absorbed.** 0.7.6's E1 deliberately bought
+  orb height ≈ `islandStatusDot`, so the two clusters flanking the cutout weighed
+  the same. At 15 against 22 that is given up and the orb is the lighter of the
+  pair. The device's own cutout is ~125 × 37 (aspect ~3.4) and A3 asks the bead
+  toward it; it cannot arrive without width, which is forbidden, so the trade is
+  the notch's proportion against the trio's mass. **Worth an eyeball.** The hit
+  shape stays the 44pt slot and gets *more* right, not less — an outline-shaped
+  target would now be 15pt on its short axis.
+
+- **A4 reverses 0.7.7 one batch later, and the reversal is narrower than it
+  looks.** 0.7.7 went full-viewport arguing that a composition carrying its own
+  terminal border, side rails and corner brackets could not be nested inside the
+  chassis's plastic one. A4 accepts that diagnosis in full and deletes the drawn
+  frame instead — the move neither batch had considered. The device already draws
+  a chamfered panel, a stone band, a white bezel and a vent strip; the screen can
+  go back in the screen provided it stops bringing a second frame. `BiosFrame` is
+  gone with `tickPitch`, `tickLength`, `bracket` and `frameInset`. The three
+  zones, `BiosRule` (a zone divider, not the frame), the palette, the scanlines,
+  the tinted logo masks and the derived title are untouched.
+
+- **The type-scale re-derivation found the old numbers were wrong.** 0.7.7's block
+  costed the status bars at their nominal 8pt; `TypeScale.resolve` applies
+  `nominalFloor` (10) *before* the step factor, so `retro(8)` has always rendered
+  at **8.5pt**, exactly the trap `BackPlateStampView`'s title note records. The
+  real 0.7.7 top bar was 379.5pt against 353 — riding `minimumScaleFactor` at the
+  default text step since it shipped, which is precisely what 0.7.5's A6 forbids.
+  The LCD's content box works out to **353pt** on a 393pt phone (393 less
+  `screenPanelInset`, `bezelInsetH - bezelFrame` and `bezelFrame` each side), the
+  same figure the viewport offered, because the chassis's surround costs what the
+  old `contentInset` did. At a 12pt inset that is 329, and 43 characters of a
+  full-em face need 7.65pt each against a floor of 10 — impossible. **So the top
+  bar is two lines**, same strings, same colours, same roles: 204 and 161.5 at the
+  default, 276 and 218.5 at HUGE, both inside 329 at every step. A layout change
+  rather than a smaller size, per A6.
+
+- **Vertically there is no single number, so the mark is the member that gives.**
+  The display is the window less the island strip, less the whole footer, less
+  four bands of bezel, and the footer follows `UIScale` and the device.
+  `markCeiling(in:)` measures what is left after everything with words in it is
+  paid for — every term derived from `DexFont.resolvedSize`, so it follows the
+  text step and the MAINFRAME cheat's two extra check lines on its own — and
+  clamps between 92 (0.7.7's size, not to be exceeded) and 40. The logo is the
+  one element with no text in it, which makes it the right thing to lose first.
+
+- **The gesture was re-derived and survived its own justification.** 0.7.7's
+  `Color.clear.ignoresSafeArea()` existed because a safe-area-aware stack left
+  the notch and home-indicator strips falling through to the chassis, where the
+  island orb is a live control. Inside the LCD every clause of that is false —
+  the display never overlaps either strip, and its `clipShape` would have
+  confined the layer anyway, making it a modifier that did nothing. But the
+  literal reading (delete it) is worse than either: the chassis is *visible* now,
+  which is the whole point of A4, and the footer buttons, marquee lamps and orb
+  are all live. So **the picture is in the display and the input is the
+  window's** — `BootAdvanceCatcher` is an overlay on the chassis, and a separate
+  view so the reason lives where it applies.
+
+- **The scanlines are pitch-locked, which the reframing forced.** `BiosScanlines`
+  was 1pt every 3pt over a window where nothing else drew lines. Inside the LCD,
+  `ScanlineOverlay` is already filling 2pt every 4 in the same coordinate space
+  one layer above; 3 against 4 beats with a 12pt period, ~30 visible bands down
+  the display. It rides the same 4pt pitch now and lands in the display's own
+  gap, which makes the BIOS's raster *finer* than the app's rather than merely
+  different. `BiosVignette`'s radii became fractions of the diagonal for the same
+  reason — as points they were tuned to a 938pt viewport diagonal and would have
+  put the entire vignette outside a display half that size.
+
+- **Gates.** `npm run generate` (0.7.8, 17 releases, 337 asset ids resolve),
+  `find-missing-refs.mjs` zero dangling, `swift test` 512 green in 52 suites
+  (six new in `DeviceWorkshopTests` for A2), `npm run icons:verify` 239 identical
+  / 16 tolerated / 0 changed, clean `rm -rf .build && xtool dev build` — the only
+  thing that compiles the four rewritten `VinodexUI` files. **Not deployed**, per
+  the spec.
+
 ### Parked
 
 - ~~**`npm run icons` produces a byte diff on the two wordmark PNGs**~~ —
@@ -1382,10 +1556,21 @@ layering on them.
   now writes only when the destination's pixels differ; `import-logo-art.py` uses
   it, the other five importers can adopt it, and the 0.7.7 run reported both marks
   `unchanged` with `icons:verify` at 255 identical.
-- **`sticker-w64.png` is unauthored**, like eighteen of the other twenty-two
+- **`sticker-w64.png` is unauthored**, like every one of the other twenty-one
   skins. `SkinStickerView` falls back to the emblem symbol, so the back plate is
-  correct rather than empty. Listed in `art/icons/stamps/README.md` with the IP
-  constraint restated, because that file is where an illustrator will read it.
+  correct rather than empty. Listed in **`art/icons/stickers/README.md`** since
+  0.7.8's A1 moved the brief out of the stamps' folder, with the IP constraint
+  restated, because that file is where an illustrator will read it. The six
+  `stamp-*` badge glyphs are equally unauthored and now have that README to
+  themselves.
+- **The 0.7.8 spec's sections B–D are unbuilt** — sharing, the Wordle result
+  string and daily notifications, the same growth trio 0.7.6's G/H/I parked, and
+  the spec's own scope note asks for them as a separate pass. Section F was
+  answered before the batch; E was `auditbot`'s, run concurrently.
+- **A3's orb is worth an eyeball before the next batch treats 2.35 as settled.**
+  It gives up the orb-height ≈ `islandStatusDot` balance 0.7.6's E1 bought on
+  purpose; the derived ceiling is 2.51 if it wants to go further, and the lever
+  is only ever height.
 - **The lamp chooser is reachable only by holding a lamp.** VoiceOver gets a
   named "Reassign" action, and the walkthrough teaches the gesture; there is no
   entry point from SETTINGS. If reassignment turns out to be something people

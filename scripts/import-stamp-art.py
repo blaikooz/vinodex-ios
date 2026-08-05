@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
-"""Imports the back-plate stamp & sticker glyphs into the app bundle (0.6.4, F2/F3).
+"""Imports the back-plate Passport stamp glyphs into the app bundle (0.6.4, F2).
 
-Sources are individual PNGs in art/icons/stamps — `stamp-<badge>` for the
-postage-stamp glyphs (see StampCatalog in VinodexCore) and `sticker-<skin>`
-for the per-skin aged stickers (see ChassisSkin.stickerStem). Same treatment
-as the other importers: background removed via art_common.py (export on a
-magenta chroma key for the robust path), palette-quantised, written to
+Sources are individual PNGs in art/icons/stamps, one per Passport badge, named
+`stamp-<badge>` (see StampCatalog in VinodexCore). Same treatment as the other
+importers: background removed via art_common.py (export on a magenta chroma key
+for the robust path), palette-quantised, written to
 Sources/VinodexUI/Resources/StampArt.
+
+**Stamps only since 0.7.8 (A1).** The per-skin `sticker-<skin>` glyphs used to
+ride this importer too, from this same directory into this same bundle folder,
+because 0.6.5 had made the per-skin artifact render as a postage stamp. It is a
+die-cut decal again and it has its own pipeline now:
+art/icons/stickers -> scripts/import-sticker-art.py -> Resources/StickerArt.
 
 Deliberately tolerant of an empty or missing source dir: the stamp system
 ships with code-drawn frames and SF Symbol stand-in glyphs, and each authored

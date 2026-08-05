@@ -515,6 +515,18 @@ public struct DeviceChassis<Content: View>: View {
                     // flip gesture. The slot contains the bead either way, so
                     // there is no region here that looks like the part and does
                     // not act like it.
+                    //
+                    // **0.7.8's A3 elongates it further and this gets more
+                    // right, not less.** The bead is 35.2 × 15.0 at SMALL now,
+                    // so an outline-shaped target would be a third of the
+                    // platform minimum on its short axis. Every point of
+                    // elongation is an argument *for* this rectangle. The one
+                    // thing to keep watching is the opposite reading — that a
+                    // 44pt box around a 15pt bead is 29pt of chassis that
+                    // silently flips the device — and it stays acceptable for
+                    // the reason it always has: the slot is padding, nothing
+                    // else lives in it, and the gesture is a one-second hold
+                    // rather than a tap.
                     .frame(width: slot, height: slot)
                     .contentShape(Rectangle())
                     // Hold to flip. A hidden gesture on a decorative-looking

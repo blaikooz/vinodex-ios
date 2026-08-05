@@ -1,4 +1,10 @@
-# Back-plate stamp & sticker glyphs (0.6.4, F2/F3)
+# Back-plate Passport stamp glyphs (0.6.4, F2)
+
+**Passport stamps only.** The per-skin sticker used to be commissioned out of
+this same folder — from 0.6.5 it even rendered as a postage stamp — and since
+0.7.8 (A1) it has its own brief, its own importer and its own namespace in
+`../stickers/`. If you are drawing a shell's decal, you are in the wrong
+directory.
 
 Drop authored pixel-art PNGs here; `npm run icons` (via
 `scripts/import-stamp-art.py`) strips the background and copies them into
@@ -20,26 +26,7 @@ chunky-pixel style like the flavour portraits, roughly square.
 - `stamp-streak-week.png` — a seven-notch flame or calendar
 - `stamp-sommelier.png` — a tastevin or diploma
 
-## Wanted — per-skin aged stickers (`sticker-<skin raw value, kebab-case>`)
-
-- `sticker-christmas.png` — the Santa hat (WINE XMAS)
-- `sticker-blush.png` — the little cat (BLUSH)
-- one per remaining skin, a more detailed take on its emblem glyph:
-  `sticker-classic`, `sticker-midnight`, `sticker-original`,
-  `sticker-burgundy`, `sticker-riesling`, `sticker-vinho-verde`,
-  `sticker-glouglou`, `sticker-smart-grape`, `sticker-champagne`,
-  `sticker-nouveau`, `sticker-oaked`, `sticker-nocturne`, `sticker-steel`,
-  `sticker-psvino` (0.6.5 — the DualShock skin; PS button glyphs territory)
-- `sticker-w64.png` (0.7.6, D1 — the purple deck). **IP-safe, and this one
-  needs saying out loud:** four coloured points around a centre, in the skin's
-  own green/blue/red/yellow, is the illustration. No console logo, no
-  controller silhouette, no trade dress, and nothing in the filename or the
-  drawing referring to anyone's hardware. Same discipline as `sticker-psvino`
-  above and as the screensaver's `VinodexV`.
-
-Since 0.6.5 (item 8) the per-skin piece renders as a postage stamp on the
-same perforated frame as the badge stamps — the stems above are unchanged;
-the glyph drops into the stamp's centre instead of a die-cut sticker.
-
-Stem names come from the *persisted* skin raw values
-(`ChassisSkin.stickerStem`), not the display names — renames never move them.
+Stem names are the `artStem` field on each record in `StampCatalog`
+(`Sources/VinodexCore/BackPlateStamps.swift`), and `StampCatalogTests` asserts
+every one of them begins `stamp-`. Nothing derives them from a badge's title,
+so a badge can be renamed without orphaning its art.

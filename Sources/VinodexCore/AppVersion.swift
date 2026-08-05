@@ -378,6 +378,67 @@ public enum AppVersion {
     /// No catalog change: 438 stands, `waveMilestones` does not move, and no
     /// `shared/` data outside `firmware.ts` was touched.
     ///
+    /// 0.7.8: **section A only** — the sharing/Wordle/notifications trio is a
+    /// separate pass by the spec's own scope note, exactly as 0.7.6's G/H/I
+    /// were, and section E ran concurrently as an audit rather than as code.
+    /// A patch, for the reason 0.7.3, 0.7.5, 0.7.6 and 0.7.7 were: nothing
+    /// about what the app *is* changed. Three of the four items are the device
+    /// being more consistently itself and the fourth is a shape.
+    ///
+    /// **A4 reverses 0.7.7, one batch later, and the reversal is narrower than
+    /// it looks.** 0.7.7 took the BIOS full-viewport on the argument that its
+    /// own terminal border, side rails and corner brackets could not be nested
+    /// inside the chassis's plastic one — a bezel inside a bezel. A4 accepts
+    /// that diagnosis in full and deletes the drawn frame instead, which is the
+    /// move neither batch had considered: the device already draws a chamfered
+    /// panel, a stone band, a white bezel and a vent strip, so the screen can go
+    /// back in the screen provided it stops bringing a second frame with it.
+    /// `BiosFrame` is gone; the three zones, the palette, the scanlines, the
+    /// tinted masks and the derived title are untouched, and
+    /// `BiosChromeTests.titleIsNotThePlaceholder` still guards the one string
+    /// this file cares about.
+    ///
+    /// Two things fell out of re-deriving rather than porting. The type-scale
+    /// note 0.7.7 left behind was **arithmetically wrong** — it costed the
+    /// status bars at their nominal 8pt when `TypeScale.nominalFloor` has
+    /// always rendered them at 8.5, so the top bar was 379.5pt against 353 and
+    /// had been riding `minimumScaleFactor` at the default text step since it
+    /// shipped, which is the exact failure 0.7.5's A6 note forbids. It is two
+    /// lines now. And the advance gesture survived its own justification: the
+    /// notch-strip fall-through that put it there is gone, but the chassis is
+    /// *visible* again and every control on it is live, so the picture belongs
+    /// in the display and the input belongs to the window.
+    ///
+    /// A1 undoes 0.6.5's item 8, which had made the per-skin back-plate
+    /// artifact render as a postage stamp on the badge stamps' own frame. The
+    /// dialect argument that made was about materials and the answer it gave
+    /// was about identity: the plate has read as carrying seven collectibles
+    /// ever since, when it carries six and a decoration. The two now differ in
+    /// silhouette, stock, printing, surface, interaction and art namespace —
+    /// `art/icons/stickers` -> `import-sticker-art.py` -> `Resources/StickerArt`
+    /// is a seventh importer, and `ArtPipelineRosterTests` is what made wiring
+    /// it into all four rosters a compile-and-test problem rather than a memory
+    /// one.
+    ///
+    /// A2 is the smallest change and the one with a rule in it. `ChassisLook`
+    /// has always been ten lines of `partOverride ?? skin.something`, so every
+    /// axis already knew whose look it falls back into; `DeviceAxis.inherits`
+    /// writes that down in Core, and "a preset overrides the custom config"
+    /// becomes "a preset clears the axes that would have inherited from it".
+    /// No saved build is touched — `customDevices` is a different key and
+    /// nothing in this batch reads it — so a fitted build stops being *fitted*
+    /// and stays saved, which is what already happened when one part changed.
+    /// It also fixes a live inconsistency: the settings grid wrote `"CLASSIC"`
+    /// where the workshop wrote `""` for the same choice.
+    ///
+    /// A3 elongates the orb again, 1.75 -> 2.35, and spends all of it on height
+    /// per 0.7.1's A4. Not one horizontal number moved, so the 69pt cutout
+    /// budget is unspent for the third batch running; it is re-derived in the
+    /// comment anyway, because that instruction is about proving it.
+    ///
+    /// No catalog change: 438 stands, `waveMilestones` does not move, and no
+    /// `shared/` data outside `firmware.ts` was touched.
+    ///
     /// **The value below is no longer edited here.** See the note at the top of
     /// this comment: it reads the head of `shared/data/firmware.ts`.
     static var fallback: String { FirmwareCatalog.shared.version }

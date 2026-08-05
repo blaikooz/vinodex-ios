@@ -39,25 +39,44 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
-  version: "0.7.7",
-  date: "2026-08-04",
-  // A whole batch on one screen, and it is the first screen -- so the headline
-  // is what the screen now calls itself rather than what changed about it.
-  headline: "VINODEX BIOS",
+  version: "0.7.8",
+  date: "2026-08-05",
+  // Section A is the whole of this build, and three of its four items are the
+  // device looking more like itself: a sticker that is a sticker, a shell that
+  // wins, and the boot screen back on the screen.
+  headline: "BACK IN THE SCREEN",
   notes: [
-    "The startup screen is rebuilt, edge to edge: a proper BIOS boot instead of a panel of text.",
-    "The V and the wordmark sit at the centre, framed by a terminal border with corner brackets and side rails.",
-    "Scanlines and a faint glow behind the logo, like a CRT warming up.",
-    "The checks still run first. They resolve, and the screen settles rather than cutting away.",
-    "It then waits on PRESS ANY BUTTON TO CONTINUE. Any touch carries on, and so does it, after a few seconds.",
-    "The corner reads your real battery level.",
-    "The version in the top corner is the firmware's, so this screen always says what you are actually running.",
+    "The BIOS boots inside the display again, with the device around it instead of covering it.",
+    "Its drawn border, rails and corner brackets are gone. The chassis does the framing now.",
+    "The version, the copyright, the scanlines and the glow all stay. The two top lines stack, so neither is squeezed.",
+    "Any touch anywhere still carries on, and nothing on the device can be pressed by accident while it starts up.",
+    "The sticker on the back is a sticker again: die-cut, glossy, one corner lifting. It stopped being a seventh postage stamp.",
+    "The six passport stamps are the collection. The sticker is decoration, and it cannot be picked up or moved.",
+    "Choosing a shell or a screen in Customise now overrides parts you fitted in the Workshop, so the one you picked is what you see.",
+    "Builds you saved are untouched. Fit one again from the Workshop whenever you like.",
+    "The orb is a longer pill again, closer to the shape of the notch above it.",
     "438 entries, unchanged: 171 grapes, 124 regions, 31 styles, 106 flavours, 26 countries.",
-  ],
-};
+  ],};
 
 /** Everything before `CURRENT`, newest first. */
 const PREVIOUS: FirmwareRelease[] = [
+  {
+    version: "0.7.7",
+    date: "2026-08-04",
+    // A whole batch on one screen, and it is the first screen -- so the headline
+    // is what the screen now calls itself rather than what changed about it.
+    headline: "VINODEX BIOS",
+    notes: [
+      "The startup screen is rebuilt, edge to edge: a proper BIOS boot instead of a panel of text.",
+      "The V and the wordmark sit at the centre, framed by a terminal border with corner brackets and side rails.",
+      "Scanlines and a faint glow behind the logo, like a CRT warming up.",
+      "The checks still run first. They resolve, and the screen settles rather than cutting away.",
+      "It then waits on PRESS ANY BUTTON TO CONTINUE. Any touch carries on, and so does it, after a few seconds.",
+      "The corner reads your real battery level.",
+      "The version in the top corner is the firmware's, so this screen always says what you are actually running.",
+      "438 entries, unchanged: 171 grapes, 124 regions, 31 styles, 106 flavours, 26 countries.",
+    ],
+  },
   {
     version: "0.7.6",
     date: "2026-08-04",

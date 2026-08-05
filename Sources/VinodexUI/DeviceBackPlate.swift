@@ -100,6 +100,15 @@ public struct DeviceBackPlate: View {
             // the 0.6.2 stamp field displaced, back in the plate's fiction:
             // something a previous owner stuck on. One per skin, so swapping
             // shells swaps the sticker with it.
+            //
+            // **A decal again, not a stamp** (0.7.8, A1). It is mounted here,
+            // among the factory leavings and *below* `stampField`, because
+            // that is what it is: 0.6.5 dressed it in the badge stamps'
+            // perforated frame and the plate has read as carrying seven
+            // collectibles ever since. Position in this `ZStack` is load-
+            // bearing for the same reason it declines hits — the stamps are
+            // the layer above, so even a decoration that somehow accepted a
+            // touch could not take one from them.
             SkinStickerView(skin: skin)
                 .rotationEffect(.degrees(-7))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

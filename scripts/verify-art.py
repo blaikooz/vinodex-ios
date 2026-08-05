@@ -49,13 +49,14 @@ BUNDLE = os.path.join(ROOT, "Sources", "VinodexUI", "Resources")
 # two drifted apart silently for two releases (0.7.5, A027). `import-stamp-art`
 # was in the rasteriser and not here — StampArt was generated and never verified
 # — and `import-logo-art` was in neither.
-DIRS = ("FlavorArt", "GrapeArt", "StyleArt", "ClassArt", "StampArt", "Logo")
+DIRS = ("FlavorArt", "GrapeArt", "StyleArt", "ClassArt", "StampArt", "StickerArt", "Logo")
 IMPORTERS = (
     "import-flavor-art.py",
     "import-grape-art.py",
     "import-style-art.py",
     "import-class-art.py",
     "import-stamp-art.py",
+    "import-sticker-art.py",
     "import-logo-art.py",
 )
 
@@ -131,10 +132,11 @@ def main():
         changed, missing, exempt = [], [], []
         for d in DIRS:
             src = os.path.join(BUNDLE, d)
-            # StampArt ships empty until the glyphs are authored (0.6.4, F2/F3),
-            # so its directory legitimately does not exist. An absent bundle
-            # directory is not this script's business — the *generator* is what
-            # fails when a shipped id has no file behind it.
+            # StampArt and StickerArt ship empty until the glyphs are authored
+            # (0.6.4 F2; 0.7.8 A1 split the second out of the first), so their
+            # directories legitimately do not exist. An absent bundle directory
+            # is not this script's business — the *generator* is what fails
+            # when a shipped id has no file behind it.
             if not os.path.isdir(src):
                 continue
             for name in sorted(os.listdir(src)):

@@ -343,6 +343,149 @@ struct DeviceWorkshopTests {
         #expect(store.matching(DeviceBuild.active(in: defaults)) == nil)
     }
 
+    // MARK: Choosing a preset (0.7.8, A2)
+
+    /// The governance graph is a graph — two roots, every other axis hanging off
+    /// exactly one of them, and nothing hanging off a part.
+    ///
+    /// This is the gate on the eleventh axis. `inherits` is an exhaustive switch,
+    /// so a new case cannot compile without an answer; what it cannot catch is an
+    /// answer that is *wrong in shape* — a part naming another part as its preset,
+    /// or a third preset appearing and quietly governing nothing, which would make
+    /// it a picker whose choices override nothing at all.
+    @Test("every axis inherits from a preset, and only presets are presets")
+    func everyAxisDeclaresItsPreset() {
+        let presets = DeviceAxis.allCases.filter(\.isPreset)
+        #expect(Set(presets) == Set([.shell, .screen]))
+
+        for axis in DeviceAxis.allCases {
+            if let parent = axis.inherits {
+                #expect(parent.isPreset, "\(axis) inherits from \(parent), which is not a preset")
+                #expect(parent != axis, "\(axis) inherits from itself")
+            }
+        }
+        // Every part is governed by exactly one preset, and every preset governs
+        // something — so the two lists partition the axes with nothing over.
+        let governed = presets.flatMap(\.governs)
+        #expect(Set(governed).count == governed.count, "an axis is governed twice: \(governed)")
+        #expect(Set(governed) == Set(DeviceAxis.allCases.filter { !$0.isPreset }))
+        for preset in presets {
+            #expect(!preset.governs.isEmpty, "\(preset) is a preset that overrides nothing")
+        }
+        // The split as it stands, pinned so a part moving between the two roots
+        // is a deliberate edit. Seven parts follow the shell; the font follows
+        // the screen, because `LcdMode.fontInk` is what it falls back into.
+        #expect(DeviceAxis.shell.governs.count == 7)
+        #expect(DeviceAxis.screen.governs == [.font])
+    }
+
+    /// **The behaviour A2 asks for.** Choosing a shell clears the parts fitted on
+    /// top of it, so the shell's own palette is what shows.
+    @Test("a chosen preset clears the parts that were overriding it")
+    func choosingAPresetClearsWhatItGoverns() {
+        let defaults = scratch()
+        DeviceBuild(shell: "MIDNIGHT", buttons: "COBALT", orb: "AMBER",
+                    headerLamps: "ROSE", grilleShape: "BARS", font: "IVORY")
+            .apply(to: defaults)
+
+        // Announced before it happens, in workshop order, and only the parts
+        // actually fitted — GRILLE was never set, so it is not in the list.
+        let cleared = DeviceBuild.overrides(clearedByChoosing: .shell, in: defaults)
+        #expect(cleared == [.buttons, .orb, .headerLamps, .grilleShape])
+
+        DeviceBuild.choose(.shell, "BLUSH", defaultValue: "CLASSIC", in: defaults)
+
+        let after = DeviceBuild.active(in: defaults)
+        #expect(after.shell == "BLUSH")
+        for axis in DeviceAxis.shell.governs {
+            #expect(after[axis].isEmpty, "\(axis) survived a preset choice")
+            #expect(defaults.object(forKey: axis.storageKey) == nil, "\(axis) left an empty string behind")
+        }
+    }
+
+    /// The two pickers on CUSTOMIZE are independent, and this is the bug the
+    /// governance rule exists to prevent: picking a shell must not reach across
+    /// and undo the screen mode listed below it.
+    @Test("a preset clears its own parts and nobody else's")
+    func choosingAPresetLeavesTheOtherPresetAlone() {
+        let defaults = scratch()
+        DeviceBuild(shell: "OAKED", orb: "GLACIER", screen: "AMBER", font: "IVORY")
+            .apply(to: defaults)
+
+        DeviceBuild.choose(.shell, "STEEL", defaultValue: "CLASSIC", in: defaults)
+        var after = DeviceBuild.active(in: defaults)
+        #expect(after.orb.isEmpty)
+        #expect(after.screen == "AMBER", "the shell reached into the screen mode")
+        #expect(after.font == "IVORY", "the shell cleared a part the screen governs")
+
+        DeviceBuild.choose(.screen, "DARK", defaultValue: "DARK", in: defaults)
+        after = DeviceBuild.active(in: defaults)
+        #expect(after.font.isEmpty)
+        #expect(after.shell == "STEEL", "the screen reached into the shell")
+    }
+
+    /// Picking the shipped default stores absence, not its name.
+    ///
+    /// The two writers disagreed about this until 0.7.8: the workshop's chooser
+    /// wrote `""` for CLASSIC and the settings grid wrote `"CLASSIC"`, so the
+    /// same choice produced two different `DeviceBuild`s and a visually stock
+    /// device could report `isStock == false` forever.
+    @Test("choosing the default preset leaves no key behind")
+    func choosingTheDefaultStoresNothing() {
+        let defaults = scratch()
+        DeviceBuild(shell: "BLUSH", orb: "ROSE").apply(to: defaults)
+
+        DeviceBuild.choose(.shell, "CLASSIC", defaultValue: "CLASSIC", in: defaults)
+        #expect(defaults.object(forKey: DeviceAxis.shell.storageKey) == nil)
+        #expect(DeviceBuild.active(in: defaults).isStock)
+
+        // Whitespace is not a third state here either.
+        DeviceBuild.choose(.shell, "  BLUSH  ", defaultValue: "CLASSIC", in: defaults)
+        #expect(DeviceBuild.active(in: defaults).shell == "BLUSH")
+    }
+
+    /// **Nothing saved is destroyed.** The build stops being *fitted*, because
+    /// `matching(_:)` compares values and the values changed — which is the same
+    /// thing that already happened when one part was swapped in the workshop. It
+    /// is still in the list, still named, one tap from being fitted again.
+    @Test("choosing a preset unfits a saved build without deleting it")
+    func choosingAPresetDoesNotTouchSavedBuilds() {
+        let defaults = scratch()
+        let store = CustomDeviceStore(defaults: defaults)
+        let build = DeviceBuild(shell: "BLUSH", buttons: "ROSE", orb: "AMBER")
+        store.save(name: "PINK ONE", build: build)
+        build.apply(to: defaults)
+        #expect(store.matching(DeviceBuild.active(in: defaults))?.name == "PINK ONE")
+
+        DeviceBuild.choose(.shell, "STEEL", defaultValue: "CLASSIC", in: defaults)
+
+        #expect(store.matching(DeviceBuild.active(in: defaults)) == nil, "it should no longer be fitted")
+        #expect(store.devices.count == 1, "the saved build was deleted")
+        #expect(store.devices[0].build == build, "the saved build was rewritten")
+        // And it survives a relaunch, which is the check that the blob itself
+        // was never rewritten rather than merely that this instance still holds it.
+        #expect(CustomDeviceStore(defaults: defaults).devices[0].build == build)
+
+        // Re-fitting it is one call and restores every axis.
+        build.apply(to: defaults)
+        #expect(store.matching(DeviceBuild.active(in: defaults))?.name == "PINK ONE")
+    }
+
+    /// An untouched device asks nothing, which is what keeps the confirmation in
+    /// `SettingsPanel.fit(_:)` an exception rather than a tax on every tap.
+    @Test("a stock device has nothing to clear")
+    func stockDeviceClearsNothing() {
+        let defaults = scratch()
+        #expect(DeviceBuild.overrides(clearedByChoosing: .shell, in: defaults).isEmpty)
+        #expect(DeviceBuild.overrides(clearedByChoosing: .screen, in: defaults).isEmpty)
+
+        // A shell on its own is not a fitted part — swapping shells on a device
+        // that has never seen the workshop must not raise a prompt.
+        DeviceBuild(shell: "MIDNIGHT", screen: "AMBER").apply(to: defaults)
+        #expect(DeviceBuild.overrides(clearedByChoosing: .shell, in: defaults).isEmpty)
+        #expect(DeviceBuild.overrides(clearedByChoosing: .screen, in: defaults).isEmpty)
+    }
+
     /// Saved builds survive a relaunch, and arrive normalised.
     @Test("saved builds persist across a fresh store")
     func buildsPersist() {

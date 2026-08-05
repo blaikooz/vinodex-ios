@@ -1491,7 +1491,7 @@ const UI_RESOURCES = resolve(REPO_ROOT, 'Sources', 'VinodexUI', 'Resources');
  * The drawn-art search path, in order — mirrors `PixelArtLoader.subdirectories`
  * in Sources/VinodexUI/EntryVisual.swift. First hit wins there and here.
  */
-const ART_DIRS = ['FlavorArt', 'GrapeArt', 'StyleArt', 'ClassArt', 'StampArt'] as const;
+const ART_DIRS = ['FlavorArt', 'GrapeArt', 'StyleArt', 'ClassArt', 'StampArt', 'StickerArt'] as const;
 
 /**
  * Every asset id this generator emits must resolve to a file the app can load
