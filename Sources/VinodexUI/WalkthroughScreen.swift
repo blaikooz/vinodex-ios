@@ -313,7 +313,12 @@ struct DeviceDiagram: View {
                         // proportional here too.
                         let orbShape = Capsule(style: .continuous)
                         let orbW = control * 0.75
-                        let orbH = orbW / DexMetrics.islandOrbAspect
+                        // The lamp trio below is `control * 0.26` tall, so that
+                        // is this diagram's lamp and therefore its orb's height
+                        // (0.8.0, C1) — the same one-lamp rule the chassis
+                        // follows now. It was `orbW / islandOrbAspect`, which at
+                        // 5.3 drew a bead barely half the lamps beside it.
+                        let orbH = DexMetrics.islandOrbHeight(lamp: control * 0.26)
                         orbShape
                             .fill(skin.orb)
                             .frame(width: orbW, height: orbH)

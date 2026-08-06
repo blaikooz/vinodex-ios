@@ -12,14 +12,19 @@ import Foundation
 struct IdleTimerTests {
     /// **The fold, and the two numbers it leaves** (0.7.6, A3/A4).
     ///
-    /// A3 takes the screensaver to 30 seconds; A4 folds the marquee's pre-idle
+    /// A3 took the screensaver off 15; A4 folds the marquee's pre-idle
     /// toast into it, so `toast` is `nil` and the greeting is due at the one
     /// threshold. What is pinned here is the *shape* as much as the value: a
     /// schedule that is ascending, that ends at the screensaver, and whose
     /// greeting time is always something a consumer can ask for.
+    ///
+    /// **The value pin lives here and nowhere else** — every other assertion in
+    /// this suite is written against `IdleSchedule.screensaver` rather than
+    /// against a literal, so moving the threshold is one line here. 60 since
+    /// 0.8.0 (H), 30 from 0.7.6 (A3), 15 from 0.7.3 (A5).
     @Test("the schedule is one threshold, with the toast folded into it")
     func scheduleOrder() {
-        #expect(IdleSchedule.screensaver == 30)
+        #expect(IdleSchedule.screensaver == 60)
         #expect(IdleSchedule.toast == nil, "A4 folds the toast into the screensaver")
         // The accessor every consumer reads, whichever shape the schedule is in.
         #expect(IdleSchedule.cheers == IdleSchedule.screensaver)
@@ -40,12 +45,13 @@ struct IdleTimerTests {
 
     @Test("a duration resolves to the stage it has reached")
     func stageForDuration() {
+        let t = IdleSchedule.screensaver
         #expect(IdleSchedule.stage(after: 0) == .active)
-        #expect(IdleSchedule.stage(after: 29.99) == .active)
-        // Inclusive at the boundary: at exactly thirty seconds it has been
-        // thirty seconds.
-        #expect(IdleSchedule.stage(after: 30) == .screensaver)
-        #expect(IdleSchedule.stage(after: 6000) == .screensaver)
+        #expect(IdleSchedule.stage(after: t - 0.01) == .active)
+        // Inclusive at the boundary: at exactly the threshold it has been the
+        // threshold.
+        #expect(IdleSchedule.stage(after: t) == .screensaver)
+        #expect(IdleSchedule.stage(after: t * 200) == .screensaver)
         // `.toast` is not separately reachable while the fold is in force — but
         // it is still *passed*, which is what every `stage >= .toast` consumer
         // relies on and what makes the fold a threshold change. See `IdleStage`.
@@ -58,12 +64,13 @@ struct IdleTimerTests {
     /// between a dissolve playing once and playing on every tick forever.
     @Test("advancing reports crossings, not the current stage")
     func advanceReportsCrossings() {
+        let t = IdleSchedule.screensaver
         var clock = IdleClock()
         #expect(clock.advance(to: 3) == nil)
-        #expect(clock.advance(to: 29.9) == nil)
-        #expect(clock.advance(to: 30.1) == .screensaver)
-        #expect(clock.advance(to: 31) == nil, "already there; nothing was crossed")
-        #expect(clock.advance(to: 400) == nil)
+        #expect(clock.advance(to: t - 0.1) == nil)
+        #expect(clock.advance(to: t + 0.1) == .screensaver)
+        #expect(clock.advance(to: t + 1) == nil, "already there; nothing was crossed")
+        #expect(clock.advance(to: t * 10) == nil)
     }
 
     /// A tick that arrives very late — a busy main actor, a returning app —
@@ -82,7 +89,7 @@ struct IdleTimerTests {
     @Test("the stage never falls without activity")
     func neverRegresses() {
         var clock = IdleClock()
-        clock.advance(to: 32)
+        clock.advance(to: IdleSchedule.screensaver + 2)
         #expect(clock.stage == .screensaver)
         #expect(clock.advance(to: 2) == nil)
         #expect(clock.stage == .screensaver, "a low reading must not lower the stage")
@@ -93,7 +100,7 @@ struct IdleTimerTests {
         var clock = IdleClock()
         #expect(clock.noteActivity() == false, "already active and at zero — nothing to do")
 
-        clock.advance(to: 32)
+        clock.advance(to: IdleSchedule.screensaver + 2)
         #expect(clock.stage == .screensaver)
         #expect(clock.noteActivity() == true)
         #expect(clock.stage == .active)
@@ -101,7 +108,7 @@ struct IdleTimerTests {
 
         // And the stages are reachable again afterwards, which is what makes it
         // a loop rather than a one-shot.
-        #expect(clock.advance(to: 30) == .screensaver)
+        #expect(clock.advance(to: IdleSchedule.screensaver) == .screensaver)
     }
 
     /// Negative durations are clamped rather than trusted: a monotonic clock

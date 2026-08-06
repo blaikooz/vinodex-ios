@@ -54,7 +54,8 @@ struct MarqueeScriptTests {
         // **The greeting rides the shared schedule, whatever shape it is in**
         // (0.7.6, A4). This was pinned at the literal 10 through 0.7.5, which
         // was B3's figure; A4 folds the pre-idle toast into the screensaver, so
-        // the number is 30 today. Pinned against `IdleSchedule.cheers` rather
+        // the number is whatever that threshold is — 30 from 0.7.6, 60 since
+        // 0.8.0's H, and this test did not move. Pinned against `IdleSchedule.cheers` rather
         // than against a fresh literal, because what must never drift is that
         // the panel and the screensaver agree — the exact reconciliation
         // 0.7.3's F2 was written for. `IdleTimerTests` pins the value itself.

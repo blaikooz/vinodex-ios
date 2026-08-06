@@ -285,7 +285,12 @@ public struct DeviceWorkshopScreen: View {
         let lamp: CGFloat = 4
         let gap: CGFloat = 4
         let orbWidth = DexMetrics.islandOrbWidth(lamp: lamp, spacing: gap)
-        let orbHeight = orbWidth / DexMetrics.islandOrbAspect
+        // **Height from the lamp, not from the aspect (0.8.0, C1).** It was
+        // `orbWidth / islandOrbAspect` — the chassis's aspect over this diagram's
+        // width — which the aspect becoming a derived quotient of two chassis
+        // metrics turns into a number about nothing. `islandOrbHeight(lamp:)` is
+        // the same rule the real strip now follows: one lamp tall.
+        let orbHeight = DexMetrics.islandOrbHeight(lamp: lamp)
 
         return VStack(spacing: 5) {
             // Island: the orb, then the lamp trio.

@@ -722,7 +722,7 @@ public struct SettingsSectionPanel: View {
             return "Notifications are switched off for Vinodex in iOS Settings. Tap to open them."
         }
         if notifications.isOn {
-            return "A nudge when today's paper is live, and again if a streak is about to break."
+            return "A nudge when today's exam is live, and again if a streak is about to break."
         }
         return "Get told when today's challenge is live, and before your streak runs out."
     }
@@ -1579,10 +1579,16 @@ public struct SettingsSectionPanel: View {
                                 // takes that. Left at a hand-set 10pt the bead
                                 // would now be 1.9pt tall — a scratch on the
                                 // tile rather than a part.
+                                // Height is this tile's own lamp (0.8.0, C1) —
+                                // the same 10pt the width is built from, since
+                                // the chassis rule is now "one lamp tall". It was
+                                // `orbW / islandOrbAspect`, a chassis aspect over
+                                // a tile's width, which drew a 6.8pt bead beside
+                                // a 10pt light.
                                 let orbW = DexMetrics.islandOrbWidth(lamp: 10, spacing: 3)
                                 Capsule(style: .continuous)
                                     .fill(option.orb)
-                                    .frame(width: orbW, height: orbW / DexMetrics.islandOrbAspect)
+                                    .frame(width: orbW, height: DexMetrics.islandOrbHeight(lamp: 10))
                                     .padding(5)
                             }
                             .overlay(alignment: .topTrailing) {

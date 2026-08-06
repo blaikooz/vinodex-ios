@@ -345,7 +345,11 @@ public struct RetroGlobeScreen: View {
     /// different glyph colour, different padding and a trailing chevron nothing
     /// else had, which made it read as a different kind of control.
     private var searchBar: some View {
-        DexSearchBarButton(placeholder: "SEARCH WORLD...", action: onWorldSearch)
+        // The ellipsis is U+2026, matching the live field this opens (0.8.0, J).
+        // Three periods and an ellipsis are visibly different widths in the mono
+        // face, and the whole point of `DexSearchBarButton` is that it is
+        // indistinguishable from the field until you tap it.
+        DexSearchBarButton(placeholder: "SEARCH WORLD…", action: onWorldSearch)
             .padding(.horizontal, 12)
     }
 

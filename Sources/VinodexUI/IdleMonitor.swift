@@ -57,8 +57,9 @@ public final class IdleMonitor {
 
     /// How often the clock is re-read.
     ///
-    /// Half a second. The schedule is one threshold at thirty seconds since
-    /// 0.7.6 (A3/A4) — it was ten and fifteen — so this is sixty times finer
+    /// Half a second. The schedule is one threshold since 0.7.6 (A3/A4) — sixty
+    /// seconds since 0.8.0's H, thirty before that, ten and fifteen before
+    /// that — so this is at worst sixty times finer
     /// than the thing it has to resolve and the worst-case lateness is
     /// invisible. Deliberately not slackened to match: the tick also has to be
     /// fine enough for a threshold somebody puts *back*, and `IdleSchedule.toast`

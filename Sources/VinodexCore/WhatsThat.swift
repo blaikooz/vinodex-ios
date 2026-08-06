@@ -411,4 +411,90 @@ public enum WhatsThat {
         guard let first = named.first else { return .unrecognized }
         return .wrong(named: first.name)
     }
+
+    // MARK: - Type-ahead
+
+    /// The shortest query that produces suggestions at all (0.8.0, E2).
+    ///
+    /// One character must never produce a list. That is the hard requirement the
+    /// spec states, and it is the requirement because a list from one letter is a
+    /// *menu*: the player stops recalling a name and starts reading one, which is
+    /// the round over. Two is the smallest number that cannot be reached by
+    /// pressing a key at random and still narrows a shelf.
+    public static let minimumSuggestionQuery = 2
+
+    /// How many names the field will ever offer.
+    ///
+    /// Short on purpose and not merely for layout. The value of a type-ahead here
+    /// is confirming a spelling the player already has in mind; the *cost* is
+    /// every extra row, because a long list is a browsable index of the catalog
+    /// with the query as its filter.
+    public static let suggestionLimit = 5
+
+    /// Names to offer as the player types.
+    ///
+    /// **This is E2-a, and the decision it encodes is `discovered`.** The judge
+    /// counts only non-inferred matches precisely so that naming something *near*
+    /// the answer cannot win a round (see `judge(_:in:)`), and a type-ahead over
+    /// the whole catalog gives away by autocompletion exactly what that
+    /// restriction protects: type `NEB`, read *Nebbiolo*, press GUESS. So the
+    /// pool is not the catalog. It is the entries the player has already met —
+    /// bookmarked, wishlisted, marked tried, or opened recently — assembled by
+    /// the caller and passed in as ids.
+    ///
+    /// What that buys is the convenience without the give-away: a name in this
+    /// list is one the player has already seen in this app, so completing it
+    /// spares them the spelling of `Gewurztraminer` without telling them a wine
+    /// exists. What it costs is honest and worth stating: a player who has met
+    /// the answer before *can* be shown it, from two characters. That is the
+    /// trade E2-a is, and it is the right way round — the alternative leaks to
+    /// everyone rather than to the person who already knew.
+    ///
+    /// **Two clauses of the recommendation are deliberately not implemented, and
+    /// the batch log carries the argument.** "Never from the answer's own
+    /// category" would disable the feature outright: the first clue of every
+    /// round says IT'S A GRAPE or IT'S A WINE REGION, and those are the only two
+    /// categories a guess can usefully be in. And excluding the *answer itself*
+    /// would be worse than the leak it prevents — a player who has met Nebbiolo,
+    /// types `NEBB`, and gets nothing back has been told which entry is being
+    /// withheld. Silence is information. Nothing here is filtered on the answer.
+    ///
+    /// - Parameters:
+    ///   - typed: the raw contents of the guess field.
+    ///   - discovered: entry ids the player has demonstrably encountered. Order
+    ///     is respected for ties, so a caller may pass its most-recent first.
+    /// - Returns: catalog spellings, prefix matches first, at most
+    ///   `suggestionLimit`.
+    public static func suggestions(
+        for typed: String,
+        among discovered: [String],
+        in db: WineDatabase,
+        limit: Int = suggestionLimit
+    ) -> [String] {
+        let query = TextNormalize.label(typed)
+        guard query.count >= minimumSuggestionQuery else { return [] }
+
+        var seen: Set<String> = []
+        var prefixed: [String] = []
+        var contained: [String] = []
+
+        for id in discovered {
+            guard let entry = db.entry(id: id) else { continue }
+            // Grapes and regions only — the pool `round(cursor:...)` deals from,
+            // so the list holds exactly the things that could be an answer. A
+            // flavour or a style completing in this field is noise in a round it
+            // cannot win, and noise is what makes a short list long.
+            guard entry.category == .grapes || entry.category == .regions else { continue }
+            guard seen.insert(entry.id).inserted else { continue }
+
+            let folded = TextNormalize.label(entry.name)
+            if folded.hasPrefix(query) {
+                prefixed.append(entry.name)
+            } else if folded.contains(query) {
+                contained.append(entry.name)
+            }
+        }
+
+        return Array((prefixed + contained).prefix(limit))
+    }
 }

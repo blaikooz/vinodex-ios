@@ -132,8 +132,21 @@ public struct WhatsThatScreen: View {
     @ViewBuilder
     private func content(_ round: WhatsThat.Round) -> some View {
         VStack(alignment: .leading, spacing: 16) {
+            // **E1 (0.8.0) takes the whole screen up one register**, the same
+            // ask B5 makes of the BIOS and for the same reason: this is a
+            // fixed, non-scrolling-by-choice page read at arm's length, and it
+            // was set at the sizes a dense list uses. Everything with words in it
+            // moves by roughly 15%, except the labels already sitting on
+            // `TypeScale.nominalFloor` (the clue index, the feedback line) —
+            // those are at 10 and a larger number there would be the first size
+            // on this screen that is *not* the floor, which is a different
+            // change from the one E1 asks for.
+            //
+            // Unlike the BIOS there is no width budget to derive against: this
+            // page is inside a `ScrollView`, so the failure mode of going too far
+            // is a longer scroll rather than a clipped composition.
             Text(isOver ? "IT WAS…" : "WHAT'S THAT…?")
-                .font(DexFont.retro(15))
+                .font(DexFont.retro(17))
                 .tracking(2)
                 .foregroundStyle(Dex.yellow)
                 .frame(maxWidth: .infinity, alignment: .center)
@@ -163,9 +176,9 @@ public struct WhatsThatScreen: View {
                     Text("\(index + 1)")
                         .font(DexFont.retro(10))
                         .foregroundStyle(shown ? lcd.accent : Dex.stone600)
-                        .frame(width: 18)
+                        .frame(width: 20)
                     Text(shown ? clue.text : "· · · · ·")
-                        .font(DexFont.retro(11))
+                        .font(DexFont.retro(13))
                         .tracking(0.5)
                         .foregroundStyle(shown ? lcd.text : Dex.stone600)
                         .multilineTextAlignment(.leading)
@@ -197,18 +210,18 @@ public struct WhatsThatScreen: View {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "plus.magnifyingglass")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 16, weight: .bold))
                 // The cost is printed on the button. A player who cannot see
                 // what a clue costs is not making a choice.
                 Text(last
                      ? "NO CLUES LEFT"
                      : "NEXT CLUE  ·  \(round.score(revealed: revealed + 1)) PTS")
-                    .font(DexFont.retro(11))
+                    .font(DexFont.retro(13))
                     .tracking(1)
             }
             .foregroundStyle(last ? Dex.stone600 : lcd.accent)
             .frame(maxWidth: .infinity)
-            .frame(height: 44)
+            .frame(height: 50)
             .background(Capsule().fill(lcd.well))
             .overlay(Capsule().strokeBorder(last ? Dex.stone800 : lcd.surfaceEdge, lineWidth: 2))
         }
@@ -221,17 +234,17 @@ public struct WhatsThatScreen: View {
     private func guessField(_ round: WhatsThat.Round) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                DexSearchField(text: $guess, placeholder: "TYPE YOUR GUESS…", fontSize: 22)
-                    .frame(height: 40)
+                DexSearchField(text: $guess, placeholder: "TYPE YOUR GUESS…", fontSize: 25)
+                    .frame(height: 46)
                 Button {
                     submit(round)
                 } label: {
                     Text("GUESS")
-                        .font(DexFont.retro(11))
+                        .font(DexFont.retro(13))
                         .tracking(1)
                         .foregroundStyle(.black)
-                        .padding(.horizontal, 16)
-                        .frame(height: 40)
+                        .padding(.horizontal, 18)
+                        .frame(height: 46)
                         .background(Capsule().fill(Dex.green))
                 }
                 .buttonStyle(DexPressStyle(scale: 0.96))
@@ -242,23 +255,94 @@ public struct WhatsThatScreen: View {
             .background(lcd.well)
             .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(lcd.surfaceEdge, lineWidth: 2))
 
+            suggestionRow
+
             if let verdict, case .correct = verdict {} else if let verdict {
                 verdictLine(verdict)
             }
 
+            // **A red button rather than a line of text (0.8.0, E3).** GIVE UP
+            // was grey type on the background, which put the one irreversible
+            // control on this screen in the register the app uses for captions —
+            // and directly under a field whose Return key is the *reversible*
+            // action. The treatment is `Dex.red800` filled with a `red500` edge:
+            // plainly a control, plainly not the one you press by accident,
+            // and visibly subordinate to GUESS above it, which is filled solid
+            // green. It stays full-width and short, so it reads as the end of the
+            // panel rather than as a second primary action beside GUESS.
             Button {
                 Haptics.select()
                 withAnimation(DexMotion.settle) { gaveUp = true }
             } label: {
                 Text("GIVE UP")
-                    .font(DexFont.retro(10))
-                    .tracking(1)
-                    .foregroundStyle(Dex.stone400)
+                    .font(DexFont.retro(12))
+                    .tracking(1.5)
+                    .foregroundStyle(Dex.red200)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 34)
+                    .frame(height: 40)
+                    .background(Capsule().fill(Dex.red800.opacity(0.55)))
+                    .overlay(Capsule().strokeBorder(Dex.red500, lineWidth: 2))
             }
             .buttonStyle(DexPressStyle(scale: 0.98))
         }
+    }
+
+    /// The type-ahead (0.8.0, E2).
+    ///
+    /// **The rule is in `WhatsThat.suggestions` and the reasoning with it** — this
+    /// is the drawing, per the file's own note. What lives here is only the pool:
+    /// which ids count as "the player has met this". Four sources, all of them
+    /// acts the player performed —
+    ///
+    ///   * the three `BookmarkStore` shelves (saved, want-to-try, tried), and
+    ///   * `RecentlyViewedStore`, which is what covers browsing without saving.
+    ///
+    /// Recently-viewed leads, so the ties resolve toward what was just looked at.
+    /// There is no general "discovered" ledger in this app and inventing one for a
+    /// type-ahead would be a new persisted vocabulary for a convenience; these
+    /// four are the honest approximation and they are all already on disk.
+    ///
+    /// Nothing is drawn until the round is live and two characters are in — the
+    /// row simply is not there, rather than being there and empty, so it costs no
+    /// height on the round's first move.
+    @ViewBuilder
+    private var suggestionRow: some View {
+        let names = WhatsThat.suggestions(for: guess, among: discoveredIDs, in: db)
+        if !names.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(names, id: \.self) { name in
+                        Button {
+                            Haptics.tap()
+                            // Fills the field rather than submitting: the guess is
+                            // still the player's to make, and a tap that both
+                            // completed and answered would spend a round on a
+                            // mis-tap.
+                            guess = name.uppercased()
+                        } label: {
+                            Text(name.uppercased())
+                                .font(DexFont.retro(11))
+                                .tracking(0.5)
+                                .foregroundStyle(lcd.accent)
+                                .lineLimit(1)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(Capsule().fill(lcd.well))
+                                .overlay(Capsule().strokeBorder(lcd.surfaceEdge, lineWidth: 2))
+                        }
+                        .buttonStyle(DexPressStyle(scale: 0.96))
+                    }
+                }
+                .padding(.horizontal, 2)
+            }
+            .frame(height: 40)
+        }
+    }
+
+    /// Entry ids the player has demonstrably encountered — see `suggestionRow`.
+    private var discoveredIDs: [String] {
+        RecentlyViewedStore.shared.ids
+            + Shelf.allCases.flatMap { BookmarkStore.shared.ids(on: $0) }
     }
 
     /// A wrong guess that named something real says *what* it named — "that's
@@ -303,10 +387,10 @@ public struct WhatsThatScreen: View {
         let score = solvedAt.map { round.score(revealed: $0) } ?? 0
         return VStack(spacing: 14) {
             if let answer {
-                EntryIconWell(entry: answer, size: 96, cornerRadius: 12)
+                EntryIconWell(entry: answer, size: 110, cornerRadius: 14)
             }
             Text(round.answerName.uppercased())
-                .font(DexFont.retro(20))
+                .font(DexFont.retro(23))
                 .foregroundStyle(lcd.text)
                 .shadow(color: lcd.accent.opacity(0.55), radius: 0, x: 3, y: 3)
                 .multilineTextAlignment(.center)
@@ -316,7 +400,7 @@ public struct WhatsThatScreen: View {
             Text(won
                  ? "SOLVED ON CLUE \(solvedAt ?? 0)  ·  \(score) PTS"
                  : "NOT GUESSED  ·  0 PTS")
-                .font(DexFont.retro(11))
+                .font(DexFont.retro(13))
                 .tracking(1)
                 .foregroundStyle(won ? Dex.green : Dex.stone400)
 
@@ -349,11 +433,11 @@ public struct WhatsThatScreen: View {
 
     private func pill(_ text: String, fill: Color, ink: Color) -> some View {
         Text(text)
-            .font(DexFont.retro(12))
+            .font(DexFont.retro(14))
             .tracking(2)
             .foregroundStyle(ink)
-            .padding(.horizontal, 28)
-            .padding(.vertical, 13)
+            .padding(.horizontal, 30)
+            .padding(.vertical, 15)
             .background(Capsule().fill(fill))
             .overlay(Capsule().strokeBorder(.white.opacity(0.35), lineWidth: 1))
     }

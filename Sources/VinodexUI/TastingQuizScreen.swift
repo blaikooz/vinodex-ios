@@ -182,11 +182,18 @@ public struct TastingQuizScreen: View {
                 .foregroundStyle(streak.current > 0 ? Dex.yellow : lcd.subtext)
                 .shadow(color: Dex.yellow.opacity(streak.current > 0 ? 0.5 : 0), radius: 8)
 
-            // "PAPER COMPLETE" through 0.6.6. The screen's own vocabulary is
+            // "PAPER COMPLETE" through 0.6.6. The code's own vocabulary is
             // "paper" throughout — it is a WSET-shaped app — but the *user*
-            // never sees that word anywhere else: the tile says DAILY
+            // never saw that word anywhere else: the tile says DAILY
             // CHALLENGE, the marquee says DAILY CHALLENGE, and the completion
             // card said something else entirely. (0.6.7, A1)
+            //
+            // **0.8.0's F finishes that argument on the other side.** A1 fixed
+            // this one card; F takes the word out of every string the player
+            // reads and leaves it in every identifier — `ExamPaper` and
+            // everything built on it keep their names, because renaming a type
+            // to describe a change nobody can see is the churn 0.7.5's D1
+            // declined. The door keeps its name; the sign on it says EXAM.
             Text("DAILY CHALLENGE COMPLETED.")
                 .font(DexFont.retro(13))
                 .tracking(2)
@@ -196,7 +203,7 @@ public struct TastingQuizScreen: View {
 
             Text(streak.current > 0
                 ? "STREAK: \(streak.current) \(streak.current == 1 ? "DAY" : "DAYS"). COME BACK TOMORROW."
-                : "TODAY'S PAPER IS DONE. A NEW ONE ARRIVES TOMORROW.")
+                : "TODAY'S EXAM IS DONE. A NEW ONE ARRIVES TOMORROW.")
                 .font(DexFont.mono(18))
                 .foregroundStyle(lcd.subtext)
                 .multilineTextAlignment(.center)
@@ -418,7 +425,7 @@ public struct TastingQuizScreen: View {
 
             Text(streak.current > 0
                 ? "STREAK: \(streak.current) \(streak.current == 1 ? "DAY" : "DAYS")"
-                : "STREAK RESET — TOMORROW IS A FRESH PAPER")
+                : "STREAK RESET — TOMORROW IS A FRESH EXAM")
                 .font(DexFont.mono(18))
                 .foregroundStyle(streak.current > 0 ? lcd.bodyText : lcd.subtext)
                 .multilineTextAlignment(.center)

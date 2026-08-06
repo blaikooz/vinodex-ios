@@ -206,7 +206,22 @@ function buildPalette(full: readonly WineEntry[]) {
   const domain = collectKeyDomain(full);
 
   const rarities = ['COMMON', 'UNCOMMON', 'RARE', 'NOBLE', 'GODFORSAKEN'] as const;
-  const colorTypes = ['RED', 'WHITE', 'ROSÉ', 'ORANGE', 'DUAL'] as const;
+  // **`ROSE`, not `ROSÉ` (0.8.0, K).** This probe list is not a display
+  // vocabulary — the strings in it become the *keys* of the emitted table, and
+  // every consumer looks up with `StyleColorType`'s rawValue, which is the
+  // unaccented `ROSE` on both sides (`entryUtils.ts`'s `StyleColorType` union
+  // and `EntryDisplay.StyleColorType` agree). `getColorTypeChipColors` answers
+  // to either spelling, which is exactly what hid this: the generator asked with
+  // the accent, got the right colours, and wrote them under a key nothing in the
+  // app ever asks for. Every rosé style therefore missed the table and fell
+  // through to `Palette.resolve`'s neutral stone — the chip said ROSE and was
+  // grey, which reads as a styling choice rather than as a miss.
+  //
+  // This is the identical fault 0.6.9's I1 found on the grape colour chip (wrong
+  // table *and* wrong case, 146 grapes grey), and the identical tell. The
+  // lesson, written down this time: **a probe key is an identifier, and the only
+  // safe source for one is the rawValue the reader uses.**
+  const colorTypes = ['RED', 'WHITE', 'ROSE', 'ORANGE', 'DUAL'] as const;
   const styleClasses = ['STYLE', 'METHOD', 'ORIGIN', 'TYPE', 'BLEND'] as const;
   const flavorClasses = ['SWEET', 'SOUR', 'SALTY', 'BITTER', 'UMAMI'] as const;
   const flavorSubclasses = FLAVOR_SUBCLASS_KEYWORDS.map((k) => k.id);

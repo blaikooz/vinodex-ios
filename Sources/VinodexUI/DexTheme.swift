@@ -92,6 +92,11 @@ public enum Dex {
     public static let amber700 = Color(dexHex: "#b45309")
     public static let amber900 = Color(dexHex: "#78350f")
 
+    /// The pale end of the red ramp, added in 0.8.0 (E3) for ink on a filled red
+    /// control — the amber ramp already carried its 100/200 stops for exactly
+    /// this, and the reds stopped at 500. Tailwind's `red-200`, like every other
+    /// stop in this enum.
+    public static let red200 = Color(dexHex: "#fecaca")
     public static let red500 = Color(dexHex: "#ef4444")
     public static let red600 = Color(dexHex: "#dc2626")
     public static let red800 = Color(dexHex: "#991b1b")
@@ -258,6 +263,22 @@ public enum DexMetrics {
         3 * lamp + 2 * spacing
     }
 
+    /// C1's rule, stated the same way and for the same three callers.
+    ///
+    /// **The orb is as tall as one lamp** (0.8.0, C1), where A1 said it is as
+    /// long as three. The three miniature chassis were deriving their bead's
+    /// height by dividing their own width by `DexMetrics.islandOrbAspect` — the
+    /// *chassis's* aspect applied to a diagram's width, which was already only
+    /// approximately right and which C1 turns into a number with no meaning at
+    /// all, since the real aspect is now itself a quotient of two chassis
+    /// metrics. Each preview knows its own lamp size; that is the input.
+    ///
+    /// It is an identity function on purpose. What it buys is that the rule has a
+    /// name and one definition, exactly as `islandOrbWidth` does — a preview that
+    /// writes `height: lamp` is a preview that agrees by coincidence, and the next
+    /// pass on this part is the fourth in five batches.
+    public static func islandOrbHeight(lamp: CGFloat) -> CGFloat { lamp }
+
     /// How much wider than tall the orb is (0.7.6, E1).
     ///
     /// **E1 refines 0.7.5's A2 rather than reversing it.** A2 squared the bead
@@ -347,18 +368,55 @@ public enum DexMetrics {
     /// was after and never had. It buys it at the cost of the notch's 3.4
     /// proportion, which the bead now overshoots by a wide margin. Worth an
     /// eyeball, like every pass on this part.
+    ///
+    /// ---
+    ///
+    /// **0.8.0 (C1): still derived, and now derived from one number.** The height
+    /// stops being authored too — it is `islandStatusDot` — so this is
+    /// `(3 x lamp + 2 x spacing) / lamp`, i.e. `3 + 2 x spacing / lamp` and
+    /// nothing else. **3.61 at SMALL and 3.55 at LARGE**, down from 5.30/5.01,
+    /// which lands the bead within a fifth of the device cutout's own ~3.4 — the
+    /// proportion A3 chose and A1 then overshot. The two scales still differ, for
+    /// the reason above: at SMALL `islandStatusDot`'s 22pt floor binds and the
+    /// trio is proportionally wider than the strict fraction makes it.
     public static var islandOrbAspect: CGFloat { islandOrb / islandOrbHeight }
 
-    /// The orb's height — **the authored axis since 0.7.9 (A1)**.
+    /// The orb's height — **the lamp's, since 0.8.0 (C1)**.
     ///
-    /// 0.234 of `controlButton` is not a fresh number: it is 0.55 / 2.35, the
-    /// width fraction and the aspect 0.7.8 shipped, multiplied out. So the bead
-    /// is 14.98pt at SMALL and 17.22 at LARGE, which is what it was before this
-    /// batch to two decimal places. A1 permits either axis to be the authored
-    /// one; holding the height is the choice that leaves the rim, the specular
-    /// highlight and the coloured core exactly where 0.7.8 tuned them, and makes
-    /// this pass purely about length.
-    public static var islandOrbHeight: CGFloat { controlButton * 0.234 }
+    /// 0.7.9's A1 made this the authored axis at `controlButton x 0.234`, which
+    /// was not a fresh number but 0.55 / 2.35 — the width fraction and the aspect
+    /// 0.7.8 had shipped, multiplied out — chosen so that pass changed length and
+    /// nothing else. C1 is those two factors becoming one: the bead is as tall as
+    /// a status lamp, so `islandStatusDot` is read directly and the orb and the
+    /// trio now agree on *both* axes. A1 gave them the same length; this gives
+    /// them the same mass, which is the "mirrored pair of blocks" reading 0.6.8's
+    /// F3 asked for and E1 and A3 each spent in turn.
+    ///
+    /// **14.98 -> 22.00 at SMALL, 17.22 -> 24.29 at LARGE.** The spec's figures
+    /// were 21.12 and an aspect of 3.76, which is `controlButton x 0.33` taken
+    /// without its floor; `islandStatusDot` is `max(controlButton x 0.33, 22)`
+    /// and at SMALL the **22 binds** (21.12 rounds up). So the bead is a shade
+    /// taller than asked and the derived aspect comes out 3.61 at SMALL against
+    /// 3.55 at LARGE, rather than 3.76 flat. That is the same floor that already
+    /// makes `islandOrbAspect` differ between the two scales — see its note.
+    ///
+    /// **No horizontal number moved, and the clearance table is confirmed rather
+    /// than assumed** (0.7.1's A4 asks for exactly that). `islandOrb` is
+    /// `3 x lamp + 2 x spacing` and reads neither this nor the aspect, so the
+    /// width, `islandOrbSlot`, `islandOrbInsetLeading` and
+    /// `islandStatusInsetTrailing` are untouched: the slot still runs 64 -> 108
+    /// against a cutout starting at 133, ~25pt of leading clearance. Vertically
+    /// `islandSlot` is `max(height + 8, 44)` and 22 + 8 = 30, so the 44pt touch
+    /// floor still binds exactly as it has since 0.6.6 and the strip's height
+    /// does not move either.
+    ///
+    /// **What it does change is the rim, and that is the one thing to eyeball.**
+    /// `DeviceChassis.lcdOrb` draws `max(height x 0.11, 2)`; at 14.98 that was on
+    /// the 2pt floor, and at 22 it is 2.42 — the first time since 0.7.6 that the
+    /// rim is proportional again. The coloured core goes from 10.98 to 17.16pt.
+    /// 0.7.8's ceiling argument was always about the short axis and it is
+    /// satisfied with room to spare in the direction it was worried about.
+    public static var islandOrbHeight: CGFloat { islandStatusDot }
 
     // `islandOrbCornerFraction` retired in 0.7.6 (E1). It was 0.30 of the side —
     // the radius that made 0.7.5's rounded key — and a stadium has no radius to

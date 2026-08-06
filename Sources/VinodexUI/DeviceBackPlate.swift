@@ -765,29 +765,21 @@ public struct DeviceBackPlate: View {
             // standing in for a control. The gesture it described is gone and
             // the control it should have been is in the bottom-right corner.
             //
-            // **The stamp hint is not that mistake** (0.7.1, D3), and the
-            // difference is worth stating since this is the same spot. That
-            // line stood in for a control — there was no other way to go back.
-            // This one describes a *secondary* gesture on an object that is
-            // already fully usable without it: every stamp taps to open its
-            // story, and the hold is the extra. Engraved into the moulding
-            // alongside the other plant markings, at the smallest size on the
-            // plate, because it is documentation of the object rather than an
-            // instruction to the user — and D3's report was, at root, that
-            // nothing anywhere said the hold existed.
-            Text("HOLD A STAMP TO REPOSITION")
-                // `retro(10)`: `TypeScale.nominalFloor` clamps anything below
-                // it *before* the scale factor, so a smaller number here would
-                // describe a size that never renders — the trap `StampFrame`
-                // documents at length a few files over.
-                .font(DexFont.retro(10))
-                .tracking(1)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-                .foregroundStyle(plate.ink.opacity(0.75))
-                .engraved()
-                .padding(.top, 10)
-
+            // **The stamp hint went the same way (0.8.0, D).** It read HOLD A
+            // STAMP TO REPOSITION, and 0.7.1's D3 argued it was *not* the
+            // mistake above: a secondary gesture on an object already fully
+            // usable without it, engraved into the moulding as documentation
+            // rather than as an instruction. That argument was sound and it is
+            // still sound; what changed is the plate around it. 0.7.8 (A1)
+            // reorganised this face when the sticker stopped being a stamp, and
+            // what is left here is a nameplate, a serial block and a line of
+            // help text — two engravings and a caption, which is one caption
+            // too many for a moulding.
+            //
+            // The gesture is unchanged and still works. What is gone is the
+            // third line of type on a plate whose whole subject is the two
+            // recessed panels above it; with it gone the pair sit centred
+            // between the two spacers, which is where the engraving reads best.
             Spacer(minLength: 0)
         }
         .multilineTextAlignment(.center)

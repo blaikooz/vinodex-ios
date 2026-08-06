@@ -271,6 +271,92 @@ struct WhatsThatTests {
         #expect(WhatsThat.judge("Barolo", in: piedmont) == .correct)
     }
 
+    // MARK: - Type-ahead (0.8.0, E2)
+
+    /// Every id in the catalog, as the worst case a caller could ever hand in.
+    private var wholeCatalog: [String] {
+        EntryCategory.allCases.flatMap { db.entries(in: $0).map(\.id) }
+    }
+
+    /// **The property E2 exists to protect: the field is not a menu.**
+    ///
+    /// One character must return nothing even when the caller passes the entire
+    /// catalog as "discovered" — which is the strongest form of the check,
+    /// because it fails on the gate rather than on the pool happening to be
+    /// small. A player who types `N` and reads a list has been handed the round.
+    @Test("a single character never enumerates anything")
+    func oneLetterSuggestsNothing() {
+        for letter in ["a", "n", "c", "z", " ", "é"] {
+            #expect(
+                WhatsThat.suggestions(for: letter, among: wholeCatalog, in: db).isEmpty,
+                "\(letter) produced suggestions"
+            )
+        }
+        #expect(WhatsThat.suggestions(for: "", among: wholeCatalog, in: db).isEmpty)
+    }
+
+    /// **The pool is the decision, so the pool is what is pinned.** A name the
+    /// player has never met is not offered no matter how well it matches — this
+    /// is the whole of E2-a, and without it the type-ahead undoes `judge`'s
+    /// non-inferred rule by autocompletion.
+    @Test("nothing outside the discovered pool is ever suggested")
+    func onlyDiscoveredNames() throws {
+        let nebbiolo = try #require(db.entry(named: "Nebbiolo"))
+        #expect(WhatsThat.suggestions(for: "NEBB", among: [], in: db).isEmpty)
+        #expect(
+            WhatsThat.suggestions(for: "NEBB", among: [nebbiolo.id], in: db) == ["Nebbiolo"],
+            "a discovered name should complete"
+        )
+        // And a discovered *other* entry does not answer for it.
+        let merlot = try #require(db.entry(named: "Merlot"))
+        #expect(WhatsThat.suggestions(for: "NEBB", among: [merlot.id], in: db).isEmpty)
+    }
+
+    /// Only the two categories a round can be about. A flavour or a style
+    /// completing in this field is noise in a round it cannot win.
+    @Test("suggestions are grapes and regions only")
+    func suggestionsAreGuessable() {
+        let names = WhatsThat.suggestions(
+            for: "a", among: wholeCatalog, in: db, limit: 500
+        )
+        #expect(names.isEmpty, "one character is still the floor")
+
+        let all = WhatsThat.suggestions(for: "ri", among: wholeCatalog, in: db, limit: 500)
+        for name in all {
+            let entry = db.entry(named: name)
+            #expect(
+                entry?.category == .grapes || entry?.category == .regions,
+                "\(name) is a \(entry?.category.rawValue ?? "nothing")"
+            )
+        }
+    }
+
+    /// The list is short by contract, not by luck: a two-character query over the
+    /// whole catalog is the case that would otherwise print an index.
+    @Test("the list is capped and prefixes lead")
+    func listIsCappedAndOrdered() throws {
+        let names = WhatsThat.suggestions(for: "ri", among: wholeCatalog, in: db)
+        #expect(names.count <= WhatsThat.suggestionLimit)
+        // Everything that starts with the query comes before anything that merely
+        // contains it, so the row's first chip is the likeliest completion.
+        let starts = names.map { TextNormalize.label($0).hasPrefix("ri") }
+        #expect(starts == starts.sorted(by: { $0 && !$1 }), "prefix matches must lead: \(names)")
+    }
+
+    /// **The answer is not filtered out, and that is deliberate** — see
+    /// `suggestions`. Withholding it would tell a player who had met it, and
+    /// typed most of it, exactly which entry was being withheld.
+    @Test("the round's own answer is not specially excluded")
+    func answerIsNotAnOracle() throws {
+        let hand = try #require(round(0))
+        let answer = try #require(db.entry(id: hand.answerID))
+        let stem = String(TextNormalize.label(answer.name).prefix(4))
+        #expect(
+            WhatsThat.suggestions(for: stem, among: [answer.id], in: db).contains(answer.name),
+            "\(answer.name) was withheld — silence is information"
+        )
+    }
+
     // MARK: - Round trip
 
     /// `ScreenStateStore` holds the round while the screen is torn down; opening

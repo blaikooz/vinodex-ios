@@ -243,7 +243,7 @@ public struct WineExamScreen: View {
                 }
 
                 Text("\(ExamPaper.length) questions across \(ExamCategory.allCases.count) subjects, "
-                    + "\(ExamPaper.passMark) to pass. Passing a paper unlocks the next one.")
+                    + "\(ExamPaper.passMark) to pass. Passing an exam unlocks the next one.")
                     .font(DexFont.mono(18 + 4 * grow))
                     .foregroundStyle(lcd.subtext)
                     .fixedSize(horizontal: false, vertical: true)
@@ -260,7 +260,10 @@ public struct WineExamScreen: View {
                                 .font(DexFont.retro(12))
                                 .tracking(1.5)
                             Spacer(minLength: 8)
-                            Text("\(stats.papers) \(stats.papers == 1 ? "PAPER" : "PAPERS")")
+                            // "EXAM"/"EXAMS" since 0.8.0 (F). `stats.papers` is
+                            // the identifier and keeps its name — the rename is
+                            // to the words, not to the model. See `ExamPaper`.
+                            Text("\(stats.papers) \(stats.papers == 1 ? "EXAM" : "EXAMS")")
                                 .font(DexFont.mono(17))
                         }
                         .foregroundStyle(lcd.accent)
@@ -342,7 +345,7 @@ public struct WineExamScreen: View {
             heading("STATISTICS", grow: grow)
 
             VStack(spacing: 8) {
-                statRow("PAPERS SAT", "\(stats.papers)")
+                statRow("EXAMS SAT", "\(stats.papers)")
                 statRow("PASSED", "\(stats.passes)")
                 statRow("ACCURACY", "\(Int((stats.accuracy * 100).rounded()))%")
                 statRow("PASS STREAK", "\(stats.passStreak)")
@@ -1003,13 +1006,13 @@ public struct WineExamScreen: View {
                     .tracking(2)
                     .foregroundStyle(Dex.yellow)
             } else if stats.passStreak > 1 {
-                Text("\(stats.passStreak) PAPERS PASSED IN A ROW")
+                Text("\(stats.passStreak) EXAMS PASSED IN A ROW")
                     .font(DexFont.mono(18))
                     .foregroundStyle(lcd.bodyText)
             }
 
             Text(run.passed
-                ? "SANTÉ. THE NEXT PAPER IS WAITING."
+                ? "SANTÉ. THE NEXT EXAM IS WAITING."
                 : "\(run.passMark)/\(run.length) PASSES. SWIRL AND RETRY.")
                 .font(DexFont.mono(18))
                 .foregroundStyle(lcd.subtext)

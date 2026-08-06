@@ -18,7 +18,27 @@ const CONTINENTS_BASE: ContinentEntry[] = [
     name: "Europe",
     description: "The cradle of viticulture, Europe has shaped wine culture for millennia. From France's prestigious appellations to Italy's ancient vineyards, Europe's diverse climates and terroirs produce wines of unparalleled complexity and tradition.",
     category: "CONTINENTS",
-    color: "#9B2335",
+    // Cobalt, not the #9B2335 claret it wore until iOS 0.8.0 (I).
+    //
+    // **The check the ask asked for, done first: red carries no other meaning on
+    // the globe.** A continent's `color` is one value serving two things — the
+    // marker plate on `RetroGlobeScreen` and the icon well behind the drawn globe
+    // in `EntryVisual.continentVisual` — and nothing else on that screen reads
+    // it. Selection is drawn as scale and stroke weight, locking is
+    // `AccessStore`, and the six continents are simply six colours. So this is
+    // one row in a table, exactly as the ask suspected.
+    //
+    // It also closes the complaint 0.7.1's A3 left open. That pass moved South
+    // America off #73343A because it "sat one to five points per channel from
+    // North America's #722F37", and signed off with "no two continents sit closer
+    // than North America and Europe already did" — which named this pair as the
+    // remaining offence and left it standing. Claret against dark claret at
+    // marker size was two thirds of the Old World reading as one blob. Cobalt is
+    // the furthest thing on the wheel from the five colours already in the set,
+    // and it is the colour Europe wears in the one other place anybody has drawn
+    // these six together: the Olympic rings, which is also what `vinodex-web`'s
+    // `OLYMPIC_CONTINENT_COLORS` already uses for `CONT_EUROPE`.
+    color: "#2B5FA5",
     icon: "globe",
     tags: ["Continent"],
     details: {
@@ -99,6 +119,11 @@ const CONTINENTS_BASE: ContinentEntry[] = [
     // screen. It is also the far side of the wheel from every other marker: its
     // nearest neighbour is now South America's violet, and no two continents
     // sit closer than North America and Europe already did.
+    //
+    // **That last clause is out of date and the fix is on Europe** (0.8.0, I):
+    // Europe is cobalt now, so the closest pair in the set is no longer two
+    // claret plates a few points apart, and the sentence above is kept only as
+    // the record of what was still wrong when it was written.
     color: "#3E8E63",
     icon: "globe",
     tags: ["Continent"],

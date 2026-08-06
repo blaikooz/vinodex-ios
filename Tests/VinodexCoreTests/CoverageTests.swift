@@ -176,6 +176,41 @@ struct CoverageTests {
         #expect(!db.palette.styleTones.isEmpty)
     }
 
+    /// **Every chip key an enum can produce must resolve** (0.8.0, K).
+    ///
+    /// A count is not enough and the rosé chip is why. `colorTypeChips` has held
+    /// five rows since it shipped, so `count == 5` was green throughout — but the
+    /// generator probed it with `ROSÉ` while every reader looks up
+    /// `StyleColorType.rose.rawValue`, which is `ROSE`. The table was full, the
+    /// colours were right, and one of the five was unreachable.
+    ///
+    /// So this pins the *join* rather than the size: the vocabulary the app asks
+    /// with, resolved against the table the generator emits. It fails the moment
+    /// a probe list and a rawValue disagree in either direction, which is the
+    /// only shape this fault has ever taken — 0.6.9's I1 was the same join
+    /// broken on the grape colour chip.
+    @Test("every colour-type and style-class rawValue reaches its chip")
+    func chipKeysResolve() {
+        for color in StyleColorType.allCases {
+            #expect(
+                db.palette.colorTypeChips[color.rawValue] != nil,
+                "colorTypeChips has no row for \(color.rawValue) — the chip falls through to neutral stone"
+            )
+        }
+        for cls in StyleClassType.allCases {
+            #expect(
+                db.palette.styleClassChips[cls.rawValue] != nil,
+                "styleClassChips has no row for \(cls.rawValue)"
+            )
+        }
+        for rarity in RarityLabel.allCases {
+            #expect(
+                db.palette.rarityChips[rarity.rawValue] != nil,
+                "rarityChips has no row for \(rarity.rawValue)"
+            )
+        }
+    }
+
     /// Grape stat bars must carry the authored values from `grapeCards.ts`, not
     /// values re-derived from descriptive text. The Rork skeleton invented these
     /// (`aromatics = tastingProfile.count + 2`); this pins the real ones.

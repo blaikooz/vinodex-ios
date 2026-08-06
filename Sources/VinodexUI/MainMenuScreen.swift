@@ -85,6 +85,28 @@ public struct MainMenuScreen: View {
                     .font(.system(size: 56, weight: .semibold))
                     .foregroundStyle(label)
                     .shadow(color: .black.opacity(0.3), radius: 0, x: 1, y: 2)
+                    // **The fixed glyph box is what aligns the four titles**
+                    // (0.8.0, L). The report was that STYLES and FLAVORS sit off
+                    // the baseline the other two share, and the cause is not in
+                    // this `VStack` or in either of those tiles: an
+                    // `Image(systemName:)` lays out at the *symbol's own*
+                    // bounding box, and four SF Symbols at one point size are
+                    // four different heights. `wineglass.fill` is tall and
+                    // narrow, `leaf.fill` is squat, `circle.grid.3x3.fill` and
+                    // `globe.americas.fill` are both near-square — so each stack
+                    // was a different total height, each centred in its own tile,
+                    // and the labels landed at four different y positions. The
+                    // two square glyphs agreeing with each other is what made it
+                    // look like a fault in the other two.
+                    //
+                    // 56, the same number as the point size, so a glyph that
+                    // happens to be exactly square is unmoved and every other one
+                    // centres inside the box it would have filled. `frame` does
+                    // not clip, so a symbol taller than its nominal size still
+                    // draws whole — it simply stops charging the stack for it.
+                    // Fixing it here rather than per tile is the point: the fifth
+                    // tile anybody adds is aligned by default.
+                    .frame(height: 56)
                 Text(title)
                     .font(DexFont.retro(19))
                     .foregroundStyle(label)

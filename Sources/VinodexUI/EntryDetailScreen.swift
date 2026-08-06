@@ -470,23 +470,48 @@ public struct EntryDetailScreen: View {
             // made two batches earlier for the same reason and in the same
             // shape: the long string rides alone on a bar, the two short ones
             // pair up. See `keyGrapeBar`'s note directly below.
+            // **0.8.0 (G) finishes the move A1 started.** A1 split the row two
+            // over one for width; G is about *weight*. COLOR and TYPE are one
+            // short word each and were carrying a 54pt icon band and an 11pt
+            // label apiece — the same tile a region's CLIMATE gets, on a screen
+            // whose subject is the grape below them. They go `compact`.
+            //
+            // ORIGIN stops being a tile at all and becomes the bar the *region*
+            // card gives KEY GRAPE, which is the comparison the ask makes and the
+            // reason `attributeBar` was extracted rather than a second bar
+            // written: one flat row, the well at the left, the label over the
+            // value, a chevron when it leads somewhere. A country is exactly what
+            // that treatment is for — a long string that wants a whole line and
+            // an object (the flag) rather than a glyph.
             case .grape(let g):
                 VStack(spacing: 10) {
                     HStack(alignment: .top, spacing: 8) {
                         tile(label: "COLOR",
                              chip: chip(g.grapeType.rawValue.uppercased(), .colorType),
-                             destination: .list(category: .grapes, filter: .type(g.grapeType.rawValue))) { tint in
-                            DexIcon(iconID: db.icons.colorIcon(g.grapeType.rawValue.uppercased()), size: 32, color: tint)
+                             destination: .list(category: .grapes, filter: .type(g.grapeType.rawValue)),
+                             compact: true) { tint in
+                            DexIcon(iconID: db.icons.colorIcon(g.grapeType.rawValue.uppercased()), size: 26, color: tint)
                         }
                         tile(label: "TYPE",
                              chip: chip(EntryDisplay.grapeBodyLabel(g), .wineType, key: g.grapeStyle),
-                             destination: .list(category: .grapes, filter: .type(g.grapeStyle))) { tint in
-                            DexIcon(iconID: db.icons.bodyIcon(g.grapeBodyClass), size: 32, color: tint)
+                             destination: .list(category: .grapes, filter: .type(g.grapeStyle)),
+                             compact: true) { tint in
+                            DexIcon(iconID: db.icons.bodyIcon(g.grapeBodyClass), size: 26, color: tint)
                         }
                     }
-                    tile(label: "ORIGIN",
-                         chip: chip(g.details.origin.uppercased(), .country, key: g.details.origin),
-                         destination: .country(name: g.details.origin)) { _ in
+                    attributeBar(
+                        label: "ORIGIN",
+                        chip: chip(g.details.origin.uppercased(), .country, key: g.details.origin),
+                        destination: g.details.origin.isEmpty ? nil : .country(name: g.details.origin)
+                    ) {
+                        // 52 x 32 is `FlagSwatch`'s own default and is what the
+                        // tile drew, so the flag itself is unchanged — the bar is
+                        // slimmer than the tile it replaces because it has no
+                        // 54pt icon band and no boxed plate, not because the flag
+                        // shrank. Against `keyGrapeBar`'s 56pt square well a
+                        // 52-wide rectangle sits a touch shorter, which is the
+                        // right relationship: a grape's portrait is the region
+                        // card's headline, a country's flag is a grape's footnote.
                         FlagSwatch(country: g.details.origin)
                     }
                 }
@@ -589,11 +614,18 @@ public struct EntryDetailScreen: View {
     /// KEY GRAPE as a full-width flat bar (0.6.x) — see the region header
     /// note. Same chip palette as the old tile, but the name gets a whole
     /// line, so "Cabernet Sauvignon" no longer wraps to three.
+    ///
+    /// **A caller of `attributeBar` since 0.8.0 (G2).** The grape card's ORIGIN
+    /// asks for "the treatment region cards use for KEY GRAPE", and the only
+    /// honest way to give it that is to have one bar with two callers rather than
+    /// two bars that look alike until somebody tunes one of them.
     @ViewBuilder
     private func keyGrapeBar(name: String?, entry keyGrapeEntry: WineEntry?) -> some View {
-        let chipData = chip((name ?? "N/A").uppercased(), .wineType, key: name ?? "")
-        let resolved = db.palette.resolve(chipData)
-        HStack(spacing: 10) {
+        attributeBar(
+            label: "KEY GRAPE",
+            chip: chip((name ?? "N/A").uppercased(), .wineType, key: name ?? ""),
+            destination: keyGrapeEntry.map { .detail(entryID: $0.id) }
+        ) {
             // 56, up from 34 (0.6.4, D2): at row-icon size the bunch sprite
             // read as a chip decoration; the bar is the region's headline
             // fact, so its hero earns hero scale.
@@ -602,8 +634,32 @@ public struct EntryDetailScreen: View {
             } else {
                 DexIcon(iconID: db.icons.fallback, size: 44, color: Dex.stone600)
             }
+        }
+    }
+
+    /// One headline fact as a full-width flat bar: an object on the left, the
+    /// field name over its value, and a chevron when it leads somewhere.
+    ///
+    /// Extracted from `keyGrapeBar` in 0.8.0 (G2), unchanged in look. The
+    /// argument for the shape is the one 0.6.x made and it applies to both
+    /// callers: the value here is the longest string in its row — a grape name, a
+    /// country name — and three abreast it wrapped to three lines, while the
+    /// short fields beside it sat in thirds they did not need.
+    ///
+    /// **No box, still** (0.6.2, C3): the well and the chip-coloured value carry
+    /// the bar. A filled plate behind them read as a grey slab under the hero.
+    @ViewBuilder
+    private func attributeBar<Leading: View>(
+        label: String,
+        chip chipData: TileChip,
+        destination: DexRoute?,
+        @ViewBuilder leading: () -> Leading
+    ) -> some View {
+        let resolved = db.palette.resolve(chipData)
+        HStack(spacing: 10) {
+            leading()
             VStack(alignment: .leading, spacing: 3) {
-                Text("KEY GRAPE")
+                Text(label)
                     .font(DexFont.retro(10))
                     .foregroundStyle(lcd.accent)
                 Text(chipData.label)
@@ -613,7 +669,7 @@ public struct EntryDetailScreen: View {
                     .minimumScaleFactor(0.7)
             }
             Spacer(minLength: 4)
-            if keyGrapeEntry != nil {
+            if destination != nil {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(lcd.subtext)
@@ -622,12 +678,7 @@ public struct EntryDetailScreen: View {
         .padding(.horizontal, 4)
         .padding(.vertical, 4)
         .frame(maxWidth: .infinity, alignment: .leading)
-        // No box (0.6.2, C3): the icon well and chip-coloured name carry the
-        // bar; a filled plate behind them read as a grey slab over the hero.
-        .modifier(TileLink(
-            destination: keyGrapeEntry.map { .detail(entryID: $0.id) },
-            onOpen: onOpenRoute
-        ))
+        .modifier(TileLink(destination: destination, onOpen: onOpenRoute))
     }
 
     @ViewBuilder
@@ -659,10 +710,22 @@ public struct EntryDetailScreen: View {
     /// to float bare above a text-only `ChipView`, so each tile read as two
     /// parts — a loose glyph and a pill. The glyph keeps its position, above
     /// the text, but the chip's fill and border now wrap the pair.
+    ///
+    /// **`compact` (0.8.0, G1)** takes one register off the whole tile — the icon
+    /// band, the value's size and the vertical padding — for the grape card's
+    /// COLOR and TYPE. It is a flag rather than three arguments because the three
+    /// numbers only ever move together: a shorter band with the same 11pt label
+    /// is a tile with less air, not a smaller tile. Nothing else passes it, so
+    /// every other card is byte-for-byte the layout that shipped.
+    ///
+    /// The *label* deliberately does not shrink. It is already at
+    /// `TypeScale.nominalFloor` (see `retro(10)`), so a smaller number here would
+    /// describe a size that never renders — the trap `StampFrame` documents.
     private func tile<C: View>(
         label: String,
         chip: TileChip,
         destination: DexRoute? = nil,
+        compact: Bool = false,
         @ViewBuilder icon: (Color) -> C
     ) -> some View {
         let resolved = db.palette.resolve(chip)
@@ -671,11 +734,11 @@ public struct EntryDetailScreen: View {
             Text(label)
                 .font(DexFont.retro(10))
                 .foregroundStyle(lcd.accent)
-            VStack(spacing: 6) {
+            VStack(spacing: compact ? 4 : 6) {
                 // 54 since 0.6.5 (item 5): sized to seat the enlarged class
                 // glyph; the 32pt siblings centre in the band with more air.
                 icon(tint)
-                    .frame(height: 54)
+                    .frame(height: compact ? 42 : 54)
                 // Wrap rather than shrink. `minimumScaleFactor` let each tile
                 // pick its own effective size, so the three sat at three
                 // different scales — the row read as inconsistent even though
@@ -687,13 +750,13 @@ public struct EntryDetailScreen: View {
                         chip.label.replacingOccurrences(of: "_", with: " ").uppercased()
                     )
                 )
-                    .font(DexFont.retro(11))
+                    .font(DexFont.retro(compact ? 10 : 11))
                     .foregroundStyle(tint)
                     .lineLimit(3)
                     .multilineTextAlignment(.center)
             }
             .padding(.horizontal, 6)
-            .padding(.vertical, 8)
+            .padding(.vertical, compact ? 6 : 8)
             .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 6).fill(Color(dexHex: resolved.bg))

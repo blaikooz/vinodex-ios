@@ -227,12 +227,15 @@ public enum ExamAssemblyFailure: Error, Sendable, Equatable, Hashable {
     /// candidate who spots the repeat has been told that the bank ran out.
     case tooShort(tier: ExamTier, requested: Int, available: Int)
 
+    /// **What the player is shown, so it follows 0.8.0's F.** The type, the cases
+    /// and every identifier in this file keep "paper"; these two strings reach a
+    /// screen and say "exam" like the rest of the app now does.
     public var message: String {
         switch self {
         case .emptyBank(let tier):
             "NO QUESTIONS AT \(tier.ladder.displayName). THE EXAM BANK DID NOT LOAD."
         case .tooShort(let tier, let requested, let available):
-            "\(tier.ladder.displayName) HOLDS \(available) QUESTIONS; THIS PAPER NEEDS \(requested)."
+            "\(tier.ladder.displayName) HOLDS \(available) QUESTIONS; THIS EXAM NEEDS \(requested)."
         }
     }
 }

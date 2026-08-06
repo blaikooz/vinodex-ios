@@ -139,14 +139,18 @@ public enum NotificationPlan {
     /// The line under the title. Kept here rather than in the view so the
     /// wording is testable and so a streak count in a notification cannot
     /// disagree with the one on the passport — both read `StreakStore`.
+    ///
+    /// "exam" rather than "paper" since 0.8.0 (F) — the identifiers around it are
+    /// unchanged, and `firmware.ts`'s 0.7.8 entry still records the wording that
+    /// release actually shipped.
     public static func body(for kind: Kind, streak: Int) -> String {
         switch kind {
         case .daily:
-            "Five questions, one paper, the same for everyone."
+            "Five questions, one exam, the same for everyone."
         case .streakAtRisk:
             streak == 1
-                ? "Your one-day streak ends tonight. Today's paper is still open."
-                : "\(streak) days on the run. Today's paper is still open."
+                ? "Your one-day streak ends tonight. Today's exam is still open."
+                : "\(streak) days on the run. Today's exam is still open."
         }
     }
 }

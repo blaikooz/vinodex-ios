@@ -171,7 +171,18 @@ struct BiosChromeTests {
     func copyrightYear() {
         #expect(BiosChrome.year(from: "2026-08-04") == "2026")
         #expect(BiosChrome.year(from: "2031-01-01") == "2031")
-        #expect(BiosChrome.copyright(releaseDate: "2029-12-31") == "(c)2029 VINODEX SOFTWARE")
+        // **The publisher is `HORIZON/GODOT` since 0.8.0 (B1)**, and it is
+        // asserted through the constant rather than re-typed here: what this
+        // line is for is the *format* — one `(c)`, no space after it, the year
+        // from the firmware, one space, the name — and pinning the name twice
+        // would make a rename fail here for a reason that is not this test's.
+        #expect(
+            BiosChrome.copyright(releaseDate: "2029-12-31") == "(c)2029 \(BiosChrome.publisher)"
+        )
+        #expect(BiosChrome.publisher == "HORIZON/GODOT")
+        // It is not the product. B1's whole argument is that the boot screen was
+        // asserting the machine was made by itself.
+        #expect(!BiosChrome.publisher.contains("VINODEX"))
         // Anything unreadable falls back rather than printing a fragment.
         for bad in [nil, "", "26-08-04", "20x6-08-04", "abcd"] as [String?] {
             #expect(BiosChrome.year(from: bad) == BiosChrome.fallbackYear, "\(bad ?? "nil")")
@@ -228,7 +239,8 @@ struct BiosChromeTests {
         let allowed: Set<Character> = ["·"]
         let strings = [
             BiosChrome.tagline,
-            BiosChrome.system,
+            // `BiosChrome.system` was here and is gone with the pill (0.8.0, B2).
+            BiosChrome.publisher,
             BiosChrome.checkLabel,
             BiosChrome.checkResult,
             BiosChrome.prompt,

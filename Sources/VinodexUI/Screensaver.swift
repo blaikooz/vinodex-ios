@@ -138,7 +138,8 @@ struct VinodexV: Shape {
 
 /// The idle screensaver (0.7.3, A5).
 ///
-/// Appears at thirty seconds of inactivity (0.7.6, A3), via the app's one idle
+/// Appears at `IdleSchedule.screensaver` of inactivity — sixty seconds since
+/// 0.8.0's H, thirty from 0.7.6 (A3) — via the app's one idle
 /// timer (F2), and leaves on any input — which needs no wiring of its own,
 /// because the same touch that would dismiss it has already reset the timer
 /// through `IdleTouchWatcher` before this view hears anything.

@@ -31,8 +31,17 @@ public enum BiosChrome: Sendable {
     /// ASCII). `EntryDetailScreen` already joins on the same character.
     public static let tagline = "DISCOVER · COLLECT · TASTE"
 
-    /// The pill interrupting the bottom rule.
-    public static let system = "VINODEX HANDHELD SYSTEM"
+    // `system` retired in 0.8.0 (B2). It read VINODEX HANDHELD SYSTEM and it was
+    // the pill interrupting the bottom rule. B2 asks for the line gone, and the
+    // constant goes with it rather than being left for a reader to wire back up:
+    // the screen already names the machine twice — the wordmark in the centre and
+    // the title in the top bar — and a third assertion of the same fact, at the
+    // bottom, in a box, is the "line of text standing in for something" that
+    // `DeviceBackPlate`'s swipe-hint note is about. The rule it interrupted stays
+    // as `BiosSolidRule`; what closes the composition is the line, not the label.
+    //
+    // `BiosChromeTests.chromeIsDrawable` lost its entry here and nothing else
+    // named it.
 
     /// The resting status line: label in cream, result in gold.
     public static let checkLabel = "SYSTEM CHECK..."
@@ -50,7 +59,23 @@ public enum BiosChrome: Sendable {
     /// problem than a stale year.
     public static let fallbackYear = "2026"
 
-    /// `(c)2026 VINODEX SOFTWARE`, with the year taken from the firmware.
+    /// The authorship the copyright line claims (0.8.0, B1).
+    ///
+    /// **`VINODEX SOFTWARE` until 0.8.0, and the change is the point of the minor
+    /// bump.** The fictional publisher was named after the product, which made
+    /// the boot screen's one piece of telemetry a tautology — the machine
+    /// asserting that it was made by itself. HORIZON/GODOT is the house; Vinodex
+    /// is the thing it ships. That is also what makes the title and the copyright
+    /// two different claims rather than the same one twice, which is what B3 and
+    /// B4 then have room to centre on separate lines.
+    ///
+    /// A constant rather than a literal inside `copyright(releaseDate:)` because
+    /// it is the half of that string a future release might change again, and
+    /// because a test asserting the whole formatted line would then be asserting
+    /// the format and the name at once.
+    public static let publisher = "HORIZON/GODOT"
+
+    /// `(c)2026 HORIZON/GODOT`, with the year taken from the firmware.
     ///
     /// **Derived rather than typed** for the same reason the version is. A
     /// hardcoded year is a literal nobody remembers to edit, which is the exact
@@ -64,7 +89,7 @@ public enum BiosChrome: Sendable {
     ///   ISO-ish `YYYY-MM-DD`. Anything that does not start with four digits
     ///   falls back.
     public static func copyright(releaseDate: String?) -> String {
-        "(c)" + year(from: releaseDate) + " VINODEX SOFTWARE"
+        "(c)" + year(from: releaseDate) + " " + publisher
     }
 
     /// The four-digit year at the head of `date`, or `fallbackYear`.

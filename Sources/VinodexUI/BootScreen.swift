@@ -159,21 +159,64 @@ public struct BootScreen: View {
     // and 161.5 at the default and 276 and 218.5 at HUGE, both comfortably
     // inside 329 at every step. That is the one change the smaller region
     // forced, and it is a layout change rather than a smaller size, per A6.
+    //
+    // ---
+    //
+    // **B5 (0.8.0) takes the composition up a register, and the budget above is
+    // what decides how far.** "Slightly larger" is a request about points, and on
+    // this screen points are bounded by a width nobody may exceed: 329pt at the
+    // *worst* text step, which is HUGE (1.15). `PressStart2P` advances a full em,
+    // so a retro string's ceiling is `329 / characters / 1.15` and there is no
+    // arguing with it — `minimumScaleFactor` absorbing the overflow is exactly
+    // what 0.7.5's A6 forbids ("the scale factor is there for the narrower phones
+    // and the larger steps, not to absorb a size that never fitted").
+    //
+    // Worked through, longest string first:
+    //
+    //   prompt      28 chars   ceiling 10.2  — **already there**, see below
+    //   tagline     26 chars   ceiling 11.0  — 8 -> 11
+    //   copyright   21 chars   ceiling 13.6  — 8 -> 11 (shares `barSize`)
+    //   title       19 chars   ceiling 15.0  — 8 -> 11 (shares `barSize`)
+    //   wordmark     7 chars   ceiling 38.9  — 28 -> 32 (7.36 em with the shear)
+    //   terminal    40 chars   VT323, 0.4 em — 22 -> 25
+    //
+    // Everything without words in it moves with them, at the same ~15%: the mark,
+    // the stack's spacing, the divider, the glass, the hex badge and the two
+    // corner glyphs. Those are in `BiosMetrics` and beside their own drawings.
+    //
+    // **The prompt is the one member that cannot grow, and it is worth stating
+    // rather than leaving as an oversight.** PRESS ANY BUTTON TO CONTINUE is 28
+    // characters, which puts its ceiling at 10.2 nominal — and `promptSize` is 9,
+    // which `TypeScale.nominalFloor` already lifts to 10 before the step factor.
+    // It is *rendering* at its ceiling today. Any larger number here would be a
+    // string that overflows at HUGE and rides its scale factor to fit, which is
+    // the fault A6 names. So B5 reaches every element on this screen except the
+    // one that was already as large as it can legally be.
 
-    /// The two top-bar labels, and the bottom bar's pill.
-    private static let barSize: CGFloat = 8
+    /// The two top-bar labels, and the bottom bar's readouts.
+    ///
+    /// 11 since 0.8.0 (B5), from 8 — and the jump is larger than it looks
+    /// because `TypeScale.nominalFloor` is 10, so 8 and 10 render identically and
+    /// 11 is the first number above `barSize` that changes anything at all. It
+    /// resolves to 9.35pt at the shipped default and 12.65 at HUGE, where the
+    /// 21-character copyright is 265.7 of the 329 available.
+    private static let barSize: CGFloat = 11
     /// The wordmark. The largest type in the app, and the reason the identity
     /// stack reads as a logo rather than as a heading.
-    private static let wordmarkSize: CGFloat = 28
-    /// The tagline, 26 characters wide.
-    private static let taglineSize: CGFloat = 8
+    private static let wordmarkSize: CGFloat = 32
+    /// The tagline, 26 characters wide — **the tightest string on the screen**
+    /// after the prompt. At 11 it is 26 x 12.65 = 328.9 of 329 at HUGE: inside
+    /// the budget without touching its scale factor, and 12 would not be.
+    private static let taglineSize: CGFloat = 11
     /// The prompt, 28 characters wide — the widest retro string on the screen,
-    /// and the one that hits its scale factor first.
+    /// and the one that hits its scale factor first. **Deliberately not moved by
+    /// B5**; see the ceiling arithmetic above.
     private static let promptSize: CGFloat = 9
     /// The terminal voice: the check lines and the status line they resolve
-    /// into. `VT323` advances about 0.4em, so 22pt buys a 40-character line in
-    /// the width available.
-    private static let terminalSize: CGFloat = 22
+    /// into. `VT323` advances about 0.4em, so 25pt buys a 40-character line in
+    /// 460pt of nominal width — far past what the slot holds, which is why this
+    /// is the one string B5 could raise freely. 22 through 0.7.9.
+    private static let terminalSize: CGFloat = 25
     /// The mark's drawn height, as a ceiling. Its width follows the art's own
     /// aspect.
     ///
@@ -186,13 +229,19 @@ public struct BootScreen: View {
     /// one element here with no text in it, so shrinking it costs legibility
     /// nothing, and it is the element a shorter screen should spend first.
     /// `markFloor` is where it stops being a logo and starts being a bullet.
-    private static let markHeight: CGFloat = 92
-    private static let markFloor: CGFloat = 40
+    ///
+    /// 106/46 since 0.8.0 (B5), from 92/40 — the same ~15% the type took, so the
+    /// mark keeps its share of the composition rather than becoming the one
+    /// element that stayed still. `markCeiling` clamps to the first and floors at
+    /// the second, so a short display still gives this up before it gives up a
+    /// word, which is the order 0.7.8's A4 chose and B5 does not change.
+    private static let markHeight: CGFloat = 106
+    private static let markFloor: CGFloat = 46
     /// The gap between members of the identity stack.
-    private static let identitySpacing: CGFloat = 14
+    private static let identitySpacing: CGFloat = 16
     /// The drawn divider's band, and the wine glass's.
-    private static let dividerHeight: CGFloat = 12
-    private static let glassSize: CGFloat = 26
+    private static let dividerHeight: CGFloat = 14
+    private static let glassSize: CGFloat = 30
 
     public init(entries: Int, verbose: Bool, onFinish: @escaping () -> Void) {
         self.onFinish = onFinish
@@ -255,27 +304,38 @@ public struct BootScreen: View {
     /// is telemetry, and the version in it is still `BootSequence.header`'s
     /// rather than the mockup's `1.0.0` (C3, and `BiosChromeTests`). Only the
     /// axis they are separated on changed, from horizontal to vertical.
+    ///
+    /// **Both lines are centred since 0.8.0 (B3/B4), and that is a consequence of
+    /// A4 rather than a fresh preference.** Leading/trailing was the memory of a
+    /// horizontal bar: two labels at opposite ends of one rule, which is a real
+    /// composition. Stacked vertically it stopped being one — a left-flush line
+    /// over a right-flush line reads as two fragments of a table, and there is no
+    /// column edge anywhere else on this screen for either of them to align to.
+    /// Everything below them — the mark, the wordmark, the divider, the tagline,
+    /// the glass, the prompt — is centred on the same axis, so this is the top bar
+    /// joining the composition it sits on top of.
+    ///
+    /// The roles are untouched: still cream over gold, still two claims rather
+    /// than one, and B1's HORIZON/GODOT is what makes them genuinely different
+    /// claims (see `BiosChrome.publisher`).
     private var topBar: some View {
         VStack(spacing: 6) {
-            // The two labels keep their ends of the bar — cream leading, gold
-            // trailing — they are simply on their own lines now.
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(spacing: 3) {
                 Text(title)
                     .font(DexFont.retro(Self.barSize))
                     .foregroundStyle(BiosInk.cream)
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 Text(BiosChrome.copyright(releaseDate: FirmwareCatalog.shared.current?.date))
                     .font(DexFont.retro(Self.barSize))
                     .foregroundStyle(BiosInk.gold)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
+            .frame(maxWidth: .infinity)
             .lineLimit(1)
             .minimumScaleFactor(0.4)
 
             // **The rule stays.** A4 drops the *frame* — border, side rails,
             // corner brackets — and this is not it: `BiosRule` divides the
             // composition's zones from each other, which is the job the chassis
-            // cannot do for it. All three uses of it are unchanged.
+            // cannot do for it. B2 makes the same distinction one floor down.
             BiosRule { BiosHexBadge() }
         }
     }
@@ -287,19 +347,39 @@ public struct BootScreen: View {
         DexFont.resolvedSize(Self.barSize) * 2 + 3 + 6 + BiosMetrics.badgeHeight
     }
 
-    /// And the bottom bar's, on the same terms: the battery row, the gap, and
-    /// the rule's pill (label plus its two 5pt paddings and border).
+    /// And the bottom bar's, on the same terms: the battery row, the gap, and the
+    /// rule.
+    ///
+    /// **The pill's height is gone from this sum (0.8.0, B2)** — it was the
+    /// label's resolved size plus its two 5pt paddings and border, and there is
+    /// no label. What is left is a 1pt rule, so the term is the rule rather than
+    /// the 12 the pill cost. The identity stack gets the difference, via
+    /// `markCeiling`, which is where a shorter bottom bar should go.
     private var bottomBarHeight: CGFloat {
-        max(DexFont.resolvedSize(Self.barSize), 12) + 8 + DexFont.resolvedSize(Self.barSize) + 12
+        max(DexFont.resolvedSize(Self.barSize), 14) + 8 + 1
     }
 
     // MARK: Bottom bar
 
+    /// **The pill is gone (0.8.0, B2) and the rule it interrupted is not.**
+    ///
+    /// B2 asks for the VINODEX HANDHELD SYSTEM line removed. Read as "delete the
+    /// bottom bar" that would also take the rule, and the rule is not the line —
+    /// it is the member that closes the composition, the answer to the hex badge
+    /// on the top rule, and the thing that keeps the identity stack bracketed
+    /// rather than trailing off into the bezel. A4 already established the
+    /// distinction when it deleted `BiosFrame` and kept `BiosRule`: what the
+    /// chassis cannot do for this screen is divide its own zones.
+    ///
+    /// So the rule survives uninterrupted, as `BiosSolidRule` — which is the two
+    /// halves `BiosRule` was already drawing, minus the gap it left for a centre
+    /// piece. The bottom bar is now the battery, the signal and a line under
+    /// them, which is what a status bar is.
     private var bottomBar: some View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
                 BiosBatteryGlyph(fill: battery.fill)
-                    .frame(width: 22, height: 11)
+                    .frame(width: 25, height: 13)
                 Text(battery.text)
                     .font(DexFont.retro(Self.barSize))
                     .lineLimit(1)
@@ -307,25 +387,10 @@ public struct BootScreen: View {
                     .foregroundStyle(BiosInk.gold)
                 Spacer(minLength: 8)
                 BiosSignalBars()
-                    .frame(width: 22, height: 12)
+                    .frame(width: 25, height: 14)
             }
 
-            BiosRule {
-                Text(BiosChrome.system)
-                    .font(DexFont.retro(Self.barSize))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.4)
-                    .foregroundStyle(BiosInk.magenta)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(
-                        RoundedRectangle(cornerRadius: 7)
-                            .strokeBorder(BiosInk.magenta, lineWidth: 1)
-                            .background(
-                                RoundedRectangle(cornerRadius: 7).fill(BiosInk.background)
-                            )
-                    )
-            }
+            BiosSolidRule()
         }
     }
 
@@ -595,8 +660,9 @@ private enum BiosMetrics {
     /// top edge and nothing in the top bar is under it.
     static let contentInset: CGFloat = 12
     /// The hex badge's drawn height, named here because the top bar's height
-    /// derivation has to include it.
-    static let badgeHeight: CGFloat = 30
+    /// derivation has to include it. 34 since 0.8.0 (B5), from 30 — see
+    /// `BiosHexBadge`, which is the one place its width goes with it.
+    static let badgeHeight: CGFloat = 34
     /// The wordmark's shear, as a fraction of its point size. About 10°, which
     /// is the slant of the mark's own extrusion.
     static let shear: CGFloat = 0.18
@@ -676,13 +742,23 @@ private struct BiosRule<Centre: View>: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            line
+            BiosSolidRule()
             centre()
-            line
+            BiosSolidRule()
         }
     }
+}
 
-    private var line: some View {
+/// One unbroken magenta hairline — the segment `BiosRule` is made of, and the
+/// bottom bar's whole rule since 0.8.0 (B2).
+///
+/// Split out rather than given to `BiosRule` as an empty-centre case: a
+/// `ViewBuilder` handed `EmptyView` still gets its `HStack` spacing on both
+/// sides, so "a rule with nothing in the middle" would have drawn a 20pt gap in
+/// the middle of a line. This is the same ink at the same opacity, in one place,
+/// so the two rules on the screen cannot drift apart.
+private struct BiosSolidRule: View {
+    var body: some View {
         Rectangle()
             .fill(BiosInk.magenta.opacity(0.7))
             .frame(height: 1)
@@ -849,9 +925,12 @@ private struct BiosHexBadge: View {
                 .stroke(BiosInk.magenta, lineWidth: 1.5)
             BiosGrapeCluster()
                 .fill(BiosInk.gold)
-                .padding(6)
+                .padding(7)
         }
-        .frame(width: 26, height: 30)
+        // 30 x 34 since 0.8.0 (B5), from 26 x 30, keeping the badge's own
+        // proportion. The height is `BiosMetrics.badgeHeight` because the top
+        // bar's derivation reads it; the width is only ever drawn here.
+        .frame(width: BiosMetrics.badgeHeight * 30 / 34, height: BiosMetrics.badgeHeight)
     }
 }
 

@@ -344,8 +344,10 @@ public struct DeviceChassis<Content: View>: View {
         // raises the screensaver five seconds later — so a finger anywhere on
         // the device resets it, which is what it always claimed to mean.
         //
-        // **On every screen since 0.7.6 (A4)**, and at 30 seconds rather than 10
-        // (A3). The `isMainScreen` guard is gone: A4 asks for the greeting to
+        // **On every screen since 0.7.6 (A4)**, and at the screensaver's own
+        // threshold rather than 10 (A3; 60 seconds since 0.8.0's H, which moved
+        // both together because the fold left one number).
+        // The `isMainScreen` guard is gone: A4 asks for the greeting to
         // arrive with the screensaver, and the screensaver has never been
         // main-screen-only. `stage >= .toast` is unchanged and is what makes the
         // fold a threshold change — `.toast` is no longer separately reachable
@@ -685,14 +687,20 @@ public struct DeviceChassis<Content: View>: View {
 
     /// The orb's outline (0.7.5, A2; a stadium since 0.7.6, E1).
     ///
-    /// **`RecessedLamp`'s seam still does not cover it.** That modifier is
-    /// generic over `InsettableShape`, so the obvious read is that swapping
-    /// shapes is a one-line call-site change — but the orb has never gone through
-    /// it, deliberately, and `RecessedLamp`'s own note says why: it draws a part
-    /// *recessed* into the deck, and the orb is a bead that stands **proud** of
-    /// it. Routing the orb through it to get the shape would invert the lighting
-    /// on the one part meant to catch the light. So the shape lives here, in the
-    /// one place that draws a proud part, and `RecessedLamp` is untouched.
+    /// **`RecessedLamp` covers it as of 0.8.0 (C2) — this paragraph is the
+    /// argument it overturned, kept because it was right for four batches.** It
+    /// read: that modifier is generic over `InsettableShape`, so the obvious read
+    /// is that swapping shapes is a one-line call-site change — but the orb has
+    /// never gone through it, deliberately, because it draws a part *recessed*
+    /// into the deck, and the orb is a bead that stands **proud** of it. Routing
+    /// the orb through it would invert the lighting on the one part meant to
+    /// catch the light.
+    ///
+    /// Every clause of that is still true of a *bead*. It stopped being one: the
+    /// orb is now the trio's length and a lamp's height, and `lcdOrb` carries the
+    /// full reasoning. The shape constant stays here — it is what both the recess
+    /// and the fill are cut to, and it is still one value so the next refinement
+    /// is still one line.
     ///
     /// **E1 is a one-line change to that parameter, which is the point.** A2
     /// left the shape behind a single value precisely so the next refinement of
@@ -709,38 +717,49 @@ public struct DeviceChassis<Content: View>: View {
     ///   trio's span and the height is the authored axis — but the arithmetic
     ///   here is unchanged, because dividing the real width by the derived
     ///   aspect returns exactly `DexMetrics.islandOrbHeight`.
+    ///
+    /// **C2 (0.8.0): the orb wears the lamps' treatment.** This function used to
+    /// draw a bead standing proud — a thick white bezel all the way round, a
+    /// specular dot, a drop shadow outward — and `RecessedLamp`'s own note above
+    /// explains at length why that is *not* what the lamps get and why the orb
+    /// had deliberately never been routed through it: seating a part that is
+    /// meant to catch the light inverts its lighting.
+    ///
+    /// **That argument was about a bead, and there is no longer a bead.** It was
+    /// written when the orb was a 35pt near-square catching a highlight on its
+    /// crown. Since 0.7.9's A1 it is the length of the whole lamp trio, and since
+    /// C1 it is also exactly a lamp's height — the same short axis, in the same
+    /// row, at the same distance from the eye. Two parts that are that alike and
+    /// lit two different ways do not read as a matched pair; they read as one of
+    /// them being wrong, which is what C2 reports. The specular in particular was
+    /// a circle sized off the short axis, and on a 79 x 22 stadium it had become
+    /// a dot floating in the top-left of a slot.
+    ///
+    /// So it goes through `recessedLamp` like everything else on this chassis,
+    /// which is the one-line call the modifier was made generic for. `size:` is
+    /// the height, per its own contract for a capsule. The rim tone is
+    /// `skin.orbGlow` — the deeper of the orb's two colours, which is exactly the
+    /// relationship the lamps' `(fill, border)` pairs have — so no
+    /// twenty-one-shell table had to be invented for this.
+    ///
+    /// **The glow keeps A1's short-axis rule and loses its 2pt minimum**, which
+    /// was the last number in here written against the old bead. `minRadius: 1`
+    /// is the lamps'.
     private func lcdOrb(width: CGFloat) -> some View {
         let shape = Self.orbShape
         let height = width / DexMetrics.islandOrbAspect
         return shape
             .fill(skin.orb)
             .frame(width: width, height: height)
-            // Sized off the *height* now, not the side. A rim that was 7% of a
-            // 35pt square is 2.5pt; 7% of the 20pt short side would be 1.4, and
-            // the white bezel is most of what says this part is glass rather
-            // than paint. 11% of the short side puts it back where it was.
-            .overlay(shape.strokeBorder(.white, lineWidth: max(height * 0.11, 2)))
-            .overlay(alignment: .top) {
-                // Specular highlight, kept proportional to the part's short
-                // axis. Still a circle: it is a reflection on the crown, not an
-                // inset of the outline — a stadium-shaped highlight would read
-                // as a second smaller bead sitting on the first.
-                Circle()
-                    .fill(.white.opacity(0.8))
-                    .frame(width: height * 0.30, height: height * 0.30)
-                    .blur(radius: 1)
-                    .padding(.top, height * 0.16)
-            }
-            .shadow(color: .black.opacity(0.5), radius: 3, y: 2)
+            .recessedLamp(shape, size: height, rim: skin.orbGlow)
             // **Off the short axis since 0.7.9 (A1).** The glow was `width *
             // 0.3`, which was 10.6pt while the bead was 35.2 across and would
             // be 23.8 now that it is 79.4 — a halo more than twice the height
-            // of the part emitting it. `height * 0.7` returns 10.5 / 12.1 at
-            // the two scales, within a tenth of a point of what shipped, and it
-            // is the same short-axis rule the rim and the specular highlight
-            // above already follow.
+            // of the part emitting it. `height * 0.7` is the same short-axis
+            // rule the recess's own fractions follow, and it is what the three
+            // status lamps beside it already use.
             .modifier(
-                PulseGlow(color: skin.orbGlow, period: 5.3, minRadius: 2, maxRadius: height * 0.7)
+                PulseGlow(color: skin.orbGlow, period: 5.3, minRadius: 1, maxRadius: height * 0.7)
             )
     }
 
@@ -1560,13 +1579,21 @@ private struct ButtonWell: View {
 /// than four edits, because the next lamp added should be right by default —
 /// the same argument `DexGlyph` makes for the glyph constants.
 ///
-/// **The construction, and why it is not simply the orb's.** The orb is a bead
-/// that stands *proud*: a thick white bezel all the way round, a specular dot,
+/// **The construction, and why it was not simply the orb's.** The orb was a bead
+/// that stood *proud*: a thick white bezel all the way round, a specular dot,
 /// and a drop shadow outward. Copying that onto a 22pt lamp gives a white ring
 /// wider than the colour inside it. What reads as the orb at lamp scale is its
 /// two halves separated — the bead itself keeps the highlight, and the bezel
 /// becomes the well the bead sits in, which is `ButtonWell`'s rule already
 /// working on the button caps six inches south:
+///
+/// **Since 0.8.0 (C2) the orb comes through here too**, and the paragraph above
+/// is why the traffic runs this way round rather than the other: the lamp's
+/// construction was derived *from* the orb, so pointing the orb at it is the
+/// pair converging on the version that was already correct at both sizes. See
+/// `DeviceChassis.lcdOrb`. Nothing in this modifier changed to accept it — the
+/// `InsettableShape` generic and the short-axis `size:` contract were built for
+/// the marquee's capsules and take the orb's unaltered.
 ///
 /// 1. **The wall**, dark and blurred, riding a touch high — the top edge of a
 ///    recess is where no light reaches. Blurred because a recess has a radius;

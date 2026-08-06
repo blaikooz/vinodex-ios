@@ -18,7 +18,7 @@ public enum IdleStage: Int, Comparable, CaseIterable, Sendable {
     /// `.screensaver`. Deleting it would have turned a threshold change back into
     /// a rewrite, which is the thing A4 was asked not to do.
     case toast = 1
-    /// Long enough for the screensaver (0.7.3, A5; 30 seconds since 0.7.6, A3).
+    /// Long enough for the screensaver (0.7.3, A5; 60 seconds since 0.8.0, H).
     /// The last stage: nothing happens after this but activity.
     case screensaver = 2
 
@@ -36,9 +36,11 @@ public enum IdleStage: Int, Comparable, CaseIterable, Sendable {
 /// one coat. `MarqueeStage` reads its dwell from here now.
 ///
 /// **0.7.6 (A3/A4) finishes that job by removing one of the two numbers.** The
-/// screensaver moves to 30 seconds and the marquee's greeting arrives with it
-/// rather than twenty seconds ahead of it, so there is one authored threshold and
-/// one optional knob that would bring the second back. See `toast`.
+/// screensaver moves off 15 and the marquee's greeting arrives with it rather
+/// than twenty seconds ahead of it, so there is one authored threshold and one
+/// optional knob that would bring the second back. See `toast`. 0.8.0's H moves
+/// that single threshold to 60, which is the proof the fold was worth doing: one
+/// edit, both behaviours.
 public enum IdleSchedule: Sendable {
     /// The pre-idle marquee toast — **folded into the screensaver in 0.7.6 (A4),
     /// and this optional is the fold.**
@@ -70,22 +72,35 @@ public enum IdleSchedule: Sendable {
     /// two clocks never has to know whether the fold is in force.
     public static var cheers: TimeInterval { toast ?? screensaver }
 
-    /// 30 seconds — **A3's figure, up from A5's 15.**
+    /// 60 seconds — **0.8.0's figure (H), up from 0.7.6's A3 30 and A5's 15.**
     ///
-    /// Still deliberately not a minute: this device never dims (`ScreenWake` pins
-    /// `isIdleTimerDisabled`), so the screensaver is the only thing that ever
-    /// changes what a forgotten screen is showing, and a burn-in guard that waits
-    /// a minute is a burn-in guard for a phone in a pocket. Fifteen was the other
-    /// end of that trade and turned out to be the wrong end: a reference app gets
-    /// read from, and fifteen seconds is inside the time it takes to read a
-    /// region's soil block and look back up.
+    /// **This is the third value and the second time the same argument has been
+    /// pushed in the same direction, so the reasoning is extended rather than
+    /// replaced.** A5 chose 15. A3 raised it to 30 and wrote down why: this
+    /// device never dims (`ScreenWake` pins `isIdleTimerDisabled`), so the
+    /// screensaver is the only thing that ever changes what a forgotten screen is
+    /// showing, and a reference app gets *read from* — fifteen seconds is inside
+    /// the time it takes to read a region's soil block and look back up.
     ///
-    /// Thirty is also what makes A4's fold affordable. A greeting that replaced
-    /// the page title after ten seconds of reading would have been the panel
-    /// changing under a user who never stopped using the device — the exact fault
-    /// B3's ten seconds was chosen to avoid, reintroduced by taking the toast
-    /// off the main menu.
-    public static let screensaver: TimeInterval = 30
+    /// A3 then declined a minute in one line: "a burn-in guard that waits a
+    /// minute is a burn-in guard for a phone in a pocket." H says that line was
+    /// wrong, and it is worth saying which half. The premise is right — nothing
+    /// dims this screen — but the conclusion treats the screensaver as a burn-in
+    /// guard, and on a modern OLED phone held by a person it is not one; iOS
+    /// dims and locks the *device* on its own schedule regardless of what this
+    /// app pins, so the real burn-in guard was never this constant. What the
+    /// screensaver actually is, is the device going idle in character, and the
+    /// cost of it arriving early is a page changing under someone who is still
+    /// reading it. Thirty turned out to be inside that window too — the same
+    /// complaint A3 fixed at fifteen, one register quieter.
+    ///
+    /// Sixty is also where the two clocks stop fighting. A4 folded the marquee's
+    /// greeting into this threshold (see `toast`), so this number is *both* "when
+    /// the screensaver starts" and "when the panel says CHEERS!" — and a greeting
+    /// that replaces the page title while the page is being read is the exact
+    /// fault B3's ten seconds was chosen to avoid. Raising the one number raises
+    /// both, which is the whole point of there being one number.
+    public static let screensaver: TimeInterval = 60
 
     /// Thresholds paired with the stage they open, ascending.
     ///

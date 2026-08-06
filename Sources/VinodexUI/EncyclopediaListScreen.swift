@@ -304,7 +304,29 @@ public struct EncyclopediaListScreen: View {
     }
 
     private var searchBar: some View {
-        DexSearchBar(text: searchBinding)
+        DexSearchBar(text: searchBinding, placeholder: searchPlaceholder)
+    }
+
+    /// What this listing says it is searching (0.8.0, J).
+    ///
+    /// **Derived from `categories`, not passed in.** Every one of these screens
+    /// is the same view with a different category set, and a `placeholder:`
+    /// argument at the call site would be a second statement of something the
+    /// screen is already holding — which is how the two call sites in
+    /// `VinodexApp` would eventually disagree with the header above them.
+    ///
+    /// `rawValue` rather than `listTitle`: the grape listing's *title* is
+    /// VARIETIES, and the ask names the thing rather than the shelf ("search
+    /// grapes"). It is also the word the main-menu tile the player just pressed
+    /// is labelled with, which is the string they are most likely to be holding.
+    ///
+    /// The multi-category case is the world search — continents, regions and
+    /// country rows in one list — and it takes the globe's own wording, so the
+    /// `DexSearchBarButton` on `RetroGlobeScreen` and the live field it opens
+    /// read as the same control rather than as two.
+    private var searchPlaceholder: String {
+        guard categories.count == 1, let only = categories.first else { return "SEARCH WORLD…" }
+        return "SEARCH \(only.rawValue)…"
     }
 
     // MARK: Chip rows (0.6.9, I3)
