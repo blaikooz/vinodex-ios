@@ -24,7 +24,14 @@ import sys
 
 from PIL import Image
 
-from art_common import copy_master, output_dir, resolve_source_dir, strip_background
+from art_common import (
+    copy_master,
+    output_dir,
+    quantize_stable,
+    resolve_source_dir,
+    save_stable,
+    strip_background,
+)
 
 
 def darken_reds(img):
@@ -118,7 +125,9 @@ def main():
             img = strip_background(Image.open(path))
             if stem.startswith("red-light") or stem.startswith("red-medium"):
                 img = darken_reds(img)
-            img.quantize(colors=256).save(out, optimize=True)
+            # See art_common (0.8.0, A0b): pinned quantise, and a run
+            # whose pixels match leaves the file and its mtime alone.
+            save_stable(quantize_stable(img), out, optimize=True)
         converted += 1
         total_out += os.path.getsize(out)
 

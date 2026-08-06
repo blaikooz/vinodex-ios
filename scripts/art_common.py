@@ -76,7 +76,60 @@ def output_dir(root, name):
     return os.path.join(base, name)
 
 
-def save_stable(img, out):
+def quantize_stable(img, colors=256):
+    """Palette-reduce `img` with nothing left to a library default (0.8.0, A0b).
+
+    Every importer used to call `img.quantize(colors=256)` and take three
+    unnamed defaults:
+
+      1. `method=None`, which Pillow resolves *by mode* -- MEDIANCUT normally,
+         FASTOCTREE for RGBA. Every source here is RGBA after
+         `strip_background`, so the effective method has always been FASTOCTREE.
+         "Has always been" is a property of a version, not a contract, and a
+         Pillow that moved that branch would silently re-quantise the whole
+         bundle.
+      2. `dither=FLOYDSTEINBERG`. Error diffusion is wrong for cel-shaded pixel
+         art on principle -- it stipples flat fills. (Pillow ignores it on the
+         FASTOCTREE path today, which is another default worth not relying on.)
+      3. That a reduction runs at all, even when there is nothing to reduce.
+
+    **(3) is the clause section A needs.** An octree that terminates without
+    reducing maps every colour to itself, so an image already inside the budget
+    is exact under any build -- but "exact under any build" should be a
+    guarantee, not an inference about an implementation, so a source that fits is
+    returned before any quantiser sees it. The 30 country outlines carry three
+    colours each and take that path, which is what lets A1's art be bit-identical
+    on a machine that is not this one.
+
+    **What this does not fix, measured rather than hoped.** 301 of the 307 drawn
+    sources carry more than 256 distinct colours after background removal -- they
+    are painted, not indexed -- so the reduction is genuinely lossy for almost
+    the whole bundle and cannot be skipped: shipping them unreduced was measured
+    at roughly 13MB against the current 2.5MB. For those, FASTOCTREE still
+    *chooses* a palette, and different builds choose slightly differently. The
+    sixteen files where that choice currently lands differently are exactly
+    `verify-art.py`'s TOLERANCE table, which stays and is the record of it.
+    Closing that would mean supplying the palette ourselves rather than asking
+    for one; it is a real option and it is not this batch's.
+
+    PNG *bytes* differ between zlib and zlib-ng builds regardless, and always
+    did. `save_stable` is what makes that moot.
+    """
+    rgba = img.convert("RGBA")
+    # `getcolors` returns None above `maxcolors` rather than raising. The ceiling
+    # is generous because the only question is "does it fit" -- a source with
+    # four million distinct pixels answers no either way.
+    counts = rgba.getcolors(maxcolors=max(colors, 1 << 16))
+    if counts is not None and len(counts) <= colors:
+        return rgba
+    return rgba.quantize(
+        colors=colors,
+        method=Image.Quantize.FASTOCTREE,
+        dither=Image.Dither.NONE,
+    )
+
+
+def save_stable(img, out, **save_kwargs):
     """Write `img` to `out`, but only if the pixels there are different.
 
     **The churn this exists to stop, and why it is not a reproducibility bug.**
@@ -103,6 +156,20 @@ def save_stable(img, out):
     art still writes; an importer whose output decodes identically leaves the
     file alone, mtime and all.
 
+    **Every importer writes through this since 0.8.0 (A0b).** Only
+    `import-logo-art.py` did, and 0.7.9 measured the cost: re-running the set on
+    Windows rewrote all 123 tracked PNGs, of which 11 differed in decoded pixels
+    and the rest differed only in the deflate stream. A batch then cannot tell
+    "the art changed" from "the encoder is a different build", which is exactly
+    the state section A must not start the 30 country outlines in. Comparing
+    pixels before writing makes a re-run a no-op on the working tree, so
+    `git status` after `npm run icons` is the answer to whether anything moved.
+
+    `**save_kwargs` passes through to `Image.save` -- the importers ship
+    `optimize=True` and would otherwise have silently dropped it on the files
+    they do rewrite, which is how a skip-if-identical helper quietly inflates
+    the bundle one file at a time.
+
     Returns True if the file was written.
     """
     out = str(out)
@@ -119,7 +186,7 @@ def save_stable(img, out):
             same = False
         if same:
             return False
-    img.save(out)
+    img.save(out, **save_kwargs)
     return True
 
 

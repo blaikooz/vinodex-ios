@@ -26,7 +26,7 @@ import sys
 
 from PIL import Image
 
-from art_common import output_dir, strip_background
+from art_common import output_dir, quantize_stable, save_stable, strip_background
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -62,7 +62,10 @@ def main():
     for stem in stems:
         img = strip_background(Image.open(os.path.join(src, stem + ".png")))
         out = os.path.join(DST, stem + ".png")
-        img.quantize(colors=256).save(out, optimize=True)
+        # `quantize_stable` + `save_stable` since 0.8.0 (A0b): no library
+        # default decides the palette, and a run whose pixels match writes
+        # nothing. See art_common for both arguments.
+        save_stable(quantize_stable(img), out, optimize=True)
         total_out += os.path.getsize(out)
 
     print(f"converted {len(stems)} stamp glyphs -> {DST} ({total_out // 1024}KB)")

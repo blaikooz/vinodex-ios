@@ -18,19 +18,39 @@ diffs pixels, so it can only answer "did the committed art change". It has no
 access to the catalog, so it cannot know which icon ids are actually requested —
 that is `assertAssetsExist` in scripts/generate-ios-data.ts (0.7.5, A028).
 
-Byte-identity is deliberately *not* the gate. `Image.quantize(colors=256)`
-picks a palette whose ORDER varies across Pillow versions, and PNG IDAT bytes
-depend on the deflate build the wheel links (Pillow 12.3 bundles zlib-ng), so
-byte equality fails on a clean tree for reasons that have nothing to do with
-the art. Pixels are the thing that ships.
+Byte-identity is deliberately *not* the gate. The quantiser picks a palette
+whose ORDER varies across Pillow versions, and PNG IDAT bytes depend on the
+deflate build the wheel links (Pillow 12.3 bundles zlib-ng), so byte equality
+fails on a clean tree for reasons that have nothing to do with the art. Pixels
+are the thing that ships.
 
-Why TOLERANCE exists at all (AUDIT H12): ten sources carry 12k-27k distinct
-colours after background removal, so the 256-colour quantise is genuinely
-lossy for them and FASTOCTREE resolves the palette slightly differently than
-whichever Pillow produced the committed bytes. The residue is a handful of
-pixels on colour boundaries — visually identical, not byte-reproducible. The
-budgets below are the measured deltas plus headroom; they are a record of a
-known imprecision, not permission to change art.
+**What 0.8.0 (A0b) changed under this script.** The importers now go through
+`art_common.quantize_stable` (method and dither pinned; a source already inside
+the palette budget skips the quantiser entirely) and `art_common.save_stable`
+(a file whose pixels match is not rewritten). Two consequences for reading the
+output below:
+
+  * A run of `npm run icons` leaves the working tree alone unless the art
+    genuinely moved, so `git status` after one is now a real signal. It used to
+    modify all 123 tracked PNGs every time.
+  * TOLERANCE was measured on darwin-arm64 and re-measured on win32; the bundle
+    was regenerated on win32 in 0.8.0, so on *that* machine every entry now
+    reports IDENTICAL and the table is dormant. It is kept, not deleted:
+    dormant here means live somewhere else, and deleting it would turn the next
+    machine's first run into 16 CHANGED lines with no record of why.
+
+Why TOLERANCE exists at all (AUDIT H12): the quantise is genuinely lossy —
+**301 of the 307 drawn sources carry more than 256 distinct colours after
+background removal** (measured 0.8.0), so a palette has to be chosen for almost
+the whole bundle, and FASTOCTREE resolves it slightly differently than whichever
+Pillow produced the committed bytes. The residue is a handful of pixels on
+colour boundaries — visually identical, not byte-reproducible. The budgets below
+are the measured deltas plus headroom; they are a record of a known imprecision,
+not permission to change art.
+
+Closing it for good means supplying the palette rather than asking for one,
+which is the one thing A0b did not do. Skipping the reduction instead was
+costed: unreduced the bundle goes from 2.5MB to roughly 13MB.
 """
 import os
 import shutil
@@ -71,6 +91,13 @@ UNMANAGED = {"Logo/vinodex-logo.png"}
 # Measured 2026-07-31 on Pillow 12.3.0 / darwin-arm64, against the bundle at
 # b48ad20. Budgets are 4x the observed delta so a different Pillow's octree
 # has room, while a real edit (hundreds to thousands of pixels) still fails.
+#
+# **Dormant since 0.8.0 (A0b) and deliberately kept** — the bundle was
+# regenerated on win32 / Pillow 12.3, so all sixteen report IDENTICAL here. The
+# same sixteen will report TOLERATED on darwin-arm64, which is the direction the
+# table was written for; it simply now records the difference from the other end.
+# Do not prune entries that read zero on your machine: zero on yours is the
+# budget doing its job on somebody else's.
 TOLERANCE = {
     "FlavorArt/petrol.png": 900,
     "ClassArt/subclass-floral.png": 450,

@@ -23,7 +23,14 @@ import sys
 
 from PIL import Image
 
-from art_common import copy_master, output_dir, resolve_source_dir, strip_background
+from art_common import (
+    copy_master,
+    output_dir,
+    quantize_stable,
+    resolve_source_dir,
+    save_stable,
+    strip_background,
+)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -61,7 +68,10 @@ def main():
         if stem in MASTERS:
             copy_master(path, out)
         else:
-            strip_background(Image.open(path)).quantize(colors=256).save(out, optimize=True)
+            # See art_common (0.8.0, A0b).
+            save_stable(
+                quantize_stable(strip_background(Image.open(path))), out, optimize=True
+            )
         total_out += os.path.getsize(out)
 
     print(f"converted {len(stems) - len(missing)} styles -> {DST} ({total_out // 1024}KB)")
