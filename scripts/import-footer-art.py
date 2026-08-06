@@ -99,7 +99,26 @@ SHADOW_VALUE_FLOOR = 16
 # How much green a pixel may carry, as a fraction of its red/blue peak, and
 # still count as the magenta key. The key itself is at 0.017; the cap's cream is
 # at 0.89.
-SHADOW_GREEN_CEILING = 0.35
+#
+# **0.35 -> 0.50 in 0.8.4 (E2).** 0.8.3's B1 cleared 27,885 pixels of painted
+# cast shadow at 0.35 and the caps stopped reading as having a shadow, which is
+# what B1 asked for. What it did not clear was the ramp's own soft edge: taking
+# the ratio histogram over the four sources, the shadow occupies 0.0-0.45 and
+# the cap's own pixels start again at 0.6, with a floor of about 300 pixels per
+# cap between them. 0.35 cut through the shadow's shoulder rather than through
+# that gap, leaving 600-1000 plum pixels per cap.
+#
+# They were invisible as *art* and loud as *colour*, because `ChassisCapLoader`
+# re-inks every opaque pixel above value 0.06 to the skin's hue: a leftover
+# shadow pixel is not a dark smudge on the cap, it is a fully saturated skin-
+# coloured one sitting outside the moulded disc, on the chassis. That is the
+# bleed E2 reports, and this is one of its two halves — the other is the disc
+# clip in `ChassisCapLoader`, which contains anything this misses.
+#
+# 0.50 is the middle of the measured gap rather than a value that looked right:
+# it takes the whole ramp and leaves the cap's darkest legitimate pixel, at
+# 0.6, with room to spare.
+SHADOW_GREEN_CEILING = 0.50
 # How close red and blue must be to each other. Magenta is the two together, so
 # this is what keeps a dark red or a dark blue in the drawing out of the sweep.
 SHADOW_BALANCE_FLOOR = 0.5

@@ -71,7 +71,7 @@ BUNDLE = os.path.join(ROOT, "Sources", "VinodexUI", "Resources")
 # — and `import-logo-art` was in neither.
 DIRS = (
     "FlavorArt", "GrapeArt", "StyleArt", "ClassArt", "StampArt", "StickerArt",
-    "Logo", "ButtonArt", "FooterArt", "CartridgeArt",
+    "Logo", "ButtonArt", "FooterArt", "CartridgeArt", "MarqueeArt",
 )
 IMPORTERS = (
     "import-flavor-art.py",
@@ -84,6 +84,7 @@ IMPORTERS = (
     "import-button-art.py",
     "import-footer-art.py",
     "import-cartridge-art.py",
+    "import-marquee-art.py",
 )
 
 # Bundle PNGs that no importer produces, so "not regenerated" is their correct

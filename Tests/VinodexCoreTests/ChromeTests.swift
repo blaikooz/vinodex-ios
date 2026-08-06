@@ -52,6 +52,9 @@ struct ChromeTests {
             // is the discipline 0.7.3a's two missing routes were the argument for.
             .lineage(entryID: "G001"),
             .continent(entryID: "europe"),
+            // 0.8.4 (C1). Added in the same edit as the case, which is the
+            // discipline 0.7.3a's two missing routes were the argument for.
+            .pack(id: "does-not-exist"),
         ]
         routes += EntryCategory.allCases.map { .list(category: $0, filter: nil) }
         routes += SettingsSection.allCases.map { .settingsSection($0) }
@@ -163,7 +166,7 @@ struct ChromeTests {
         // which is a harder mistake to make than forgetting the list entirely —
         // and `DexRoute` carries associated values, so it cannot be
         // `CaseIterable` and there is nothing to derive from.
-        #expect(Self.allRoutes.count == 32, "add the new route to `allRoutes`")
+        #expect(Self.allRoutes.count == 33, "add the new route to `allRoutes`")
     }
 
     // MARK: The shared glyph constants (0.7.0 D1, 0.7.1 E1/A2)
@@ -206,8 +209,26 @@ struct ChromeTests {
             // symbol above, and it has to hold for the same reason: a lamp that
             // wore one destination's picture and landed on another is exactly
             // what routing both through the pin is meant to make impossible.
-            #expect(pin.artStem == pin.route.marqueeArt)
-            #expect(pin.artStem != nil, "\(pin.rawValue) has no drawn face; the lamp would fall back")
+            //
+            // **Equality became a prefix in 0.8.4 (A1)**, and the failure this
+            // replaces is the one worth recording: `MarqueePin.artStem` read
+            // `DexRoute.minigames.marqueeArt` for its TOOLS fallback, so
+            // repointing the marquee table at the new dot-matrix drop silently
+            // moved a *chassis lamp* onto art drawn for a lit LCD panel. The
+            // test caught it, which is the whole reason it asserts the pairing
+            // rather than trusting one expression to serve both.
+            //
+            // The two are still the same subject and must still name the same
+            // picture — the lamp above the panel and the glyph on it are the
+            // same page — so what is checked is that the marquee's stem is this
+            // one with the drop's prefix. A lamp that wandered onto a different
+            // page's face fails exactly as before.
+            let stem = pin.artStem
+            #expect(stem != nil, "\(pin.rawValue) has no drawn face; the lamp would fall back")
+            #expect(
+                pin.route.marqueeArt == stem.map { "marquee-" + $0 },
+                "\(pin.rawValue)'s lamp shows '\(stem ?? "-")' and its page shows '\(pin.route.marqueeArt ?? "-")'"
+            )
         }
     }
 
@@ -226,71 +247,133 @@ struct ChromeTests {
     /// Reached through `#filePath` like `CartridgeArtTests` and
     /// `ArtPipelineRosterTests`: the source art is the authority and it is not
     /// in the bundle at test time.
-    @Test("every marquee art stem names a drawn button face")
-    func marqueeArtIsOnDisk() throws {
+    /// Stems drawn in `art/icons/<folder>`, as bare filenames.
+    private static func artOnDisk(_ folder: String) throws -> Set<String> {
         let dir = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .appendingPathComponent("art")
             .appendingPathComponent("icons")
-            .appendingPathComponent("buttons")
-        let onDisk = Set(
+            .appendingPathComponent(folder)
+        return Set(
             try FileManager.default.contentsOfDirectory(atPath: dir.path)
                 .filter { $0.lowercased().hasSuffix(".png") }
                 .map { String($0.dropLast(4)) }
         )
-        #expect(!onDisk.isEmpty, "art/icons/buttons is empty — is the checkout complete?")
+    }
+
+    /// **Two drops, two directories, and the split is 0.8.4's A1.**
+    ///
+    /// Through 0.8.3 both halves of this test read `art/icons/buttons`, because
+    /// the marquee wore the same files its controls did. A1 gives the panel its
+    /// own dot-matrix set and the two now diverge by *surface*: a page glyph on
+    /// a lit segment LCD comes from `marqueeglyphs`, and a moulded lamp on the
+    /// chassis stays on `buttons` with the rest of the hardware.
+    ///
+    /// The `marquee-` prefix is `import-marquee-art.py`'s and is stripped here,
+    /// which also makes this the gate on the prefix itself: a stem that forgets
+    /// it fails with the name it actually has.
+    @Test("every marquee art stem names art that exists")
+    func marqueeArtIsOnDisk() throws {
+        let glyphs = try Self.artOnDisk("marqueeglyphs")
+        let buttons = try Self.artOnDisk("buttons")
+        #expect(!glyphs.isEmpty, "art/icons/marqueeglyphs is empty — is the checkout complete?")
+        #expect(!buttons.isEmpty, "art/icons/buttons is empty — is the checkout complete?")
+
+        let prefix = "marquee-"
+        func check(_ stem: String, _ who: String) {
+            #expect(
+                stem.hasPrefix(prefix),
+                "\(who) names marquee art '\(stem)' without the \(prefix) prefix"
+            )
+            let bare = String(stem.dropFirst(prefix.count))
+            #expect(glyphs.contains(bare), "\(who) names marquee art '\(bare)' that is not on disk")
+        }
 
         for route in Self.allRoutes {
             guard let stem = route.marqueeArt else { continue }
-            #expect(onDisk.contains(stem), "\(route.title) names button art '\(stem)' that is not on disk")
+            check(stem, route.title)
         }
         for category in EntryCategory.allCases {
             guard let stem = category.marqueeArt else { continue }
-            #expect(onDisk.contains(stem), "\(category) names button art '\(stem)' that is not on disk")
+            check(stem, "\(category)")
         }
+        for section in SettingsSection.allCases {
+            check(section.marqueeStem, "\(section.rawValue) (marqueeStem)")
+        }
+        // The lamps are chassis furniture and stayed on the button faces — see
+        // `MarqueePin.artStem`, where the literal that keeps them there is
+        // spelled out. Checked against the *other* directory on purpose: this
+        // is the assertion that would have caught the borrowed expression the
+        // day A1 repointed `DexRoute.marqueeArt` underneath it.
         for pin in MarqueePin.allCases {
             guard let stem = pin.artStem else { continue }
-            #expect(onDisk.contains(stem), "\(pin.rawValue) names button art '\(stem)' that is not on disk")
+            #expect(
+                buttons.contains(stem),
+                "\(pin.rawValue) names button art '\(stem)' that is not on disk"
+            )
         }
     }
 
-    /// **K2 rule 1, now literally checkable.** "A page's glyph is the glyph on
-    /// the control that opens it" could only ever be asserted between two SF
-    /// Symbol tables before; the drop makes it a claim about one file being used
-    /// twice, and these are the pairs where both ends are in Core.
+    /// **K2 rule 1, in the weaker form 0.8.4 leaves it in.**
+    ///
+    /// 0.8.1's drop let "a page's glyph is the glyph on the control that opens
+    /// it" be asserted as *one file used twice*, which is the strongest reading
+    /// the rule has ever had here. A1 supplies a second drop drawn for the
+    /// marquee alone, so that reading is gone and the honest claim is about
+    /// subject: a page's marquee glyph is the same *picture* as its control's,
+    /// drawn for a lit panel instead of for moulded plastic.
+    ///
+    /// A pairing test rather than a spelling one, then — the stems below are
+    /// asserted against the control's stem with the prefix applied, which is
+    /// exactly as far as the claim goes. Where the two drops disagree on a word,
+    /// the disagreement is stated here rather than computed away.
     ///
     /// Deliberately *not* asserting that art stems are distinct the way
     /// `glyphsAreDistinct` asserts symbols are. The art repeats on purpose — a
-    /// category listing and that category's detail pages share a face, which is
+    /// category listing and that category's detail pages share a face, the globe
+    /// and the world search share one, and SHOP and PACKS share one — which is
     /// the same documented exemption `glyphsAreDistinct` carries and the reason
     /// `marqueeArt` had to be a table separate from `marqueeSymbol` rather than
     /// a rename of it.
-    @Test("the marquee's faces are the faces on the controls that open the pages")
+    @Test("the marquee's faces are its controls' faces, drawn for the panel")
     func marqueeArtFollowsItsControl() {
-        // The four main-menu tiles.
-        #expect(EntryCategory.grapes.marqueeArt == "grapes")
-        #expect(EntryCategory.regions.marqueeArt == "regions")
-        #expect(EntryCategory.styles.marqueeArt == "styles")
-        #expect(EntryCategory.flavors.marqueeArt == "flavors")
-        // No face draws a world; the globe keeps its symbol.
-        #expect(EntryCategory.continents.marqueeArt == nil)
-        #expect(DexRoute.globe.marqueeArt == nil)
+        // The four main-menu tiles. Three of the four are the *scan* spelling
+        // in the marquee drop and the bare word on the tile, which is the drop's
+        // own vocabulary and not a mismatch: what the panel names is the page.
+        #expect(EntryCategory.grapes.marqueeArt == "marquee-grapescan")
+        #expect(EntryCategory.regions.marqueeArt == "marquee-regions")
+        #expect(EntryCategory.styles.marqueeArt == "marquee-stylescan")
+        #expect(EntryCategory.flavors.marqueeArt == "marquee-flavorscan")
+        // Both stopped being nil in 0.8.4: the button drop drew no world and
+        // this one does.
+        #expect(EntryCategory.continents.marqueeArt == "marquee-continentscan")
+        #expect(DexRoute.globe.marqueeArt == "marquee-globescan")
         // A filtered listing is not its category (K2, rule 2), so it does not
         // borrow the category's picture either.
-        #expect(DexRoute.list(category: .regions, filter: nil).marqueeArt == "regions")
+        #expect(DexRoute.list(category: .regions, filter: nil).marqueeArt == "marquee-regions")
         #expect(DexRoute.list(category: .regions, filter: .soil("Limestone")).marqueeArt == nil)
-        // The SETTINGS grid owns its own table and this defers to it rather
-        // than restating five strings.
+        // The SETTINGS grid owns both tables and this defers to the marquee one
+        // rather than restating five strings.
         for section in SettingsSection.allCases {
-            #expect(DexRoute.settingsSection(section).marqueeArt == section.artStem)
+            #expect(DexRoute.settingsSection(section).marqueeArt == section.marqueeStem)
+            // And the two drops agree on the word, for all five. Stated as a
+            // check rather than as a computation: `marqueeStem` is allowed to
+            // diverge from `artStem`, and the day one does, this is what says so.
+            #expect(section.marqueeStem == "marquee-" + (section.artStem ?? ""))
         }
-        // The collision `SettingsSection.artStem` documents from the other
-        // side: the route *titled* SYSTEM is `.settings` and takes `settings`;
-        // the drop's `system` face belongs to the chassis cog.
-        #expect(DexRoute.settings.marqueeArt == "settings")
-        #expect(DexRoute.settingsSection(.settings).marqueeArt == "settings")
+        // **The 0.8.3 collision, resolved.** In the button drop the route titled
+        // SYSTEM had to take the `settings` face, because that drop's `system`
+        // picture was the chassis cog. The marquee drop has both, so SYSTEM
+        // takes `system` and SETTINGS takes `settings`.
+        #expect(DexRoute.settings.marqueeArt == "marquee-system")
+        #expect(DexRoute.settingsSection(.settings).marqueeArt == "marquee-settings")
+        // C1: PACKS wears the shop's picture and its own symbol. Both halves,
+        // because the pair is the item — the same glyph, a distinguishable page.
+        #expect(DexRoute.pack(id: "x").marqueeArt == SettingsSection.access.marqueeStem)
+        #expect(DexRoute.pack(id: "x").marqueeSymbol != DexRoute.settingsSection(.access).marqueeSymbol)
+        #expect(DexRoute.pack(id: "x").title == "PACKS")
     }
 
     /// The two lamps the device ships with are the two 0.7.2's A9 hardwired.

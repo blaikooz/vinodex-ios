@@ -14,3 +14,9 @@ scripts/__pycache__/
 
 .DS_Store
 *.log
+
+# `npm run outlines` (0.8.4, F1). The ring rasteriser stopped being the master
+# of art/icons/countries/ when the hand-drawn set landed, so its output is a
+# reference render rather than a source: useful to look at, never shipped, and
+# never a diff to review.
+art/icons/countries-from-rings/

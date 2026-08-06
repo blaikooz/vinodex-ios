@@ -251,14 +251,16 @@ public struct DeviceChassis<Content: View>: View {
     /// `footerSymbol`'s drawn half (0.8.3, A), resolved through exactly the
     /// same branches so the two cannot name different pages.
     ///
-    /// MENU answers nil on purpose. `DexGlyph.menu` is the four-square grid of
-    /// the tiles behind it, and the 0.8.1 drop has no face for the menu *as a
-    /// whole* — the four it has are the four categories. The panel keeps the
-    /// symbol there, which is the fallback working rather than a gap.
+    /// **MENU stopped answering nil in 0.8.4 (A1).** It answered nil for one
+    /// release because the 0.8.1 button drop had no face for the menu *as a
+    /// whole* — the four it had were the four categories — so the panel fell
+    /// back to `DexGlyph.menu`, the four-square grid. The marquee drop has one,
+    /// and it is the only glyph in either set drawn for the home screen rather
+    /// than for a control on it.
     private var footerArt: String? {
         if script.stage == .cheers { return nil }
         guard isMainScreen else { return marqueeArt }
-        return nil
+        return script.stage == .menu ? "marquee-menu" : nil
     }
 
     public var body: some View {
@@ -671,7 +673,15 @@ public struct DeviceChassis<Content: View>: View {
         // withheld from the sketch shell whose parts are all pen strokes.
         // Nil falls through to everything this button drew in 0.8.1.
         let drawnCap = skin.sketch == nil
-            ? ChassisCapLoader.shared.image(stem: "settings", inkHex: cap.topHex)
+            ? ChassisCapLoader.shared.image(
+                stem: "settings",
+                inkHex: cap.topHex,
+                // E1, same pair as `ChassisButton.capGlyphHex`: the cog is
+                // incised into this cap exactly as the chevron and the house are
+                // into theirs, and `settingsMoldedCap` below already tints its
+                // stand-in glyph with this colour.
+                glyphHex: cap.glyphHex
+            )
             : nil
 
         return Button {
@@ -2047,6 +2057,26 @@ public struct ChassisButton: View {
         }
     }
 
+    /// The colour the incised symbol is re-inked to (0.8.4, E1).
+    ///
+    /// Resolved from the same two places as `capInkHex`, so a cap cannot take
+    /// its face from one livery and its glyph from another. `ChassisControl.glyph`
+    /// is the colour the no-art fallback has always tinted its SF Symbol with,
+    /// which is what makes this a *correction* rather than a new decision: every
+    /// skin had already chosen this colour, and the drawn caps were the only
+    /// surface ignoring it.
+    ///
+    /// Home reads `ink` rather than `glyph` because Home has no `ChassisControl`
+    /// -- `cap` is documented as never read for it -- and `ChassisAccent.ink` is
+    /// that ramp's own answer to the same question, the one `moldedCap` already
+    /// gives the house glyph on its fallback path.
+    private var capGlyphHex: String {
+        switch kind {
+        case .back, .bookmarks: cap.glyphHex
+        case .home: homeAccent.inkHex
+        }
+    }
+
     /// The drawn cap, re-inked, when there is one and the shell wants it.
     ///
     /// **Nil on the sketch skin, deliberately.** That shell is a pen drawing —
@@ -2057,7 +2087,11 @@ public struct ChassisButton: View {
     /// drawn controls it already had.
     private var drawnCap: UIImage? {
         guard skin.sketch == nil else { return nil }
-        return ChassisCapLoader.shared.image(stem: capStem, inkHex: capInkHex)
+        return ChassisCapLoader.shared.image(
+            stem: capStem,
+            inkHex: capInkHex,
+            glyphHex: capGlyphHex
+        )
     }
 
     public var body: some View {
@@ -2858,29 +2892,37 @@ public struct MarqueeBanner: View {
     /// One glyph, or nothing at all — the toasts carry no symbol, so a nil here
     /// is a normal state of the panel rather than a missing asset.
     ///
-    /// **The 0.8.1 button face, flat black (0.8.3, A).** The stem travels beside
-    /// the symbol — see `DexRoute.marqueeArt` — and `DexChromeGlyph` resolves
-    /// the pair the way every other converted control does: the drawing where
-    /// there is one, the SF Symbol where there is not.
+    /// **The dot-matrix marquee glyph, in the panel's own ink (0.8.4, A).** The
+    /// stem travels beside the symbol — see `DexRoute.marqueeArt` — and
+    /// `DexChromeGlyph` resolves the pair the way every other converted control
+    /// does: the drawing where there is one, the SF Symbol where there is not.
     ///
-    /// **Black, not `ink`, and not `ChassisCapLoader`.** A is explicit that this
-    /// is the opposite treatment from 0.8.2's footer caps, which take the
-    /// skin's hue. It has to be, because the two sit on different materials: a
-    /// cap is a moulded part of the shell and belongs to the shell's colourway,
-    /// and this is a *segment LCD* — the ground is what lights and the glyph is
-    /// what the liquid crystal blocks. What blocks light is black. So the art
-    /// goes through `flatten:` rather than through a loader, and the panel's own
-    /// `ink` is left to the one thing that still needs it.
+    /// **`ink`, not black, and this is A2 reversing 0.8.3's A.** That item
+    /// argued the glyph must be black because a segment LCD's ink is what blocks
+    /// light, and it was right about the *material* and wrong about the colour:
+    /// what blocks light on this panel is not black, it is `skin.marqueeShadow`
+    /// — a very dark register of each skin's own phosphor, which is exactly what
+    /// the letters beside the glyph are drawn in. So the old rule produced a
+    /// glyph that was nearly the text colour on twenty-one skins and never quite
+    /// it, which is the worst of both: too close to read as a deliberate
+    /// contrast, far enough to read as a different material sitting on the same
+    /// panel.
     ///
-    /// **On the ink rule A asks about**: the marquee's ink is
-    /// `skin.marqueeShadow`, a very dark register of each skin's phosphor, and
-    /// black does not fight it on any of the twenty-one — every `marqueeText`
-    /// ground is a lit colour (the dimmest is CLASSIC's `green500`), so a black
-    /// silhouette is the highest-contrast mark available on all of them. No
-    /// skin is exempted, because none needed to be. The `ink` fallback below is
-    /// kept for the sixteen routes with no drawn face: those glyphs are not
-    /// part of the drop A is about, and recruiting them into the flat treatment
-    /// would change pages the item does not name.
+    /// A2 asks for the two to recolour together, and `ink` is that in the
+    /// strongest available form — not a matching value, the same expression the
+    /// label reads. A skin that changes its marquee phosphor moves both in one
+    /// edit, and the SF Symbol fallback below has always taken `ink` too, so a
+    /// route with a face and a route without now agree for the first time.
+    ///
+    /// `flatten:` rather than a loader is unchanged and still right: these are
+    /// silhouettes by construction (`import-marquee-art.py` throws the colour
+    /// away and keeps the alpha), and `ChassisCapLoader`'s value-preserving
+    /// re-ink has nothing to preserve here.
+    ///
+    /// **`smoothing:` is the one thing the new drop needs that the old did not**
+    /// — see `DexChromeGlyph.smoothing`. These are drawn circles, and
+    /// nearest-neighbour at the fitted scale turns an even grid into an uneven
+    /// one.
     @ViewBuilder
     private func glyphImage(_ name: String?, art: String?) -> some View {
         if let name {
@@ -2890,7 +2932,8 @@ public struct MarqueeBanner: View {
                 size: DexMetrics.marqueeGlyph,
                 weight: .bold,
                 tint: ink,
-                flatten: .black
+                flatten: ink,
+                smoothing: true
             )
             .shadow(color: ground.opacity(0.7), radius: 0, x: 1, y: 1)
         }

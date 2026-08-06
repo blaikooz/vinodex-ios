@@ -2162,9 +2162,16 @@ public struct ChassisAccent: Sendable {
     /// `light` as its source string — Home's face, for `ChassisCapLoader`.
     /// See `ChassisControl.topHex`, which this mirrors.
     public let lightHex: String
+    /// `ink` as its source string (0.8.4, E1) -- Home's incised symbol, the
+    /// counterpart of `ChassisControl.glyphHex`. Home is the one cap whose face
+    /// comes off the accent ramp rather than off a `ChassisControl`, so it needs
+    /// its own pair or it would be the single button in the band that kept the
+    /// 0.8.3 single-tone treatment.
+    public let inkHex: String
 
     public init(pale: String, light: String, bright: String, mid: String, edge: String, ink: String) {
         self.lightHex = light
+        self.inkHex = ink
         self.pale = Color(dexHex: pale)
         self.light = Color(dexHex: light)
         self.bright = Color(dexHex: bright)
@@ -2206,6 +2213,11 @@ public struct ChassisControl: Sendable {
     /// and `edgeRGB`, and for the same reason: the caller has the string at
     /// init and nowhere afterwards.
     public let topHex: String
+    /// `glyph` kept as its source string as well (0.8.4, E1), for the same
+    /// reason and the same reader: `ChassisCapLoader` now inks the incised
+    /// symbol separately from the face, so it needs both ends of the pair as
+    /// hue and saturation rather than as `SwiftUI.Color`.
+    public let glyphHex: String
 
     public init(top: String, bottom: String, edge: String, glyph: String) {
         self.top = Color(dexHex: top)
@@ -2213,6 +2225,7 @@ public struct ChassisControl: Sendable {
         self.edge = Color(dexHex: edge)
         self.glyph = Color(dexHex: glyph)
         self.topHex = top
+        self.glyphHex = glyph
     }
 }
 

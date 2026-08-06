@@ -1,7 +1,26 @@
 #!/usr/bin/env python3
-"""The authored lon/lat rings the country outlines are drawn from (0.8.0, A1).
+"""The authored lon/lat rings the country outlines were drawn from (0.8.0, A1).
 
-**This file is master art.** Through 0.7.9 twenty-eight of the thirty outlines
+**Superseded as master art in 0.8.4 (F1), and kept anyway.** The thirty
+outlines this file describes were replaced by forty-six hand-drawn ones, which
+are real coastlines rather than 30-vertex approximations on a 106-cell grid;
+`art/icons/countries/` is authored art again, and nothing in the build reads
+`RINGS`. What survives is the reason it was written down: thirty authored
+geographies, and a rasteriser one command away
+(`make-country-outlines.py --draw --out DIR`) for the next country nobody has
+drawn. That command no longer has a default destination, so it cannot walk over
+the drawn set by accident.
+
+**`FILL` moved out** to `country-outline-fills.py` in the same batch. The ink is
+now applied by `import-class-art.py` over a silhouette, so the table has a
+reader that has nothing to do with rings, and leaving a second copy here is how
+a country ends up two colours.
+
+Everything below the line is 0.8.0's text and remains accurate about the rings.
+
+--------------------------------------------------------------------------
+
+**This file was master art.** Through 0.7.9 twenty-eight of the thirty outlines
 were hand-drawn PNGs and two were rasterised by a throwaway script, so the
 generator could honestly be called a one-shot. A1 makes all thirty derived, and
 at that point the shape of every country in the app lives *here* -- there is no
@@ -65,43 +84,6 @@ FILENAME = {
     "india": "india.png",
     "brazil": "brazil.png",
     "mexico": "mexico.png",
-}
-
-# Flag-dominant, mid-tone. Deliberately not `palette.json`'s `countryChips`:
-# those are tuned to sit as text on a dark chip and several of them (Brazil's
-# yellow, Switzerland's near-white) are unreadable as a silhouette. Brazil and
-# Mexico are 0.7.9's own values, unchanged.
-FILL = {
-    "france": "#2E5AA8",
-    "germany": "#D9A420",
-    "italy": "#2E9E58",
-    "greece": "#3C8DD9",
-    "portugal": "#1E7A45",
-    "spain": "#C8102E",
-    "hungary": "#3E8E4F",
-    "austria": "#D14B4B",
-    "croatia": "#2E62B0",
-    "california": "#C1522E",
-    "oregon": "#24408E",
-    "washington": "#2E7D4F",
-    "new-york": "#2F4F9E",
-    "georgia": "#C8342E",
-    "switzerland": "#D0342C",
-    "romania": "#2B4C9B",
-    "south-africa": "#2E8B57",
-    "morocco": "#C8342E",
-    "usa": "#3B5BA5",
-    "canada": "#D0342C",
-    "argentina": "#6CA8E0",
-    "chile": "#2E62B0",
-    "uruguay": "#4E86C6",
-    "new-zealand": "#2E7DB8",
-    "australia": "#1F4E9C",
-    "japan": "#D64A57",
-    "china": "#D33A2E",
-    "india": "#E08A2E",
-    "brazil": "#2EA04F",
-    "mexico": "#D64837",
 }
 
 # Each value is a list of rings; a ring is a list of (lon, lat).

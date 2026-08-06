@@ -560,7 +560,41 @@ struct RootView: View {
                 // tile to raise it from.
                 onWalkthrough: { push(.walkthrough) },
                 onDemoMode: { startDemo() },
-                onDeviceWorkshop: { push(.deviceWorkshop) }
+                onDeviceWorkshop: { push(.deviceWorkshop) },
+                // C1: the shelf's tiles push a frame instead of raising an
+                // overlay over themselves.
+                onOpenPack: { push(.pack(id: $0)) }
+            )
+
+        // The shop's own panel, told which cartridge is open (0.8.4, C1).
+        //
+        // **The same view, not a second one**, and that is the whole of why this
+        // fix is four lines rather than an extraction. The splash was already a
+        // branch inside `SettingsSectionPanel`'s overlay chain, closing over the
+        // shop's item list, the access store, the tried shelf and the upgrade
+        // prompt; lifting it out would have meant threading five dependencies
+        // into a new type to move a `nil` from one place to another. What was
+        // wrong was never where the view lived, it was that the value driving it
+        // was `@State` on a frame the user had already navigated past — so the
+        // value moves onto the route and the view stays where it is.
+        //
+        // `section: .access` because that is what this panel *is* while a pack
+        // is open: the marquee reads PACKS off the route, not off the section.
+        case .pack(let id):
+            SettingsSectionPanel(
+                section: .access,
+                openPack: id,
+                onDev: { push(.settingsSection(.dev)) },
+                onFirmwareHistory: { push(.firmwareHistory) },
+                onCheatConsole: { push(.cheatConsole) },
+                onWalkthrough: { push(.walkthrough) },
+                onDemoMode: { startDemo() },
+                onDeviceWorkshop: { push(.deviceWorkshop) },
+                // Already open; a tile behind the splash is not reachable.
+                onOpenPack: { push(.pack(id: $0)) },
+                // CLOSE and the chassis Back are now the same operation, which
+                // is the property C1 is really asking for.
+                onClosePack: { goBack() }
             )
 
         case .minigames:

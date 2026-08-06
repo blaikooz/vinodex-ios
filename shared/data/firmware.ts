@@ -39,6 +39,29 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.8.4",
+  date: "2026-08-06",
+  // The menu becomes a dial and the marquee gets its own alphabet of pictures.
+  // Underneath both, forty-six hand-drawn coastlines replace the thirty the
+  // 0.8.0 rasteriser produced -- real outlines, not 30-vertex approximations.
+  headline: "A DIAL, NOT A LIST",
+  notes: [
+    "The four category buttons are one cluster now: a moulded plate with GRAPES, REGIONS, STYLES and FLAVORS in its corners, each scooped around MASTER SEARCH in the middle.",
+    "The search button is larger and sits at the centre of them rather than in a row of its own.",
+    "Every page's marquee glyph is redrawn as a dot-matrix icon, and there are eighteen more of them -- the globe, a country, a continent, the family tree, both searches and the menu itself all had none.",
+    "Marquee glyphs take the colour of the marquee's own lettering, and change with the shell.",
+    "SYSTEM and SETTINGS stop sharing a glyph on the panel.",
+    "Opening a pack from the shop is a page you can come back from. BACK returned you to SYSTEM; it returns you to the shop.",
+    "The screen keeps its grid behind the bouncing V. The screensaver had been blanking to a flat panel, and a lighter one than the app on three of the screen modes.",
+    "The incised symbol on each of the four footer buttons takes the shell's glyph colour instead of the shell's button colour, so the house, the chevron, the cog and the figure read as marks rather than as grooves.",
+    "The footer buttons stop painting outside themselves. A ring of shell-coloured pixels around each cap is clipped away, and the last of the cast shadow the art carried has gone.",
+    "Every country and state outline is hand-drawn: 33 places, on real coastlines. UNITED KINGDOM, SLOVENIA and LEBANON have shapes for the first time, and thirteen more are drawn and waiting for the wine.",
+    "Six regions moved a fraction on their new maps -- Margaret River, Maipo, Santorini, Niagara, the Basque Country and Itata.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const DISPLACED_0_8_3: FirmwareRelease = {
   version: "0.8.3",
   date: "2026-08-06",
   // Four things came off the shop and nothing came off the dex. The shelves are
@@ -106,6 +129,7 @@ const DISPLACED_0_8_1: FirmwareRelease = {
 
 /** Everything before `CURRENT`, newest first. */
 const PREVIOUS: FirmwareRelease[] = [
+  DISPLACED_0_8_3,
   DISPLACED_0_8_2,
   DISPLACED_0_8_1,
   {

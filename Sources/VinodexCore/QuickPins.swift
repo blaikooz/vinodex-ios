@@ -69,10 +69,24 @@ public enum MarqueePin: String, CaseIterable, Hashable, Sendable, Identifiable {
     ///
     /// All five resolve — `SettingsSection.artStem` is total and TOOLS has its
     /// own — so the lamps are the one marquee surface where the conversion is
-    /// complete. The fallback stays wired anyway: a sixth pin would arrive
-    /// through this expression, and a lamp with no glyph reads as a fault.
+    /// complete.
+    ///
+    /// **`"tools"` is spelled out here as of 0.8.4 (A1), and the literal is the
+    /// point.** It used to read `DexRoute.minigames.marqueeArt`, borrowing the
+    /// panel's own table on the reasonable-looking grounds that a lamp and a
+    /// marquee glyph name the same page. A1 gives the marquee its own art, so
+    /// that expression now answers `marquee-tools` — a dot-matrix glyph drawn
+    /// for a lit LCD, on a *moulded lamp* two points above it, which is 0.8.3's
+    /// H arguing for the opposite treatment. The lamps stay on the 0.8.1 button
+    /// faces with the rest of the chassis, and the one place the two tables
+    /// crossed is cut.
+    ///
+    /// It is a literal rather than a sixth `SettingsSection`, for the reason
+    /// `MarqueePin` exists at all: TOOLS is a pin with no settings section, and
+    /// `MarqueeScriptTests.vocabularyIsASuperset` is what keeps that asymmetry
+    /// one-directional.
     public var artStem: String? {
-        section?.artStem ?? DexRoute.minigames.marqueeArt
+        section?.artStem ?? "tools"
     }
 }
 

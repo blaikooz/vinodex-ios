@@ -239,6 +239,23 @@ public struct SettingsSectionPanel: View {
     // `SettingsSection.packs`. The shelf is not pushed from anywhere any more —
     // it is part of the shop's own body.
 
+    /// Which cartridge's splash is open, by `Entitlement.id`, or nil for the
+    /// shelf (0.8.4, C1).
+    ///
+    /// **An input, not `@State`.** Through 0.8.3 this was a `@State` property
+    /// and the splash was an overlay raised over the shop — which meant the
+    /// user could be looking at a pack page while the navigation stack said
+    /// they were on the shop, and one Back popped both at once, landing on
+    /// SYSTEM. See `DexRoute.pack(id:)` for the full argument. Making it a
+    /// parameter is the entire mechanism: the route owns the value, so the
+    /// stack and the screen agree, and Back pops one frame like everywhere else.
+    let openPack: String?
+    /// Opening one, which the shelf's tiles call. A route push.
+    let onOpenPack: (String) -> Void
+    /// CLOSE on the splash. A pop rather than a state clear, so the button and
+    /// the chassis Back do the same thing — which they visibly did not before.
+    let onClosePack: () -> Void
+
     @State private var access = AccessStore.shared
     /// Read only to name the saved build the device is currently wearing — see
     /// `deviceWorkshop`. `@State` on the shared store rather than a fresh one, so
@@ -248,14 +265,17 @@ public struct SettingsSectionPanel: View {
     /// Observed rather than read once, so marking a tasting elsewhere and coming
     /// back finds the bars moved.
     @State private var bookmarks = BookmarkStore.shared
-    /// Which cartridge's splash is open, by `Entitlement.id` (0.7.5, B4). `nil`
-    /// for none.
+    /// Which cartridge's splash is open — now `openPack`, straight through
+    /// (0.8.4, C1).
     ///
-    /// Plain `@State` rather than `ScreenStateStore`, unlike the scroll anchor
-    /// beside it: which cartridge you last opened is not a place in the app the
-    /// way an anchor is, and restoring it on the way back in would re-open a
-    /// splash the user closed by leaving.
-    @State private var openShopItem: String?
+    /// Kept as a name rather than folded into the four call sites, because the
+    /// argument the old `@State` carried is still the right one and is now
+    /// answered by the route instead of by this view: which cartridge you last
+    /// opened is not a place the way a scroll anchor is, and it is deliberately
+    /// *not* in `ScreenStateStore` — leaving and coming back finds the shelf,
+    /// not the splash you closed by leaving. A route frame has exactly that
+    /// lifetime already.
+    private var openShopItem: String? { openPack }
     /// Set when a gated cosmetic is tapped; drives the same upgrade prompt a
     /// locked entry raises, so a paywalled *setting* behaves like a paywalled
     /// page rather than being a dead control.
@@ -298,20 +318,26 @@ public struct SettingsSectionPanel: View {
 
     public init(
         section: SettingsSection,
+        openPack: String? = nil,
         onDev: @escaping () -> Void = {},
         onFirmwareHistory: @escaping () -> Void = {},
         onCheatConsole: @escaping () -> Void = {},
         onWalkthrough: @escaping () -> Void = {},
         onDemoMode: @escaping () -> Void = {},
-        onDeviceWorkshop: @escaping () -> Void = {}
+        onDeviceWorkshop: @escaping () -> Void = {},
+        onOpenPack: @escaping (String) -> Void = { _ in },
+        onClosePack: @escaping () -> Void = {}
     ) {
         self.section = section
+        self.openPack = openPack
         self.onDev = onDev
         self.onFirmwareHistory = onFirmwareHistory
         self.onCheatConsole = onCheatConsole
         self.onWalkthrough = onWalkthrough
         self.onDemoMode = onDemoMode
         self.onDeviceWorkshop = onDeviceWorkshop
+        self.onOpenPack = onOpenPack
+        self.onClosePack = onClosePack
     }
 
     private var screenKey: String { ScreenStateStore.settings(section.rawValue) }
@@ -898,7 +924,10 @@ public struct SettingsSectionPanel: View {
             // No border (0.8.3, E1) — see `DexPickerTile.outline`. The
             // cartridges draw their own.
             outline: CartridgeShape?.none,
-            action: { openShopItem = item.id },
+            // A push since 0.8.4 (C1). It used to set local state and raise an
+            // overlay; the id it passes is unchanged, and so is everything the
+            // splash does with it.
+            action: { onOpenPack(item.id) },
             swatch: {
                 PackCartridge(
                     symbol: item.symbol,
@@ -997,7 +1026,7 @@ public struct SettingsSectionPanel: View {
             HStack(spacing: 10) {
                 Button {
                     Haptics.select()
-                    openShopItem = nil
+                    onClosePack()
                 } label: {
                     Text("CLOSE")
                         .font(DexFont.retro(13))
@@ -1031,11 +1060,20 @@ public struct SettingsSectionPanel: View {
                 } else {
                     Button {
                         Haptics.select()
-                        openShopItem = nil
                         // Straight to the ordinary upgrade prompt, which is
                         // where the purchase happens for a locked entry and a
                         // locked skin alike — see `body`'s overlay. The shop
                         // deliberately does not grow a second confirm step.
+                        //
+                        // **No longer closes the splash first (0.8.4, C1).**
+                        // It used to, because both were `@State` on this view
+                        // and clearing one to set the other cost nothing. Now
+                        // that closing is a *pop*, doing it here would tear down
+                        // the view that is about to set `lockedBundle` and the
+                        // prompt would never appear. Staying is also the better
+                        // behaviour: the prompt arrives over the product it is
+                        // asking about, and `body` already orders `lockedBundle`
+                        // ahead of the splash in the overlay chain.
                         lockedBundle = item.entitlement
                     } label: {
                         Text("UNLOCK")

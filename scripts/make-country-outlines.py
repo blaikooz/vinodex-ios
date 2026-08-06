@@ -81,7 +81,9 @@ from art_common import save_stable
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-DST = os.path.join(ROOT, "art", "icons", "countries")
+# Where `--check` reads the shipped outlines from: the bundle directory, not
+# the masters, because this is the file the app opens (0.8.4, F1).
+CLASS_ART = os.path.join(ROOT, "Sources", "VinodexUI", "Resources", "ClassArt")
 ENTRIES = os.path.join(ROOT, "Sources", "VinodexCore", "Resources", "entries.json")
 ICONS = os.path.join(ROOT, "Sources", "VinodexCore", "Resources", "icons.json")
 
@@ -94,8 +96,18 @@ rings_module = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(rings_module)
 
 RINGS = rings_module.RINGS
-FILL = rings_module.FILL
 FILENAME = rings_module.FILENAME
+
+# The ink, which moved out of the rings file in 0.8.4 (F1): it is now applied
+# by `import-class-art.py` over the hand-drawn masters, and this script is the
+# second reader rather than the owner. One table, so a country cannot be one
+# colour when it is drawn and another when it is rasterised.
+_fills_spec = importlib.util.spec_from_file_location(
+    "country_outline_fills", os.path.join(HERE, "country-outline-fills.py")
+)
+_fills = importlib.util.module_from_spec(_fills_spec)
+_fills_spec.loader.exec_module(_fills)
+FILL = _fills.FILL
 
 # Cells on the long axis, and the integer upscale. 106 x 2 = 212, which is the
 # canvas 0.7.9 used and the middle of the hand-drawn set's 50-246 range.
@@ -240,10 +252,36 @@ def draw(stem):
 # ---------------------------------------------------------------------------
 
 def silhouette(stem):
-    """Cells that are land — fill or cel outline — plus the canvas size."""
-    fill, w, h = raster(stem)
-    ring = outline_of(fill, w, h)
-    return fill | ring, w, h
+    """Land, read off the outline the app will actually draw (0.8.4, F1).
+
+    **This used to re-rasterise the rings, and that was the hole 0.8.4 fell
+    through.** The check's whole claim is "there is land under this dot", and
+    the only surface that can answer it is the picture `CountryOutlineMap` puts
+    on screen -- which, since F1, is hand-drawn art that no ring describes.
+    Re-rasterising would have kept reporting green about geography that is no
+    longer shipped: the exact silent-drift shape 0.8.0's own note warns about
+    two paragraphs up.
+
+    So it reads `ClassArt/outline-<stem>.png` and thresholds alpha at 127,
+    which is `OutlineDotPlacer.interiorPoints`' own test, byte for byte. The
+    check now depends on `npm run icons` having run, and says so when it has
+    not -- a dependency worth having, because the alternative is a gate that
+    cannot fail.
+    """
+    path = os.path.join(CLASS_ART, "outline-" + stem + ".png")
+    if not os.path.exists(path):
+        return None
+    with Image.open(path) as img:
+        img = img.convert("RGBA")
+        w, h = img.size
+        px = img.load()
+        land = {
+            (x, y)
+            for y in range(h)
+            for x in range(w)
+            if px[x, y][3] > 127
+        }
+    return land, w, h
 
 
 def check_dots():
@@ -264,6 +302,11 @@ def check_dots():
     cache = {}
     checked = off = 0
     misses, exempt, stale = [], [], []
+    # Stems the catalog asks for that have no imported PNG. Counted as failures
+    # rather than skipped: an outline that is not in the bundle is a region page
+    # drawing nothing, which is the fault `assertAssetsExist` catches from the
+    # id side and this catches from the art side.
+    unbuilt = set()
     for entry in entries:
         if entry.get("category") != "REGIONS":
             continue
@@ -281,10 +324,11 @@ def check_dots():
         if key is None:
             continue
         stem = shape_icons[key][len("art:outline-"):]
-        if stem not in RINGS:
-            continue
         if stem not in cache:
             cache[stem] = silhouette(stem)
+        if cache[stem] is None:
+            unbuilt.add(stem)
+            continue
         land, w, h = cache[stem]
 
         cx = min(max(int(position["x"] * w), 0), w - 1)
@@ -309,23 +353,47 @@ def check_dots():
         print(f"  STALE EXEMPTION {name} — it lands on land now; drop it from OFF_MAP")
     for name in sorted(set(OFF_MAP) - set(exempt)):
         print(f"  UNREACHED EXEMPTION {name} — no region by that name carries a dot")
-    return off + len(stale) + len(set(OFF_MAP) - set(exempt))
+    for stem in sorted(unbuilt):
+        print(f"  NOT IMPORTED outline-{stem} — run `npm run icons`")
+    return off + len(stale) + len(set(OFF_MAP) - set(exempt)) + len(unbuilt)
 
 
 def main():
     if "--check" in sys.argv:
         sys.exit(1 if check_dots() else 0)
 
-    os.makedirs(DST, exist_ok=True)
+    # **The drawing half no longer has a default destination (0.8.4, F1).**
+    # It used to write straight into `art/icons/countries/`, which was correct
+    # while it was the master of that directory and is a footgun now that it is
+    # not: one absent-minded `npm run outlines` would have replaced 46
+    # hand-drawn coastlines with 30 ring approximations, and `save_stable` would
+    # have made it look like an ordinary art diff.
+    #
+    # Kept runnable rather than deleted, because the rings are 30 authored
+    # geographies and a synthetic outline is still the fastest way to cover a
+    # country nobody has drawn. `--out` is required so choosing where it lands
+    # is always a decision.
+    if "--draw" not in sys.argv:
+        sys.exit(
+            "nothing to do.\n"
+            "  `--check`            resolve every authored mapPosition against the shipped art\n"
+            "  `--draw --out DIR`   rasterise the authored rings into DIR (superseded by\n"
+            "                       the 0.8.4 hand-drawn masters; see the module note)"
+        )
+    if "--out" not in sys.argv:
+        sys.exit("--draw needs --out DIR: this no longer writes art/icons/countries")
+    out_dir = sys.argv[sys.argv.index("--out") + 1]
+
+    os.makedirs(out_dir, exist_ok=True)
     written = 0
     for stem in sorted(RINGS):
         img, fill_cells, ring_cells = draw(stem)
-        out = os.path.join(DST, FILENAME[stem])
+        out = os.path.join(out_dir, FILENAME[stem])
         if save_stable(img, out):
             written += 1
         print(f"  {stem:16s} {img.size[0]:>4}x{img.size[1]:<4} "
               f"{fill_cells:>5} fill · {ring_cells:>4} outline")
-    print(f"\n{len(RINGS)} outlines -> {DST} ({written} rewritten)")
+    print(f"\n{len(RINGS)} outlines -> {out_dir} ({written} rewritten)")
 
     missing = sorted(set(FILENAME) - set(RINGS))
     if missing:

@@ -81,6 +81,8 @@ let package = Package(
                 .copy("Resources/GrapeArt"),
                 .copy("Resources/Icons"),
                 .copy("Resources/Logo"),
+                // The dot-matrix marquee glyphs (0.8.4, A1).
+                .copy("Resources/MarqueeArt"),
                 .copy("Resources/Maps"),
                 .copy("Resources/SFX"),
                 .copy("Resources/StyleArt"),

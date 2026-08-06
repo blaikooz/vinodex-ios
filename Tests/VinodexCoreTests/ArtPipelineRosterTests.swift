@@ -419,23 +419,60 @@ struct ArtPipelineRosterTests {
         )
     }
 
-    // MARK: - The outline masters (0.8.0, A1)
+    // MARK: - The outline masters (0.8.0, A1; re-based 0.8.4, F1)
 
-    /// **Every country the catalog draws an outline for has an authored ring, and
-    /// every authored ring is drawn.**
+    /// Every outline master under `art/icons/countries/`, by stem.
+    private static var outlineMasters: Set<String> {
+        get throws {
+            let dir = repoRoot.appendingPathComponent("art/icons/countries")
+            let names = try FileManager.default.contentsOfDirectory(atPath: dir.path)
+            return Set(
+                names
+                    .filter { $0.lowercased().hasSuffix(".png") }
+                    .map { String($0.dropLast(4)) }
+            )
+        }
+    }
+
+    /// **Masters drawn ahead of the catalog**, named rather than subtracted.
+    ///
+    /// The 0.8.4 drop is forty-six countries and states; the catalog names
+    /// thirty-three of them. The other thirteen are not clutter and not a
+    /// mistake — they are the next thirteen places a region could land in, and
+    /// wiring one is a single `COUNTRY_SHAPE_ICONS` row because the art and its
+    /// fill colour are already here.
+    ///
+    /// It is an exemption list in `assertOutlineCoverage`'s sense and fails the
+    /// same two ways: a stem here that the catalog starts drawing has to come
+    /// out, and a stem here with no master on disk means art was deleted. That
+    /// is what stops "drawn ahead" from becoming the excuse that any unused file
+    /// in the directory is fine.
+    private static let drawnAheadOutlines: Set<String> = [
+        "arizona", "bosnia", "czechia", "idaho", "israel", "michigan",
+        "missouri", "new-mexico", "serbia", "slovakia", "texas", "ukraine",
+        "virginia",
+    ]
+
+    /// **Every outline the catalog draws has a master, and every master is
+    /// either drawn or on the backlog.**
     ///
     /// This is the same two-way shape `assertOutlineCoverage` uses, one layer
     /// further back. That check asks "does this place have outline art"; this one
-    /// asks "does that art have a master". Before A1 the answer for 28 of the 30
-    /// was a PNG somebody drew, and there was nothing to check. Now the master is
-    /// `scripts/country-outline-rings.py` and a 31st country reaching
-    /// `countryShapeIcons` without a ring would produce an importer that reports
-    /// a missing source — at art time, on somebody's laptop, rather than here.
+    /// asks "does that art exist on disk".
     ///
-    /// Failing both ways matters as much as it does there: a ring for a country
-    /// the catalog no longer draws is dead data that the next reader will trust.
-    @Test("every drawn outline has an authored ring, and every ring is drawn")
-    func outlineRingsMatchTheManifest() throws {
+    /// **It used to check the rings, and 0.8.4 is why it cannot any more.**
+    /// Through 0.8.3 every outline was rasterised from
+    /// `scripts/country-outline-rings.py`, so "does that art have a master" and
+    /// "is there an authored ring" were the same question. F1 replaced the whole
+    /// directory with hand-drawn coastlines, which no ring describes — the rings
+    /// survive as a fallback rasteriser and are no longer the art. Checking them
+    /// now would be asserting a relationship the build does not have.
+    ///
+    /// The three spellings that made the old version necessary are also gone: a
+    /// master's stem *is* its `art:outline-<stem>` id, so `import-class-art.py`
+    /// resolves the source by rule and there is no filename table to drift.
+    @Test("every drawn outline has a master, and every master is drawn or on the backlog")
+    func outlineMastersMatchTheManifest() throws {
         let manifest = try Data(
             contentsOf: Self.repoRoot
                 .appendingPathComponent("Sources/VinodexCore/Resources/icons.json")
@@ -445,40 +482,63 @@ struct ArtPipelineRosterTests {
         #expect(!shapes.isEmpty, "icons.json carries no countryShapeIcons")
 
         let wanted = Set(shapes.values.map { $0.replacingOccurrences(of: "art:outline-", with: "") })
+        let masters = try Self.outlineMasters
+        #expect(masters.count >= 30, "found only \(masters.count) outline masters — is the checkout complete?")
 
-        // `FILENAME` is the ring file's own stem -> master-filename table. Parsed
-        // rather than duplicated, exactly as the rosters above are.
-        let ringSource = try Self.read("scripts", "country-outline-rings.py")
-        guard let table = Self.slice(ringSource, from: "FILENAME = {", to: "}") else {
-            Issue.record("could not parse FILENAME out of country-outline-rings.py")
+        #expect(
+            wanted.subtracting(masters).isEmpty,
+            """
+            outlines the catalog draws with no master: \
+            \(wanted.subtracting(masters).sorted()) — draw them into art/icons/countries/
+            """
+        )
+        #expect(
+            masters.subtracting(wanted) == Self.drawnAheadOutlines,
+            """
+            the drawn-ahead backlog has drifted — \
+            unlisted masters nothing draws: \(masters.subtracting(wanted).subtracting(Self.drawnAheadOutlines).sorted()), \
+            listed but now drawn or deleted: \(Self.drawnAheadOutlines.subtracting(masters.subtracting(wanted)).sorted())
+            """
+        )
+    }
+
+    /// **Every master has an ink colour, and every ink colour has a master.**
+    ///
+    /// The masters are silhouettes — one flat cream shape each — and
+    /// `import-class-art.py` paints them from `country-outline-fills.py` at
+    /// import time (0.8.4, F1). A master with no row would import as a blank
+    /// key error at art time on somebody's laptop; a row with no master is a
+    /// colour chosen for a country that does not exist here.
+    ///
+    /// This is the check the fill table could not have before, when it was one
+    /// argument to a rasteriser that only ever ran over its own thirty keys.
+    @Test("every outline master has a fill colour, and every fill colour a master")
+    func everyMasterHasAFill() throws {
+        let source = try Self.read("scripts", "country-outline-fills.py")
+        guard let table = Self.slice(source, from: "FILL = {", to: "}") else {
+            Issue.record("could not parse FILL out of country-outline-fills.py")
             return
         }
-        // Alternating key, filename across the quoted runs.
+        // Alternating stem, "#rrggbb" across the quoted runs.
         let quoted = Self.quoted(table)
-        var authored: [String: String] = [:]
+        var fills: Set<String> = []
         for pair in stride(from: 0, to: quoted.count - 1, by: 2) {
-            authored[quoted[pair]] = quoted[pair + 1]
-        }
-
-        #expect(
-            wanted.subtracting(authored.keys).isEmpty,
-            "outlines the catalog draws with no authored ring: \(wanted.subtracting(authored.keys).sorted())"
-        )
-        #expect(
-            Set(authored.keys).subtracting(wanted).isEmpty,
-            "rings authored for outlines nothing draws: \(Set(authored.keys).subtracting(wanted).sorted())"
-        )
-
-        // And each one has produced its master. The importer's `SOURCE_FOR` looks
-        // these up by name, so a rename here is a missing source there.
-        for (stem, file) in authored.sorted(by: { $0.key < $1.key }) {
-            let url = Self.repoRoot
-                .appendingPathComponent("art/icons/countries")
-                .appendingPathComponent(file)
+            fills.insert(quoted[pair])
             #expect(
-                FileManager.default.fileExists(atPath: url.path),
-                "\(stem): no master at art/icons/countries/\(file) — run `npm run outlines`"
+                quoted[pair + 1].hasPrefix("#") && quoted[pair + 1].count == 7,
+                "\(quoted[pair]): '\(quoted[pair + 1])' is not a #rrggbb colour"
             )
         }
+        #expect(!fills.isEmpty, "parsed no fill rows")
+
+        let masters = try Self.outlineMasters
+        #expect(
+            masters.subtracting(fills).isEmpty,
+            "outline masters with no fill colour: \(masters.subtracting(fills).sorted())"
+        )
+        #expect(
+            fills.subtracting(masters).isEmpty,
+            "fill colours for outlines that do not exist: \(fills.subtracting(masters).sorted())"
+        )
     }
 }

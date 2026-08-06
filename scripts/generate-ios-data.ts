@@ -589,6 +589,21 @@ const COUNTRY_SHAPE_ICONS: Record<string, string> = {
   // for Mexico — so three region pages drew nothing where the dotted map goes.
   brazil: 'art:outline-brazil',
   mexico: 'art:outline-mexico',
+  // 0.8.4 (F1). The hand-drawn drop covers sixteen places beyond the thirty,
+  // and these three are the ones the catalog already names: all three are
+  // `keyRegions` on their continent, and Slovenia is an entry origin outright
+  // (Blaufrankisch moved there in 0.7.9). They were the standing backlog
+  // `CoverageTests.regionsHaveOutlineArt` records as *latent* — a flag and a
+  // blurb but no shape — and they are latent no longer. Bulgaria is the fourth
+  // and stays latent: nobody has drawn it.
+  //
+  // None of the three has a region, so no coverage gate demanded them. That is
+  // the argument for adding them rather than against it: a place is reachable
+  // through its continent's key-region list long before it has a region page,
+  // and until now those three reached it and drew nothing.
+  slovenia: 'art:outline-slovenia',
+  lebanon: 'art:outline-lebanon',
+  'united kingdom': 'art:outline-united-kingdom',
 };
 
 /// Icon-well background per style classification.

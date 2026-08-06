@@ -233,9 +233,31 @@ struct Screensaver: View {
                     .position(x: spot.x + mark.width / 2, y: spot.y + mark.height / 2)
             }
         }
-        // The LCD, blanked. Not translucent: a screensaver you can read the app
-        // through is a dimmer, and the point is that no static image stays lit.
-        .background(lcd.screen)
+        // The LCD, blanked — but blanked to the *screen*, not to a flat fill
+        // (0.8.4, D1).
+        //
+        // Still not translucent, and the original note's argument is untouched:
+        // a screensaver you can read the app through is a dimmer, and the point
+        // is that no static image stays lit. What changed is what "blank" means
+        // here. This drew `lcd.screen`, which is wrong twice over:
+        //
+        //  1. **It hid the grid.** Every screen in the app mounts
+        //     `DexScreenBackground` as its own root layer, and the screensaver
+        //     is stacked *over* the live screen rather than swapped for it — so
+        //     an opaque fill covered a backdrop that is part of what the panel
+        //     looks like when it is on. An idle device stopped looking like the
+        //     same device.
+        //  2. **It was not even the same colour.** `mode.ground` is
+        //     `Dex.stone950` (#0c0a09) on DARK, AMBER and TERMINAL while
+        //     `mode.screen` is `Dex.screen` (#232323), so on the three most-used
+        //     modes the blank was visibly *lighter* than the app behind it. On
+        //     every other mode the two are the same expression and only the grid
+        //     was missing.
+        //
+        // `DexScreenBackground` rather than `mode.ground` + a grid spelled out
+        // again: it is the one definition of what an unlit screen is, and a
+        // second copy here is how the two drift.
+        .background(DexScreenBackground())
         // **Swallows the touch that dismisses it.** The dismissal itself is
         // already handled — `IdleTouchWatcher` saw the touch on the window
         // before this view did, and the stage has dropped to `.active` — but

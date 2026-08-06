@@ -60,6 +60,26 @@ struct DexChromeGlyph: View {
     /// route with no face keeps whatever ink its surface was already giving it
     /// rather than being quietly recruited into the flat treatment.
     var flatten: Color?
+    /// Resample smoothly instead of nearest-neighbour (0.8.4, A1).
+    ///
+    /// **Off everywhere but the marquee, and the exception is not a preference.**
+    /// `.interpolation(.none)` is the house rule for `art:` ids and for every
+    /// drawn face, and the argument behind it is that these are pixel art: the
+    /// pixels sit on a grid the illustrator drew, and any filter smears that
+    /// grid.
+    ///
+    /// The marquee glyphs are not on a grid. They are antialiased *circles* —
+    /// a dot-matrix drawing at roughly 145px, where the dot is the unit and the
+    /// pixel is just how it was stored. Fitted into `DexMetrics.marqueeGlyph`
+    /// they land near 0.7 scale, and nearest-neighbour at 0.7 does not preserve
+    /// a grid there, it drops every third row and column: the dots come out
+    /// different sizes from each other, which reads as the glyph being damaged
+    /// rather than as it being pixellated. Smooth resampling keeps them round
+    /// and keeps them equal.
+    ///
+    /// This is also why the rule can be relaxed here without arguing about it
+    /// elsewhere — nothing else in the app draws circles.
+    var smoothing: Bool = false
 
     init(
         _ stem: String,
@@ -67,7 +87,8 @@ struct DexChromeGlyph: View {
         size: CGFloat,
         weight: Font.Weight = .semibold,
         tint: Color? = nil,
-        flatten: Color? = nil
+        flatten: Color? = nil,
+        smoothing: Bool = false
     ) {
         self.stem = stem
         self.symbol = symbol
@@ -75,6 +96,7 @@ struct DexChromeGlyph: View {
         self.weight = weight
         self.tint = tint
         self.flatten = flatten
+        self.smoothing = smoothing
     }
 
     var body: some View {
@@ -87,7 +109,7 @@ struct DexChromeGlyph: View {
                 // turning one colour.
                 if let flatten {
                     Image(uiImage: art)
-                        .interpolation(.none)
+                        .interpolation(smoothing ? .high : .none)
                         .renderingMode(.template)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
@@ -96,8 +118,9 @@ struct DexChromeGlyph: View {
                     Image(uiImage: art)
                         // Pixel art: every pixel is an authored decision, and any
                         // filter smears the grid it was drawn on. Same rule
-                        // `DexIcon` applies to its `art:` branch.
-                        .interpolation(.none)
+                        // `DexIcon` applies to its `art:` branch. See `smoothing`
+                        // for the one drop this is wrong for.
+                        .interpolation(smoothing ? .high : .none)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                 }

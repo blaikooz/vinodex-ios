@@ -395,6 +395,18 @@ public final class PixelArtLoader {
         // would mean two entries whose safety is a fact about today's catalog.
         "FooterArt",
         "CartridgeArt",
+        // The dot-matrix marquee glyphs (0.8.4, A1), from
+        // art/icons/marqueeglyphs/. `marquee-` prefixed, which is the
+        // convention the entry above asks the next directory to follow — and
+        // here it is load-bearing rather than tidy: nineteen of the thirty-four
+        // stems are words `ButtonArt` already uses (`settings`, `system`,
+        // `shop`, `tools`, `user`, `data`, `dev`, `passport`, `firmware`,
+        // `customize`, `whatsthat`, `moondial`, `tutorial`, `cheatcodes`,
+        // `haptics`, `labelscanner`, `blindtasting`, `dailychallenge`,
+        // `wineexam`), because they are the same pages drawn for a different
+        // surface. Unprefixed, "first hit wins" would have decided which
+        // register every one of those controls got, by list order.
+        "MarqueeArt",
     ]
 
     private var cache: [String: UIImage?] = [:]

@@ -199,6 +199,25 @@ public enum SettingsSection: String, CaseIterable, Hashable, Sendable, Identifia
         case .dev: "dev"
         }
     }
+
+    /// The same five sections in the marquee's own register (0.8.4, A1).
+    ///
+    /// A second table rather than a prefix applied to `artStem`, because the two
+    /// drops are not guaranteed to agree on a spelling and a computed stem is a
+    /// spelling nobody checked. They happen to agree on all five today; when
+    /// they stop, this is where it is written down rather than discovered.
+    ///
+    /// Total, not optional: every section has a glyph in the marquee drop, which
+    /// is the one place the conversion is complete.
+    public var marqueeStem: String {
+        switch self {
+        case .customization: "marquee-customize"
+        case .settings: "marquee-settings"
+        case .data: "marquee-data"
+        case .access: "marquee-shop"
+        case .dev: "marquee-dev"
+        }
+    }
 }
 
 /// A destination on the navigation stack.
@@ -313,6 +332,32 @@ public enum DexRoute: Hashable, Sendable {
     /// The continent info screen — INFO blurb plus a COUNTRIES list, each
     /// linking to that country's regions. Reached from the globe markers.
     case continent(entryID: String)
+    /// One item on the shop shelf, opened (0.8.4, C1).
+    ///
+    /// **A route, reversing 0.7.5's B4 — and the reason it was an overlay is the
+    /// reason it had to stop being one.** B4's argument was that a route would
+    /// cost "a `DexRoute` case per pack or one carrying an id, plus `ChromeTests`
+    /// coverage, a marquee title and a glyph — for a card that is dismissed by
+    /// looking away from it", and that the chassis Back button should keep
+    /// meaning "leave the shop". Every clause of that is still true and the
+    /// conclusion was still wrong, because the splash is not a card you look away
+    /// from: it fills the LCD, it has its own CLOSE button, and the marquee above
+    /// it went on saying SHOP. It *is* a page, and it was the only page in the
+    /// app that was not a stack frame.
+    ///
+    /// What that cost is exactly what C1 reports: Back from a pack lands on
+    /// SYSTEM. Not through any back-destination logic — there is none, `goBack()`
+    /// is `path.removeLast()` — but because the user was standing one frame
+    /// below where they thought they were, so one pop skipped the shop entirely.
+    /// A route does not need a `parent` switch to fix that; the stack already
+    /// encodes it once the pack is a frame of its own.
+    ///
+    /// Carries the `Entitlement.id` string, which is what `ShopItem.id` already
+    /// is and what the shelf already passed to its local state. Resolved through
+    /// `ExpansionPacks.pack(id:)` / `SettingsPanel.allShopItems`, and an id that
+    /// resolves to nothing renders the closed shelf rather than a blank screen —
+    /// the same rule `.detail` follows for an entry that is not in this build.
+    case pack(id: String)
 
     public var title: String {
         switch self {
@@ -400,6 +445,18 @@ public enum DexRoute: Hashable, Sendable {
             "LINEAGE"
         case .continent:
             "CONTINENT SCAN"
+        // **PACKS, not SHOP** (0.8.4, C1). C asks for a route "distinct from
+        // Shop (same glyph)", and the title is the half that has to differ:
+        // two frames on the stack both reading SHOP is the state the user was
+        // already in — the marquee said SHOP while a pack page filled the LCD,
+        // which is most of why Back felt like it should leave the store.
+        //
+        // The plural is deliberate. Singular would name the pack, and the pack
+        // already names itself in 28pt on its own label; the marquee names the
+        // *kind* of page, which is the trade `.country` and `.lineage` both make
+        // one screen up.
+        case .pack:
+            "PACKS"
         }
     }
 
@@ -531,41 +588,48 @@ public enum DexRoute: Hashable, Sendable {
         // one continent (K2, rule 3).
         case .continent:
             "globe.europe.africa.fill"
+        // A box, where SHOP is a bag: the shelf is a storefront and this is one
+        // thing off it. `shippingbox.fill` has been free since 0.7.5 retired
+        // `SettingsSection.packs`, which is what it stood for then, so C1's
+        // "same glyph" is honoured in the *art* (both wear `marquee-shop`) and
+        // declined here — `glyphsAreDistinct` is a K2 assertion about symbols,
+        // and two stack frames wearing one symbol is the exact confusion it
+        // exists to catch. SF Symbols 1 / iOS 13, well under the iOS 17 floor.
+        case .pack:
+            "shippingbox.fill"
         }
     }
 
-    /// The drawn button face for this page's marquee glyph, or nil where there
-    /// is none (0.8.3, A/H).
+    /// The drawn face for this page's marquee glyph, or nil where there is none
+    /// (0.8.3, A/H; re-based on its own art 0.8.4, A1).
     ///
-    /// **Separate from `marqueeSymbol` for the reason `SettingsSection.artStem`
-    /// is separate from `symbol`**, and the reason is not cosmetic:
-    /// `ChromeTests.glyphsAreDistinct` asserts that every route's *symbol* is
-    /// its own, and the art is deliberately not distinct — GRAPES and a grape
-    /// detail want the same picture, and two routes sharing a stem here would
-    /// fail a test about something else entirely. `marqueeSymbol` stays the
-    /// thing that always renders; this stays the thing that may not, and the
-    /// fallback runs per glyph rather than per screen.
+    /// **These are no longer the button faces, and that is the item.** 0.8.3
+    /// read K2 rule 1 — "a page's glyph is the glyph on the control that opens
+    /// it" — as literally as it could be read, and put the *same file* on the
+    /// panel that the tile behind it wears. That was the strongest form of the
+    /// rule available with one drop of art. A1 supplies a second drop drawn for
+    /// this surface alone, and the rule survives the change: what a page's glyph
+    /// must match is its control's *subject*, and every stem below is the
+    /// dot-matrix register of the picture on the control that opens it. GRAPES
+    /// still shows grapes. What it no longer shows is a painted bunch with
+    /// shading, shrunk to 34pt and flattened to a silhouette on a segment LCD.
     ///
-    /// **The table is K2 rule 1 taken literally.** That rule — "a page's glyph
-    /// is the glyph on the control that opens it" — was written when both ends
-    /// were SF Symbols and the most it could ask for was that two switches
-    /// agreed. The 0.8.1 drop makes it checkable: every stem below is the exact
-    /// string the tile that opens the page already passes to `DexChromeGlyph`
-    /// — the four menu tiles, the six TOOLS tiles, the SYSTEM panel's rows —
-    /// so the marquee is not wearing a *matching* picture, it is wearing the
-    /// same file. `ChromeTests.marqueeArtIsOnDisk` is the gate.
+    /// `ChromeTests.marqueeArtFollowsItsControl` is where that weaker claim is
+    /// written down as pairs, and `marqueeArtIsOnDisk` is what stops a stem
+    /// being a guess — a miss here does not blank the panel, it silently
+    /// restores the SF Symbol, which is indistinguishable from the conversion
+    /// not having reached this route.
     ///
-    /// **Nil is a normal answer, not a gap to be filled.** Sixteen routes have
-    /// no face: a detail page, the globe, a country, a state, a continent, the
-    /// lineage graph, the two searches, bookmarks. Some of those have no
-    /// control with a drawn face to inherit from; others (the globe) have art
-    /// whose subject is a place rather than a page. Inventing a stem for them
-    /// would put a wrong picture on the panel, and `MarqueeBanner` renders the
-    /// SF Symbol it always did.
+    /// **Sixteen nils became four.** The 0.8.3 table had no face for the globe,
+    /// a country, a state, a continent, the lineage graph, either search, or the
+    /// main menu, because the button drop was drawn for controls and those pages
+    /// have none. This drop is drawn for pages, so they have one. What is still
+    /// nil is `.detail`'s unresolved fallback (`WineEntry.scanArt` answers for
+    /// every entry that exists) and `.bookmarks`, which nobody drew.
     ///
-    /// A filtered listing answers nil rather than its category's face, for K2
-    /// rule 2: a GEOLOGY SCAN is not a regions listing, and the regions face is
-    /// what it would be claiming to be.
+    /// A filtered listing still answers nil, for K2 rule 2: a GEOLOGY SCAN is
+    /// not a regions listing, and the regions face is what it would be claiming
+    /// to be.
     public var marqueeArt: String? {
         switch self {
         case .list(let category, let filter):
@@ -574,31 +638,49 @@ public enum DexRoute: Hashable, Sendable {
         // this is the unresolved-entry fallback and has no picture.
         case .detail:
             nil
-        case .globe, .globeSearch, .bookmarks, .country, .state, .continent, .lineage:
+        // Nobody drew a bookmark. The SF Symbol stands, which is the fallback
+        // working rather than a gap.
+        case .bookmarks:
             nil
+        // The four places, each drawn as itself rather than as a globe: a
+        // country is a flag on a map, a state is the same at another scale, a
+        // continent is a hemisphere. The globe and the world search share
+        // `globescan`, which is allowed — art repeats on purpose and only
+        // `marqueeSymbol` must be distinct.
+        case .globe, .globeSearch: "marquee-globescan"
+        case .country: "marquee-countryscan"
+        case .state: "marquee-countryscan"
+        case .continent: "marquee-continentscan"
+        case .lineage: "marquee-lineage"
         // The six TOOLS tiles, in the order the shelf draws them.
-        case .scanner: "blindtasting"
-        case .labelReader: "labelscanner"
-        case .wsetQuiz: "wineexam"
-        case .dailyChallenge: "dailychallenge"
-        case .dailyGrape: "whatsthat"
-        case .moonDial: "moondial"
+        case .scanner: "marquee-blindtasting"
+        case .labelReader: "marquee-labelscanner"
+        case .wsetQuiz: "marquee-wineexam"
+        case .dailyChallenge: "marquee-dailychallenge"
+        case .dailyGrape: "marquee-whatsthat"
+        case .moonDial: "marquee-moondial"
         // The shelf itself, from the SETTINGS grid's TOOLS door.
-        case .minigames: "tools"
-        // SYSTEM's face, not `settings` — see `SettingsSection.artStem`, where
-        // the same collision is spelled out from the other side: the route
-        // *titled* SYSTEM is `.settings` and takes the `settings` drawing,
-        // while the drop's `system` face belongs to the chassis cog.
-        case .settings: "settings"
-        case .settingsSection(let section): section.artStem
+        case .minigames: "marquee-tools"
+        // **The 0.8.3 collision resolves itself here.** In the button drop the
+        // route *titled* SYSTEM had to take the `settings` face, because that
+        // drop's `system` picture was the chassis cog and belonged to the
+        // hardware. This drop is drawn per page and has both: SYSTEM takes
+        // `system`, SETTINGS takes `settings`, and neither borrows the other's.
+        case .settings: "marquee-system"
+        case .settingsSection(let section): section.marqueeStem
         // The four SYSTEM-panel rows that open them.
-        case .walkthrough: "tutorial"
-        case .firmwareHistory: "firmware"
-        case .cheatConsole: "cheatcodes"
-        case .deviceWorkshop: "workshop"
-        case .passport: "passport"
-        // The magnifier the round button that opens it already wears.
-        case .chipFilter: "search"
+        case .walkthrough: "marquee-tutorial"
+        case .firmwareHistory: "marquee-firmware"
+        case .cheatConsole: "marquee-cheatcodes"
+        case .deviceWorkshop: "marquee-deviceworkshop"
+        case .passport: "marquee-passport"
+        // The magnifier the round button that opens it already wears — drawn as
+        // the master search rather than as a bare glass.
+        case .chipFilter: "marquee-mastersearch"
+        // The pack splash (0.8.4, C1). It shares the shop's picture on purpose:
+        // C asks for a route distinct from SHOP wearing the same glyph, and art
+        // is the half of the pair that is allowed to repeat.
+        case .pack: "marquee-shop"
         }
     }
 }
@@ -608,15 +690,20 @@ public extension EntryCategory {
     /// menu's own tile passes to `DexChromeGlyph`, which is K2 rule 1 with the
     /// two ends now being the same file rather than two agreeing switches.
     ///
-    /// Continents answer nil: the menu has no CONTINENTS tile, the globe is
-    /// reached from the chassis, and no face in the 0.8.1 drop draws a world.
+    /// **Continents stopped answering nil in 0.8.4 (A1).** The menu still has no
+    /// CONTINENTS tile and the globe is still reached from the chassis, but the
+    /// reason this was nil was narrower than either: no face in the 0.8.1 button
+    /// drop drew a world. The marquee drop does.
     var marqueeArt: String? {
         switch self {
-        case .grapes: "grapes"
-        case .regions: "regions"
-        case .styles: "styles"
-        case .flavors: "flavors"
-        case .continents: nil
+        case .grapes: "marquee-grapescan"
+        case .regions: "marquee-regions"
+        case .styles: "marquee-stylescan"
+        case .flavors: "marquee-flavorscan"
+        // No longer nil (0.8.4, A1). The 0.8.1 button drop had no world in it,
+        // which is why this answered nil for three releases; the marquee drop
+        // does, so the CONTINENTS listing stops falling back to its SF Symbol.
+        case .continents: "marquee-continentscan"
         }
     }
 
