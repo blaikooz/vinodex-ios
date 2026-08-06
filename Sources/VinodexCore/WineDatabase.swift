@@ -111,6 +111,12 @@ public struct Palette: Codable, Sendable {
     public let flavorSubclassIconColors: [String: String]
     public let continentCountries: [String: [String]]
 
+    /// Style id -> `StyleColorType` rawValue, as the shared `getColorType`
+    /// answers it. Read by `CoverageTests` and by nothing else: it exists so
+    /// that `EntryDisplay.colorType`'s port cannot drift from `entryUtils.ts`
+    /// unnoticed again (0.8.1, B).
+    public let styleColorTypes: [String: String]
+
     public func chip(country: String?) -> Chip? {
         guard let country else { return nil }
         return countryChips[country]
@@ -605,7 +611,7 @@ public final class WineDatabase: Sendable {
         colorTypeChips: [:], styleClassChips: [:], flavorClassChips: [:], flavorSubclassChips: [:],
         namedChips: [:], styleTones: [:], climates: [:],
         regionClassificationIconColors: [:], flavorSubclassIconColors: [:],
-        continentCountries: [:]
+        continentCountries: [:], styleColorTypes: [:]
     )
 
     // MARK: - Queries

@@ -174,6 +174,66 @@ struct MarqueeScriptTests {
         #expect(MarqueeCheers.toast(at: -3) == all[0])
     }
 
+    /// **I2: the rotation is a function of elapsed time as well as of idles.**
+    ///
+    /// The 0.7.2 rule (one language per idle period) is layered under this, not
+    /// replaced by it: `idleCount` still chooses where the period opens. What
+    /// 0.8.1 adds is that the period no longer holds one word for its whole
+    /// length — at a 60-second idle delay and a 5-second dwell, a single idle
+    /// now walks most of the nine instead of showing one and stopping.
+    @Test("I2: the toast advances every five seconds within one idle")
+    func toastsAdvanceWithTime() {
+        var script = MarqueeScript()
+        script.timedOut()   // welcome -> menu
+        script.timedOut()   // menu -> cheers
+        #expect(script.stage == .cheers)
+
+        let all = MarqueeCheers.all
+        // The instant of arrival is still index 0 — the language the panel
+        // opens on has not moved.
+        #expect(script.text(after: 0) == all[0])
+        #expect(script.text(after: 4.9) == all[0])
+        #expect(script.text(after: 5) == all[1])
+        #expect(script.text(after: 12) == all[2])
+        // Long idles wrap rather than run off the end.
+        #expect(script.text(after: MarqueeCheers.dwell * Double(all.count)) == all[0])
+        // An hour on the panel is a defined word, not an accumulated one.
+        #expect(script.text(after: 3600) == MarqueeCheers.toast(at: 720))
+
+        // The period's starting index still comes from `idleCount`, so elapsed
+        // time and idle count compose rather than one overriding the other.
+        var second = MarqueeScript()
+        second.timedOut()
+        second.timedOut()
+        second.noteActivity()   // ends the period, idleCount -> 1
+        second.timedOut()       // menu -> cheers again
+        #expect(second.text(after: 0) == all[1])
+        #expect(second.text(after: 5) == all[2])
+    }
+
+    /// Off `.cheers` the panel is making a statement about a screen, and a
+    /// statement that rotated with the clock would be a different kind of thing.
+    @Test("I2: only the toast rotates")
+    func onlyTheToastRotates() {
+        var script = MarqueeScript()
+        #expect(script.stage == .welcome)
+        #expect(script.text(after: 999) == script.text)
+        script.timedOut()
+        #expect(script.stage == .menu)
+        #expect(script.text(after: 999) == script.text)
+    }
+
+    /// Negative and sub-dwell elapsed times floor at the period's own word —
+    /// the caller subtracts two dates and a clock that steps backwards must not
+    /// be a crash.
+    @Test("I2: elapsed time floors at zero")
+    func elapsedFloors() {
+        #expect(MarqueeCheers.steps(in: -10) == 0)
+        #expect(MarqueeCheers.steps(in: 0) == 0)
+        #expect(MarqueeCheers.steps(in: MarqueeCheers.dwell - 0.001) == 0)
+        #expect(MarqueeCheers.steps(in: MarqueeCheers.dwell) == 1)
+    }
+
     @Test("A8: every toast is panel-safe")
     func toastsArePanelSafe() {
         // The same three rules `stagesAreLabelled` applies to the stage labels,

@@ -437,6 +437,116 @@ struct CoverageTests {
         }
     }
 
+    /// **Every flavour chip must be a colour somebody chose (0.8.1, F3).**
+    ///
+    /// The FAMILY row had six grey chips — GAME, SAVORY, BREAD, SMOKY, SALTY,
+    /// BRINY — and this was *not* the rosé-chip shape the spec expected. The
+    /// keys matched perfectly at both ends. `getFlavorSubclassChipColors`
+    /// simply had no `case` for those six, and its `default` returns the exact
+    /// triple `Palette.resolve` falls back to, so the generator wrote the
+    /// fallback into the table under a valid key. A lookup that succeeds and a
+    /// lookup that fails were byte-identical on screen and in the JSON.
+    ///
+    /// So the pin is not "does the key resolve" — it did — but "is the answer
+    /// distinguishable from no answer". `MARINE` was the tell: a coloured row
+    /// for an id nothing can produce, sitting beside `BRINY` with none, which
+    /// is what a half-finished rename looks like a year later.
+    @Test("no flavour chip resolves to the neutral fallback")
+    func flavorChipsAreColoured() {
+        let neutral = Palette.Chip(bg: "#1c1917", border: "#57534e", text: "#e7e5e4")
+        let isNeutral: (Palette.Chip) -> Bool = {
+            $0.bg == neutral.bg && $0.border == neutral.border && $0.text == neutral.text
+        }
+        for subclass in db.flavorSubclasses {
+            let chip = db.palette.flavorSubclassChips[subclass]
+            #expect(chip != nil, "flavorSubclassChips has no row for \(subclass)")
+            if let chip {
+                #expect(!isNeutral(chip), "\(subclass) is the neutral fallback wearing a valid key")
+            }
+            let tint = db.palette.flavorSubclassIconColors[subclass]
+            #expect(tint != nil, "no icon tint for \(subclass)")
+            #expect(tint != "#e5e7eb", "\(subclass)'s glyph is the default grey")
+        }
+        for cls in db.flavorClasses {
+            let chip = db.palette.flavorClassChips[cls]
+            #expect(chip != nil, "flavorClassChips has no row for \(cls)")
+            if let chip {
+                #expect(!isNeutral(chip), "\(cls) is the neutral fallback wearing a valid key")
+            }
+        }
+        // Nothing may be emitted for an id the catalog cannot produce: an
+        // unreachable coloured row is how `BRINY` went six releases without one.
+        let known = Set(db.flavorSubclasses)
+        for key in db.palette.flavorSubclassChips.keys {
+            #expect(known.contains(key), "flavorSubclassChips has a row for '\(key)', which no flavour carries")
+        }
+    }
+
+    /// **The colour a style reports on the device must be the colour the shared
+    /// data says (0.8.1, B).**
+    ///
+    /// `EntryDisplay.colorType` is a port of `entryUtils.ts`'s `getColorType`,
+    /// and it had lost the whole `STYLE_NAME_COLOR_OVERRIDES` table — sixteen
+    /// of thirty-three styles answered differently on the phone than in the
+    /// data. Fifteen went to DUAL, which looks like an opinion rather than a
+    /// miss; the sixteenth is why it got reported, because `"prosecco"` has
+    /// `"rose"` inside it and the port matched substrings rather than words.
+    ///
+    /// `palette.styleColorTypes` is the generator writing down the *shared*
+    /// answer for every style so the two ends can be compared. This fails in
+    /// both directions on purpose: a keyword or override added to
+    /// `entryUtils.ts` and not to `EntryDisplay`, or the reverse.
+    @Test("every style's colour type matches the shared derivation")
+    func styleColorTypesMatchShared() {
+        let shared = db.palette.styleColorTypes
+        #expect(!shared.isEmpty, "the generator stopped emitting styleColorTypes")
+        #expect(
+            shared.count == db.entries(in: .styles).count,
+            "styleColorTypes covers \(shared.count) of \(db.entries(in: .styles).count) styles"
+        )
+        for entry in db.entries(in: .styles) {
+            let expected = shared[entry.id]
+            #expect(expected != nil, "no shared colour type emitted for \(entry.name) (\(entry.id))")
+            guard let expected else { continue }
+            let derived = EntryDisplay.colorType(name: entry.name).rawValue
+            #expect(
+                derived == expected,
+                "\(entry.name): shared data says \(expected), the device derives \(derived)"
+            )
+        }
+    }
+
+    /// The symptom that named item B, pinned on its own so a regression reads
+    /// as itself rather than as one line of a thirty-three-row diff.
+    @Test("Prosecco is a white wine, not a rosé")
+    func proseccoIsWhite() throws {
+        #expect(EntryDisplay.colorType(name: "Prosecco") == .white)
+        // The substring that caused it, still present, still not a match.
+        #expect(TextNormalize.label("Prosecco").contains("rose"))
+        #expect(!EntryDisplay.containsWord(TextNormalize.label("Prosecco"), "rose"))
+    }
+
+    /// Every override must be *reachable*: keyed as the normaliser spells the
+    /// name, and consulted before the keyword chain rather than shadowed by it.
+    /// Port would have passed a table-contents check while returning the wrong
+    /// answer for all sixteen, so this asserts on the function, not the table.
+    @Test("all sixteen colour overrides resolve, and each names a real style")
+    func colorOverridesResolve() {
+        let styleNames = Set(db.entries(in: .styles).map {
+            TextNormalize.label($0.name).trimmingCharacters(in: .whitespaces)
+        })
+        for (key, expected) in EntryDisplay.colorOverrides {
+            #expect(
+                EntryDisplay.colorType(name: key) == expected,
+                "override '\(key)' does not survive colorType — expected \(expected.rawValue)"
+            )
+            #expect(
+                styleNames.contains(key),
+                "override '\(key)' names no style in the catalog"
+            )
+        }
+    }
+
     /// Every soil the region screen can show must match a keyword. Falling
     /// through to the default mountain renders, but reads as a bug — six terms
     /// were silently doing exactly that.

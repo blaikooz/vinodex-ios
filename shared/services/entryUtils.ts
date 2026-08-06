@@ -69,7 +69,12 @@ const SUBCLASS_TO_CLASS: Record<string, FlavorClass> = {
   RED_FRUIT: 'SWEET',
   DARK_FRUIT: 'SWEET',
   BERRY: 'SWEET',
-  MARINE: 'SALTY',
+  // `MARINE` lived here, in `getFlavorSubclassChipColors` and in the icon-tint
+  // table, and in none of them could it ever be reached: no entry of
+  // `FLAVOR_SUBCLASS_KEYWORDS` emits it, so `categorizeFlavorSubclass` cannot
+  // return it. Its blue is `BRINY`'s now, which is plainly what it was renamed
+  // to (0.8.1, F3). Removed rather than left as documentation, because a live
+  // row for a dead id is what let six real ids go colourless unnoticed.
   SALTY: 'SALTY',
   BRINY: 'SALTY',
   SPICE: 'BITTER',

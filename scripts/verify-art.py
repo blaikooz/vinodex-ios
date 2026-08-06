@@ -69,7 +69,7 @@ BUNDLE = os.path.join(ROOT, "Sources", "VinodexUI", "Resources")
 # two drifted apart silently for two releases (0.7.5, A027). `import-stamp-art`
 # was in the rasteriser and not here — StampArt was generated and never verified
 # — and `import-logo-art` was in neither.
-DIRS = ("FlavorArt", "GrapeArt", "StyleArt", "ClassArt", "StampArt", "StickerArt", "Logo")
+DIRS = ("FlavorArt", "GrapeArt", "StyleArt", "ClassArt", "StampArt", "StickerArt", "Logo", "ButtonArt")
 IMPORTERS = (
     "import-flavor-art.py",
     "import-grape-art.py",
@@ -78,6 +78,7 @@ IMPORTERS = (
     "import-stamp-art.py",
     "import-sticker-art.py",
     "import-logo-art.py",
+    "import-button-art.py",
 )
 
 # Bundle PNGs that no importer produces, so "not regenerated" is their correct

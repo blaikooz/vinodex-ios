@@ -75,6 +75,7 @@ public struct ToolsScreen: View {
                     // (A2 reserves those for search) into the premise itself.
                     tile(
                         title: "BLIND\nTASTING",
+                        art: "blindtasting",
                         symbol: "eye.slash.fill",
                         face: "#22c55e", shadow: "#15803d",
                         action: onScanner
@@ -98,6 +99,7 @@ public struct ToolsScreen: View {
                     // dark-ink handling the yellow and cyan faces once did.
                     tile(
                         title: "LABEL\nSCAN",
+                        art: "labelscanner",
                         symbol: "camera.viewfinder",
                         face: "#3B82F6", shadow: "#1d4ed8",
                         action: onLabelReader
@@ -108,12 +110,14 @@ public struct ToolsScreen: View {
                 HStack(spacing: 10) {
                     tile(
                         title: "WINE\nEXAM",
+                        art: "wineexam",
                         symbol: "checkmark.seal.fill",
                         face: "#a855f7", shadow: "#6b21a8",
                         action: onQuiz
                     )
                     tile(
                         title: "DAILY\nCHALLENGE",
+                        art: "dailychallenge",
                         symbol: DexGlyph.challenge,
                         face: "#ef4444", shadow: "#991b1b",
                         action: onDailyChallenge
@@ -138,12 +142,14 @@ public struct ToolsScreen: View {
                     // for the dark ink.
                     tile(
                         title: "WHAT'S\nTHAT…?",
+                        art: "whatsthat",
                         symbol: "sparkles",
                         face: "#EAB308", shadow: "#a16207",
                         action: onDailyGrape
                     )
                     tile(
                         title: "MOON DIAL",
+                        art: "moondial",
                         symbol: "moon.stars.fill",
                         face: "#0891B2", shadow: "#155e75",
                         action: onMoonDial
@@ -176,6 +182,7 @@ public struct ToolsScreen: View {
     /// the label has not already said.
     private func tile(
         title: String,
+        art: String,
         symbol: String,
         face: String,
         shadow: String,
@@ -194,9 +201,10 @@ public struct ToolsScreen: View {
             action()
         } label: {
             VStack(spacing: 12) {
-                Image(systemName: symbol)
-                    .font(.system(size: 44, weight: .semibold))
-                    .foregroundStyle(label)
+                // Drawn faces since 0.8.1 (J3), in a square box for the
+                // reason the menu tiles keep theirs: six bitmaps at six
+                // aspects would otherwise be six tile heights.
+                DexChromeGlyph(art, symbol: symbol, size: 44, tint: label)
                     .shadow(color: .black.opacity(0.3), radius: 0, x: 1, y: 2)
                 Text(title)
                     .font(DexFont.retro(13))

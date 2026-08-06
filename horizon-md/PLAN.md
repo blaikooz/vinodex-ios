@@ -1,4 +1,4 @@
-# HGapps plan — open issues, cleanup, and next batches
+﻿# HGapps plan — open issues, cleanup, and next batches
 
 **Authored by Horizon.**
 
@@ -59,6 +59,7 @@ been happening", which is the question a planning doc is for.
 | 0.7.7 | `vinodex-0.7.7-bios.md` (titled 0.7.6) | **THE BIOS SCREEN.** The startup POST rebuilt from a written description of a mockup, **superseding 0.7.3a A1 and 0.7.5 A6 wholesale**: full-screen and opaque over the chassis (reversing 0.7.3a's "inside the LCD", which was an argument about a *translucent* overlay), three zones inside a terminal frame with ticked side rails and corner brackets, scanlines and a vignette, the shipped pixel "V" in cream over a magenta drop shadow. Staged checks now resolve *into* the composition rather than cutting away, then it rests on `PRESS ANY BUTTON TO CONTINUE` — any touch advances, and so does a 3.5s timeout. The mockup's `v1.0.0` was disobeyed: that string is on `AppVersion.placeholders` and printing it would have hidden the failure it signals. Four glyphs, no new art asset — one reuse, three drawn in code. | 438, untouched; `firmware.ts` only | 504 tests, clean build, `npm run generate` + `find-missing-refs` + `npm run icons` + `icons:verify` green, **not deployed** (held at the user's request) |
 | 0.7.8 | 0.7.8 spec, sections B–D | **THE GROWTH TRIO.** Scoped three times and built here, fully local. **B** one card renderer reused three ways — entry, profile, earned stamp — through `ImageRenderer` at a fixed 3× into the share sheet, framed by a purpose-built still that takes the chassis's *tokens* rather than rendering `DeviceChassis` (which exports a blank marquee and dim lamps off-screen). **C** the spoiler-free result string, `DailyResult` in Core, two tiles not three because the paper has no third state; C2's three preconditions confirmed against the code and one caveat found — the paper depends on the shipped catalog, so cross-version strings are not comparable, which is why it carries no puzzle number. **D** `NotificationPlan` in Core, a 7-day horizon of one-shots re-cut whenever the app can see whether today's paper is done; the toggle renders real `UNAuthorizationStatus`, not a stored bool. `QuizSession` gained `marks` with a hand-written decoder so a paper half-sat across the upgrade survives. | 438, untouched; `firmware.ts` only | 542 tests, clean build, `npm run generate` + `find-missing-refs` green, **not deployed** (held per the spec) |
 | 0.8.0 | `vinodex-0.8.0.md`, sections A–L | **NEW MAPS, NEW MAKER.** All thirty country/state outlines regenerated from authored lon/lat rings, with the generator and its data now *in the repo* — once every outline is derived the script is the master art. Gated on **A0b**, its own commit: the six quantising importers routed through a pinned `quantize_stable` and through `save_stable`, so a re-run is byte-identical and a three-colour outline never meets a quantiser at all. Every one of the 121 authored `mapPosition` dots checked against the new art (**8 were already in the sea**, 7 re-authored, 1 — the Canary Islands, at fraction (-0.49, 2.07) of Iberia — named as genuinely off-map). Plus: BIOS by HORIZON/GODOT, centred and larger; the orb becomes a lamp in height *and* treatment; "paper" becomes "exam" in every player-facing string and no identifier; a rosé chip that had been resolving to grey since it shipped; four menu tiles that finally share a baseline; type-ahead in WHAT'S THAT…? restricted to entries the player has met. | 446, untouched; `regions.ts` mapPosition ×7, `continents.ts` Europe colour, `firmware.ts` | 582 tests, clean build, `npm run generate` + `find-missing-refs` + `icons:verify` green, **not deployed** |
+| 0.8.1 | `vinodex-0.8.1.md`, sections A–F, H–J (**G held**) | **PROSECCO IS NOT A ROSÉ.** A bug hunt that turned out to be a whole missing table: `EntryDisplay.colorType` is a port of `entryUtils.ts`'s `getColorType` and had never carried `STYLE_NAME_COLOR_OVERRIDES`, so **16 of 33 styles reported a different colour on the device than in the data** — 15 silently as DUAL, and Prosecco as ROSÉ because the port matched substrings and `"p*rose*cco"` contains one. Fixed as a port plus a cross-end pin (`palette.styleColorTypes`), then **D** spends it: COLOUR and COUNTRY join STYLE CLASS on the styles list. **F3** was expected to be the same shape and was not — the keys matched perfectly; `getFlavorSubclassChipColors` simply had no case for six ids and its `default` is byte-identical to the reader's fallback, so six chips were the neutral *written into the table under a valid key*. **J** wires 30 of 32 new button faces in behind a fitted square box, through an eighth importer registered in all four rosters and both search paths. Plus a lineage tree whose connectors now reach the boxes, a marquee glyph that dissolves with its word, and a toast that changes language every five seconds. | 446, untouched; `chipColors.ts`, `colorUtils.ts`, `entryUtils.ts` (`MARINE` retired), `firmware.ts` | 590 tests, clean build, `generate` + `find-missing-refs` (zero dangling) + `icons:verify` (291 identical) + `outlines:check` green, **not deployed** |
 | 0.7.6 | v0.7.5 spec (lands as 0.7.6), sections A–F | **THE CONSOLIDATION.** The Decision: three ways to reach the same places become one — the two marquee lamps *are* the pins, always visible, each reassignable by holding it. `MarqueeDrawer` deleted, the corner pin buttons deleted, the panel is a display again. `QuickPinStore` reused, not forked: `MarqueePin`'s raw values are a superset of `SettingsSection`'s, so no pins are reset. The idle timer stops being two stages (screensaver 15→**30s**, the marquee greeting folded into it and firing on **any** screen, revertible by giving `IdleSchedule.toast` a number back); the screensaver gets a random start, kept as a phase so the closed form survives. Plus two new workshop axes (10 in all), the **W64** shell, a stadium orb, bigger shop splashes with previews of their contents, and the tutorial into SETTINGS > DEVICE. | 438, untouched | 501 tests, clean build, `npm run generate` + `find-missing-refs` + `npm run icons` green, **not deployed** |
 
 **0.7.5, The Wine Exam** (v0.7.5 spec, section D). The second split batch:
@@ -1951,6 +1952,125 @@ from 542, and **red at the start of the batch**), clean `xtool dev build`,
   caused by this batch — the web `shared/` mirror was already synced to sommbot's
   data before it started. Left for `paritybot`; re-deriving golden option ids is
   web scope.
+
+**0.8.1, One missing table, one missing boundary, and thirty button faces**
+(`horizon-md/vinodex-0.8.1.md`, sections A-F and H-J). **G held** and untouched
+on the user's instruction: it is a `shared/data/styles.ts` reclassification and
+therefore sommbot's. Run B first because it gates D, then the contained items,
+then J. Gates: **590 tests**, clean `xtool dev build`, `npm run generate` +
+`find-missing-refs` (zero dangling) + `icons:verify` (291 identical, 0 changed)
++ `outlines:check` green. **Not deployed** -- 0.7.9 and 0.8.0 are also still
+undeployed behind the pending 27015 fix.
+
+- **B was two faults, and only their intersection was visible.**
+  `EntryDisplay.colorType` is a hand port of `getColorType` and had lost the
+  entire override table -- all sixteen entries, every one of which names a real
+  style exactly. Fifteen of the sixteen therefore fell through to `.dual`, which
+  is what an un-overridden Champagne *should* look like if you did not know the
+  table existed, so nobody could see them. The sixteenth was Prosecco, because
+  the port also used `contains` where the TS uses word-anchored regexes and
+  **"prosecco" has "rose" inside it**. One silent fault plus one loud one in the
+  same function, and only the loud one got reported. The fix is the port restored
+  faithfully (table first, then word-boundary keywords) plus
+  `palette.styleColorTypes`: the generator writing down the *shared* answer for
+  every style so `CoverageTests` can fail in **either** direction. Nothing reads
+  it at runtime, and that is deliberate -- `WineEntry.tileChips` has no database
+  in scope and the label scanner asks about names that are not in the catalog, so
+  a port is the right shape here. A port is also what silently lost the table, so
+  the two ends are now written down side by side.
+- **F3 was not the bug the spec predicted, and the difference matters.** The
+  brief expected 0.8.0's rose-chip shape -- a probe key disagreeing with a reader
+  key. It is not: `flavorSubclassChips` has all 22 keys, spelled identically at
+  both ends, and every lookup succeeds. `getFlavorSubclassChipColors` simply had
+  no `case` for GAME, SAVORY, BREAD, SMOKY, SALTY or BRINY, and its `default`
+  returns the exact triple `Palette.resolve` falls back to. **A successful lookup
+  and a failed one were byte-identical**, on screen and in the JSON, which is why
+  six grey chips read as a styling choice for six releases. `MARINE` was the
+  tell: a coloured row for an id no code path can emit, sitting beside `BRINY`
+  with none -- a rename that left the old row behind. So the pin is not "does the
+  key resolve" but "is the answer distinguishable from no answer", and it also
+  fails on any row emitted for an id the catalog cannot produce.
+- **C3 was a real geometry bug, and three of them.** The crossbar's half-span was
+  `min(width * 0.5, count * 46) / 2` -- 46 being near half the *96pt* tile 0.8.0
+  replaced with a 116pt one, so it had been drawn to the previous tile size for a
+  release and to a guess before that. But the bigger error was that the legs ran
+  to `y = 0`, the tier's edge, and the tier put its caption (offspring side) or
+  its SHOW ALL button (parents side) *between* the tiles and the trunk: the lines
+  were meeting the right coordinate of the wrong view, 12 to 38pt short. And
+  `FlowLayout` left-packed into a full-width bounds, so a lone parent sat at the
+  left while the stem came down the middle. All three fixed together --
+  `FlowLayout` gains an `alignment` (leading by default, so no chip row in the
+  app moves), the tier puts labels on the outside and tiles nearest the trunk,
+  and `Connector` repeats the tier's own packing arithmetic off `tileWidth` and a
+  named `tierSpacing` to draw a leg to every tile on the adjacent row.
+- **Three spec items were wrong about the code, and one of them is still open.**
+  - **H1 as written is a no-op.** The four menu tiles' glyphs have been above
+    their labels since they shipped -- a `VStack`, not an `HStack`. The item is
+    the *marquee* panel's glyph, which 0.7.2's A3 moved beside the word on the
+    main screen and which H1 asks back above it; the `glyphBeside` flag and its
+    branch are gone rather than left passing `false`. **0.8.0's L fix is intact**:
+    the 56pt box stays, and J3 is why it now matters more, not less.
+  - **A's premise does not hold.** There is no shared miniature-chassis
+    component for the shop to be a fourth caller of -- there are three
+    independent drawings (workshop, settings, walkthrough) held together by two
+    metric rules and by whoever remembers to change all of them, which is exactly
+    how 0.7.9's A1 grew the orb in two and left the third. `ChassisMockup` is the
+    settings tile lifted out whole, because it is the only one of the three
+    already parameterised by a `ChassisSkin` rather than by the *current* skin.
+  - **C2 is already built and cannot be reached.** `parentageUnknown`,
+    `LineageNode.Target.unrecorded` and the dashed slashed-circle tile all
+    shipped in 0.8.0, in the tree *and* on the detail screen. No grape carries
+    the flag: `shared/` emits it nowhere, and `GrapeLineageTests` pins that. So
+    C2 needs a **data** pass deciding which varieties research genuinely calls
+    unparented -- a sourced wine claim, and sommbot's. **Not guessed at**, and
+    absence of authored parents was deliberately *not* treated as a claim of
+    unknown parentage: `unknownParentageIsDistinctFromUnauthored` exists to stop
+    exactly that. C1 was the real bug and is fixed.
+- **A1's literal is not restored, on purpose.** The prior value was a hand-set
+  `width: 10`, and 0.7.9's own comment records why it stopped being viable --
+  at today's `islandOrbAspect` it measures a 1.9pt hairline. What 0.7.9 got
+  wrong was not using the rule but feeding it the *chassis's* 10pt lamp, so a
+  rule that spans a trio produced an orb 3.6x the single light beside it. It now
+  takes the mockup's own part scale (3pt, the marquee strip's height in the same
+  tile) and lands at 11 x 3 -- within a point of the 10 x 4.3 the tile drew
+  before 0.7.9, with every proportion the chassis states preserved.
+- **I2 layers on 0.7.2's rule rather than replacing it.** `idleCount` still sets
+  where an idle period opens, so consecutive idles do not all start on CHEERS!
+  and every existing test stays green; what is new is that a period is no longer
+  one word long. `MarqueeCheers.steps(in:)` is pure and lives in Core; the view
+  supplies elapsed time from `screensaverSince`, which is *already* the instant
+  the toast began (`IdleSchedule.cheers` resolves to `IdleSchedule.screensaver`),
+  so the words and the bouncing mark cannot keep two reckonings of one idle. The
+  invalidation is `TimelineView(.periodic)` -- a clock, not a timer -- mounted
+  unconditionally so the banner keeps its identity and an arrival at CHEERS!
+  stays a dissolve instead of becoming a remount.
+- **J is 30 of 32 placed, and the two left over are named.** `numberedstack` has
+  no button anywhere -- its only plausible target is the DATA panel's TOTAL
+  ENTRIES hero, which is a statistic, not a control. `user` has a home (the
+  chassis USER button) but that control already carries a skin-override art path
+  (`SkinMarkView`, HALLOWEEN's pumpkin), and a second art mechanism on the one
+  glyph a skin may replace is a fight worth having deliberately rather than in
+  passing. Everything else is wired: the four menu tiles, the six tools tiles,
+  five settings feature tiles, eight settings rows, the chassis BACK / HOME /
+  gear, the search shell (which converts five screens at once), PASSPORT, both
+  edit pencils and the label reader's camera.
+- **The box is what makes J safe, and it is the same box as 0.8.0's L.** The 32
+  faces run from 0.62 to 1.88 aspect, and roughly 150 call sites size a symbol
+  with `.font(.system(size:))` and no frame -- so an in-place raster swap would
+  have re-broken every alignment in the app, silently, one control at a time.
+  `DexChromeGlyph` never lays out at the art's size: it fits the art inside a
+  square and letterboxes the remainder, so a row of them is aligned whatever is
+  drawn in them. It also falls back to the SF Symbol whenever there is no PNG,
+  which is what lets the conversion be partial without any control going blank
+  and what makes a mistyped stem degrade to the icon that was there before.
+- **Two shared-data observations, neither actioned.** Madeira resolves to DUAL
+  at both ends -- it has no override row where Cava (added in the same data
+  batch) does. Defensible for a wine made from four white varieties and one
+  red-skinned one, but it is an omission rather than a decision, and it is a
+  sommbot call. And the REGIONS menu tile wears `globe.americas.fill` while
+  `EntryCategory.regions.marqueeSymbol` is `map.fill`; J gave the tile the
+  `regions` face and left the marquee alone, so that disagreement is now visible
+  in two media rather than one.
 
 **0.8.0, Thirty new outlines, a reproducible art pipeline, and eleven fixes**
 (`horizon-md/vinodex-0.8.0.md`, sections A-L). Run in the spec's own order --

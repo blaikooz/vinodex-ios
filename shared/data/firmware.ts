@@ -39,34 +39,57 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
-  version: "0.8.0",
+  version: "0.8.1",
   date: "2026-08-06",
-  // A minor bump rather than 0.7.10, for the two changes a player cannot miss:
-  // every country outline in the app is redrawn, and the boot screen stops
-  // saying the machine was made by itself.
-  headline: "NEW MAPS, NEW MAKER",
+  // Prosecco. Sixteen of the thirty-three styles were reporting a colour the
+  // data does not give them, and Prosecco was the one that reported a wrong
+  // one loudly enough to be seen -- the word "rose" is inside it.
+  headline: "PROSECCO IS NOT A ROSE",
   notes: [
-    "Every country and state outline is redrawn -- all thirty, from the same rings, at the same weight. The old set was hand-drawn one at a time and it showed.",
-    "Every region dot was checked against its new map. Seven had been sitting in open water for releases and are now on land: Margaret River, Santorini, Shandong, Okanagan Valley, Guerrouane, Calabria and Mallorca.",
-    "Corsica and Mallorca are drawn now, so the regions on them have somewhere to be.",
-    "The boot screen is by HORIZON/GODOT, centred, and a size larger. The VINODEX HANDHELD SYSTEM line is gone.",
-    "\"Paper\" is \"exam\" everywhere you read it -- on the exam screen, in the daily challenge, and in the reminders.",
-    "WHAT'S THAT...? suggests names as you type, but only ones you have already met in the dex. It will not hand you a wine you have never seen.",
-    "GIVE UP is a button now instead of a line of grey text, and the whole screen is a size larger.",
-    "Europe's marker on the globe is blue. It and North America were two dark reds a few points apart.",
-    "The rose chip is pink. It had been falling through to grey on every rose style since the chip table shipped.",
-    "The four menu tiles finally share a baseline. STYLES and FLAVORS were sitting low against the other two.",
-    "Search boxes say what they are searching -- SEARCH GRAPES, SEARCH FLAVORS, and so on.",
-    "The screensaver waits a full minute instead of thirty seconds. Thirty was still inside the time it takes to read a page.",
-    "The orb on the notch row is as tall as the lamps opposite it and lit the same way, which finishes the job 0.7.9 started on its width.",
-    "A grape's origin moved out of the three-tile row onto its own bar, the way a region names its key grape.",
-    "The back plate no longer explains how to move a sticker.",
+    "Prosecco is a white wine again. It had been reading as rose, and fifteen other styles -- Champagne, Port, Sherry, Cava and the rest -- were quietly reporting no colour at all.",
+    "The styles list can now be filtered by COLOUR and by COUNTRY, alongside STYLE CLASS.",
+    "Six flavour families were grey chips: GAME, SAVOURY, BREAD, SMOKY, SALTY and BRINY all have their own colour now, on the chip and on the glyph.",
+    "A flavour's CLASS and SUBCLASS are its FLAVOR and its FAMILY, and both glyphs are half again as large.",
+    "TYPE YOUR GUESS is a proper search bar. It still only suggests wines you have already met.",
+    "The family tree draws its lines to the boxes. They had been aimed at a tile size two releases old, and stopping short of the labels.",
+    "A parent that is a real grape but has no page here is a box like every other node, instead of loose text in a row of tiles.",
+    "The marquee's glyph sits above its word on the menu, and pixelates away with it when you come home.",
+    "The screensaver toast changes language every five seconds instead of once per idle, so an idle minute gets through most of the nine.",
+    "The bouncing V is half again as large.",
+    "The chassis mockup in CUSTOMIZE has its orb back at the size the rest of the mockup is drawn at.",
+    "The shop shows the device: DEVICE PACKS and DISPLAY PACKS preview the actual chassis instead of a coloured disc.",
     "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
   ],
 };
 
 /** Everything before `CURRENT`, newest first. */
 const PREVIOUS: FirmwareRelease[] = [
+  {
+    version: "0.8.0",
+    date: "2026-08-06",
+    // A minor bump rather than 0.7.10, for the two changes a player cannot miss:
+    // every country outline in the app is redrawn, and the boot screen stops
+    // saying the machine was made by itself.
+    headline: "NEW MAPS, NEW MAKER",
+    notes: [
+      "Every country and state outline is redrawn -- all thirty, from the same rings, at the same weight. The old set was hand-drawn one at a time and it showed.",
+      "Every region dot was checked against its new map. Seven had been sitting in open water for releases and are now on land: Margaret River, Santorini, Shandong, Okanagan Valley, Guerrouane, Calabria and Mallorca.",
+      "Corsica and Mallorca are drawn now, so the regions on them have somewhere to be.",
+      "The boot screen is by HORIZON/GODOT, centred, and a size larger. The VINODEX HANDHELD SYSTEM line is gone.",
+      "\"Paper\" is \"exam\" everywhere you read it -- on the exam screen, in the daily challenge, and in the reminders.",
+      "WHAT'S THAT...? suggests names as you type, but only ones you have already met in the dex. It will not hand you a wine you have never seen.",
+      "GIVE UP is a button now instead of a line of grey text, and the whole screen is a size larger.",
+      "Europe's marker on the globe is blue. It and North America were two dark reds a few points apart.",
+      "The rose chip is pink. It had been falling through to grey on every rose style since the chip table shipped.",
+      "The four menu tiles finally share a baseline. STYLES and FLAVORS were sitting low against the other two.",
+      "Search boxes say what they are searching -- SEARCH GRAPES, SEARCH FLAVORS, and so on.",
+      "The screensaver waits a full minute instead of thirty seconds. Thirty was still inside the time it takes to read a page.",
+      "The orb on the notch row is as tall as the lamps opposite it and lit the same way, which finishes the job 0.7.9 started on its width.",
+      "A grape's origin moved out of the three-tile row onto its own bar, the way a region names its key grape.",
+      "The back plate no longer explains how to move a sticker.",
+      "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+    ],
+  },
   {
     version: "0.7.9",
     date: "2026-08-06",

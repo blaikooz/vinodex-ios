@@ -457,9 +457,14 @@ public struct BookmarksScreen: View {
                 Haptics.select()
                 withAnimation(DexMotion.overlay) { editingName.toggle() }
             } label: {
-                Image(systemName: editingName ? "checkmark" : "square.and.pencil")
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(lcd.accent)
+                // Only half the ternary has a face: `edit` is the resting
+                // state, and the tick that confirms it is not an edit button
+                // (0.8.1, J3).
+                DexChromeGlyph(
+                    editingName ? "checkmark" : "edit",
+                    symbol: editingName ? "checkmark" : "square.and.pencil",
+                    size: 17, weight: .bold, tint: lcd.accent
+                )
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(lcd.well))
                     .overlay(Circle().strokeBorder(lcd.surfaceEdge, lineWidth: 2))
@@ -491,8 +496,7 @@ public struct BookmarksScreen: View {
                 onPassport()
             } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: "book.closed.fill")
-                        .font(.system(size: 13, weight: .bold))
+                    DexChromeGlyph("passport", symbol: "book.closed.fill", size: 13, weight: .bold)
                     Text("PASSPORT")
                         .font(DexFont.retro(11))
                         .tracking(1)
@@ -565,9 +569,7 @@ public struct BookmarksScreen: View {
                             Haptics.select()
                             editingRating = entry
                         } label: {
-                            Image(systemName: "square.and.pencil")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundStyle(lcd.accent)
+                            DexChromeGlyph("edit", symbol: "square.and.pencil", size: 13, weight: .bold, tint: lcd.accent)
                                 // 44pt target around the 13pt glyph, same rule
                                 // as the remove button above it.
                                 .frame(width: 40, height: 32)

@@ -435,7 +435,12 @@ struct RootView: View {
     private static func chipFacets(for category: EntryCategory) -> [ChipFacet] {
         switch category {
         case .grapes: [.color, .body, .rarity]
-        case .styles: [.styleClass]
+        // COLOUR and COUNTRY join STYLE CLASS (0.8.1, D). Both tables already
+        // shipped — `colorTypeChips` and `countryChips` are probed by the
+        // generator and drawn on every style tile — so this is a screen being
+        // offered data it was already displaying. STYLE CLASS stays first: it
+        // is the narrowest of the three and the one this screen has taught.
+        case .styles: [.styleClass, .styleColor, .country]
         case .flavors: [.flavorClass, .flavorSubclass]
         case .regions, .continents: []
         }

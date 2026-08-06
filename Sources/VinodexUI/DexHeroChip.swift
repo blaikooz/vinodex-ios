@@ -126,6 +126,11 @@ public extension Palette {
         // argument the BODY note above makes for the scanner.
         case .styleClass:
             return styleClassChips[option.value] ?? fallback
+        // Same table the style's own tile chip reads, keyed by the same
+        // `StyleColorType` rawValue — 0.8.0's K is the reason that sentence is
+        // worth writing down (0.8.1, D).
+        case .styleColor:
+            return colorTypeChips[option.value] ?? fallback
         case .flavorClass:
             return flavorClassChips[option.value] ?? fallback
         case .flavorSubclass:

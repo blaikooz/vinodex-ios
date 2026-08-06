@@ -347,6 +347,21 @@ public final class PixelArtLoader {
         // `sticker-*` from `ChassisSkin.stickerStem`), so "first hit wins"
         // stays a statement about ordering rather than about precedence.
         "Resources/StickerArt",
+        // Drawn button faces (0.8.1, J2), imported from art/icons/buttons/.
+        //
+        // **Last on purpose, and the first entry that could actually collide.**
+        // The two above are safe by construction — their stems carry `stamp-`
+        // and `sticker-` prefixes — but these are named for the control they
+        // sit on, so `search`, `home`, `edit`, `data`, `camera`, `regions`,
+        // `styles`, `grapes` and `flavors` all enter a namespace that is flat
+        // and global across every directory here. None of the 32 collides with
+        // a catalog stem today (checked against FlavorArt/GrapeArt/StyleArt/
+        // ClassArt at import). Ordering it last is the guard for tomorrow: if a
+        // future flavour or style lands on one of these words, the catalog art
+        // keeps winning and the button falls back to its stand-in, which is the
+        // recoverable direction — the reverse would silently swap a portrait
+        // for a piece of chrome.
+        "Resources/ButtonArt",
     ]
 
     private var cache: [String: UIImage?] = [:]

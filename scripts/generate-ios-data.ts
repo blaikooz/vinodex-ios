@@ -61,6 +61,7 @@ import {
   FLAVOR_SUBCLASS_KEYWORDS,
   FLAVOR_CLASS_COLORS,
   getStyleClassType,
+  getColorType,
 } from '../shared/services/entryUtils.ts';
 import {
   getRegionClassificationIconColor,
@@ -264,6 +265,24 @@ function buildPalette(full: readonly WineEntry[]) {
         continent.id.replace('CONT_', ''),
         continent.details.keyRegions,
       ]),
+    ),
+    /**
+     * style id -> `StyleColorType`, as the *shared* `getColorType` answers it.
+     *
+     * **Not a lookup table — a pin (0.8.1, B).** Nothing reads this at runtime:
+     * `EntryDisplay.colorType` re-derives, because `WineEntry.tileChips` has no
+     * database in scope and the label scanner asks about names that are not in
+     * the catalog. A port is the right shape here, and a port is also what
+     * silently lost `STYLE_NAME_COLOR_OVERRIDES` for sixteen of thirty-three
+     * styles. So the two ends are written down side by side and
+     * `CoverageTests.styleColorTypesMatchShared` fails the moment they disagree
+     * — in either direction, including a new override added here that the
+     * Swift table never hears about.
+     */
+    styleColorTypes: Object.fromEntries(
+      full
+        .filter((entry) => entry.category === 'STYLES')
+        .map((entry) => [entry.id, getColorType(entry.name)]),
     ),
   };
 }
@@ -1126,7 +1145,7 @@ const PALETTE_REQUIRED = [
   'countryChips', 'classificationChips', 'wineTypeChips', 'rarityChips', 'colorTypeChips',
   'styleClassChips', 'flavorClassChips', 'flavorSubclassChips', 'namedChips',
   'styleTones', 'climates', 'regionClassificationIconColors', 'flavorSubclassIconColors',
-  'continentCountries',
+  'continentCountries', 'styleColorTypes',
 ];
 const ICONS_REQUIRED = [
   'byEntry', 'unique', 'fallback', 'bodyIcons', 'climateIcons', 'colorIcons', 'styleClassIcons',
@@ -1515,7 +1534,7 @@ const UI_RESOURCES = resolve(REPO_ROOT, 'Sources', 'VinodexUI', 'Resources');
  * The drawn-art search path, in order — mirrors `PixelArtLoader.subdirectories`
  * in Sources/VinodexUI/EntryVisual.swift. First hit wins there and here.
  */
-const ART_DIRS = ['FlavorArt', 'GrapeArt', 'StyleArt', 'ClassArt', 'StampArt', 'StickerArt'] as const;
+const ART_DIRS = ['FlavorArt', 'GrapeArt', 'StyleArt', 'ClassArt', 'StampArt', 'StickerArt', 'ButtonArt'] as const;
 
 /**
  * Every asset id this generator emits must resolve to a file the app can load

@@ -24,6 +24,21 @@ public enum ChipFacet: String, CaseIterable, Codable, Sendable, Identifiable {
     /// `EntryDisplay.styleClass(name:classification:)`, and the note on the
     /// detail tile for why the raw field is the wrong thing to filter on.
     case styleClass
+    /// **What colour a style is in the glass** (0.8.1, D): RED, WHITE, ROSE,
+    /// ORANGE or DUAL.
+    ///
+    /// Separate from `.color` rather than folded into it. That facet is the
+    /// grape's own RED/WHITE, a two-value property of the fruit; this is a
+    /// five-value property of the finished wine, and a Prosecco is not a white
+    /// *grape*. One row offering both vocabularies would have been the only
+    /// chip row in the app whose meaning changed with what else you had
+    /// selected.
+    ///
+    /// Derived through `EntryDisplay.colorType`, which until this batch was
+    /// missing the whole of `entryUtils.ts`'s override table — sixteen of
+    /// thirty-three styles answered wrong. This row is why B had to land first:
+    /// a filter is a much louder way to be wrong than a chip is.
+    case styleColor
     /// **A flavour's taste family** (0.7.0, H3): the five basic tastes.
     case flavorClass
     /// **A flavour's family** (0.7.0, H3): BERRY, SMOKY, STONE FRUIT and the
@@ -42,6 +57,7 @@ public enum ChipFacet: String, CaseIterable, Codable, Sendable, Identifiable {
         case .climate: "CLIMATE"
         case .country: "COUNTRY"
         case .styleClass: "STYLE CLASS"
+        case .styleColor: "COLOUR"
         case .flavorClass: "TASTE"
         case .flavorSubclass: "FAMILY"
         }
@@ -59,6 +75,7 @@ public enum ChipFacet: String, CaseIterable, Codable, Sendable, Identifiable {
         case .climate: "Regions only."
         case .country: "Anything with an origin — flavors drop out."
         case .styleClass: "Styles only — what defines the style."
+        case .styleColor: "Styles only — the colour in the glass."
         case .flavorClass: "Flavors only — the basic taste."
         case .flavorSubclass: "Flavors only — the flavour family."
         }
@@ -196,6 +213,10 @@ public struct ChipFilter: Codable, Sendable, Hashable {
             )
             return chosen.contains(cls.rawValue)
 
+        case .styleColor:
+            guard case .style(let st) = entry else { return false }
+            return chosen.contains(EntryDisplay.colorType(name: st.common.name).rawValue)
+
         case .flavorClass:
             guard case .flavor(let f) = entry else { return false }
             return chosen.contains(f.details.classification.uppercased())
@@ -308,6 +329,19 @@ public struct ChipFilter: Codable, Sendable, Hashable {
         // the scanner's answer list cannot disagree about what the taxonomy
         // holds. A second derivation here would have been a second answer to a
         // question that already had one.
+        // From the catalog, not from `StyleColorType.allCases`, for the same
+        // reason `.styleClass` is: an enum case no style resolves to would be a
+        // chip whose only possible effect is to empty the listing. DUAL is a
+        // real answer here and does appear; ROSE currently rests on a single
+        // style, which is exactly the kind of fact a data-driven row states and
+        // an enum-driven one hides.
+        case .styleColor:
+            let colors = WineDatabase.shared.entries(in: .styles)
+                .map { EntryDisplay.colorType(name: $0.name).rawValue }
+            return StyleColorType.allCases
+                .map(\.rawValue)
+                .filter(Set(colors).contains)
+                .map { ChipOption(facet: facet, value: $0, label: $0) }
         case .flavorClass:
             return WineDatabase.shared.flavorClasses.map {
                 ChipOption(facet: facet, value: $0, label: $0)

@@ -180,7 +180,14 @@ struct Screensaver: View {
 
     /// The mark's size relative to the shorter edge of the LCD. Big enough to
     /// read across a room, small enough that the travel is most of the screen.
-    private static let markFraction: CGFloat = 0.22
+    ///
+    /// **0.22 -> 0.32 (0.8.1, I1).** Note what else moves with it: `side` is
+    /// also the mark's half of `bounds - mark`, so a bigger logo has less room
+    /// to travel and hits the walls sooner, and `ScreensaverBounce.bounces`
+    /// cycles the palette per bounce — the colour changes get more frequent as
+    /// a consequence, not by a separate decision. `walls` guards `span > 0`, so
+    /// there is no size at which this traps rather than degrades.
+    private static let markFraction: CGFloat = 0.32
 
     /// The hues the mark cycles through on each bounce.
     ///

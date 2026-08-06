@@ -140,6 +140,25 @@ public enum MarqueeCheers {
     public static func toast(at index: Int) -> String {
         all[max(index, 0) % all.count]
     }
+
+    /// How long one language holds the panel (0.8.1, I2).
+    ///
+    /// Five seconds against a 60-second idle delay (0.8.0) means an idle that
+    /// runs its course walks most of the nine — the rotation was invisible when
+    /// it took nine separate idle periods to see it through.
+    public static let dwell: TimeInterval = 5
+
+    /// How many languages an idle period of this length has moved through.
+    ///
+    /// **A pure function of elapsed time, on the same footing as the
+    /// screensaver's position** — see `Screensaver`'s note. Nothing accumulates
+    /// and nothing ticks: the view asks its clock what time it is and asks this
+    /// which word that is, so a panel that has been up for an hour is on the
+    /// word an hour says it is on, not on the word a dropped frame left it on.
+    /// Floored at zero for the same reason `toast(at:)` is.
+    public static func steps(in seconds: TimeInterval) -> Int {
+        Int(max(seconds, 0) / dwell)
+    }
 }
 
 /// The main screen's marquee state machine (0.7.1, B1–B3).
@@ -184,6 +203,23 @@ public struct MarqueeScript: Sendable, Equatable {
     /// it is this launch's current toast (0.7.2, A8).
     public var text: String {
         stage == .cheers ? MarqueeCheers.toast(at: idleCount) : stage.text
+    }
+
+    /// What the panel says `seconds` into this idle period (0.8.1, I2).
+    ///
+    /// The rotation used to advance only when an idle *ended*, so seeing all
+    /// nine took nine separate idles and most players saw one. It now advances
+    /// every `MarqueeCheers.dwell` as well — note **as well as**, not instead
+    /// of: `idleCount` still sets where the period starts, so consecutive idles
+    /// do not all open on CHEERS! and the 0.7.2 A8 rule survives intact. The
+    /// only thing that changed is that a period is no longer one word long.
+    ///
+    /// Off the `.cheers` stage this is `text`, unchanged — WELCOME! and MENU
+    /// are statements about a screen, and a statement that rotated would be a
+    /// different kind of thing.
+    public func text(after seconds: TimeInterval) -> String {
+        guard stage == .cheers else { return text }
+        return MarqueeCheers.toast(at: idleCount + MarqueeCheers.steps(in: seconds))
     }
 
     /// The dwell the current stage is waiting out, if any.

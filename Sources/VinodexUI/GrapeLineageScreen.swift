@@ -83,6 +83,12 @@ public struct GrapeLineageScreen: View {
     /// the size of the plain rows underneath them. Read by `LineageTile`, which
     /// is the only other type that draws one.
     static let tileWidth: CGFloat = 116
+
+    /// The gap between two tiles in a tier. Named because `Connector` repeats
+    /// the tier's packing arithmetic to find the tiles it must reach, and a
+    /// second literal 6 is exactly how the crossbar came to be drawn to a tile
+    /// size that no longer existed (0.8.1, C3).
+    static let tierSpacing: CGFloat = 6
     /// How many nodes a tier draws before it offers SHOW ALL.
     ///
     /// Six is two full rows at `tileWidth` on the narrowest LCD and one row shy
@@ -160,14 +166,17 @@ public struct GrapeLineageScreen: View {
                         ancestors,
                         caption: family.mutationOf == nil
                             ? "PARENTS"
-                            : (family.parents.isEmpty ? "MUTATION OF" : "PARENTS + SOURCE")
+                            : (family.parents.isEmpty ? "MUTATION OF" : "PARENTS + SOURCE"),
+                        trunkBelow: true
                     )
                     Connector(
                         count: ancestors.count,
                         contested: ancestors.contains { $0.contested },
-                        tint: lcd.accent
+                        tint: lcd.accent,
+                        touchesFirstRow: false
                     )
                     .frame(height: 26)
+                    .padding(.horizontal, 10)
                 }
 
                 subjectTile
@@ -176,15 +185,18 @@ public struct GrapeLineageScreen: View {
                     Connector(
                         count: descendants.count,
                         contested: descendants.contains { $0.contested },
-                        tint: lcd.accent
+                        tint: lcd.accent,
+                        touchesFirstRow: true
                     )
                     .frame(height: 26)
+                    .padding(.horizontal, 10)
                     .scaleEffect(y: -1)
                     tier(
                         descendants,
                         caption: family.mutations.isEmpty
                             ? "OFFSPRING"
-                            : (family.offspring.isEmpty ? "MUTATIONS" : "OFFSPRING + MUTATIONS")
+                            : (family.offspring.isEmpty ? "MUTATIONS" : "OFFSPRING + MUTATIONS"),
+                        trunkBelow: false
                     )
                 }
             }
@@ -206,23 +218,49 @@ public struct GrapeLineageScreen: View {
     /// which pushes the subject tile — the grape you are standing on — off the
     /// bottom of the LCD on the very trees that are worth looking at. The
     /// overflow is a button rather than a scroll, matching HALF-SIBLINGS below.
+    ///
+    /// **The caption and the SHOW ALL button moved to the far side of the tiles
+    /// (0.8.1, C3).** They used to sit between the tiles and the trunk — the
+    /// caption on the offspring side, the button on the parents side — so the
+    /// connector's legs ended on the tier's edge with 12 to 38pt of chrome
+    /// between them and the box they were pointing at. That, more than the
+    /// crossbar's width, is why the lines did not meet anything: they were
+    /// meeting the right coordinate of the wrong view. Tiles nearest the trunk
+    /// and labels on the outside is also how a family tree is drawn.
     @ViewBuilder
-    private func tier(_ nodes: [LineageNode], caption: String) -> some View {
+    private func tier(_ nodes: [LineageNode], caption: String, trunkBelow: Bool) -> some View {
         let expanded = expandedTiers.contains(caption)
         let shown = expanded ? nodes : Array(nodes.prefix(Self.tierLimit))
 
-        VStack(spacing: 8) {
-            Text(caption)
-                .font(DexFont.retro(9))
-                .tracking(1.5)
-                .foregroundStyle(lcd.subtext)
-            FlowLayout(spacing: 6) {
-                ForEach(shown) { node in
-                    LineageTile(node: node, isSubject: false) { open(node) }
-                }
+        let label = Text(caption)
+            .font(DexFont.retro(9))
+            .tracking(1.5)
+            .foregroundStyle(lcd.subtext)
+        let tiles = FlowLayout(spacing: Self.tierSpacing, alignment: .center) {
+            ForEach(shown) { node in
+                LineageTile(node: node, isSubject: false) { open(node) }
             }
-            .frame(maxWidth: .infinity)
+        }
+        .frame(maxWidth: .infinity)
 
+        VStack(spacing: 8) {
+            if trunkBelow {
+                label
+                overflowButton(nodes, caption: caption, expanded: expanded)
+                tiles
+            } else {
+                tiles
+                overflowButton(nodes, caption: caption, expanded: expanded)
+                label
+            }
+        }
+        .padding(.horizontal, 10)
+    }
+
+    /// SHOW ALL / SHOW FEWER, or nothing when the tier fits.
+    @ViewBuilder
+    private func overflowButton(_ nodes: [LineageNode], caption: String, expanded: Bool) -> some View {
+        Group {
             if nodes.count > Self.tierLimit {
                 Button {
                     Haptics.select()
@@ -247,7 +285,6 @@ public struct GrapeLineageScreen: View {
                 .buttonStyle(DexPressStyle(scale: 0.97))
             }
         }
-        .padding(.horizontal, 10)
     }
 
     /// The grape you are standing on, drawn as the one node that is not a link.
@@ -502,6 +539,25 @@ struct LineageTile: View {
                         .font(.system(size: 26, weight: .light))
                         .foregroundStyle(lcd.subtext.opacity(0.7))
                         .frame(height: 40)
+                } else {
+                    // **The off-catalog node is a box too (0.8.1, C1).** This
+                    // branch did not exist, so a parent named but not in the
+                    // dex — Magdeleine Noire des Charentes, Gouais Blanc's
+                    // partners — collapsed to a 116pt strip the height of its
+                    // own label and sat in a row of 90pt tiles looking like
+                    // stray text rather than a node.
+                    //
+                    // Same shape as `unrecorded`, different mark, which is the
+                    // distinction the 0.8.0 log draws: `circle.slash` means
+                    // research says nobody knows, and this means the grape is
+                    // real and simply has no page here. A dashed square is the
+                    // app's existing vocabulary for "a picture that is not
+                    // there" — it is what `DexIcon` falls back to — so the tile
+                    // says *absent from the catalog* rather than *absent*.
+                    Image(systemName: "square.dashed")
+                        .font(.system(size: 26, weight: .light))
+                        .foregroundStyle(lcd.subtext.opacity(0.7))
+                        .frame(height: 40)
                 }
                 Text(node.isUnrecorded
                      ? "PARENTAGE\nUNRECORDED"
@@ -583,28 +639,70 @@ struct Connector: View {
     let contested: Bool
     let tint: Color
 
+    /// True when the row this connector touches is the tier's *first* row —
+    /// the offspring case, where the trunk arrives from above.
+    var touchesFirstRow: Bool
+
+    /// The centres of the tiles this connector actually has to reach, in the
+    /// connector's own coordinates (0.8.1, C3).
+    ///
+    /// **The old span was `min(width * 0.5, count * 46) / 2` and 46 was a
+    /// number about nothing** — near half of the 96pt tile 0.8.0 replaced with
+    /// a 116pt one, so the crossbar had been drawn to the previous tile size
+    /// for a release, and to a guess before that. The comment beside it said
+    /// the tiles' true centres were "a layout answer this view does not have",
+    /// which was fair while `FlowLayout` left-packed into a full-width bounds:
+    /// a row of two sat at the left and the trunk came down the middle.
+    ///
+    /// Both halves of that are now false. The tier centres its rows, and the
+    /// packing rule is arithmetic this view can repeat exactly — same tile
+    /// width, same spacing, same available width, because the connector is
+    /// inside the tier and inherits its padding. So the legs go to the tiles
+    /// rather than towards them.
+    private func centres(in width: CGFloat) -> [CGFloat] {
+        let step = GrapeLineageScreen.tileWidth + GrapeLineageScreen.tierSpacing
+        let perRow = max(1, Int((width + GrapeLineageScreen.tierSpacing) / step))
+        let rows = max(1, Int(ceil(Double(count) / Double(perRow))))
+        // Parents hang off the tier's last row, offspring off its first.
+        let onRow = touchesFirstRow
+            ? min(count, perRow)
+            : count - (rows - 1) * perRow
+        let mid = width / 2
+        return (0..<max(onRow, 1)).map { i in
+            mid + (CGFloat(i) - CGFloat(max(onRow, 1) - 1) / 2) * step
+        }
+    }
+
     var body: some View {
         Canvas { context, size in
             let mid = size.width / 2
-            let stemY = size.height * 0.45
+            // Half height, not 0.45 of it: the offspring side draws this same
+            // view through `.scaleEffect(y: -1)`, and an off-centre stem made
+            // the two sides of one tree meet their trunks at different heights.
+            let stemY = size.height / 2
+            let tiles = centres(in: size.width)
             var path = Path()
             // The trunk into the subject.
             path.move(to: CGPoint(x: mid, y: stemY))
             path.addLine(to: CGPoint(x: mid, y: size.height))
-            if count > 1 {
-                // A crossbar wide enough to read as a fan without pretending to
-                // reach each tile — the tiles wrap, so their true centres are a
-                // layout answer this view does not have and should not guess.
-                let span = min(size.width * 0.5, CGFloat(count) * 46) / 2
-                path.move(to: CGPoint(x: mid - span, y: stemY))
-                path.addLine(to: CGPoint(x: mid + span, y: stemY))
-                path.move(to: CGPoint(x: mid - span, y: stemY))
-                path.addLine(to: CGPoint(x: mid - span, y: 0))
-                path.move(to: CGPoint(x: mid + span, y: stemY))
-                path.addLine(to: CGPoint(x: mid + span, y: 0))
+            if let first = tiles.first, let last = tiles.last, tiles.count > 1 {
+                path.move(to: CGPoint(x: first, y: stemY))
+                path.addLine(to: CGPoint(x: last, y: stemY))
+                // A leg per tile, including the ones between the ends — three
+                // parents used to get a crossbar with the middle one hanging
+                // off nothing.
+                for x in tiles {
+                    path.move(to: CGPoint(x: x, y: stemY))
+                    path.addLine(to: CGPoint(x: x, y: 0))
+                }
             } else {
-                path.move(to: CGPoint(x: mid, y: 0))
-                path.addLine(to: CGPoint(x: mid, y: stemY))
+                let x = tiles.first ?? mid
+                path.move(to: CGPoint(x: x, y: 0))
+                path.addLine(to: CGPoint(x: x, y: stemY))
+                if x != mid {
+                    path.move(to: CGPoint(x: x, y: stemY))
+                    path.addLine(to: CGPoint(x: mid, y: stemY))
+                }
             }
             context.stroke(
                 path,

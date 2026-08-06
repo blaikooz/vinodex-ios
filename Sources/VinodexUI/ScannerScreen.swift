@@ -560,8 +560,11 @@ public struct ScannerScreen: View {
                 DexSearchBar(text: $flavorQuery, placeholder: "SEARCH FLAVORS…")
 
                 if flavorQuery.trimmingCharacters(in: .whitespaces).isEmpty {
-                    group("CLASSES", values: db.flavorClasses, kind: .classification)
-                    group("SUBCLASSES", values: db.flavorSubclasses, kind: .subclass)
+                    // FLAVORS / FAMILIES since 0.8.1 (F2). `kind`'s cases keep
+                    // their names — `.classification` and `.subclass` are the
+                    // route and the stored screen state, not copy.
+                    group("FLAVORS", values: db.flavorClasses, kind: .classification)
+                    group("FAMILIES", values: db.flavorSubclasses, kind: .subclass)
                 } else {
                     flavorSearchResults
                 }
@@ -632,7 +635,8 @@ public struct ScannerScreen: View {
             advance(to: .flavorList(kind: kind, value: value))
         } label: {
             VStack(spacing: 6) {
-                DexIcon(iconID: iconID, size: 44, color: Color(dexHex: resolved.text))
+                // 52 since 0.8.1 (F1), matching the detail screen's step up.
+                DexIcon(iconID: iconID, size: 52, color: Color(dexHex: resolved.text))
                 Text(EntryDisplay.hyphenated(value.replacingOccurrences(of: "_", with: " ").uppercased()))
                     .font(DexFont.retro(10))
                     .multilineTextAlignment(.center)

@@ -68,11 +68,13 @@ public struct SettingsPanel: View {
                 featureTile(
                     title: "TOOLS",
                     symbol: "wrench.and.screwdriver.fill",
+                    art: "tools",
                     action: onMinigames
                 )
                 featureTile(
                     title: SettingsSection.customization.rawValue,
-                    symbol: SettingsSection.customization.symbol
+                    symbol: SettingsSection.customization.symbol,
+                    art: SettingsSection.customization.artStem
                 ) {
                     onSection(.customization)
                 }
@@ -82,13 +84,15 @@ public struct SettingsPanel: View {
             HStack(spacing: 10) {
                 featureTile(
                     title: SettingsSection.settings.rawValue,
-                    symbol: SettingsSection.settings.symbol
+                    symbol: SettingsSection.settings.symbol,
+                    art: SettingsSection.settings.artStem
                 ) {
                     onSection(.settings)
                 }
                 featureTile(
                     title: SettingsSection.data.rawValue,
-                    symbol: SettingsSection.data.symbol
+                    symbol: SettingsSection.data.symbol,
+                    art: SettingsSection.data.artStem
                 ) {
                     onSection(.data)
                 }
@@ -98,7 +102,8 @@ public struct SettingsPanel: View {
             // 0.7.5's B2 renamed the label rather than the stored word.
             featureTile(
                 title: SettingsSection.access.displayName,
-                symbol: SettingsSection.access.symbol
+                symbol: SettingsSection.access.symbol,
+                art: SettingsSection.access.artStem
             ) {
                 onSection(.access)
             }
@@ -144,6 +149,7 @@ public struct SettingsPanel: View {
     private func featureTile(
         title: String,
         symbol: String,
+        art: String? = nil,
         action: @escaping () -> Void
     ) -> some View {
         let style = tileColors(title)
@@ -160,9 +166,9 @@ public struct SettingsPanel: View {
             action()
         } label: {
             VStack(spacing: 12) {
-                Image(systemName: symbol)
-                    .font(.system(size: 44, weight: .semibold))
-                    .foregroundStyle(ink)
+                // Squared at 44 (0.8.1, J3) — the same box the tools shelf
+                // uses, so the two grids of tiles stay one instrument.
+                DexChromeGlyph(art ?? symbol, symbol: symbol, size: 44, tint: ink)
                     .shadow(color: .black.opacity(0.3), radius: 0, x: 1, y: 2)
                 Text(title)
                     .font(DexFont.retro(13))
@@ -731,15 +737,21 @@ public struct SettingsSectionPanel: View {
     /// explanation, and a control on the right.
     private func settingRow<C: View>(
         symbol: String,
+        /// The drawn face for this row, if one exists. Nil keeps the SF Symbol
+        /// — half these rows have a button face and half do not (0.8.1, J3),
+        /// and a row must not have to wait for art to render.
+        art: String? = nil,
         tint: Color,
         title: String,
         detail: String,
         @ViewBuilder control: () -> C
     ) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: symbol)
-                .font(.system(size: 22, weight: .bold))
-                .foregroundStyle(tint)
+            // The 30pt gutter was already here and is already the answer to
+            // J3's problem — a fixed width every row's glyph is fitted into.
+            // `DexChromeGlyph` squares it so the drawn faces cannot make the
+            // rows different heights either.
+            DexChromeGlyph(art ?? symbol, symbol: symbol, size: 22, weight: .bold, tint: tint)
                 .frame(width: 30)
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
@@ -1088,16 +1100,17 @@ public struct SettingsSectionPanel: View {
         }
     }
 
-    /// One shell, as the picker draws it: the body colour over the dark ground
-    /// its own swatch uses in the workshop, so a preview and the thing previewed
-    /// are the same picture.
+    /// One shell, as the picker draws it (0.8.1, A2).
+    ///
+    /// It used to be a 40pt circle of `skin.body` — the right colour and the
+    /// wrong shape, which for a shop selling the *look* of a device is most of
+    /// the product missing. Now it is `ChassisMockup`, the same drawing the
+    /// CUSTOMIZE picker shows, so "a preview and the thing previewed are the
+    /// same picture" is true of the outline as well as the colour.
     private func shellSwatch(_ skin: ChassisSkin) -> some View {
         VStack(spacing: 5) {
-            Circle()
-                .fill(Color(dexHex: "#1B1D21"))
-                .overlay(Circle().fill(skin.body))
-                .overlay(Circle().strokeBorder(skin.panelEdge, lineWidth: 1.5))
-                .frame(width: 40, height: 40)
+            ChassisMockup(skin: skin, height: 40)
+                .frame(width: 62)
             Text(skin.displayName)
                 .font(DexFont.retro(8))
                 .tracking(0.5)
@@ -1110,13 +1123,19 @@ public struct SettingsSectionPanel: View {
         .frame(maxWidth: .infinity)
     }
 
-    /// One screen mode, as the mode picker draws it.
+    /// One screen mode, as the mode picker draws it — fitted to a chassis
+    /// (0.8.1, A2).
+    ///
+    /// A display pack sells a screen, and a bare disc of `mode.screen` shows
+    /// the colour without saying it is a screen. `ChassisMockup` lights its
+    /// panel strip with the mode instead, which puts the swatch in the device
+    /// it belongs to and makes the two shelves in this shop read as one kind of
+    /// product. The shell is `.classic` because the pack does not come with
+    /// one; what varies between these tiles is the only thing being sold.
     private func screenSwatch(_ mode: LcdMode) -> some View {
         VStack(spacing: 5) {
-            Circle()
-                .fill(mode.screen)
-                .overlay(Circle().strokeBorder(mode.text.opacity(0.6), lineWidth: 1.5))
-                .frame(width: 40, height: 40)
+            ChassisMockup(skin: .classic, screen: mode, height: 40)
+                .frame(width: 62)
             Text(mode.displayName)
                 .font(DexFont.retro(8))
                 .tracking(0.5)
@@ -1270,6 +1289,7 @@ public struct SettingsSectionPanel: View {
                         // Matches the marquee glyph the route wears (K2, rule 1)
                         // — see `DexRoute.deviceWorkshop`.
                         symbol: owned ? "hammer.fill" : "lock.fill",
+                        art: owned ? "workshop" : nil,
                         tint: owned ? lcd.accent : Dex.yellow,
                         title: owned ? "OPEN" : "UNLOCK",
                         detail: owned
@@ -1311,7 +1331,7 @@ public struct SettingsSectionPanel: View {
         settingsSection("HAPTICS") {
             VStack(alignment: .leading, spacing: 10) {
                 settingRow(
-                    symbol: "iphone.radiowaves.left.and.right",
+                    symbol: "iphone.radiowaves.left.and.right", art: "haptics",
                     tint: hapticsOn ? Dex.green : lcd.subtext,
                     title: "HAPTICS",
                     detail: hapticsOn
@@ -1326,7 +1346,7 @@ public struct SettingsSectionPanel: View {
         settingsSection("SOUNDS") {
             VStack(alignment: .leading, spacing: 10) {
                 settingRow(
-                    symbol: "speaker.wave.2.fill",
+                    symbol: "speaker.wave.2.fill", art: "sounds",
                     tint: soundsOn ? Dex.green : lcd.subtext,
                     title: "SOUNDS",
                     detail: soundsOn
@@ -1367,7 +1387,7 @@ public struct SettingsSectionPanel: View {
                     settingRow(
                         // The glyph the grid tile wore, so the row is
                         // recognisable to anyone who knew where it used to be.
-                        symbol: "flag.checkered",
+                        symbol: "flag.checkered", art: "tutorial",
                         tint: lcd.accent,
                         title: "TUTORIAL",
                         detail: "A guided walk round the device. About a minute, and you can leave at any point."
@@ -1384,7 +1404,7 @@ public struct SettingsSectionPanel: View {
                     onFirmwareHistory()
                 } label: {
                     settingRow(
-                        symbol: "memorychip.fill",
+                        symbol: "memorychip.fill", art: "firmware",
                         tint: lcd.accent,
                         title: "FIRMWARE",
                         // States the installed version on the row itself. The
@@ -1405,7 +1425,7 @@ public struct SettingsSectionPanel: View {
                     onCheatConsole()
                 } label: {
                     settingRow(
-                        symbol: "terminal.fill",
+                        symbol: "terminal.fill", art: "cheatcodes",
                         tint: lcd.accent,
                         title: "CHEAT CODES",
                         detail: "Enter unlock codes for cosmetics and hidden features."
@@ -1422,7 +1442,7 @@ public struct SettingsSectionPanel: View {
                     onDemoMode()
                 } label: {
                     settingRow(
-                        symbol: "play.rectangle.fill",
+                        symbol: "play.rectangle.fill", art: "demomode",
                         tint: lcd.accent,
                         title: "DEMO MODE",
                         detail: "Cycles the tools unattended. Any input stops it."
@@ -1472,7 +1492,7 @@ public struct SettingsSectionPanel: View {
                 onDev()
             } label: {
                 settingRow(
-                    symbol: "ladybug.fill",
+                    symbol: "ladybug.fill", art: "dev",
                     tint: lcd.subtext,
                     title: "DEV",
                     detail: "Diagnostics, the component gallery and the icon sheet."
@@ -1556,73 +1576,14 @@ public struct SettingsSectionPanel: View {
                         // actual shell — with the skin's emblem glyph in
                         // the middle, the way the screen-mode tiles carry
                         // theirs, at the same 50pt so the two pickers
-                        // read as one instrument (v0.5.6). The dark base
-                        // under the body is for the translucent skins,
-                        // whose smoke needs something to be over.
-                        RoundedRectangle(cornerRadius: 5)
-                            .fill(Color(dexHex: "#1B1D21"))
-                            .overlay(RoundedRectangle(cornerRadius: 5).fill(option.body))
-                            .frame(height: 50)
-                            .frame(maxWidth: .infinity)
-                            .overlay(alignment: .topLeading) {
-                                // A stadium, with the real orb (0.7.5 A2,
-                                // 0.7.6 E1). A mockup whose parts are the wrong
-                                // shape is worse than no mockup — this tile's
-                                // whole job is to say what the device will look
-                                // like.
-                                //
-                                // **On the chassis's own width rule since 0.7.9
-                                // (A1).** This tile draws one 10pt lamp rather
-                                // than a trio, so it asks `islandOrbWidth` what
-                                // a trio of *its* lamps would span (3 × 10 + two
-                                // gaps at the chassis's ~0.3 lamp ratio) and
-                                // takes that. Left at a hand-set 10pt the bead
-                                // would now be 1.9pt tall — a scratch on the
-                                // tile rather than a part.
-                                // Height is this tile's own lamp (0.8.0, C1) —
-                                // the same 10pt the width is built from, since
-                                // the chassis rule is now "one lamp tall". It was
-                                // `orbW / islandOrbAspect`, a chassis aspect over
-                                // a tile's width, which drew a 6.8pt bead beside
-                                // a 10pt light.
-                                let orbW = DexMetrics.islandOrbWidth(lamp: 10, spacing: 3)
-                                Capsule(style: .continuous)
-                                    .fill(option.orb)
-                                    .frame(width: orbW, height: DexMetrics.islandOrbHeight(lamp: 10))
-                                    .padding(5)
-                            }
-                            .overlay(alignment: .topTrailing) {
-                                Circle()
-                                    .fill(option.accent.bright)
-                                    .frame(width: 10, height: 10)
-                                    .padding(5)
-                            }
-                            .overlay {
-                                // Through `SkinEmblem` rather than
-                                // `Image(systemName:)` since 0.6.7 (K1):
-                                // PSVino's badge is a drawing now, not a
-                                // symbol name.
-                                SkinEmblem(skin: option, size: 17, tint: option.accent.pale)
-                                    .shadow(color: .black.opacity(0.55), radius: 0, x: 1, y: 1)
-                                    // Centred in the deck, not the tile —
-                                    // the bottom 14pt is the panel strip.
-                                    .offset(y: -7)
-                            }
-                            .overlay(alignment: .bottom) {
-                                Rectangle()
-                                    .fill(option.panel)
-                                    .frame(height: 14)
-                                    .overlay {
-                                        Capsule()
-                                            .fill(option.marqueeText)
-                                            .frame(width: 24, height: 3)
-                                    }
-                            }
-                            .clipShape(RoundedRectangle(cornerRadius: 5))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 5)
-                                    .strokeBorder(option.panelEdge, lineWidth: 1)
-                            )
+                        // read as one instrument (v0.5.6).
+                        //
+                        // **The drawing moved to `ChassisMockup` (0.8.1,
+                        // A2)** so the shop's pack previews are the same
+                        // picture rather than a fourth one. Nothing about
+                        // it changed here except the orb, which A1 sends
+                        // back to the mockup's own part scale.
+                        ChassisMockup(skin: option, height: 50)
                             .overlay(alignment: .bottomTrailing) {
                                 // Lock/tick rides the preview so the name
                                 // below keeps the tile's full width.

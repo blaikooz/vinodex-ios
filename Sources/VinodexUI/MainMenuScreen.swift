@@ -29,11 +29,11 @@ public struct MainMenuScreen: View {
             // bottom edge, and butting them together loses that read.
             VStack(spacing: 8) {
                 HStack(spacing: 10) {
-                    tile("GRAPES", symbol: "circle.grid.3x3.fill",
+                    tile("GRAPES", art: "grapes", symbol: "circle.grid.3x3.fill",
                          face: "#a855f7", shadow: "#6b21a8") {
                         onSelect(.list(category: .grapes, filter: nil))
                     }
-                    tile("REGIONS", symbol: "globe.americas.fill",
+                    tile("REGIONS", art: "regions", symbol: "globe.americas.fill",
                          face: "#22c55e", shadow: "#15803d") {
                         onSelect(.globe)
                     }
@@ -47,11 +47,11 @@ public struct MainMenuScreen: View {
                     // `square.stack.3d.up.fill` — a layers glyph that had no
                     // counterpart on the web side. SF Symbols 4 / iOS 16, so
                     // it clears the iOS 17 deployment target.
-                    tile("STYLES", symbol: "wineglass.fill",
+                    tile("STYLES", art: "styles", symbol: "wineglass.fill",
                          face: "#f97316", shadow: "#9a3412") {
                         onSelect(.list(category: .styles, filter: nil))
                     }
-                    tile("FLAVORS", symbol: "leaf.fill",
+                    tile("FLAVORS", art: "flavors", symbol: "leaf.fill",
                          face: "#10b981", shadow: "#065f46") {
                         onSelect(.list(category: .flavors, filter: nil))
                     }
@@ -63,6 +63,7 @@ public struct MainMenuScreen: View {
 
     private func tile(
         _ title: String,
+        art: String,
         symbol: String,
         face: String,
         shadow: String,
@@ -81,9 +82,7 @@ public struct MainMenuScreen: View {
             // Sized up in 0.6.1, then eased back a notch (0.6.2, B1) — 64pt
             // glyphs crowded the tile edges at the LARGE text scale.
             VStack(spacing: 13) {
-                Image(systemName: symbol)
-                    .font(.system(size: 56, weight: .semibold))
-                    .foregroundStyle(label)
+                DexChromeGlyph(art, symbol: symbol, size: 56, tint: label)
                     .shadow(color: .black.opacity(0.3), radius: 0, x: 1, y: 2)
                     // **The fixed glyph box is what aligns the four titles**
                     // (0.8.0, L). The report was that STYLES and FLAVORS sit off
@@ -106,6 +105,18 @@ public struct MainMenuScreen: View {
                     // draws whole — it simply stops charging the stack for it.
                     // Fixing it here rather than per tile is the point: the fifth
                     // tile anybody adds is aligned by default.
+                    //
+                    // **The box outlived the symbols (0.8.1, J3).** These four
+                    // are drawn button faces now, and bitmaps have a fixed
+                    // aspect of their own that is not the symbol's — `styles`
+                    // is 134x216 and `flavors` is 215x198. Left to itself a
+                    // raster swap would have re-broken exactly what L fixed, in
+                    // the same place, for a different reason.
+                    // `DexChromeGlyph` fits inside a square of this size, so
+                    // the box below is now redundant rather than wrong: kept
+                    // because a fifth tile added with a plain symbol still
+                    // needs it, and because deleting the guard is how the bug
+                    // comes back.
                     .frame(height: 56)
                 Text(title)
                     .font(DexFont.retro(19))
@@ -166,9 +177,13 @@ public struct MainMenuScreen: View {
             ZStack {
                 Circle().fill(mode.controlAccent.bright)
                 Circle().strokeBorder(mode.controlAccent.mid, lineWidth: 6)
-                Image(systemName: DexGlyph.search)
-                    .font(.system(size: 40, weight: .bold))
-                    .foregroundStyle(mode.controlAccent.ink)
+                DexChromeGlyph(
+                    "search",
+                    symbol: DexGlyph.search,
+                    size: 40,
+                    weight: .bold,
+                    tint: mode.controlAccent.ink
+                )
             }
             .frame(width: 102, height: 102)
             .shadow(color: mode.controlAccent.bright.opacity(0.4), radius: 12)

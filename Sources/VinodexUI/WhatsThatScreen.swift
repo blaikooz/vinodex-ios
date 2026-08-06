@@ -231,29 +231,41 @@ public struct WhatsThatScreen: View {
 
     // MARK: - Guessing
 
+    /// **The real search shell, not a lookalike well (0.8.1, E).**
+    ///
+    /// The field was already a `DexSearchField` — the same control the list
+    /// screens type into — sitting in a hand-rolled rounded rectangle with no
+    /// magnifier. So the one place in the app where you type the name of an
+    /// entry *at* the app was the one place that did not look like search.
+    /// `DexSearchBarShell` is the extracted capsule the other four affordances
+    /// wear, and it is generic over its content, so GUESS rides inside it
+    /// rather than beside it.
+    ///
+    /// **This changes the field's clothes and nothing else.** The suggestion
+    /// pool below is still `discoveredIDs` — bookmark shelves plus recently
+    /// viewed — because suggesting an entry the player has never met hands over
+    /// the answer, and filtering the answer out of a pool they *have* met would
+    /// be an oracle: silence on `NEBB` tells you it is Nebbiolo. A search bar
+    /// that searches the catalog is what this must never become.
     private func guessField(_ round: WhatsThat.Round) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
+            DexSearchBarShell {
                 DexSearchField(text: $guess, placeholder: "TYPE YOUR GUESS…", fontSize: 25)
-                    .frame(height: 46)
+                    .frame(height: 34)
                 Button {
                     submit(round)
                 } label: {
                     Text("GUESS")
-                        .font(DexFont.retro(13))
+                        .font(DexFont.retro(12))
                         .tracking(1)
                         .foregroundStyle(.black)
-                        .padding(.horizontal, 18)
-                        .frame(height: 46)
+                        .padding(.horizontal, 14)
+                        .frame(height: 32)
                         .background(Capsule().fill(Dex.green))
                 }
                 .buttonStyle(DexPressStyle(scale: 0.96))
                 .disabled(guess.trimmingCharacters(in: .whitespaces).isEmpty)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(lcd.well)
-            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(lcd.surfaceEdge, lineWidth: 2))
 
             suggestionRow
 

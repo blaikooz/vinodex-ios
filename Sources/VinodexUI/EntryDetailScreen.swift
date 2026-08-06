@@ -580,20 +580,28 @@ public struct EntryDetailScreen: View {
                 // as each other and as the hero above them, and it changed with
                 // whichever note you had opened. Each taxonomy level now owns a
                 // glyph of its own; see `flavorClassIcons` in the manifest.
+                // **FLAVOR and FAMILY, not CLASS and SUBCLASS (0.8.1, F2)**, and
+                // at 48pt rather than 32 (F1). The band is 54 and was sized for
+                // the style class glyph, so both of these sat with a third of
+                // their tile empty above and below — the two taxonomy glyphs
+                // were the smallest pictures on a screen that is mostly
+                // pictures. `db.icons` keys and the filter routes keep the old
+                // words: those are identifiers, and one of them is a stored
+                // search key.
                 HStack(alignment: .top, spacing: 8) {
-                    tile(label: "CLASS",
+                    tile(label: "FLAVOR",
                          chip: chip(f.details.classification, .flavorClass, key: f.details.classification),
                          destination: .list(category: .flavors, filter: .tasting(f.details.classification))) { tint in
-                        DexIcon(iconID: db.icons.flavorClassIcon(f.details.classification), size: 32, color: tint)
+                        DexIcon(iconID: db.icons.flavorClassIcon(f.details.classification), size: 48, color: tint)
                     }
                     tile(
-                        label: "SUBCLASS",
+                        label: "FAMILY",
                         chip: chip(EntryDisplay.humanize(f.details.subclass).uppercased(), .flavorSubclass, key: f.details.subclass),
-                        // A cross-link like CLASS above it: tapping runs a
-                        // filter search over the subclass's own flavours.
+                        // A cross-link like FLAVOR above it: tapping runs a
+                        // filter search over the family's own flavours.
                         destination: .list(category: .flavors, filter: .flavorSubclass(f.details.subclass))
                     ) { tint in
-                        DexIcon(iconID: db.icons.flavorSubclassIcon(f.details.subclass), size: 32, color: tint)
+                        DexIcon(iconID: db.icons.flavorSubclassIcon(f.details.subclass), size: 48, color: tint)
                     }
                 }
 

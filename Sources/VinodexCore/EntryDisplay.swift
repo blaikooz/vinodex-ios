@@ -53,12 +53,78 @@ public enum EntryDisplay {
         return .style
     }
 
+    /// `STYLE_NAME_COLOR_OVERRIDES`, transcribed from `entryUtils.ts`.
+    ///
+    /// **This table was missing entirely until 0.8.1, item B.** `getColorType`
+    /// consults it *before* the keyword chain; the Swift port went straight to
+    /// the keywords, so all sixteen overrides — every one of which names a real
+    /// style exactly — stopped at the shared/device boundary. Sixteen of the
+    /// thirty-three styles therefore reported a different colour on the phone
+    /// than the data says, and fifteen of them landed on `.dual`, which is a
+    /// plausible-looking answer for a name with no colour word in it. That is
+    /// why it survived: DUAL is what an un-overridden Champagne *should* look
+    /// like if you did not know the table existed.
+    ///
+    /// Keys are `TextNormalize.label` output (lowercased, diacritics folded,
+    /// punctuation intact) and are looked up trimmed, exactly as the TS does.
+    static let colorOverrides: [String: StyleColorType] = [
+        "prosecco": .white,
+        "champagne": .white,
+        "cremant": .white,
+        "cava": .white,
+        "sparkling wine": .white,
+        "sherry": .white,
+        "port": .red,
+        "gsm blend": .red,
+        "bordeaux blend": .red,
+        "super tuscan": .red,
+        "cru beaujolais": .red,
+        "dessert wine": .white,
+        "late harvest": .white,
+        "ice wine": .white,
+        "botrytis wine": .white,
+        "qvevri amber": .orange,
+    ]
+
+    /// `\b` semantics: a hit only counts when neither edge abuts a word
+    /// character. The TS keyword chain is four `\b`-anchored regexes and the
+    /// port used bare `contains`, which is the second half of item B and the
+    /// half that did visible damage.
+    ///
+    /// **`"prosecco"` contains `"rose"`** — p·*rose*·cco. With the override
+    /// table absent and the boundary absent, Prosecco did not merely fall
+    /// through to DUAL like its fifteen neighbours; it matched the rosé branch
+    /// and shipped a confident wrong answer. One missing table and one missing
+    /// boundary, and only their intersection was loud enough to get reported.
+    static func containsWord(_ haystack: String, _ word: String) -> Bool {
+        let isWordChar: (Character) -> Bool = { $0.isLetter || $0.isNumber || $0 == "_" }
+        var search = haystack[...]
+        while let found = search.range(of: word) {
+            let beforeOK = found.lowerBound == haystack.startIndex
+                || !isWordChar(haystack[haystack.index(before: found.lowerBound)])
+            let afterOK = found.upperBound == haystack.endIndex
+                || !isWordChar(haystack[found.upperBound])
+            if beforeOK && afterOK { return true }
+            search = haystack[found.lowerBound...].dropFirst()
+        }
+        return false
+    }
+
+    /// `getColorType` — the override table first, then `\b`-anchored keywords.
+    ///
+    /// Kept as a derivation rather than a lookup of a generated field because
+    /// `WineEntry.tileChips` is a property on the entry with no database in
+    /// scope, and because the label scanner asks this question about names that
+    /// are not in the catalog at all. The generated `Palette.styleColorTypes`
+    /// is not a second answer, it is the pin: `CoverageTests` asserts this
+    /// function reproduces the shared one for every style that ships.
     public static func colorType(name: String) -> StyleColorType {
         let n = TextNormalize.label(name)
-        if n.contains("orange") { return .orange }
-        if n.contains("rose") { return .rose }
-        if n.contains("red") { return .red }
-        if n.contains("white") { return .white }
+        if let override = colorOverrides[n.trimmingCharacters(in: .whitespaces)] { return override }
+        if containsWord(n, "orange") { return .orange }
+        if containsWord(n, "rose") { return .rose }
+        if containsWord(n, "red") { return .red }
+        if containsWord(n, "white") { return .white }
         return .dual
     }
 

@@ -499,8 +499,9 @@ public struct LabelReaderView: View {
 
     private func noticeCard(_ message: String, symbol: String, tint: Color) -> some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: symbol)
-                .font(.system(size: 18, weight: .bold))
+            // `camera` and `home` both land here through `bigButton` (0.8.1,
+            // J3); anything else falls back to its symbol.
+            DexChromeGlyph(Self.buttonArt[symbol] ?? symbol, symbol: symbol, size: 18, weight: .bold)
                 .foregroundStyle(tint)
             Text(message)
                 .font(DexFont.mono(18))
@@ -587,6 +588,15 @@ public struct LabelReaderView: View {
                     .strokeBorder(Color(dexHex: resolved.border), lineWidth: 1)
             )
     }
+
+    /// SF Symbol -> drawn button face, for the symbols `bigButton` is called
+    /// with that have one (0.8.1, J3). A map rather than a parameter because
+    /// every caller already passes the symbol and none of them should have to
+    /// know whether art exists for it.
+    private static let buttonArt: [String: String] = [
+        "camera.fill": "camera",
+        "house.fill": "home",
+    ]
 
     private func bigButton(
         _ label: String,

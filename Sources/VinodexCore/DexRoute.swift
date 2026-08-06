@@ -175,6 +175,30 @@ public enum SettingsSection: String, CaseIterable, Hashable, Sendable, Identifia
         case .dev: "ladybug.fill"
         }
     }
+
+    /// The drawn button face for the grid tile, or nil where there is none
+    /// (0.8.1, J3).
+    ///
+    /// Separate from `symbol` rather than replacing it, for two reasons. The
+    /// symbol names are load-bearing beyond the picture — `ChromeTests`
+    /// asserts every route's glyph is distinct, and a stem that happened to
+    /// repeat would fail a test about something else entirely. And the art is
+    /// partial across the app as a whole, so `symbol` stays the thing that
+    /// always renders and this stays the thing that may not — the fallback runs
+    /// per glyph, not per screen.
+    ///
+    /// Note SYSTEM and SETTINGS: the route titled SYSTEM is `.settings`, and it
+    /// takes the `settings` face. The drop's `system` face goes to the gear on
+    /// the chassis, which is the control that opens it.
+    public var artStem: String? {
+        switch self {
+        case .customization: "customize"
+        case .settings: "settings"
+        case .data: "data"
+        case .access: "shop"
+        case .dev: "dev"
+        }
+    }
 }
 
 /// A destination on the navigation stack.

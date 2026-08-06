@@ -193,8 +193,18 @@ public struct DeviceChassis<Content: View>: View {
     /// languages), and asking two sources whether the device is idle is how the
     /// panel ends up on a different reckoning from the screensaver behind it —
     /// the exact fault 0.7.3's F2 spent a batch removing.
-    private var footerText: String {
-        if script.stage == .cheers { return script.text }
+    private func footerText(at now: Date) -> String {
+        if script.stage == .cheers {
+            // `screensaverSince` rather than a clock of the panel's own: the
+            // toast and the screensaver are raised on the same threshold
+            // (`IdleSchedule.cheers` resolves to `IdleSchedule.screensaver`),
+            // so this is already the instant the idle period began, and reusing
+            // it is what stops the words and the bouncing mark keeping two
+            // reckonings of the same idle — 0.7.3's F2 again. Nil only under
+            // Reduce Motion, which never reaches `.cheers` at all.
+            guard let since = screensaverSince else { return script.text }
+            return script.text(after: now.timeIntervalSince(since))
+        }
         return isMainScreen ? script.text : title
     }
 
@@ -639,9 +649,10 @@ public struct DeviceChassis<Content: View>: View {
             Haptics.tap()
             onSettings?()
         } label: {
-            Image(systemName: "gearshape.fill")
-                .font(.system(size: size * 0.52, weight: .semibold))
-                .foregroundStyle(cap.glyph)
+            // The multiplier stays what it was and now sizes a box rather
+            // than a symbol (0.8.1, J3): `system` is 189x190 and would have
+            // laid out a point or two off the gear it replaces.
+            DexChromeGlyph("system", symbol: "gearshape.fill", size: size * 0.52, tint: cap.glyph)
                 .shadow(color: .black.opacity(0.5), radius: 0, x: 0, y: 1)
                 .frame(width: size, height: size)
                 .background(
@@ -1202,37 +1213,44 @@ public struct DeviceChassis<Content: View>: View {
                 // above them now *are* the pins. Two pin buttons and two pin
                 // lamps on one panel would be the duplication the Decision is
                 // removing, drawn twice on the same 225pt of chassis.
-                MarqueeBanner(
-                    text: footerText,
-                    symbol: footerSymbol,
-                    fontSize: DexMetrics.marqueeTextSize,
-                    // `showsBackFace`, not `isFlipped`: the front face stays
-                    // fully visible through the first half of the turn, and
-                    // freezing a marquee that is still on screen reads as a
-                    // hang. This is the exact instant the face goes to
-                    // `opacity 0`. (AUDIT M8)
-                    paused: showsBackFace,
-                    // B2's dissolve is for the scripted stages only — a 1.4s
-                    // transition in front of every navigation is a wait, not a
-                    // transition.
-                    //
-                    // **`.cheers` joins the main screen in 0.7.6 (A4)**, because
-                    // the toast can now arrive over any page and it should arrive
-                    // the way A4 asks: pixelated. Note the asymmetry, which is
-                    // deliberate — this is true on the way *in* (the stage is
-                    // `.cheers` when the text changes to the toast) and false on
-                    // the way *out* (activity has already parked the script at
-                    // MENU), so leaving the greeting is the 0.55s cross-fade. The
-                    // user has just touched the device and wants the title back;
-                    // 1.4 seconds of dissolve at that moment is the wait B2 was
-                    // written to avoid.
-                    pixelFades: isMainScreen || script.stage == .cheers,
-                    // A3: MENU is short enough to sit beside its glyph, and it is
-                    // a state of this panel rather than a page title. The toasts
-                    // have no glyph at all (see `footerSymbol`), so this flag
-                    // does not have to name them.
-                    glyphBeside: isMainScreen
-                )
+                // **A clock, not a timer (0.8.1, I2).** The panel is static at
+                // rest, so a value that is a function of time needs something
+                // to invalidate it; `TimelineView(.periodic)` is the same
+                // mechanism the screensaver already uses to be a pure function
+                // of `now`, one tick per language rather than one per frame.
+                // Anchored on the idle's own start so a tick lands exactly on
+                // each five-second boundary, and always mounted so the banner
+                // keeps its identity — a conditional `TimelineView` would swap
+                // the view out from under `shown` and turn every arrival at
+                // CHEERS! into a remount instead of a dissolve.
+                TimelineView(.periodic(from: screensaverSince ?? .now, by: MarqueeCheers.dwell)) { tick in
+                    MarqueeBanner(
+                        text: footerText(at: tick.date),
+                        symbol: footerSymbol,
+                        fontSize: DexMetrics.marqueeTextSize,
+                        // `showsBackFace`, not `isFlipped`: the front face stays
+                        // fully visible through the first half of the turn, and
+                        // freezing a marquee that is still on screen reads as a
+                        // hang. This is the exact instant the face goes to
+                        // `opacity 0`. (AUDIT M8)
+                        paused: showsBackFace,
+                        // B2's dissolve is for the scripted stages only — a 1.4s
+                        // transition in front of every navigation is a wait, not a
+                        // transition.
+                        //
+                        // **`.cheers` joins the main screen in 0.7.6 (A4)**, because
+                        // the toast can now arrive over any page and it should arrive
+                        // the way A4 asks: pixelated. Note the asymmetry, which is
+                        // deliberate — this is true on the way *in* (the stage is
+                        // `.cheers` when the text changes to the toast) and false on
+                        // the way *out* (activity has already parked the script at
+                        // MENU), so leaving the greeting is the 0.55s cross-fade. The
+                        // user has just touched the device and wants the title back;
+                        // 1.4 seconds of dissolve at that moment is the wait B2 was
+                        // written to avoid.
+                        pixelFades: isMainScreen || script.stage == .cheers
+                    )
+                }
             }
             .frame(maxWidth: DexMetrics.marqueeMaxWidth)
             .frame(maxWidth: .infinity)
@@ -2030,9 +2048,10 @@ public struct ChassisButton: View {
         // console liveries take the four *colours* and nothing else. No
         // reference shape is reproduced here.
         case .back:
-            Image(systemName: "chevron.left")
-                .font(.system(size: size * 0.47, weight: .heavy))
-                .foregroundStyle(cap.glyph)
+            DexChromeGlyph(
+                "backarrow", symbol: "chevron.left",
+                size: size * 0.47, weight: .heavy, tint: cap.glyph
+            )
         // The one control whose glyph a skin may replace (0.7.0, B2) —
         // HALLOWEEN's user button is a drawn pumpkin. `SkinMarkView` resolves
         // "the skin's mark, or the house symbol if it has none", so twenty of
@@ -2052,9 +2071,10 @@ public struct ChassisButton: View {
                 .overlay(Circle().strokeBorder(homeAccent.mid, lineWidth: 1))
                 .padding(2)
                 .overlay {
-                    Image(systemName: "house.fill")
-                        .font(.system(size: size * 0.41, weight: .bold))
-                        .foregroundStyle(homeAccent.ink)
+                    DexChromeGlyph(
+                        "home", symbol: "house.fill",
+                        size: size * 0.41, weight: .bold, tint: homeAccent.ink
+                    )
                 }
         }
     }
@@ -2368,21 +2388,6 @@ public struct MarqueeBanner: View {
 
     /// Draw the glyph beside the word rather than above it (0.7.2, A3).
     ///
-    /// D2 put the glyph above the title and that is right for a *page* title:
-    /// the panel has to hold CONTINENTS and DAILY CHALLENGE, which wrap to two
-    /// lines, and a glyph competing for the same row would cost the width that
-    /// wrapping needs. The main screen's panel has the opposite problem. MENU
-    /// and PINS are four characters on a 225pt panel, so stacking a glyph over
-    /// them leaves a short word marooned under a big symbol with air either
-    /// side, and A3 asks for the two to sit together.
-    ///
-    /// A flag rather than a length test: "beside if it fits" would mean the
-    /// glyph jumping above the word the moment a skin's metrics or the text
-    /// scale pushed it over, which is a layout that changes for reasons the user
-    /// cannot see. The two callers that pass `true` are the two short strings
-    /// this batch introduced, and both are fixed vocabulary.
-    var glyphBeside: Bool = false
-
     /// Extra horizontal room the label must leave at each end (0.7.2, A7).
     ///
     /// The pinned-app buttons sit in the panel's two top corners, and they are
@@ -2402,6 +2407,12 @@ public struct MarqueeBanner: View {
     @State private var shown = ""
     /// The string being dissolved *out*, or nil when the panel is at rest.
     @State private var outgoing: String?
+    /// The glyph's half of the same pair (0.8.1, H2). The symbol changes in the
+    /// same update as the text — both derive from the route — so it is carried
+    /// through `change(to:)` rather than watched separately, and the two halves
+    /// of the panel cannot start their dissolves a frame apart.
+    @State private var shownSymbol: String?
+    @State private var outgoingSymbol: String?
     /// When the running dissolve began; nil at rest, which is also the
     /// `TimelineView`'s pause condition.
     @State private var fadeStart: Date?
@@ -2443,7 +2454,6 @@ public struct MarqueeBanner: View {
         fontSize: CGFloat,
         paused: Bool = false,
         pixelFades: Bool = false,
-        glyphBeside: Bool = false,
         edgeReserve: CGFloat = 0
     ) {
         self.text = text
@@ -2451,7 +2461,6 @@ public struct MarqueeBanner: View {
         self.fontSize = fontSize
         self.paused = paused
         self.pixelFades = pixelFades
-        self.glyphBeside = glyphBeside
         self.edgeReserve = edgeReserve
         self.segmentFont = DexFont.retro(fontSize)
     }
@@ -2462,8 +2471,18 @@ public struct MarqueeBanner: View {
             content
         }
         .frame(height: DexMetrics.marqueeHeight)
-        .onAppear { if shown.isEmpty { shown = text } }
+        .onAppear {
+            if shown.isEmpty { shown = text }
+            shownSymbol = symbol
+        }
         .onChange(of: text) { _, next in change(to: next) }
+        // A symbol that moves without the text does not dissolve — there is no
+        // pair to cross — but it must still not strand `shownSymbol` on the
+        // previous route's glyph. Nothing in the app does this today; it costs
+        // two lines to make sure nothing quietly starts.
+        .onChange(of: symbol) { _, next in
+            if fadeStart == nil { shownSymbol = next }
+        }
         // Ends the dissolve. Keyed on the start instant, so a second change
         // arriving mid-dissolve cancels the pending teardown rather than
         // letting it fire late and clear the new one.
@@ -2483,14 +2502,18 @@ public struct MarqueeBanner: View {
         guard shown != next else { return }
         guard pixelFades, !reduceMotion, !paused else {
             outgoing = nil
+            outgoingSymbol = nil
             fadeStart = nil
             withAnimation(.easeInOut(duration: DexMetrics.marqueeGreetingFade)) {
                 shown = next
+                shownSymbol = symbol
             }
             return
         }
         outgoing = shown
         shown = next
+        outgoingSymbol = shownSymbol
+        shownSymbol = symbol
         fadeStart = .now
     }
 
@@ -2499,6 +2522,7 @@ public struct MarqueeBanner: View {
         try? await Task.sleep(for: .seconds(DexMetrics.marqueePixelFade))
         guard !Task.isCancelled else { return }
         outgoing = nil
+        outgoingSymbol = nil
         fadeStart = nil
     }
 
@@ -2555,22 +2579,23 @@ public struct MarqueeBanner: View {
     /// and a symbol that grew with SETTINGS > TEXT SIZE would push the words it
     /// is supposed to introduce off a panel whose height does not move. The
     /// words take whatever is left, and shrink into it.
+    ///
+    /// **One arrangement again (0.8.1, H1).** 0.7.2's A3 added a `glyphBeside`
+    /// flag and set it on the main screen, arguing that MENU is four characters
+    /// on a 225pt panel and stacking a glyph over them leaves a short word
+    /// marooned under a big symbol with air either side. That observation was
+    /// true and is now outweighed: the panel is the one part of the chassis
+    /// whose layout the user sees change as they navigate, and it was changing
+    /// *shape* — glyph beside on the menu, glyph above on every page — so the
+    /// return home read as the panel rearranging itself rather than as its
+    /// contents changing. H2 puts the glyph through the dissolve for the same
+    /// reason: one transition, not a transition plus a reflow. The flag and its
+    /// branch are gone rather than left passing `false`, because a layout switch
+    /// nothing selects is a switch that will be re-selected by accident.
     private var content: some View {
-        // Two arrangements of the same two parts (0.7.2, A3) — see
-        // `glyphBeside`. The glyph is built once either way so the two branches
-        // cannot drift in size, colour or shadow.
-        Group {
-            if glyphBeside {
-                HStack(spacing: DexMetrics.marqueeGlyphGap) {
-                    glyph
-                    title
-                }
-            } else {
-                VStack(spacing: DexMetrics.marqueeGlyphGap) {
-                    glyph
-                    title
-                }
-            }
+        VStack(spacing: DexMetrics.marqueeGlyphGap) {
+            glyph
+            title
         }
         .padding(.horizontal, DexMetrics.marqueeTextInset + edgeReserve)
         .padding(.vertical, 6)
@@ -2583,15 +2608,48 @@ public struct MarqueeBanner: View {
     }
 
     /// The page glyph, or nothing (0.6.9, D2; extracted 0.7.2, A3).
+    ///
+    /// **Dissolves with the title since 0.8.1 (H2).** The title had the pixel
+    /// transition and the glyph above it cut instantly, so returning home was
+    /// one part of the panel dissolving while the other part next to it
+    /// snapped — which reads as the dissolve failing rather than as two
+    /// different treatments. Same clock, same `fadeStart`, so the two
+    /// `TimelineView`s cannot drift; the cell size differs because the cell is
+    /// a fraction of what it is dissolving, and the glyph is not the type.
     @ViewBuilder
     private var glyph: some View {
-        if let symbol {
-            Image(systemName: symbol)
+        if fadeStart == nil {
+            glyphImage(shownSymbol)
+        } else {
+            TimelineView(.animation) { context in
+                let p = fadeProgress(at: context.date)
+                ZStack {
+                    glyphImage(outgoingSymbol)
+                        .mask(PixelDissolve(progress: p, cell: glyphFadeCell, incoming: false))
+                    glyphImage(shownSymbol)
+                        .mask(PixelDissolve(progress: p, cell: glyphFadeCell, incoming: true))
+                }
+            }
+        }
+    }
+
+    /// One glyph, or nothing at all — the toasts carry no symbol, so a nil here
+    /// is a normal state of the panel rather than a missing asset.
+    @ViewBuilder
+    private func glyphImage(_ name: String?) -> some View {
+        if let name {
+            Image(systemName: name)
                 .font(.system(size: DexMetrics.marqueeGlyph, weight: .bold))
                 .foregroundStyle(ink)
                 .shadow(color: ground.opacity(0.7), radius: 0, x: 1, y: 1)
         }
     }
+
+    /// Coarser than the title's, for the same reason `fadeCell` is coarser than
+    /// the font's own grid: a symbol is one large shape, and cells fine enough
+    /// to suit 28pt letterforms read as the glyph eroding rather than
+    /// dissolving.
+    private var glyphFadeCell: CGFloat { max(DexMetrics.marqueeGlyph * 0.22, 3) }
 
     /// The title, wrapped and fitted (0.6.9, D2).
     ///
