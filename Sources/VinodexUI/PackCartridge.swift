@@ -114,55 +114,43 @@ struct PackCartridge: View {
     /// step leaves free, which is what that step is for on a real cartridge too.
     /// On the shop's upgrade cartridges this means "owned".
     let isComplete: Bool
+    /// The drawn cartridge's stem, where one exists (0.8.2). Nil for the
+    /// flavour wheel and the country packs, which have no art and keep the
+    /// drawing below.
+    var art: String?
 
-    init(symbol: String, ink: Color, ground: Color, isComplete: Bool) {
+    init(symbol: String, ink: Color, ground: Color, isComplete: Bool, art: String? = nil) {
         self.symbol = symbol
         self.ink = ink
         self.ground = ground
         self.isComplete = isComplete
+        self.art = art
     }
 
     /// The 0.7.3c call: a pack draws its own glyph.
-    init(pack: ExpansionPack, ink: Color, ground: Color, isComplete: Bool) {
-        self.init(symbol: pack.symbol, ink: ink, ground: ground, isComplete: isComplete)
+    init(pack: ExpansionPack, ink: Color, ground: Color, isComplete: Bool, art: String? = nil) {
+        self.init(
+            symbol: pack.symbol, ink: ink, ground: ground,
+            isComplete: isComplete, art: art
+        )
     }
 
     var body: some View {
         GeometryReader { geo in
             let side = min(geo.size.width, geo.size.height)
-            let plateInset = side * 0.16
 
-            ZStack(alignment: .top) {
-                CartridgeShape().fill(ink.opacity(0.22))
-
-                VStack(spacing: 0) {
-                    // The label plate, sitting under the shoulder so it never
-                    // runs into the stepped corner.
-                    RoundedRectangle(cornerRadius: side * 0.06)
-                        .fill(ink.opacity(0.45))
-                        .overlay {
-                            Image(systemName: symbol)
-                                .font(.system(size: side * 0.26, weight: .bold))
-                                .foregroundStyle(ground)
-                        }
-                        .padding(.horizontal, plateInset)
-                        .frame(height: side * 0.42)
-                        .padding(.top, side * 0.30)
-
-                    Spacer(minLength: 0)
-
-                    // Connector fingers. Four, because three reads as a grille
-                    // and five closes up at this size.
-                    HStack(spacing: side * 0.055) {
-                        ForEach(0..<4, id: \.self) { _ in
-                            Capsule().fill(ink.opacity(0.6))
-                        }
-                    }
-                    .frame(height: side * 0.11)
-                    .padding(.horizontal, plateInset)
-                    .padding(.bottom, side * 0.09)
+            ZStack {
+                if let image = art.flatMap({ PixelArtLoader.shared.image($0) }) {
+                    Image(uiImage: image)
+                        .interpolation(.none)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: geo.size.width, height: geo.size.height)
+                } else {
+                    drawn(side: side)
                 }
             }
+            .frame(width: geo.size.width, height: geo.size.height)
             .overlay(alignment: .topTrailing) {
                 if isComplete {
                     Image(systemName: "checkmark")
@@ -172,6 +160,53 @@ struct PackCartridge: View {
                         .background(Circle().fill(ink))
                         .offset(x: -side * 0.02, y: side * 0.02)
                 }
+            }
+        }
+    }
+
+    /// The code-drawn cartridge (0.7.3c, A2), still the fallback and still the
+    /// only thing a country pack or the flavour wheel has.
+    ///
+    /// **A2's "no per-pack hue" argument is not overturned by the drawn art, it
+    /// is satisfied by it.** That argument was that twelve chosen plastic
+    /// colours arrive as twelve identical greys under the four single-phosphor
+    /// modes, so colour must not carry the identity. The drawn cartridges carry
+    /// theirs in the *picture* — a map of Europe, a crowned V, a knurled dial —
+    /// which is still twelve different pictures after the LCD's `colorMultiply`
+    /// has flattened them. What A2 forbade was a coloured rectangle, and this is
+    /// not one.
+    private func drawn(side: CGFloat) -> some View {
+        let plateInset = side * 0.16
+
+        return ZStack(alignment: .top) {
+            CartridgeShape().fill(ink.opacity(0.22))
+
+            VStack(spacing: 0) {
+                // The label plate, sitting under the shoulder so it never
+                // runs into the stepped corner.
+                RoundedRectangle(cornerRadius: side * 0.06)
+                    .fill(ink.opacity(0.45))
+                    .overlay {
+                        Image(systemName: symbol)
+                            .font(.system(size: side * 0.26, weight: .bold))
+                            .foregroundStyle(ground)
+                    }
+                    .padding(.horizontal, plateInset)
+                    .frame(height: side * 0.42)
+                    .padding(.top, side * 0.30)
+
+                Spacer(minLength: 0)
+
+                // Connector fingers. Four, because three reads as a grille
+                // and five closes up at this size.
+                HStack(spacing: side * 0.055) {
+                    ForEach(0..<4, id: \.self) { _ in
+                        Capsule().fill(ink.opacity(0.6))
+                    }
+                }
+                .frame(height: side * 0.11)
+                .padding(.horizontal, plateInset)
+                .padding(.bottom, side * 0.09)
             }
         }
     }

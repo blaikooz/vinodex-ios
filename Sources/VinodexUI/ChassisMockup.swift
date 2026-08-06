@@ -27,10 +27,15 @@ struct ChassisMockup: View {
     /// A screen to light the panel strip with, or nil for the skin's own
     /// marquee phosphor.
     ///
-    /// The strip stands for the marquee, and at this size it is the only lit
-    /// surface in the drawing — so it is also the only thing a *display* pack
-    /// can be shown through. Nil is the skin picker's behaviour, unchanged:
-    /// there the strip is the marquee and nothing else.
+    /// **No caller passes one as of 0.8.2, and the parameter stays.** It was
+    /// added in 0.8.1 (A2) so a display pack could be previewed through the
+    /// strip, and coordinator 4 reverses that: the strip is 24×3pt at the
+    /// reference size, which is too little of the drawing to sell a screen
+    /// with, so `SettingsPanel.screenSwatch` draws a `ScreenMockup` instead.
+    /// What survives is the honest reading of this property — "light the
+    /// marquee with a mode rather than with the skin's phosphor" — which is a
+    /// real thing a caller may want and costs one optional to keep. Nil is the
+    /// skin picker's behaviour and always has been.
     var screen: LcdMode?
     var height: CGFloat = 50
 

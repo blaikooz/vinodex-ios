@@ -17,6 +17,16 @@ import Testing
 /// suite until it is wired everywhere, which is the whole point — the alternative is
 /// finding out two releases later, as above.
 ///
+/// **Ten as of 0.8.2**, which is the suite earning its keep twice in one batch:
+/// `import-footer-art.py` and `import-cartridge-art.py` landed together, and
+/// each one had to be added to the rasteriser, to `IMPORTERS`, to `DIRS` and to
+/// `package.json` before this went green. That is eight edits nobody would have
+/// remembered from the shape of the task, which was "wire up some new art".
+/// There is a fifth place these two also needed — `PixelArtLoader.subdirectories`
+/// — which this suite cannot see, because it lives in `VinodexUI`. That gap is
+/// real and the clean `xtool` build is what covers it: a directory the loader
+/// never searches yields a nil image, and nil images are silent.
+///
 /// **Why a Swift test for shell and Python.** It is the only gate that runs on every
 /// push. `npm run icons` needs network access and `rsvg-convert`; `icons:verify`
 /// needs Pillow; neither runs in CI. `swift test` does, on every branch. The same

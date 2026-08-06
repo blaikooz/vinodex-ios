@@ -644,11 +644,38 @@ public struct DeviceChassis<Content: View>: View {
     /// (0.6.7, K2/K3) and the shared moulded cap otherwise.
     private func settingsButton(size: CGFloat) -> some View {
         let cap = skin.buttonSet?.settings ?? skin.control
+        // The fourth footer cap (0.8.2). Same rule as `ChassisButton`: the
+        // sprite is the whole control, so it replaces the gradient, the rim and
+        // the cog glyph together rather than sitting on top of them, and it is
+        // withheld from the sketch shell whose parts are all pen strokes.
+        // Nil falls through to everything this button drew in 0.8.1.
+        let drawnCap = skin.sketch == nil
+            ? ChassisCapLoader.shared.image(stem: "settings", inkHex: cap.topHex)
+            : nil
 
         return Button {
             Haptics.tap()
             onSettings?()
         } label: {
+            if let drawnCap {
+                Image(uiImage: drawnCap)
+                    .interpolation(.none)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: size, height: size)
+            } else {
+                settingsMoldedCap(size: size, cap: cap)
+            }
+        }
+        // 0.9, not the default — the cog has pressed deeper than its three
+        // neighbours since 0.6.7 and the sprite does not change that.
+        .buttonStyle(DexPressStyle(scale: 0.9))
+        .accessibilityLabel("Settings")
+    }
+
+    /// The rendered cog, and the fallback when there is no drawn cap.
+    private func settingsMoldedCap(size: CGFloat, cap: ChassisControl) -> some View {
+        Group {
             // The multiplier stays what it was and now sizes a box rather
             // than a symbol (0.8.1, J3): `system` is 189x190 and would have
             // laid out a point or two off the gear it replaces.
@@ -692,8 +719,6 @@ public struct DeviceChassis<Content: View>: View {
                 )
                 .contentShape(Circle())
         }
-        .buttonStyle(DexPressStyle(scale: 0.9))
-        .accessibilityLabel("Settings")
     }
 
     /// The orb's outline (0.7.5, A2; a stadium since 0.7.6, E1).
@@ -1941,11 +1966,85 @@ public struct ChassisButton: View {
         self.action = action
     }
 
+    /// The drawn cap's stem under `Resources/FooterArt`, less the prefix.
+    ///
+    /// `bookmarks` is `user`, which is the illustrator's word for it and the
+    /// one on the file. The enum case is not renamed: it is matched on in five
+    /// places and reads correctly beside `onBookmarks`.
+    private var capStem: String {
+        switch kind {
+        case .back: "back"
+        case .home: "home"
+        case .bookmarks: "user"
+        }
+    }
+
+    /// The face colour the drawn cap is re-inked to.
+    ///
+    /// Home's comes from its accent ramp rather than from `cap`, exactly as its
+    /// gradient does — `cap` is documented as never read for Home, and reading
+    /// it here would have made the one lit button in the band the one button
+    /// that ignored its livery.
+    private var capInkHex: String {
+        switch kind {
+        case .back, .bookmarks: cap.topHex
+        case .home: homeAccent.lightHex
+        }
+    }
+
+    /// The drawn cap, re-inked, when there is one and the shell wants it.
+    ///
+    /// **Nil on the sketch skin, deliberately.** That shell is a pen drawing —
+    /// `SketchStroke` inks every circle by hand and 0.6.6's B3 removed the cast
+    /// shadow from it on the grounds that "a cast shadow is the one thing a pen
+    /// cannot do". A rendered pixel cap, with its own baked highlight and
+    /// shadow, is a larger version of the same contradiction. It keeps the
+    /// drawn controls it already had.
+    private var drawnCap: UIImage? {
+        guard skin.sketch == nil else { return nil }
+        return ChassisCapLoader.shared.image(stem: capStem, inkHex: capInkHex)
+    }
+
     public var body: some View {
         Button {
             Haptics.tap()
             action()
         } label: {
+            // **The sprite replaces the control, not the glyph in it** (0.8.2).
+            //
+            // 0.8.1's J converted 32 button *faces*: glyphs that sit inside a
+            // circle this view draws. These four are whole moulded caps — rim,
+            // lit face, cast shadow, and the symbol incised into them. Drawing
+            // one inside the gradient circle below would have stacked a painted
+            // button on a rendered one, at two different rim radii.
+            //
+            // So the fallback is not a symbol here, it is *the entire existing
+            // control*: no art, and every skin renders exactly what it rendered
+            // in 0.8.1, down to the sketch stroke and the shadow. That keeps
+            // "the conversion can be partial without any control being blank",
+            // which is `DexChromeGlyph`'s rule and the only defence against
+            // `PixelArtLoader` returning nil in silence.
+            if let drawnCap {
+                Image(uiImage: drawnCap)
+                    .interpolation(.none)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: size, height: size)
+                    // No `.shadow`: the sprite casts its own, and the pair
+                    // read as two light sources.
+            } else {
+                moldedCap
+            }
+        }
+        .buttonStyle(DexPressStyle())
+        .disabled(!enabled)
+        .opacity(enabled ? 1 : 0.35)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    /// The rendered control, and the fallback for every cap with no art.
+    private var moldedCap: some View {
+        Group {
             ZStack {
                 Circle().fill(gradient)
                 // Hidden rather than skipped on the drawn skin (0.6.9, M1), so
@@ -1978,10 +2077,6 @@ public struct ChassisButton: View {
                 y: DexMetrics.bandShadowY
             )
         }
-        .buttonStyle(DexPressStyle())
-        .disabled(!enabled)
-        .opacity(enabled ? 1 : 0.35)
-        .accessibilityLabel(accessibilityLabel)
     }
 
     /// One wobble per kind — see the note at the call site (0.6.9, M1).

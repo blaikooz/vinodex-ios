@@ -362,6 +362,19 @@ public final class PixelArtLoader {
         // recoverable direction — the reverse would silently swap a portrait
         // for a piece of chrome.
         "Resources/ButtonArt",
+        // Drawn footer caps (0.8.2), imported from art/icons/footerbuttons/,
+        // and drawn cartridges (0.8.2), from art/icons/cartridges/.
+        //
+        // **Both prefixed, which is what keeps the entry above the last one
+        // that had to argue about ordering.** `ButtonArt`'s note explains that
+        // its stems are bare words in a flat global namespace and that placing
+        // it last is a guard rather than a guarantee. These two do not need the
+        // guard: `footer-` and `cartridge-` make them disjoint from everything
+        // by construction, exactly as `stamp-` and `sticker-` are. It is the
+        // convention to follow for the next directory — a second bare-word set
+        // would mean two entries whose safety is a fact about today's catalog.
+        "Resources/FooterArt",
+        "Resources/CartridgeArt",
     ]
 
     private var cache: [String: UIImage?] = [:]

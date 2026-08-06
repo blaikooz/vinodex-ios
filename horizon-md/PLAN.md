@@ -59,6 +59,7 @@ been happening", which is the question a planning doc is for.
 | 0.7.7 | `vinodex-0.7.7-bios.md` (titled 0.7.6) | **THE BIOS SCREEN.** The startup POST rebuilt from a written description of a mockup, **superseding 0.7.3a A1 and 0.7.5 A6 wholesale**: full-screen and opaque over the chassis (reversing 0.7.3a's "inside the LCD", which was an argument about a *translucent* overlay), three zones inside a terminal frame with ticked side rails and corner brackets, scanlines and a vignette, the shipped pixel "V" in cream over a magenta drop shadow. Staged checks now resolve *into* the composition rather than cutting away, then it rests on `PRESS ANY BUTTON TO CONTINUE` — any touch advances, and so does a 3.5s timeout. The mockup's `v1.0.0` was disobeyed: that string is on `AppVersion.placeholders` and printing it would have hidden the failure it signals. Four glyphs, no new art asset — one reuse, three drawn in code. | 438, untouched; `firmware.ts` only | 504 tests, clean build, `npm run generate` + `find-missing-refs` + `npm run icons` + `icons:verify` green, **not deployed** (held at the user's request) |
 | 0.7.8 | 0.7.8 spec, sections B–D | **THE GROWTH TRIO.** Scoped three times and built here, fully local. **B** one card renderer reused three ways — entry, profile, earned stamp — through `ImageRenderer` at a fixed 3× into the share sheet, framed by a purpose-built still that takes the chassis's *tokens* rather than rendering `DeviceChassis` (which exports a blank marquee and dim lamps off-screen). **C** the spoiler-free result string, `DailyResult` in Core, two tiles not three because the paper has no third state; C2's three preconditions confirmed against the code and one caveat found — the paper depends on the shipped catalog, so cross-version strings are not comparable, which is why it carries no puzzle number. **D** `NotificationPlan` in Core, a 7-day horizon of one-shots re-cut whenever the app can see whether today's paper is done; the toggle renders real `UNAuthorizationStatus`, not a stored bool. `QuizSession` gained `marks` with a hand-written decoder so a paper half-sat across the upgrade survives. | 438, untouched; `firmware.ts` only | 542 tests, clean build, `npm run generate` + `find-missing-refs` green, **not deployed** (held per the spec) |
 | 0.8.0 | `vinodex-0.8.0.md`, sections A–L | **NEW MAPS, NEW MAKER.** All thirty country/state outlines regenerated from authored lon/lat rings, with the generator and its data now *in the repo* — once every outline is derived the script is the master art. Gated on **A0b**, its own commit: the six quantising importers routed through a pinned `quantize_stable` and through `save_stable`, so a re-run is byte-identical and a three-colour outline never meets a quantiser at all. Every one of the 121 authored `mapPosition` dots checked against the new art (**8 were already in the sea**, 7 re-authored, 1 — the Canary Islands, at fraction (-0.49, 2.07) of Iberia — named as genuinely off-map). Plus: BIOS by HORIZON/GODOT, centred and larger; the orb becomes a lamp in height *and* treatment; "paper" becomes "exam" in every player-facing string and no identifier; a rosé chip that had been resolving to grey since it shipped; four menu tiles that finally share a baseline; type-ahead in WHAT'S THAT…? restricted to entries the player has met. | 446, untouched; `regions.ts` mapPosition ×7, `continents.ts` Europe colour, `firmware.ts` | 582 tests, clean build, `npm run generate` + `find-missing-refs` + `icons:verify` green, **not deployed** |
+| 0.8.2 | sommbot's data-pass handoff + five coordinator items | **THE LINEAGE DATA ARRIVES, AND THE TILES BUILT FOR IT MEET THEIR FIRST USERS.** Sommbot takes authored lineage from 61 grapes to **163** and sets `parentageUnknown` on **74**; iOS lands the pins and finds the handoff wrong in three places. **The category is not empty**: `derivedOnlyGrapesAreConnected` was told to retire because "zero grapes are connected only by derived edges", and there are **fourteen** — Nebbiolo among them. Its old assertion `lineage == nil` was a proxy for *authors no edge*, and 0.8.2 is the batch that pulled the two apart. Handoff also missed `siblingsGroupThroughExternalParents` (Gouais Blanc 10 → 13 children) and claimed `colorOverridesResolve` was red when only its **title** was. The 0.8.0 `.unrecorded` tile and 0.8.1's off-catalog box had never drawn for a real entry in three releases and now serve 32 and 69 respectively. Plus a live `related` de-dupe defect pinned before data could trip it. Coordinator: **four drawn footer caps** that are whole moulded buttons rather than glyphs, re-inked per skin by a `GrapeSpriteLoader`-shaped HSV pass; **17 drawn cartridges** on the shop shelf and three times larger on the splash; display packs previewed as **screens** rather than as a device with a tinted sliver; and a share sheet that finally has a header, via `LinkPresentation`. | 446 / 177 / 124 / 33 / 106 / 26, all untouched; `grapes.ts`, `styles.ts` (S033/S034 → ORIGIN), `entryUtils.ts` (`madeira` → WHITE), `types.ts`, `firmware.ts` — all sommbot's | **596 tests**, clean build, `generate` (no drift) + `find-missing-refs` (zero dangling) + `icons:verify` (312 identical) + `outlines:check` green, **not deployed** |
 | 0.8.1 | `vinodex-0.8.1.md`, sections A–F, H–J (**G held**) | **PROSECCO IS NOT A ROSÉ.** A bug hunt that turned out to be a whole missing table: `EntryDisplay.colorType` is a port of `entryUtils.ts`'s `getColorType` and had never carried `STYLE_NAME_COLOR_OVERRIDES`, so **16 of 33 styles reported a different colour on the device than in the data** — 15 silently as DUAL, and Prosecco as ROSÉ because the port matched substrings and `"p*rose*cco"` contains one. Fixed as a port plus a cross-end pin (`palette.styleColorTypes`), then **D** spends it: COLOUR and COUNTRY join STYLE CLASS on the styles list. **F3** was expected to be the same shape and was not — the keys matched perfectly; `getFlavorSubclassChipColors` simply had no case for six ids and its `default` is byte-identical to the reader's fallback, so six chips were the neutral *written into the table under a valid key*. **J** wires 30 of 32 new button faces in behind a fitted square box, through an eighth importer registered in all four rosters and both search paths. Plus a lineage tree whose connectors now reach the boxes, a marquee glyph that dissolves with its word, and a toast that changes language every five seconds. | 446, untouched; `chipColors.ts`, `colorUtils.ts`, `entryUtils.ts` (`MARINE` retired), `firmware.ts` | 590 tests, clean build, `generate` + `find-missing-refs` (zero dangling) + `icons:verify` (291 identical) + `outlines:check` green, **not deployed** |
 | 0.7.6 | v0.7.5 spec (lands as 0.7.6), sections A–F | **THE CONSOLIDATION.** The Decision: three ways to reach the same places become one — the two marquee lamps *are* the pins, always visible, each reassignable by holding it. `MarqueeDrawer` deleted, the corner pin buttons deleted, the panel is a display again. `QuickPinStore` reused, not forked: `MarqueePin`'s raw values are a superset of `SettingsSection`'s, so no pins are reset. The idle timer stops being two stages (screensaver 15→**30s**, the marquee greeting folded into it and firing on **any** screen, revertible by giving `IdleSchedule.toast` a number back); the screensaver gets a random start, kept as a phase so the closed form survives. Plus two new workshop axes (10 in all), the **W64** shell, a stadium orb, bigger shop splashes with previews of their contents, and the tutorial into SETTINGS > DEVICE. | 438, untouched | 501 tests, clean build, `npm run generate` + `find-missing-refs` + `npm run icons` green, **not deployed** |
 
@@ -2267,3 +2268,164 @@ work.
   isolation immediately after, and again in every subsequent full run. It touches
   `UserDefaults(suiteName:)` on corelibs-foundation and nothing in this batch
   goes near `TypeScale`. Worth watching rather than chasing.
+
+**0.8.2, A hundred and two new statements about parentage, and twenty-one drawn
+parts** (sommbot's data-pass handoff, plus five coordinator items). Gates:
+**596 tests**, clean `xtool dev build`, `npm run generate` (no drift beyond
+sommbot's three regenerated resources) + `find-missing-refs` (zero dangling) +
+`icons:verify` (312 identical, 0 changed) + `outlines:check` green. **Not
+deployed** -- 0.7.9 through 0.8.1 are also still undeployed.
+
+- **Three things in the handoff were wrong, and the first one mattered.** It
+  said `derivedOnlyGrapesAreConnected` "CANNOT be fixed by swapping grapes" and
+  should be retired with a written reason, because "after this pass there are
+  zero grapes connected only by derived edges -- the category is empty." The
+  category has **fourteen** members: Nebbiolo, Zinfandel, Grenache, Trebbiano,
+  Touriga Nacional, Palomino, Teroldego, Primitivo, Savagnin, Garganega,
+  Graciano, Hondarrabi Beltza, Pais and Gouais Blanc. What emptied was the set
+  of grapes with **no lineage block at all** that are connected -- a different
+  set, because the test's `g.lineage == nil` was a *proxy* for "authors no edge"
+  and this is precisely the batch to break it: all fourteen now carry
+  `{ parentageUnknown: true }`, a block that states an absence and authors
+  nothing. So the assertion is now `lineage?.isEmpty != false` -- the same
+  predicate `GrapeLineageIndex` uses to decide what goes in `authored`, so the
+  test and the code read one rule instead of two that agreed by luck -- and the
+  subject is derived rather than named, which is what 0.7.9 already had to do to
+  the neighbouring `unconnectedGrapesAreEmpty`.
+- **The handoff also missed a red test and over-reported another.**
+  `siblingsGroupThroughExternalParents` was failing at 9 vs 12: sommbot gave
+  Gouais Blanc three more children (Xinomavro, Romorantin, Jacquere), taking it
+  from 10 to 13 and making it the only count in the suite that moved on new
+  *crosses* rather than on new statements. And `colorOverridesResolve` was said
+  to fail; it never did -- it iterates the table, so a seventeenth row passes as
+  readily as sixteen. Only its **title** was wrong, which is the more interesting
+  fault: the title asserted a number that nothing read. It reads 17 now and the
+  test counts the table, so the title cannot lie again.
+- **Two numbers, and the gap between them is the whole character of the pass.**
+  Blocks 61 -> 163, connected 75 -> 121. It is not 102 new crosses: 56 of the new
+  blocks carry `parentageUnknown` and no edge, which adds a *statement* without
+  adding a relationship. 163 grapes now say something about their parentage; 121
+  have a tree. `coverageIsPinned` pins the split as well as the totals, on the
+  standing rule that a pin which can be right while the distribution is wrong is
+  not proof -- both totals survive a batch that turned every stated absence into
+  a phantom edge.
+- **Verified what the new data actually draws, by tracing the two branches
+  against all 177 entries.** 121 get the FAMILY TREE button, **42** get the flat
+  PARENTAGE UNRECORDED panel, 14 draw nothing. Of the 121, **32** carry the
+  `.unrecorded` tile inside the tree. Both branches shipped in 0.7.9 against a
+  catalog that set the flag nowhere and stayed unreachable through 0.8.0 and
+  0.8.1; this is the first batch in which either has a user. Off-catalog
+  ancestors went from a handful to **69 distinct**, the largest being Heben with
+  nine children, so 0.8.1's terminal-node box is also newly load-bearing.
+- **One case the data still does not reach, and it is the one the schema
+  advertises.** `shared/types.ts` says a grape may have "one established parent
+  and a second that is genuinely unrecorded, which is what draws a named tile and
+  an unrecorded one side by side", and `GrapeLineageScreen`'s
+  `authoredAncestors.count < 2` guard exists for exactly that. **Zero** grapes
+  are in that shape: all 32 tile-drawing grapes have *no* authored ancestors. The
+  half-known cross remains fixture-only (`unknownParentageCoexistsWithEdges`).
+  Worth a sommbot pass rather than a code change.
+- **The `related` de-dupe was a live defect, not a hypothetical.** `relatives(of:)`
+  built `related` as authored + derived with no `seen` set, unlike `siblings` two
+  lines above. Both copies get `LineageNode.id == "e:<id>"` and the screen's
+  `ForEach` is keyed on it, so a mutually-authored pair would have given SwiftUI
+  two rows with one identity -- a dropped or doubled row somewhere else in the
+  list, which a reader would have blamed on the tree. 0.8.2 is also the batch
+  that landed the **first in-catalog `related` refs at all** (five: Cabernet
+  Franc/Hondarrabi Beltza, Mourvedre/Graciano, Roussanne/Marsanne, Plavac
+  Mali/Zinfandel and /Primitivo), so the reverse pass went from unexercised to
+  live in the same pass that could have tripped it.
+- **The footer art is not what the item described, and the art won.** The
+  instruction was to wire four files through 0.8.1's `DexChromeGlyph` path and
+  "keep the SF Symbol fallback per glyph". They are not glyphs: each is a **whole
+  moulded cap** -- rim, lit face, cast shadow, symbol incised into it. Drawing
+  one inside `ChassisButton`'s gradient circle would have stacked a painted
+  button on a rendered one at two rim radii. So the sprite replaces the control,
+  and the fallback is the *entire existing rendering* -- which honours the
+  instruction's substance exactly: no art, and every skin renders what it
+  rendered in 0.8.1. `user` was one of the two 0.8.1 could not place, because the
+  User button goes through `SkinMarkView` rather than `DexChromeGlyph`; it has a
+  home now.
+- **"Tint with the chassis skin" needed a new mechanism, and three obvious ones
+  were wrong.** One cream cap, twenty-one skins whose identity is largely these
+  four colours. `.renderingMode(.template)` discards everything but alpha and
+  collapses a moulded cap to a disc. `.colorMultiply` -- the LCD's own idiom --
+  only darkens: a no-op on the eleven skins with a white glyph, and it crushes
+  the light ones. `DexChromeGlyph`'s no-tint rule is right and stays untouched.
+  What works is **0.6.2's rule, from `GrapeSpriteLoader` and the rarity leaf**:
+  keep each pixel's value, take the target's hue and saturation. Measured first
+  -- all four sprites are a single hue family (0.05-0.16) spanning the full value
+  range, so there is no second hue for a global re-hue to destroy, which is why
+  this needs none of `GrapeSpriteLoader`'s masking. Near-black is skipped so the
+  outline and the cast shadow stay structure. `ChassisCapLoader` sits *on top of*
+  `PixelArtLoader` keyed additionally by ink, so **no `art:` id or `ClassArt`
+  asset becomes tintable as a side effect** -- the tinting is reachable from two
+  chassis call sites and nowhere else. Withheld from the sketch shell, whose
+  parts are pen strokes and which had its cast shadow deliberately removed in
+  0.6.6.
+- **Ten importers now, and the roster suite earned its keep twice in one batch.**
+  `import-footer-art.py` and `import-cartridge-art.py` each had to be added to
+  `rasterize-icons.sh`, `verify-art.py`'s `IMPORTERS`, its `DIRS` and
+  `package.json` -- eight edits nobody would infer from "wire up some new art",
+  and `ArtPipelineRosterTests` is what turned that from memory into a check.
+  There is a **fifth** place it cannot see -- `PixelArtLoader.subdirectories`, in
+  `VinodexUI` -- and only the clean build covers it, because a directory the
+  loader never searches yields a nil image and nil images are silent. Both new
+  stem sets are **prefixed** (`footer-`, `cartridge-`), joining `stamp-` and
+  `sticker-` as safe by construction rather than adding a second bare-word
+  directory to the ordering argument `ButtonArt`'s note had to make.
+- **The cartridge mapping is a table because both vocabularies are load-bearing.**
+  17 files, 12 packs and 5 upgrades. Three rows genuinely disagree and all three
+  are pre-existing documented collisions: `displayvintage` -> `pack:display-retro`
+  (0.7.1's C1 renamed the section to avoid VINTAGE-containing-VINTAGE, and
+  `LcdMode.vintage` is persisted), `screenmodes` -> `lightMode` (the id is
+  persisted and `Entitlement` says renaming it revokes the purchase), and
+  `godforsaken`, where the file arrived as `godforksaken.png` and was **renamed**
+  rather than mapped -- a typo in a filename is a typo, a typo in a table is a
+  permanent second spelling. Nothing in the tree referenced the misspelling.
+  `CartridgeArtTests` fails both ways: a stem with no file, and art nothing
+  claims.
+- **Two things on sale have no cartridge, and this is the report the item asked
+  for**: `flavors` (the flavour wheel) and every `country(_:)` pack. Both fall
+  back to `PackCartridge`'s 0.7.3c drawing, which is why that view keeps its
+  whole rendering rather than becoming an image well. Pinned in
+  `knownGapsFallBack` so art arriving for either is a deliberate edit. Every one
+  of the four footer files mapped to a real control; nothing is half-wired.
+- **A2's "no per-pack hue" argument is satisfied by the drawn art, not
+  overturned by it.** That argument was that twelve chosen plastic colours arrive
+  as twelve identical greys under the single-phosphor modes, so colour must not
+  carry the identity. These carry theirs in the *picture* -- a map of Europe, a
+  crowned V, a knurled dial -- which is still twelve different pictures after the
+  LCD's `colorMultiply`. What A2 forbade was a coloured rectangle.
+- **Display packs: A2's conclusion reversed, its first half kept.** A2 wrote that
+  a bare disc of `mode.screen` "shows the colour without saying it is a screen"
+  and concluded that a `ChassisMockup` with a mode-tinted marquee strip was the
+  answer -- which made the two shelves "read as one kind of product". That is the
+  problem, not the goal: the strip is 24x3pt at the reference size, so three
+  display tiles differed only in the tint of a sliver inside an otherwise
+  identical device. `ScreenMockup` draws the panel itself with all three of a
+  mode's decisions -- ground, ink and accent -- and reads `ownInk` rather than
+  `text`, because `text` returns the workshop's chosen font colour and would have
+  shown every mode in the same ink. `shellSwatch` keeps `ChassisMockup`
+  untouched; a device pack does sell the device.
+- **The share preview is possible on this toolchain, and now exists.** The share
+  sheet's header is not drawn from the activity items -- iOS asks each item
+  source for an `LPLinkMetadata`, and a bare `UIImage` supplies none, which is
+  why three releases of cards opened a sheet with an empty header.
+  `LinkPresentation` is an ordinary iOS SDK framework with a Swift overlay, so
+  `import` is the whole integration -- no linker settings, no `Package.swift`
+  change; `OCRService` already imports `Vision` on the same basis, which is what
+  made it worth trying rather than assuming. `SharePayload.image` now carries a
+  title (the entry's name, "Cellar Profile", or the badge's) because a sheet
+  headed "Vinodex" three times says less than one that names the thing.
+- **Things to eyeball, in order.** (1) The footer band on several skins -- this
+  is the most-looked-at chrome in the app and four caps changed on twenty of
+  twenty-one shells; check a dark livery, a light one (BLANC DE BLANCS, whose
+  glyph is deliberately dark), HALLOWEEN and a console livery whose four caps are
+  four colours. (2) The settings cog, which is a knurled dial in the art and a
+  gear glyph in the fallback. (3) The shop shelf at 46pt -- the cartridges are
+  drawn at 220-420px and three of the seventeen (`chassisskins`, `screenmodes`,
+  `vinodexpro`) are roughly twice the linear size of the other fourteen and were
+  written seven minutes later, which reads as a partial re-drop; they render
+  correctly but may sit differently in the tile. (4) The display-pack splash,
+  where `ScreenMockup` is new and untested by anything but the compiler.

@@ -47,7 +47,7 @@ public struct PassportScreen: View {
             device: deviceName
         )
         if let image = ShareCardRenderer.image({ ProfileShareCard(card: card) }) {
-            sharePayload = .image(image)
+            sharePayload = .image(image, title: "Cellar Profile")
         }
     }
 
@@ -57,7 +57,7 @@ public struct PassportScreen: View {
         if let image = ShareCardRenderer.image({
             AchievementShareCard(achievement: achievement, symbol: badgeSymbol(badge.id))
         }) {
-            sharePayload = .image(image)
+            sharePayload = .image(image, title: badge.title)
         }
     }
 

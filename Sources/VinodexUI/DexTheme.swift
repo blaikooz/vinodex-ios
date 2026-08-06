@@ -2159,8 +2159,12 @@ public struct ChassisAccent: Sendable {
     /// per call — a tools shelf asks for six of these per render.
     public let brightRGB: DexRGB
     public let edgeRGB: DexRGB
+    /// `light` as its source string — Home's face, for `ChassisCapLoader`.
+    /// See `ChassisControl.topHex`, which this mirrors.
+    public let lightHex: String
 
     public init(pale: String, light: String, bright: String, mid: String, edge: String, ink: String) {
+        self.lightHex = light
         self.pale = Color(dexHex: pale)
         self.light = Color(dexHex: light)
         self.bright = Color(dexHex: bright)
@@ -2192,11 +2196,23 @@ public struct ChassisControl: Sendable {
     /// The chevron or person glyph.
     public let glyph: Color
 
+    /// `top` kept as its source string as well as a colour (0.8.2).
+    ///
+    /// `ChassisCapLoader` re-inks the drawn footer caps to the skin's face
+    /// colour, which means reading its hue and saturation and keying a cache on
+    /// it — neither of which a `SwiftUI.Color` will answer without a round trip
+    /// through `UIColor` that is unavailable to the type this struct lives
+    /// beside. The same trade `ChassisAccent` already makes with `brightRGB`
+    /// and `edgeRGB`, and for the same reason: the caller has the string at
+    /// init and nowhere afterwards.
+    public let topHex: String
+
     public init(top: String, bottom: String, edge: String, glyph: String) {
         self.top = Color(dexHex: top)
         self.bottom = Color(dexHex: bottom)
         self.edge = Color(dexHex: edge)
         self.glyph = Color(dexHex: glyph)
+        self.topHex = top
     }
 }
 

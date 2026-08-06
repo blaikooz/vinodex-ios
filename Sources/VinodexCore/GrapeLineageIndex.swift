@@ -159,8 +159,12 @@ public struct GrapeRelatives: Sendable, Hashable {
 
     public static let none = GrapeRelatives()
 
-    /// No edges in any direction — which is 102 of the 177 grapes (0.7.9), and
-    /// the reason the encyclopedia does not offer this screen on every entry.
+    /// No edges in any direction — which is 56 of the 177 grapes (0.8.2, down
+    /// from 102), and the reason the encyclopedia does not offer this screen on
+    /// every entry. Note that `parentageUnknown` is not consulted here: 42 of
+    /// those 56 state their parentage is undetermined, and they are `isEmpty`
+    /// all the same, because a statement about absent knowledge is not an edge
+    /// to draw.
     public var isEmpty: Bool {
         parents.isEmpty && mutationOf == nil && offspring.isEmpty
             && mutations.isEmpty && siblings.isEmpty && related.isEmpty
@@ -252,14 +256,18 @@ public struct GrapeLineageIndex: Sendable {
             if let source = lineage.mutationOf, let key = Self.key(source) {
                 mutantsOf[key, default: []].append((grape.id, source))
             }
-            // **The reverse of `related`, and it is empty in today's data.**
-            // Both authored `related` refs — Sangiovese's two — are off-catalog,
-            // so nothing reverses. It is built anyway because `related` means "a
+            // **The reverse of `related`, live in the data since 0.8.2.** It was
+            // built on a fixture alone for three releases: every authored
+            // `related` ref was off-catalog — Sangiovese's two — so nothing
+            // reversed, and it was written anyway because `related` means "a
             // first-degree relative of undetermined direction", which is
-            // symmetric by definition: the day one of those refs names a catalog
-            // grape, that grape's tree would otherwise be missing an edge its
-            // partner draws. `GrapeLineageTests.relatedIsSymmetric` builds a
-            // fixture that exercises it, so this is not untested code.
+            // symmetric by definition. Sommbot's 0.8.2 pass authored the first
+            // in-catalog ones (Cabernet Franc to Hondarrabi Beltza, Mourvèdre to
+            // Graciano, Roussanne to Marsanne, Plavac Mali to Zinfandel and
+            // Primitivo), so those partners' trees now draw an edge that exists
+            // nowhere in their own records. `GrapeLineageTests.relatedIsSymmetric`
+            // still holds the fixture, because the property must not depend on
+            // the catalog continuing to contain an example.
             for other in lineage.related {
                 guard let id = other.id else { continue }
                 relatedBack[id, default: []].append((grape.id, other))
@@ -367,8 +375,33 @@ public struct GrapeLineageIndex: Sendable {
         }
         siblings.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
 
-        var related = (lineage?.related ?? []).compactMap { node(for: $0, note: lineage?.note) }
-        related += derived(relatedBack[id] ?? [])
+        // **De-duplicated on the node's own identity (0.8.2).** `related` is the
+        // one list assembled from two sources — the grape's authored refs and
+        // the reverse of anyone who named it — and the two overlap the moment a
+        // pair of grapes name each other, which is the natural way to author a
+        // relationship the schema calls symmetric. Sommbot's 0.8.2 pass avoided
+        // it by authoring one direction only, but "the data happens not to do
+        // that yet" is not a property, and 0.8.2 is also the batch that landed
+        // the first in-catalog `related` refs at all, so the reverse pass went
+        // from unexercised to live in the same breath.
+        //
+        // The consequence of the duplicate is not cosmetic: `LineageNode.id` is
+        // `"e:<id>"` for both copies, and `relatedSection` feeds these to a
+        // `ForEach` keyed on it. Two rows with one key is the SwiftUI fault that
+        // drops or doubles a row rather than drawing two, so the tree would have
+        // misrendered its way through a data batch nobody would think to blame.
+        //
+        // Keyed the same way `siblings` above already is, and for the same
+        // reason. The authored copy is inserted first and therefore wins, which
+        // is the right way round: it carries the grape's own `role` and note,
+        // where the derived copy drops role by design.
+        var related: [LineageNode] = []
+        var seenRelated = Set<String>()
+        for node in (lineage?.related ?? []).compactMap({ node(for: $0, note: lineage?.note) })
+            + derived(relatedBack[id] ?? [])
+        where seenRelated.insert(node.id).inserted {
+            related.append(node)
+        }
 
         // **Collected from the nodes rather than alongside them.** Every node
         // already carries the note of the block that produced it, so gathering

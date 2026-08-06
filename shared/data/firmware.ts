@@ -39,6 +39,26 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.8.2",
+  date: "2026-08-06",
+  // The lineage dataset stops being a sample. 102 more grapes were researched
+  // against the variety register, which takes the number with a tree from 75 to
+  // 121 -- and gives 74 of them the one thing an empty tree could never say,
+  // which is that the parentage is genuinely unrecorded rather than unwritten.
+  headline: "WHERE GRAPES COME FROM",
+  notes: [
+    "A hundred and two more grapes have been traced. 121 of the 177 now open a family tree, up from 75.",
+    "Seventy-four grapes say PARENTAGE UNRECORDED. That is a statement about the wine, not about this app: Nebbiolo, Zinfandel, Aglianico, Assyrtiko and Garganega have no established parents, and the dex now says so instead of showing nothing.",
+    "Seven Spanish and Catalan whites turn out to share one parent, Heben -- Airen, Macabeo, Xarel-lo, Parellada, Pedro Ximenez, Trepat and Sumoll. Macabeo and Xarel-lo are full siblings.",
+    "Roussanne and Marsanne are first-degree relatives, and each one's tree now says so.",
+    "Mencia is not Cabernet Franc, and its real parents are on its page. Hondarrabi Zuri is Courbu Blanc.",
+    "Madeira and Cava file under ORIGIN, beside Champagne, Port and Sherry. They are places before they are styles.",
+    "Madeira is a white wine. It had been showing no colour at all.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const DISPLACED_0_8_1: FirmwareRelease = {
   version: "0.8.1",
   date: "2026-08-06",
   // Prosecco. Sixteen of the thirty-three styles were reporting a colour the
@@ -64,6 +84,7 @@ const CURRENT: FirmwareRelease = {
 
 /** Everything before `CURRENT`, newest first. */
 const PREVIOUS: FirmwareRelease[] = [
+  DISPLACED_0_8_1,
   {
     version: "0.8.0",
     date: "2026-08-06",

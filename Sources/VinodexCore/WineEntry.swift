@@ -170,19 +170,25 @@ public struct GrapeLineage: Codable, Sendable, Hashable {
     /// **"Nobody knows" as opposed to "nobody has written it down yet"**
     /// (0.7.9, C2).
     ///
-    /// Absence of `parents` is ambiguous today and the ambiguity is the whole
-    /// problem: 116 of 177 grapes carry no lineage block, and the app cannot
-    /// tell the ones whose parentage is genuinely undetermined from the ones a
-    /// data batch has not reached. Silence is the honest rendering of the
-    /// second and a *wrong* rendering of the first — Zinfandel's parents are not
-    /// pending, they are unresolved, and saying nothing implies otherwise.
+    /// Absence of `parents` is ambiguous and the ambiguity is the whole problem:
+    /// when this was written, 116 of 177 grapes carried no lineage block, and
+    /// the app could not tell the ones whose parentage is genuinely undetermined
+    /// from the ones a data batch had not reached. Silence is the honest
+    /// rendering of the second and a *wrong* rendering of the first —
+    /// Zinfandel's parents are not pending, they are unresolved, and saying
+    /// nothing implies otherwise.
     ///
     /// **This is the contract C1 was going to have to invent, settled in the UI
     /// first, which is why the sequencing was inverted.** `true` is an authored
     /// claim: research has been done and no parent pair is established. It is
-    /// **not** a default, and `shared/` emits it nowhere yet — sommbot's C1 pass
-    /// is what fills it in. Until then this decodes to `false` everywhere and
-    /// nothing renders, which is exactly the behaviour that shipped in 0.7.5.
+    /// **not** a default.
+    ///
+    /// **Filled in by 0.8.2**, which is the batch that made any of the above
+    /// observable: 74 grapes now set it and only 14 carry no lineage block at
+    /// all. See `shared/types.ts`, which carries the authoring rule — the
+    /// verdict "I could not find it" is spelled by leaving `lineage` off
+    /// entirely, and this flag is reserved for a source that looked and reported
+    /// none.
     ///
     /// It deliberately does **not** make a grape "connected": a tree whose only
     /// content is a statement that there is no tree is not worth a screen. See

@@ -271,6 +271,39 @@ export interface GrapeLineage {
   related?: LineageRef[];
   /** One sentence for the tree's footnote wherever the above is contested. */
   note?: string;
+  /**
+   * Research was done and no parent pair is established (0.8.2, sommbot).
+   *
+   * **This is an authored claim, not the absence of one.** The overwhelming
+   * majority of the catalog carries no `lineage` at all, and that silence means
+   * only "nobody has written this one down yet". `parentageUnknown` means
+   * something stronger and rarer: the question was *asked* of a source that
+   * would know — a VIVC passport whose pedigree field is empty, or a study that
+   * looked for the parents and reported none — and the answer is that the
+   * parentage is genuinely unestablished. Assyrtiko is not Nebbiolo-with-a-gap;
+   * it is a variety whose parents nobody has found.
+   *
+   * The two states render differently and must never be collapsed:
+   * `GrapeLineageIndex` turns this flag into `LineageNode.Target.unrecorded`,
+   * a drawn tile reading "Parentage unrecorded", where an unauthored grape gets
+   * no tree at all. `GrapeLineageTests.unknownParentageIsDistinctFromUnauthored`
+   * exists to keep them apart, so do not set this as a way of saying "I could
+   * not find it" — that verdict is spelled by leaving `lineage` off entirely.
+   *
+   * Legal beside `parents`: a grape can have one established parent and a
+   * second that is genuinely unrecorded, which is what draws a named tile and
+   * an unrecorded one side by side (`GrapeLineageScreen` adds the tile when
+   * `parentageUnknown` and fewer than two ancestors are authored).
+   *
+   * Not counted as an edge: `GrapeLineage.isEmpty` and `GrapeRelatives.isEmpty`
+   * both ignore it, because an annotation about absent knowledge is not a
+   * relationship. That is what routes the two cases to different UI — a grape
+   * with no edges draws the flat PARENTAGE UNRECORDED statement on the entry
+   * screen, while a grape that has edges (even only derived ones, like an
+   * offspring list) still opens the tree and carries the unrecorded tile
+   * inside it.
+   */
+  parentageUnknown?: boolean;
 }
 
 // Raw legacy grape source — not part of the WineEntry union.

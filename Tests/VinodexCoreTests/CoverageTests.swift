@@ -528,13 +528,23 @@ struct CoverageTests {
 
     /// Every override must be *reachable*: keyed as the normaliser spells the
     /// name, and consulted before the keyword chain rather than shadowed by it.
-    /// Port would have passed a table-contents check while returning the wrong
-    /// answer for all sixteen, so this asserts on the function, not the table.
-    @Test("all sixteen colour overrides resolve, and each names a real style")
+    /// The 0.8.1 port would have passed a table-contents check while returning
+    /// the wrong answer for every row, so this asserts on the function, not on
+    /// the table.
+    ///
+    /// **Seventeen since 0.8.2**, when Madeira joined on sommbot's ruling —
+    /// counted in the title because the number is the only thing here that says
+    /// a row was added rather than edited, and a silent seventeenth row is how
+    /// the sixteenth would have arrived unnoticed.
+    @Test("all seventeen colour overrides resolve, and each names a real style")
     func colorOverridesResolve() {
         let styleNames = Set(db.entries(in: .styles).map {
             TextNormalize.label($0.name).trimmingCharacters(in: .whitespaces)
         })
+        // The title states a number, so something has to hold it to it. It said
+        // "sixteen" through the whole of 0.8.2's authoring while the table had
+        // seventeen rows, because nothing here ever read the count.
+        #expect(EntryDisplay.colorOverrides.count == 17)
         for (key, expected) in EntryDisplay.colorOverrides {
             #expect(
                 EntryDisplay.colorType(name: key) == expected,

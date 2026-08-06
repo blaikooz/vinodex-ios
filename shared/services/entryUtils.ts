@@ -134,6 +134,7 @@ const STYLE_NAME_COLOR_OVERRIDES: Record<string, StyleColorType> = {
   'cava': 'WHITE',
   'sparkling wine': 'WHITE',
   'sherry': 'WHITE',
+  'madeira': 'WHITE',
   'port': 'RED',
   'gsm blend': 'RED',
   'bordeaux blend': 'RED',

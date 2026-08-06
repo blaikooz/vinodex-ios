@@ -379,7 +379,7 @@ public struct EntryDetailScreen: View {
         Button {
             Haptics.select()
             if let image = ShareCardRenderer.image({ EntryShareCard(entry: entry) }) {
-                sharePayload = .image(image)
+                sharePayload = .image(image, title: entry.name)
             }
         } label: {
             Image(systemName: "square.and.arrow.up")
@@ -935,14 +935,15 @@ public struct EntryDetailScreen: View {
 
     /// The door into the pedigree tree (0.7.5, E1).
     ///
-    /// **It is not drawn at all when the grape has no relatives**, which is 102
-    /// of the 177. That is the decision this feature turned on. The alternatives
-    /// were a section that opens an empty tree — three grapes in five, and the
-    /// fastest way to teach somebody that a button does nothing — or a greyed
-    /// row saying NO LINEAGE DATA on those 102, which is a paywall-shaped
-    /// reminder of an absence on every second grape you open. Neither is worth
-    /// the discoverability. The 75 grapes that *do* have a tree carry it, and
-    /// the shop entry is where somebody finds out the feature exists.
+    /// **It is not drawn at all when the grape has no relatives**, which is 56
+    /// of the 177 (0.8.2; it was 102 when this was written). That is the
+    /// decision this feature turned on. The alternatives were a section that
+    /// opens an empty tree — three grapes in five, at the time — and the fastest
+    /// way to teach somebody that a button does nothing, or a greyed row saying
+    /// NO LINEAGE DATA on those 102, which is a paywall-shaped reminder of an
+    /// absence on every second grape you open. Neither is worth the
+    /// discoverability. The 121 grapes that *do* have a tree carry it, and the
+    /// shop entry is where somebody finds out the feature exists.
     ///
     /// **One exception since 0.7.9 (C2), and it is the exception the paragraph
     /// above leaves room for.** The objection to NO LINEAGE DATA was that it
@@ -953,8 +954,18 @@ public struct EntryDetailScreen: View {
     /// about the wine and worth a line — it is the difference between Zinfandel,
     /// whose parents nobody has established, and a grape a data batch has not
     /// reached yet. It draws as a statement rather than a button, because there
-    /// is nowhere to go. Nothing in `shared/` sets the flag yet; sommbot's C1
-    /// pass is what makes this visible.
+    /// is nowhere to go.
+    ///
+    /// **0.8.2 is when that branch acquired users.** It shipped in 0.7.9 against
+    /// a catalog that set the flag nowhere, and stayed unreachable through
+    /// 0.8.0 and 0.8.1. Sommbot's pass sets it on 74 grapes, and the split
+    /// between the two panels below is now the interesting number: 42 grapes
+    /// state an absence *and* have no edges, so they take the flat panel, while
+    /// 14 more — Nebbiolo, Zinfandel, Palomino, Gouais Blanc among them — state
+    /// the same absence but are named by somebody else's cross, so they take the
+    /// button and carry the unrecorded tile inside the tree instead. The `if`
+    /// below is what routes those two apart, and it had never once been
+    /// exercised with real data before this batch.
     ///
     /// The counts on the button are the pitch. "2 PARENTS · 6 OFFSPRING" says
     /// what is behind the door, which a bare LINEAGE does not, and it is honest

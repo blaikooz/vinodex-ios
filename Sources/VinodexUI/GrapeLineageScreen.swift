@@ -7,11 +7,13 @@ import VinodexCore
 /// **The shape of the screen is a consequence of the shape of the data**, and
 /// three facts about it decided everything here:
 ///
-/// 1. **Coverage is 42%.** 102 of 177 grapes have no relatives at all, so the
-///    tree is not offered on those entries — see `EntryDetailScreen`, which
-///    draws the LINEAGE section only when `WineDatabase.lineage.hasLineage`
-///    says there is something to draw. A screen that opened onto an empty box
-///    for three grapes in five would teach people not to tap it.
+/// 1. **Coverage is 68%** (0.8.2; it was 42% when this screen was designed).
+///    56 of 177 grapes have no relatives at all, so the tree is not offered on
+///    those entries — see `EntryDetailScreen`, which draws the LINEAGE section
+///    only when `WineDatabase.lineage.hasLineage` says there is something to
+///    draw. A screen that opened onto an empty box for three grapes in five, as
+///    it would have then, teaches people not to tap it. The rule survives the
+///    better coverage unchanged; there are simply fewer entries it silences.
 /// 2. **Half the ancestors are not in the catalog.** Magdeleine Noire des
 ///    Charentes fathers Merlot and Malbec and will never be an entry, because
 ///    nobody drinks it. Those nodes have to read as *terminal* — a real variety,
@@ -52,16 +54,21 @@ import VinodexCore
 /// - Every tier is **capped** at `Self.tierLimit` with a SHOW ALL control, on
 ///   the pattern HALF-SIBLINGS has used since 0.7.5. This is what makes the
 ///   enlargement affordable, and it is not hypothetical: Gouais Blanc arrived as
-///   G176 in 0.7.9's data batch and is named as a parent by **ten** catalog
-///   grapes, so its OFFSPRING tier is the largest node set in the app. At the
-///   new tile width that is four rows of unlabelled squares before the footnotes
-///   — a wall rather than a pedigree.
+///   G176 in 0.7.9's data batch named as a parent by **ten** catalog grapes —
+///   **thirteen** since 0.8.2 — so its OFFSPRING tier is the largest node set in
+///   the app. At the new tile width that is four rows of unlabelled squares
+///   before the footnotes: a wall rather than a pedigree. The cap is what makes
+///   a growing catalog cost nothing here, which is the argument for capping
+///   rather than for picking a number that fitted 0.7.9.
 /// - **Unknown parentage has a visual state** — `LineageNode.Target.unrecorded`,
 ///   drawn as a dashed, unfilled tile with a slash glyph in the PARENTS slot. It
 ///   is the third kind of node and it is deliberately unlike the other two: an
 ///   external ancestor is a *name* with nothing behind it, this is not even a
-///   name. Nothing in `shared/` sets it yet; sommbot's C1 pass is what fills it
-///   in, against a UI that already renders it.
+///   name. Set on 74 grapes since 0.8.2, against a UI that had already rendered
+///   it unseen for three releases — 18 of them alongside real edges, where the
+///   tile stands in the PARENTS row next to a named ancestor, which is the case
+///   `treeSection`'s `authoredAncestors.count < 2` guard was written for and the
+///   one nothing had ever exercised.
 public struct GrapeLineageScreen: View {
     let grape: GrapeEntry
     let onSelectRelated: (WineEntry) -> Void

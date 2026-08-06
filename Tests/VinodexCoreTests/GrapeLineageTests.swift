@@ -24,25 +24,42 @@ struct GrapeLineageTests {
 
     // MARK: The shipped data
 
-    /// **The coverage pin.** 40% is the honest number and the feature is
-    /// designed around it — see `EntryDetailScreen`, which does not offer the
-    /// tree on the other 60% rather than opening an empty box.
+    /// **The coverage pin**, and the two numbers must be read as two numbers.
     ///
     /// Bump these together with a data batch, and say which batch moved them.
     ///
     /// **0.7.9 (G).** Sommbot's P1/P2 batch took the catalog to 177 grapes and
-    /// the authored blocks to 61. `connectedIDs` moves further than the four
+    /// the authored blocks to 61. `connectedIDs` moved further than the four
     /// new blocks would explain — 68 → 75 — because G176 Gouais Blanc arrived
     /// as a real entry and the ten grapes that named it by *name* now name it
     /// by *id*, which drags Gouais Blanc itself into the graph along with the
     /// new crosses. See `externalAncestorsAreTerminal`, which had to move
     /// grapes for the same reason.
-    @Test("the authored lineage covers what 0.7.9 ships")
+    ///
+    /// **0.8.2.** 61 → 163 blocks, 75 → 121 connected, and the gap between
+    /// those two jumps is the whole character of this pass. It is not 102 new
+    /// crosses: most of the new blocks carry `parentageUnknown` and nothing
+    /// else, which is an authored *statement* rather than an edge, so they add
+    /// a block without adding a relationship. 163 grapes now say something
+    /// about their parentage; 121 have a tree to draw. The 42-grape difference
+    /// is exactly the population `EntryDetailScreen` draws the flat PARENTAGE
+    /// UNRECORDED panel for, and it went from zero users to its real size in
+    /// one batch.
+    @Test("the authored lineage covers what 0.8.2 ships")
     func coverageIsPinned() {
         let all = grapes()
         #expect(all.count == 177)
-        #expect(all.filter { $0.lineage != nil }.count == 61, "grapes carrying an authored lineage")
-        #expect(db.lineage.connectedIDs.count == 75, "grapes in at least one relationship")
+        #expect(all.filter { $0.lineage != nil }.count == 163, "grapes carrying an authored lineage")
+        #expect(db.lineage.connectedIDs.count == 121, "grapes in at least one relationship")
+        // **Pinned as a distribution, not a single number** — the two counts
+        // above can both be right while the split between "has edges" and
+        // "states an absence" is wrong, and that split is what decides which of
+        // two very different panels an entry screen draws. A batch that turned
+        // every unrecorded statement into a phantom edge would not move either
+        // count above by itself.
+        let statedOnly = all.filter { $0.lineage?.parentageUnknown == true && $0.lineage?.isEmpty == true }
+        #expect(statedOnly.count == 56, "blocks that state an absence and author no edge")
+        #expect(all.filter { $0.lineage?.parentageUnknown == true }.count == 74, "grapes stating unknown parentage")
     }
 
     /// Every ref resolves, and resolves to the right *kind* of thing.
@@ -153,13 +170,21 @@ struct GrapeLineageTests {
     /// ten grapes that named it by name name it by id, so this exercises the
     /// `id` branch of the key. The `name` branch moved to
     /// `externalAncestorsAreTerminal`, which stands on Magdeleine Noire des
-    /// Charentes. The count is unchanged at 9 either way, which is the point:
-    /// the key changed form and the family did not come apart.
+    /// Charentes. The count was unchanged at 9 across that move, which was the
+    /// point: the key changed form and the family did not come apart.
+    ///
+    /// **0.8.2 moved it to 12**, and this is a data pin doing its job rather
+    /// than a logic failure. Sommbot's pass gave Gouais Blanc three more
+    /// children — Xinomavro, Romorantin and Jacquère — which is 13 in the
+    /// family and 12 half-siblings once Chardonnay itself is dropped. Note that
+    /// this is the *only* count in the suite that moved on new crosses rather
+    /// than on new `parentageUnknown` statements, which is worth saying because
+    /// the latter is the shape almost every other edit in this batch took.
     @Test("half-siblings group through a shared parent")
     func siblingsGroupThroughExternalParents() {
         let chardonnay = db.lineage.relatives(of: "G003")
         let throughGouais = chardonnay.siblings.filter { $0.via == "Gouais Blanc" }
-        #expect(throughGouais.count == 9, "the other nine children of Gouais Blanc")
+        #expect(throughGouais.count == 12, "the other twelve children of Gouais Blanc")
         #expect(throughGouais.contains { $0.name == "Riesling" })
         #expect(throughGouais.contains { $0.name == "Gamay" })
         #expect(!chardonnay.siblings.contains { $0.entryID == "G003" }, "a grape is not its own sibling")
@@ -237,24 +262,61 @@ struct GrapeLineageTests {
         #expect(db.lineage.relatives(of: "not-an-entry").isEmpty)
     }
 
-    /// Nebbiolo authors nothing and is still in the graph, because something
-    /// else names it. The distinction `connectedIDs` exists to draw.
+    /// A grape that authors no edge of its own is still in the graph, because
+    /// something else names it. The distinction `connectedIDs` exists to draw.
+    ///
+    /// **Rewritten in 0.8.2, and the rewrite is the finding.** This stood on
+    /// G008 Nebbiolo and asserted `g.lineage == nil` — "authors nothing" spelled
+    /// as "carries no block". Sommbot's pass gave Nebbiolo
+    /// `{ parentageUnknown: true }`, so the block exists and the assertion
+    /// broke, and the handoff read that breakage as the *category* emptying:
+    /// zero grapes connected only by derived edges, retire the test. That is
+    /// not what happened. Fourteen grapes are still connected purely by edges
+    /// other grapes drew — Nebbiolo among them, along with Zinfandel, Palomino
+    /// and Gouais Blanc — and every one of them now carries a
+    /// `parentageUnknown` block. The category did not empty; it changed shape,
+    /// from "no block" to "a block that states an absence", and `lineage == nil`
+    /// was only ever a proxy for the thing this test means.
+    ///
+    /// So the assertion is now the thing itself: **authors no edge**, which is
+    /// `lineage?.isEmpty != false` — nil block, or a block `GrapeLineage.isEmpty`
+    /// rejects. That is also the exact predicate `GrapeLineageIndex` uses to
+    /// decide what goes in `authored`, so the test and the code are reading the
+    /// same rule rather than two that happen to agree.
+    ///
+    /// The subject is derived rather than named, for the reason
+    /// `unconnectedGrapesAreEmpty` above gives at length: this half of the suite
+    /// pins logic, and a hardcoded id here is what made it rot on a data batch
+    /// twice now. `#require` states the premise, so if the category ever *does*
+    /// empty the failure says so in words instead of leaving a stale id.
     @Test("a grape with only derived edges still has a tree")
-    func derivedOnlyGrapesAreConnected() {
-        let nebbiolo = db.entries.first { $0.id == "G008" }
-        #expect(nebbiolo != nil)
-        if case .grape(let g) = nebbiolo { #expect(g.lineage == nil) }
-        #expect(db.lineage.hasLineage("G008"))
-        #expect(db.lineage.relatives(of: "G008").offspring.isEmpty == false)
+    func derivedOnlyGrapesAreConnected() throws {
+        let derivedOnly = try #require(
+            grapes().first { db.lineage.hasLineage($0.id) && $0.lineage?.isEmpty != false },
+            "no grape is connected only by derived edges — the reverse pass has nothing to prove here"
+        )
+        let relatives = db.lineage.relatives(of: derivedOnly.id)
+        #expect(relatives.parents.isEmpty, "\(derivedOnly.common.name) authors parents after all")
+        #expect(relatives.mutationOf == nil)
+        #expect(db.lineage.hasLineage(derivedOnly.id))
+        #expect(relatives.edgeCount > 0, "\(derivedOnly.common.name) is connected with no edges to show")
+        #expect(!relatives.isEmpty)
     }
 
     /// `related` is symmetric by definition, so the index reverses it.
     ///
-    /// **Both of today's `related` refs are off-catalog** (Sangiovese's two), so
-    /// nothing in the shipped data exercises this. That is precisely why it is a
-    /// fixture: the day an authored `related` names a catalog grape, the partner
-    /// grape's tree must draw the edge too rather than half the pair knowing
-    /// about it.
+    /// **The day this doc comment anticipated arrived in 0.8.2.** It used to say
+    /// that both authored `related` refs were off-catalog — Sangiovese's two —
+    /// so nothing in the shipped data exercised the reverse pass, and that this
+    /// was precisely why a fixture was right. Sommbot's pass authored five
+    /// in-catalog ones, and `Marsanne`, `Graciano`, `Hondarrabi Beltza`,
+    /// `Zinfandel` and `Primitivo` now draw an edge that appears nowhere in
+    /// their own records.
+    ///
+    /// The fixture stays anyway, and the reason is the general one: a property
+    /// pinned only by an example in the catalog is a property that quietly stops
+    /// being pinned when a later batch removes the example. That is how
+    /// `derivedOnlyGrapesAreConnected` above came to be read as retired.
     @Test("an in-catalog related ref reverses")
     func relatedIsSymmetric() {
         let index = GrapeLineageIndex(grapes: [
@@ -266,6 +328,47 @@ struct GrapeLineageTests {
         #expect(beta.related.first?.entryID == "X1")
         #expect(beta.related.first?.contested == true)
         #expect(index.hasLineage("X2"))
+    }
+
+    /// **A mutually authored `related` pair draws one row, not two (0.8.2).**
+    ///
+    /// `relatives(of:)` builds `related` from two sources — the grape's own refs
+    /// and the reverse of everyone who named it — and until 0.8.2 it simply
+    /// concatenated them, where `siblings` two lines above had carried a `seen`
+    /// set since 0.7.5. Nothing in the shipped data hit it, because sommbot
+    /// authors these one direction at a time; but authoring both directions is
+    /// the obvious way to write down a relationship the schema itself calls
+    /// symmetric, so the trap was one plausible data edit away, and 0.8.2 is the
+    /// batch that put the first in-catalog `related` refs in at all.
+    ///
+    /// Pinned because the failure is not a visible duplicate. `LineageNode.id`
+    /// is `"e:X1"` for both copies and `GrapeLineageScreen`'s `ForEach` is keyed
+    /// on it, so two rows share one identity — SwiftUI's answer to which is
+    /// undefined and in practice is a dropped or doubled row somewhere else in
+    /// the list. A reader would have blamed the tree, not the data.
+    ///
+    /// The authored copy must survive rather than the derived one: it is the
+    /// side that carries `role`, which `derived` drops on purpose.
+    @Test("a related edge authored from both ends still draws once")
+    func relatedIsDeduplicated() {
+        let index = GrapeLineageIndex(grapes: [
+            Self.fixture(
+                id: "X1", name: "Alpha",
+                lineage: GrapeLineage(related: [LineageRef(id: "X2", contested: true)])
+            ),
+            Self.fixture(
+                id: "X2", name: "Beta",
+                lineage: GrapeLineage(related: [LineageRef(id: "X1")])
+            ),
+        ])
+        for id in ["X1", "X2"] {
+            let related = index.relatives(of: id).related
+            #expect(related.count == 1, "\(id) draws the same relative twice")
+            #expect(Set(related.map(\.id)).count == related.count, "\(id) has two nodes sharing a ForEach key")
+        }
+        // Authored wins: X1's own ref says contested, the reverse of X2's does
+        // not, and X1 is reading its own record.
+        #expect(index.relatives(of: "X1").related.first?.contested == true)
     }
 
     /// A ref carrying neither id nor name is dropped rather than crashing — the
@@ -290,10 +393,11 @@ struct GrapeLineageTests {
     ///
     /// `parents.isEmpty` means "nobody has authored them", and the app has no
     /// way to say "nobody knows". Silence is the honest rendering of the first
-    /// and a wrong one for the second. Nothing in `shared/` sets the flag yet —
-    /// sommbot's C1 pass does that — so this is a fixture rather than a data
-    /// pin, exactly like `relatedIsSymmetric` above and for the same reason:
-    /// the day the data arrives, the behaviour must already be right.
+    /// and a wrong one for the second. It was written as a fixture because
+    /// `shared/` set the flag nowhere — the data arrived in 0.8.2, on 74 grapes
+    /// — and it stays a fixture for the reason `relatedIsSymmetric` gives: the
+    /// behaviour is a property of the index, not of whichever grapes a batch
+    /// happened to reach.
     @Test("an unknown parentage is a stated fact, not an absent one")
     func unknownParentageIsDistinctFromUnauthored() {
         let index = GrapeLineageIndex(grapes: [
@@ -345,15 +449,24 @@ struct GrapeLineageTests {
     /// The flag is new, and every entry in the shipped catalog predates it.
     /// A synthesised decoder would treat the missing key as a failure and cost
     /// the whole grape — the migration hazard this repo has hit three times.
+    ///
+    /// **0.8.2 is when this stopped being hypothetical.** Until this batch the
+    /// key appeared in no shipped block, so the catalog proved the *absent*
+    /// branch and nothing proved the present one. Now 74 blocks carry it and 89
+    /// still do not, in the same file, decoded by the same pass — which is a
+    /// better test than either number alone, because it is the mixed corpus a
+    /// migration actually meets.
     @Test("a lineage block without the new key still decodes")
     func lineageDecodesWithoutTheNewKey() throws {
         let json = #"{"parents":[{"id":"G002"}],"note":"x"}"#
         let decoded = try JSONDecoder().decode(GrapeLineage.self, from: Data(json.utf8))
         #expect(decoded.parents.count == 1)
         #expect(decoded.parentageUnknown == false)
-        // And the shipped catalog is the real proof: nothing sets it yet, and
-        // 61 blocks decoded.
-        #expect(grapes().filter { $0.lineage != nil }.count == 61)
+        // And the shipped catalog is the real proof: 163 blocks decoded, of
+        // which 89 omit the key entirely and still arrived intact.
+        let blocks = grapes().compactMap(\.lineage)
+        #expect(blocks.count == 163)
+        #expect(blocks.filter { !$0.parentageUnknown }.count == 89, "blocks predating the key")
     }
 
     /// A minimal grape, for the two fixtures above.

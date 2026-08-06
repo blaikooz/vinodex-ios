@@ -893,7 +893,11 @@ public struct SettingsSectionPanel: View {
                     // is what the tick has always said.
                     isComplete: item.pack.map {
                         $0.progress(tried: triedIDs, in: db)?.isComplete ?? owned
-                    } ?? owned
+                    } ?? owned,
+                    // The drawn cartridge on the shelf (0.8.2). Nil for the
+                    // flavour wheel and the country packs, which keep A2's
+                    // drawing — see `CartridgeArt`.
+                    art: CartridgeArt.stem(for: item.entitlement)
                 )
             }
         )
@@ -1123,18 +1127,28 @@ public struct SettingsSectionPanel: View {
         .frame(maxWidth: .infinity)
     }
 
-    /// One screen mode, as the mode picker draws it — fitted to a chassis
-    /// (0.8.1, A2).
+    /// One screen mode, drawn as a screen (0.8.2, coordinator 4 — amending
+    /// 0.8.1's A2).
     ///
-    /// A display pack sells a screen, and a bare disc of `mode.screen` shows
-    /// the colour without saying it is a screen. `ChassisMockup` lights its
-    /// panel strip with the mode instead, which puts the swatch in the device
-    /// it belongs to and makes the two shelves in this shop read as one kind of
-    /// product. The shell is `.classic` because the pack does not come with
-    /// one; what varies between these tiles is the only thing being sold.
+    /// A2's note read: "A display pack sells a screen, and a bare disc of
+    /// `mode.screen` shows the colour without saying it is a screen.
+    /// `ChassisMockup` lights its panel strip with the mode instead, which puts
+    /// the swatch in the device it belongs to and makes the two shelves in this
+    /// shop read as one kind of product."
+    ///
+    /// The first half of that was right and the conclusion was not. Making the
+    /// two shelves read as one kind of product is the *problem*: a device pack
+    /// and a display pack are not one kind of product, and drawing both as the
+    /// same chassis meant the three display tiles differed only in the tint of
+    /// a 24×3pt capsule inside a device that was otherwise identical on all
+    /// three. The shell varied nothing and dominated the tile.
+    ///
+    /// `ScreenMockup` draws the panel itself — ground, ink and accent, all
+    /// three of the decisions a mode actually makes. `shellSwatch` above keeps
+    /// `ChassisMockup` untouched, because a device pack does sell the device.
     private func screenSwatch(_ mode: LcdMode) -> some View {
         VStack(spacing: 5) {
-            ChassisMockup(skin: .classic, screen: mode, height: 40)
+            ScreenMockup(mode: mode, height: 40)
                 .frame(width: 62)
             Text(mode.displayName)
                 .font(DexFont.retro(8))
@@ -1199,7 +1213,15 @@ public struct SettingsSectionPanel: View {
                     symbol: item.symbol,
                     ink: lcd.accent,
                     ground: lcd.panelGround,
-                    isComplete: false
+                    isComplete: false,
+                    // **The same file, larger** (0.8.2, coordinator 5). The
+                    // cartridges ship at source resolution precisely so the
+                    // splash's hero can be this size without the shelf's 46pt
+                    // deciding it — see `import-cartridge-art.py`. The two
+                    // ghost plates behind stay `CartridgeShape` outlines: they
+                    // are the rest of the box, and three drawn cartridges would
+                    // read as three products.
+                    art: CartridgeArt.stem(for: item.entitlement)
                 )
                 .frame(width: side, height: side)
                 .offset(x: -side * 0.16, y: side * 0.07)

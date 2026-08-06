@@ -74,6 +74,19 @@ public enum EntryDisplay {
         "cava": .white,
         "sparkling wine": .white,
         "sherry": .white,
+        // **Madeira joined the table in 0.8.2**, on sommbot's ruling and on the
+        // same basis as Sherry directly above: an override states the colour of
+        // the wine, and both of these are white wines that happen to arrive in
+        // the glass brown. Oxidative ageing is what darkens them, not red fruit,
+        // and Sherry has been in this table since 0.8.1 for exactly that reason.
+        //
+        // Madeira is the harder call of the two and worth the sentence: Tinta
+        // Negra is a black grape and makes most of the wine, so DUAL was not an
+        // absurd guess — it is what the keyword chain returned, and what the
+        // device shipped, for as long as the row was missing. The four noble
+        // varieties that name the styles are all white, and the finished wine is
+        // classed white whichever grape filled the cask.
+        "madeira": .white,
         "port": .red,
         "gsm blend": .red,
         "bordeaux blend": .red,
