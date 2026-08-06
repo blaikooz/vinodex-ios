@@ -196,5 +196,76 @@ struct ArtPipelineRosterTests {
                 "no package.json script runs \(importer)"
             )
         }
+        // The outline generator is not an importer — it writes *sources* under
+        // `art/`, which `import-class-art.py` then converts — so it is outside
+        // the four rosters above by construction. It still needs a way to be run
+        // by someone who did not write it (0.8.0, A1).
+        #expect(
+            commands.contains { $0.contains("make-country-outlines.py") },
+            "no package.json script runs the outline generator"
+        )
+    }
+
+    // MARK: - The outline masters (0.8.0, A1)
+
+    /// **Every country the catalog draws an outline for has an authored ring, and
+    /// every authored ring is drawn.**
+    ///
+    /// This is the same two-way shape `assertOutlineCoverage` uses, one layer
+    /// further back. That check asks "does this place have outline art"; this one
+    /// asks "does that art have a master". Before A1 the answer for 28 of the 30
+    /// was a PNG somebody drew, and there was nothing to check. Now the master is
+    /// `scripts/country-outline-rings.py` and a 31st country reaching
+    /// `countryShapeIcons` without a ring would produce an importer that reports
+    /// a missing source — at art time, on somebody's laptop, rather than here.
+    ///
+    /// Failing both ways matters as much as it does there: a ring for a country
+    /// the catalog no longer draws is dead data that the next reader will trust.
+    @Test("every drawn outline has an authored ring, and every ring is drawn")
+    func outlineRingsMatchTheManifest() throws {
+        let manifest = try Data(
+            contentsOf: Self.repoRoot
+                .appendingPathComponent("Sources/VinodexCore/Resources/icons.json")
+        )
+        let json = try JSONSerialization.jsonObject(with: manifest) as? [String: Any]
+        let shapes = json?["countryShapeIcons"] as? [String: String] ?? [:]
+        #expect(!shapes.isEmpty, "icons.json carries no countryShapeIcons")
+
+        let wanted = Set(shapes.values.map { $0.replacingOccurrences(of: "art:outline-", with: "") })
+
+        // `FILENAME` is the ring file's own stem -> master-filename table. Parsed
+        // rather than duplicated, exactly as the rosters above are.
+        let ringSource = try Self.read("scripts", "country-outline-rings.py")
+        guard let table = Self.slice(ringSource, from: "FILENAME = {", to: "}") else {
+            Issue.record("could not parse FILENAME out of country-outline-rings.py")
+            return
+        }
+        // Alternating key, filename across the quoted runs.
+        let quoted = Self.quoted(table)
+        var authored: [String: String] = [:]
+        for pair in stride(from: 0, to: quoted.count - 1, by: 2) {
+            authored[quoted[pair]] = quoted[pair + 1]
+        }
+
+        #expect(
+            wanted.subtracting(authored.keys).isEmpty,
+            "outlines the catalog draws with no authored ring: \(wanted.subtracting(authored.keys).sorted())"
+        )
+        #expect(
+            Set(authored.keys).subtracting(wanted).isEmpty,
+            "rings authored for outlines nothing draws: \(Set(authored.keys).subtracting(wanted).sorted())"
+        )
+
+        // And each one has produced its master. The importer's `SOURCE_FOR` looks
+        // these up by name, so a rename here is a missing source there.
+        for (stem, file) in authored.sorted(by: { $0.key < $1.key }) {
+            let url = Self.repoRoot
+                .appendingPathComponent("art/icons/countries")
+                .appendingPathComponent(file)
+            #expect(
+                FileManager.default.fileExists(atPath: url.path),
+                "\(stem): no master at art/icons/countries/\(file) — run `npm run outlines`"
+            )
+        }
     }
 }

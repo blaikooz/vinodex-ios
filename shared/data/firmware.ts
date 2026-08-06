@@ -39,8 +39,37 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
-  version: "0.7.9",
+  version: "0.8.0",
   date: "2026-08-06",
+  // A minor bump rather than 0.7.10, for the two changes a player cannot miss:
+  // every country outline in the app is redrawn, and the boot screen stops
+  // saying the machine was made by itself.
+  headline: "NEW MAPS, NEW MAKER",
+  notes: [
+    "Every country and state outline is redrawn -- all thirty, from the same rings, at the same weight. The old set was hand-drawn one at a time and it showed.",
+    "Every region dot was checked against its new map. Seven had been sitting in open water for releases and are now on land: Margaret River, Santorini, Shandong, Okanagan Valley, Guerrouane, Calabria and Mallorca.",
+    "Corsica and Mallorca are drawn now, so the regions on them have somewhere to be.",
+    "The boot screen is by HORIZON/GODOT, centred, and a size larger. The VINODEX HANDHELD SYSTEM line is gone.",
+    "\"Paper\" is \"exam\" everywhere you read it -- on the exam screen, in the daily challenge, and in the reminders.",
+    "WHAT'S THAT...? suggests names as you type, but only ones you have already met in the dex. It will not hand you a wine you have never seen.",
+    "GIVE UP is a button now instead of a line of grey text, and the whole screen is a size larger.",
+    "Europe's marker on the globe is blue. It and North America were two dark reds a few points apart.",
+    "The rose chip is pink. It had been falling through to grey on every rose style since the chip table shipped.",
+    "The four menu tiles finally share a baseline. STYLES and FLAVORS were sitting low against the other two.",
+    "Search boxes say what they are searching -- SEARCH GRAPES, SEARCH FLAVORS, and so on.",
+    "The screensaver waits a full minute instead of thirty seconds. Thirty was still inside the time it takes to read a page.",
+    "The orb on the notch row is as tall as the lamps opposite it and lit the same way, which finishes the job 0.7.9 started on its width.",
+    "A grape's origin moved out of the three-tile row onto its own bar, the way a region names its key grape.",
+    "The back plate no longer explains how to move a sticker.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 30 countries.",
+  ],
+};
+
+/** Everything before `CURRENT`, newest first. */
+const PREVIOUS: FirmwareRelease[] = [
+  {
+    version: "0.7.9",
+    date: "2026-08-06",
   // The batch's own headline was the orb, but the orb is a bead on the chassis
   // and WHAT'S THAT...? is a tool that stopped being a reveal and became a game
   // you can lose. That is the one a player notices.
@@ -63,10 +92,8 @@ const CURRENT: FirmwareRelease = {
     "The orb is the full width of the lamps opposite it, so the two ends of the notch row read as a matched pair.",
     "Blaufrankisch is filed under Slovenia now, with Burgenland still named as where it made its reputation.",
     "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
-  ],};
-
-/** Everything before `CURRENT`, newest first. */
-const PREVIOUS: FirmwareRelease[] = [
+  ],
+  },
   {
     version: "0.7.8",
     date: "2026-08-05",

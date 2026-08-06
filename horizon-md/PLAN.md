@@ -58,6 +58,7 @@ been happening", which is the question a planning doc is for.
 | 0.7.5 | `audit-review/FINDINGS.md` A026–A028 | **THE ASSET GATE.** Three silent-missing-asset bugs in three batches and only the third left a gate behind, so this one is the general case: `assertAssetsExist` in the generator checks that every emitted `icon` / `art:` / portrait-stem / flag id resolves to a file on disk — 337 ids a run. It found a **fourth on its first run**: `icons.json` has named a Brazil flag since 0.7.3c and `Flags/brazil.png` was never copied, so every Brazilian row flew a blank swatch. Plus the pipeline wiring — `import-logo-art.py` was in no roster at all (A026), `import-stamp-art.py` in the rasteriser but not the verifier (A027), and `ArtPipelineRosterTests` now holds the four rosters equal so a seventh importer cannot land in three of them. | 438, untouched; `Flags/brazil.png` added | 489 tests, clean build, `npm run icons` + `icons:verify` green, **not deployed**; no firmware bump — nothing user-visible changed |
 | 0.7.7 | `vinodex-0.7.7-bios.md` (titled 0.7.6) | **THE BIOS SCREEN.** The startup POST rebuilt from a written description of a mockup, **superseding 0.7.3a A1 and 0.7.5 A6 wholesale**: full-screen and opaque over the chassis (reversing 0.7.3a's "inside the LCD", which was an argument about a *translucent* overlay), three zones inside a terminal frame with ticked side rails and corner brackets, scanlines and a vignette, the shipped pixel "V" in cream over a magenta drop shadow. Staged checks now resolve *into* the composition rather than cutting away, then it rests on `PRESS ANY BUTTON TO CONTINUE` — any touch advances, and so does a 3.5s timeout. The mockup's `v1.0.0` was disobeyed: that string is on `AppVersion.placeholders` and printing it would have hidden the failure it signals. Four glyphs, no new art asset — one reuse, three drawn in code. | 438, untouched; `firmware.ts` only | 504 tests, clean build, `npm run generate` + `find-missing-refs` + `npm run icons` + `icons:verify` green, **not deployed** (held at the user's request) |
 | 0.7.8 | 0.7.8 spec, sections B–D | **THE GROWTH TRIO.** Scoped three times and built here, fully local. **B** one card renderer reused three ways — entry, profile, earned stamp — through `ImageRenderer` at a fixed 3× into the share sheet, framed by a purpose-built still that takes the chassis's *tokens* rather than rendering `DeviceChassis` (which exports a blank marquee and dim lamps off-screen). **C** the spoiler-free result string, `DailyResult` in Core, two tiles not three because the paper has no third state; C2's three preconditions confirmed against the code and one caveat found — the paper depends on the shipped catalog, so cross-version strings are not comparable, which is why it carries no puzzle number. **D** `NotificationPlan` in Core, a 7-day horizon of one-shots re-cut whenever the app can see whether today's paper is done; the toggle renders real `UNAuthorizationStatus`, not a stored bool. `QuizSession` gained `marks` with a hand-written decoder so a paper half-sat across the upgrade survives. | 438, untouched; `firmware.ts` only | 542 tests, clean build, `npm run generate` + `find-missing-refs` green, **not deployed** (held per the spec) |
+| 0.8.0 | `vinodex-0.8.0.md`, sections A–L | **NEW MAPS, NEW MAKER.** All thirty country/state outlines regenerated from authored lon/lat rings, with the generator and its data now *in the repo* — once every outline is derived the script is the master art. Gated on **A0b**, its own commit: the six quantising importers routed through a pinned `quantize_stable` and through `save_stable`, so a re-run is byte-identical and a three-colour outline never meets a quantiser at all. Every one of the 121 authored `mapPosition` dots checked against the new art (**8 were already in the sea**, 7 re-authored, 1 — the Canary Islands, at fraction (-0.49, 2.07) of Iberia — named as genuinely off-map). Plus: BIOS by HORIZON/GODOT, centred and larger; the orb becomes a lamp in height *and* treatment; "paper" becomes "exam" in every player-facing string and no identifier; a rosé chip that had been resolving to grey since it shipped; four menu tiles that finally share a baseline; type-ahead in WHAT'S THAT…? restricted to entries the player has met. | 446, untouched; `regions.ts` mapPosition ×7, `continents.ts` Europe colour, `firmware.ts` | 582 tests, clean build, `npm run generate` + `find-missing-refs` + `icons:verify` green, **not deployed** |
 | 0.7.6 | v0.7.5 spec (lands as 0.7.6), sections A–F | **THE CONSOLIDATION.** The Decision: three ways to reach the same places become one — the two marquee lamps *are* the pins, always visible, each reassignable by holding it. `MarqueeDrawer` deleted, the corner pin buttons deleted, the panel is a display again. `QuickPinStore` reused, not forked: `MarqueePin`'s raw values are a superset of `SettingsSection`'s, so no pins are reset. The idle timer stops being two stages (screensaver 15→**30s**, the marquee greeting folded into it and firing on **any** screen, revertible by giving `IdleSchedule.toast` a number back); the screensaver gets a random start, kept as a phase so the closed form survives. Plus two new workshop axes (10 in all), the **W64** shell, a stadium orb, bigger shop splashes with previews of their contents, and the tutorial into SETTINGS > DEVICE. | 438, untouched | 501 tests, clean build, `npm run generate` + `find-missing-refs` + `npm run icons` green, **not deployed** |
 
 **0.7.5, The Wine Exam** (v0.7.5 spec, section D). The second split batch:
@@ -1950,3 +1951,199 @@ from 542, and **red at the start of the batch**), clean `xtool dev build`,
   caused by this batch — the web `shared/` mirror was already synced to sommbot's
   data before it started. Left for `paritybot`; re-deriving golden option ids is
   web scope.
+
+**0.8.0, Thirty new outlines, a reproducible art pipeline, and eleven fixes**
+(`horizon-md/vinodex-0.8.0.md`, sections A-L). Run in the spec's own order --
+D, H, K, I, L, J, F, G, B, E, C, then A -- so a partial batch would still have
+shipped most of the value. Three commits: the eleven cheap items, the A0b
+pipeline fix on its own as the spec required, then the art. Gates: **582 tests**,
+clean `xtool dev build`, `npm run generate` + `find-missing-refs` (zero dangling)
++ `icons:verify` (259 identical, 0 tolerated) all green. **Not deployed** -- the
+usbmuxd port race is still pending an elevated command and is unrelated to this
+work.
+
+- **A0b was the whole gate and it was worth the commit it cost.** Six importers
+  called `img.quantize(colors=256)` and took three unnamed defaults: the method
+  (Pillow resolves it *by mode*, so FASTOCTREE has been the effective choice by
+  accident rather than by contract), the dither, and the fact that a reduction
+  runs at all. `art_common.quantize_stable` pins the first two and skips the
+  third when the source already fits the palette -- which is the clause section A
+  needed, because a three-colour outline now never meets a quantiser and is
+  therefore identical on any Pillow rather than identical by inference about an
+  octree. `save_stable` went from one importer to all seven and gained
+  `**save_kwargs` so `optimize=True` survives. Proof: the first run rewrote
+  exactly the 16 files already in `verify-art.py`'s `TOLERANCE`, all inside their
+  budgets; the second wrote nothing at all.
+- **What A0b did *not* fix, measured rather than assumed.** **301 of the 307
+  drawn sources carry more than 256 distinct colours** after background removal,
+  so the reduction is genuinely lossy for nearly the whole bundle and cannot be
+  skipped -- shipping it unreduced was costed at roughly 13MB against the current
+  2.5MB. For those the octree still chooses, and different builds choose
+  differently. `TOLERANCE` stays and is now dormant on this machine rather than
+  deleted, because dormant here means live on the machine that measured it.
+  Closing it properly means supplying the palette instead of asking for one;
+  that is a real option and it is written down in `verify-art.py` rather than
+  done quietly. **The 0.7.9 note that said the difference was "the deflate
+  stream only" was already corrected by 0.7.9 itself; this batch adds the
+  reason the pixel half exists.**
+- **A1. All thirty outlines are derived, and the script is in the repo with its
+  rings.** `scripts/country-outline-rings.py` holds the authored lon/lat and the
+  flag-derived fills; `scripts/make-country-outlines.py` rasterises them.
+  0.7.9's "it is a one-shot over a master" was true while 28 were hand-drawn and
+  stops being true the moment all 30 come out of a script -- there is no other
+  master now, so it ships, with `npm run outlines` and
+  `npm run outlines:check`.
+- **The projection is uniform in x, and the cosine is spent on the canvas
+  aspect.** `x = (lon-lonMin)/dlon` with one scale for the whole canvas; a
+  `cos(lat)` term *inside* the mapping would move every dot by an amount varying
+  with its distance from the country's mid-latitude and nothing would report it.
+  The aspect is `dlon * cos(midlat) / dlat`, which reproduces 0.7.9's two
+  canvases (Brazil 212x216 against a derived 0.974) and keeps a country from
+  looking stretched. Cells then an integer upscale, which is the shape 0.7.9's
+  masters were already in -- 212x216 is 106x108 at 2x -- so one cell is one
+  authored unit and the cel outline is exactly one cell. **No specular mark**,
+  removed from Brazil and Mexico too.
+- **The dot audit found eight broken dots, and only two of them were this
+  batch's doing.** `--check` resolves every authored `mapPosition` against the
+  new silhouette; a baseline run against the *old* committed sprites established
+  that **8 of 121 were already in the sea** (Margaret River, Niagara Peninsula,
+  Okanagan Valley, Santorini, Calabria, Marlborough, Canary Islands, Mallorca).
+  The first draft of the rings put 12 off: six of those eight, plus six
+  regressions. Every regression was a defect in a ring and was fixed in the art
+  -- **Corsica** (France was mainland-only; the hand-drawn master plainly had the
+  island, because R041's dot sat on it), **Sonoma** (the Mendocino coast was cut
+  straight from San Francisco to Cape Mendocino), **Friuli-Venezia Giulia** and
+  **Collio** (the Alpine crest and the Gulf of Trieste), and **Shandong** and
+  **Guerrouane**, which turned out to be the next category:
+- **Seven `mapPosition` values were simply wrong and are re-authored.** Once the
+  bboxes were real, the fractions could be resolved to real coordinates, and
+  seven of them named open water: Margaret River resolved to (117.21, -37.05) in
+  the Southern Ocean, Okanagan Valley to (-127.74, 47.20) in the Pacific,
+  Shandong to (121.29, 34.11) in the Yellow Sea. They are recomputed from the
+  places themselves in `shared/data/regions.ts` -- R042, R048, R075, R069
+  Okanagan, R097 Guerrouane, R081 Calabria and R047 Mallorca. **This is the one
+  data change in the batch and it is a correction, not an addition.**
+- **The Canary Islands cannot be drawn and the check says so out loud.** Gran
+  Canaria is at (-15.60, 28.05), which on Iberia's bounding box is the fraction
+  **(-0.49, 2.07)** -- not slightly wrong, off the canvas. Drawing it means
+  taking Spain's longitude span from 12.8 degrees to 22.5 and rescaling every
+  other Spanish dot to fit one. It was in the sea on the hand-drawn art too. It
+  is named in `OFF_MAP`, which fails **both ways** like `assertOutlineCoverage`:
+  a dot that starts landing on land has to come out of the list. The honest fix
+  is an inset in `CountryOutlineMap`, which is a code change rather than an art
+  one, and is not this batch's.
+- **Three shapes needed a second pass and are recorded because the next reader
+  will want to know which.** Greece came out a hollow crescent (the Aegean side
+  traced too far west), India a four-pointed star (the Konkan run as a chord and
+  Gujarat as a spike), Croatia a fat arrow (the Bosnian wedge filled in, which is
+  the thing that makes the boomerang a boomerang). All three were re-traced.
+  **The set is still worth an artist's eye** -- these are authored from
+  geography, not drawn, and 0.7.9 said the same of its two.
+- **`ArtPipelineRosterTests` gained the fifth roster.** The generator is *not* an
+  importer -- it writes sources under `art/` that `import-class-art.py` then
+  converts -- so it is outside the four `import-*-art.py` rosters by
+  construction, and the test says so. What it does check, both ways, is that
+  every stem in `countryShapeIcons` has an authored ring and every authored ring
+  is drawn, plus that each master exists on disk. A thirty-first country now
+  fails `swift test` rather than failing an importer on somebody's laptop.
+
+- **K was a bug, not a colour.** The generator probed `colorTypeChips` with
+  `'ROSE'` (accented) while every reader looks up `StyleColorType.rose.rawValue`,
+  which is unaccented on both the TypeScript and the Swift side.
+  `getColorTypeChipColors` answers to either spelling, so the table was full, the
+  colours were right, and one of five rows was unreachable -- every rose style
+  fell through to `Palette.resolve`'s neutral stone. **Identical fault and
+  identical tell to 0.6.9's I1** on the grape colour chip: the chip said ROSE and
+  was grey, which reads as a styling choice rather than as a miss.
+  `CoverageTests.chipKeysResolve` now pins the *join* for colour types, style
+  classes and rarities, because `count == 5` stayed green through the whole
+  thing.
+- **L was not a padding bug in two tiles.** `Image(systemName:)` lays out at the
+  symbol's own bounding box, so `wineglass.fill`, `leaf.fill`,
+  `circle.grid.3x3.fill` and `globe.americas.fill` at one point size are four
+  different heights and four labels land at four different y positions. The two
+  near-square glyphs agreeing with each other is what made it look like a fault
+  in the other two. A fixed 56pt glyph box fixes all four and the fifth tile
+  anybody adds.
+- **H, and the half of A3's argument that was wrong.** A3 declined a minute with
+  "a burn-in guard that waits a minute is a burn-in guard for a phone in a
+  pocket". The premise is right -- nothing dims this screen -- but iOS dims and
+  locks the *device* regardless of what `ScreenWake` pins, so this constant was
+  never the burn-in guard; it is the device going idle in character, and thirty
+  seconds was still inside the time it takes to read a region's soil block.
+  A4's fold means one edit moved the marquee's greeting with it, which is the
+  proof the fold was worth doing. `IdleTimerTests` now pins the value in exactly
+  one place and derives every other assertion from it.
+- **B5's ceiling is arithmetic, not taste.** `PressStart2P` advances a full em
+  and the LCD's content box is 329pt at the HUGE text step, so each retro
+  string's maximum nominal size is `329 / characters / 1.15`. Worked through:
+  the tagline can reach 11 (328.9 of 329), the bar labels 11, the wordmark 39.
+  **The prompt cannot move at all** -- PRESS ANY BUTTON TO CONTINUE is 28
+  characters, ceiling 10.2, and `TypeScale.nominalFloor` already lifts its
+  authored 9 to 10. It is rendering at its ceiling today, and any larger number
+  would be a string riding `minimumScaleFactor` to fit, which is exactly what
+  0.7.5's A6 forbids. So B5 reaches every element on that screen except the one
+  that was already as large as it is allowed to be.
+- **E2 is E2-a, with two clauses of the recommendation deliberately dropped.**
+  The pool is entries the player has met -- the three `BookmarkStore` shelves
+  plus `RecentlyViewedStore` -- and there is no general "discovered" ledger in
+  this app, so those four are the honest approximation and they are already on
+  disk. The two dropped clauses:
+  - *"Never from the answer's own category"* **would disable the feature.** Clue
+    1 of every round says IT'S A GRAPE or IT'S A WINE REGION, and those are the
+    only two categories a guess can usefully be in. Suggestions are restricted to
+    exactly those two instead, which is the opposite rule and the useful one.
+  - *Excluding the answer itself* **would be an oracle.** A player who has met
+    Nebbiolo, types `NEBB` and gets nothing back has been told which entry is
+    being withheld. Silence is information. Nothing is filtered on the answer.
+  The hard requirement the spec states is kept and tested: a single character
+  returns nothing **even when the caller passes the whole catalog**, which fails
+  on the gate rather than on the pool happening to be small.
+- **C1's figures differ from the spec's, because of a floor.** The spec gives
+  14.98 -> 21.12 and an aspect of 3.76, which is `controlButton x 0.33` without
+  its floor; `islandStatusDot` is `max(controlButton x 0.33, 22)` and **at SMALL
+  the 22 binds**. So the bead is 22.00 at SMALL and 24.29 at LARGE, and the
+  derived aspect is 3.61/3.55 rather than a flat 3.76 -- the same floor that
+  already makes the aspect differ between the two scales. Confirmed rather than
+  assumed, as the spec asked: no horizontal number moved, `islandSlot` is
+  `max(height + 8, 44)` and 30 still floors to 44, so 0.7.9's clearance table
+  needed no re-deriving. **The rim is the thing to eyeball**: `max(height x 0.11,
+  2)` was on its 2pt floor at 14.98 and is 2.42 at 22, so the coloured core goes
+  from 10.98 to 17.16pt.
+- **C2 overturns a four-batch-old argument, and the argument is kept.**
+  `DeviceChassis.orbShape` carried a paragraph on why the orb must never go
+  through `RecessedLamp` -- it draws a part recessed, the orb is a bead standing
+  proud, and seating it would invert the lighting on the one part meant to catch
+  the light. Every clause is still true of a *bead*. It stopped being one: A1
+  made it the trio's length and C1 makes it a lamp's height, so two parts in the
+  same row at the same scale were lit two different ways, which reads as one of
+  them being wrong. The rim tone is `skin.orbGlow`, the deeper of the orb's two
+  colours, which is the relationship the lamps' `(fill, border)` pairs already
+  have -- no twenty-one-shell table was invented. The three miniature chassis
+  follow through a new `DexMetrics.islandOrbHeight(lamp:)`, which states the rule
+  once the way `islandOrbWidth` already did; they were dividing their own width
+  by the *chassis's* aspect, which C1 turns into a number about nothing.
+- **F: every remaining "paper" is accounted for.** Eleven player-facing strings
+  changed across `WineExamScreen`, `TastingQuizScreen`, `NotificationPlan`,
+  `SettingsPanel` and `ExamAssemblyFailure.message`. What is left under
+  `Sources/` is: **identifiers** (`ExamPaper` and everything built on it,
+  `stats.papers`, `stats.perfectPapers` -- 0.7.5's D1 precedent, the door keeps
+  its name), **doc comments** describing them, and **one string that is not the
+  exam at all** -- `Entitlements.swift:141`'s "paper-white", which is an LCD
+  colour. `firmware.ts`'s shipped notes are untouched; the 0.7.8 and 0.7.9
+  entries still say "paper" because that is what those releases said.
+- **J's placeholder is derived, not passed.** `EncyclopediaListScreen` already
+  holds `categories`; a `placeholder:` argument at the call site would be a
+  second statement of something the screen knows, and the two call sites in
+  `VinodexApp` would eventually disagree with the header above them. Multi-
+  category resolves to SEARCH WORLD, which is the globe button's own wording, so
+  the button and the field it opens read as one control -- the globe's ellipsis
+  became U+2026 to finish that.
+- **One thing to eyeball beyond the outlines**: the BIOS screen at the HUGE text
+  step. The tagline lands at 328.9pt of 329 by arithmetic, which is inside the
+  budget without touching its scale factor but has no margin at all.
+- **Known flake, not a regression.** `TypeScaleTests.seedRunsOnce` failed once
+  during the batch under the full parallel run and passed three times in
+  isolation immediately after, and again in every subsequent full run. It touches
+  `UserDefaults(suiteName:)` on corelibs-foundation and nothing in this batch
+  goes near `TypeScale`. Worth watching rather than chasing.
