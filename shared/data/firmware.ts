@@ -39,36 +39,63 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
-  version: "0.7.8",
-  date: "2026-08-05",
-  // Sections B-D landed after A, and they are the bigger story: the device can
-  // now put something of yours in front of someone else. A's headline was BACK
-  // IN THE SCREEN -- its four items are still listed below, under the new one.
-  headline: "SHOW SOMEBODY",
+  version: "0.7.9",
+  date: "2026-08-06",
+  // The batch's own headline was the orb, but the orb is a bead on the chassis
+  // and WHAT'S THAT...? is a tool that stopped being a reveal and became a game
+  // you can lose. That is the one a player notices.
+  headline: "NAME THAT WINE",
   notes: [
-    "Every encyclopedia entry has a share button. It exports the entry as a pixel-art card, framed in your device.",
-    "Your passport shares too: rank, completion, the counts and your streak, on a card in your own shell and screen colours.",
-    "Earned stamps are shareable one at a time. Tap any stamp you have to send just that one.",
-    "Finish the daily challenge and you get a result to post: a row of tiles, your score and your streak.",
-    "The tiles say how you did and never what the answers were, so sharing yours cannot spoil anyone else's paper.",
-    "Copy it or send it straight on. Both, because pasting into a thread and picking an app are different jobs.",
-    "New in Settings > Device: DAILY REMINDER. Off until you turn it on, and it only asks permission at that moment.",
-    "It sends at most two a day -- today's paper is live, and a streak about to break -- and neither one arrives if you have already played.",
-    "Turn notifications off for Vinodex in iOS Settings and the switch says so instead of pretending it is on.",
-    "The BIOS boots inside the display again, with the device around it instead of covering it.",
-    "Its drawn border, rails and corner brackets are gone. The chassis does the framing now.",
-    "The version, the copyright, the scanlines and the glow all stay. The two top lines stack, so neither is squeezed.",
-    "Any touch anywhere still carries on, and nothing on the device can be pressed by accident while it starts up.",
-    "The sticker on the back is a sticker again: die-cut, glossy, one corner lifting. It stopped being a seventh postage stamp.",
-    "The six passport stamps are the collection. The sticker is decoration, and it cannot be picked up or moved.",
-    "Choosing a shell or a screen in Customise now overrides parts you fitted in the Workshop, so the one you picked is what you see.",
-    "Builds you saved are untouched. Fit one again from the Workshop whenever you like.",
-    "The orb is a longer pill again, closer to the shape of the notch above it.",
-    "438 entries, unchanged: 171 grapes, 124 regions, 31 styles, 106 flavours, 26 countries.",
+    "WHAT'S THAT...? is a guessing game now. Clues arrive one at a time and you name the wine.",
+    "It deals a grape or a region, and the clues go from vague to specific: the colour, then the country, then the flavour that gives it away.",
+    "Guess early for more credit. Every clue you take is one you did not need.",
+    "Type your answer -- it understands synonyms and near-misses, so Steen is Chenin Blanc and a slipped letter still counts.",
+    "A wrong guess tells you what you actually named, so the miss narrows the field instead of just saying no.",
+    "It still deals the same wine to everyone on a given day, and reopening it deals the next one.",
+    "The daily challenge is untouched and keeps its own streak.",
+    "Eight new entries: Madeira and Cava as styles, and the grapes Sercial, Boal, Malvasia de Sao Jorge, Gouais Blanc, Plavac Mali and Manto Negro.",
+    "Thirteen new exam questions, and fortified wine is no longer the thinnest paper on the beginner tier.",
+    "Brazil and Mexico have outlines at last. Serra Gaucha, Campanha and Valle de Guadalupe drew nothing on the map before this.",
+    "The family tree is bigger and easier to read. Long tiers collapse to six with a SHOW ALL, so a grape with ten children fits on the screen.",
+    "A grape whose parents are genuinely unknown now says so, which is different from one nobody has written down yet.",
+    "Label scan reads appellations that run across two or three lines. It could not see those at all before.",
+    "When it narrows a bottle down without settling it, it shows you the shortlist instead of reporting no match.",
+    "The orb is the full width of the lamps opposite it, so the two ends of the notch row read as a matched pair.",
+    "Blaufrankisch is filed under Slovenia now, with Burgenland still named as where it made its reputation.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
   ],};
 
 /** Everything before `CURRENT`, newest first. */
 const PREVIOUS: FirmwareRelease[] = [
+  {
+    version: "0.7.8",
+    date: "2026-08-05",
+    // Sections B-D landed after A, and they are the bigger story: the device can
+    // now put something of yours in front of someone else. A's headline was BACK
+    // IN THE SCREEN -- its four items are still listed below, under the new one.
+    headline: "SHOW SOMEBODY",
+    notes: [
+      "Every encyclopedia entry has a share button. It exports the entry as a pixel-art card, framed in your device.",
+      "Your passport shares too: rank, completion, the counts and your streak, on a card in your own shell and screen colours.",
+      "Earned stamps are shareable one at a time. Tap any stamp you have to send just that one.",
+      "Finish the daily challenge and you get a result to post: a row of tiles, your score and your streak.",
+      "The tiles say how you did and never what the answers were, so sharing yours cannot spoil anyone else's paper.",
+      "Copy it or send it straight on. Both, because pasting into a thread and picking an app are different jobs.",
+      "New in Settings > Device: DAILY REMINDER. Off until you turn it on, and it only asks permission at that moment.",
+      "It sends at most two a day -- today's paper is live, and a streak about to break -- and neither one arrives if you have already played.",
+      "Turn notifications off for Vinodex in iOS Settings and the switch says so instead of pretending it is on.",
+      "The BIOS boots inside the display again, with the device around it instead of covering it.",
+      "Its drawn border, rails and corner brackets are gone. The chassis does the framing now.",
+      "The version, the copyright, the scanlines and the glow all stay. The two top lines stack, so neither is squeezed.",
+      "Any touch anywhere still carries on, and nothing on the device can be pressed by accident while it starts up.",
+      "The sticker on the back is a sticker again: die-cut, glossy, one corner lifting. It stopped being a seventh postage stamp.",
+      "The six passport stamps are the collection. The sticker is decoration, and it cannot be picked up or moved.",
+      "Choosing a shell or a screen in Customise now overrides parts you fitted in the Workshop, so the one you picked is what you see.",
+      "Builds you saved are untouched. Fit one again from the Workshop whenever you like.",
+      "The orb is a longer pill again, closer to the shape of the notch above it.",
+      "438 entries, unchanged: 171 grapes, 124 regions, 31 styles, 106 flavours, 26 countries.",
+    ],
+  },
   {
     version: "0.7.7",
     date: "2026-08-04",

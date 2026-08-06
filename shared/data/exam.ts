@@ -2941,9 +2941,9 @@ export const EXAM_QUESTIONS: ExamQuestion[] = [
     prompt: 'Order these Madeira grape styles from driest to sweetest.',
     items: ['Sercial', 'Verdelho', 'Bual', 'Malmsey'],
     axis: { from: 'Driest', to: 'Sweetest' },
-    explanation: 'The four noble Madeira varieties define a sweetness ladder, because the spirit is added at a different point for each. Malmsey is Malvasia. Tinta Negra, a black grape, accounts for the bulk of production and can be made across the whole range.',
+    explanation: 'The four noble Madeira varieties define a sweetness ladder, because the spirit is added at a different point for each. Malmsey is Malvasia de Sao Jorge. Tinta Negra, a black grape, accounts for the bulk of production and can be made across the whole range.',
     source: 'Instituto do Vinho, do Bordado e do Artesanato da Madeira (IVBAM)',
-    entryRefs: ['R081', 'G073', 'G165'],
+    entryRefs: ['S033', 'R081', 'G173', 'G073', 'G174', 'G175', 'G165'],
   },
   {
     id: 'EXQ-FOR-011', tier: 'intermediate', category: 'FORTIFIED', format: 'multipleChoice',
@@ -4384,6 +4384,149 @@ export const EXAM_QUESTIONS: ExamQuestion[] = [
     explanation: 'Bairrada, on the Atlantic coast south of Porto, is home to the firm, tannic Baga grape. Rueda, Bierzo and Toro are all Spanish - a reminder that the Iberian peninsula holds two very different wine cultures.',
     entryRefs: ['R082', 'G058', 'R034', 'R089', 'R113'],
   },
+
+  // --------------------------------------------------------------------------
+  // 0.7.6 top-up. Anchored to the Madeira and Cava entries added in the same
+  // batch, and aimed at FORTIFIED/beginner, which was sitting on the floor of 6.
+  // --------------------------------------------------------------------------
+  {
+    id: 'EXQ-FOR-022', tier: 'beginner', category: 'FORTIFIED', format: 'multipleChoice',
+    prompt: 'Madeira gets its baked, caramelised character from:',
+    options: [
+      'Ageing in heavily charred new oak',
+      'Being deliberately heated during ageing',
+      'A second fermentation in the bottle',
+      'Freezing the grapes before pressing',
+    ],
+    answerIndex: 1,
+    explanation: 'Madeira is heated on purpose - quickly in temperature-controlled tanks (estufagem), or slowly in warm lofts over years (canteiro). Heat and oxygen together cook the wine into something almost indestructible, which is the reverse of how every other fine wine is treated.',
+    source: 'Instituto do Vinho, do Bordado e do Artesanato da Madeira (IVBAM)',
+    entryRefs: ['S033', 'R081'],
+  },
+  {
+    id: 'EXQ-FOR-023', tier: 'beginner', category: 'FORTIFIED', format: 'trueFalse',
+    prompt: 'An opened bottle of Madeira must be finished within a day or two, like most table wine.',
+    answer: false,
+    explanation: 'Madeira has already been heated and oxidised as part of its production, so there is very little left for air to spoil. An open bottle holds its character for months, which makes it one of the few fine wines that can be poured by the glass without hurry.',
+    entryRefs: ['S033'],
+  },
+  {
+    id: 'EXQ-FOR-024', tier: 'beginner', category: 'FORTIFIED', format: 'multipleChoice',
+    prompt: 'Which grape accounts for the large majority of Madeira produced today?',
+    options: ['Sercial', 'Verdelho', 'Tinta Negra', 'Malvasia'],
+    answerIndex: 2,
+    explanation: 'Tinta Negra, a black grape, makes roughly four fifths of all Madeira. It is also the only variety permitted across all four sweetness categories, from Seco to Doce, which is why it fills the shelves while the noble whites take the labels.',
+    source: 'Instituto do Vinho, do Bordado e do Artesanato da Madeira (IVBAM)',
+    entryRefs: ['G165', 'S033'],
+  },
+  {
+    id: 'EXQ-FOR-025', tier: 'beginner', category: 'FORTIFIED', format: 'multipleChoice',
+    prompt: 'Malmsey, the richest style of Madeira, takes its name from which grape?',
+    options: ['Malbec', 'Malvasia', 'Marsanne', 'Mourvedre'],
+    answerIndex: 1,
+    explanation: 'Malmsey is the English corruption of Malvasia. On Madeira today that means Malvasia de Sao Jorge, planted from the late 1960s; the historic Malvasia Candida survives on only a few hectares.',
+    entryRefs: ['G175', 'S033'],
+  },
+  {
+    id: 'EXQ-FOR-026', tier: 'intermediate', category: 'FORTIFIED', format: 'multipleChoice',
+    prompt: 'Madeira\'s Bual was officially reclassified in 2000 under which mainland Portuguese variety name?',
+    options: ['Malvasia Fina', 'Arinto', 'Fernao Pires', 'Encruzado'],
+    answerIndex: 0,
+    explanation: 'DNA matched the island\'s Boal Cachudo to the Malvasia Fina grown in the Douro and Dao, and the Portuguese authorities adopted that name. VIVC still lists a separate Boal Branco carrying many of the same synonyms, so the two readings have not fully converged.',
+    source: 'VIVC 715; Portuguese national variety register',
+    entryRefs: ['G174'],
+  },
+  {
+    id: 'EXQ-FOR-027', tier: 'advanced', category: 'FORTIFIED', format: 'multipleChoice',
+    prompt: 'A Madeira labelled Frasqueira must have been aged for a minimum of:',
+    options: ['5 years', '10 years', '15 years', '20 years'],
+    answerIndex: 3,
+    explanation: 'Frasqueira, also called Garrafeira, requires at least twenty years of continuous cask ageing by the canteiro method. Reserva is five years, Special Reserve ten and Extra Reserve fifteen, so Frasqueira sits a full step beyond the rest of the ladder.',
+    source: 'IVBAM; Autonomous Region of Madeira official gazette, 13 February 2015',
+    entryRefs: ['S033', 'R081'],
+  },
+  {
+    id: 'EXQ-GRP-035', tier: 'beginner', category: 'GRAPES', format: 'multipleChoice',
+    prompt: 'Plavac Mali is the flagship red grape of which country?',
+    options: ['Greece', 'Croatia', 'Bulgaria', 'Georgia'],
+    answerIndex: 1,
+    explanation: 'Plavac Mali grows on the steep Dalmatian coast and its islands, giving dark, powerful, high-alcohol reds. The name means "little blue", describing the size of its berries rather than the scale of the wine.',
+    entryRefs: ['G177', 'R093'],
+  },
+  {
+    id: 'EXQ-GRP-036', tier: 'intermediate', category: 'GRAPES', format: 'multipleChoice',
+    prompt: 'Which near-extinct white variety is a confirmed parent of Chardonnay, Gamay and Aligote?',
+    options: ['Savagnin', 'Gouais Blanc', 'Melon de Bourgogne', 'Chasselas'],
+    answerIndex: 1,
+    explanation: 'Gouais Blanc, crossed repeatedly with Pinot, produced a remarkable share of France\'s varieties. It was planted everywhere in the middle ages, judged mediocre, banned more than once, and now survives mainly in variety collections. Melon de Bourgogne is another of its children, not its parent.',
+    source: 'VIVC 5374, prime name Heunisch Weiss',
+    entryRefs: ['G176', 'G003', 'G016', 'G061'],
+  },
+  {
+    id: 'EXQ-GRP-037', tier: 'intermediate', category: 'GRAPES', format: 'multipleChoice',
+    prompt: 'Manto Negro is the principal red variety of which island?',
+    options: ['Sicily', 'Mallorca', 'Corsica', 'Madeira'],
+    answerIndex: 1,
+    explanation: 'Manto Negro is Mallorca\'s own, making pale, soft, low-acid reds behind the tourist coast. It shares a parent with Callet, the island\'s other native red, through the near-extinct Callet Cas Concos.',
+    source: 'VIVC 7348',
+    entryRefs: ['G178', 'G156', 'R120'],
+  },
+  {
+    id: 'EXQ-SPK-023', tier: 'intermediate', category: 'SPARKLING', format: 'multipleChoice',
+    prompt: 'Which three varieties form the traditional trio of white Cava?',
+    options: [
+      'Macabeo, Xarel-lo and Parellada',
+      'Chardonnay, Pinot Noir and Pinot Meunier',
+      'Verdejo, Albarino and Godello',
+      'Airen, Palomino and Pedro Ximenez',
+    ],
+    answerIndex: 0,
+    explanation: 'Macabeo brings apple freshness, Xarel-lo the structure and grip that let a good Cava age a decade, and Parellada the delicacy. Chardonnay and Pinot Noir are authorised too, but the Catalan trio is still the backbone.',
+    source: 'Consejo Regulador DO Cava, authorised grape varieties',
+    entryRefs: ['S034', 'G143', 'G126', 'G144'],
+  },
+  {
+    id: 'EXQ-SPK-024', tier: 'advanced', category: 'SPARKLING', format: 'multipleChoice',
+    prompt: 'Within DO Cava, Trepat is authorised for:',
+    options: [
+      'White Cava only',
+      'Rosado Cava only',
+      'Any Cava, white or rosado',
+      'Cava de Guarda Superior only',
+    ],
+    answerIndex: 1,
+    explanation: 'Trepat is a pale Catalan red from Conca de Barbera, and the DO permits it for rosado alone. The other authorised red varieties - Garnacha, Monastrell and Pinot Noir - are not restricted in that way.',
+    source: 'Consejo Regulador DO Cava, authorised grape varieties',
+    entryRefs: ['S034', 'G129'],
+  },
+  {
+    id: 'EXQ-HIS-020', tier: 'beginner', category: 'HISTORY', format: 'multipleChoice',
+    prompt: 'Madeira\'s distinctive heated character was discovered because:',
+    options: [
+      'Cellars on the island are volcanically warm',
+      'Casks carried as ballast were cooked crossing the tropics',
+      'The wine was boiled to kill spoilage bacteria',
+      'Producers copied a technique used in Jerez',
+    ],
+    answerIndex: 1,
+    explanation: 'Madeira sat on the Atlantic trade routes, and casks carried as ballast crossed and recrossed the tropics. Merchants found the heat had improved the wine rather than ruined it, and the industry then set about reproducing the voyage on land.',
+    source: 'Instituto do Vinho, do Bordado e do Artesanato da Madeira (IVBAM)',
+    entryRefs: ['S033', 'R081'],
+  },
+  {
+    id: 'EXQ-APP-028', tier: 'beginner', category: 'APPELLATIONS', format: 'multipleChoice',
+    prompt: 'Unusually for a Spanish denominacion, Cava is defined chiefly by:',
+    options: [
+      'A single contiguous vineyard area',
+      'Production method and registered municipalities across several regions',
+      'A minimum vineyard altitude',
+      'A single permitted grape variety',
+    ],
+    answerIndex: 1,
+    explanation: 'Cava is a method-and-municipality denomination rather than one block of land: its registered zones lie in Catalonia, the Ebro valley, Extremadura and the Levante. Most Cava is made around Penedes, but the DO is not confined there.',
+    source: 'Consejo Regulador DO Cava',
+    entryRefs: ['S034', 'R102'],
+  },
 ];
 
 // ============================================================================
@@ -4396,9 +4539,9 @@ export const EXAM_QUESTIONS: ExamQuestion[] = [
  * update it deliberately when questions are added.
  */
 export const EXAM_AUTHORED_TIER_COUNTS: Record<ExamTier, number> = {
-  beginner: 137,
-  intermediate: 147,
-  advanced: 123,
+  beginner: 144,
+  intermediate: 151,
+  advanced: 125,
 };
 
 /**
@@ -4406,6 +4549,14 @@ export const EXAM_AUTHORED_TIER_COUNTS: Record<ExamTier, number> = {
  * cannot draw more distinct questions from a category than this without
  * repeating, so it is the number that actually bounds exam length per
  * category — assert on it rather than on the total.
+ *
+ * **Still 6 after the 0.7.6 top-up, and that is the honest number.** That pass
+ * lifted four of the six floor cells (FORTIFIED/beginner 6 -> 10, and one each
+ * into HISTORY/beginner, APPELLATIONS/beginner and SPARKLING/advanced), but two
+ * remain at 6: SWEET_WINE/advanced and HISTORY/intermediate. Both are blocked on
+ * sourcing rather than on ideas — Sauternes and BA/TBA must weights, and New
+ * World wine history — and padding either to move this constant would buy an
+ * exam nothing. See data-review/CANDIDATES.md.
  */
 export const EXAM_MIN_CELL_COUNT = 6;
 
