@@ -92,35 +92,186 @@ final class ChassisCapLoader {
         let key = "\(stem)|\(inkHex)|\(glyphHex ?? "-")"
         if let hit = cache[key] { return hit }
         let result = PixelArtLoader.shared.image(Self.prefix + stem)
-            .flatMap { reink($0, to: inkHex, glyph: glyphHex) }
+            .flatMap { reink($0, stem: stem, to: inkHex, glyph: glyphHex) }
         cache[key] = result
         return result
     }
 
-    // MARK: The glyph mask (0.8.4, E1)
+    // MARK: The cap's own geometry (0.8.5, E2)
 
-    /// How far out from the centre a pixel may sit and still be the symbol, as
-    /// a fraction of the cap's radius.
-    ///
-    /// The four drawings put their symbol inside the moulded face and their rim,
-    /// bevel and knurl outside it. Measured across all four, the symbol's
-    /// furthest ink is at 0.55 of the radius and the rim's nearest is at 0.78 --
-    /// SETTINGS being the tight one, because its knurl is a ring of dark ticks
-    /// that would otherwise read as symbol. 0.72 sits in that gap.
-    private static let glyphRadius: CGFloat = 0.72
+    /// The circle the drawing actually occupies, and the mask that says which
+    /// of its dark pixels are the incised symbol. Derived from the sprite,
+    /// cached per stem, and independent of ink -- so a session that tries on
+    /// twelve skins measures each cap once.
+    private struct CapShape {
+        /// Centre and radius of the moulded part, in pixels.
+        let cx: CGFloat
+        let cy: CGFloat
+        let radius: CGFloat
+        /// One flag per pixel: this is the incised symbol and takes the glyph
+        /// ink rather than the body's.
+        let isGlyph: [Bool]
+    }
 
-    /// And how dark. The symbol is *incised*: a dark cel line cut into a face
-    /// that is otherwise near-white. Inside the disc the values are bimodal with
-    /// a wide empty band between the modes -- the line runs 0.19-0.47, the
-    /// moulded face sits at 0.96, and the only thing between them is the bottom
-    /// bevel at 0.70-0.78. 0.60 separates the line from both.
+    private var shapes: [String: CapShape] = [:]
+
+    /// How dark a pixel must be to be a candidate for the incised symbol.
     ///
-    /// **Two numbers rather than a stencil per sprite**, and that is the
-    /// argument for the whole approach: a fifth cap drawn in this style is
-    /// masked correctly with nobody authoring anything, and a fifth cap drawn in
-    /// some other style fails *visibly* rather than silently -- its symbol stays
-    /// the body colour, which is exactly where all four were in 0.8.3.
+    /// Unchanged from 0.8.4's `glyphValue`, and it was never the half that was
+    /// wrong. The symbol is a dark cel line cut into a near-white face; 0.60
+    /// sits above every pixel of that line and below the face.
     private static let glyphValue: CGFloat = 0.60
+
+    /// A dark region is the symbol only if it reaches this far *in*.
+    ///
+    /// See `capShape` for why the test is on a connected region rather than on
+    /// a pixel. The rim, the bevel and the knurl are all annuli: none of them
+    /// has a pixel within half a radius of the centre. Every symbol in the drop
+    /// does -- the deepest-starting one is the cog's ring at 0.30.
+    private static let glyphInnerReach: CGFloat = 0.50
+
+    /// And it may not reach this far out. The cog's ring is the widest symbol
+    /// at 0.73; the nearest non-symbol region begins at 0.61 but always runs
+    /// past 0.80, which is what makes the pair of bounds separate them when
+    /// neither bound does alone.
+    private static let glyphOuterLimit: CGFloat = 0.78
+
+    /// The width, in source pixels, of the alpha ramp at the cap's edge.
+    ///
+    /// The sprites have strictly binary alpha -- measured: zero pixels between
+    /// 0 and 255 in all four -- so without this the silhouette is an aliased
+    /// staircase at 250px which nearest-neighbour then carries, unsoftened,
+    /// down to the 60pt the band draws it at.
+    private static let edgeFeather: CGFloat = 1.5
+
+    // MARK: Fitting the cap (0.8.5, E2)
+
+    /// Measure the cap's circle and its symbol, once per sprite.
+    ///
+    /// **Why the 0.8.4 pair of constants had to go.** That pass masked the
+    /// symbol as "within 0.72 of the *image's* inscribed radius, and darker than
+    /// 0.60", on a stated measurement that the values inside the disc are
+    /// bimodal with the bevel sitting safely at 0.70-0.78. Re-measured over the
+    /// shipped drop, they are not: every radius band carries 760-1,711 pixels
+    /// below 0.50, and 61% of what the mask captured on BACK sat between 0.6 and
+    /// 0.72 of the radius -- the moulded bevel along the lower right, painted in
+    /// the *glyph* ink. On a cream cap over a cream chassis that is invisible;
+    /// on a pink cap over a green one it is the grey band across the bottom of
+    /// every button in the photographs.
+    ///
+    /// No pair of thresholds separates them, because the two sets overlap in
+    /// both variables. What separates them cleanly is *shape*: the symbol is an
+    /// island in the middle of the face, and the rim, bevel and knurl are annuli
+    /// that never come near the centre. So the dark pixels are grouped into
+    /// connected regions and a region is the symbol when it starts inside
+    /// `glyphInnerReach` and stays inside `glyphOuterLimit`. Measured over the
+    /// four: the symbols run 0.00-0.62, 0.00-0.62, 0.10-0.60 and 0.04-0.73, and
+    /// every other region begins at 0.61 or beyond and runs past 0.80.
+    ///
+    /// That keeps 0.8.4's real virtue -- nobody authors a stencil, and a fifth
+    /// cap drawn in this style is masked correctly by arriving -- while failing
+    /// visibly rather than silently for one drawn in some other style: its
+    /// symbol stays the body colour, which is where all four sat in 0.8.3.
+    ///
+    /// **The circle is fitted too, and 0.8.4 fitted it to the wrong thing.**
+    /// That pass clipped at `min(w, h) / 2` about the *image* centre. The
+    /// drawings are not centred in their files -- the mask's centroid sits
+    /// (5, 3.5) off it -- and the cap's radius is ~122 where the inscribed
+    /// circle is 127. So the clip lay outside the drawing over most of the
+    /// perimeter, doing nothing, and cut a one-pixel crescent off the far side,
+    /// doing the wrong thing. Here the centre is the alpha centroid and the
+    /// radius is the 10th percentile of the silhouette's own radius over 360
+    /// rays -- a percentile rather than the mean, so the hand-drawn wobble is
+    /// trimmed *off* rather than split down the middle.
+    private func capShape(stem: String, data: [UInt8], w: Int, h: Int) -> CapShape {
+        if let hit = shapes[stem] { return hit }
+        let fitted = fitCap(data: data, w: w, h: h)
+        shapes[stem] = fitted
+        return fitted
+    }
+
+    /// The measurement itself. Separate from the cache so the cache is one line
+    /// and the geometry is the rest of the file.
+    private func fitCap(data: [UInt8], w: Int, h: Int) -> CapShape {
+        var sx = 0, sy = 0, n = 0
+        for y in 0..<h {
+            for x in 0..<w where data[(y * w + x) * 4 + 3] > 0 {
+                sx += x; sy += y; n += 1
+            }
+        }
+        guard n > 0 else {
+            return CapShape(cx: CGFloat(w) / 2, cy: CGFloat(h) / 2,
+                            radius: CGFloat(min(w, h)) / 2,
+                            isGlyph: [Bool](repeating: false, count: w * h))
+        }
+        let cx = CGFloat(sx) / CGFloat(n)
+        let cy = CGFloat(sy) / CGFloat(n)
+
+        // The silhouette's outermost opaque radius, per ray.
+        let rays = 360
+        var radii = [CGFloat](repeating: 0, count: rays)
+        let limit = CGFloat(max(w, h))
+        for i in 0..<rays {
+            let theta = CGFloat(i) * 2 * .pi / CGFloat(rays)
+            let dx = cos(theta), dy = sin(theta)
+            var r: CGFloat = 0
+            var last: CGFloat = 0
+            while r < limit {
+                let x = Int((cx + r * dx).rounded())
+                let y = Int((cy + r * dy).rounded())
+                if x >= 0, x < w, y >= 0, y < h, data[(y * w + x) * 4 + 3] > 0 { last = r }
+                r += 0.5
+            }
+            radii[i] = last
+        }
+        radii.sort()
+        let radius = max(radii[rays / 10], 1)
+
+        // Dark regions, grouped. An explicit stack rather than recursion: a cap
+        // is a quarter of a million pixels and one region can be most of them.
+        var dark = [Bool](repeating: false, count: w * h)
+        for y in 0..<h {
+            for x in 0..<w {
+                let i = (y * w + x) * 4
+                guard data[i + 3] > 0 else { continue }
+                let v = Self.value(r: data[i], g: data[i + 1], b: data[i + 2], a: data[i + 3])
+                dark[y * w + x] = v > 0.06 && v < Self.glyphValue
+            }
+        }
+        var isGlyph = [Bool](repeating: false, count: w * h)
+        var visited = [Bool](repeating: false, count: w * h)
+        var stack: [Int] = []
+        var region: [Int] = []
+        for start in 0..<(w * h) where dark[start] && !visited[start] {
+            stack.removeAll(keepingCapacity: true)
+            region.removeAll(keepingCapacity: true)
+            stack.append(start)
+            visited[start] = true
+            var minR = CGFloat.greatestFiniteMagnitude
+            var maxR: CGFloat = 0
+            while let p = stack.popLast() {
+                region.append(p)
+                let x = p % w, y = p / w
+                let dx = CGFloat(x) - cx, dy = CGFloat(y) - cy
+                let d = (dx * dx + dy * dy).squareRoot() / radius
+                minR = min(minR, d)
+                maxR = max(maxR, d)
+                if x > 0, dark[p - 1], !visited[p - 1] { visited[p - 1] = true; stack.append(p - 1) }
+                if x < w - 1, dark[p + 1], !visited[p + 1] { visited[p + 1] = true; stack.append(p + 1) }
+                if y > 0, dark[p - w], !visited[p - w] { visited[p - w] = true; stack.append(p - w) }
+                if y < h - 1, dark[p + w], !visited[p + w] { visited[p + w] = true; stack.append(p + w) }
+            }
+            guard minR < Self.glyphInnerReach, maxR < Self.glyphOuterLimit else { continue }
+            for p in region { isGlyph[p] = true }
+        }
+
+        return CapShape(cx: cx, cy: cy, radius: radius, isGlyph: isGlyph)
+    }
+
+    private static func value(r: UInt8, g: UInt8, b: UInt8, a: UInt8) -> CGFloat {
+        let af = max(CGFloat(a) / 255, 0.001)
+        return min(max(CGFloat(r), max(CGFloat(g), CGFloat(b))) / 255 / af, 1)
+    }
 
     // MARK: Re-inking
 
@@ -128,27 +279,24 @@ final class ChassisCapLoader {
     /// and saturation. See the type's note for why this and not a template or a
     /// multiply, and `glyphRadius` / `glyphValue` for how the two are told apart.
     ///
-    /// **Also the disc clip (0.8.4, E2).** Every pixel outside the cap's
-    /// inscribed circle has its alpha cleared before anything is re-inked. E2
-    /// reports the recolour spilling past the button, and the sprite is how it
-    /// gets out: the drawings are square, the cap is round, and the corners are
-    /// not empty -- they carry the outer edge of the cel outline plus whatever
-    /// survived `import-footer-art.py`'s key sweep. Un-inked those read as a
-    /// dark fleck against a dark chassis and nobody saw them for two releases;
-    /// re-inked they are fully saturated *skin-coloured* pixels standing outside
-    /// the moulded part, on the shell and toward the neighbouring control.
+    /// **And the disc clip, refitted and feathered (0.8.5, E2).** See
+    /// `capShape` for what the 0.8.4 clip was measuring and why it was neither
+    /// where nor how large the cap is. What is left of that pass's reasoning is
+    /// the part that was right and is kept verbatim: the clip belongs *here*
+    /// rather than in a `.clipShape(Circle())` at the call site, because the
+    /// view lays the sprite out with `.aspectRatio(.fit)` inside a square frame,
+    /// so a circle in view space is the sprite's circle only when the sprite is
+    /// exactly square -- three of the four are not (253x256, 254x256, 266x263)
+    /// -- and a shape modifier would clip the press animation's scale along with
+    /// it. In pixel space the two are the same by construction, and this runs
+    /// once per (stem, ink) pair rather than every frame.
     ///
-    /// A clip here rather than a `.clipShape(Circle())` at the call site,
-    /// deliberately. The view lays the sprite out with `.aspectRatio(.fit)`
-    /// inside a square frame, so a circle in *view* space is the sprite's circle
-    /// only when the sprite is exactly square -- three of the four are not
-    /// (253x256, 254x256, 266x263) -- and a shape modifier would clip the press
-    /// animation's scale along with it. In pixel space the two circles are the
-    /// same by construction, this runs once per (stem, ink) pair rather than
-    /// every frame, and it composes with nothing.
-    ///
-    /// Measured on the drop: 301-630 pixels cleared per cap.
-    private func reink(_ image: UIImage, to hex: String, glyph glyphHex: String?) -> UIImage? {
+    /// The alpha now *ramps* over the last `edgeFeather` pixels instead of
+    /// stopping dead. The sprites are strictly binary -- there is not one
+    /// partially transparent pixel in the drop -- so every edge in this pipeline
+    /// was aliased from the file all the way to the screen, and a hard clip only
+    /// added a second aliased boundary that did not follow the first.
+    private func reink(_ image: UIImage, stem: String, to hex: String, glyph glyphHex: String?) -> UIImage? {
         guard let cg = image.cgImage else { return nil }
         let w = cg.width, h = cg.height
         guard w > 0, h > 0 else { return nil }
@@ -164,28 +312,26 @@ final class ChassisCapLoader {
         ) else { return nil }
         ctx.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
 
-        let cx = CGFloat(w - 1) / 2
-        let cy = CGFloat(h - 1) / 2
-        let radius = CGFloat(min(w, h)) / 2
-        let glyphR = radius * Self.glyphRadius
+        let shape = capShape(stem: stem, data: data, w: w, h: h)
+        let inner = max(shape.radius - Self.edgeFeather, 0)
 
         for y in 0..<h {
             for x in 0..<w {
-                let i = (y * w + x) * 4
+                let p = y * w + x
+                let i = p * 4
                 let a = data[i + 3]
                 guard a > 0 else { continue }
 
-                let dx = CGFloat(x) - cx
-                let dy = CGFloat(y) - cy
+                let dx = CGFloat(x) - shape.cx
+                let dy = CGFloat(y) - shape.cy
                 let d = (dx * dx + dy * dy).squareRoot()
-                // E2: nothing outside the moulded part reaches the chassis.
-                if d > radius {
-                    data[i] = 0
-                    data[i + 1] = 0
-                    data[i + 2] = 0
-                    data[i + 3] = 0
+                // Nothing outside the moulded part reaches the chassis, and the
+                // last pixel and a half of it fades rather than stops.
+                if d >= shape.radius {
+                    data[i] = 0; data[i + 1] = 0; data[i + 2] = 0; data[i + 3] = 0
                     continue
                 }
+                let coverage = d <= inner ? 1 : (shape.radius - d) / Self.edgeFeather
 
                 let (_, _, value) = hsv(r: data[i], g: data[i + 1], b: data[i + 2], a: a)
                 // A near-black pixel has no colour to restate: the cel outline is
@@ -194,13 +340,26 @@ final class ChassisCapLoader {
                 // part from the shell behind it. (Through 0.8.2 this also protected
                 // the painted cast shadow; 0.8.3's B1 removed that at import, so
                 // the outline is all this clause is guarding now.)
-                guard value > 0.06 else { continue }
+                let outA = UInt8((CGFloat(a) * coverage).rounded())
+                guard value > 0.06 else {
+                    if coverage < 1 {
+                        // Rescale the premultiplied channels with the alpha, or
+                        // the feathered ring of the outline draws at full weight
+                        // against a fading alpha and reads as a bright fringe.
+                        data[i] = UInt8((CGFloat(data[i]) * coverage).rounded())
+                        data[i + 1] = UInt8((CGFloat(data[i + 1]) * coverage).rounded())
+                        data[i + 2] = UInt8((CGFloat(data[i + 2]) * coverage).rounded())
+                        data[i + 3] = outA
+                    }
+                    continue
+                }
 
-                let target = (d < glyphR && value < Self.glyphValue) ? ink : body
+                let target = shape.isGlyph[p] ? ink : body
                 let out = rgb(h: target.h, s: target.s, v: value)
-                data[i] = UInt8(out.r * CGFloat(a) / 255)
-                data[i + 1] = UInt8(out.g * CGFloat(a) / 255)
-                data[i + 2] = UInt8(out.b * CGFloat(a) / 255)
+                data[i] = UInt8(out.r * CGFloat(outA) / 255)
+                data[i + 1] = UInt8(out.g * CGFloat(outA) / 255)
+                data[i + 2] = UInt8(out.b * CGFloat(outA) / 255)
+                data[i + 3] = outA
             }
         }
 

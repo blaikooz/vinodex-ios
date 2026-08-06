@@ -130,6 +130,56 @@ public enum StampCatalog {
     }
 }
 
+/// The fixed decals printed on the back plate, as opposed to the stamps the
+/// Passport issues (0.8.5, F1).
+///
+/// **Why these are a type and not four string literals in `DeviceBackPlate`.**
+/// All four were `Canvas` and `Shape` drawings from 0.6.4 — `BarcodeSticker`
+/// hand-listed its bar widths, `RippedPriceTag` hand-listed its tear steps —
+/// and F1 replaces the first two with drawn art and adds two more. That makes
+/// four stems the bundle has to hold and the importer has to produce, and the
+/// lesson of `art/icons/stamps/` arriving with ten files named for their
+/// pictures is that a stem agreed by convention between a Python dict and a
+/// Swift view is a stem nobody checks.
+///
+/// So the roster is here, in Core, next to `StampCatalog` and for the same
+/// reason `DexGlyph` is in Core: it has to be visible to a Linux `swift test`.
+/// `ArtPipelineRosterTests` holds it equal to `import-stamp-art.py`'s
+/// `STEM_FOR` and to the PNGs on disk, in both directions — so a decal drawn
+/// and not wired, and a decal wired and not drawn, are both build failures
+/// rather than a blank rectangle on a screen most users turn to twice.
+///
+/// **A miss still falls back rather than blanking**, which is the rule every
+/// drawn-art surface in this app follows: `DeviceBackPlate` keeps the
+/// `Canvas`-drawn barcode and price tag it has always had, and draws them when
+/// `PixelArtLoader` returns nil. The gate above is what makes that a safety net
+/// instead of the state nobody notices we are in.
+public enum BackPlateDecal: String, CaseIterable, Sendable, Identifiable {
+    /// The sun-faded barcode label, bottom-leading.
+    case barcode
+    /// The ripped price tag, top-trailing.
+    case priceTag
+    /// Two loose postage stamps, printed rather than earned — the plate's own
+    /// franking rather than anything the Passport issues.
+    case decalOne
+    case decalTwo
+
+    public var id: String { rawValue }
+
+    /// Ships in `StampArt` under the `stamp-` prefix, with the badges. A fifth
+    /// prefix would have bought nothing: `PixelArtLoader`'s namespace is flat,
+    /// these come out of the same source directory, and the stems are disjoint
+    /// from `StampCatalog`'s by inspection and by test.
+    public var artStem: String {
+        switch self {
+        case .barcode: "stamp-barcode"
+        case .priceTag: "stamp-price-tag"
+        case .decalOne: "stamp-decal-one"
+        case .decalTwo: "stamp-decal-two"
+        }
+    }
+}
+
 /// How far a stamp has been dragged from the spot the plate issued it in
 /// (0.6.7, C1).
 ///

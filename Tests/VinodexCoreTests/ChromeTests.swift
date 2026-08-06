@@ -137,6 +137,28 @@ struct ChromeTests {
         }
     }
 
+    /// **A filtered listing wears its filter's face, or none — never its
+    /// parent category's** (0.8.5, B1).
+    ///
+    /// K2 rule 2 as an assertion. The rule says a GEOLOGY SCAN is not a regions
+    /// listing; the failure mode it guards against is a future edit "fixing"
+    /// the four filters that answer nil by falling through to
+    /// `category.marqueeArt`, which would put the regions map over GEOLOGY SCAN
+    /// and the wineglass over RARITY SCAN — the exact 0.7.0 bug, one release
+    /// after it was fixed for symbols.
+    @Test("a filtered listing never borrows its category's marquee art")
+    func filteredListingsKeepTheirOwnArt() {
+        for filter in Self.allFilters {
+            for category in EntryCategory.allCases {
+                let route = DexRoute.list(category: category, filter: filter)
+                #expect(
+                    route.marqueeArt == filter.marqueeArt,
+                    "\(filter.scanTitle) in \(category) shows '\(route.marqueeArt ?? "-")', not the filter's '\(filter.marqueeArt ?? "-")'"
+                )
+            }
+        }
+    }
+
     /// Catches a route added to the enum and never listed above — without which
     /// `glyphsAreDistinct` would silently stop covering it.
     ///
@@ -298,6 +320,15 @@ struct ChromeTests {
         for category in EntryCategory.allCases {
             guard let stem = category.marqueeArt else { continue }
             check(stem, "\(category)")
+        }
+        // The nine filter kinds (0.8.5, B1). They answer for the *title* of a
+        // filtered listing, which is where this gate was needed and did not
+        // reach: STYLE SCAN is `.type`'s title, not the styles listing's, and
+        // it went three releases with no drawn glyph while a `marquee-stylescan`
+        // sat on disk. A stem typed wrong here fails exactly as a route's does.
+        for filter in Self.allFilters {
+            guard let stem = filter.marqueeArt else { continue }
+            check(stem, filter.scanTitle)
         }
         for section in SettingsSection.allCases {
             check(section.marqueeStem, "\(section.rawValue) (marqueeStem)")

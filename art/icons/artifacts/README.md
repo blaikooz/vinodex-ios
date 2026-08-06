@@ -1,4 +1,4 @@
-# Per-skin back-plate sticker glyphs (0.7.8, A1)
+# Per-skin back-plate artifacts (0.7.8, A1; this folder since 0.8.5, F1)
 
 **Shell decals only.** The Passport badge stamps are a different set with a
 different brief and live in `../stamps/`. The two shared a directory from 0.6.4
@@ -7,12 +7,35 @@ anywhere would say so — neither family is enumerated by `assertAssetsExist`,
 because both resolve through code-drawn stand-ins, so a misfiled or missing
 file is silent by design.
 
+**This folder replaced `../stickers/`, which never held a file.** The code still
+calls the object a sticker — `SkinStickerView`, `ChassisSkin.stickerStem`, the
+`sticker-` prefix, `Resources/StickerArt` — and those names are not going to
+move, because `stickerStem` is derived from a **persisted** raw value that is
+simultaneously an `@AppStorage` key and the FNV-1a seed for `WornOverlay`.
+"Artifact" is what the drawings are filed under; "sticker" is what the app calls
+the thing they are drawn for. One object, two words, and this paragraph is the
+join.
+
 Drop authored pixel-art PNGs here; `npm run icons` (via
 `scripts/import-sticker-art.py`) strips the background and copies them into
 `Sources/VinodexUI/Resources/StickerArt`, where they replace the emblem
 stand-ins with no code change. Export on a **magenta (#FF00FF) chroma-key
 background** — that is the durable transparency path (see
 `scripts/art_common.py`).
+
+## Naming
+
+**Name the file for the picture, not for the shell.** The importer carries a
+`SKIN_FOR` map from filename to `ChassisSkin` raw value, and
+`ArtPipelineRosterTests.stickerRosterIsComplete` holds that map equal to this
+directory *and* to the enum, in both directions — so a file added here without
+a row in the map fails the build rather than being skipped in silence, and a
+row for a shell that does not exist fails it too.
+
+Two shells have no artifact drawn: **CHRISTMAS** and **ORANGE WINE**. Both are
+named in `shellsWithoutADecal` in that test, so drawing one is a two-line change
+(a row in `SKIN_FOR`, a name out of the backlog) and forgetting to remove it
+from the backlog is a failure rather than a shrug.
 
 ## What the object is
 

@@ -83,17 +83,56 @@ public struct DeviceBackPlate: View {
             // Factory leavings (v0.5.3): a faded barcode sticker and half a
             // price tag someone tried to peel. Decoration in the plate's own
             // fiction — a device that has been on a shelf, not in a renderer.
-            BarcodeSticker()
+            //
+            // **Drawn since 0.8.5 (F1), and the `Canvas` versions are the
+            // fallback rather than the drawing.** Both were procedural from
+            // v0.5.3 — `BarcodeSticker` hand-listing twenty-eight bar widths,
+            // `RippedPriceTag` hand-listing its tear steps — because there was
+            // no art. There is now, and the two code-drawn views stay exactly
+            // where they were: `PlateDecal` prefers the PNG and draws the old
+            // one when `PixelArtLoader` misses, which is the rule every drawn-
+            // art surface in this app follows and the only defence against a
+            // loader that returns nil in silence.
+            PlateDecal(.barcode, width: 122) { BarcodeSticker() }
                 .rotationEffect(.degrees(-4))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                 .padding(.leading, 30)
                 .padding(.bottom, 96)
                 .allowsHitTesting(false)
-            RippedPriceTag()
+            PlateDecal(.priceTag, width: 96) { RippedPriceTag() }
                 .rotationEffect(.degrees(8))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                 .padding(.trailing, 34)
                 .padding(.top, 104)
+                .allowsHitTesting(false)
+
+            // Two loose postage stamps, printed rather than earned (0.8.5, F1).
+            //
+            // **They are franking, not collection**, which is the whole reason
+            // they sit here among the leavings and not in `stampField`: a stamp
+            // the Passport issues is a thing you got, it opens its own story on
+            // a tap, and it can be dragged. These two arrived on the device.
+            // Mounting them in the field would have put two permanently-earned
+            // badges in a collection of six, which is the confusion 0.7.8's A1
+            // spent a whole item undoing for the skin decal.
+            //
+            // Placed in the two corners the plate had left — below the price
+            // tag on the trailing edge, and under the serial block on the
+            // leading one — clear of all six `stampSlots` at their default
+            // offsets. They have no fallback: nothing was ever drawn here, so a
+            // miss is simply an emptier plate rather than a hole where
+            // something should be.
+            PlateDecal(.decalOne, width: 72) { EmptyView() }
+                .rotationEffect(.degrees(11))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                .padding(.trailing, 40)
+                .padding(.bottom, 196)
+                .allowsHitTesting(false)
+            PlateDecal(.decalTwo, width: 66) { EmptyView() }
+                .rotationEffect(.degrees(-9))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                .padding(.leading, 44)
+                .padding(.bottom, 214)
                 .allowsHitTesting(false)
 
             // The skin's own aged sticker (0.6.4, F3) — the per-skin artifact
@@ -789,18 +828,77 @@ public struct DeviceBackPlate: View {
 
 }
 
-private extension View {
+extension View {
     /// The two-shadow trick the web panel uses for engraved lettering: a light
     /// edge below, a dark one above.
-    func engraved() -> some View {
+    ///
+    /// **Internal, and parameterised, since 0.8.5 (A2).** It was private to this
+    /// file and fixed at the two opacities the brushed nameplate wanted. A2 asks
+    /// for the marquee's two lamp buttons to carry engraved legends "like the
+    /// START and SELECT buttons on a game controller", which is this effect on a
+    /// different material — a lit plastic cap rather than a metal plate — and a
+    /// lit cap needs a brighter highlight and a softer shade or the letters read
+    /// as embossed rather than cut in.
+    ///
+    /// Hoisted rather than copied, on the rule `ChassisCapLoader`'s colour maths
+    /// states and then declines to follow: two call sites that would have to
+    /// agree on a number are one call site with a parameter. The back plate's
+    /// own call keeps its numbers as the defaults, so nothing about the
+    /// nameplate moves.
+    func engraved(light: Double = 0.55, dark: Double = 0.45) -> some View {
         self
-            .shadow(color: .white.opacity(0.55), radius: 0, x: 0, y: 1)
-            .shadow(color: .black.opacity(0.45), radius: 0, x: 0, y: -1)
+            .shadow(color: .white.opacity(light), radius: 0, x: 0, y: 1)
+            .shadow(color: .black.opacity(dark), radius: 0, x: 0, y: -1)
+    }
+}
+
+/// One drawn back-plate decal, or the code-drawn thing it replaces (0.8.5, F1).
+///
+/// **Width, not a square box.** `DexChromeGlyph` fits its art into a square
+/// because a row of chrome glyphs has to share a baseline whatever is drawn in
+/// them. These are stickers lying on a plate at a jaunty angle; nothing is
+/// aligned to anything, and the four sources have four aspects (391x242 down to
+/// 328x294). So the caller gives a width and the height follows the drawing,
+/// which is how a sticker of a given size behaves.
+///
+/// Smooth interpolation, for the reason `ChassisButton` states for the footer
+/// caps: these are rendered drawings at ~350px shown at ~70-120pt, not pixel art
+/// on an authored grid.
+private struct PlateDecal<Fallback: View>: View {
+    private let decal: BackPlateDecal
+    private let width: CGFloat
+    private let fallback: Fallback
+
+    init(_ decal: BackPlateDecal, width: CGFloat, @ViewBuilder fallback: () -> Fallback) {
+        self.decal = decal
+        self.width = width
+        self.fallback = fallback()
+    }
+
+    var body: some View {
+        if let art = PixelArtLoader.shared.image(decal.artStem) {
+            Image(uiImage: art)
+                .interpolation(.high)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: width)
+                // The same lift the code-drawn sticker carried. A decal is a
+                // thing stuck *on* the plate, and without this it reads as
+                // printed into the metal.
+                .shadow(color: .black.opacity(0.25), radius: 1, y: 1)
+        } else {
+            fallback
+        }
     }
 }
 
 /// A sun-faded barcode sticker. The bars are a fixed pattern, not data — a
 /// deterministic sequence so the plate looks identical on every launch.
+///
+/// The fallback since 0.8.5 (F1) — see `PlateDecal`. Kept whole rather than
+/// deleted: it is what the plate shows if the art ever fails to resolve, and
+/// deleting a working fallback to celebrate having art is how the silent-nil
+/// bugs of 0.8.1 through 0.8.3 happened.
 private struct BarcodeSticker: View {
     /// Bar widths, in points at the sticker's own scale. Hand-picked to read
     /// as EAN-ish without pretending to encode anything.

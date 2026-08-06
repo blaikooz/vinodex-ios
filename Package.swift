@@ -43,12 +43,17 @@ let package = Package(
         // `PixelArtLoader.subdirectories`, which is the same discipline the four
         // importer rosters already run under.
         //
-        // `StampArt` and `StickerArt` are deliberately absent: both are declared
-        // on `PixelArtLoader`'s search path but neither exists on disk yet (the
-        // art is unauthored, and the importers are tolerant of that by design).
-        // `.copy` on a path that does not exist is a build error, so they join
-        // this list in the batch that draws them — which is exactly what the
-        // gate above will insist on.
+        // `StampArt` and `StickerArt` were deliberately absent through 0.8.4:
+        // both were declared on `PixelArtLoader`'s search path but neither
+        // existed on disk, because the art was unauthored and the importers are
+        // tolerant of that by design. `.copy` on a path that does not exist is
+        // a build error, so the note here said they would join this list "in
+        // the batch that draws them — which is exactly what the gate above will
+        // insist on". **That batch is 0.8.5 (F1), and the gate did insist**:
+        // the moment the two directories appeared,
+        // `ArtPipelineRosterTests.loaderSearchPathIsBundled` failed on its own
+        // exemption list, which is the whole reason that list was written as a
+        // two-way check rather than as a permanent excuse.
         .target(
             name: "VinodexCore",
             resources: [
@@ -85,6 +90,10 @@ let package = Package(
                 .copy("Resources/MarqueeArt"),
                 .copy("Resources/Maps"),
                 .copy("Resources/SFX"),
+                // Authored in 0.8.5 (F1) — the six Passport badges plus four
+                // back-plate decals, and the twenty shell decals.
+                .copy("Resources/StampArt"),
+                .copy("Resources/StickerArt"),
                 .copy("Resources/StyleArt"),
             ]
         ),

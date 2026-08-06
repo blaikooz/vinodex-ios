@@ -166,11 +166,15 @@ def main():
         changed, missing, exempt = [], [], []
         for d in DIRS:
             src = os.path.join(BUNDLE, d)
-            # StampArt and StickerArt ship empty until the glyphs are authored
-            # (0.6.4 F2; 0.7.8 A1 split the second out of the first), so their
-            # directories legitimately do not exist. An absent bundle directory
-            # is not this script's business — the *generator* is what fails
-            # when a shipped id has no file behind it.
+            # A bundle directory whose art has not been drawn yet does not
+            # exist, and an absent one is not this script's business — the
+            # *generator* is what fails when a shipped id has no file behind it.
+            #
+            # StampArt and StickerArt were the two this clause was written for
+            # (0.6.4 F2; 0.7.8 A1 split the second out of the first) and both
+            # were authored in 0.8.5 (F1), so it now covers nothing. Kept for
+            # the next directory declared ahead of its drop, which is a shape
+            # this pipeline has repeated four times.
             if not os.path.isdir(src):
                 continue
             for name in sorted(os.listdir(src)):

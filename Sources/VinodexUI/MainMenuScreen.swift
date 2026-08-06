@@ -59,7 +59,26 @@ public struct MainMenuScreen: View {
     /// it against.
     private static let outerCorner: CGFloat = 30
     /// The housing's own padding around the four tiles.
-    private static let housingInset: CGFloat = 9
+    ///
+    /// 9 → 6 in 0.8.5 (C2). See `outerPad` for what the pair of trims buys.
+    private static let housingInset: CGFloat = 6
+
+    /// What the housing leaves between itself and the LCD's edge.
+    ///
+    /// **9pt of it goes back to the tiles in 0.8.5 (C2).** It was a bare
+    /// `.padding(8)` with `housingInset` at 9, so the cluster was inset 17pt on
+    /// every side of a screen it is the only thing on. C2 asks for the four
+    /// buttons to fill the main screen, and this is where the room was: the
+    /// tiles already take everything the housing gives them
+    /// (`.frame(maxWidth: .infinity, maxHeight: .infinity)`), so the resize is
+    /// entirely a question of what the housing is asked to give up.
+    ///
+    /// 2 rather than 0 because the housing has a 2pt stroke and a shadow, and a
+    /// moulded plate flush against the bezel reads as a rendering error rather
+    /// than as a part. Named rather than inline so the two numbers that make up
+    /// the inset are in one place — which is the thing that made this hard to
+    /// see, one of them being a literal at the bottom of `body`.
+    private static let outerPad: CGFloat = 2
 
     /// The radius of the bite taken out of each tile: the circle plus one
     /// channel, so the gap around the button is the same gap as between the
@@ -111,7 +130,7 @@ public struct MainMenuScreen: View {
             }
             .padding(Self.housingInset)
             .background(housing)
-            .padding(8)
+            .padding(Self.outerPad)
         }
     }
 
@@ -157,9 +176,62 @@ public struct MainMenuScreen: View {
             Haptics.screenTap()
             action()
         } label: {
-            // Sized up in 0.6.1, then eased back a notch (0.6.2, B1) — 64pt
-            // glyphs crowded the tile edges at the LARGE text scale.
-            VStack(spacing: 10) {
+            // **The tile measures itself as of 0.8.5 (C1).** See `contentShift`
+            // for why a `GeometryReader` had to appear here: the place the
+            // content belongs depends on the tile's own width and height, and a
+            // `.offset` computed from constants could not see either.
+            GeometryReader { geo in
+                let shift = Self.contentShift(in: geo.size, quadrant: quadrant)
+                tileContent(title, symbol: symbol, art: art, label: label)
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .offset(x: shift.x, y: shift.y)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(
+                shape
+                    .fill(paint.face)
+                    .overlay(alignment: .bottom) {
+                        // The web tiles use a 6px bottom border as a fake
+                        // extrusion. Clipped to the tile's own shape now, so the
+                        // strip follows the scoop out instead of running under
+                        // it — on the two bottom tiles the bite is *in* this
+                        // edge, and an unclipped band would have drawn straight
+                        // across the channel the circle sits in.
+                        paint.shadow.frame(height: 6)
+                    }
+                    .clipShape(shape)
+            )
+            .overlay(
+                shape
+                    .fill(
+                        LinearGradient(
+                            colors: [.white.opacity(0.12), .clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .allowsHitTesting(false)
+            )
+            // The hit area follows the drawing. Without this the corner the
+            // scoop removed is still tappable, and the 9pt channel around the
+            // circle becomes a place where a press lands on a tile the user is
+            // not pointing at.
+            .contentShape(shape)
+        }
+        .buttonStyle(DexPressStyle(scale: 0.97))
+    }
+
+    /// The glyph over the label — one tile's contents, extracted in 0.8.5 (C1)
+    /// so the `GeometryReader` above wraps something with a name.
+    private func tileContent(
+        _ title: String,
+        symbol: String,
+        art: String,
+        label: Color
+    ) -> some View {
+        // Sized up in 0.6.1, then eased back a notch (0.6.2, B1) — 64pt
+        // glyphs crowded the tile edges at the LARGE text scale.
+        VStack(spacing: 10) {
                 DexChromeGlyph(art, symbol: symbol, size: 52, tint: label)
                     .shadow(color: .black.opacity(0.3), radius: 0, x: 1, y: 2)
                     // **The fixed glyph box is what aligns the four titles**
@@ -198,8 +270,8 @@ public struct MainMenuScreen: View {
                     //
                     // 56 -> 52 in 0.8.4 (B1), the one number the cluster moved:
                     // the content has to clear the scoop as well as the tile's
-                    // own edges, and `contentShift` below is what buys most of
-                    // that back.
+                    // own edges, and `contentShift` is what buys most of that
+                    // back.
                     .frame(height: 52)
                 Text(title)
                     .font(DexFont.retro(18))
@@ -208,58 +280,87 @@ public struct MainMenuScreen: View {
                     .minimumScaleFactor(0.6)
                     .shadow(color: .black.opacity(0.35), radius: 0, x: 1, y: 1)
             }
-            // **Pushed into the outer corner** (0.8.4, B1). The glyph and label
-            // are centred in the tile's *rectangle*, and a quarter of that
-            // rectangle is now missing — so centred content sits partly under
-            // the bite, which is how a scooped tile ends up with its label
-            // half-eaten. This offsets the stack diagonally away from the
-            // circle by an eighth of the scoop, which is enough to clear it at
-            // every LCD size the four tiles are laid out at and small enough
-            // that the content still reads as centred rather than as shoved.
-            .offset(x: contentShift(quadrant).x, y: contentShift(quadrant).y)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(
-                shape
-                    .fill(paint.face)
-                    .overlay(alignment: .bottom) {
-                        // The web tiles use a 6px bottom border as a fake
-                        // extrusion. Clipped to the tile's own shape now, so the
-                        // strip follows the scoop out instead of running under
-                        // it — on the two bottom tiles the bite is *in* this
-                        // edge, and an unclipped band would have drawn straight
-                        // across the channel the circle sits in.
-                        paint.shadow.frame(height: 6)
-                    }
-                    .clipShape(shape)
-            )
-            .overlay(
-                shape
-                    .fill(
-                        LinearGradient(
-                            colors: [.white.opacity(0.12), .clear],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .allowsHitTesting(false)
-            )
-            // The hit area follows the drawing. Without this the corner the
-            // scoop removed is still tappable, and the 9pt channel around the
-            // circle becomes a place where a press lands on a tile the user is
-            // not pointing at.
-            .contentShape(shape)
-        }
-        .buttonStyle(DexPressStyle(scale: 0.97))
     }
 
     /// How far a tile's contents move away from the centre of the cluster.
-    private func contentShift(_ quadrant: ScoopedTile.Quadrant) -> CGPoint {
-        let d = Self.scoop / 8
+    ///
+    /// **Measured rather than guessed, as of 0.8.5 (C1).** 0.8.4 shipped a flat
+    /// `scoop / 8` — 8.38pt — on both axes, with the reasoning that the tile's
+    /// rectangle is missing a quarter, so centred content sits partly under the
+    /// bite and has to be pushed out of it. The observation was right and the
+    /// number was arrived at by eye, which C1 is the report of. Two things are
+    /// wrong with a constant here:
+    ///
+    /// 1. **It is not the same on both axes.** The bite is a circle and the
+    ///    tiles are not square — at the sizes the cluster lays out at they run
+    ///    roughly 150x180 to 170x220 — so the bite removes a different fraction
+    ///    of the width than of the height. The correct pair over that range is
+    ///    about (-4.4, -6.4) to (-7.1, -8.0). 0.8.4 pushed 8.38 on both, which
+    ///    is up to 4pt too far horizontally and up to 2pt too far vertically.
+    /// 2. **It does not scale.** The right offset shrinks as the tile grows,
+    ///    because the bite is a fixed radius taking a smaller share of a larger
+    ///    tile. A constant is therefore wrong in a direction that changes with
+    ///    the phone — and C2 has just made every tile 9pt larger, which would
+    ///    have made an already-too-large constant worse.
+    ///
+    /// So this is the area centroid of the shape `ScoopedTile` actually draws:
+    /// the rectangle, less the bite, less the three rounded outer corners. The
+    /// content is centred on *that* point, which is what "centred in the curved
+    /// tile" means and is a definition rather than a taste.
+    ///
+    /// **Integrated in horizontal strips**, not over a grid: for each row the
+    /// shape spans one interval, whose ends are the rounded left edge and either
+    /// the rounded right edge or the bite's chord. That is `strips` iterations
+    /// instead of `strips²`, exact to the strip height, and it was validated
+    /// against a 700x700 grid before it was written here — the two agree to
+    /// within 0.002pt at every tile size above.
+    ///
+    /// Computed for the top-leading quadrant and mirrored, exactly as the path
+    /// itself is, so there is one piece of geometry to get right rather than
+    /// four.
+    static func contentShift(in size: CGSize, quadrant: ScoopedTile.Quadrant) -> CGPoint {
+        let w = size.width, h = size.height
+        guard w > 1, h > 1 else { return .zero }
+
+        let biteX = w + channel / 2
+        let biteY = h + channel / 2
+        let r = min(outerCorner, min(w, h) / 2)
+        let strips = 240
+        let dy = h / CGFloat(strips)
+
+        var area: CGFloat = 0, mx: CGFloat = 0, my: CGFloat = 0
+        for i in 0..<strips {
+            let y = (CGFloat(i) + 0.5) * dy
+            var lo: CGFloat = 0
+            if y < r {
+                lo = r - (max(r * r - (r - y) * (r - y), 0)).squareRoot()
+            } else if y > h - r {
+                let d = y - (h - r)
+                lo = r - (max(r * r - d * d, 0)).squareRoot()
+            }
+            var hi = w
+            if y < r {
+                hi = w - r + (max(r * r - (r - y) * (r - y), 0)).squareRoot()
+            }
+            let dyb = y - biteY
+            if abs(dyb) < scoop {
+                hi = min(hi, biteX - (scoop * scoop - dyb * dyb).squareRoot())
+            }
+            guard hi > lo else { continue }
+            let a = (hi - lo) * dy
+            area += a
+            mx += (hi + lo) / 2 * a
+            my += y * a
+        }
+        guard area > 0 else { return .zero }
+
+        let dx = mx / area - w / 2
+        let dyOut = my / area - h / 2
         switch quadrant {
-        case .topLeading: return CGPoint(x: -d, y: -d)
-        case .topTrailing: return CGPoint(x: d, y: -d)
-        case .bottomLeading: return CGPoint(x: -d, y: d)
-        case .bottomTrailing: return CGPoint(x: d, y: d)
+        case .topLeading: return CGPoint(x: dx, y: dyOut)
+        case .topTrailing: return CGPoint(x: -dx, y: dyOut)
+        case .bottomLeading: return CGPoint(x: dx, y: -dyOut)
+        case .bottomTrailing: return CGPoint(x: -dx, y: -dyOut)
         }
     }
 

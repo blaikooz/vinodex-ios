@@ -190,7 +190,21 @@ struct SkinStickerView: View {
     private var glyph: some View {
         if let art = PixelArtLoader.shared.image(skin.stickerStem) {
             Image(uiImage: art)
-                .interpolation(.none)
+                // **Smooth since 0.8.5 (F1), and this branch had never once
+                // run before it.** `StickerArt` was empty from the day 0.7.8
+                // created it, so `.interpolation(.none)` was the house default
+                // applied to a code path with nothing to apply it to. The drop
+                // that arrived is painted illustration at 255-296px — 35,000 to
+                // 75,000 distinct colours before quantisation — shown inside a
+                // 70pt die-cut, which is roughly a fifth scale. Nearest-
+                // neighbour there keeps one pixel in five and discards the
+                // other four, and what it discards is most of the drawing.
+                //
+                // The house rule is about art drawn *on a grid*, where a filter
+                // smears an authored decision. Nothing here was drawn on a
+                // grid. Same exception, same argument, as `DexChromeGlyph`'s
+                // marquee dots (0.8.4) and the footer caps (0.8.5, E2).
+                .interpolation(.high)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
         } else if skin.drawnMark != nil {

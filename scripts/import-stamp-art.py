@@ -1,11 +1,28 @@
 #!/usr/bin/env python3
 """Imports the back-plate Passport stamp glyphs into the app bundle (0.6.4, F2).
 
-Sources are individual PNGs in art/icons/stamps, one per Passport badge, named
-`stamp-<badge>` (see StampCatalog in VinodexCore). Same treatment as the other
+Sources are individual PNGs in art/icons/stamps. Same treatment as the other
 importers: background removed via art_common.py (export on a magenta chroma key
 for the robust path), palette-quantised, written to
 Sources/VinodexUI/Resources/StampArt.
+
+**`STEM_FOR` is new in 0.8.5 (F1) and it is here for the reason the sticker
+importer's `SKIN_FOR` is.** This copied each filename through verbatim on the
+contract that the illustrator would deliver `stamp-first-sip.png` and the rest
+-- the exact `artStem` strings on `StampCatalog`. What arrived is named for the
+picture (`firstsip`, `allnoble`, `tenbottles`), which is how a person draws and
+not how `StampCatalogTests` looks things up. A verbatim copy would have put ten
+files in the bundle that nothing asks for, and left all six badges on their SF
+Symbol stand-ins with no error anywhere: neither this family nor the stickers is
+enumerated by `assertAssetsExist`, precisely because both resolve through
+code-drawn stand-ins.
+
+The drop is ten files, and only six of them are Passport badges. The other four
+are back-plate decals: the barcode label and the ripped price tag, which replace
+the `Canvas`-drawn versions `DeviceBackPlate` has carried since 0.6.4, and two
+loose postage stamps for the plate itself. They are prefixed and mapped here for
+the same reason the badges are -- so what the bundle holds is the list Swift
+asks for, and `StampRosterTests` asserts the two ends against each other.
 
 **Stamps only since 0.7.8 (A1).** The per-skin `sticker-<skin>` glyphs used to
 ride this importer too, from this same directory into this same bundle folder,
@@ -35,6 +52,27 @@ ROOT = os.path.dirname(HERE)
 # turn `npm run icons:verify` into a write (0.7.5, A027).
 DST = output_dir(ROOT, "StampArt")
 
+# Source file stem -> bundle stem. The six badges are `StampCatalog.artStem`
+# verbatim; the four decals are `BackPlateDecal.artStem` on the Swift side.
+# `StampRosterTests` asserts this table against both, in both directions.
+STEM_FOR = {
+    # The six Passport badges.
+    "firstsip": "stamp-first-sip",
+    "tenbottles": "stamp-ten-bottles",
+    "allnoble": "stamp-all-noble",
+    "regioncomplete": "stamp-region-complete",
+    "streakweek": "stamp-streak-week",
+    "sommelier": "stamp-sommelier",
+    # The four back-plate decals (0.8.5, F1). `stamp-` rather than a fifth
+    # prefix: they ship in this directory, they are drawn to the same brief, and
+    # `PixelArtLoader`'s namespace is flat -- a second prefix here would buy
+    # nothing and cost the loader another entry to reason about.
+    "barcode": "stamp-barcode",
+    "pricesticker": "stamp-price-tag",
+    "stamp1": "stamp-decal-one",
+    "stamp2": "stamp-decal-two",
+}
+
 
 def source_dir():
     if len(sys.argv) > 1:
@@ -59,16 +97,24 @@ def main():
 
     os.makedirs(DST, exist_ok=True)
     total_out = 0
+    unmapped = []
     for stem in stems:
+        target = STEM_FOR.get(stem)
+        if target is None:
+            unmapped.append(stem)
+            continue
         img = strip_background(Image.open(os.path.join(src, stem + ".png")))
-        out = os.path.join(DST, stem + ".png")
+        out = os.path.join(DST, target + ".png")
         # `quantize_stable` + `save_stable` since 0.8.0 (A0b): no library
         # default decides the palette, and a run whose pixels match writes
         # nothing. See art_common for both arguments.
         save_stable(quantize_stable(img), out, optimize=True)
         total_out += os.path.getsize(out)
 
-    print(f"converted {len(stems)} stamp glyphs -> {DST} ({total_out // 1024}KB)")
+    done = len(stems) - len(unmapped)
+    print(f"converted {done} stamps and decals -> {DST} ({total_out // 1024}KB)")
+    if unmapped:
+        print(f"  !! no stem mapped for: {', '.join(unmapped)} — add them to STEM_FOR")
 
 
 if __name__ == "__main__":

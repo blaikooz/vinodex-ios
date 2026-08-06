@@ -75,6 +75,7 @@ Requires Pillow.
 """
 import os
 import sys
+from collections import deque
 
 from PIL import Image
 
@@ -118,6 +119,13 @@ SHADOW_VALUE_FLOOR = 16
 # 0.50 is the middle of the measured gap rather than a value that looked right:
 # it takes the whole ramp and leaves the cap's darkest legitimate pixel, at
 # 0.6, with room to spare.
+#
+# **The number is unchanged in 0.8.5 and the sweep it drives is not.** E2's
+# third pass found that widening the ceiling was never the missing half: at any
+# ceiling, a *global* sweep also matches pixels inside the cap, and the wider
+# the ceiling the more of them it takes. `strip_key_shadow` is border-connected
+# now, which makes the ceiling a question about the shadow only — where it can
+# be generous without costing the drawing anything.
 SHADOW_GREEN_CEILING = 0.50
 # How close red and blue must be to each other. Magenta is the two together, so
 # this is what keeps a dark red or a dark blue in the drawing out of the sweep.
@@ -145,14 +153,68 @@ def strip_key_shadow(img):
 
     Runs *after* `strip_background`, over what it left opaque, so the pure key
     is already gone and this only ever sees the ramp below it.
+
+    **Border-connected only, as of 0.8.5 (E2), and that is the whole of the
+    third pass at this item.** Through 0.8.4 this was a global sweep: every
+    pixel anywhere in the file that matched `_is_key_shadow` was cleared. The
+    cast shadow is *behind* the cap, so on the exterior that is correct — and
+    on the interior it is a hole punched through an opaque moulded part. It
+    punched a lot of them: 3,276 pixels on `back` and 3,706 on `user`,
+    clustered in the lower half of the disc where the cap's own darkest
+    shading sits closest to the shadow's colour.
+
+    Two things followed, and between them they are what the photographs show:
+
+    1. The holes let the chassis through the cap, which is the mottling across
+       the lower portion of a re-inked cap.
+    2. Where a run of them reached the rim they cut the cel outline into
+       fragments. Measured over 720 rays, the silhouette's radius had a
+       standard deviation of **4.2px on a 123px disc**; border-flooding takes
+       that to **1.3px**. That is the difference between an edge that reads as
+       drawn and one that reads as damaged, and no amount of clipping in Swift
+       could have recovered it — the pixels were gone before the app opened
+       the file.
+
+    So the flood spreads inward from the border through transparent *or*
+    shadow-coloured pixels and stops at the first pixel of the cap. Anything it
+    never reaches is the drawing, whatever colour it happens to be. This is the
+    same rule `art_common.strip_background`'s white path already follows, and
+    the reason that path was written border-first in the first place.
     """
     px = img.load()
     w, h = img.size
+
+    def passable(x, y):
+        r, g, b, a = px[x, y]
+        return a == 0 or _is_key_shadow(r, g, b)
+
+    seen = bytearray(w * h)
+    queue = deque()
+
+    def push(x, y):
+        if not seen[y * w + x] and passable(x, y):
+            seen[y * w + x] = 1
+            queue.append((x, y))
+
+    for x in range(w):
+        push(x, 0)
+        push(x, h - 1)
+    for y in range(h):
+        push(0, y)
+        push(w - 1, y)
+    while queue:
+        x, y = queue.popleft()
+        for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+            if 0 <= nx < w and 0 <= ny < h:
+                push(nx, ny)
+
     cleared = 0
     for y in range(h):
         for x in range(w):
+            if not seen[y * w + x]:
+                continue
             r, g, b, a = px[x, y]
-            if a and _is_key_shadow(r, g, b):
+            if a:
                 px[x, y] = (r, g, b, 0)
                 cleared += 1
     return img, cleared

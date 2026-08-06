@@ -369,8 +369,17 @@ public enum DexRoute: Hashable, Sendable {
             "GLOBE SCAN"
         case .globeSearch:
             "WORLD SEARCH"
+        // **USER, not SAVED (0.8.5, A1).** The panel named the *contents* of the
+        // page — a list of saved entries — where every other title in this table
+        // names the place. It is also the only route whose title disagreed with
+        // the control that opens it: the cap on the chassis is USER, has been
+        // since 0.6.5 (A1), and the screen behind it has grown a profile, a name
+        // and an avatar since. The case, `BookmarkStore`, `onBookmarks` and
+        // every state key keep their names, per the convention `.scanner` and
+        // `.wsetQuiz` already follow — the label is the thing that gets to be
+        // copy.
         case .bookmarks:
-            "SAVED"
+            "USER"
         // The scan-family label (v0.5.8, D3) — the page's own hero already
         // names the country, so the marquee names the *kind* of page, like
         // every other scan screen.
@@ -508,8 +517,13 @@ public enum DexRoute: Hashable, Sendable {
         // map disc is what says so.
         case .globeSearch:
             "map.circle.fill"
+        // **A person, not a bookmark (0.8.5, A1).** The title is USER now, and
+        // K2 rule 1 asks for the glyph on the control that opens it — which is
+        // the chassis's USER cap, a figure. `person.fill` is on no other route
+        // (`glyphsAreDistinct` gates that) and is SF Symbols 1 / iOS 13, well
+        // under the iOS 17 floor.
         case .bookmarks:
-            "bookmark.fill"
+            "person.fill"
         // A country, not a map — `map.fill` is the regions listing's, and this
         // is the one screen whose subject is a nation.
         case .country:
@@ -627,21 +641,26 @@ public enum DexRoute: Hashable, Sendable {
     /// nil is `.detail`'s unresolved fallback (`WineEntry.scanArt` answers for
     /// every entry that exists) and `.bookmarks`, which nobody drew.
     ///
-    /// A filtered listing still answers nil, for K2 rule 2: a GEOLOGY SCAN is
-    /// not a regions listing, and the regions face is what it would be claiming
-    /// to be.
+    /// A filtered listing answers with the *filter's* face as of 0.8.5 (B1) —
+    /// see `EntryFilter.marqueeArt`. K2 rule 2 is unchanged and is what that
+    /// table implements: a GEOLOGY SCAN is not a regions listing, so it may not
+    /// wear the regions face — but a STYLE SCAN is a scan of styles and had been
+    /// wearing nothing at all.
     public var marqueeArt: String? {
         switch self {
         case .list(let category, let filter):
-            filter == nil ? category.marqueeArt : nil
+            filter.map(\.marqueeArt) ?? category.marqueeArt
         // The detail screen overrides both halves through `WineEntry.scanArt`;
         // this is the unresolved-entry fallback and has no picture.
         case .detail:
             nil
-        // Nobody drew a bookmark. The SF Symbol stands, which is the fallback
-        // working rather than a gap.
+        // **`marquee-user` (0.8.5, A1).** This answered nil for one release on
+        // the grounds that "nobody drew a bookmark", which was true and was
+        // looking at the wrong drawing: the 0.8.4 drop has a `user` glyph, and
+        // it went unclaimed because this page was called SAVED. A1 renames the
+        // page and the picture was already on disk waiting for it.
         case .bookmarks:
-            nil
+            "marquee-user"
         // The four places, each drawn as itself rather than as a globe: a
         // country is a flag on a map, a state is the same at another scale, a
         // continent is a hemisphere. The globe and the world search share

@@ -39,6 +39,26 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.8.5",
+  date: "2026-08-06",
+  // The panel starts saying who you are, the four buttons finally sit still in
+  // the middle of themselves, and the back plate stops being drawn by the app.
+  headline: "IT KNOWS WHO YOU ARE",
+  notes: [
+    "SAVED is USER. The page the figure on the chassis opens is finally called what that button is called, and it has the figure's own glyph.",
+    "The two lamps above the marquee say where they go. TOOLS, CUSTOMIZE, SETTINGS, DATA or SHOP, cut into the cap like the START and SELECT on a controller, on a lamp a little taller to hold the word.",
+    "The marquee pixelates on every change now, not only on the greeting. A page title takes 0.42 seconds where a greeting takes 1.4.",
+    "STYLE SCAN has its glyph. So do SECTOR SCAN, FLAVOR SCAN and REGION SCAN -- every filtered list had been falling back to a plain symbol while its drawn one sat unused.",
+    "The four menu buttons are larger and their contents sit in the middle of the curve rather than shoved into the corner. Where the middle is now depends on the size of the button, which is why it was wrong before.",
+    "FIBERGLASS gets the drawn buttons. It was the last shell still on the painted ones.",
+    "The footer buttons are a tenth larger, and the dark fringe around them is gone: the cast shadow was eating holes through the caps at import, and the recolour was painting the bottom of each one in the glyph's colour.",
+    "The back plate wears twenty hand-drawn artifacts, one per shell, and a drawn barcode, price tag and two loose stamps in place of the ones the app used to draw itself.",
+    "A shared entry card now carries the entry's attributes, its country's flag, its rarity and its flavours. A shared profile carries your photo, your name and six coloured stats.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const DISPLACED_0_8_4: FirmwareRelease = {
   version: "0.8.4",
   date: "2026-08-06",
   // The menu becomes a dial and the marquee gets its own alphabet of pictures.
@@ -129,6 +149,7 @@ const DISPLACED_0_8_1: FirmwareRelease = {
 
 /** Everything before `CURRENT`, newest first. */
 const PREVIOUS: FirmwareRelease[] = [
+  DISPLACED_0_8_4,
   DISPLACED_0_8_3,
   DISPLACED_0_8_2,
   DISPLACED_0_8_1,

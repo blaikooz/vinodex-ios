@@ -145,7 +145,12 @@ struct BackPlateStampView: View {
     private var glyph: some View {
         if let art = PixelArtLoader.shared.image(stamp.artStem) {
             Image(uiImage: art)
-                .interpolation(.none)
+                // Smooth since 0.8.5 (F1) — see `SkinStickerView.glyph`, which
+                // makes the identical argument about the identical situation.
+                // This branch had never run either: `StampArt` was empty from
+                // 0.6.4 until the badges were drawn in this batch, and the
+                // drawings are painted at ~300px inside an 88x104 stamp.
+                .interpolation(.high)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
         } else {

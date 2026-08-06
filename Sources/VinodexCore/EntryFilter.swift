@@ -116,6 +116,44 @@ public enum EntryFilter: Sendable, Hashable {
         }
     }
 
+    /// The drawn marquee face while this filter is active (0.8.5, B1).
+    ///
+    /// **This is the whole of B1, and the report was exactly right about the
+    /// symptom and one word off about the screen.** "Style Scan didn't get its
+    /// glyph" reads like the styles *listing*, which has had `marquee-stylescan`
+    /// since 0.8.4 — but STYLE SCAN is `scanTitle` on `.type`, the colour-class
+    /// filter, and `DexRoute.marqueeArt` answered nil for every filtered listing
+    /// in the app. So the panel read STYLE SCAN over a fallen-back SF wineglass
+    /// while the unfiltered STYLES listing beside it wore the drawn one.
+    ///
+    /// The nil was deliberate and was defended under K2 rule 2 — a GEOLOGY SCAN
+    /// is not a regions listing, so it may not wear the regions face. That rule
+    /// is kept and this is what it actually implies: a filter answers with *its
+    /// own* picture where the drop has one, and nil where it does not, exactly
+    /// as `marqueeSymbol` beside it has done since 0.7.0. What it may never do
+    /// is fall through to the parent category's.
+    ///
+    /// Four of the nine resolve. `soil`, `rarity`, `system` and `climate` have
+    /// no dot-matrix glyph drawn for them and keep the SF Symbol, which is the
+    /// fallback working rather than a gap — and is the honest state of a
+    /// conversion that is complete on pages and partial on facets. The next
+    /// glyph drawn for one of them is one line here.
+    public var marqueeArt: String? {
+        switch self {
+        // A continent's countries, drawn as a continent — which is the sector
+        // this scan actually covers, and the same picture `.continent` wears.
+        case .region: "marquee-continentscan"
+        case .type: "marquee-stylescan"
+        case .tasting, .flavorSubclass: "marquee-flavorscan"
+        // REGION SCAN, and the regions face is this filter's own rather than a
+        // borrowed parent's: `.origin` narrows to one region's entries and the
+        // title says so.
+        case .origin: "marquee-regions"
+        // Nobody drew a rock, a star, a seal or a thermometer. See the note.
+        case .soil, .rarity, .system, .climate: nil
+        }
+    }
+
     /// Label shown in the filter indicator bar.
     public var indicatorText: String {
         switch self {

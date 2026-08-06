@@ -1,5 +1,11 @@
 import Foundation
 import Testing
+// The stamp roster (0.8.5, F1) is the first check here that compares a script
+// against a *type* rather than against another script — `StampCatalog` and
+// `BackPlateDecal` both live in Core, so the stems the app asks for can be read
+// from the app rather than restated in a list this suite would then have to
+// police as well.
+@testable import VinodexCore
 
 /// The art pipeline's four rosters name the same importers (0.7.5, A027).
 ///
@@ -293,7 +299,17 @@ struct ArtPipelineRosterTests {
     /// authored, the importer creates the directory, the equality below starts
     /// failing, and the fix is to add the `.copy` *and* delete the name from
     /// here. Both halves, which is what an exemption list is for.
-    private static let unauthoredArtDirectories: Set<String> = ["StampArt", "StickerArt"]
+    ///
+    /// **Empty since 0.8.5 (F1), and that is the list working.** It held
+    /// `StampArt` and `StickerArt` from the day it was written. Both were
+    /// authored in this batch, both directories appeared, and the check at the
+    /// bottom of `loaderSearchPathIsBundled` failed on exactly the two names —
+    /// which is the entire reason an exemption is written as a two-way
+    /// assertion rather than as a subtraction. Kept at zero entries rather than
+    /// deleted: the next search path added ahead of its art needs somewhere to
+    /// be declared, and a list that has been emptied once is a list somebody
+    /// trusts.
+    private static let unauthoredArtDirectories: Set<String> = []
 
     /// **Every bundled directory is declared, and nothing is declared twice over.**
     ///
@@ -539,6 +555,205 @@ struct ArtPipelineRosterTests {
         #expect(
             fills.subtracting(masters).isEmpty,
             "fill colours for outlines that do not exist: \(fills.subtracting(masters).sorted())"
+        )
+    }
+
+    // MARK: - The two hand-mapped drops (0.8.5, F1)
+    //
+    // `import-stamp-art.py` and `import-sticker-art.py` are the only importers
+    // that rename what they copy. Every other one takes the file's own stem,
+    // so its output roster is its input roster and there is nothing to get
+    // wrong. These two carry a dict from the picture's name to the app's name,
+    // because both drops arrived named for what is drawn on them — and a
+    // wrong row in either is invisible at runtime: `StampFrame` falls back to
+    // an SF Symbol and `SkinStickerView` to the skin emblem, both silently, and
+    // neither family is walked by `assertAssetsExist`.
+    //
+    // So each map is checked at three joints: the source files it claims to
+    // read, the stems the app actually asks for, and the PNGs that came out.
+
+    /// A Python `NAME = { "k": "v", ... }` dict, as ordered key/value pairs.
+    ///
+    /// **Line-wise rather than through `quoted`**, unlike every other reader
+    /// here, and the difference is that these two dicts are *commented* — the
+    /// rows that needed explaining are exactly the rows that would go wrong
+    /// silently, so the comments are load-bearing and cannot be asked to move.
+    /// `quoted`'s own note says it does not understand them; running it over a
+    /// commented body reads whatever falls out of the alternating quote count,
+    /// which is not a parse, it is a coincidence.
+    ///
+    /// So: start after the `NAME = {` line, stop at the first line beginning
+    /// `}`, skip blanks and comment-only lines, and take the two quoted runs
+    /// out of each remaining row. A row this cannot read is dropped rather
+    /// than guessed at, and the two-way assertions above are what turn a
+    /// dropped row into a failure.
+    ///
+    /// **`isNewline`, not `"\n"`, and this is the trap worth carrying out of
+    /// 0.8.5.** These scripts are edited on Windows and land in the checkout
+    /// with CRLF endings; Swift treats `"\r\n"` as a *single* grapheme cluster,
+    /// so `split(separator: "\n")` does not match it and hands back the entire
+    /// file as one line. Nothing throws — the parse simply returns an empty map,
+    /// or, if it is stripping comments, everything up to the first `#` in the
+    /// file. Both were seen while this test was being written, and neither looks
+    /// like an encoding problem from the failure message. `\.isNewline` is true
+    /// for the CRLF cluster and for LF, so this reads either.
+    private static func pythonMap(_ source: String, named: String) -> [(String, String)] {
+        var out: [(String, String)] = []
+        var inside = false
+        for raw in source.split(whereSeparator: \.isNewline) {
+            let line = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !inside {
+                if line.hasPrefix("\(named) = {") { inside = true }
+                continue
+            }
+            if line.hasPrefix("}") { break }
+            if line.isEmpty || line.hasPrefix("#") { continue }
+            let runs = quoted(line)
+            guard runs.count >= 2 else { continue }
+            out.append((runs[0], runs[1]))
+        }
+        return out
+    }
+
+    private static func pngStems(_ components: String...) throws -> Set<String> {
+        var url = repoRoot
+        for component in components { url.appendPathComponent(component) }
+        let names = try FileManager.default.contentsOfDirectory(atPath: url.path)
+        return Set(
+            names.filter { $0.hasSuffix(".png") }.map { String($0.dropLast(4)) }
+        )
+    }
+
+    /// **The stamp drop maps every source file onto a stem the app asks for.**
+    ///
+    /// Six Passport badges and four back-plate decals. `StampCatalog.artStem`
+    /// and `BackPlateDecal.artStem` are both in Core, so this compares the
+    /// Python against the types themselves rather than against another list.
+    @Test("every stamp source maps to a stem the app asks for, and back")
+    func stampRosterIsComplete() throws {
+        let map = Self.pythonMap(try Self.read("scripts", "import-stamp-art.py"), named: "STEM_FOR")
+        #expect(!map.isEmpty, "could not parse STEM_FOR out of import-stamp-art.py")
+
+        let sources = Set(map.map(\.0))
+        let onDisk = try Self.pngStems("art", "icons", "stamps")
+        #expect(
+            sources == onDisk,
+            """
+            import-stamp-art.py and art/icons/stamps/ disagree — \
+            drawn but unmapped (these are skipped at import): \(onDisk.subtracting(sources).sorted()), \
+            mapped but not drawn: \(sources.subtracting(onDisk).sorted())
+            """
+        )
+
+        let produced = Set(map.map(\.1))
+        let wanted = Set(StampCatalog.all.map(\.artStem))
+            .union(BackPlateDecal.allCases.map(\.artStem))
+        #expect(
+            produced == wanted,
+            """
+            import-stamp-art.py's output stems and the app's disagree — \
+            produced but nothing asks for: \(produced.subtracting(wanted).sorted()), \
+            asked for but not produced: \(wanted.subtracting(produced).sorted())
+            """
+        )
+
+        // And the drop actually landed. This is the joint the other two cannot
+        // see: a map that is right about both ends still leaves nothing in the
+        // bundle if nobody ran `npm run icons`.
+        let bundled = try Self.pngStems("Sources", "VinodexUI", "Resources", "StampArt")
+        #expect(
+            bundled == wanted,
+            "Resources/StampArt holds \(bundled.sorted()), the app asks for \(wanted.sorted())"
+        )
+    }
+
+    /// Every `ChassisSkin` raw value, read out of `DexTheme.swift`.
+    ///
+    /// Textual because `ChassisSkin` lives in `VinodexUI`, which Linux cannot
+    /// compile — the same reason and the same technique `loaderSearchPath` uses
+    /// on `PixelArtLoader.subdirectories`. The enum's cases are the only
+    /// `case <name> = "<VALUE>"` lines between its declaration and its first
+    /// computed property, which is what the slice below takes.
+    ///
+    /// **The colon in the marker is load-bearing.** `ChassisSkinSection` is
+    /// declared thirty-six lines above `ChassisSkin` in the same file, and
+    /// `range(of:)` matches a prefix — so "public enum ChassisSkin" found the
+    /// *section* enum and this returned its six raw values (FESTIVE, VESSEL,
+    /// CLEARTECH, …) with no sign that anything had gone wrong. The count
+    /// assertion at the call site is the second guard, and it is the one that
+    /// caught it.
+    private static var chassisSkinRawValues: Set<String> {
+        get throws {
+            let text = try read("Sources", "VinodexUI", "DexTheme.swift")
+            guard let declaration = text.range(of: "public enum ChassisSkin:") else { return [] }
+            let body = text[declaration.upperBound...]
+            // The cases run to the first member that is not one.
+            let end = body.range(of: "\n    public var")?.lowerBound ?? body.endIndex
+            var values: Set<String> = []
+            // `isNewline` for the reason `pythonMap` documents at length: a
+            // CRLF file is one grapheme-cluster line to `split(separator:)`.
+            for line in body[..<end].split(whereSeparator: \.isNewline) {
+                let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard trimmed.hasPrefix("case "), trimmed.contains(" = \"") else { continue }
+                let runs = quoted(trimmed)
+                if let value = runs.first { values.insert(value) }
+            }
+            return values
+        }
+    }
+
+    /// Shells with no decal drawn, named so the shortfall cannot rot (0.8.5, F1).
+    ///
+    /// The drop is twenty files against twenty-two shells. These two keep
+    /// `SkinEmblem`, which is the documented fallback and looks deliberate — so
+    /// without naming them here, "the artist has not got to it" and "somebody
+    /// mistyped a rawValue" are the same observation. The list is asserted in
+    /// both directions below: a name here that *does* have art fails too, which
+    /// is what stopped the outline backlog becoming an excuse in 0.8.4.
+    private static let shellsWithoutADecal: Set<String> = ["CHRISTMAS", "ORANGE WINE"]
+
+    /// **Every shell decal maps onto a real shell, and every shell has one or is
+    /// named as not having one.**
+    @Test("every artifact maps to a chassis skin, and every skin to an artifact")
+    func stickerRosterIsComplete() throws {
+        let map = Self.pythonMap(try Self.read("scripts", "import-sticker-art.py"), named: "SKIN_FOR")
+        #expect(!map.isEmpty, "could not parse SKIN_FOR out of import-sticker-art.py")
+
+        let sources = Set(map.map(\.0))
+        let onDisk = try Self.pngStems("art", "icons", "artifacts")
+        #expect(
+            sources == onDisk,
+            """
+            import-sticker-art.py and art/icons/artifacts/ disagree — \
+            drawn but unmapped (these are skipped at import): \(onDisk.subtracting(sources).sorted()), \
+            mapped but not drawn: \(sources.subtracting(onDisk).sorted())
+            """
+        )
+
+        let skins = try Self.chassisSkinRawValues
+        #expect(skins.count >= 20, "parsed only \(skins.count) ChassisSkin cases — did the slice hold?")
+        let claimed = Set(map.map(\.1))
+        #expect(
+            claimed.subtracting(skins).isEmpty,
+            "decals mapped to no such shell: \(claimed.subtracting(skins).sorted())"
+        )
+        #expect(
+            skins.subtracting(claimed) == Self.shellsWithoutADecal,
+            """
+            the undrawn-shell list is out of date — \
+            no decal and not named: \(skins.subtracting(claimed).subtracting(Self.shellsWithoutADecal).sorted()), \
+            named but now drawn: \(Self.shellsWithoutADecal.subtracting(skins.subtracting(claimed)).sorted())
+            """
+        )
+
+        // `ChassisSkin.stickerStem`, restated — kebab-cased raw value under the
+        // `sticker-` prefix. Two languages, one expression; this is the joint
+        // where they are held together.
+        let expected = Set(claimed.map { "sticker-" + $0.lowercased().replacingOccurrences(of: " ", with: "-") })
+        let bundled = try Self.pngStems("Sources", "VinodexUI", "Resources", "StickerArt")
+        #expect(
+            bundled == expected,
+            "Resources/StickerArt holds \(bundled.sorted()), the skins ask for \(expected.sorted())"
         )
     }
 }

@@ -672,17 +672,17 @@ public struct DeviceChassis<Content: View>: View {
         // the cog glyph together rather than sitting on top of them, and it is
         // withheld from the sketch shell whose parts are all pen strokes.
         // Nil falls through to everything this button drew in 0.8.1.
-        let drawnCap = skin.sketch == nil
-            ? ChassisCapLoader.shared.image(
-                stem: "settings",
-                inkHex: cap.topHex,
-                // E1, same pair as `ChassisButton.capGlyphHex`: the cog is
-                // incised into this cap exactly as the chevron and the house are
-                // into theirs, and `settingsMoldedCap` below already tints its
-                // stand-in glyph with this colour.
-                glyphHex: cap.glyphHex
-            )
-            : nil
+        // On every shell as of 0.8.5 (D1) — see `ChassisButton.drawnCap` for
+        // why FIBERGLASS stopped being the exception.
+        let drawnCap = ChassisCapLoader.shared.image(
+            stem: "settings",
+            inkHex: cap.topHex,
+            // E1, same pair as `ChassisButton.capGlyphHex`: the cog is
+            // incised into this cap exactly as the chevron and the house are
+            // into theirs, and `settingsMoldedCap` below already tints its
+            // stand-in glyph with this colour.
+            glyphHex: cap.glyphHex
+        )
 
         return Button {
             Haptics.tap()
@@ -690,7 +690,11 @@ public struct DeviceChassis<Content: View>: View {
         } label: {
             if let drawnCap {
                 Image(uiImage: drawnCap)
-                    .interpolation(.none)
+                    // Smooth, with its three neighbours (0.8.5, E2) — see
+                    // `ChassisButton`'s note. The cog is the sprite this matters
+                    // most on: its knurl is a ring of dark ticks at the rim, and
+                    // nearest-neighbour was sampling them to uneven widths.
+                    .interpolation(.high)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: size, height: size)
@@ -1295,21 +1299,23 @@ public struct DeviceChassis<Content: View>: View {
                         // hang. This is the exact instant the face goes to
                         // `opacity 0`. (AUDIT M8)
                         paused: showsBackFace,
-                        // B2's dissolve is for the scripted stages only — a 1.4s
-                        // transition in front of every navigation is a wait, not a
-                        // transition.
+                        // **Which changes get the long dissolve (0.8.5, A3).**
+                        // Every change is pixelated now — see `MarqueeBanner.slowFade`
+                        // — and this expression is unchanged in every other respect,
+                        // because what it has always actually selected is the
+                        // *scripted* stages: the greeting cycle on the main screen and
+                        // the idle toast anywhere. Those are the panel talking to you
+                        // rather than naming a page, and they get the 1.4s.
                         //
-                        // **`.cheers` joins the main screen in 0.7.6 (A4)**, because
-                        // the toast can now arrive over any page and it should arrive
-                        // the way A4 asks: pixelated. Note the asymmetry, which is
-                        // deliberate — this is true on the way *in* (the stage is
-                        // `.cheers` when the text changes to the toast) and false on
-                        // the way *out* (activity has already parked the script at
-                        // MENU), so leaving the greeting is the 0.55s cross-fade. The
-                        // user has just touched the device and wants the title back;
-                        // 1.4 seconds of dissolve at that moment is the wait B2 was
-                        // written to avoid.
-                        pixelFades: isMainScreen || script.stage == .cheers
+                        // The asymmetry is deliberate and is kept: this is true on the
+                        // way *in* to CHEERS! (the stage is `.cheers` when the text
+                        // changes to the toast) and false on the way *out* (activity
+                        // has already parked the script at MENU). The user has just
+                        // touched the device and wants the title back, so leaving the
+                        // greeting takes the short dissolve — which as of A3 is a
+                        // dissolve rather than a cross-fade, and is the one thing
+                        // about this line that has changed.
+                        slowFade: isMainScreen || script.stage == .cheers
                     )
                 }
             }
@@ -1550,54 +1556,56 @@ public struct DeviceChassis<Content: View>: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: DexMetrics.bandPillHeight)
                 .overlay {
-                    // Dark ink rather than the panel's: the lamp faces are lit
-                    // colours chosen to glow, and a light glyph on CHAMPAGNE's
-                    // pale gold would not be there at all.
+                    // **The pin's name, engraved (0.8.5, A2)** — and this
+                    // replaces the drawn face 0.8.3's H put here, so the
+                    // paragraphs below are the argument being set aside.
                     //
-                    // **`ink`, not `border`, since 0.7.5 (A1).** It was the
-                    // border, which is also the rim this lamp is drawn with, so
-                    // the glyph and the keyline around it were the same colour
-                    // and the mark read as a thickening of the rim. `ink` is a
-                    // further 45% of the same hue toward black — still a shade
-                    // the lamp is already wearing, but now a stop below its own
-                    // outline instead of level with it.
+                    // A2's reference is a controller's START and SELECT: a word
+                    // cut into the cap rather than a picture printed on it. The
+                    // reason it is the better answer *here* and not everywhere
+                    // is that these two buttons are reassignable. Every other
+                    // control on this chassis means one fixed thing and can be
+                    // learned as a shape; a lamp means whatever the user last
+                    // pointed it at, and a picture of TOOLS and a picture of
+                    // DATA are two chrome glyphs a millimetre wide that nobody
+                    // has any reason to be able to tell apart. The word is what
+                    // makes the customisation legible from across the room,
+                    // which is most of what A1 built it for.
                     //
-                    // The glyph comes off the *pin* since 0.7.6 (A1), so a lamp
-                    // can never wear one destination's mark and land on another.
+                    // `.engraved` rather than a drop shadow: a highlight *below*
+                    // the letters and a shade *above* them is what an incised
+                    // legend on a lit cap looks like, and it is the same
+                    // treatment the back plate's nameplate wears. Brighter and
+                    // softer than the plate's defaults, because a lamp is
+                    // saturated plastic with a light behind it rather than
+                    // brushed aluminium.
                     //
-                    // **The drawn face, in its own colours (0.8.3, H)** — and
-                    // note this is deliberately the opposite of what item A does
-                    // to the page glyph one component above. A flattens its art
-                    // to black through `DexChromeGlyph`'s `flatten:`; this
-                    // passes no `flatten:` at all, which is the loader's default
-                    // and the rule every converted control in the app already
-                    // follows: the faces ship their own colours. Two treatments,
-                    // one mechanism, and the difference is a parameter rather
-                    // than two code paths that could drift.
+                    // Fitted rather than truncated: CUSTOMIZE is nine characters
+                    // on a cap roughly seven wide at `bandPillLabel`, so the
+                    // scale factor is doing real work on the longest pin rather
+                    // than sitting there as a guard.
                     //
-                    // **The colours read on every lamp, and that is a property
-                    // of the drop rather than luck.** These five faces —
-                    // `tools`, `customize`, `settings`, `data`, `shop` — are
-                    // drawn dark-outlined on saturated mid-tones, and the lamp
-                    // under them is `marqueeLights[0]` or `[2]`, the widest pair
-                    // the shell offers. Where a shell's lamp happens to land
-                    // near a face's own hue, the face's black cel outline is
-                    // what keeps it a separate object; the same outline the
-                    // paragraph above relies on for `ink`.
-                    //
-                    // `ink` stays as the fallback tint. All five stems resolve
-                    // today (see `MarqueePin.artStem`), so it is unreached — and
-                    // a lamp is a moulded part of the shell, so the one state it
-                    // must never have is blank.
-                    DexChromeGlyph(
-                        pin.artStem ?? pin.symbol,
-                        symbol: pin.symbol,
-                        size: DexMetrics.bandPillGlyph,
-                        weight: .black,
-                        tint: ink
-                    )
+                    // What goes with the picture, recorded because it was argued
+                    // for twice. `ink` — 45% of the lamp's own hue toward black
+                    // — is kept as the letter colour, and it is kept for 0.7.5
+                    // A1's reason: it is a shade the lamp is already wearing,
+                    // one stop below the rim it is drawn with, so the legend
+                    // reads as cut into the cap rather than printed on it. What
+                    // is retired is 0.8.3's H, which put the drawn button face
+                    // here in its own colours; `MarqueePin.artStem` still
+                    // resolves all five and is still what `MarqueeLampChooser`
+                    // draws, so the faces have a surface and this one has a
+                    // word.
+                    Text(pin.displayName)
+                        .font(DexFont.retro(DexMetrics.bandPillLabel))
+                        .tracking(0.5)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.45)
+                        .foregroundStyle(ink)
+                        .engraved(light: 0.42, dark: 0.30)
+                        .padding(.horizontal, 7)
                 }
-                // No bead (0.7.2, A4) — it would sit on the glyph.
+                // No bead (0.7.2, A4) — it would sit on the legend.
                 .recessedLamp(
                     Capsule(),
                     size: DexMetrics.bandPillHeight,
@@ -2085,9 +2093,29 @@ public struct ChassisButton: View {
     /// cannot do". A rendered pixel cap, with its own baked highlight and
     /// shadow, is a larger version of the same contradiction. It keeps the
     /// drawn controls it already had.
+    /// **FIBERGLASS takes them too, as of 0.8.5 (D1)** — and the paragraph
+    /// above is the argument that has been reversed, kept because it was a real
+    /// one. It read: that shell is a pen drawing, `SketchStroke` inks every
+    /// circle by hand, and 0.6.6's B3 removed the cast shadow from it because "a
+    /// cast shadow is the one thing a pen cannot do"; a rendered pixel cap with
+    /// its own baked highlight is a larger version of the same contradiction.
+    ///
+    /// Two things retire it. The first is that the contradiction has been
+    /// shrinking on its own: 0.8.3's B1 removed the caps' painted cast shadow at
+    /// import, and 0.8.5's E2 clips and feathers them to a fitted circle, so
+    /// what a skin now adopts is a drawn *cap*, not a rendered photograph of
+    /// one. The second is the item, which is worth taking at face value — the
+    /// device's four most-used controls were one release behind on the shell a
+    /// user has to pay to reach, and "it is consistent with the pen" is a
+    /// smaller consideration than "it is the only skin still on the old
+    /// buttons", which is what D1 says out loud.
+    ///
+    /// FIBERGLASS keeps its pen everywhere else: the body grain, the panel
+    /// edges, the orb and the cog's rim are untouched, and the re-ink takes its
+    /// own `#FBF8F1` face over `#2B3244` ink, which is the flattest pair in the
+    /// range and the closest any skin gets to paper and pencil.
     private var drawnCap: UIImage? {
-        guard skin.sketch == nil else { return nil }
-        return ChassisCapLoader.shared.image(
+        ChassisCapLoader.shared.image(
             stem: capStem,
             inkHex: capInkHex,
             glyphHex: capGlyphHex
@@ -2115,7 +2143,19 @@ public struct ChassisButton: View {
             // `PixelArtLoader` returning nil in silence.
             if let drawnCap {
                 Image(uiImage: drawnCap)
-                    .interpolation(.none)
+                    // **Smooth, since 0.8.5 (E2)** — the same exception, for the
+                    // same reason, that `DexChromeGlyph.smoothing` carved out
+                    // for the marquee glyphs one release ago. The house rule is
+                    // `.interpolation(.none)` because these are pixel art whose
+                    // grid the illustrator drew; these four are not on a grid.
+                    // They are a rendered circle at ~250px shown at 60pt, a 0.72
+                    // downscale, and nearest-neighbour at 0.72 drops one row and
+                    // column in four — which on a hard-edged disc with a dark
+                    // cel outline running round it is precisely the stair-
+                    // stepped fringe E2 reports. `ChassisCapLoader` feathers the
+                    // silhouette so there is now something for the filter to
+                    // resample.
+                    .interpolation(.high)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: size, height: size)
@@ -2192,7 +2232,11 @@ public struct ChassisButton: View {
         switch kind {
         case .back: "Back"
         case .home: "Home"
-        case .bookmarks: "Saved entries"
+        // "User", not "Saved entries", since 0.8.5 (A1): the page this opens is
+        // titled USER now and holds three shelves, of which SAVED is one.
+        // VoiceOver naming a control after one of the three things behind it was
+        // the same mismatch the title had.
+        case .bookmarks: "User"
         }
     }
 
@@ -2615,15 +2659,27 @@ public struct MarqueeBanner: View {
     /// back over.
     var paused: Bool = false
 
-    /// Whether a change of `text` dissolves rather than cross-fades (B2).
+    /// Whether this change gets the *long* dissolve (0.7.1 B2; renamed and
+    /// narrowed 0.8.5, A3).
     ///
-    /// **Only the main screen passes `true`, and that is a decision.** B2 asks
-    /// for the slow pixelated fade between the scripted stages; running it on
-    /// every route title too would put a 1.4-second dissolve in front of every
-    /// single navigation in the app, which is not a transition, it is a wait.
-    /// Route titles keep the 0.55s cross-fade they have had since D3 — both
-    /// timings live in `DexMetrics` rather than here, per F3.
-    var pixelFades: Bool = false
+    /// **Every change dissolves now. This only chooses how long it takes.**
+    /// Through 0.8.4 the flag decided *whether* to pixelate at all, and only the
+    /// main screen passed true. The argument was: B2 asks for the slow pixelated
+    /// fade between the scripted stages, and running it on every route title too
+    /// would put a 1.4-second dissolve in front of every navigation in the app,
+    /// which is not a transition, it is a wait.
+    ///
+    /// A3 asks for the dissolve on every change of the panel, and that argument
+    /// does not survive it — but it was never an argument about the *effect*, it
+    /// was an argument about the *duration*, and it had been settled by
+    /// conflating the two. So the two come apart: the banner always dissolves,
+    /// and `DexMetrics.marqueeRoutePixelFade` is what a page title costs.
+    ///
+    /// That is also the honest reading of what the panel is. It is a dot-matrix
+    /// display; a dot-matrix display repaints by cell whatever it is repainting
+    /// to, and a cross-fade was the one thing on this chassis that behaved like
+    /// software. Both timings live in `DexMetrics` rather than here, per F3.
+    var slowFade: Bool = false
 
     /// Draw the glyph beside the word rather than above it (0.7.2, A3).
     ///
@@ -2699,7 +2755,7 @@ public struct MarqueeBanner: View {
         art: String? = nil,
         fontSize: CGFloat,
         paused: Bool = false,
-        pixelFades: Bool = false,
+        slowFade: Bool = false,
         edgeReserve: CGFloat = 0
     ) {
         self.text = text
@@ -2707,7 +2763,7 @@ public struct MarqueeBanner: View {
         self.art = art
         self.fontSize = fontSize
         self.paused = paused
-        self.pixelFades = pixelFades
+        self.slowFade = slowFade
         self.edgeReserve = edgeReserve
         self.segmentFont = DexFont.retro(fontSize)
     }
@@ -2751,7 +2807,12 @@ public struct MarqueeBanner: View {
     /// to update.
     private func change(to next: String) {
         guard shown != next else { return }
-        guard pixelFades, !reduceMotion, !paused else {
+        // `paused` still refuses outright: the panel is behind an opaque back
+        // plate and a dissolve nobody can see would be halfway through when the
+        // device came back over. Reduce Motion still takes the cross-fade. A3
+        // removes only the third condition, which was the panel's own opinion
+        // about which of its changes were worth animating.
+        guard !reduceMotion, !paused else {
             outgoing = nil
             outgoingSymbol = nil
             outgoingArt = nil
@@ -2772,9 +2833,14 @@ public struct MarqueeBanner: View {
         fadeStart = .now
     }
 
+    /// How long this dissolve runs (0.8.5, A3). See `slowFade`.
+    private var fadeDuration: Double {
+        slowFade ? DexMetrics.marqueePixelFade : DexMetrics.marqueeRoutePixelFade
+    }
+
     private func endFade() async {
         guard fadeStart != nil else { return }
-        try? await Task.sleep(for: .seconds(DexMetrics.marqueePixelFade))
+        try? await Task.sleep(for: .seconds(fadeDuration))
         guard !Task.isCancelled else { return }
         outgoing = nil
         outgoingSymbol = nil
@@ -2793,7 +2859,7 @@ public struct MarqueeBanner: View {
     /// `p * p * (3 - 2p)` `DataWave` uses, for the same reason.
     private func fadeProgress(at date: Date) -> Double {
         guard let fadeStart else { return 1 }
-        let linear = min(max(date.timeIntervalSince(fadeStart) / DexMetrics.marqueePixelFade, 0), 1)
+        let linear = min(max(date.timeIntervalSince(fadeStart) / fadeDuration, 0), 1)
         return linear * linear * (3 - 2 * linear)
     }
 

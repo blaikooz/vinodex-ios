@@ -119,39 +119,55 @@ struct ShareCardFrame<Content: View>: View {
 // MARK: - B1, an encyclopedia entry
 
 /// One catalog entry as a card.
+///
+/// **A scan readout since 0.8.5 (G1).** Through 0.8.4 this was art, a name, an
+/// origin and five lines of prose — which is a book jacket, and the thing being
+/// shared is a *dex entry*. G1 asks for the entry's attributes, its country
+/// flag, its rarity and its flavour profile, and the argument for all four is
+/// the same one: a card that shows only what the entry is *called* is a card
+/// nobody can read anything off. What a person posting this wants to say is
+/// "look what I found and look what it is like".
+///
+/// The prose pays for it, dropping from five lines to two. That is the trade
+/// and it is deliberate: the description is the one thing on the old card that
+/// the *link* also carries, and two lines still set the scene.
+///
+/// **Everything here degrades.** A flavour has no rarity, a grape has no flag
+/// where its country has no art, a region has no stat bars — so each block is a
+/// `@ViewBuilder` that renders nothing rather than a placeholder, and the
+/// layout closes up. That is why the stack is a `VStack` with a trailing
+/// `Spacer` rather than a fixed grid: four categories with four different
+/// amounts to say cannot share a template.
 struct EntryShareCard: View {
     let entry: WineEntry
+
+    private let db = WineDatabase.shared
 
     private var lcd: LcdMode { LcdMode.current }
 
     var body: some View {
         ShareCardFrame(caption: entry.category.rawValue) {
-            VStack(alignment: .leading, spacing: 12) {
-                EntryIconWell(entry: entry, size: 104, cornerRadius: 12)
-                    .frame(maxWidth: .infinity, alignment: .center)
+            VStack(alignment: .leading, spacing: 9) {
+                header
 
-                Text(entry.name)
-                    .font(DexFont.retro(21))
-                    .tracking(1)
-                    .foregroundStyle(lcd.text)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.5)
+                // Rarity and the headline attributes, on one wrapping row of
+                // chips. Chips rather than a table because the set is ragged —
+                // a grape brings colour, body and type, a region brings its
+                // climate, a flavour brings its family — and a table would have
+                // to draw empty cells for whichever the entry does not have.
+                attributeChips
 
-                if let origin = entry.origin, !origin.isEmpty {
-                    Text(origin.uppercased())
-                        .font(DexFont.retro(11))
-                        .tracking(1.5)
-                        .foregroundStyle(lcd.accent)
-                }
+                statBars
+                flavourProfile
 
                 // Trimmed rather than scrolled: a card is a fixed rectangle and
                 // an entry's prose is not. `lineLimit` does the cut so the
                 // sentence ends where the renderer says it does.
                 Text(entry.entryDescription)
-                    .font(DexFont.mono(14))
+                    .font(DexFont.mono(12))
                     .foregroundStyle(lcd.bodyText)
-                    .lineSpacing(2)
-                    .lineLimit(5)
+                    .lineSpacing(1)
+                    .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Spacer(minLength: 0)
@@ -159,48 +175,307 @@ struct EntryShareCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
+
+    /// Art on the left, name and origin on the right, with the flag beside the
+    /// origin.
+    ///
+    /// The well was centred and 104pt through 0.8.4, which cost the card its
+    /// whole top third for a picture that is also the first thing in the share
+    /// sheet's own preview. Set beside the name it does the same work in half
+    /// the height, and the name gets somewhere to be.
+    private var header: some View {
+        HStack(alignment: .top, spacing: 12) {
+            EntryIconWell(entry: entry, size: 82, cornerRadius: 10)
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(entry.name)
+                    .font(DexFont.retro(19))
+                    .tracking(1)
+                    .foregroundStyle(lcd.text)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.5)
+
+                if let origin = entry.origin, !origin.isEmpty {
+                    HStack(spacing: 6) {
+                        // The flag is the country's, and `FlagLoader` answers
+                        // nil for a country with no art — so this asks the
+                        // manifest first rather than drawing `FlagImage`'s
+                        // stone fallback, which on a card reads as a missing
+                        // image rather than as a country nobody drew.
+                        if db.icons.flagSlug(for: origin) != nil {
+                            FlagImage(country: origin)
+                                .frame(width: 22, height: 15)
+                                .clipShape(RoundedRectangle(cornerRadius: 2))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 2)
+                                        .strokeBorder(lcd.surfaceEdge, lineWidth: 1)
+                                )
+                        }
+                        Text(origin.uppercased())
+                            .font(DexFont.retro(11))
+                            .tracking(1.5)
+                            .foregroundStyle(lcd.accent)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    /// Rarity first, then whatever else this category carries.
+    @ViewBuilder
+    private var attributeChips: some View {
+        let chips = attributes
+        if !chips.isEmpty {
+            // A wrapping row without a layout: at 360pt and 9pt type these fit
+            // on two lines for every entry in the catalog, and `LazyVGrid` with
+            // adaptive columns is the one arrangement in SwiftUI that wraps
+            // without measuring. Three columns because the widest chip label in
+            // the set is GODFORSAKEN.
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: 3),
+                spacing: 5
+            ) {
+                ForEach(chips) { chip in
+                    Text(chip.label)
+                        .font(DexFont.retro(9))
+                        .tracking(0.8)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.55)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 4)
+                        .frame(maxWidth: .infinity)
+                        .foregroundStyle(chip.text)
+                        .background(RoundedRectangle(cornerRadius: 4).fill(chip.bg))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4)
+                                .strokeBorder(chip.border, lineWidth: 1)
+                        )
+                }
+            }
+        }
+    }
+
+    /// The attribute set for this entry, in the order the detail screen shows
+    /// them — rarity, then what the category has.
+    ///
+    /// Reads the generated palette rather than choosing colours here, so a chip
+    /// on the card is the same colour as the same chip on the scan. A facet with
+    /// no palette row falls back to the LCD's own surface, which is the
+    /// unstyled-but-present state rather than a crash.
+    private var attributes: [AttributeChip] {
+        var out: [AttributeChip] = []
+
+        func add(_ label: String, _ chip: Palette.Chip? = nil) {
+            let trimmed = label.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty else { return }
+            // Keyed by position, not by text: a grape whose body class and wine
+            // type happen to read the same word would otherwise give `ForEach`
+            // two rows with one id, which SwiftUI resolves by dropping one.
+            out.append(
+                AttributeChip(id: out.count, label: trimmed.uppercased(), palette: chip, lcd: lcd)
+            )
+        }
+
+        if let rarity = entry.rarity {
+            add(rarity.rawValue, db.palette.rarityChips[rarity.rawValue])
+        }
+        switch entry {
+        case .grape(let g):
+            add(g.grapeType.rawValue, db.palette.colorTypeChips[g.grapeType.rawValue])
+            add(g.grapeBodyClass)
+            if let wineType = g.wineType {
+                add(wineType, db.palette.wineTypeChips[wineType])
+            }
+        case .region(let r):
+            if let climate = entry.climate {
+                add(climate.rawValue)
+            }
+            add(r.details.classification, db.palette.classificationChips[r.details.classification])
+        case .style(let s):
+            add(s.details.classification, db.palette.styleClassChips[s.details.classification])
+            if let body = s.details.body {
+                add(body)
+            }
+        case .flavor(let f):
+            add(
+                f.details.subclass.replacingOccurrences(of: "_", with: " "),
+                db.palette.flavorSubclassChips[f.details.subclass]
+            )
+            add(f.details.classification, db.palette.flavorClassChips[f.details.classification])
+        case .continent:
+            break
+        }
+        return out
+    }
+
+    /// The five characteristic bars, for the one category that has them.
+    ///
+    /// Drawn at a third of the detail screen's height and with no numbers: at
+    /// card size the *shape* of the five is the information — a tannic,
+    /// full-bodied red reads as a staircase — and five labelled rows of digits
+    /// would take the space the flavours need.
+    @ViewBuilder
+    private var statBars: some View {
+        if case .grape(let g) = entry {
+            VStack(spacing: 3) {
+                ForEach(g.grapeCharacteristics.bars, id: \.label) { bar in
+                    HStack(spacing: 6) {
+                        Text(bar.label)
+                            .font(DexFont.retro(8))
+                            .tracking(0.8)
+                            .foregroundStyle(lcd.subtext)
+                            .frame(width: 62, alignment: .leading)
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                Capsule().fill(lcd.well)
+                                Capsule()
+                                    .fill(lcd.accent)
+                                    .frame(width: max(0, geo.size.width * bar.value / 5))
+                            }
+                        }
+                        .frame(height: 6)
+                    }
+                }
+            }
+        }
+    }
+
+    /// The tasting notes, each in its own colour.
+    ///
+    /// `TastingNote.color` is authored per note in `shared/`, which is what
+    /// makes this worth putting on a card at all: six chips in six colours say
+    /// what a wine tastes like faster than six words do, and they are the same
+    /// six colours the scan shows.
+    @ViewBuilder
+    private var flavourProfile: some View {
+        let notes = Array(entry.tastingProfile.prefix(6))
+        if !notes.isEmpty {
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: 3),
+                spacing: 5
+            ) {
+                ForEach(notes) { note in
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(Color(dexHex: note.color))
+                            .frame(width: 7, height: 7)
+                        Text(note.note.uppercased())
+                            .font(DexFont.retro(8))
+                            .tracking(0.6)
+                            .foregroundStyle(lcd.bodyText)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.55)
+                        Spacer(minLength: 0)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// One attribute chip's three colours, resolved once (0.8.5, G1).
+///
+/// The palette's own row where the generator has one, so a chip on the card is
+/// the same colour as the same chip on the scan; the LCD's surface where it does
+/// not, which is the unstyled-but-present state rather than a gap. Resolved into
+/// `Color` here rather than carried as hex, because `Palette.Chip` is a Core
+/// type that knows nothing about `LcdMode` and a neutral fallback would
+/// otherwise have to be written as three hard-coded strings.
+private struct AttributeChip: Identifiable {
+    let id: Int
+    let label: String
+    let bg: Color
+    let border: Color
+    let text: Color
+
+    init(id: Int, label: String, palette: Palette.Chip?, lcd: LcdMode) {
+        self.id = id
+        self.label = label
+        if let palette {
+            bg = Color(dexHex: palette.bg)
+            border = Color(dexHex: palette.border)
+            text = Color(dexHex: palette.text)
+        } else {
+            bg = lcd.surface
+            border = lcd.surfaceEdge
+            text = lcd.subtext
+        }
+    }
 }
 
 // MARK: - B2, the player's profile
 
-/// The passport as a card: rank, completion, the four counts, the streak.
+/// The passport as a card: who you are, rank, completion, five counts, the streak.
+///
+/// **A stat card rather than a progress bar with numbers under it (0.8.5, G2).**
+/// Through 0.8.4 this was anonymous — a rank, a percentage and four grey tiles —
+/// which made it a screenshot of a progress meter rather than a thing with a
+/// person's name on it. G2 asks for the profile photo and name, coloured stats
+/// and glyphs, and the point of all three is the same: the card is the one image
+/// this app produces that says *whose* collection this is.
+///
+/// **The photo and the name are read here, not passed in, and that is a
+/// deviation worth stating.** `ShareCard.Profile` is a Core type on the rule
+/// that "the numbers are the part that can be wrong" — a count printing one
+/// short is a data bug and Core is where Linux can test it. A name and an avatar
+/// are neither: the name is a `@AppStorage` string the user typed, and the
+/// avatar is a `UIImage` off disk, which Core cannot hold at all. Putting either
+/// into the model would have made it non-`Sendable` or non-`Equatable` for no
+/// testable gain. So they are read the way `ShareCardFrame` already reads the
+/// skin and the screen mode: off the same defaults the live device reads.
 struct ProfileShareCard: View {
     let card: ShareCard.Profile
+
+    /// The name the user gave themselves on the USER screen, or nothing.
+    @AppStorage(UserProfile.displayNameKey) private var displayName = ""
 
     private var lcd: LcdMode { LcdMode.current }
 
     var body: some View {
         ShareCardFrame(caption: card.device) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text(card.rank)
-                    .font(DexFont.retro(19))
-                    .tracking(1)
-                    .foregroundStyle(lcd.accent)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
+            VStack(alignment: .leading, spacing: 9) {
+                identity
 
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text("\(card.completionPercent)%")
-                        .font(DexFont.retro(40))
+                        .font(DexFont.retro(34))
                         .foregroundStyle(lcd.text)
                     Text("COLLECTED")
-                        .font(DexFont.retro(11))
+                        .font(DexFont.retro(10))
                         .tracking(1.5)
+                        .foregroundStyle(lcd.subtext)
+                    Spacer(minLength: 0)
+                    Text("\(card.triedTotal)/\(card.collectible)")
+                        .font(DexFont.mono(12))
                         .foregroundStyle(lcd.subtext)
                 }
 
                 bar
 
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 2), spacing: 8) {
-                    stat("GRAPES", "\(card.triedGrapes)/\(card.totalGrapes)")
-                    stat("STYLES", "\(card.triedStyles)/\(card.totalStyles)")
-                    stat("COUNTRIES", "\(card.countries)")
-                    stat("STAMPS", "\(card.badgesEarned)/\(card.badgesTotal)")
+                // Five, not four: CONTINENTS has been carried on
+                // `ShareCard.Profile` since 0.7.8 and drawn nowhere, which is
+                // the smallest possible version of the gap G2 is about.
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 7), count: 3), spacing: 7) {
+                    stat("GRAPES", "\(card.triedGrapes)/\(card.totalGrapes)",
+                         symbol: EntryCategory.grapes.marqueeSymbol, tint: Color(dexHex: "#a855f7"))
+                    stat("STYLES", "\(card.triedStyles)/\(card.totalStyles)",
+                         symbol: EntryCategory.styles.marqueeSymbol, tint: Color(dexHex: "#f97316"))
+                    stat("COUNTRIES", "\(card.countries)",
+                         symbol: "flag.fill", tint: Dex.yellow)
+                    stat("CONTINENTS", "\(card.continents)",
+                         symbol: EntryCategory.continents.marqueeSymbol, tint: Dex.blue)
+                    stat("STAMPS", "\(card.badgesEarned)/\(card.badgesTotal)",
+                         symbol: "seal.fill", tint: Color(dexHex: "#10b981"))
+                    stat("STREAK", card.streak > 0 ? "\(card.streak)" : "—",
+                         symbol: DexGlyph.challenge, tint: Color(dexHex: "#ef4444"))
                 }
 
-                if card.streak > 0 {
-                    Text("DAILY STREAK  \(card.streak)   BEST  \(card.bestStreak)")
-                        .font(DexFont.retro(11))
+                if card.bestStreak > 0 {
+                    Text("BEST STREAK  \(card.bestStreak)")
+                        .font(DexFont.retro(10))
                         .tracking(1)
                         .foregroundStyle(lcd.accent)
                 }
@@ -208,6 +483,55 @@ struct ProfileShareCard: View {
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    /// The avatar, the name and the rank.
+    ///
+    /// The photo is circular and ringed in the LCD's accent so it reads as a
+    /// part of the readout rather than as a photograph dropped on it — the same
+    /// treatment `ProfileAvatar` gives it on the USER screen. A player who has
+    /// set no photo gets the figure glyph, and one who has set no name gets the
+    /// rank promoted into the name's slot rather than an empty line, because a
+    /// blank where a name goes reads as a bug and an unnamed cellar does not.
+    private var identity: some View {
+        HStack(spacing: 10) {
+            Group {
+                if let image = AvatarStore.shared.image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } else {
+                    ZStack {
+                        lcd.well
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(lcd.subtext)
+                    }
+                }
+            }
+            .frame(width: 46, height: 46)
+            .clipShape(Circle())
+            .overlay(Circle().strokeBorder(lcd.accent.opacity(0.8), lineWidth: 2))
+
+            VStack(alignment: .leading, spacing: 3) {
+                let name = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+                Text(name.isEmpty ? card.rank : name.uppercased())
+                    .font(DexFont.retro(17))
+                    .tracking(1)
+                    .foregroundStyle(lcd.text)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                if !name.isEmpty {
+                    Text(card.rank)
+                        .font(DexFont.retro(10))
+                        .tracking(1.2)
+                        .foregroundStyle(lcd.accent)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                }
+            }
+            Spacer(minLength: 0)
         }
     }
 
@@ -223,23 +547,45 @@ struct ProfileShareCard: View {
         .frame(height: 10)
     }
 
-    private func stat(_ label: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(value)
-                .font(DexFont.retro(15))
-                .foregroundStyle(lcd.text)
+    /// One stat tile: a glyph in its own colour, the value, the label.
+    ///
+    /// **The tints are `PassportScreen`'s, deliberately restated rather than
+    /// shared.** GRAPES is the menu tile's purple, STYLES its orange, COUNTRIES
+    /// and CONTINENTS the yellow and blue the passport already gives them — so a
+    /// player who has just looked at their passport recognises the card as the
+    /// same six facts. The two this card adds, STAMPS and STREAK, take the
+    /// colours those subjects wear elsewhere in the app: the passport's green
+    /// and the daily challenge's red. Restated because `PassportScreen`'s table
+    /// is `private` and lives on a view, and hoisting a colour table out of a
+    /// screen to serve one card is a bigger change than G2 asks for — flagged
+    /// here so the next person to move one moves both.
+    private func stat(_ label: String, _ value: String, symbol: String, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 4) {
+                Image(systemName: symbol)
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(tint)
+                Text(value)
+                    .font(DexFont.retro(14))
+                    .foregroundStyle(lcd.text)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+            }
+            Text(label)
+                .font(DexFont.retro(8))
+                .tracking(0.8)
+                .foregroundStyle(lcd.subtext)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
-            Text(label)
-                .font(DexFont.retro(9))
-                .tracking(1)
-                .foregroundStyle(lcd.subtext)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 7)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 6)
         .background(RoundedRectangle(cornerRadius: 5).fill(lcd.surface))
-        .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(lcd.surfaceEdge, lineWidth: 1))
+        .overlay(
+            RoundedRectangle(cornerRadius: 5)
+                .strokeBorder(tint.opacity(0.45), lineWidth: 1)
+        )
     }
 }
 

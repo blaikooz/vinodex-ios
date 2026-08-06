@@ -994,8 +994,24 @@ public enum DexMetrics {
     /// it runs are unprompted — a launch settling, and ten seconds of nobody
     /// touching the device — so there is no user standing by for it to finish.
     /// That is also why it never runs on a route title, which always has
-    /// someone waiting: see `MarqueeBanner.pixelFades`.
+    /// someone waiting: see `MarqueeBanner.slowFade`.
     public static let marqueePixelFade: Double = 1.4
+
+    /// The same dissolve on a page title (0.8.5, A3).
+    ///
+    /// A3 asks for the pixelated transition on **every** change of the panel,
+    /// which the paragraph above declined for a reason that was about duration
+    /// rather than about the effect: a route title always has somebody standing
+    /// in front of it waiting to read the page they just opened.
+    ///
+    /// 0.42 is that objection priced rather than upheld. It is a little under
+    /// the 0.55s cross-fade it replaces, so navigation is no slower than it was
+    /// — and it is above the ~0.35s floor where the cells stop reading as cells
+    /// and collapse into the single flicker `marqueePixelFade` describes. The
+    /// glyph and the word cross together on the same clock, so what a user sees
+    /// on arriving at a page is one panel repainting, which is what the object
+    /// on the chassis is.
+    public static let marqueeRoutePixelFade: Double = 0.42
 
     /// Button band (0.6.5, A/B; restructured 0.6.7 G, resized 0.6.8 E)
     ///
@@ -1044,7 +1060,21 @@ public enum DexMetrics {
     /// the marquee all follow from one number: `bandBundleHeight` goes 168 →
     /// 134 and the footer 188 → 154, which is 34pt straight back to the screen.
     /// See `DexMetrics.islandStripReserve` for the other 9 (B1).
-    public static var bandControl: CGFloat { footerControl * 1.25 * 0.75 }
+    ///
+    /// **A tenth larger again in 0.8.5 (E3): `× 1.10`.** 60pt → 66 at SMALL.
+    /// Written as a fourth factor rather than folded into the three before it
+    /// for the reason 0.6.9 spelled `1.25 × 0.75` out — the product is the
+    /// argument, and collapsing it to `1.03125` would hide four separate
+    /// instructions inside one number nobody could read back.
+    ///
+    /// What it costs, stated where the previous passes stated theirs: every
+    /// dimension in the band is a fraction of this, so `bandBundleHeight` goes
+    /// 134 → 146 and the whole band with it, and those 12pt come out of the LCD.
+    /// That is the same currency 0.6.9's C1 spent in the other direction, and it
+    /// is being spent back deliberately: E has now been asked three times, and
+    /// each of the first two passes was about the caps *rendering* wrong. Size
+    /// is the one complaint about them that no amount of pixel work answers.
+    public static var bandControl: CGFloat { footerControl * 1.25 * 0.75 * 1.10 }
     /// Gap between the band's columns. 6, down from 10 (0.6.8, E5) — every
     /// point here is a point of marquee.
     public static let bandSpacing: CGFloat = 6
@@ -1163,11 +1193,37 @@ public enum DexMetrics {
     /// The floor on shrinking a pill is `RecessedLamp`'s stroke stack, which
     /// eats ~5.8pt off the top edge of a 20pt capsule; 24 gives the glyph more
     /// room inside the recess rather than less.
-    public static let bandPillHeight: CGFloat = 24
+    ///
+    /// **30 since 0.8.5 (A2), and this time the height is not paying for a
+    /// glyph.** A2 replaces the mark inside each lamp with the pin's *name* —
+    /// TOOLS, CUSTOMIZE, SETTINGS, DATA, SHOP — engraved into the cap the way a
+    /// controller's START and SELECT are. A word needs a line height where a
+    /// symbol needed a diameter, and 24 left `bandPillLabel` no room between
+    /// `RecessedLamp`'s stroke stack above and the rim below. The item asks for
+    /// "slightly taller" and 6pt is what the type costs.
+    ///
+    /// The trade is unchanged from A9 and A1 and is why it is affordable: the
+    /// band is `bandBundleHeight` whatever happens, so 6pt onto the pills is 6pt
+    /// off `marqueeHeight` and nothing else in the chassis moves. E3 grows
+    /// `bandControl` by a tenth in the same batch, which gives the column 12pt
+    /// back — so the panel finishes this release taller than it started it.
+    public static let bandPillHeight: CGFloat = 30
     /// The glyph inside a pill (0.7.2, A9). A fraction of the pill so the two
     /// move together, and well under half of it so the lamp still reads as a
     /// lamp with a mark on it rather than as a bordered icon.
+    ///
+    /// Unreached since 0.8.5 (A2) — the lamps carry `bandPillLabel` text now —
+    /// and kept because it is what a *third* lamp with no name would need, and
+    /// because the fallback path in `MarqueeLampChooser` still draws marks.
     public static var bandPillGlyph: CGFloat { bandPillHeight * 0.52 }
+    /// The engraved label inside a lamp (0.8.5, A2).
+    ///
+    /// Sized off the pill rather than off `TextScale`, for the reason the
+    /// marquee's own glyph is sized off the panel: these are moulded parts, and
+    /// a legend that grew with SETTINGS > TEXT SIZE would push itself off a cap
+    /// whose height does not move. The longest word is CUSTOMIZE at nine
+    /// characters, which is what the fitting in `lampButton` is for.
+    public static var bandPillLabel: CGFloat { bandPillHeight * 0.42 }
     public static let bandPillSpacing: CGFloat = 8
     /// Gap from the pills down to the panel they belong to. Small — they have
     /// to read as lamps *on* the marquee's housing, not as their own row.
