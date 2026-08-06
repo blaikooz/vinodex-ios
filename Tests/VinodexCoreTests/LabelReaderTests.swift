@@ -64,6 +64,149 @@ struct LabelReaderTests {
         let phrases = LabelTextScan.phrases(in: label("DOMAINE HUET", "VOUVRAY"))
         let vouvray = phrases.first { $0.key == "vouvray" }
         #expect(vouvray?.line == 1)
+        #expect(vouvray?.isJoined == false)
+    }
+
+    // MARK: - Phrases across a line break (0.7.9, D-a)
+
+    /// **The eight-bottle bug.** OCR returns one string per line of *type*, and
+    /// a long appellation is routinely set over two of them. Windows drawn
+    /// inside a single line can never see those names.
+    @Test("a phrase set across a line break is a candidate")
+    func joinedPhrases() {
+        let phrases = LabelTextScan.phrases(in: label("CHATEAUNEUF", "DU-PAPE", "2019"))
+        let joined = phrases.first { $0.key == "chateauneuf du pape" }
+        #expect(joined != nil, "the appellation was never offered to the matcher")
+        #expect(joined?.isJoined == true)
+        #expect(joined?.lines == [0, 1])
+    }
+
+    /// A break cannot skip a line of type, so a three-line join must consume the
+    /// middle one whole.
+    @Test("a three-line join takes the middle line entire")
+    func joinedPhrasesSpanThree() {
+        let phrases = LabelTextScan.phrases(in: label("VINO", "NOBILE", "DI MONTEPULCIANO"))
+        let joined = phrases.first { $0.key == "vino nobile di montepulciano" }
+        #expect(joined?.lines == [0, 1, 2])
+        // And not a join that leapfrogs: `vino di montepulciano` skips NOBILE.
+        #expect(!phrases.contains { $0.key == "vino di montepulciano" })
+    }
+
+    /// The join is a suffix-to-prefix run, not a cross product. `TELEGRAPHE
+    /// 2019` is two adjacent lines and is not a phrase anyone means.
+    @Test("only contiguous runs join, and only forwards")
+    func joinsAreContiguousAndForward() {
+        let phrases = LabelTextScan.phrases(in: label("DOMAINE", "HUET", "VOUVRAY"))
+        #expect(phrases.contains { $0.key == "domaine huet" })
+        #expect(phrases.contains { $0.key == "huet vouvray" })
+        // Backwards is not a reading order.
+        #expect(!phrases.contains { $0.key == "vouvray huet" })
+        // A phrase never starts mid-line and ends mid-line two lines down
+        // without taking everything in between — covered above — and never
+        // exceeds the cap.
+        #expect(phrases.allSatisfy { $0.words <= LabelTextScan.maxPhraseWords })
+    }
+
+    /// **The gate the 0.7.9 note asks for.** `maxPhraseWords` is a claim about
+    /// the catalog, and the claim it replaced ("the longest real names top out
+    /// at four") went stale without anything noticing — three five-word names
+    /// were simply unmatchable. This fails the day a six-word name lands.
+    @Test("the phrase window reaches the longest name in the catalog")
+    func phraseWindowCoversTheLongestName() {
+        var longest = 0
+        var worst = ""
+        for entry in db.entries {
+            var names = [entry.name]
+            if case .grape(let g) = entry {
+                names += g.details.synonyms + g.grapeAlternateNames
+            }
+            if case .region(let r) = entry {
+                names += r.details.synonyms ?? []
+                names += r.details.appellations ?? []
+            }
+            for name in names {
+                let words = TextNormalize.key(name).split(separator: " ").count
+                if words > longest { longest = words; worst = name }
+            }
+        }
+        #expect(
+            longest <= LabelTextScan.maxPhraseWords,
+            "'\(worst)' is \(longest) words and can never be matched — raise maxPhraseWords"
+        )
+    }
+
+    /// A phrase that spanned two lines must claim **both**, or the leftover half
+    /// is offered as an estate name.
+    @Test("a joined match claims every line it consumed")
+    func joinedMatchesClaimAllTheirLines() {
+        let reading = service.read(label("CHATEAUNEUF", "DU-PAPE", "DOMAINE DU VIEUX TELEGRAPHE", "2019"))
+        #expect(reading.match(.appellation)?.name == "Châteauneuf-du-Pape")
+        #expect(reading.match(.producer)?.name == "DOMAINE DU VIEUX TELEGRAPHE")
+    }
+
+    // MARK: - Prominence (0.7.9, D-a)
+
+    /// Two equally long exact hits on one field: the one set in bigger type
+    /// wins, because that is the label's own statement about which matters.
+    @Test("prominence breaks a tie between two exact matches")
+    func prominenceRanksExactMatches() {
+        // Both are regions in the catalog. RIOJA is set small at the foot of the
+        // label; PRIORAT is the headline.
+        let reading = service.read(
+            label("PRIORAT", "RIOJA", prominences: [0.36, 0.08])
+        )
+        #expect(reading.match(.region)?.name == "Priorat")
+        // And the other way round, so this is prominence rather than order.
+        let flipped = service.read(
+            label("PRIORAT", "RIOJA", prominences: [0.08, 0.36])
+        )
+        #expect(flipped.match(.region)?.name == "Rioja")
+    }
+
+    /// Prominence is a tie-break, never a reason to prefer a shorter phrase.
+    /// The longest-window rule is what stops `Cabernet Sauvignon` resolving to
+    /// `Cabernet`, and it outranks type size absolutely.
+    @Test("prominence never beats a longer phrase")
+    func lengthOutranksProminence() {
+        let reading = service.read(
+            label("CABERNET FRANC", "MERLOT", prominences: [0.10, 0.40])
+        )
+        // MERLOT is set larger, but CABERNET FRANC is the longer phrase and both
+        // are exact, so the grape list leads with the longer claim.
+        let grapes = reading.grapeIDs.compactMap { db.entry(id: $0)?.name }
+        #expect(grapes.first == "Cabernet Franc", "got \(grapes)")
+    }
+
+    // MARK: - Outcome (0.7.9, D-a)
+
+    /// **Three states, not two.** A photograph the reader got nothing from and a
+    /// label narrowed to a shortlist of real entries were both "no match".
+    @Test("a confident reading is identified")
+    func outcomeIdentified() {
+        #expect(service.read(label("BAROLO", "2016")).outcome == .identified)
+    }
+
+    @Test("a country plus a shortlist is ambiguous, not a failure")
+    func outcomeAmbiguous() {
+        let reading = service.read(label("ZZZZQQ WINERY", "PRODUIT DE FRANCE", "2018"))
+        #expect(reading.outcome == .ambiguous)
+        #expect(!reading.isConfident)
+        #expect(!reading.suggestedRegionIDs.isEmpty, "ambiguous with nothing to offer")
+    }
+
+    @Test("nothing the catalog reaches is unrecognized")
+    func outcomeUnrecognized() {
+        #expect(service.read([]).outcome == .unrecognized)
+    }
+
+    /// `isConfident` is the outcome, so the two can never disagree — which they
+    /// could while both were computed from the same fields independently.
+    @Test("isConfident and outcome cannot drift apart")
+    func outcomeAgreesWithConfidence() {
+        for lines in [["BAROLO"], ["PRODUIT DE FRANCE"], ["ZZQQ"], ["RIOJA", "2016"]] {
+            let reading = service.read(label(lines[0], lines.count > 1 ? lines[1] : ""))
+            #expect(reading.isConfident == (reading.outcome == .identified))
+        }
     }
 
     // MARK: - Edit distance

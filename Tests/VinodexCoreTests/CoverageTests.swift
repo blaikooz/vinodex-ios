@@ -37,10 +37,15 @@ struct CoverageTests {
         // exist so the new varieties point at a real home rather than the
         // nearest famous neighbour. Flavours held at 106: all 75 new tasting
         // notes were drawn from the existing vocabulary on purpose.
-        #expect(db.entries(in: .grapes).count == 171)
+        // 0.7.9 (G): sommbot's P1/P2 data batch. +6 grapes (G173 Sercial, G174
+        // Boal, G175 Malvasia de São Jorge, G176 Gouais Blanc, G177 Plavac
+        // Mali, G178 Manto Negro) and +2 styles (S033 Madeira, S034 Cava).
+        // Regions unchanged at 124 — every new grape had a home already.
+        #expect(db.entries(in: .grapes).count == 177)
         #expect(db.entries(in: .regions).count == 124)
         // 31 since 0.6.x: Medium-Full Red removed, its grapes now Full-Body.
-        #expect(db.entries(in: .styles).count == 31)
+        // 33 since 0.7.9 (G): Madeira and Cava.
+        #expect(db.entries(in: .styles).count == 33)
         #expect(db.entries(in: .continents).count == 6)
     }
 
@@ -77,10 +82,18 @@ struct CoverageTests {
         // fixed entry in `waveMilestones`.
         // 438 since 0.7.4: the grape overhaul (+25 grapes, +6 regions), with
         // flavours unchanged at 106 for the fourth data batch running.
-        #expect(stats.total == 438)
+        // 446 since 0.7.9 (G): sommbot's P1/P2 batch, +6 grapes and +2 styles.
+        // Flavours unchanged at 106 for the fifth data batch running.
+        #expect(stats.total == 446)
         // 26 since 0.7.3c: Brazil is the first *new* origin since Mexico. The
         // count is distinct region origins, so the coming-soon gates still do
         // not count and adding a country without a region would not move it.
+        //
+        // **Still 26 after 0.7.9's data batch**, and that is the rule working
+        // rather than a coincidence: Blaufränkisch's origin moved to Slovenia
+        // (see `ExpansionPacks.oldWorld`) and Gouais Blanc's is Croatia, but
+        // neither is a *region* origin — Slovenia has no region entry at all,
+        // and Croatia already had one.
         #expect(stats.countries == 26)
         #expect(stats.categoryLines.count == 6)
     }
@@ -204,7 +217,13 @@ struct CoverageTests {
         // which rounds to the same bar), 16 Medium-Full, 34 Full. Moves with a
         // data batch; say which one when it does. Before the fix the 4 bucket
         // was empty and the 5 held 50.
-        #expect(counts == [2: 41, 3: 80, 4: 16, 5: 34])
+        //
+        // 0.7.9 (G): +1 Light (Gouais Blanc), +1 Medium (Manto Negro), +1
+        // Medium-Full (Boal) and +3 Full (Sercial, Malvasia de São Jorge,
+        // Plavac Mali) from sommbot's P1/P2 batch. **Not in the 0.7.9 spec's
+        // pin list** — it moves with every grape batch by construction, which
+        // is exactly what it is for.
+        #expect(counts == [2: 42, 3: 81, 4: 17, 5: 37])
 
         // Chardonnay is authored `body: "Medium-Full"` and drew a full bar.
         // (`grapeBodyClass` still reads "Full" for it — that is a *different*
@@ -453,14 +472,20 @@ struct CoverageTests {
     ///   failure — it says "delete this from the list and from the generator's
     ///   `OUTLINE_BACKLOG`".
     ///
-    /// Brazil and Mexico stay on the list because drawing them is an art job,
-    /// not a data one — the 28 existing outlines are hand-drawn pixel art in
-    /// `art/icons/countries/`, and a silhouette synthesised by a script would be
-    /// visibly not of that set. Four more countries (UK, Slovenia, Bulgaria,
-    /// Lebanon) have flag gradients and no outline but no regions either, so
-    /// they are latent rather than live and this gate correctly says nothing
-    /// about them.
-    @Test("every region's place has outline art, or is a known gap")
+    /// **The list is empty as of 0.7.9 (E)**, which is the pleasant failure the
+    /// paragraph above predicted: Brazil and Mexico are drawn, the generator's
+    /// `OUTLINE_BACKLOG` is deleted, and this pin becomes "every region's place
+    /// has outline art" with no exceptions at all. The two new silhouettes are
+    /// script-rasterised from authored coordinates rather than hand-drawn — the
+    /// deleted note said that would be visibly not of the set, and that trade is
+    /// recorded in PLAN.md rather than hidden here.
+    ///
+    /// Four countries (UK, Slovenia, Bulgaria, Lebanon) have flag gradients and
+    /// no outline but no regions either, so they are latent rather than live and
+    /// this gate correctly says nothing about them. Slovenia became an *entry
+    /// origin* in 0.7.9 (F) without becoming a region origin, which is exactly
+    /// the distinction this test draws.
+    @Test("every region's place has outline art")
     func regionsHaveOutlineArt() {
         var missing = Set<String>()
         for entry in db.entries(in: .regions) {
@@ -473,8 +498,8 @@ struct CoverageTests {
             missing.insert(origin)
         }
         #expect(
-            missing == ["Brazil", "Mexico"],
-            "the set of places with regions but no outline art moved: \(missing.sorted())"
+            missing.isEmpty,
+            "these places have regions but no outline art: \(missing.sorted())"
         )
     }
 }

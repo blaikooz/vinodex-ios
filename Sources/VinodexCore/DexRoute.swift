@@ -213,8 +213,16 @@ public enum DexRoute: Hashable, Sendable {
     case country(name: String)
     /// The regions of one state within a country.
     case state(name: String)
-    /// The daily reveal — see `DailyPick`. Named "WHAT'S THAT…?" rather than
-    /// "grape of the day" since the pick rotates through regions and styles too.
+    /// The guessing game — see `WhatsThat`. Named "WHAT'S THAT…?" rather than
+    /// "grape of the day" since the answer is a region as often as a grape.
+    ///
+    /// **The case keeps its old spelling (0.7.9, B).** The screen behind it went
+    /// from a silhouette-and-reveal (`DailyGrapeScreen`) to a clue-by-clue round
+    /// (`WhatsThatScreen`), and the route did not move — a `DexRoute` case is
+    /// vocabulary, named by `DemoMode`, `ChromeTests` and the back-handler in
+    /// `VinodexApp`, and renaming it would be churn in four files to describe a
+    /// change none of them care about. The same convention `scanner` follows,
+    /// which has been BLIND TASTING on screen since 0.7.1.
     case dailyGrape
     /// The guided grape identifier — colour, body, origin and flavours, then a
     /// deduction. See `GrapeScanCriteria`.

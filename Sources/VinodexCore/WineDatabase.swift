@@ -825,6 +825,8 @@ public struct DatabaseStats: Sendable, Hashable {
             407,  // 0.7.3c — outgoing total, appended by 0.7.4's grape
                   // overhaul (+25 grapes, +6 regions). It stood for one
                   // release, which is why two milestones sit this close.
+            438,  // 0.7.4–0.7.8 — outgoing total, appended by 0.7.9 (G) when
+                  // sommbot's P1/P2 batch landed +6 grapes and +2 styles.
             total,
         ]
     }

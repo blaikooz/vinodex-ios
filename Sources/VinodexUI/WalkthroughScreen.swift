@@ -302,11 +302,22 @@ struct DeviceDiagram: View {
                         // A stadium, with the real orb (0.7.5 A2, 0.7.6 E1).
                         // This diagram exists to point at a specific part of the
                         // device the user is holding; it has to be the same part.
+                        //
+                        // **Width taken from this diagram's own lamp cluster
+                        // (0.7.9, A1).** The trio below is `control * 0.75`
+                        // across, and the chassis rule is that the orb spans
+                        // exactly that. It used to be `control` — wider than the
+                        // trio, which was the reading A1 exists to fix — with
+                        // the height divided out of a 2.35 aspect. At 5.3 that
+                        // arithmetic gives a hairline, so the rim is
+                        // proportional here too.
                         let orbShape = Capsule(style: .continuous)
+                        let orbW = control * 0.75
+                        let orbH = orbW / DexMetrics.islandOrbAspect
                         orbShape
                             .fill(skin.orb)
-                            .frame(width: control, height: control / DexMetrics.islandOrbAspect)
-                            .overlay(orbShape.strokeBorder(.white.opacity(0.8), lineWidth: 1.5))
+                            .frame(width: orbW, height: orbH)
+                            .overlay(orbShape.strokeBorder(.white.opacity(0.8), lineWidth: max(orbH * 0.11, 0.75)))
                             .opacity(dim(.orb))
                             .shadow(color: skin.orbGlow.opacity(lit(.orb) ? 0.9 : 0), radius: 6)
                             // The row is centred on the orb's old height, so a

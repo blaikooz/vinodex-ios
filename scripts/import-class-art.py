@@ -133,6 +133,12 @@ SOURCE_FOR = {
     "outline-japan": "countries/japan.png",
     "outline-china": "countries/china.png",
     "outline-india": "countries/india.png",
+    # 0.7.9 (E). Unlike the 28 above these two masters are script-rasterised
+    # from authored lon/lat rings rather than drawn -- see the PLAN.md entry.
+    # The x scale is uniform, so the authored `mapPosition` fractions on the
+    # Brazilian regions still land in Rio Grande do Sul.
+    "outline-brazil": "countries/brazil.png",
+    "outline-mexico": "countries/mexico.png",
     "globe-africa": "continents/africa.png",
     "globe-asia": "continents/asia.png",
     "globe-europe": "continents/europe.png",

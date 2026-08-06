@@ -864,14 +864,26 @@ public struct EntryDetailScreen: View {
 
     /// The door into the pedigree tree (0.7.5, E1).
     ///
-    /// **It is not drawn at all when the grape has no relatives**, which is 103
-    /// of the 171. That is the decision this feature turned on. The alternatives
+    /// **It is not drawn at all when the grape has no relatives**, which is 102
+    /// of the 177. That is the decision this feature turned on. The alternatives
     /// were a section that opens an empty tree — three grapes in five, and the
     /// fastest way to teach somebody that a button does nothing — or a greyed
-    /// row saying NO LINEAGE DATA on those 103, which is a paywall-shaped
+    /// row saying NO LINEAGE DATA on those 102, which is a paywall-shaped
     /// reminder of an absence on every second grape you open. Neither is worth
-    /// the discoverability. The 68 grapes that *do* have a tree carry it, and
+    /// the discoverability. The 75 grapes that *do* have a tree carry it, and
     /// the shop entry is where somebody finds out the feature exists.
+    ///
+    /// **One exception since 0.7.9 (C2), and it is the exception the paragraph
+    /// above leaves room for.** The objection to NO LINEAGE DATA was that it
+    /// reports an absence of *authoring*, which is a fact about the project
+    /// rather than about the grape. `GrapeLineage.parentageUnknown` is the
+    /// opposite: an authored claim that the parentage is genuinely
+    /// undetermined, made deliberately, one grape at a time. That is a fact
+    /// about the wine and worth a line — it is the difference between Zinfandel,
+    /// whose parents nobody has established, and a grape a data batch has not
+    /// reached yet. It draws as a statement rather than a button, because there
+    /// is nowhere to go. Nothing in `shared/` sets the flag yet; sommbot's C1
+    /// pass is what makes this visible.
     ///
     /// The counts on the button are the pitch. "2 PARENTS · 6 OFFSPRING" says
     /// what is behind the door, which a bare LINEAGE does not, and it is honest
@@ -922,6 +934,35 @@ public struct EntryDetailScreen: View {
                     )
                 }
                 .buttonStyle(DexPressStyle(scale: 0.98))
+            }
+        } else if db.lineage.parentageIsUnknown(g.id) {
+            section("LINEAGE", symbol: "arrow.triangle.branch") {
+                HStack(spacing: 10) {
+                    Image(systemName: "circle.slash")
+                        .font(.system(size: 17, weight: .regular))
+                        .foregroundStyle(lcd.subtext)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("PARENTAGE UNRECORDED")
+                            .font(DexFont.retro(11))
+                            .foregroundStyle(lcd.subtext)
+                        Text("NO ESTABLISHED CROSS FOR THIS VARIETY")
+                            .font(DexFont.retro(8))
+                            .tracking(0.8)
+                            .foregroundStyle(Dex.stone600)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 4)
+                }
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(lcd.well)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .strokeBorder(
+                            lcd.surfaceEdge,
+                            style: StrokeStyle(lineWidth: 1, dash: [4, 3])
+                        )
+                )
             }
         }
     }

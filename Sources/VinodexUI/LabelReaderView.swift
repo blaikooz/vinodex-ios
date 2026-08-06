@@ -192,10 +192,13 @@ public struct LabelReaderView: View {
     @ViewBuilder
     private func results(_ reading: LabelReading) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            if reading.isConfident {
-                confidentCard(reading)
-            } else {
-                noMatchCard(reading)
+            // Three states since 0.7.9 (D-a) — see `LabelReading.Outcome`. The
+            // middle one is why: a label narrowed to a country and a shortlist
+            // of its regions was being told it did not match anything.
+            switch reading.outcome {
+            case .identified: confidentCard(reading)
+            case .ambiguous: shortlistCard(reading)
+            case .unrecognized: noMatchCard(reading)
             }
 
             if !reading.grapeIDs.isEmpty {
@@ -204,7 +207,10 @@ public struct LabelReaderView: View {
             if !reading.styleIDs.isEmpty {
                 entrySection("POSSIBLE STYLES", symbol: "wineglass.fill", ids: reading.styleIDs)
             }
-            if !reading.isConfident {
+            // Both unconfident states earn the shortlist; the identified one
+            // carries no suggestions to show (`LabelRecognitionService` only
+            // builds them when the reading falls short).
+            if reading.outcome != .identified {
                 suggestionSections(reading)
             }
 
@@ -342,20 +348,67 @@ public struct LabelReaderView: View {
 
     /// The spec's no-match state: says so plainly, then hands over everything it
     /// did find rather than an apology.
+    ///
+    /// **Narrowed in 0.7.9 (D-a) to mean what it says.** This card used to
+    /// answer every unconfident reading, including the ones where the reader had
+    /// narrowed the bottle to a country and five of its regions — telling a user
+    /// "no match" while a list of candidates sat directly beneath it. That case
+    /// is `shortlistCard` now; this is the genuine nothing.
     private func noMatchCard(_ reading: LabelReading) -> some View {
-        VStack(spacing: 12) {
-            Image(systemName: "questionmark.diamond.fill")
-                .font(.system(size: 54, weight: .semibold))
-                .foregroundStyle(Dex.amber400)
+        outcomeCard(
+            reading,
+            symbol: "questionmark.diamond.fill",
+            tint: Dex.amber400,
+            headline: "NO CONFIDENT MATCH FOUND.",
+            body: "Here is everything the label gave up. A straighter, closer photo of the front label usually settles it."
+        )
+    }
 
-            Text("NO CONFIDENT MATCH FOUND.")
+    /// **The state between a result and a failure** (0.7.9, D-a).
+    ///
+    /// The reader could not name the bottle but did reach real entries — a
+    /// country, a near-miss region, a grape that did not carry the score over
+    /// the floor. That is a shortlist, and a shortlist is a usable answer: the
+    /// common shape is a French label naming a region the catalog holds and a
+    /// producer it never will, which the on-device matcher is structurally
+    /// incapable of finishing (there is no producer entity — see
+    /// `LabelField.producer`). Telling the user it failed threw that away.
+    ///
+    /// Cyan rather than amber, because this is information rather than a
+    /// warning, and the copy points at the sections below instead of at the
+    /// camera — retaking the photo will not add a producer index.
+    private func shortlistCard(_ reading: LabelReading) -> some View {
+        outcomeCard(
+            reading,
+            symbol: "list.bullet.rectangle.fill",
+            tint: Dex.cyan300,
+            headline: "NARROWED IT DOWN.",
+            body: "Not enough to name the bottle, but these are the candidates the catalog can see. Open one to check it against what you are holding."
+        )
+    }
+
+    /// The shared chrome for both. One shape, two tints, so the difference the
+    /// user notices is the sentence rather than the layout.
+    private func outcomeCard(
+        _ reading: LabelReading,
+        symbol: String,
+        tint: Color,
+        headline: String,
+        body: String
+    ) -> some View {
+        VStack(spacing: 12) {
+            Image(systemName: symbol)
+                .font(.system(size: 54, weight: .semibold))
+                .foregroundStyle(tint)
+
+            Text(headline)
                 .font(DexFont.retro(16))
                 .tracking(1)
-                .foregroundStyle(Dex.amber400)
+                .foregroundStyle(tint)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text("Here is everything the label gave up. A straighter, closer photo of the front label usually settles it.")
+            Text(body)
                 .font(DexFont.mono(18))
                 .foregroundStyle(lcd.subtext)
                 .multilineTextAlignment(.center)
@@ -373,9 +426,9 @@ public struct LabelReaderView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(16)
-        .background(RoundedRectangle(cornerRadius: 8).fill(Dex.amber400.opacity(0.1)))
+        .background(RoundedRectangle(cornerRadius: 8).fill(tint.opacity(0.1)))
         .overlay(
-            RoundedRectangle(cornerRadius: 8).strokeBorder(Dex.amber400.opacity(0.5), lineWidth: 2)
+            RoundedRectangle(cornerRadius: 8).strokeBorder(tint.opacity(0.5), lineWidth: 2)
         )
     }
 

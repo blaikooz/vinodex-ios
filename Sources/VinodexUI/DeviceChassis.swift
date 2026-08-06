@@ -527,7 +527,21 @@ public struct DeviceChassis<Content: View>: View {
                     // the reason it always has: the slot is padding, nothing
                     // else lives in it, and the gesture is a one-second hold
                     // rather than a tap.
-                    .frame(width: slot, height: slot)
+                    //
+                    // **0.7.9's A1 makes the bead 79.44 × 14.98 at SMALL and
+                    // 86.30 × 17.22 at LARGE, and the slot follows it across.**
+                    // A3's rule was that a bead wider than the slot grows the
+                    // slot to contain it, and 79.44 is comfortably past 44 — so
+                    // the target is `islandOrbSlot` × `islandSlot`, 87.44 × 44
+                    // at SMALL. The rectangle argument is untouched by the
+                    // change and the "29pt of silent chassis" worry above is
+                    // *better*: the box is now 4pt of padding either side of a
+                    // bead that fills it, instead of 4.4pt around one that
+                    // filled a fifth of it. The vertical padding — 14.5pt above
+                    // and below — is the part still doing the platform-minimum
+                    // job, and it is why the two axes had to be separated in
+                    // `DexMetrics` rather than sharing one number.
+                    .frame(width: DexMetrics.islandOrbSlot, height: slot)
                     .contentShape(Rectangle())
                     // Hold to flip. A hidden gesture on a decorative-looking
                     // part is a poor primary affordance, but this one is a
@@ -689,9 +703,12 @@ public struct DeviceChassis<Content: View>: View {
 
     /// The bead itself.
     ///
-    /// - Parameter width: the orb's **width**, unchanged from the diameter it was
-    ///   through 0.7.5. The height is derived — see `DexMetrics.islandOrbAspect`
-    ///   for why the elongation is spent downward rather than outward.
+    /// - Parameter width: the orb's **width**. Through 0.7.8 this was the number
+    ///   that was authored and the height fell out of `islandOrbAspect`; since
+    ///   0.7.9's A1 the arrow points the other way — the width is the lamp
+    ///   trio's span and the height is the authored axis — but the arithmetic
+    ///   here is unchanged, because dividing the real width by the derived
+    ///   aspect returns exactly `DexMetrics.islandOrbHeight`.
     private func lcdOrb(width: CGFloat) -> some View {
         let shape = Self.orbShape
         let height = width / DexMetrics.islandOrbAspect
@@ -715,7 +732,16 @@ public struct DeviceChassis<Content: View>: View {
                     .padding(.top, height * 0.16)
             }
             .shadow(color: .black.opacity(0.5), radius: 3, y: 2)
-            .modifier(PulseGlow(color: skin.orbGlow, period: 5.3, minRadius: 2, maxRadius: width * 0.3))
+            // **Off the short axis since 0.7.9 (A1).** The glow was `width *
+            // 0.3`, which was 10.6pt while the bead was 35.2 across and would
+            // be 23.8 now that it is 79.4 — a halo more than twice the height
+            // of the part emitting it. `height * 0.7` returns 10.5 / 12.1 at
+            // the two scales, within a tenth of a point of what shipped, and it
+            // is the same short-axis rule the rim and the specular highlight
+            // above already follow.
+            .modifier(
+                PulseGlow(color: skin.orbGlow, period: 5.3, minRadius: 2, maxRadius: height * 0.7)
+            )
     }
 
     private func statusDots(size: CGFloat) -> some View {

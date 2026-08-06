@@ -121,8 +121,14 @@ public struct ToolsScreen: View {
                 }
                 HStack(spacing: 10) {
                     // Named for the question it asks rather than for its pick:
-                    // the reveal rotates through regions and styles as well as
-                    // grapes, so "grape of the day" was wrong two days in three.
+                    // the answer is a region as often as a grape, so "grape of
+                    // the day" was wrong half the time.
+                    //
+                    // **The tile is unchanged in 0.7.9 (B) and the screen is
+                    // not.** What used to be a silhouette and a REVEAL button is
+                    // a clue-by-clue guessing round now (`WhatsThatScreen`); the
+                    // title was already the question the game asks, which is why
+                    // replacing the feature cost this shelf nothing.
                     //
                     // Both run white ink now (0.6.4, E1), matching the other
                     // four tiles — the dark inks made this row read as a

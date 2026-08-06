@@ -550,6 +550,11 @@ const COUNTRY_SHAPE_ICONS: Record<string, string> = {
   japan: 'art:outline-japan',
   china: 'art:outline-china',
   india: 'art:outline-india',
+  // 0.7.9 (E). Both had regions and no outline since they were added — R117
+  // Serra Gaucha and R118 Campanha Gaucha for Brazil, R098 Valle de Guadalupe
+  // for Mexico — so three region pages drew nothing where the dotted map goes.
+  brazil: 'art:outline-brazil',
+  mexico: 'art:outline-mexico',
 };
 
 /// Icon-well background per style classification.
@@ -685,6 +690,15 @@ const STYLE_ART: Record<string, string> = {
   'bordeaux blend': 'bordeauxblend',
   'botrytis wine': 'botrytiswine',
   'champagne': 'champagne',
+  // 0.7.9 (G). S033 and S034 arrived with sommbot's P1/P2 batch and
+  // `CoverageTests.styleArtWiring` requires a portrait for every style but GSM
+  // Blend. Both masters are **recolours of shipped siblings** rather than drawn
+  // art -- madeira from port.png (ruby -> amber-brown, same fortified flask),
+  // cava from prosecco.png (gold -> pale straw, same flute). Placeholders in
+  // the house style; flagged in PLAN.md for an artist pass. They keep their
+  // white backgrounds, so neither needs to join import-style-art.py's MASTERS.
+  'cava': 'cava',
+  'madeira': 'madeira',
   'cremant': 'cremant',
   'cru beaujolais': 'crubeaujolas',
   'dessert wine': 'dessertwine',
@@ -1433,16 +1447,21 @@ function assertFirmware(): void {
  * by any gate. It is the third silent-missing-asset bug in three batches, after
  * `icon: "fruit"` (0.7.4) and the two logo layers (0.7.5, A5).
  *
- * `OUTLINE_BACKLOG` is the honest part: those two are a drawing job, not a data
- * one — the 28 existing outlines are hand-drawn pixel art in
- * `art/icons/countries/`, at sizes from 50x185 to 232x140, and a silhouette
- * synthesised by a script would be visibly not of that set. So they are *named*
- * here rather than allowed by silence, and anything **not** on the list fails
- * the build. The list is meant to shrink to `[]`; when it does, delete it and
- * the `known`/`missing` split with it.
+ * **`OUTLINE_BACKLOG` is gone (0.7.9, E), which is what it was for.** It named
+ * Brazil and Mexico, said they were a drawing job rather than a data one, and
+ * carried the instruction "the list is meant to shrink to `[]`; when it does,
+ * delete it and the `known`/`missing` split with it". Both outlines are drawn,
+ * so the list, the split and the "known gap" concept are all deleted here: a
+ * region naming a place with no outline is now simply a build failure, with no
+ * spelling of the problem that lets it through.
+ *
+ * The two new silhouettes are rasterised from authored lon/lat rings rather
+ * than drawn by hand, which the deleted note above warned would be "visibly not
+ * of that set" — see the 0.7.9 entry in PLAN.md. They wear the set's treatment
+ * (flat fill, one-cell black cel outline, specular mark) and are worth an
+ * artist's eye, but a country page that draws nothing is the worse defect and
+ * it is the one this batch was asked to fix.
  */
-const OUTLINE_BACKLOG = new Set(['brazil', 'mexico']);
-
 function assertOutlineCoverage(entries: readonly WineEntry[]): string[] {
   const label = (s: string) => s.toLowerCase().trim();
   const missing = new Map<string, string[]>();
@@ -1461,27 +1480,17 @@ function assertOutlineCoverage(entries: readonly WineEntry[]): string[] {
     missing.set(place, held);
   }
 
-  const unexpected = [...missing.keys()].filter((p) => !OUTLINE_BACKLOG.has(p)).sort();
+  const unexpected = [...missing.keys()].sort();
   if (unexpected.length > 0) {
     throw new CoverageError(
-      'regions name places with no outline art, and no entry in OUTLINE_BACKLOG:\n'
+      'regions name places with no outline art:\n'
         + unexpected.map((p) => `  - ${p}: ${(missing.get(p) ?? []).join(', ')}`).join('\n')
-        + '\nDraw the outline into art/icons/countries/, wire it through '
-        + 'COUNTRY_SHAPE_ICONS and scripts/import-class-art.py, or add the place '
-        + 'to OUTLINE_BACKLOG with a reason.',
+        + '\nDraw the outline into art/icons/countries/ and wire it through '
+        + 'COUNTRY_SHAPE_ICONS and scripts/import-class-art.py.',
     );
   }
 
-  // A backlog entry that has been drawn should stop being a backlog entry —
-  // otherwise the list rots into a permanent excuse.
-  const stale = [...OUTLINE_BACKLOG].filter((p) => !missing.has(p)).sort();
-  if (stale.length > 0) {
-    throw new CoverageError(
-      `OUTLINE_BACKLOG names places that no longer lack art: ${stale.join(', ')} — remove them.`,
-    );
-  }
-
-  return [...missing.keys()].sort();
+  return unexpected;
 }
 
 /** Where the app's art actually lives. `assertAssetsExist` is its only reader. */
@@ -1891,9 +1900,11 @@ function main() {
   console.log(`  distinct icons ${icons.unique.length}`);
   console.log(`  assets on disk ${assetsChecked} ids checked, all resolve`);
   // Printed rather than silent, on the lesson 0.7.4's dead COUNTRY_GATE arm
-  // taught: an absence nothing mentions reads as "none".
+  // taught: an absence nothing mentions reads as "none". Unreachable since
+  // 0.7.9 (E) — `assertOutlineCoverage` throws instead of returning names —
+  // and kept as the one line that would say so if that ever changes back.
   if (outlineBacklog.length > 0) {
-    console.log(`  no outline art: ${outlineBacklog.join(', ')} — see OUTLINE_BACKLOG`);
+    console.log(`  no outline art: ${outlineBacklog.join(', ')}`);
   }
   const missing = Object.entries(icons.byEntry)
     .filter(([, id]) => id === icons.fallback)

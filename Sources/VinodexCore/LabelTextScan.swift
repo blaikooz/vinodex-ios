@@ -20,37 +20,74 @@ public enum LabelTextScan {
 
     /// The longest phrase the matcher will consider, in words.
     ///
-    /// Four covers everything the catalog actually holds — `Châteauneuf-du-Pape`
-    /// is one word after normalisation, `Vosne-Romanée` likewise, and the
-    /// longest real multi-word names (`Melon de Bourgogne`, `Montagne de Reims`,
-    /// `Denominación de Origen Calificada`) top out at four. Five would double
-    /// the candidate count for nothing.
-    public static let maxPhraseWords = 4
-
-    /// A phrase lifted from one recognised line, with where it came from.
+    /// **Five since 0.7.9 (D-a), and the note it replaces was simply wrong.** It
+    /// read: "Four covers everything the catalog actually holds … the longest
+    /// real multi-word names top out at four. Five would double the candidate
+    /// count for nothing." That was a claim about the data made in prose and
+    /// never checked, and the data has moved four batches since. Folded, the
+    /// catalog holds three five-word names — `Verdicchio dei Castelli di Jesi`
+    /// (R064), `Muscat Blanc à Petits Grains` (G130) and `Malvasia Branca de São
+    /// Jorge` (G175, arrived 0.7.9) — and every one of them was **unreachable**:
+    /// no window this scan produced could ever equal the key, at any distance.
     ///
-    /// The line index is what lets the producer heuristic exclude text the
+    /// So the number is derived from the catalog rather than asserted about it,
+    /// and `LabelReaderTests.phraseWindowCoversTheLongestName` fails if a data
+    /// batch adds a six-word name. That test is the point of this change as much
+    /// as the fifth window is: the defect was not the 4, it was that nothing
+    /// would have said when 4 stopped being enough.
+    ///
+    /// The old note's cost argument still holds and is still worth respecting —
+    /// each extra window size is another pass over every line and, since D-a,
+    /// over every line *break* — which is why this tracks the catalog rather
+    /// than being set generously and forgotten.
+    public static let maxPhraseWords = 5
+
+    /// A phrase lifted from the recognised lines, with where it came from.
+    ///
+    /// The line indices are what let the producer heuristic exclude text the
     /// database has already claimed: a line reading `BAROLO` is an appellation,
     /// not an estate, and it should not also be offered as the producer.
+    ///
+    /// **`lines` is plural since 0.7.9 (D-a).** A phrase may now span a line
+    /// break — see `phrases(in:)` — and when one does, *every* line it consumed
+    /// has to be claimed. Claiming only the first would leave `DU-PAPE` on the
+    /// table as a producer candidate after `CHATEAUNEUF DU-PAPE` matched.
     public struct Phrase: Sendable, Hashable {
         /// `TextNormalize.key` output — the comparable form.
         public let key: String
         /// The words as they appeared, for showing the user what was read.
         public let text: String
-        /// Index into the `[RecognizedString]` this came from.
-        public let line: Int
+        /// Every `[RecognizedString]` index this drew words from, in order.
+        /// One element for the overwhelming majority; two or three for a phrase
+        /// set across a line break.
+        public let lines: [Int]
         public let words: Int
 
+        /// Where the phrase starts. The single-line accessor the matcher used
+        /// before phrases could span lines, kept because "which line is this
+        /// mostly on" is still the useful answer for ordering and reporting.
+        public var line: Int { lines.first ?? 0 }
+
+        /// True when the phrase was assembled across a line break, which is a
+        /// weaker reading than the same words set on one line: type that runs
+        /// on is one phrase, type that is broken *might* be two.
+        public var isJoined: Bool { lines.count > 1 }
+
         public init(key: String, text: String, line: Int, words: Int) {
+            self.init(key: key, text: text, lines: [line], words: words)
+        }
+
+        public init(key: String, text: String, lines: [Int], words: Int) {
             self.key = key
             self.text = text
-            self.line = line
+            self.lines = lines
             self.words = words
         }
     }
 
     /// Every 1…`maxPhraseWords`-word window of every recognised line, longest
-    /// first.
+    /// first — **plus, since 0.7.9 (D-a), the windows that run across a line
+    /// break.**
     ///
     /// Longest-first is load-bearing: `Cabernet Sauvignon` and `Cabernet` are
     /// both real grapes in the catalog, and a label saying the former must not
@@ -60,36 +97,106 @@ public enum LabelTextScan {
     /// Duplicate keys are dropped, keeping the first (and therefore longest,
     /// earliest) occurrence — a label repeating its region on the neck and the
     /// body should not produce two candidates.
+    ///
+    /// **The line break is where the appellations were being lost.** OCR returns
+    /// one string per line of *type*, and a long appellation is routinely set
+    /// over two or three of them — `CHATEAUNEUF` above `DU-PAPE`,
+    /// `VERDICCHIO DEI` above `CASTELLI DI JESI`. Windows drawn inside a single
+    /// line can only ever see fragments of those, and a fragment is either
+    /// nothing (`du pape`) or, worse, a real short name that is not the one on
+    /// the bottle. On the 0.7.9 corpus this was every single miss: eight of
+    /// twenty-four bottles, all multi-line appellations, all scoring 20 with no
+    /// place at all.
+    ///
+    /// **The join is restricted to the shape type actually breaks in**: a
+    /// *suffix* of one line joined to a *prefix* of the next, contiguous, within
+    /// the same `maxPhraseWords` cap. It is not a general cross-product of the
+    /// label's words, which would put `TELEGRAPHE 2019` and `MASI AMARONE` into
+    /// the candidate pool and hand the fuzzy pass a much larger surface to be
+    /// wrong on. A three-line join is allowed only when the middle line is
+    /// consumed whole, since a break cannot skip over a line of type.
+    ///
+    /// Within each size, single-line windows are emitted **before** joined ones,
+    /// so an unbroken reading always wins the de-duplication against a broken
+    /// one of the same length. That also leaves single-line labels — which is
+    /// most of `LabelReaderTests` — producing byte-identical output to 0.7.8.
     public static func phrases(in strings: [RecognizedString]) -> [Phrase] {
+        /// One line, pre-split into its folded words and its raw ones.
+        struct Line {
+            let words: [String]
+            let raw: [String]
+            /// Raw words only line up with folded ones when punctuation did not
+            /// split a word in the fold (`Saint-Émilion` folds to two words), so
+            /// the raw form is used only when the counts agree.
+            var alignable: Bool { raw.count == words.count }
+
+            func text(_ range: Range<Int>) -> String? {
+                alignable ? raw[range].joined(separator: " ") : nil
+            }
+        }
+
+        let lines = strings.map { recognized in
+            Line(
+                words: TextNormalize.key(recognized.text)
+                    .split(separator: " ", omittingEmptySubsequences: true)
+                    .map(String.init),
+                raw: recognized.text
+                    .split(whereSeparator: { $0.isWhitespace })
+                    .map(String.init)
+            )
+        }
+
         var out: [Phrase] = []
         var seen = Set<String>()
 
+        func emit(_ parts: [(index: Int, range: Range<Int>)]) {
+            let folded = parts.flatMap { lines[$0.index].words[$0.range] }
+            let key = folded.joined(separator: " ")
+            guard !key.isEmpty, seen.insert(key).inserted else { return }
+            let raws = parts.compactMap { lines[$0.index].text($0.range) }
+            let text = raws.count == parts.count ? raws.joined(separator: " ") : key
+            out.append(
+                Phrase(key: key, text: text, lines: parts.map(\.index), words: folded.count)
+            )
+        }
+
         for size in stride(from: maxPhraseWords, through: 1, by: -1) {
-            for (line, recognized) in strings.enumerated() {
-                let words = TextNormalize.key(recognized.text)
-                    .split(separator: " ", omittingEmptySubsequences: true)
-                    .map(String.init)
-                guard words.count >= size else { continue }
+            // Unbroken windows first — see the ordering note above.
+            for (index, line) in lines.enumerated() where line.words.count >= size {
+                for start in 0...(line.words.count - size) {
+                    emit([(index, start..<(start + size))])
+                }
+            }
 
-                // The raw words, aligned with the folded ones so `text` can show
-                // what the camera saw rather than the folded key. Splitting the
-                // raw string on whitespace can disagree with the folded split
-                // when punctuation is involved (`Saint-Émilion` folds to two
-                // words), so the raw form is only used when the counts line up.
-                let raw = recognized.text
-                    .split(whereSeparator: { $0.isWhitespace })
-                    .map(String.init)
-                let alignable = raw.count == words.count
+            guard size >= 2 else { continue }
 
-                for start in 0...(words.count - size) {
-                    let slice = words[start..<(start + size)]
-                    let key = slice.joined(separator: " ")
-                    guard !seen.contains(key) else { continue }
-                    seen.insert(key)
-                    let text = alignable
-                        ? raw[start..<(start + size)].joined(separator: " ")
-                        : key
-                    out.append(Phrase(key: key, text: text, line: line, words: size))
+            for index in lines.indices.dropLast() {
+                let head = lines[index]
+                guard !head.words.isEmpty else { continue }
+                // Every non-empty suffix of this line that leaves room for at
+                // least one word on the next.
+                for tail in 1...min(head.words.count, size - 1) {
+                    let headRange = (head.words.count - tail)..<head.words.count
+                    var remaining = size - tail
+                    var parts: [(index: Int, range: Range<Int>)] = [(index, headRange)]
+                    var next = index + 1
+
+                    while remaining > 0, next < lines.count {
+                        let body = lines[next]
+                        guard !body.words.isEmpty else { break }
+                        if body.words.count >= remaining {
+                            parts.append((next, 0..<remaining))
+                            remaining = 0
+                        } else {
+                            // A whole middle line, consumed so the break can
+                            // carry on to the one after it.
+                            parts.append((next, 0..<body.words.count))
+                            remaining -= body.words.count
+                            next += 1
+                        }
+                    }
+                    guard remaining == 0 else { continue }
+                    emit(parts)
                 }
             }
         }

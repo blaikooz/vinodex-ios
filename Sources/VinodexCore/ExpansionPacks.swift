@@ -244,6 +244,22 @@ public enum ExpansionPacks: Sendable {
     ///
     /// Georgia sits here rather than in the New World for the obvious reason:
     /// it is where wine was first made. The list is the spec's, verbatim.
+    ///
+    /// **Slovenia joins in 0.7.9 (F), and it is a repair rather than an
+    /// addition.** Sommbot's data batch ruled G076 Blaufränkisch's origin to be
+    /// Slovenia (VIVC 1459, whose marker pedigree `ZIMMETTRAUBE BLAU ×
+    /// HEUNISCH WEISS` matches the authored lineage; Burgenland is kept as the
+    /// region of fame). Slovenia was in *neither* atlas pack, so between that
+    /// data change landing and this line, Blaufränkisch belonged to no pack at
+    /// all — OLD WORLD's membership had silently fallen 265 → 264. Adding the
+    /// country restores it to 265.
+    ///
+    /// The order matters and ran the right way round: `atlasCountriesResolve`
+    /// asks the catalog whether every named country is a real origin, so
+    /// editing this list *before* the data would have failed the suite. Nothing
+    /// else moves — `FREE_COMMON_ORIGINS` gates COMMON grapes and G076 is
+    /// UNCOMMON, `stats.countries` stays 26 because Slovenia has no region
+    /// entry, and `ExpansionPacks.all.count` is still 12.
     public static let oldWorld = ExpansionPack(
         id: "old-world",
         kind: .atlas,
@@ -252,7 +268,7 @@ public enum ExpansionPacks: Sendable {
         symbol: "building.columns.fill",
         contents: .countries([
             "France", "Italy", "Spain", "Portugal", "Germany",
-            "Austria", "Greece", "Hungary", "Switzerland", "Georgia",
+            "Austria", "Greece", "Hungary", "Switzerland", "Georgia", "Slovenia",
         ])
     )
 

@@ -167,20 +167,45 @@ public struct GrapeLineage: Codable, Sendable, Hashable {
     /// One sentence for the tree's footnote wherever the above is contested.
     public let note: String?
 
+    /// **"Nobody knows" as opposed to "nobody has written it down yet"**
+    /// (0.7.9, C2).
+    ///
+    /// Absence of `parents` is ambiguous today and the ambiguity is the whole
+    /// problem: 116 of 177 grapes carry no lineage block, and the app cannot
+    /// tell the ones whose parentage is genuinely undetermined from the ones a
+    /// data batch has not reached. Silence is the honest rendering of the
+    /// second and a *wrong* rendering of the first — Zinfandel's parents are not
+    /// pending, they are unresolved, and saying nothing implies otherwise.
+    ///
+    /// **This is the contract C1 was going to have to invent, settled in the UI
+    /// first, which is why the sequencing was inverted.** `true` is an authored
+    /// claim: research has been done and no parent pair is established. It is
+    /// **not** a default, and `shared/` emits it nowhere yet — sommbot's C1 pass
+    /// is what fills it in. Until then this decodes to `false` everywhere and
+    /// nothing renders, which is exactly the behaviour that shipped in 0.7.5.
+    ///
+    /// It deliberately does **not** make a grape "connected": a tree whose only
+    /// content is a statement that there is no tree is not worth a screen. See
+    /// `isEmpty` below, and `GrapeLineageIndex.parentageIsUnknown`, which is
+    /// answerable for a grape with no lineage at all.
+    public let parentageUnknown: Bool
+
     private enum CodingKeys: String, CodingKey {
-        case parents, mutationOf, related, note
+        case parents, mutationOf, related, note, parentageUnknown
     }
 
     public init(
         parents: [LineageRef] = [],
         mutationOf: LineageRef? = nil,
         related: [LineageRef] = [],
-        note: String? = nil
+        note: String? = nil,
+        parentageUnknown: Bool = false
     ) {
         self.parents = parents
         self.mutationOf = mutationOf
         self.related = related
         self.note = note
+        self.parentageUnknown = parentageUnknown
     }
 
     public init(from decoder: any Decoder) throws {
@@ -189,10 +214,22 @@ public struct GrapeLineage: Codable, Sendable, Hashable {
         mutationOf = try c.decodeIfPresent(LineageRef.self, forKey: .mutationOf)
         related = try c.decodeIfPresent([LineageRef].self, forKey: .related) ?? []
         note = try c.decodeIfPresent(String.self, forKey: .note)
+        // `decodeIfPresent` and not `decode`, on the rule the whole file
+        // follows: every entry in the catalog predates this key, and a
+        // synthesised decoder would treat its absence as a failure and cost the
+        // grape. Defaulted to `false` rather than made optional so no reader has
+        // to write `?? false` and eventually forget to.
+        parentageUnknown = try c.decodeIfPresent(Bool.self, forKey: .parentageUnknown) ?? false
     }
 
-    /// Whether this block says anything at all. A grape can carry the key and
-    /// still have no edges if every ref were stripped; treat that as absent.
+    /// Whether this block says anything the *tree* can draw. A grape can carry
+    /// the key and still have no edges if every ref were stripped; treat that as
+    /// absent.
+    ///
+    /// `parentageUnknown` is deliberately not counted. It is an annotation on a
+    /// tree rather than an edge in one, and counting it would open the pedigree
+    /// screen — connectors, tiers, half-sibling groups — on a grape whose only
+    /// content is a sentence saying there is nothing to show.
     public var isEmpty: Bool {
         parents.isEmpty && mutationOf == nil && related.isEmpty
     }

@@ -1569,11 +1569,20 @@ public struct SettingsSectionPanel: View {
                                 // 0.7.6 E1). A mockup whose parts are the wrong
                                 // shape is worse than no mockup — this tile's
                                 // whole job is to say what the device will look
-                                // like. Width unchanged and height derived, as
-                                // on the chassis.
+                                // like.
+                                //
+                                // **On the chassis's own width rule since 0.7.9
+                                // (A1).** This tile draws one 10pt lamp rather
+                                // than a trio, so it asks `islandOrbWidth` what
+                                // a trio of *its* lamps would span (3 × 10 + two
+                                // gaps at the chassis's ~0.3 lamp ratio) and
+                                // takes that. Left at a hand-set 10pt the bead
+                                // would now be 1.9pt tall — a scratch on the
+                                // tile rather than a part.
+                                let orbW = DexMetrics.islandOrbWidth(lamp: 10, spacing: 3)
                                 Capsule(style: .continuous)
                                     .fill(option.orb)
-                                    .frame(width: 10, height: 10 / DexMetrics.islandOrbAspect)
+                                    .frame(width: orbW, height: orbW / DexMetrics.islandOrbAspect)
                                     .padding(5)
                             }
                             .overlay(alignment: .topTrailing) {

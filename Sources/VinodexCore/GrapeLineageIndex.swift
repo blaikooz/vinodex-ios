@@ -7,14 +7,28 @@ import Foundation
 /// and which draws as a terminal name. Those two states are the whole reason
 /// this is an enum rather than an optional id: an external node is not a failed
 /// lookup, and rendering it greyed-and-inert the way `LinkedRow` renders an
-/// unresolved name would say "broken" about the single most-pointed-at variety
-/// in the dataset (Gouais Blanc, mother of ten grapes here).
+/// unresolved name would say "broken" about a real variety.
+///
+/// **The exemplar changed in 0.7.9 (G).** This used to name Gouais Blanc, which
+/// is an *entry* now (G176) and whose ten children point at it by id. The case
+/// is alive and well elsewhere — Magdeleine Noire des Charentes is named by
+/// Merlot and Malbec and will never be an entry, because nobody drinks it.
 public struct LineageNode: Sendable, Hashable, Identifiable {
     public enum Target: Sendable, Hashable {
         /// A grape in this build, by id.
         case entry(String)
         /// A variety the catalog does not carry, by name. Terminal.
         case external(String)
+        /// **Not a variety at all** (0.7.9, C2): the data states the parentage
+        /// is undetermined, and this is that statement standing in the place a
+        /// parent would occupy.
+        ///
+        /// A third case rather than a `nil` parents list, because the tree has
+        /// to draw a *difference* between "nobody knows" and "nobody has
+        /// authored it yet" and a difference has to be a thing. It also makes
+        /// every `switch` over `Target` fail to compile until it has an answer
+        /// for the state, which is the point of the enum.
+        case unrecorded
     }
 
     public let target: Target
@@ -63,6 +77,19 @@ public struct LineageNode: Sendable, Hashable, Identifiable {
     /// Whether tapping it goes anywhere.
     public var isNavigable: Bool { entryID != nil }
 
+    /// Whether this node stands for a stated absence rather than a variety
+    /// (0.7.9, C2). The tree draws it differently from both other kinds.
+    public var isUnrecorded: Bool {
+        if case .unrecorded = target { return true }
+        return false
+    }
+
+    /// The node the tree puts where an unestablished parent would go.
+    public static let unrecordedParent = LineageNode(
+        target: .unrecorded,
+        name: "UNRECORDED"
+    )
+
     /// Unique within one rendered list. `via` is part of it because a grape can
     /// be a sibling twice over — once through each shared parent — and `ForEach`
     /// needs to tell those two rows apart.
@@ -71,6 +98,7 @@ public struct LineageNode: Sendable, Hashable, Identifiable {
         switch target {
         case .entry(let entryID): base = "e:\(entryID)"
         case .external(let name): base = "x:\(name)"
+        case .unrecorded: base = "u:unrecorded"
         }
         guard let via else { return base }
         return "\(base)@\(via)"
@@ -101,14 +129,38 @@ public struct GrapeRelatives: Sendable, Hashable {
     /// order encountered. The honest way to render a contested edge: the tree
     /// shows both readings and this says who disagrees.
     public let notes: [String]
+    /// The grape's parentage is authored as genuinely undetermined (0.7.9, C2)
+    /// — see `GrapeLineage.parentageUnknown`. Distinct from `parents.isEmpty`,
+    /// which today means only that nobody has written them down.
+    public let parentageUnknown: Bool
 
-    public static let none = GrapeRelatives(
-        parents: [], mutationOf: nil, offspring: [],
-        mutations: [], siblings: [], related: [], notes: []
-    )
+    /// Written out rather than synthesised so `parentageUnknown` can default —
+    /// it is an annotation, and every existing construction of this type means
+    /// "not stated" by it.
+    public init(
+        parents: [LineageNode] = [],
+        mutationOf: LineageNode? = nil,
+        offspring: [LineageNode] = [],
+        mutations: [LineageNode] = [],
+        siblings: [LineageNode] = [],
+        related: [LineageNode] = [],
+        notes: [String] = [],
+        parentageUnknown: Bool = false
+    ) {
+        self.parents = parents
+        self.mutationOf = mutationOf
+        self.offspring = offspring
+        self.mutations = mutations
+        self.siblings = siblings
+        self.related = related
+        self.notes = notes
+        self.parentageUnknown = parentageUnknown
+    }
 
-    /// No edges in any direction — which is 103 of the 171 grapes, and the
-    /// reason the encyclopedia does not offer this screen on every entry.
+    public static let none = GrapeRelatives()
+
+    /// No edges in any direction — which is 102 of the 177 grapes (0.7.9), and
+    /// the reason the encyclopedia does not offer this screen on every entry.
     public var isEmpty: Bool {
         parents.isEmpty && mutationOf == nil && offspring.isEmpty
             && mutations.isEmpty && siblings.isEmpty && related.isEmpty
@@ -140,10 +192,14 @@ public struct GrapeRelatives: Sendable, Hashable {
 /// fails outright if an external name matches a catalog grape's *primary* name,
 /// which is the case that really would be a mis-authored id.
 ///
-/// External ancestors do get one job: they are **sibling keys**. Chardonnay and
-/// Riesling are half-siblings through Gouais Blanc, a grape that is not in this
-/// app and never will be, and losing that would lose the most interesting
-/// structure in the dataset. Keys are `id ?? TextNormalize.key(name)`, which is
+/// External ancestors do get one job: they are **sibling keys**. Merlot and
+/// Malbec are half-siblings through Magdeleine Noire des Charentes, a grape that
+/// is not in this app and never will be, and losing that would lose the most
+/// interesting structure in the dataset. (Chardonnay and Riesling were the
+/// example here until 0.7.9, when their shared parent Gouais Blanc *became* an
+/// entry — a good demonstration that the two branches of the key have to behave
+/// identically, since that family did not change shape when it crossed over.)
+/// Keys are `id ?? TextNormalize.key(name)`, which is
 /// why the canonical spellings in `data-review/FINDINGS.md` are load-bearing:
 /// two spellings of one ancestor split its children into two families.
 public struct GrapeLineageIndex: Sendable {
@@ -157,6 +213,11 @@ public struct GrapeLineageIndex: Sendable {
     private let mutantsOf: [String: [(id: String, ref: LineageRef)]]
     /// grape id -> grapes that named it in their `related`.
     private let relatedBack: [String: [(id: String, ref: LineageRef)]]
+    /// Grapes whose lineage block states the parentage is undetermined
+    /// (0.7.9, C2). Collected **before** the `isEmpty` guard below, because a
+    /// grape can author this and nothing else — that is the common shape, and
+    /// it is precisely the shape the guard drops.
+    private let unknownParentage: Set<String>
 
     /// Every grape with at least one edge in any direction.
     ///
@@ -175,7 +236,12 @@ public struct GrapeLineageIndex: Sendable {
         names.reserveCapacity(grapes.count)
         for grape in grapes { names[grape.id] = grape.common.name }
 
+        var unknownParentage: Set<String> = []
+
         for grape in grapes {
+            // Before the guard: a grape may state "parentage undetermined" and
+            // author no edges at all, which `isEmpty` treats as no lineage.
+            if grape.lineage?.parentageUnknown == true { unknownParentage.insert(grape.id) }
             guard let lineage = grape.lineage, !lineage.isEmpty else { continue }
             authored[grape.id] = lineage
 
@@ -205,6 +271,7 @@ public struct GrapeLineageIndex: Sendable {
         self.childrenOf = childrenOf
         self.mutantsOf = mutantsOf
         self.relatedBack = relatedBack
+        self.unknownParentage = unknownParentage
 
         var connected = Set(authored.keys)
         for (key, kids) in childrenOf {
@@ -236,8 +303,24 @@ public struct GrapeLineageIndex: Sendable {
 
     /// Whether this grape has anything to show. The gate the encyclopedia asks
     /// before offering the tree at all.
+    ///
+    /// **Unaffected by `parentageIsUnknown`, on purpose.** The two answer
+    /// different questions — "is there a tree" and "is the absence of one a
+    /// fact" — and conflating them would open a pedigree screen on a grape whose
+    /// whole content is a sentence saying there is no pedigree to draw.
     public func hasLineage(_ id: String) -> Bool {
         connectedIDs.contains(id)
+    }
+
+    /// Whether the data states this grape's parentage is genuinely undetermined
+    /// (0.7.9, C2).
+    ///
+    /// Answerable for **any** grape, including one with no lineage block edges
+    /// and therefore no tree — which is the case it mostly exists for. See
+    /// `GrapeLineage.parentageUnknown` for what the flag claims and why the
+    /// default is silence rather than this.
+    public func parentageIsUnknown(_ id: String) -> Bool {
+        unknownParentage.contains(id)
     }
 
     /// The whole family of one grape.
@@ -307,7 +390,8 @@ public struct GrapeLineageIndex: Sendable {
             mutations: mutations,
             siblings: siblings,
             related: related,
-            notes: notes
+            notes: notes,
+            parentageUnknown: unknownParentage.contains(id)
         )
     }
 

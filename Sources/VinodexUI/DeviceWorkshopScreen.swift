@@ -280,17 +280,35 @@ public struct DeviceWorkshopScreen: View {
     /// than exactly — it is a diagram, and a faithful 1:3 chassis would be
     /// unreadable at this size.
     private var miniDevice: some View {
-        VStack(spacing: 5) {
+        // The island row's own geometry, named rather than repeated, because
+        // 0.7.9's A1 makes the orb a *function* of these two numbers.
+        let lamp: CGFloat = 4
+        let gap: CGFloat = 4
+        let orbWidth = DexMetrics.islandOrbWidth(lamp: lamp, spacing: gap)
+        let orbHeight = orbWidth / DexMetrics.islandOrbAspect
+
+        return VStack(spacing: 5) {
             // Island: the orb, then the lamp trio.
-            HStack(spacing: 4) {
+            HStack(spacing: gap) {
                 // A stadium, with the real orb (0.7.5 A2, 0.7.6 E1) — this is
                 // the live preview of the device being built, so its parts
-                // follow the device's shapes as well as its colours. Width
-                // unchanged and height derived, exactly as up on the chassis.
+                // follow the device's shapes as well as its colours.
+                //
+                // **Width derived from this diagram's own trio (0.7.9, A1).**
+                // It was a hand-set 11pt with the height divided out of the
+                // aspect, which was fine at 2.35 and would be a 2pt hairline at
+                // 5.3. The chassis rule is "the orb is as long as the lamp
+                // cluster", and a preview that does not obey it is previewing a
+                // different device — so it obeys it, on its own 4pt lamps.
+                // The rim is proportional for the same reason: a flat 1pt on a
+                // 3.8pt bead leaves a core the wrong fraction of the whole.
                 Capsule(style: .continuous)
                     .fill(look.orb)
-                    .frame(width: 11, height: 11 / DexMetrics.islandOrbAspect)
-                    .overlay(Capsule(style: .continuous).strokeBorder(.white, lineWidth: 1))
+                    .frame(width: orbWidth, height: orbHeight)
+                    .overlay(
+                        Capsule(style: .continuous)
+                            .strokeBorder(.white, lineWidth: max(orbHeight * 0.11, 0.5))
+                    )
                     .shadow(color: look.orbGlow, radius: 3)
                 Spacer(minLength: 0)
                 // `headerLights`, not `statusLights` (0.7.6, B1): the schematic
@@ -299,7 +317,7 @@ public struct DeviceWorkshopScreen: View {
                 ForEach(0..<3, id: \.self) { index in
                     Circle()
                         .fill(look.headerLights[index].fill)
-                        .frame(width: 4, height: 4)
+                        .frame(width: lamp, height: lamp)
                 }
             }
 

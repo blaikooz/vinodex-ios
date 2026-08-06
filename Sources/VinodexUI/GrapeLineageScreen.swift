@@ -7,17 +7,21 @@ import VinodexCore
 /// **The shape of the screen is a consequence of the shape of the data**, and
 /// three facts about it decided everything here:
 ///
-/// 1. **Coverage is 40%.** 103 of 171 grapes have no relatives at all, so the
+/// 1. **Coverage is 42%.** 102 of 177 grapes have no relatives at all, so the
 ///    tree is not offered on those entries — see `EntryDetailScreen`, which
 ///    draws the LINEAGE section only when `WineDatabase.lineage.hasLineage`
 ///    says there is something to draw. A screen that opened onto an empty box
 ///    for three grapes in five would teach people not to tap it.
-/// 2. **Half the ancestors are not in the catalog.** Gouais Blanc is the mother
-///    of ten grapes here and will never be an entry. Those nodes have to read as
-///    *terminal* — a real variety, named, with nothing behind it — rather than
-///    as a broken link. `LineageTile` draws them on the well rather than on a
-///    surface, with no chevron and no press behaviour, which is the same
-///    vocabulary the app already uses for "this is information, not a door".
+/// 2. **Half the ancestors are not in the catalog.** Magdeleine Noire des
+///    Charentes fathers Merlot and Malbec and will never be an entry, because
+///    nobody drinks it. Those nodes have to read as *terminal* — a real variety,
+///    named, with nothing behind it — rather than as a broken link.
+///    `LineageTile` draws them on the well rather than on a surface, with no
+///    chevron and no press behaviour, which is the same vocabulary the app
+///    already uses for "this is information, not a door". (Gouais Blanc was this
+///    paragraph's example through 0.7.8 and became G176 in 0.7.9's data batch,
+///    which is a useful reminder that the two kinds of node are a property of
+///    the *catalog*, not of the variety.)
 /// 3. **Some edges are disputed.** Listán Negro's second parent is Palomino by
 ///    VIVC and Listán Prieto by later Canary work, and the data says so rather
 ///    than picking. A contested edge draws a dashed connector and a `?` badge,
@@ -35,6 +39,29 @@ import VinodexCore
 /// Everything is `lcd.*`, so it survives the nine screen modes and the
 /// monochrome pass; the connectors are `accent` at low opacity, which is ink in
 /// VINTAGE and phosphor in the four single-colour modes.
+///
+/// ---
+///
+/// **0.7.9 (C2) enlarges the nodes and stops the biggest tree from running off
+/// the bottom.** Three changes, and the third is the one with an argument in it:
+///
+/// - `LineageTile` grows from 96pt to `Self.tileWidth`, with the art well and
+///   the name up a step each. At 96 with a 30pt well the tiles were smaller than
+///   the entry rows directly beneath them, which read as the tree being the
+///   lesser half of the screen when it is the reason to open it.
+/// - Every tier is **capped** at `Self.tierLimit` with a SHOW ALL control, on
+///   the pattern HALF-SIBLINGS has used since 0.7.5. This is what makes the
+///   enlargement affordable, and it is not hypothetical: Gouais Blanc arrived as
+///   G176 in 0.7.9's data batch and is named as a parent by **ten** catalog
+///   grapes, so its OFFSPRING tier is the largest node set in the app. At the
+///   new tile width that is four rows of unlabelled squares before the footnotes
+///   — a wall rather than a pedigree.
+/// - **Unknown parentage has a visual state** — `LineageNode.Target.unrecorded`,
+///   drawn as a dashed, unfilled tile with a slash glyph in the PARENTS slot. It
+///   is the third kind of node and it is deliberately unlike the other two: an
+///   external ancestor is a *name* with nothing behind it, this is not even a
+///   name. Nothing in `shared/` sets it yet; sommbot's C1 pass is what fills it
+///   in, against a UI that already renders it.
 public struct GrapeLineageScreen: View {
     let grape: GrapeEntry
     let onSelectRelated: (WineEntry) -> Void
@@ -47,6 +74,23 @@ public struct GrapeLineageScreen: View {
     /// Which sibling group is expanded. Chardonnay has eleven half-siblings and
     /// the first three are the interesting ones.
     @State private var showingAllSiblings = false
+    /// Which tiers of the tree are expanded past `tierLimit` (0.7.9, C2).
+    /// Keyed by caption, because the two tiers are drawn by one function and a
+    /// single flag would open both.
+    @State private var expandedTiers: Set<String> = []
+
+    /// How wide one node is. 96 through 0.7.8, which put the tree's tiles below
+    /// the size of the plain rows underneath them. Read by `LineageTile`, which
+    /// is the only other type that draws one.
+    static let tileWidth: CGFloat = 116
+    /// How many nodes a tier draws before it offers SHOW ALL.
+    ///
+    /// Six is two full rows at `tileWidth` on the narrowest LCD and one row shy
+    /// of Pinot Noir's nine descendants, which is the tree the 0.7.5 note calls
+    /// out as the reason `FlowLayout` exists. Gouais Blanc's ten offspring —
+    /// the largest set in the catalog since 0.7.9 — collapse to six and a
+    /// button rather than four rows of tiles.
+    private static let tierLimit = 6
 
     public init(grape: GrapeEntry, onSelectRelated: @escaping (WineEntry) -> Void) {
         self.grape = grape
@@ -98,7 +142,15 @@ public struct GrapeLineageScreen: View {
     /// at nothing.
     @ViewBuilder
     private func treeSection(_ family: GrapeRelatives) -> some View {
-        let ancestors = family.parents + (family.mutationOf.map { [$0] } ?? [])
+        // **The unknown-parentage node stands where a parent would** (0.7.9,
+        // C2), and only where one is actually missing: a grape with both
+        // parents authored and the flag set is a data contradiction, and
+        // appending a third tile to a settled cross would render the
+        // contradiction as fact. Two authored ancestors is enough of a claim.
+        let authoredAncestors = family.parents + (family.mutationOf.map { [$0] } ?? [])
+        let ancestors = family.parentageUnknown && authoredAncestors.count < 2
+            ? authoredAncestors + [LineageNode.unrecordedParent]
+            : authoredAncestors
         let descendants = family.offspring + family.mutations
 
         section("FAMILY TREE", symbol: "arrow.triangle.branch") {
@@ -148,18 +200,52 @@ public struct GrapeLineageScreen: View {
     /// `FlowLayout` rather than an `HStack`: Pinot Noir has nine descendants and
     /// a fixed row would either shrink them past legibility or push a horizontal
     /// scroll onto a screen that already scrolls vertically.
+    ///
+    /// **Capped at `tierLimit` since 0.7.9 (C2).** `FlowLayout` solved the
+    /// *width* problem and left the height one: ten tiles at 116pt is four rows,
+    /// which pushes the subject tile — the grape you are standing on — off the
+    /// bottom of the LCD on the very trees that are worth looking at. The
+    /// overflow is a button rather than a scroll, matching HALF-SIBLINGS below.
+    @ViewBuilder
     private func tier(_ nodes: [LineageNode], caption: String) -> some View {
+        let expanded = expandedTiers.contains(caption)
+        let shown = expanded ? nodes : Array(nodes.prefix(Self.tierLimit))
+
         VStack(spacing: 8) {
             Text(caption)
-                .font(DexFont.retro(8))
+                .font(DexFont.retro(9))
                 .tracking(1.5)
                 .foregroundStyle(lcd.subtext)
             FlowLayout(spacing: 6) {
-                ForEach(nodes) { node in
+                ForEach(shown) { node in
                     LineageTile(node: node, isSubject: false) { open(node) }
                 }
             }
             .frame(maxWidth: .infinity)
+
+            if nodes.count > Self.tierLimit {
+                Button {
+                    Haptics.select()
+                    withAnimation(DexMotion.settle) {
+                        if expanded { expandedTiers.remove(caption) }
+                        else { expandedTiers.insert(caption) }
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 11, weight: .bold))
+                        Text(expanded ? "SHOW FEWER" : "SHOW ALL \(nodes.count)")
+                            .font(DexFont.retro(9))
+                            .tracking(1)
+                    }
+                    .foregroundStyle(lcd.accent)
+                    .padding(.horizontal, 12)
+                    .frame(height: 30)
+                    .background(Capsule().fill(lcd.well))
+                    .overlay(Capsule().strokeBorder(lcd.surfaceEdge, lineWidth: 1))
+                }
+                .buttonStyle(DexPressStyle(scale: 0.97))
+            }
         }
         .padding(.horizontal, 10)
     }
@@ -364,7 +450,8 @@ public struct GrapeLineageScreen: View {
 
 /// One node in the tree.
 ///
-/// Three states, and the difference between them is the whole design:
+/// **Four states since 0.7.9 (C2)**, and the difference between them is the
+/// whole design:
 ///
 /// - **The subject** — the grape you are on. Accent border, no press behaviour,
 ///   because tapping where you already are is not navigation.
@@ -374,6 +461,15 @@ public struct GrapeLineageScreen: View {
 ///   thing, and obviously not a door. Dashes rather than grey, because grey is
 ///   `disabledText` and this is not disabled — it is simply the end of what the
 ///   catalog knows.
+/// - **Unrecorded** — no variety at all: the data states the parentage is
+///   undetermined. It keeps the external node's dashes and gives up everything
+///   else — no name, a slash glyph, and `subtext` throughout — because the two
+///   have to be distinguishable at a glance. An external node says *this grape,
+///   which we cannot show you*; this one says *nobody knows*.
+///
+/// Sizes are up a step across the board (0.7.9, C2): `tileWidth` from 96, the
+/// well from 30/34 to 40/46, the name from 8/9 to 9/11. At the old size a node
+/// in the tree was smaller than a plain related-entry row on the same screen.
 struct LineageTile: View {
     let node: LineageNode
     let isSubject: Bool
@@ -382,21 +478,35 @@ struct LineageTile: View {
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
-    /// The catalog entry behind this node, subject or not — an external node has
-    /// none, which is the only case that draws no art.
+    /// The catalog entry behind this node, subject or not — external and
+    /// unrecorded nodes have none, which are the cases that draw no art.
     private var entry: WineEntry? {
         guard let id = node.entryID else { return nil }
         return WineDatabase.shared.entry(id: id)
     }
 
+    /// Filled like a part of the tree, or sunk into the well behind it.
+    private var isSolid: Bool { node.isNavigable || isSubject }
+
     var body: some View {
         Button(action: action) {
             VStack(spacing: 5) {
                 if let entry {
-                    EntryIconWell(entry: entry, size: isSubject ? 34 : 30, cornerRadius: isSubject ? 6 : 5)
+                    EntryIconWell(entry: entry, size: isSubject ? 46 : 40, cornerRadius: isSubject ? 8 : 6)
+                } else if node.isUnrecorded {
+                    // Where the art well would be. A slashed circle rather than
+                    // a question mark: `ContestedBadge` already owns the
+                    // question mark and means something else by it — "two
+                    // sources disagree", not "there is no source".
+                    Image(systemName: "circle.slash")
+                        .font(.system(size: 26, weight: .light))
+                        .foregroundStyle(lcd.subtext.opacity(0.7))
+                        .frame(height: 40)
                 }
-                Text(EntryDisplay.hyphenated(node.name.uppercased()))
-                    .font(DexFont.retro(isSubject ? 9 : 8))
+                Text(node.isUnrecorded
+                     ? "PARENTAGE\nUNRECORDED"
+                     : EntryDisplay.hyphenated(node.name.uppercased()))
+                    .font(DexFont.retro(isSubject ? 11 : 9))
                     .tracking(0.5)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
@@ -405,23 +515,24 @@ struct LineageTile: View {
                     .foregroundStyle(isSubject ? lcd.text : (node.isNavigable ? lcd.text : lcd.subtext))
                 if let role = node.role {
                     Text(role == .mother ? "SEED" : "POLLEN")
-                        .font(DexFont.retro(7))
+                        .font(DexFont.retro(8))
                         .tracking(1)
                         .foregroundStyle(lcd.subtext)
                 }
             }
             .padding(.horizontal, 8)
-            .padding(.vertical, 8)
-            .frame(width: 96)
-            .background(node.isNavigable || isSubject ? lcd.surface : lcd.well)
+            .padding(.vertical, 10)
+            .frame(width: GrapeLineageScreen.tileWidth)
+            .background(isSolid ? lcd.surface : lcd.well)
             .overlay {
                 RoundedRectangle(cornerRadius: 5)
                     .strokeBorder(
                         isSubject ? lcd.accent : lcd.surfaceEdge,
                         style: StrokeStyle(
                             lineWidth: isSubject ? 3 : 2,
-                            // The one visual that says "not in the catalog".
-                            dash: node.isNavigable || isSubject ? [] : [4, 3]
+                            // The one visual that says "not in the catalog" —
+                            // and, for an unrecorded node, "not anything".
+                            dash: isSolid ? [] : [4, 3]
                         )
                     )
             }
@@ -434,6 +545,9 @@ struct LineageTile: View {
         }
         .buttonStyle(DexPressStyle(scale: 0.96))
         .disabled(isSubject || !node.isNavigable)
+        .accessibilityLabel(
+            node.isUnrecorded ? "Parentage unrecorded" : node.name
+        )
     }
 }
 

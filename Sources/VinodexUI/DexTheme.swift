@@ -226,7 +226,37 @@ public enum DexMetrics {
     /// diameter has not driven the strip's height for two batches.
     /// The orb's **width**. It was the orb's diameter through 0.7.5, and the
     /// rename in meaning is the whole of E1 — see `islandOrbAspect`.
-    public static var islandOrb: CGFloat { controlButton * 0.55 }
+    ///
+    /// **Derived from the lamp trio since 0.7.9 (A1), not authored.** Every pass
+    /// from 0.6.6 to 0.7.8 tuned this as a fraction of `controlButton` and then
+    /// argued about whether the result balanced the three lamps across the
+    /// cutout. A1 states the rule instead: the orb spans the *same length as the
+    /// whole trio*, so the two island clusters are a matched pair of stadiums
+    /// rather than a bead facing a row. 79.44pt at SMALL, 86.30 at LARGE —
+    /// against 35.2 / 40.48 before, so this is the first pass since 0.6.8 to
+    /// spend any of the cutout's horizontal budget, and `islandOrbInsetLeading`
+    /// is re-derived below to pay for it.
+    ///
+    /// The old value survives in one place on purpose: `islandStatusDot` used to
+    /// read `islandOrb * 0.60`, which would now be a cycle, so it reads
+    /// `controlButton * 0.33` — the same number by construction, since
+    /// 0.55 × 0.60 = 0.33 — and the arrow between the two metrics is reversed.
+    public static var islandOrb: CGFloat {
+        islandOrbWidth(lamp: islandStatusDot, spacing: statusDotSpacing)
+    }
+
+    /// A1's rule, stated once so a mockup can obey it too.
+    ///
+    /// Three lamps and the two gaps between them. `DeviceWorkshopScreen`,
+    /// `SettingsPanel` and `WalkthroughScreen` all draw a miniature chassis with
+    /// their own lamp sizes, and each used to hand-set an orb width and derive
+    /// its height from `islandOrbAspect` — which was harmless while the aspect
+    /// was 1.75 and produces a hairline now that it is 5.3. They call this with
+    /// their own geometry instead, which is what "the preview follows the
+    /// chassis" has to mean once the width is a rule rather than a number.
+    public static func islandOrbWidth(lamp: CGFloat, spacing: CGFloat) -> CGFloat {
+        3 * lamp + 2 * spacing
+    }
 
     /// How much wider than tall the orb is (0.7.6, E1).
     ///
@@ -285,10 +315,50 @@ public enum DexMetrics {
     /// arrive there without width, which is forbidden, so the trade is between
     /// matching the notch's proportion and matching the trio's mass. A3 chooses
     /// the notch. Worth an eyeball on the device before it is treated as settled.
-    public static let islandOrbAspect: CGFloat = 2.35
+    ///
+    /// ---
+    ///
+    /// **0.7.9 (A1) inverts the whole argument above: the aspect is no longer
+    /// authored.** Every paragraph before this one is a record of choosing a
+    /// number for how long the bead should be. A1 says the length is not a
+    /// choice — the orb is as long as the lamp trio — so `islandOrb` is derived,
+    /// the *height* becomes the one authored axis, and this falls out as the
+    /// consequence. **5.30 at SMALL and 5.01 at LARGE**, up from a flat 2.35.
+    ///
+    /// It differs between the two scales for a real reason, which is worth
+    /// knowing before anyone treats the difference as a bug: `islandStatusDot`
+    /// is floored at 22, and at SMALL the floor binds (21.12 → 22) while at
+    /// LARGE the 0.33 fraction does. So the trio is proportionally *wider* at
+    /// SMALL than the strict fraction would make it, and the orb inherits that.
+    ///
+    /// **The 0.7.8 ceiling still holds and is still the constraint.** That note
+    /// derived a maximum aspect of 2.51 from the rim arithmetic — but it was
+    /// derived by holding the *width* and taking the elongation out of height,
+    /// and the real rule underneath is about height alone: the rim is
+    /// `max(height × 0.11, 2)`, so a height below 18.2 puts the rim on its 2pt
+    /// floor and every further point comes out of the coloured core. Holding the
+    /// height at exactly what 0.7.8 shipped keeps the core at 10.98pt (SMALL)
+    /// and 13.22 (LARGE) — unchanged to two decimals — while the aspect doubles.
+    /// The ceiling was never about the aspect; it was about the short axis.
+    ///
+    /// **What A1 buys back.** The thing E1 spent and A3 gave up — the two
+    /// clusters weighing the same — returns in the other axis: the orb and the
+    /// trio are now exactly the same *length*, which is the reading 0.6.8's F3
+    /// was after and never had. It buys it at the cost of the notch's 3.4
+    /// proportion, which the bead now overshoots by a wide margin. Worth an
+    /// eyeball, like every pass on this part.
+    public static var islandOrbAspect: CGFloat { islandOrb / islandOrbHeight }
 
-    /// The orb's height. Derived, so the two axes cannot drift.
-    public static var islandOrbHeight: CGFloat { islandOrb / islandOrbAspect }
+    /// The orb's height — **the authored axis since 0.7.9 (A1)**.
+    ///
+    /// 0.234 of `controlButton` is not a fresh number: it is 0.55 / 2.35, the
+    /// width fraction and the aspect 0.7.8 shipped, multiplied out. So the bead
+    /// is 14.98pt at SMALL and 17.22 at LARGE, which is what it was before this
+    /// batch to two decimal places. A1 permits either axis to be the authored
+    /// one; holding the height is the choice that leaves the rim, the specular
+    /// highlight and the coloured core exactly where 0.7.8 tuned them, and makes
+    /// this pass purely about length.
+    public static var islandOrbHeight: CGFloat { controlButton * 0.234 }
 
     // `islandOrbCornerFraction` retired in 0.7.6 (E1). It was 0.30 of the side —
     // the radius that made 0.7.5's rounded key — and a stadium has no radius to
@@ -302,7 +372,29 @@ public enum DexMetrics {
     /// gesture's target (see `DeviceChassis.lcdOrb`), and shrinking a control's
     /// art is not a licence to shrink its touch area below the platform
     /// minimum. The extra points are padding around the bead, not more bead.
-    public static var islandSlot: CGFloat { max(islandOrb + 8, 44) }
+    ///
+    /// **This measured the orb's width until 0.7.9 (A1/A3), and it had to stop.**
+    /// One number was doing two jobs — the height of the notch-level *row* and
+    /// the side of the orb's square hit box — which was invisible while the orb
+    /// was 35pt wide and 44 was the floor either way. At 79.44 it stops being
+    /// invisible: `max(islandOrb + 8, 44)` would be 87.44, which is the row's
+    /// height as well as the target's width, and `islandTopInset` would floor to
+    /// 8 and stop centring the row on the cutout at all. So this is the **short**
+    /// axis now — the orb's height plus its padding — and it resolves to exactly
+    /// the 44 it has resolved to since 0.6.6. The wide axis is `islandOrbSlot`.
+    public static var islandSlot: CGFloat { max(islandOrbHeight + 8, 44) }
+
+    /// The orb's touch slot across (0.7.9, A3).
+    ///
+    /// A3's rule: the slot grows to contain the bead. 87.44pt at SMALL and 94.30
+    /// at LARGE — 4pt of transparent padding either side of the orb, which is
+    /// the same slack `islandSlot` used to give it and is what centres the bead
+    /// inside its target.
+    ///
+    /// The 44pt floor stays for the degenerate case, but it has not bound since
+    /// 0.6.6 and certainly does not now; the *height* is what the platform
+    /// minimum is protecting, and that is `islandSlot`'s job.
+    public static var islandOrbSlot: CGFloat { max(islandOrb + 8, 44) }
     // `islandLampRow` retired in 0.6.7 (F1): the two red lamps are no longer
     // in this strip at all. They spent 0.6.6 on bare chassis below the cutout,
     // which is where the device reported them rendering *outside* the LCD's
@@ -383,7 +475,56 @@ public enum DexMetrics {
     /// narrowest island device (393pt) the orb's 44pt slot now runs 64→108
     /// against an island starting at 133, so ~25pt of clearance remains. Both
     /// clusters keep more margin than the 20pt the row was designed around.
-    public static let islandOrbInsetLeading: CGFloat = 64
+    ///
+    /// ---
+    ///
+    /// **Derived, and 28 rather than 64, since 0.7.9 (A2).** A1 widened the orb
+    /// from 35.2 to 79.44 (SMALL) and 40.48 to 86.30 (LARGE), which spends the
+    /// clearance above directly: held at 64 the bead would have ended at 147.4
+    /// and 154.3 against a cutout starting at 133 — *under the island*, at both
+    /// scales. A2's instruction is explicit that the answer is to move the bead
+    /// rather than shrink it back, so this moves.
+    ///
+    /// It is expressed as a rule rather than as a fresh literal, and the rule is
+    /// the mirror A1 is chasing: **the orb's bounding box sits on the same inset
+    /// the trio's outer edge does.** `islandStatusInsetTrailing` is
+    /// `cornerGuardH + 6` = 32, the slot gives the bead 4pt of padding, so the
+    /// slot starts at 28 and the *bead* starts at 32. Two clusters of identical
+    /// width, at identical insets, on a cutout that is itself centred — which is
+    /// why the two clearances below come out within half a point of each other
+    /// rather than by coincidence.
+    ///
+    /// **The re-derivation A2 asks for**, on the narrowest island device (393pt,
+    /// island spanning 133–259.5):
+    ///
+    /// | | SMALL | LARGE |
+    /// |---|---|---|
+    /// | orb | 32 → 111.4 | 32 → 118.3 |
+    /// | orb clearance | **21.6** | **14.7** |
+    /// | slot | 28 → 115.4 | 28 → 122.3 |
+    /// | slot clearance | **17.6** | **10.7** |
+    /// | trio | 281.6 → 361 | 274.7 → 361 |
+    /// | trio clearance | 22.1 | 15.2 |
+    ///
+    /// It fits at LARGE, which A2 names as the case to stop on if it did not.
+    /// LARGE is tighter than SMALL for the reason `islandStatusInsetTrailing`
+    /// records: the lamp is `max(controlButton × 0.33, 22)` and the 22 floor
+    /// binds at SMALL, so the cluster grows 8.6% going to LARGE while the
+    /// device does not grow at all.
+    ///
+    /// **The corner guard, re-checked because the slot moved inboard of 32 for
+    /// the first time.** `cornerGuardH` is 26 and the slot's leading edge is 28,
+    /// so even the transparent padding clears it. The binding line is subtler:
+    /// the display's 55pt arc eats `55 − √(55² − (55−y)²)` at height y, which is
+    /// 26.4pt at the slot's top edge (y = 8) — 1.6pt inside 28, and the pixels
+    /// there are empty padding. Where the bead actually is (y ≈ 22.5–37.5) the
+    /// arc has closed to 10.6pt, less than a third of the way to it. There is no
+    /// room left for a third pass to spend, and A4's standing instruction
+    /// applies with full force: **do not move this again without re-deriving
+    /// the table above.**
+    public static var islandOrbInsetLeading: CGFloat {
+        islandStatusInsetTrailing - (islandOrbSlot - islandOrb) / 2
+    }
     /// How far in from the trailing edge the lamp trio ends (0.6.8, F3).
     ///
     /// `cornerGuardH`, i.e. the trio is trailing-aligned on the same inset the
@@ -417,9 +558,20 @@ public enum DexMetrics {
     /// travelling the same distance from their edges.
     ///
     /// **Do not spend this again without re-deriving the span.** The trio is
-    /// `3 × islandStatusDot + 2 × statusDotSpacing`, and both of those scale
-    /// with `UIScale`; the clearance is `deviceWidth − thisInset − trio −
-    /// islandRightEdge`, and the binding case is LARGE, not SMALL.
+    /// `islandOrbWidth(lamp: islandStatusDot, spacing: statusDotSpacing)`; the
+    /// clearance is `deviceWidth − thisInset − trio − islandRightEdge`, and the
+    /// binding case is LARGE, not SMALL.
+    ///
+    /// **One correction to the sentence this used to carry** (0.7.9, A2): it
+    /// said "both of those scale with `UIScale`", and only the lamp does.
+    /// `statusDotSpacing` is `0.42 × rem` with `rem` a fixed 16, so the two gaps
+    /// are 6.72pt at every size. That is why the trio grows only 8.6% between
+    /// the scales rather than 15%, and it is load-bearing for the clearance
+    /// table on `islandOrbInsetLeading`.
+    ///
+    /// **Since 0.7.9 (A1) this inset is also the orb's**, by way of
+    /// `islandOrbInsetLeading`, which derives itself from this number so the two
+    /// clusters cannot drift apart. Changing this moves both ends of the row.
     public static let islandStatusInsetTrailing: CGFloat = cornerGuardH + 6
     // `islandStatusRise` retired in 0.6.9 (E1). 0.6.8's F3 lifted the lamp trio
     // 6pt off the orb's centre line so the two clusters read as separate
@@ -480,7 +632,16 @@ public enum DexMetrics {
     /// `islandStatusInsetTrailing`, which is where the room actually came
     /// from — and the arithmetic is written out there rather than here because
     /// the inset is the thing anyone changing this has to look at.
-    public static var islandStatusDot: CGFloat { max(islandOrb * 0.60, 22) }
+    ///
+    /// **Sized off `controlButton` rather than off `islandOrb` since 0.7.9
+    /// (A1), and the value does not move.** A1 makes the orb's width the trio's
+    /// width, so `islandOrb × 0.60` would be a cycle: orb ← trio ← lamp ← orb.
+    /// The lamp was only ever a fraction of a fraction of the control anyway —
+    /// 0.55 × 0.60 = 0.33 — so pointing it straight at `controlButton` breaks
+    /// the cycle and produces the identical 22.0 / 24.29 it produced before.
+    /// The 22 floor still binds at SMALL and still does not at LARGE, which is
+    /// why the two scales' orb aspects differ; see `islandOrbAspect`.
+    public static var islandStatusDot: CGFloat { max(controlButton * 0.33, 22) }
     // `statusDotsGap` and `statusDotsRise` retired in 0.6.5 (C1): both measured
     // the cluster's placement relative to the orb, and the cluster no longer
     // sits beside the orb — it has the opposite corner of the strip to itself.

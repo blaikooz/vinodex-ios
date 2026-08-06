@@ -349,13 +349,47 @@ public struct LabelReading: Codable, Sendable, Hashable {
     /// plus a vintage (20) sit just under it and a producer guess plus a country
     /// (35) sail over it on no wine knowledge at all — so a confident reading
     /// must also have named something the *database* recognises.
-    public var isConfident: Bool {
-        guard score >= LabelConfidence.floor else { return false }
-        return matches.contains { match in
+    public var isConfident: Bool { outcome == .identified }
+
+    /// **What the results screen is actually looking at** (0.7.9, D-a).
+    ///
+    /// `isConfident` is a `Bool`, and a `Bool` can only say "results" or "no
+    /// match" — so the screen said NO MATCH to two situations that are nothing
+    /// alike. One is a photograph the reader got nothing out of. The other is a
+    /// French label naming a region the catalog holds and a producer it does
+    /// not, or a country plus a shortlist of its regions: the reader has
+    /// narrowed the bottle to a handful of real entries and is telling the user
+    /// it failed. That second case is common — it is most of the misses on the
+    /// 0.7.9 corpus — and presenting it as a failure throws away the work.
+    ///
+    /// Three states, and the middle one is the point.
+    public enum Outcome: String, Codable, Sendable {
+        /// Something in the catalog was read, and the score clears the floor.
+        case identified
+        /// Not enough to name the bottle, but real candidates to offer.
+        case ambiguous
+        /// Nothing in the catalog was reached at all.
+        case unrecognized
+    }
+
+    public var outcome: Outcome {
+        let named = matches.contains { match in
             guard !match.isInferred else { return false }
             return match.field == .wineName || match.field == .appellation
                 || match.field == .region || match.field == .grape
         }
+        if named && score >= LabelConfidence.floor { return .identified }
+
+        // A candidate is something the user can tap: a suggested region, a
+        // country the catalog holds, or a field that resolved to an entry
+        // without carrying the reading over the floor. A vintage and a producer
+        // guess are **not** candidates — neither is a claim about a wine, and a
+        // screen that called them "several plausible matches" would be lying
+        // about work it did not do.
+        let hasCandidates = !suggestedRegionIDs.isEmpty
+            || !suggestedCountries.isEmpty
+            || matches.contains { !$0.isInferred && $0.entryID != nil }
+        return hasCandidates ? .ambiguous : .unrecognized
     }
 
     /// A vintage as an integer, for anything that wants to compare years.

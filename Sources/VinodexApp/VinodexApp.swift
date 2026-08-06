@@ -519,8 +519,11 @@ struct RootView: View {
         case .state(let name):
             StateScreen(state: name) { open($0) }
 
+        // The route case keeps its name (0.7.9, B): `DexRoute` is vocabulary,
+        // `DemoMode` names it, and what changed is the screen behind the door
+        // rather than the door. See `WhatsThatScreen`.
         case .dailyGrape:
-            DailyGrapeScreen { open($0) }
+            WhatsThatScreen { open($0) }
 
         case .settings:
             SettingsPanel(

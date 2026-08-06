@@ -1674,3 +1674,279 @@ move**.
   **floors** and only returns 100 when genuinely complete — rounding would print
   `100%` at 437 of 438, which is the one number on an outward-facing card a
   reader would check and the one claim the player has not earned.
+
+**0.7.9, Orb, outlines, matcher, lineage UI, and a guessing game**
+(`horizon-md/vinodex-0.7.9.md`, sections A, B, C2, D-a, E, F, G). The spec's own
+scope warning was right — this is not a small batch — but it ran whole rather
+than split. Section C1 is **not** in this pass: it is a sommbot data sitting that
+runs *after* it, and no file under `shared/` was touched here, which is what kept
+the two passes off `entries.json` at the same time. Gates: 576 tests green (up
+from 542, and **red at the start of the batch**), clean `xtool dev build`,
+`find-missing-refs.mjs` zero dangling across 177 grapes / 124 regions / 33 styles
+/ 106 flavors / 30 countries.
+
+- **G ran first because the repo was broken.** Sommbot's P1/P2 batch landed 8
+  entries (438 → 446) and 13 exam questions (407 → 420) without moving the pins,
+  so `swift test` was red before a line of this batch was written. Nothing else
+  in the batch is trustworthy until that is fixed, so it was fixed first.
+- **Three pins moved that the spec's list did not name**, and all three are the
+  gates working rather than failing. `bodyBarsAreDistinct` — the distribution
+  pin 0.7.5's E added precisely so a *branch* would be observable — moved to
+  `[2: 42, 3: 81, 4: 17, 5: 37]` on the six new grapes. `styleArtWiring` failed
+  because Madeira and Cava had no portraits. And `unconnectedGrapesAreEmpty`
+  failed because G177 Plavac Mali authors a contested `related` ref to G017, so
+  Zinfandel — the suite's example of a grape with nothing to show — stopped
+  being one.
+- **The Zinfandel test was rewritten rather than re-pointed, and the reason is
+  the suite's own structure.** `GrapeLineageTests` says in its header that its
+  first half pins shipped data and its second half pins logic that must not
+  move. `unconnectedGrapesAreEmpty` is in the second half and was hardcoded to
+  an id, so a data batch broke a *logic* test. It now asks the index for a grape
+  it says is unconnected and checks the index agrees with itself, which is the
+  assertion that was actually wanted and cannot rot.
+- **Gouais Blanc crossing into the catalog was the batch's most interesting
+  breakage.** The spec called out lines 87/88/94 — Chardonnay's off-catalog
+  parent proving an external ancestor is untappable — and was exactly right that
+  renumbering would delete the property rather than move it. Substituted
+  Magdeleine Noire des Charentes (named by G004 Merlot and G012 Malbec), which is
+  a better fixture: nobody drinks it, so no data batch has a reason to promote
+  it. The half-sibling assertion moved with it, and `throughGouais == 9` was left
+  alone and still passes — the family did not come apart when its shared-parent
+  key changed from a folded name to an id, which is the property worth having.
+  Four doc comments across `GrapeLineageIndex`, `GrapeLineageScreen` and
+  `EntryDetailScreen` called Gouais Blanc "a grape that is not in this app and
+  never will be"; all four are corrected.
+- **F is one line and the arithmetic checks out.** Slovenia joins
+  `ExpansionPacks.oldWorld`; membership was **265 -> 264 -> 265**, GODFORSAKEN
+  grew 15 -> 16 on Gouais Blanc, `stats.countries` held at 26 because Slovenia
+  has no region. All four verified against the shipped catalog rather than taken
+  from the spec.
+
+- **A. The orb is the lamp trio's width now, and the aspect stopped being
+  authored.** `islandOrb` is `3 x islandStatusDot + 2 x statusDotSpacing` —
+  79.44pt at SMALL, 86.30 at LARGE, against 35.2 / 40.48 before. Height is the
+  authored axis at `controlButton x 0.234`, which is 0.55 / 2.35 multiplied out
+  and therefore reproduces 0.7.8's 14.98 / 17.22 to two decimals; the aspect
+  falls out at **5.30 (SMALL) / 5.01 (LARGE)**.
+- **The clearance, re-derived at both scales as A2 asks.** On the narrowest
+  island device the orb runs 32 → 111.4 (SMALL) and 32 → 118.3 (LARGE) against a
+  cutout starting at 133: **21.6pt and 14.7pt**. Its slot, which is transparent
+  padding, runs 28 → 115.4 and 28 → 122.3 for 17.6 and 10.7. **It fits at
+  LARGE**, which the spec names as the stop-and-report condition. The trio's
+  clearances are 22.1 and 15.2, within half a point of the orb's — not a
+  coincidence, because `islandOrbInsetLeading` is now *derived* from
+  `islandStatusInsetTrailing` so the two clusters mirror by construction rather
+  than by two literals staying in step. That is the direct answer to 0.7.1's A4,
+  which is a page about what happens when they do not.
+- **Two metrics had to be split apart before any of this could be true.**
+  `islandStatusDot` read `islandOrb x 0.60`, which became a cycle the moment the
+  orb was derived from the trio; it reads `controlButton x 0.33` now, the same
+  number by construction. And `islandSlot` was doing two jobs — the height of the
+  notch-level row *and* the side of the orb's square hit box. At 79.44 wide that
+  stops being harmless: the row would have become 87pt tall and `islandTopInset`
+  would have floored to 8 and stopped centring the row on the cutout at all.
+  `islandSlot` is the short axis now (still exactly 44) and `islandOrbSlot` is
+  the wide one, which is A3's "the slot grows to contain the bead" spelled as
+  two numbers instead of one.
+- **The three miniature chassis were not optional collateral.** Workshop,
+  Settings and Walkthrough each hand-set an orb width and divided the aspect out
+  for the height — fine at 2.35, a 2pt hairline at 5.3. Each now derives its orb
+  from *its own* lamp geometry through `DexMetrics.islandOrbWidth(lamp:spacing:)`,
+  which is A1's rule stated once, and gives its rim a proportional width so the
+  lit core stays the same fraction of the bead it is on the real chassis. The
+  chassis's own `PulseGlow` moved from `width x 0.3` to `height x 0.7` for the
+  same reason: at the new width the halo would have been 23.8pt around a 15pt
+  bead. 10.5 / 12.1, within a tenth of a point of what shipped.
+- **One error in the inherited comments, corrected.** `islandStatusInsetTrailing`
+  said the trio's two components "both scale with `UIScale`". Only the lamp does;
+  `statusDotSpacing` is `0.42 x rem` with `rem` a fixed 16. That is why the trio
+  grows 8.6% between the scales rather than 15%, and it is load-bearing for the
+  clearance table. (0.7.8's own note also has the LARGE trio at 85.4 where the
+  arithmetic gives 86.3.)
+
+- **E. Brazil and Mexico have outlines, and `OUTLINE_BACKLOG` is deleted.** The
+  backlog carried its own instruction — "the list is meant to shrink to `[]`;
+  when it does, delete it and the `known`/`missing` split with it" — so a region
+  naming a place with no outline is now simply a build failure with no spelling
+  that lets it through. `CoverageTests.regionsHaveOutlineArt` pins the empty set.
+  **This is the only live user-visible defect the batch fixed**: R117, R118 and
+  R098 resolved their art through a `guard let` and drew nothing.
+- **The two silhouettes are script-rasterised, not drawn, and the deleted note
+  said that would show.** It is the honest trade and it is recorded here rather
+  than buried: the other 28 outlines are hand-drawn, these two are rasterised
+  from authored lon/lat rings and given the set's treatment (flat fill, one-cell
+  black cel outline, specular mark) at a comparable 212x216 and 216x144. They are
+  recognisable and they are not of that set. **Worth an artist's eye.** The
+  generator script is in the session scratchpad, not the repo — it is a one-shot
+  over a master, like every other derived-sprite pass.
+- **The projection is uniform in x on purpose.** `regions.ts` authors
+  `mapPosition` as fractions of the outline's own canvas, and Serra Gaucha's
+  (0.57, 0.87) and Campanha's (0.49, 0.92) both fall in Rio Grande do Sul on this
+  projection — checked against the real bounding box before the art was drawn,
+  because a non-uniform x scale would have moved both dots. R098 Valle de
+  Guadalupe has no `mapPosition` and still falls back to the seeded hash walk;
+  authoring one is a data call and is left for sommbot.
+- **Madeira and Cava needed portraits and got recolours.** `styleArtWiring`
+  requires one for every style but GSM Blend, and the spec did not mention it.
+  `madeira` is `port.png` with the wine swung from ruby to rancio amber (same
+  fortified flask); `cava` is `prosecco.png` with the gold pulled back to pale
+  straw (same flute). Keyed on hue, so glass, cork and cel outline pass through
+  untouched, and both keep white backgrounds so the normal strip/quantise pass
+  applies and neither joins `MASTERS`. **Placeholders. Also worth an artist's
+  eye**, and they are the second-weakest thing in the batch after the outlines.
+
+- **D-a. The label matcher: 14 of 22 identifiable bottles before, 22 of 22
+  after.** `LabelCorpusTests` is new and is the baseline the D-b/D-c decision was
+  asked for — twenty-four hand-written labels, twenty-two that must be identified
+  and two that must *not* be, scored as a rate with a floor rather than as
+  twenty-four assertions, because a tuning pass that fixes four and breaks one is
+  still a win and equality pins cannot say so.
+- **Every one of the eight recovered bottles failed the same way**, and that is
+  the finding rather than the fix. `LabelTextScan.phrases` only ever made windows
+  *inside* one recognised line, and OCR returns one string per line of type — so
+  a long appellation set over two or three lines (`CHATEAUNEUF` / `DU-PAPE`,
+  `VERDICCHIO DEI` / `CASTELLI DI JESI`) could not be a candidate at any
+  tolerance. All eight scored exactly 20: a producer guess plus a vintage, no
+  place at all. Phrases now join across a line break, restricted to the shape
+  type actually breaks in — a suffix of one line onto a prefix of the next,
+  contiguous, three-line joins only when the middle line is consumed whole — so
+  it is not a cross product of the label's words.
+- **`maxPhraseWords` was wrong, and the way it was wrong is the lesson.** It
+  read 4, with a comment asserting "four covers everything the catalog actually
+  holds ... the longest real multi-word names top out at four". That was a claim
+  about the *data* made in prose and never checked, and the data has moved four
+  batches since: `Verdicchio dei Castelli di Jesi`, `Muscat Blanc a Petits
+  Grains` and `Malvasia Branca de Sao Jorge` are five words folded, and all three
+  were **unmatchable at any distance**. It is 5 now, and
+  `phraseWindowCoversTheLongestName` fails the day a six-word name lands. The
+  test is the point of the change as much as the fifth window is.
+- **Prominence ranks now, and only as a tie-break.** The exact pass took the
+  first hit in phrase order; it takes the best, ranked by word count, then
+  `RecognizedString.prominence`, then unbroken-over-joined, then line order for
+  stability. Word count outranks type size absolutely — the longest-window rule
+  is what stops `Cabernet Sauvignon` resolving to `Cabernet` and it is not for
+  sale. Geometry the matcher already had and was spending only on the producer
+  guess.
+- **The results screen has three states, not two.** `LabelReading.outcome` is
+  `identified` / `ambiguous` / `unrecognized`, and `isConfident` is now defined
+  *as* the first so the two cannot drift. The middle state is the common one: a
+  French label naming a region the catalog holds and a producer it never will —
+  the on-device matcher is structurally incapable of finishing that, because
+  there is no producer entity — and telling the user NO MATCH while a list of
+  candidates sat directly beneath it threw the work away. `shortlistCard` is cyan
+  and points at the sections below; `noMatchCard` stays amber and points at the
+  camera, which is the right advice for exactly one of the two.
+- **What the number does and does not argue.** 22/22 says the local matcher
+  identifies a well-set European label with an appellation on it essentially
+  always. The remaining gap is not scoring, it is knowledge: a bottle stating
+  only an estate is unidentifiable here at any tuning, and the corpus
+  deliberately holds one as a bottle the matcher must *decline*. That is what
+  D-b/D-c would buy. `LabelRecognitionProvider` was not touched, so both remain
+  the one-line swap at the `LabelReaderViewModel` initialiser they already were.
+
+- **C2. The tree's nodes are bigger, and the biggest tier no longer runs off the
+  bottom.** `LineageTile` goes 96 -> 116pt with the art well and the name up a
+  step each — at the old size a node in the tree was smaller than a plain
+  related-entry row on the same screen. Every tier is capped at six with a SHOW
+  ALL control, on the pattern HALF-SIBLINGS has used since 0.7.5, and that is
+  what makes the enlargement affordable. **Checked against the case the spec
+  names**: Gouais Blanc is G176 now and is named as a parent by ten catalog
+  grapes, the largest node set in the app, which at the new width is four rows of
+  unlabelled squares before the footnotes.
+- **The unknown-parentage contract is settled in the UI, which is why the
+  sequencing was inverted.** `GrapeLineage.parentageUnknown` is an authored
+  claim that research has been done and no parent pair is established — the
+  opposite of the silence 116 of 177 grapes carry, which means only that nobody
+  has written them down. It decodes with `decodeIfPresent` and defaults to
+  `false`, so every entry in the shipped catalog still decodes; nothing in
+  `shared/` sets it yet and sommbot's C1 pass is what makes it visible.
+- **It deliberately does not create a tree.** `GrapeLineage.isEmpty` ignores the
+  flag, so a grape whose only content is "nobody knows" does not open a pedigree
+  screen with connectors and tiers and nothing in them. It is collected *before*
+  the `isEmpty` guard in `GrapeLineageIndex` so it stays answerable for a grape
+  with no edges — which is the common case — and `connectedIDs` does not move.
+- **Three renderings, one contract.** In the tree it is
+  `LineageNode.Target.unrecorded`, a third enum case rather than a nil, so every
+  `switch` has to answer for it: a dashed unfilled tile with a slashed-circle
+  glyph, standing where a parent would, and only when fewer than two ancestors
+  are authored — appending it to a settled cross would render a data
+  contradiction as fact. On the entry screen a grape with the flag and no tree
+  gets a stated line instead of silence, which is the one exception the 0.7.5
+  argument against NO LINEAGE DATA leaves room for: that objection was to
+  reporting an absence of *authoring*, and this reports a fact about the wine.
+  A slashed circle and not a question mark, because `ContestedBadge` already owns
+  the question mark and means "two sources disagree" by it.
+
+- **B. WHAT'S THAT...? is a guessing game, and the door did not move.** Same
+  TOOLS tile, same `DexRoute.dailyGrape`, same marquee, same `sparkles` glyph —
+  all of those are vocabulary named by `DemoMode`, `ChromeTests` and the back
+  handler, and renaming the case would have been churn in four files to describe
+  a change none of them care about (the convention `scanner` has followed since
+  it became BLIND TASTING in 0.7.1). `DailyGrapeScreen.swift` is deleted; every
+  reference was found first.
+- **The daily paper is untouched and was never at risk.** DAILY CHALLENGE on the
+  same shelf is `TastingQuiz` + `StreakStore` and shares no store, seed or screen
+  with this. **Where "grape of the day" went**: the answer is still
+  `RevealCursor` stepping through a day-seeded shuffle, exactly as the reveal
+  used it — two players opening it cold on one date get the same entry, each
+  reopen deals the next. The thing that used to be revealed is now the thing you
+  are trying to name.
+- **All of it is in `VinodexCore`**, which is the house rule `OCRService:10-15`
+  states and which this feature is the strongest argument for: a guessing game is
+  almost entirely rules, and rules in a view are untestable on the only machine
+  that runs the tests. `WhatsThatScreen` draws and nothing else.
+- **The sufficiency property is enforced by construction, not hoped for.**
+  `Clue.Kind.allCases` order *is* reveal order, vague to specific; `candidates`
+  runs the same predicate that generated a clue back over the whole catalog; and
+  `round(for:)` only returns a round whose full set leaves the answer alone.
+  Seventeen tests, including "every clue is true of its own answer" across 120
+  deals — a round can be uniquely solvable and still lie, and that is the silent
+  partner of the property the spec names.
+- **The selection is greedy from the *specific* end, and it had to be.** Filling
+  the spare chips in reveal order spends them on the next-vaguest facts — tannin,
+  rarity — and hits the six-clue cap before reaching the flavour and the region,
+  which are the only clues that isolate a grape. Cabernet Sauvignon was the
+  proof: eight clues available, six spent, still ambiguous, round refused. The
+  chosen set is re-sorted into reveal order afterwards, so selection and
+  presentation are different orders on purpose. **279 of 301** grapes and regions
+  are playable; the shuffle walks past the other 22 rather than dealing something
+  unwinnable, and the rate is pinned so "refuse everything" cannot pass.
+- **The guess input goes through `LabelRecognitionService` and nothing was
+  written twice.** The guess is handed over as a single `RecognizedString` —
+  exactly what a provider returns for a one-line label — which buys accent
+  folding, synonyms (`Steen` is Chenin Blanc), the length-scaled edit tolerance
+  and the appellation-to-region link, all already tested. Only **non-inferred**
+  matches count, and that restriction is the correctness argument: a reading
+  walks the catalog, so naming a region yields its notable grapes and naming an
+  appellation yields a country. Counting those would let a player win a grape
+  round by naming any region that grows it, which is a guess *near* the answer
+  rather than at it. `judgeIgnoresInference` pins it on Nebbiolo/Piedmont.
+- **A wrong guess says what it was.** "THAT'S MERLOT — NOT IT" narrows the
+  field; "no" does not. Unrecognised is a third, distinct answer, on the same
+  reasoning as D-a's three-state result screen.
+
+- **The one thing this batch could not do, and it is a real gap.** The version
+  and changelog live in `shared/data/firmware.ts` (0.7.3a, F3) and the batch was
+  instructed not to touch `shared/` — so **`firmware.json` still reads 0.7.8 and
+  the app will report 0.7.8 for 0.7.9's work**. The instruction's stated reason
+  is the race with sommbot's C1 pass on `entries.json`, which `firmware.ts` does
+  not feed, but the constraint was honoured literally rather than reasoned
+  around. The entry has to be added and `npm run generate` re-run before this
+  ships.
+- **The art importers are not reproducible across environments, and the 0.7.7
+  note is wrong about why.** That note concluded the difference was the deflate
+  stream only, and that decoded pixels matched exactly. Running
+  `import-class-art.py` and `import-style-art.py` on Windows rewrote all 123
+  tracked PNGs, and **11 of them differ in decoded pixels** — up to 84 pixels of
+  42,300 with a max channel delta of 39, i.e. `Image.quantize` picking a slightly
+  different palette across Pillow versions. Invisible, but `icons:verify`
+  compares pixels, so it would fail on a machine other than the one that
+  generated them. All 123 were reverted here (the four genuinely new files are
+  untracked and survive). **Neither importer uses `art_common.save_stable`**;
+  adopting it would stop the 112-file churn but not the 11-file quantiser drift.
+- **vinodex-web is green on typecheck and on `coverage.test.ts`** (171->177,
+  31->33, 438->446) **and red on `quiz.test.ts`**, which pins the shuffled option
+  ids of seeded quiz questions and moves with any catalog change. Two tests, not
+  caused by this batch — the web `shared/` mirror was already synced to sommbot's
+  data before it started. Left for `paritybot`; re-deriving golden option ids is
+  web scope.

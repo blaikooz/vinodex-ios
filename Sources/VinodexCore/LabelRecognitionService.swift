@@ -45,15 +45,15 @@ public final class LabelRecognitionService: Sendable {
         // handled separately below because a label may name a blend, and
         // `.producer` and `.vintage` are not catalog lookups at all.
         for field in [LabelField.wineName, .appellation, .region, .country] {
-            guard let hit = resolve(field, in: phrases) else { continue }
+            guard let hit = resolve(field, in: phrases, strings: strings) else { continue }
             matches.append(hit.match)
-            claimedLines.insert(hit.line)
+            claimedLines.formUnion(hit.lines)
         }
 
-        let grapeHits = resolveGrapes(in: phrases)
+        let grapeHits = resolveGrapes(in: phrases, strings: strings)
         if let first = grapeHits.first {
             matches.append(first.match)
-            for hit in grapeHits { claimedLines.insert(hit.line) }
+            for hit in grapeHits { claimedLines.formUnion(hit.lines) }
         }
 
         // Producer last of the text passes, because it is defined by what the
@@ -143,7 +143,25 @@ public final class LabelRecognitionService: Sendable {
 
     private struct Hit {
         let match: LabelMatch
-        let line: Int
+        /// Every recognised line the winning phrase drew words from. Plural
+        /// since 0.7.9 (D-a) — a phrase set across a line break claims all of
+        /// the lines it consumed, or `producerGuess` offers the leftovers as an
+        /// estate name.
+        let lines: [Int]
+    }
+
+    /// How big the phrase was on the bottle, 0–1.
+    ///
+    /// The largest of its lines rather than the average: a phrase that begins in
+    /// the label's headline type is headline text, whatever size the runover was
+    /// set in. Missing geometry reads as 0, which is what a provider that cannot
+    /// report it already sends (`RecognizedString.prominence`).
+    private static func prominence(
+        of phrase: LabelTextScan.Phrase,
+        in strings: [RecognizedString]
+    ) -> Double {
+        phrase.lines.compactMap { strings.indices.contains($0) ? strings[$0].prominence : nil }
+            .max() ?? 0
     }
 
     /// Exact first over every phrase, longest phrase first; fuzzy only if
@@ -153,22 +171,61 @@ public final class LabelRecognitionService: Sendable {
     /// match on a short phrase must still beat a fuzzy match on a long one — a
     /// label that plainly says `RIOJA` is in Rioja, whatever else on it is two
     /// edits away from Ribera del Duero.
-    private func resolve(_ field: LabelField, in phrases: [LabelTextScan.Phrase]) -> Hit? {
+    ///
+    /// **Prominence ranks within each pass since 0.7.9 (D-a).** The exact pass
+    /// used to take the *first* hit in phrase order, which is longest-first and
+    /// then top-of-label — so a second-rank hit on a big line lost to a
+    /// same-length hit on a back-label line. `RecognizedString.prominence` is
+    /// signal the matcher already had and was spending only on the producer
+    /// guess, and how big a word is set is the strongest statement a label
+    /// makes about what it is: the estate is the biggest text and the
+    /// appellation is usually second. It is applied strictly **after** word
+    /// count, so it is a tie-break and never a reason to prefer a shorter
+    /// phrase — the longest-window rule is what stops `Cabernet Sauvignon`
+    /// resolving to `Cabernet` and it is not for sale.
+    ///
+    /// An unbroken phrase also outranks a joined one of the same length and
+    /// prominence, for the reason `Phrase.isJoined` records: running type is one
+    /// phrase, broken type only might be.
+    private func resolve(
+        _ field: LabelField,
+        in phrases: [LabelTextScan.Phrase],
+        strings: [RecognizedString]
+    ) -> Hit? {
         guard let targets = index.targets[field] else { return nil }
 
+        /// Descending goodness: more words, then bigger type, then unbroken,
+        /// then earlier on the label. The last is a stability key rather than a
+        /// judgement — `sorted` and `max(by:)` are not stable in Swift, and two
+        /// runs over one photograph listing different answers reads as the
+        /// reader changing its mind.
+        func outranks(_ a: LabelTextScan.Phrase, _ b: LabelTextScan.Phrase) -> Bool {
+            if a.words != b.words { return a.words > b.words }
+            let pa = Self.prominence(of: a, in: strings)
+            let pb = Self.prominence(of: b, in: strings)
+            if pa != pb { return pa > pb }
+            if a.isJoined != b.isJoined { return !a.isJoined }
+            return a.line < b.line
+        }
+
+        var exact: (target: LabelIndex.Target, phrase: LabelTextScan.Phrase)?
         for phrase in phrases where phrase.key.count >= LabelIndex.minExactLength {
-            if let target = index.exact[field]?[phrase.key] {
-                return Hit(
-                    match: LabelMatch(
-                        field: field,
-                        name: target.name,
-                        readAs: phrase.text,
-                        entryID: target.entryID,
-                        isExact: true
-                    ),
-                    line: phrase.line
-                )
+            guard let target = index.exact[field]?[phrase.key] else { continue }
+            if exact == nil || outranks(phrase, exact!.phrase) {
+                exact = (target, phrase)
             }
+        }
+        if let exact {
+            return Hit(
+                match: LabelMatch(
+                    field: field,
+                    name: exact.target.name,
+                    readAs: exact.phrase.text,
+                    entryID: exact.target.entryID,
+                    isExact: true
+                ),
+                lines: exact.phrase.lines
+            )
         }
 
         var best: (target: LabelIndex.Target, phrase: LabelTextScan.Phrase, distance: Int)?
@@ -180,10 +237,10 @@ public final class LabelRecognitionService: Sendable {
                 guard let distance = LabelTextScan.editDistance(phrase.key, target.key, limit: limit),
                       distance > 0
                 else { continue }
-                // Fewer edits wins; a tie goes to the longer phrase, which is
-                // the more specific claim about the label.
+                // Fewer edits wins; a tie goes to the phrase `outranks` prefers,
+                // which is the longer one and then the more prominent.
                 if best == nil || distance < best!.distance
-                    || (distance == best!.distance && phrase.words > best!.phrase.words) {
+                    || (distance == best!.distance && outranks(phrase, best!.phrase)) {
                     best = (target, phrase, distance)
                 }
             }
@@ -198,7 +255,7 @@ public final class LabelRecognitionService: Sendable {
                 entryID: best.target.entryID,
                 isExact: false
             ),
-            line: best.phrase.line
+            lines: best.phrase.lines
         )
     }
 
@@ -208,7 +265,10 @@ public final class LabelRecognitionService: Sendable {
     /// the front — so every exact hit is collected rather than the first. Falls
     /// back to the shared single-hit path when nothing matched exactly, because
     /// a *fuzzy* blend is three guesses stacked on each other.
-    private func resolveGrapes(in phrases: [LabelTextScan.Phrase]) -> [Hit] {
+    private func resolveGrapes(
+        in phrases: [LabelTextScan.Phrase],
+        strings: [RecognizedString]
+    ) -> [Hit] {
         var hits: [Hit] = []
         var seen = Set<String>()
         for phrase in phrases where phrase.key.count >= LabelIndex.minExactLength {
@@ -223,12 +283,14 @@ public final class LabelRecognitionService: Sendable {
                         entryID: id,
                         isExact: true
                     ),
-                    line: phrase.line
+                    lines: phrase.lines
                 )
             )
             if hits.count >= Self.blendLimit { break }
         }
-        if hits.isEmpty, let single = resolve(.grape, in: phrases) { hits.append(single) }
+        if hits.isEmpty, let single = resolve(.grape, in: phrases, strings: strings) {
+            hits.append(single)
+        }
         return hits
     }
 
