@@ -61,7 +61,7 @@ const CURRENT: FirmwareRelease = {
     "The orb on the notch row is as tall as the lamps opposite it and lit the same way, which finishes the job 0.7.9 started on its width.",
     "A grape's origin moved out of the three-tile row onto its own bar, the way a region names its key grape.",
     "The back plate no longer explains how to move a sticker.",
-    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 30 countries.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
   ],
 };
 
@@ -70,29 +70,29 @@ const PREVIOUS: FirmwareRelease[] = [
   {
     version: "0.7.9",
     date: "2026-08-06",
-  // The batch's own headline was the orb, but the orb is a bead on the chassis
-  // and WHAT'S THAT...? is a tool that stopped being a reveal and became a game
-  // you can lose. That is the one a player notices.
-  headline: "NAME THAT WINE",
-  notes: [
-    "WHAT'S THAT...? is a guessing game now. Clues arrive one at a time and you name the wine.",
-    "It deals a grape or a region, and the clues go from vague to specific: the colour, then the country, then the flavour that gives it away.",
-    "Guess early for more credit. Every clue you take is one you did not need.",
-    "Type your answer -- it understands synonyms and near-misses, so Steen is Chenin Blanc and a slipped letter still counts.",
-    "A wrong guess tells you what you actually named, so the miss narrows the field instead of just saying no.",
-    "It still deals the same wine to everyone on a given day, and reopening it deals the next one.",
-    "The daily challenge is untouched and keeps its own streak.",
-    "Eight new entries: Madeira and Cava as styles, and the grapes Sercial, Boal, Malvasia de Sao Jorge, Gouais Blanc, Plavac Mali and Manto Negro.",
-    "Thirteen new exam questions, and fortified wine is no longer the thinnest paper on the beginner tier.",
-    "Brazil and Mexico have outlines at last. Serra Gaucha, Campanha and Valle de Guadalupe drew nothing on the map before this.",
-    "The family tree is bigger and easier to read. Long tiers collapse to six with a SHOW ALL, so a grape with ten children fits on the screen.",
-    "A grape whose parents are genuinely unknown now says so, which is different from one nobody has written down yet.",
-    "Label scan reads appellations that run across two or three lines. It could not see those at all before.",
-    "When it narrows a bottle down without settling it, it shows you the shortlist instead of reporting no match.",
-    "The orb is the full width of the lamps opposite it, so the two ends of the notch row read as a matched pair.",
-    "Blaufrankisch is filed under Slovenia now, with Burgenland still named as where it made its reputation.",
-    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
-  ],
+    // The batch's own headline was the orb, but the orb is a bead on the chassis
+    // and WHAT'S THAT...? is a tool that stopped being a reveal and became a game
+    // you can lose. That is the one a player notices.
+    headline: "NAME THAT WINE",
+    notes: [
+      "WHAT'S THAT...? is a guessing game now. Clues arrive one at a time and you name the wine.",
+      "It deals a grape or a region, and the clues go from vague to specific: the colour, then the country, then the flavour that gives it away.",
+      "Guess early for more credit. Every clue you take is one you did not need.",
+      "Type your answer -- it understands synonyms and near-misses, so Steen is Chenin Blanc and a slipped letter still counts.",
+      "A wrong guess tells you what you actually named, so the miss narrows the field instead of just saying no.",
+      "It still deals the same wine to everyone on a given day, and reopening it deals the next one.",
+      "The daily challenge is untouched and keeps its own streak.",
+      "Eight new entries: Madeira and Cava as styles, and the grapes Sercial, Boal, Malvasia de Sao Jorge, Gouais Blanc, Plavac Mali and Manto Negro.",
+      "Thirteen new exam questions, and fortified wine is no longer the thinnest exam on the beginner tier.",
+      "Brazil and Mexico have outlines at last. Serra Gaucha, Campanha and Valle de Guadalupe drew nothing on the map before this.",
+      "The family tree is bigger and easier to read. Long tiers collapse to six with a SHOW ALL, so a grape with ten children fits on the screen.",
+      "A grape whose parents are genuinely unknown now says so, which is different from one nobody has written down yet.",
+      "Label scan reads appellations that run across two or three lines. It could not see those at all before.",
+      "When it narrows a bottle down without settling it, it shows you the shortlist instead of reporting no match.",
+      "The orb is the full width of the lamps opposite it, so the two ends of the notch row read as a matched pair.",
+      "Blaufrankisch is filed under Slovenia now, with Burgenland still named as where it made its reputation.",
+      "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+    ],
   },
   {
     version: "0.7.8",
