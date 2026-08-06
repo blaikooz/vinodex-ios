@@ -48,11 +48,15 @@ struct PurchaseTests {
     @Test("what is already owned is not on sale")
     func ownedIsNotPurchasable() async {
         let access = makeStore()
-        #expect(access.isPurchasable(.flavors))
+        // `.workshop`, not `.flavors`: 0.8.3's D retired the flavour wheel, so
+        // it is refused before ownership is even consulted and would prove
+        // nothing about the rule this test is for. See `AccessTests`'
+        // retired-bundle suite for that half.
+        #expect(access.isPurchasable(.workshop))
 
-        await access.purchase(.flavors)
+        await access.purchase(.workshop)
 
-        #expect(!access.isPurchasable(.flavors))
+        #expect(!access.isPurchasable(.workshop))
         // Still refused for the reason it always was, not because it is owned.
         #expect(!access.isPurchasable(.easterEgg("verboseBoot")))
     }
@@ -129,7 +133,7 @@ struct PurchaseTests {
         stub.outcome = .failed("network")
         let access = makeStore(purchases: stub)
 
-        let outcome = await access.purchase(.flavors)
+        let outcome = await access.purchase(.skins)
 
         #expect(outcome == .failed("network"))
         #expect(access.granted.isEmpty)

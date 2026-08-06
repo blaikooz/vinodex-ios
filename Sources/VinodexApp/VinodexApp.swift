@@ -141,6 +141,7 @@ struct RootView: View {
         DeviceChassis(
             title: currentTitle,
             marqueeSymbol: currentMarqueeSymbol,
+            marqueeArt: currentMarqueeArt,
             showsBack: !path.isEmpty,
             onBack: path.isEmpty ? nil : { goBack() },
             onHome: { goHome() },
@@ -405,6 +406,17 @@ struct RootView: View {
             return entry.scanSymbol
         }
         return route.marqueeSymbol
+    }
+
+    /// The drawn face for that glyph (0.8.3, A), resolved through the same two
+    /// branches for the same reason: a stem taken from a different route than
+    /// the symbol would put one page's picture over another page's name.
+    private var currentMarqueeArt: String? {
+        guard let route = path.last else { return nil }
+        if case .detail(let id) = route, let entry = db.entry(id: id) {
+            return entry.scanArt
+        }
+        return route.marqueeArt
     }
 
     /// Which chip rows a category listing offers (0.7.0, H2/H3, extending

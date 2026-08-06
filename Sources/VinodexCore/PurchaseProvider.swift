@@ -127,14 +127,23 @@ public enum PurchaseOutcome: Sendable, Equatable {
 public final class LocalPurchaseProvider: PurchaseProviding {
     public init() {}
 
-    /// Everything except an easter egg, which is found rather than sold.
+    /// Everything except an easter egg, which is found rather than sold, and a
+    /// retired bundle, which is no longer sold (0.8.3, D).
     ///
-    /// The one rule that is *not* a placeholder: it is a property of what the
-    /// entitlement means, so a real storefront inherits it rather than
-    /// re-deciding it.
+    /// The two rules that are *not* placeholders: both are properties of what
+    /// the entitlement means, so a real storefront inherits them rather than
+    /// re-deciding them. `.easterEgg` was never a product; `.flavors` and
+    /// `.country` stopped being ones when D took them off the shelf, and this
+    /// is the sentence that makes that true everywhere rather than only in the
+    /// view that draws the shelf. `AccessStore.isPurchasable` reads it, so a
+    /// surface that tried to list one would filter it out on its own.
+    ///
+    /// Note the asymmetry with `Entitlement.covers`, which is deliberate: a
+    /// bundle can be unsellable and still open every entry it ever opened. Not
+    /// for sale is not the same as not owned.
     public func canPurchase(_ entitlement: Entitlement) -> Bool {
         if case .easterEgg = entitlement { return false }
-        return true
+        return !entitlement.isRetired
     }
 
     public func purchase(_ entitlement: Entitlement) async -> PurchaseOutcome {

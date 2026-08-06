@@ -585,10 +585,27 @@ public struct SettingsSectionPanel: View {
 
     /// Everything on sale that is not a cartridge.
     ///
-    /// Country bundles are drawn from the countries that actually have regions,
-    /// capped at the three largest — eighteen country cartridges would bury
-    /// everything else, and the storefront that sells all of them is a decision
-    /// for whoever writes the product table (see `PurchaseProviding`).
+    /// **Five rows since 0.8.3 (D), down from nine.** D removes the flavour
+    /// wheel and the three country packs — which were ITALY, FRANCE and SPAIN,
+    /// not because anybody chose those three but because a `topCountries`
+    /// helper here counted region entries per origin and took the largest
+    /// three. That helper is gone with the rows; nothing else called it.
+    ///
+    /// The removal is a *retirement* rather than a deletion, and the whole of
+    /// why is on `Entitlement.isRetired`: the ids are persisted, so the cases
+    /// stay, decode, and keep covering what they covered. Filtering the two
+    /// arms out here rather than leaving them to `isPurchasable` is deliberate
+    /// belt and braces — the filter below would already drop them, and a reader
+    /// asking "what does this shop sell" should be able to read the answer off
+    /// one line.
+    ///
+    /// **`granted.contains` still has work to do.** It is why an owned row
+    /// survives the purchasable filter — but note it can no longer resurrect a
+    /// retired bundle, because a retired bundle is not in the list to begin
+    /// with. That is the phantom D asks about: somebody holding
+    /// `country:France` sees five rows, not six, and no FRANCE PACK on a shelf
+    /// that no longer has one. What they keep is the access, which
+    /// `Entitlement.covers` never stopped granting.
     ///
     /// **The twelve packs are deliberately absent**: they are the three shelves
     /// underneath, which is the whole of B1. The atlas three used to be listed
@@ -599,14 +616,14 @@ public struct SettingsSectionPanel: View {
     /// `LocalPurchaseProvider.canPurchase` refuses it, so it could not be sold
     /// even if it were listed.
     private var shopUpgrades: [ShopItem] {
-        let entitlements: [Entitlement] =
-            [.pro, .flavors]
-            + topCountries.map { Entitlement.country($0) }
+        let entitlements: [Entitlement] = [
+            .pro,
             // `.lineage` joins the two premium *features* (0.7.5, E1). Beside
             // `.workshop` rather than up with `.pro`, because the order here is
             // the shelf order and these two are the same kind of thing: a screen
             // you buy, not a slice of the catalog.
-            + [.skins, .lightMode, .workshop, .lineage]
+            .skins, .lightMode, .workshop, .lineage,
+        ]
         return entitlements
             .filter { access.granted.contains($0) || access.isPurchasable($0) }
             .map {
@@ -619,21 +636,13 @@ public struct SettingsSectionPanel: View {
             }
     }
 
-    private var topCountries: [String] {
-        var counts: [String: Int] = [:]
-        for entry in db.entries(in: .regions) {
-            guard let origin = entry.origin, !origin.isEmpty else { continue }
-            counts[origin, default: 0] += 1
-        }
-        return counts
-            .sorted { ($0.value, $1.key) > ($1.value, $0.key) }
-            .prefix(3)
-            .map(\.key)
-    }
-
     private func bundleSymbol(_ entitlement: Entitlement) -> String {
         switch entitlement {
         case .pro: "crown.fill"
+        // Retired in 0.8.3 (D) and unreachable from `shopUpgrades` above. Kept
+        // for the reason `.expansion`'s arm below is: `Entitlement` is
+        // exhaustive here, and the honest glyph is a better answer than a
+        // `default:` that would swallow the next case somebody adds.
         case .flavors: "leaf.fill"
         case .country: "flag.fill"
         case .skins: "paintpalette.fill"
@@ -878,10 +887,17 @@ public struct SettingsSectionPanel: View {
             // exactly as it does on a workshop part chip.
             symbol: owned ? nil : "lock.fill",
             lcd: lcd,
-            swatchSize: 46,
+            // 46 → 58 (0.8.3, E2). "A bit larger", explicitly not C3's
+            // treatment: the shelf is a three-column grid whose cell width the
+            // label also has to live in, so the cartridge grows a register and
+            // the grid does not move. Removing the outline is what paid for it —
+            // the swatch no longer has a border to clear.
+            swatchSize: 58,
             labelSize: 9,
             labelMinHeight: 24,
-            outline: CartridgeShape(),
+            // No border (0.8.3, E1) — see `DexPickerTile.outline`. The
+            // cartridges draw their own.
+            outline: CartridgeShape?.none,
             action: { openShopItem = item.id },
             swatch: {
                 PackCartridge(
@@ -951,11 +967,20 @@ public struct SettingsSectionPanel: View {
                 VStack(alignment: .leading, spacing: 16) {
                     cartridgeMockups(item)
 
-                    Text(item.title)
-                        .font(DexFont.retro(19))
-                        .tracking(1)
-                        .foregroundStyle(lcd.text)
-                        .fixedSize(horizontal: false, vertical: true)
+                    // **The title is on the cartridge now (0.8.3, C4)** — this
+                    // row is what is left for a product with no art, whose
+                    // fallback cartridge has a glyph plate where the well
+                    // would be and so cannot carry a name. Nothing on the
+                    // shelves takes this branch today (`CartridgeArtTests`
+                    // gates all seventeen), and a splash with no name at all
+                    // is not a state worth being one edit away from.
+                    if CartridgeArt.stem(for: item.entitlement) == nil {
+                        Text(item.title)
+                            .font(DexFont.retro(19))
+                            .tracking(1)
+                            .foregroundStyle(lcd.text)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
 
                     Text(item.blurb)
                         .font(DexFont.mono(19))
@@ -1146,6 +1171,12 @@ public struct SettingsSectionPanel: View {
     /// `ScreenMockup` draws the panel itself — ground, ink and accent, all
     /// three of the decisions a mode actually makes. `shellSwatch` above keeps
     /// `ChassisMockup` untouched, because a device pack does sell the device.
+    ///
+    /// **The full card since 0.8.3 (F)**: `ScreenMockup` *is* the CUSTOMIZE
+    /// picker's card now, glyph and monochrome pass included, so this is the
+    /// same drawing at 40pt that the picker shows at 50. What it was missing
+    /// mattered — without the monochrome pass, AMBER and VINTAGE previewed in
+    /// the green they are derived from.
     private func screenSwatch(_ mode: LcdMode) -> some View {
         VStack(spacing: 5) {
             ScreenMockup(mode: mode, height: 40)
@@ -1183,52 +1214,43 @@ public struct SettingsSectionPanel: View {
         .padding(.top, 4)
     }
 
-    /// The fanned cartridge trio at the top of a splash.
+    /// The cartridge at the top of a splash — **the page's subject since 0.8.3
+    /// (C1/C2/C3/C4)**.
     ///
-    /// **Bigger since 0.7.6 (C3)**: the strip is 132pt → 168 and the hero takes
-    /// half the width rather than 0.44 of it, so the product shot is the first
-    /// thing the splash is rather than a thumbnail above the copy. It is still
-    /// bounded by the strip's own height, so a short LCD shrinks it rather than
-    /// pushing the title off the card.
+    /// What C replaces: a fanned trio at 168pt, the hero taking half the width
+    /// and offset down-left, with two `CartridgeShape` plates stepped up-right
+    /// behind it. The plates were introduced as "the rest of the box, not three
+    /// separate products", and on a shelf where every product is now a drawn
+    /// cartridge they read as what they geometrically are — two blank file cards
+    /// behind the pack (C1). They are gone, the hero is centred (C2), and it
+    /// takes the width the fan was reserving for the step (C3).
+    ///
+    /// **C4 is what set the size.** The name moves into the sprite's own label
+    /// well, so the hero has to be large enough for thirteen characters to be
+    /// legible in a recess that is 11% of its height — see
+    /// `PackCartridge.labelWell(for:in:)`. 260 is where CHASSIS SKINS and GRAPE
+    /// LINEAGE clear it. The strip is still bounded by `min(width, height)`, so
+    /// a narrow LCD shrinks the cartridge rather than clipping it, and the
+    /// splash still scrolls.
     private func cartridgeMockups(_ item: ShopItem) -> some View {
         GeometryReader { geo in
-            let side = min(geo.size.width * 0.50, geo.size.height)
-            ZStack {
-                // Two ghosts behind, stepped away from the hero. Drawn as bare
-                // outlines rather than as full cartridges: they are the rest of
-                // the box, not three separate products.
-                ForEach([2, 1], id: \.self) { depth in
-                    CartridgeShape()
-                        .fill(lcd.surface)
-                        .overlay(
-                            CartridgeShape()
-                                .strokeBorder(lcd.surfaceEdge, lineWidth: 1)
-                        )
-                        .frame(width: side, height: side)
-                        .offset(x: CGFloat(depth) * side * 0.16, y: CGFloat(-depth) * side * 0.07)
-                        .opacity(1 - Double(depth) * 0.28)
-                }
-
-                PackCartridge(
-                    symbol: item.symbol,
-                    ink: lcd.accent,
-                    ground: lcd.panelGround,
-                    isComplete: false,
-                    // **The same file, larger** (0.8.2, coordinator 5). The
-                    // cartridges ship at source resolution precisely so the
-                    // splash's hero can be this size without the shelf's 46pt
-                    // deciding it — see `import-cartridge-art.py`. The two
-                    // ghost plates behind stay `CartridgeShape` outlines: they
-                    // are the rest of the box, and three drawn cartridges would
-                    // read as three products.
-                    art: CartridgeArt.stem(for: item.entitlement)
-                )
-                .frame(width: side, height: side)
-                .offset(x: -side * 0.16, y: side * 0.07)
-            }
-            .frame(width: geo.size.width, height: geo.size.height, alignment: .center)
+            let side = min(geo.size.width, geo.size.height)
+            PackCartridge(
+                symbol: item.symbol,
+                ink: lcd.accent,
+                ground: lcd.panelGround,
+                isComplete: false,
+                // **The same file, larger** (0.8.2, coordinator 5). The
+                // cartridges ship at source resolution precisely so the
+                // splash's hero can be this size without the shelf's tile size
+                // deciding it — see `import-cartridge-art.py`.
+                art: CartridgeArt.stem(for: item.entitlement),
+                label: item.title
+            )
+            .frame(width: side, height: side)
+            .frame(width: geo.size.width, height: geo.size.height)
         }
-        .frame(height: 168)
+        .frame(height: 260)
         .frame(maxWidth: .infinity)
     }
 
@@ -1711,30 +1733,14 @@ public struct SettingsSectionPanel: View {
                     }
                 } label: {
                     VStack(spacing: 8) {
-                        RoundedRectangle(cornerRadius: 5)
-                            .fill(option.screen)
-                            .frame(height: 50)
-                            .frame(maxWidth: .infinity)
-                            .overlay {
-                                VStack(spacing: 4) {
-                                    Image(systemName: option.symbol)
-                                        .font(.system(size: 15, weight: .semibold))
-                                        .foregroundStyle(option.accent)
-                                    RoundedRectangle(cornerRadius: 1)
-                                        .fill(option.text.opacity(0.85))
-                                        .frame(width: 34, height: 3)
-                                    RoundedRectangle(cornerRadius: 1)
-                                        .fill(option.subtext.opacity(0.8))
-                                        .frame(width: 24, height: 3)
-                                }
-                            }
-                            .grayscale(option.monochromeTint == nil ? 0 : 1)
-                            .colorMultiply(option.monochromeTint ?? .white)
-                            .clipShape(RoundedRectangle(cornerRadius: 5))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 5)
-                                    .strokeBorder(option.surfaceEdge, lineWidth: 1)
-                            )
+                        // **The card moved into `ScreenMockup` (0.8.3, F).**
+                        // The drawing is unchanged in every respect but the
+                        // ink — see that type for why `ownInk` replaces `text`
+                        // here as well as there. F asks for the shop's preview
+                        // to be "exactly as it appears in Customise", and the
+                        // only way to make that a fact rather than a promise is
+                        // for there to be one card with two callers.
+                        ScreenMockup(mode: option, height: 50)
                             .opacity(locked ? 0.45 : 1)
 
                         HStack(spacing: 4) {

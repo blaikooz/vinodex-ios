@@ -39,6 +39,28 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.8.3",
+  date: "2026-08-06",
+  // Four things came off the shop and nothing came off the dex. The shelves are
+  // drawn cartridges throughout now, the marquee wears the drawn faces, and the
+  // footer caps lost the shadow that was painted into them.
+  headline: "SHELVES OF CARTRIDGES",
+  notes: [
+    "Four things have left the shop: the FLAVOR WHEEL and the ITALY, FRANCE and SPAIN packs. Nothing left the dex with them -- every grape, region and style they covered is exactly where it was.",
+    "If you already own one of those, you still own it, and it still opens what it always opened.",
+    "Every shelf is drawn cartridges now. The four that had no picture were the four that left.",
+    "A pack's page is the cartridge, centred and much larger, with the pack's name printed on its label.",
+    "The file card that used to sit behind each cartridge is gone, on the shelf and on the page. The packs are a step larger for it.",
+    "The SCREEN MODES packs preview the actual screen -- glyph, lines and all -- instead of a reduced version. AMBER and VINTAGE had been previewing in green.",
+    "The marquee's page glyph is the drawn button face, in black.",
+    "The two lamps above the marquee wear their drawn faces too, in colour.",
+    "The four footer buttons have lost their cast shadow, and they depress when you press them.",
+    "A style's ORIGIN sits on its own bar under the tiles, the way a grape's already did.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const DISPLACED_0_8_2: FirmwareRelease = {
   version: "0.8.2",
   date: "2026-08-06",
   // The lineage dataset stops being a sample. 102 more grapes were researched
@@ -84,6 +106,7 @@ const DISPLACED_0_8_1: FirmwareRelease = {
 
 /** Everything before `CURRENT`, newest first. */
 const PREVIOUS: FirmwareRelease[] = [
+  DISPLACED_0_8_2,
   DISPLACED_0_8_1,
   {
     version: "0.8.0",

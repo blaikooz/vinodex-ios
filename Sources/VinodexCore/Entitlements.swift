@@ -147,6 +147,46 @@ public enum Entitlement: Hashable, Sendable {
         }
     }
 
+    /// Whether this bundle is still sold (0.8.3, D).
+    ///
+    /// **Retired, not deleted, and the distinction is the whole of D.** D asks
+    /// for the flavour wheel and the Italy, France and Spain packs to come off
+    /// the shop. Deleting the cases would have been the obvious reading and is
+    /// unshippable: `"country:France"` and `"flavors"` are strings in
+    /// `grantedEntitlements` on real devices — `LocalEntitlementStore` reads
+    /// them through `Entitlement.init(id:)` — and a case that stopped existing
+    /// would make `init(id:)` return nil, `compactMap` drop it in silence, and
+    /// somebody's purchase disappear on update. That is the exact failure
+    /// `Entitlement`'s own note about load-bearing spellings warns about, one
+    /// level up.
+    ///
+    /// So the three things that keep an existing owner whole are all untouched:
+    /// `init(id:)` still parses both forms, `id` still writes them back, and
+    /// `covers(_:in:)` still opens exactly what it always opened. What changes
+    /// is only what the app will *sell*, which is what a paywall coming down
+    /// means:
+    ///
+    /// - `LocalPurchaseProvider.canPurchase` refuses a retired bundle, so
+    ///   nothing can newly grant one.
+    /// - `offer(for:)` never names one, so a locked entry cannot raise a
+    ///   prompt for a product with no storefront behind it.
+    /// - `SettingsPanel.shopUpgrades` no longer lists them, so an owner of
+    ///   `country:France` sees no phantom FRANCE PACK row on a shelf where the
+    ///   pack no longer exists.
+    ///
+    /// `.country` is retired as a *family*, not three named countries. The shop
+    /// only ever listed the three largest by region count — see the `topCountries`
+    /// that used to compute them — while `offer(for:)` handed out a bundle for
+    /// any of the twenty-six. Retiring the three the shop happened to feature and
+    /// leaving twenty-three sellable only through a paywall prompt would be a
+    /// storefront with a secret half.
+    public var isRetired: Bool {
+        switch self {
+        case .flavors, .country: true
+        case .pro, .skins, .lightMode, .expansion, .workshop, .lineage, .easterEgg: false
+        }
+    }
+
     /// Whether this bundle covers a given entry.
     ///
     /// Cosmetic bundles cover nothing — they gate a setting, not a page — so
@@ -188,12 +228,30 @@ public enum Entitlement: Hashable, Sendable {
     /// The bundle a locked entry most naturally belongs to — what the paywall
     /// prompt should offer to sell.
     ///
-    /// Flavours get the flavour wheel; anything with an origin gets its country;
-    /// everything else falls back to Pro. Offering Pro for a single Bordeaux
-    /// region is technically correct and commercially tin-eared.
+    /// **Pro for everything since 0.8.3 (D), and the narrowing is the point.**
+    /// This used to read: flavours get the flavour wheel, anything with an origin
+    /// gets its country, everything else falls back to Pro — with a note calling
+    /// the Pro fallback "technically correct and commercially tin-eared". D
+    /// retires both of the narrower answers, and an offer is not a matter of
+    /// taste: it is the one promise the app makes that a locked entry can be
+    /// unlocked. Naming a bundle no storefront lists would leave the prompt
+    /// selling a product that does not exist, which is precisely the orphaned
+    /// content D exists to prevent.
+    ///
+    /// **This function is total and must stay total**, which is what
+    /// `AccessTests.everyLockedEntryHasABuyableOffer` pins: for every entry in
+    /// the database the answer must be purchasable *and* must cover that entry.
+    /// A future bundle may narrow this again — that test is what makes narrowing
+    /// safe, because a bundle that covers less than the entry it is offered for
+    /// fails it.
+    ///
+    /// Note what does *not* change: `.pro` has always been the fallback and has
+    /// always covered everything, so no entry that was reachable becomes
+    /// unreachable. What is lost is granularity in the offer, and `starterOnly`
+    /// — the developer switch this whole path sits behind — is off on every real
+    /// install, so nobody has ever been shown one of the narrow offers in
+    /// anger.
     public static func offer(for entry: WineEntry) -> Entitlement {
-        if entry.category == .flavors { return .flavors }
-        if let origin = entry.origin, !origin.isEmpty { return .country(origin) }
-        return .pro
+        .pro
     }
 }

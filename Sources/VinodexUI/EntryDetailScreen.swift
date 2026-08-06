@@ -539,36 +539,63 @@ public struct EntryDetailScreen: View {
                     }
                 }
 
+            // **ORIGIN comes out of the row (0.8.3, G)**, exactly as the grape
+            // card's did in 0.8.0's G2, and for the same two reasons. The first
+            // is width: a country name is the longest string in this row by a
+            // distance — SOUTH AFRICA and NEW ZEALAND against COLOR's one word
+            // and CLASS's one — and three abreast it wrapped while its
+            // neighbours sat in thirds they did not need. The second is weight:
+            // a style's origin is a footnote next to what colour it is and what
+            // class it belongs to, and it was carrying a 54pt icon band to say
+            // so.
+            //
+            // **A third caller of `attributeBar`, not a third bar.** G2
+            // extracted that function from `keyGrapeBar` precisely so the next
+            // one of these would be a call rather than a copy, and it factored
+            // without a change: the same flag well, the same label-over-value,
+            // the same chevron. The one thing this caller does that neither
+            // other does is *not appear* — a style whose origin is "various"
+            // has no country to name, which is why the bar is inside the
+            // conditional the tile was.
             case .style(let s):
                 let cls = EntryDisplay.styleClass(name: s.common.name, classification: s.details.classification)
                 let color = EntryDisplay.colorType(name: s.common.name)
-                HStack(alignment: .top, spacing: 8) {
-                    tile(label: "COLOR",
-                         chip: chip(color.rawValue, .colorType, key: color.rawValue),
-                         destination: .list(category: .grapes, filter: .type(color.rawValue))) { tint in
-                        DexIcon(iconID: db.icons.colorIcon(color.rawValue), size: 32, color: tint)
-                    }
-                    tile(label: "CLASS",
-                         // The *inferred* class, not the raw classification
-                         // field (0.6.x): filtering on the raw "STYLE" string
-                         // opened a stale near-everything list, where the chip
-                         // plainly names ORIGIN/TYPE/METHOD/BLEND.
-                         chip: chip(cls.rawValue, .styleClass, key: cls.rawValue),
-                         destination: .list(category: .styles, filter: .system(cls.rawValue))) { tint in
-                        // The class's own glyph (v0.5.8, B2) — this drew the
-                        // entry's generic glyph, which left the drawn
-                        // styleclass art with no place to render at all: in
-                        // rows the style portrait covers the glyph, so this
-                        // tile is where the class icon lives. 54 since 0.6.5
-                        // (item 5, was 40): the blend art's transparent
-                        // margins kept eating the gain, so the glyph goes as
-                        // large as the tile's icon band holds.
-                        DexIcon(iconID: db.icons.styleClassIcons[cls.rawValue] ?? db.icons.fallback, size: 54, color: tint)
+                VStack(spacing: 10) {
+                    HStack(alignment: .top, spacing: 8) {
+                        tile(label: "COLOR",
+                             chip: chip(color.rawValue, .colorType, key: color.rawValue),
+                             destination: .list(category: .grapes, filter: .type(color.rawValue))) { tint in
+                            DexIcon(iconID: db.icons.colorIcon(color.rawValue), size: 32, color: tint)
+                        }
+                        tile(label: "CLASS",
+                             // The *inferred* class, not the raw classification
+                             // field (0.6.x): filtering on the raw "STYLE" string
+                             // opened a stale near-everything list, where the chip
+                             // plainly names ORIGIN/TYPE/METHOD/BLEND.
+                             chip: chip(cls.rawValue, .styleClass, key: cls.rawValue),
+                             destination: .list(category: .styles, filter: .system(cls.rawValue))) { tint in
+                            // The class's own glyph (v0.5.8, B2) — this drew the
+                            // entry's generic glyph, which left the drawn
+                            // styleclass art with no place to render at all: in
+                            // rows the style portrait covers the glyph, so this
+                            // tile is where the class icon lives. 54 since 0.6.5
+                            // (item 5, was 40): the blend art's transparent
+                            // margins kept eating the gain, so the glyph goes as
+                            // large as the tile's icon band holds.
+                            DexIcon(iconID: db.icons.styleClassIcons[cls.rawValue] ?? db.icons.fallback, size: 54, color: tint)
+                        }
                     }
                     if s.details.origin.lowercased() != "various" {
-                        tile(label: "ORIGIN",
-                             chip: chip(s.details.origin.uppercased(), .country, key: s.details.origin),
-                             destination: .country(name: s.details.origin)) { _ in
+                        attributeBar(
+                            label: "ORIGIN",
+                            chip: chip(s.details.origin.uppercased(), .country, key: s.details.origin),
+                            destination: .country(name: s.details.origin)
+                        ) {
+                            // `FlagSwatch`'s own 52 × 32 default, which is what the
+                            // tile drew and what the grape card's bar draws. The bar
+                            // is slimmer than the tile it replaces because it has no
+                            // icon band and no boxed plate, not because the flag
+                            // shrank.
                             FlagSwatch(country: s.details.origin)
                         }
                     }

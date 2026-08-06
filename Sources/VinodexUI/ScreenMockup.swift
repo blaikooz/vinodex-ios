@@ -1,7 +1,7 @@
 #if canImport(SwiftUI)
 import SwiftUI
 
-/// One screen mode, drawn as a screen (0.8.2, coordinator 4).
+/// One screen mode, drawn as a screen (0.8.2, coordinator 4; finished 0.8.3, F).
 ///
 /// **What this replaces and why.** 0.8.1's A2 gave the shop's two cosmetic
 /// shelves the same preview: `ChassisMockup`, a whole device, with the display
@@ -16,68 +16,80 @@ import SwiftUI
 /// `ChassisMockup` unchanged. The asymmetry between the two shelves is the
 /// point rather than an inconsistency: each previews its own product.
 ///
-/// **It is the LCD, not a colour chip.** The screen a mode produces is at least
-/// three decisions — the ground, the ink and the accent — and a disc of
-/// `mode.screen` shows one of them. So this draws the bezel, the ground, a
-/// title bar in the accent and three lines of body text in the ink, which is
-/// the smallest arrangement in which those three colours are visibly *doing*
-/// what they do on a real screen. At 40pt the lines are one point tall, which
-/// is legible as text-shaped without pretending to be readable.
+/// **0.8.3's F: this is the CUSTOMIZE card now, not a likeness of it.** 0.8.2
+/// shipped this untested by anything but the compiler, and what it drew was a
+/// *reduction* of the picker's card — a bezel, a ground, an accent bar and
+/// three ragged body lines, with no glyph and, more seriously, no monochrome
+/// pass. That last omission is the reason F exists: AMBER, VINTAGE, TERMINAL
+/// and GRÜNER BOY are built by taking the dark theme's tokens, greying them and
+/// multiplying by one phosphor, and a preview that skips that step shows four
+/// modes as the *green* they are made from. The shop was selling the RETRO pack
+/// with two of its three screens previewed in the wrong colour.
 ///
-/// **`ownInk`, not `text`.** `LcdMode.text` returns the workshop's chosen font
-/// colour when one is set, so previewing a mode through it would show every
-/// mode in the same ink and hide the axis this pack sells. `ownInk` exists for
-/// exactly this — it is what the workshop's own FOLLOW swatch reads.
+/// So `modeGrid` in `SettingsPanel` calls this view rather than drawing its own,
+/// and "exactly as it appears in Customise" is true by construction instead of
+/// by two files agreeing. Everything is a fraction of `height`, so the picker's
+/// 50 and the shop's 40 are one drawing at two sizes.
+///
+/// **Two deliberate departures from the card as it stood**, both of which the
+/// picker inherits:
+///
+/// - **The bezel is gone.** 0.8.2 added a dark surround so "a light mode reads
+///   as a lit panel rather than as a pale rectangle on a pale tile". The picker
+///   never had one — it uses `surfaceEdge`, the mode's own frame colour, which
+///   is a register off the ground on every one of the nine and solves the same
+///   problem without putting a second material around the screen. F asks for
+///   the picker's drawing; this is the picker's answer.
+/// - **`ownInk`, not `text`.** `LcdMode.text` and `LcdMode.subtext` both return
+///   the workshop's chosen font colour when one is fitted, so a card drawn
+///   through them shows every mode in one ink and hides the axis this pack
+///   sells. `ownInk` exists for exactly this — it is what the workshop's own
+///   FOLLOW swatch reads — and the second line takes `ownInk.opacity(0.62)`,
+///   which is what `subtext` itself computes from a chosen ink. The picker
+///   drew through `text` and had the same defect; it is fixed here for both.
 struct ScreenMockup: View {
     let mode: LcdMode
-    var height: CGFloat = 40
+    /// 50 is the reference: it is the height the CUSTOMIZE card has always
+    /// drawn at, and every number below is that card's own.
+    var height: CGFloat = 50
 
-    /// Everything is a fraction of this, so the shop's 40pt and any later
-    /// caller are the same drawing at two sizes. 40 is the reference because it
-    /// is what `screenSwatch` asks for.
-    private var s: CGFloat { height / 40 }
+    private var s: CGFloat { height / 50 }
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 4 * s)
-            // The bezel: a dark surround, so a light mode reads as a lit panel
-            // rather than as a pale rectangle on a pale tile.
-            .fill(Color(dexHex: "#1B1D21"))
+        RoundedRectangle(cornerRadius: 5 * s)
+            .fill(mode.screen)
             .frame(height: height)
             .frame(maxWidth: .infinity)
             .overlay {
-                RoundedRectangle(cornerRadius: 2 * s)
-                    .fill(mode.screen)
-                    .padding(3 * s)
-                    .overlay(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 2 * s) {
-                            // The title bar, in the accent — the mode's third
-                            // colour and the one a bare swatch never shows.
-                            Capsule()
-                                .fill(mode.accent)
-                                .frame(height: 3 * s)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            // Body lines in the mode's own ink, ragged like
-                            // text rather than three equal bars.
-                            ForEach([1.0, 0.72, 0.86], id: \.self) { fraction in
-                                Capsule()
-                                    .fill(mode.ownInk.opacity(0.75))
-                                    .frame(height: 1.5 * s)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    // Shortened by scale rather than by a
-                                    // width, because the available width is
-                                    // whatever the tile gives us and a
-                                    // fraction of it is not a number this view
-                                    // can name.
-                                    .scaleEffect(x: fraction, anchor: .leading)
-                            }
-                        }
-                        .padding(.horizontal, 6 * s)
-                        .padding(.top, 7 * s)
-                    }
+                VStack(spacing: 4 * s) {
+                    // The mode's own glyph — the "with icons" half of F, and
+                    // the thing that makes nine near-identical rectangles nine
+                    // recognisable screens.
+                    Image(systemName: mode.symbol)
+                        .font(.system(size: 15 * s, weight: .semibold))
+                        .foregroundStyle(mode.accent)
+                    RoundedRectangle(cornerRadius: 1 * s)
+                        .fill(mode.ownInk.opacity(0.85))
+                        .frame(width: 34 * s, height: 3 * s)
+                    RoundedRectangle(cornerRadius: 1 * s)
+                        // 0.5, which is the card's own 0.8 over the 0.62
+                        // `subtext` derives from an ink, folded into one number
+                        // rather than left as two chained opacities.
+                        .fill(mode.ownInk.opacity(0.5))
+                        .frame(width: 24 * s, height: 3 * s)
+                }
             }
+            // **The pass that was missing.** Applied to the whole stack — ground,
+            // glyph and both lines — because that is what the LCD does to a real
+            // screen in these modes. Skipped entirely on the five colour modes,
+            // where `monochromeTint` is nil and a grayscale of 0 with a white
+            // multiply is a no-op by construction rather than by luck.
+            .grayscale(mode.monochromeTint == nil ? 0 : 1)
+            .colorMultiply(mode.monochromeTint ?? .white)
+            .clipShape(RoundedRectangle(cornerRadius: 5 * s))
             .overlay(
-                RoundedRectangle(cornerRadius: 4 * s)
-                    .strokeBorder(.black.opacity(0.55), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 5 * s)
+                    .strokeBorder(mode.surfaceEdge, lineWidth: 1)
             )
     }
 }

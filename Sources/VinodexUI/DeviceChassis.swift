@@ -14,6 +14,9 @@ public struct DeviceChassis<Content: View>: View {
     /// The page's marquee glyph, stamped between the banner's repetitions —
     /// see `MarqueeBanner.symbol`. Routed from `DexRoute.marqueeSymbol`.
     var marqueeSymbol: String?
+    /// The drawn button face for that glyph, or nil where the route has none
+    /// (0.8.3, A). Routed from `DexRoute.marqueeArt`.
+    var marqueeArt: String?
     var showsBack: Bool = false
     var onBack: (() -> Void)?
     var onHome: (() -> Void)?
@@ -148,6 +151,7 @@ public struct DeviceChassis<Content: View>: View {
     public init(
         title: String,
         marqueeSymbol: String? = nil,
+        marqueeArt: String? = nil,
         showsBack: Bool = false,
         onBack: (() -> Void)? = nil,
         onHome: (() -> Void)? = nil,
@@ -158,6 +162,7 @@ public struct DeviceChassis<Content: View>: View {
     ) {
         self.title = title
         self.marqueeSymbol = marqueeSymbol
+        self.marqueeArt = marqueeArt
         self.showsBack = showsBack
         self.onBack = onBack
         self.onHome = onHome
@@ -241,6 +246,19 @@ public struct DeviceChassis<Content: View>: View {
         if script.stage == .cheers { return nil }
         guard isMainScreen else { return marqueeSymbol }
         return script.stage == .menu ? DexGlyph.menu : nil
+    }
+
+    /// `footerSymbol`'s drawn half (0.8.3, A), resolved through exactly the
+    /// same branches so the two cannot name different pages.
+    ///
+    /// MENU answers nil on purpose. `DexGlyph.menu` is the four-square grid of
+    /// the tiles behind it, and the 0.8.1 drop has no face for the menu *as a
+    /// whole* — the four it has are the four categories. The panel keeps the
+    /// symbol there, which is the fallback working rather than a gap.
+    private var footerArt: String? {
+        if script.stage == .cheers { return nil }
+        guard isMainScreen else { return marqueeArt }
+        return nil
     }
 
     public var body: some View {
@@ -509,9 +527,12 @@ public struct DeviceChassis<Content: View>: View {
         return VStack(spacing: 0) {
             HStack(alignment: .center, spacing: 0) {
                 lcdOrb(width: DexMetrics.islandOrb)
-                    .scaleEffect(orbHeld ? 0.88 : 1)
-                    .brightness(orbHeld ? -0.18 : 0)
-                    .animation(.easeOut(duration: 0.12), value: orbHeld)
+                    // Through `ChassisPress` since 0.8.3 (B2) — the same three
+                    // numbers the footer caps now depress by. Unchanged values;
+                    // they simply have a name and one home.
+                    .scaleEffect(orbHeld ? ChassisPress.scale : 1)
+                    .brightness(orbHeld ? ChassisPress.brightness : 0)
+                    .animation(ChassisPress.motion, value: orbHeld)
                     // The bead is smaller than the slot on purpose: shrinking a
                     // control's art is not a licence to shrink its touch area,
                     // so the hit shape stays the full 44pt slot around it.
@@ -667,9 +688,13 @@ public struct DeviceChassis<Content: View>: View {
                 settingsMoldedCap(size: size, cap: cap)
             }
         }
-        // 0.9, not the default — the cog has pressed deeper than its three
-        // neighbours since 0.6.7 and the sprite does not change that.
-        .buttonStyle(DexPressStyle(scale: 0.9))
+        // **The chassis press, with its three neighbours (0.8.3, B2).** This
+        // was `DexPressStyle(scale: 0.9)` — 0.6.7's note that "the cog has
+        // pressed deeper than its three neighbours" and the sprite did not
+        // change that. `ChassisPress.scale` is 0.88, which is deeper still, so
+        // the exception has been overtaken rather than overruled: the four caps
+        // now share one travel, and it is the one the cog was reaching for.
+        .buttonStyle(ChassisPressStyle())
         .accessibilityLabel("Settings")
     }
 
@@ -1252,6 +1277,7 @@ public struct DeviceChassis<Content: View>: View {
                     MarqueeBanner(
                         text: footerText(at: tick.date),
                         symbol: footerSymbol,
+                        art: footerArt,
                         fontSize: DexMetrics.marqueeTextSize,
                         // `showsBackFace`, not `isFlipped`: the front face stays
                         // fully visible through the first half of the turn, and
@@ -1528,9 +1554,38 @@ public struct DeviceChassis<Content: View>: View {
                     //
                     // The glyph comes off the *pin* since 0.7.6 (A1), so a lamp
                     // can never wear one destination's mark and land on another.
-                    Image(systemName: pin.symbol)
-                        .font(.system(size: DexMetrics.bandPillGlyph, weight: .black))
-                        .foregroundStyle(ink)
+                    //
+                    // **The drawn face, in its own colours (0.8.3, H)** — and
+                    // note this is deliberately the opposite of what item A does
+                    // to the page glyph one component above. A flattens its art
+                    // to black through `DexChromeGlyph`'s `flatten:`; this
+                    // passes no `flatten:` at all, which is the loader's default
+                    // and the rule every converted control in the app already
+                    // follows: the faces ship their own colours. Two treatments,
+                    // one mechanism, and the difference is a parameter rather
+                    // than two code paths that could drift.
+                    //
+                    // **The colours read on every lamp, and that is a property
+                    // of the drop rather than luck.** These five faces —
+                    // `tools`, `customize`, `settings`, `data`, `shop` — are
+                    // drawn dark-outlined on saturated mid-tones, and the lamp
+                    // under them is `marqueeLights[0]` or `[2]`, the widest pair
+                    // the shell offers. Where a shell's lamp happens to land
+                    // near a face's own hue, the face's black cel outline is
+                    // what keeps it a separate object; the same outline the
+                    // paragraph above relies on for `ink`.
+                    //
+                    // `ink` stays as the fallback tint. All five stems resolve
+                    // today (see `MarqueePin.artStem`), so it is unreached — and
+                    // a lamp is a moulded part of the shell, so the one state it
+                    // must never have is blank.
+                    DexChromeGlyph(
+                        pin.artStem ?? pin.symbol,
+                        symbol: pin.symbol,
+                        size: DexMetrics.bandPillGlyph,
+                        weight: .black,
+                        tint: ink
+                    )
                 }
                 // No bead (0.7.2, A4) — it would sit on the glyph.
                 .recessedLamp(
@@ -2030,13 +2085,22 @@ public struct ChassisButton: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: size, height: size)
-                    // No `.shadow`: the sprite casts its own, and the pair
-                    // read as two light sources.
+                    // No `.shadow`, for a different reason since 0.8.3 (B1).
+                    // It used to be "the sprite casts its own, and the pair
+                    // read as two light sources". B1 removes the sprite's, and
+                    // it was removed *in the art* — the shadow was painted into
+                    // the source as the magenta key at half value, so no
+                    // SwiftUI change could have touched it. See
+                    // `import-footer-art.py`'s `strip_key_shadow`. Adding a
+                    // drawn shadow back here would be re-answering the item.
             } else {
                 moldedCap
             }
         }
-        .buttonStyle(DexPressStyle())
+        // **The chassis press, not the screen press (0.8.3, B2).** These four
+        // are moulded parts of the shell and now depress like the orb they sit
+        // under — see `ChassisPress`, which holds the numbers both read.
+        .buttonStyle(ChassisPressStyle())
         .disabled(!enabled)
         .opacity(enabled ? 1 : 0.35)
         .accessibilityLabel(accessibilityLabel)
@@ -2185,6 +2249,49 @@ public struct DexPressStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? scale : 1)
             .animation(DexMotion.press, value: configuration.isPressed)
+    }
+}
+
+/// What a moulded part of the shell does under a finger (0.8.3, B2).
+///
+/// **The orb's numbers, named once.** The orb has depressed since it grew its
+/// hold-to-flip gesture — `orbHeld` drives a scale and a brightness drop on
+/// `onPressingChanged` — and B2 asks the four footer caps to do the same thing.
+/// They sit on the same chassis, so the alternative to sharing the numbers is
+/// two press feels a few hundredths apart on parts a thumb's width from each
+/// other, which is the state a second hand-tuned constant always arrives at.
+/// The orb reads them from here too.
+///
+/// **Distinct from `DexPressStyle`, which is the app's *screen* press.** That
+/// one is the web app's `active:scale` on LCD controls — tiles, chips, rows —
+/// and it is deliberately lighter (0.96, no brightness) because a flat surface
+/// on a screen does not have a travel. A moulded cap does: it goes down into
+/// the shell and the light falling on it drops, which is what the brightness is
+/// for and why a scale alone reads as the button shrinking rather than sinking.
+public enum ChassisPress {
+    /// 0.88 — a visible travel, on a part large enough to show one.
+    public static let scale: CGFloat = 0.88
+    /// The face loses light as it goes into the shell.
+    public static let brightness: Double = -0.18
+    /// Fast, and eased out: a key bottoms out, it does not settle.
+    public static let motion: Animation = .easeOut(duration: 0.12)
+}
+
+/// `ChassisPress` as a `ButtonStyle`, for the parts that are buttons (0.8.3, B2).
+///
+/// The orb is driven by `onPressingChanged` because its gesture is a *hold* and
+/// it needs the pressing state for its own reasons; the caps are ordinary
+/// buttons, so `configuration.isPressed` is the same signal already being
+/// delivered and a second gesture recogniser on top of a `Button` would be one
+/// more thing to keep out of the way of the tap.
+public struct ChassisPressStyle: ButtonStyle {
+    public init() {}
+
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? ChassisPress.scale : 1)
+            .brightness(configuration.isPressed ? ChassisPress.brightness : 0)
+            .animation(ChassisPress.motion, value: configuration.isPressed)
     }
 }
 
@@ -2463,6 +2570,9 @@ public struct MarqueeBanner: View {
     /// which was the only place a scrolling single line had for it. Nil runs
     /// text-only and the label takes the whole panel.
     let symbol: String?
+    /// The drawn button face for `symbol`, or nil where the route has none
+    /// (0.8.3, A). See `DexRoute.marqueeArt`.
+    var art: String?
     let fontSize: CGFloat
     /// Freezes the transition (AUDIT M8, through D3, still true). The panel is
     /// inside the front face, which the flip merely hides at `opacity 0` — a
@@ -2508,6 +2618,12 @@ public struct MarqueeBanner: View {
     /// of the panel cannot start their dissolves a frame apart.
     @State private var shownSymbol: String?
     @State private var outgoingSymbol: String?
+    /// The drawn face's stem, carried alongside the symbol (0.8.3, A) for the
+    /// reason the symbol is carried alongside the text: all three derive from
+    /// the route and change in one update, so a stem watched separately could
+    /// start its dissolve a frame out of step with the glyph it belongs to.
+    @State private var shownArt: String?
+    @State private var outgoingArt: String?
     /// When the running dissolve began; nil at rest, which is also the
     /// `TimelineView`'s pause condition.
     @State private var fadeStart: Date?
@@ -2546,6 +2662,7 @@ public struct MarqueeBanner: View {
     public init(
         text: String,
         symbol: String? = nil,
+        art: String? = nil,
         fontSize: CGFloat,
         paused: Bool = false,
         pixelFades: Bool = false,
@@ -2553,6 +2670,7 @@ public struct MarqueeBanner: View {
     ) {
         self.text = text
         self.symbol = symbol
+        self.art = art
         self.fontSize = fontSize
         self.paused = paused
         self.pixelFades = pixelFades
@@ -2569,6 +2687,7 @@ public struct MarqueeBanner: View {
         .onAppear {
             if shown.isEmpty { shown = text }
             shownSymbol = symbol
+            shownArt = art
         }
         .onChange(of: text) { _, next in change(to: next) }
         // A symbol that moves without the text does not dissolve — there is no
@@ -2576,7 +2695,10 @@ public struct MarqueeBanner: View {
         // previous route's glyph. Nothing in the app does this today; it costs
         // two lines to make sure nothing quietly starts.
         .onChange(of: symbol) { _, next in
-            if fadeStart == nil { shownSymbol = next }
+            if fadeStart == nil {
+                shownSymbol = next
+                shownArt = art
+            }
         }
         // Ends the dissolve. Keyed on the start instant, so a second change
         // arriving mid-dissolve cancels the pending teardown rather than
@@ -2598,10 +2720,12 @@ public struct MarqueeBanner: View {
         guard pixelFades, !reduceMotion, !paused else {
             outgoing = nil
             outgoingSymbol = nil
+            outgoingArt = nil
             fadeStart = nil
             withAnimation(.easeInOut(duration: DexMetrics.marqueeGreetingFade)) {
                 shown = next
                 shownSymbol = symbol
+                shownArt = art
             }
             return
         }
@@ -2609,6 +2733,8 @@ public struct MarqueeBanner: View {
         shown = next
         outgoingSymbol = shownSymbol
         shownSymbol = symbol
+        outgoingArt = shownArt
+        shownArt = art
         fadeStart = .now
     }
 
@@ -2618,6 +2744,7 @@ public struct MarqueeBanner: View {
         guard !Task.isCancelled else { return }
         outgoing = nil
         outgoingSymbol = nil
+        outgoingArt = nil
         fadeStart = nil
     }
 
@@ -2714,14 +2841,14 @@ public struct MarqueeBanner: View {
     @ViewBuilder
     private var glyph: some View {
         if fadeStart == nil {
-            glyphImage(shownSymbol)
+            glyphImage(shownSymbol, art: shownArt)
         } else {
             TimelineView(.animation) { context in
                 let p = fadeProgress(at: context.date)
                 ZStack {
-                    glyphImage(outgoingSymbol)
+                    glyphImage(outgoingSymbol, art: outgoingArt)
                         .mask(PixelDissolve(progress: p, cell: glyphFadeCell, incoming: false))
-                    glyphImage(shownSymbol)
+                    glyphImage(shownSymbol, art: shownArt)
                         .mask(PixelDissolve(progress: p, cell: glyphFadeCell, incoming: true))
                 }
             }
@@ -2730,13 +2857,42 @@ public struct MarqueeBanner: View {
 
     /// One glyph, or nothing at all — the toasts carry no symbol, so a nil here
     /// is a normal state of the panel rather than a missing asset.
+    ///
+    /// **The 0.8.1 button face, flat black (0.8.3, A).** The stem travels beside
+    /// the symbol — see `DexRoute.marqueeArt` — and `DexChromeGlyph` resolves
+    /// the pair the way every other converted control does: the drawing where
+    /// there is one, the SF Symbol where there is not.
+    ///
+    /// **Black, not `ink`, and not `ChassisCapLoader`.** A is explicit that this
+    /// is the opposite treatment from 0.8.2's footer caps, which take the
+    /// skin's hue. It has to be, because the two sit on different materials: a
+    /// cap is a moulded part of the shell and belongs to the shell's colourway,
+    /// and this is a *segment LCD* — the ground is what lights and the glyph is
+    /// what the liquid crystal blocks. What blocks light is black. So the art
+    /// goes through `flatten:` rather than through a loader, and the panel's own
+    /// `ink` is left to the one thing that still needs it.
+    ///
+    /// **On the ink rule A asks about**: the marquee's ink is
+    /// `skin.marqueeShadow`, a very dark register of each skin's phosphor, and
+    /// black does not fight it on any of the twenty-one — every `marqueeText`
+    /// ground is a lit colour (the dimmest is CLASSIC's `green500`), so a black
+    /// silhouette is the highest-contrast mark available on all of them. No
+    /// skin is exempted, because none needed to be. The `ink` fallback below is
+    /// kept for the sixteen routes with no drawn face: those glyphs are not
+    /// part of the drop A is about, and recruiting them into the flat treatment
+    /// would change pages the item does not name.
     @ViewBuilder
-    private func glyphImage(_ name: String?) -> some View {
+    private func glyphImage(_ name: String?, art: String?) -> some View {
         if let name {
-            Image(systemName: name)
-                .font(.system(size: DexMetrics.marqueeGlyph, weight: .bold))
-                .foregroundStyle(ink)
-                .shadow(color: ground.opacity(0.7), radius: 0, x: 1, y: 1)
+            DexChromeGlyph(
+                art ?? name,
+                symbol: name,
+                size: DexMetrics.marqueeGlyph,
+                weight: .bold,
+                tint: ink,
+                flatten: .black
+            )
+            .shadow(color: ground.opacity(0.7), radius: 0, x: 1, y: 1)
         }
     }
 

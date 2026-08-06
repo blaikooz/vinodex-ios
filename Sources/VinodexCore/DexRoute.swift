@@ -533,9 +533,93 @@ public enum DexRoute: Hashable, Sendable {
             "globe.europe.africa.fill"
         }
     }
+
+    /// The drawn button face for this page's marquee glyph, or nil where there
+    /// is none (0.8.3, A/H).
+    ///
+    /// **Separate from `marqueeSymbol` for the reason `SettingsSection.artStem`
+    /// is separate from `symbol`**, and the reason is not cosmetic:
+    /// `ChromeTests.glyphsAreDistinct` asserts that every route's *symbol* is
+    /// its own, and the art is deliberately not distinct — GRAPES and a grape
+    /// detail want the same picture, and two routes sharing a stem here would
+    /// fail a test about something else entirely. `marqueeSymbol` stays the
+    /// thing that always renders; this stays the thing that may not, and the
+    /// fallback runs per glyph rather than per screen.
+    ///
+    /// **The table is K2 rule 1 taken literally.** That rule — "a page's glyph
+    /// is the glyph on the control that opens it" — was written when both ends
+    /// were SF Symbols and the most it could ask for was that two switches
+    /// agreed. The 0.8.1 drop makes it checkable: every stem below is the exact
+    /// string the tile that opens the page already passes to `DexChromeGlyph`
+    /// — the four menu tiles, the six TOOLS tiles, the SYSTEM panel's rows —
+    /// so the marquee is not wearing a *matching* picture, it is wearing the
+    /// same file. `ChromeTests.marqueeArtIsOnDisk` is the gate.
+    ///
+    /// **Nil is a normal answer, not a gap to be filled.** Sixteen routes have
+    /// no face: a detail page, the globe, a country, a state, a continent, the
+    /// lineage graph, the two searches, bookmarks. Some of those have no
+    /// control with a drawn face to inherit from; others (the globe) have art
+    /// whose subject is a place rather than a page. Inventing a stem for them
+    /// would put a wrong picture on the panel, and `MarqueeBanner` renders the
+    /// SF Symbol it always did.
+    ///
+    /// A filtered listing answers nil rather than its category's face, for K2
+    /// rule 2: a GEOLOGY SCAN is not a regions listing, and the regions face is
+    /// what it would be claiming to be.
+    public var marqueeArt: String? {
+        switch self {
+        case .list(let category, let filter):
+            filter == nil ? category.marqueeArt : nil
+        // The detail screen overrides both halves through `WineEntry.scanArt`;
+        // this is the unresolved-entry fallback and has no picture.
+        case .detail:
+            nil
+        case .globe, .globeSearch, .bookmarks, .country, .state, .continent, .lineage:
+            nil
+        // The six TOOLS tiles, in the order the shelf draws them.
+        case .scanner: "blindtasting"
+        case .labelReader: "labelscanner"
+        case .wsetQuiz: "wineexam"
+        case .dailyChallenge: "dailychallenge"
+        case .dailyGrape: "whatsthat"
+        case .moonDial: "moondial"
+        // The shelf itself, from the SETTINGS grid's TOOLS door.
+        case .minigames: "tools"
+        // SYSTEM's face, not `settings` — see `SettingsSection.artStem`, where
+        // the same collision is spelled out from the other side: the route
+        // *titled* SYSTEM is `.settings` and takes the `settings` drawing,
+        // while the drop's `system` face belongs to the chassis cog.
+        case .settings: "settings"
+        case .settingsSection(let section): section.artStem
+        // The four SYSTEM-panel rows that open them.
+        case .walkthrough: "tutorial"
+        case .firmwareHistory: "firmware"
+        case .cheatConsole: "cheatcodes"
+        case .deviceWorkshop: "workshop"
+        case .passport: "passport"
+        // The magnifier the round button that opens it already wears.
+        case .chipFilter: "search"
+        }
+    }
 }
 
 public extension EntryCategory {
+    /// The category's drawn marquee face (0.8.3, A) — the exact stem the main
+    /// menu's own tile passes to `DexChromeGlyph`, which is K2 rule 1 with the
+    /// two ends now being the same file rather than two agreeing switches.
+    ///
+    /// Continents answer nil: the menu has no CONTINENTS tile, the globe is
+    /// reached from the chassis, and no face in the 0.8.1 drop draws a world.
+    var marqueeArt: String? {
+        switch self {
+        case .grapes: "grapes"
+        case .regions: "regions"
+        case .styles: "styles"
+        case .flavors: "flavors"
+        case .continents: nil
+        }
+    }
+
     /// The category's marquee glyph — see `DexRoute.marqueeSymbol`.
     var marqueeSymbol: String {
         switch self {
@@ -584,6 +668,20 @@ public extension WineEntry {
         case .flavor: EntryCategory.flavors.marqueeSymbol
         case .style: EntryCategory.styles.marqueeSymbol
         case .continent: EntryCategory.continents.marqueeSymbol
+        }
+    }
+
+    /// The drawn face for the detail screen's marquee (0.8.3, A), following
+    /// `scanSymbol` through the same category so a GRAPE SCAN and the grapes
+    /// listing wear one picture. That repeat is deliberate and is the one
+    /// `marqueeSymbol`'s own note calls out.
+    var scanArt: String? {
+        switch self {
+        case .grape: EntryCategory.grapes.marqueeArt
+        case .region: EntryCategory.regions.marqueeArt
+        case .flavor: EntryCategory.flavors.marqueeArt
+        case .style: EntryCategory.styles.marqueeArt
+        case .continent: EntryCategory.continents.marqueeArt
         }
     }
 }

@@ -114,24 +114,55 @@ struct PackCartridge: View {
     /// step leaves free, which is what that step is for on a real cartridge too.
     /// On the shop's upgrade cartridges this means "owned".
     let isComplete: Bool
-    /// The drawn cartridge's stem, where one exists (0.8.2). Nil for the
-    /// flavour wheel and the country packs, which have no art and keep the
-    /// drawing below.
+    /// The drawn cartridge's stem, where one exists (0.8.2).
+    ///
+    /// It was nil for the flavour wheel and the country packs; 0.8.3's D took
+    /// both off the shop, so every product the shelves draw now has art and the
+    /// fallback below is a guard rather than a routine path. It stays a guard:
+    /// a pack id written by a later build resolves to no stem here, and an empty
+    /// tile is exactly what the drawing exists to prevent.
     var art: String?
+    /// The pack's name, printed **inside** the drawn cartridge's label well
+    /// (0.8.3, C4).
+    ///
+    /// Nil on the shelf, where the tile prints its own label underneath at a
+    /// legible size: the well is 11% of the cartridge's height, which at the
+    /// shelf's 58pt is six points of type. It is set on the splash hero, where
+    /// the cartridge is the page and the well is the place the name belongs.
+    ///
+    /// Ignored when there is no art — the code-drawn cartridge below has a
+    /// glyph plate where the well would be, and printing a name over it would
+    /// stack two identities on one plate.
+    var label: String?
 
-    init(symbol: String, ink: Color, ground: Color, isComplete: Bool, art: String? = nil) {
+    init(
+        symbol: String,
+        ink: Color,
+        ground: Color,
+        isComplete: Bool,
+        art: String? = nil,
+        label: String? = nil
+    ) {
         self.symbol = symbol
         self.ink = ink
         self.ground = ground
         self.isComplete = isComplete
         self.art = art
+        self.label = label
     }
 
     /// The 0.7.3c call: a pack draws its own glyph.
-    init(pack: ExpansionPack, ink: Color, ground: Color, isComplete: Bool, art: String? = nil) {
+    init(
+        pack: ExpansionPack,
+        ink: Color,
+        ground: Color,
+        isComplete: Bool,
+        art: String? = nil,
+        label: String? = nil
+    ) {
         self.init(
             symbol: pack.symbol, ink: ink, ground: ground,
-            isComplete: isComplete, art: art
+            isComplete: isComplete, art: art, label: label
         )
     }
 
@@ -146,6 +177,9 @@ struct PackCartridge: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: geo.size.width, height: geo.size.height)
+                        .overlay(alignment: .topLeading) {
+                            wellLabel(image: image, in: geo.size)
+                        }
                 } else {
                     drawn(side: side)
                 }
@@ -164,8 +198,101 @@ struct PackCartridge: View {
         }
     }
 
-    /// The code-drawn cartridge (0.7.3c, A2), still the fallback and still the
-    /// only thing a country pack or the flavour wheel has.
+    // MARK: The label well (0.8.3, C4)
+
+    /// Where the name sits inside the drawn cartridge, as fractions of the
+    /// **fitted image**, not of the tile.
+    ///
+    /// **Measured across all seventeen sprites rather than eyeballed on one.**
+    /// 0.8.2 flagged that `chassisskins`, `screenmodes` and `vinodexpro` ship at
+    /// 418×564 against the other fourteen's ~225×302, and the worry that
+    /// followed was that the well would therefore be somewhere else on those
+    /// three. It is not: measured, the well spans y 0.813–0.934 and x
+    /// 0.105–0.888 on every one of the seventeen, the three large files
+    /// included. They are the same drawing at twice the resolution, so the
+    /// fractions are identical and the size difference is invisible here.
+    ///
+    /// **What does vary, and is the thing that would have broken this, is the
+    /// aspect ratio** — 0.678 (`vessel`, `wines`) to 0.798 (`godforsaken`).
+    /// `.aspectRatio(contentMode: .fit)` letterboxes, so a cartridge that is
+    /// proportionally narrower than its tile leaves bars at the sides and one
+    /// that is taller leaves them top and bottom. A fraction of the *tile* would
+    /// therefore have put the label in the well on whichever sprite the numbers
+    /// were tuned against and progressively outside it on the rest. So the rect
+    /// is computed from the image's own size, and the letterbox offset is added
+    /// back — which is `labelWell(for:in:)` below and the whole reason it takes
+    /// two sizes.
+    ///
+    /// The numbers are inset a little from the measured extents: the well is a
+    /// recess with a lip, and type run to its exact edge reads as a sticker
+    /// applied over the lip rather than as a label printed in it.
+    private static let wellOrigin = CGPoint(x: 0.135, y: 0.822)
+    private static let wellSize = CGSize(width: 0.730, height: 0.105)
+
+    /// The label well in the tile's coordinates, given the sprite's own size.
+    ///
+    /// `.zero` on a degenerate size — the first layout pass hands out zeroes,
+    /// and the same NaN argument `CartridgeShape.path(in:)` makes applies here.
+    static func labelWell(for image: CGSize, in container: CGSize) -> CGRect {
+        guard image.width > 0, image.height > 0,
+              container.width > 0, container.height > 0 else { return .zero }
+        let scale = min(container.width / image.width, container.height / image.height)
+        let fitted = CGSize(width: image.width * scale, height: image.height * scale)
+        let inset = CGPoint(
+            x: (container.width - fitted.width) / 2,
+            y: (container.height - fitted.height) / 2
+        )
+        return CGRect(
+            x: inset.x + fitted.width * wellOrigin.x,
+            y: inset.y + fitted.height * wellOrigin.y,
+            width: fitted.width * wellSize.width,
+            height: fitted.height * wellSize.height
+        )
+    }
+
+    /// The name, printed in the well.
+    ///
+    /// **A fixed dark ink rather than `ink`.** Every one of the seventeen wells
+    /// is a light cream recess — that is how the measurement found them — and
+    /// the tile's `ink` is `lcd.onAccent` on a chosen tile, which is near-white
+    /// and would vanish. The label is part of the picture, and the picture ships
+    /// its own colours: the same rule `DexIcon` applies to `art:` ids and
+    /// `DexChromeGlyph` to its faces. A monochrome LCD mode still flattens the
+    /// whole panel, label included, which is correct — it flattens the sprite
+    /// underneath by the same pass.
+    ///
+    /// **Sized off the well, floored by `minimumScaleFactor`.** The type scale
+    /// still applies through `DexFont.retro`, and the well does not grow with
+    /// it, so the setting can only push the name past the recess it belongs in.
+    /// `MarqueeBanner` reached the same arrangement for the same reason — the
+    /// panel's height does not move, so the words shrink into it. The longest
+    /// names on sale are CHASSIS SKINS and GRAPE LINEAGE at thirteen characters,
+    /// which is what the floor here has to clear.
+    @ViewBuilder
+    private func wellLabel(image: UIImage, in container: CGSize) -> some View {
+        if let label {
+            let well = Self.labelWell(for: image.size, in: container)
+            if well.width > 0, well.height > 0 {
+                Text(label)
+                    .font(DexFont.retro(min(11, well.height * 0.52)))
+                    .tracking(0.5)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.4)
+                    .foregroundStyle(Color(dexHex: "#2B2118"))
+                    .frame(width: well.width, height: well.height)
+                    .offset(x: well.minX, y: well.minY)
+            }
+        }
+    }
+
+    /// The code-drawn cartridge (0.7.3c, A2), the fallback for any product with
+    /// no art.
+    ///
+    /// It had two standing users — the flavour wheel and the country packs —
+    /// until 0.8.3's D retired both. Nothing on a shelf reaches it now, and it
+    /// stays: `CartridgeArt.stem(for:)` answers nil for an id this build has
+    /// never heard of, and the alternative to a drawn cartridge there is an
+    /// empty tile.
     ///
     /// **A2's "no per-pack hue" argument is not overturned by the drawn art, it
     /// is satisfied by it.** That argument was that twelve chosen plastic

@@ -28,6 +28,21 @@ import SwiftUI
 /// colours, the same rule `DexIcon` follows for `art:` ids; `tint` colours the
 /// symbol fallback only, so a converted control and an unconverted one still
 /// look like they belong to the same app.
+///
+/// **`flatten` is the one exception, and it is a different operation (0.8.3,
+/// A).** The marquee asks for two opposite treatments of the same drop on the
+/// same surface: the page glyph flat black (A), the status lamps in their own
+/// colours (H). Those cannot both be defaults, so the flat one is opt-in and
+/// the coloured one is what every existing caller keeps.
+///
+/// It is a **silhouette**, not a tint — `.renderingMode(.template)` discards
+/// everything but alpha and fills the result with one colour. That is exactly
+/// wrong for `ChassisCapLoader`'s problem, where a moulded cap with a rim and a
+/// cast shadow would collapse to a solid disc, and it is exactly right for
+/// this one: the marquee's glyph has always been a filled SF Symbol on a lit
+/// panel, so a filled silhouette of the button face is the same object drawn
+/// from a better outline. Do not reach for this to re-colour art — that is
+/// `ChassisCapLoader`, which keeps every pixel's value and takes only the hue.
 struct DexChromeGlyph: View {
     /// The button-art stem, e.g. `"backarrow"`. Also the fallback's SF Symbol
     /// name when `symbol` is not given separately.
@@ -38,25 +53,54 @@ struct DexChromeGlyph: View {
     var size: CGFloat
     var weight: Font.Weight = .semibold
     var tint: Color?
+    /// Draw the art as a solid silhouette in this colour instead of its own
+    /// (0.8.3, A). Nil keeps the drawing, which is every caller but one.
+    ///
+    /// Applies to the art only. The symbol fallback still takes `tint`, so a
+    /// route with no face keeps whatever ink its surface was already giving it
+    /// rather than being quietly recruited into the flat treatment.
+    var flatten: Color?
 
-    init(_ stem: String, symbol: String, size: CGFloat, weight: Font.Weight = .semibold, tint: Color? = nil) {
+    init(
+        _ stem: String,
+        symbol: String,
+        size: CGFloat,
+        weight: Font.Weight = .semibold,
+        tint: Color? = nil,
+        flatten: Color? = nil
+    ) {
         self.stem = stem
         self.symbol = symbol
         self.size = size
         self.weight = weight
         self.tint = tint
+        self.flatten = flatten
     }
 
     var body: some View {
         Group {
             if let art = PixelArtLoader.shared.image(stem) {
-                Image(uiImage: art)
-                    // Pixel art: every pixel is an authored decision, and any
-                    // filter smears the grid it was drawn on. Same rule
-                    // `DexIcon` applies to its `art:` branch.
-                    .interpolation(.none)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
+                // Two branches rather than one with a conditional
+                // `foregroundStyle`: a style applied over `.original` is
+                // ignored today and is not documented to be, and the failure if
+                // it ever stopped being ignored is every drawn face in the app
+                // turning one colour.
+                if let flatten {
+                    Image(uiImage: art)
+                        .interpolation(.none)
+                        .renderingMode(.template)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .foregroundStyle(flatten)
+                } else {
+                    Image(uiImage: art)
+                        // Pixel art: every pixel is an authored decision, and any
+                        // filter smears the grid it was drawn on. Same rule
+                        // `DexIcon` applies to its `art:` branch.
+                        .interpolation(.none)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                }
             } else {
                 Image(systemName: symbol)
                     .font(.system(size: size, weight: weight))

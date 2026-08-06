@@ -59,6 +59,7 @@ been happening", which is the question a planning doc is for.
 | 0.7.7 | `vinodex-0.7.7-bios.md` (titled 0.7.6) | **THE BIOS SCREEN.** The startup POST rebuilt from a written description of a mockup, **superseding 0.7.3a A1 and 0.7.5 A6 wholesale**: full-screen and opaque over the chassis (reversing 0.7.3a's "inside the LCD", which was an argument about a *translucent* overlay), three zones inside a terminal frame with ticked side rails and corner brackets, scanlines and a vignette, the shipped pixel "V" in cream over a magenta drop shadow. Staged checks now resolve *into* the composition rather than cutting away, then it rests on `PRESS ANY BUTTON TO CONTINUE` — any touch advances, and so does a 3.5s timeout. The mockup's `v1.0.0` was disobeyed: that string is on `AppVersion.placeholders` and printing it would have hidden the failure it signals. Four glyphs, no new art asset — one reuse, three drawn in code. | 438, untouched; `firmware.ts` only | 504 tests, clean build, `npm run generate` + `find-missing-refs` + `npm run icons` + `icons:verify` green, **not deployed** (held at the user's request) |
 | 0.7.8 | 0.7.8 spec, sections B–D | **THE GROWTH TRIO.** Scoped three times and built here, fully local. **B** one card renderer reused three ways — entry, profile, earned stamp — through `ImageRenderer` at a fixed 3× into the share sheet, framed by a purpose-built still that takes the chassis's *tokens* rather than rendering `DeviceChassis` (which exports a blank marquee and dim lamps off-screen). **C** the spoiler-free result string, `DailyResult` in Core, two tiles not three because the paper has no third state; C2's three preconditions confirmed against the code and one caveat found — the paper depends on the shipped catalog, so cross-version strings are not comparable, which is why it carries no puzzle number. **D** `NotificationPlan` in Core, a 7-day horizon of one-shots re-cut whenever the app can see whether today's paper is done; the toggle renders real `UNAuthorizationStatus`, not a stored bool. `QuizSession` gained `marks` with a hand-written decoder so a paper half-sat across the upgrade survives. | 438, untouched; `firmware.ts` only | 542 tests, clean build, `npm run generate` + `find-missing-refs` green, **not deployed** (held per the spec) |
 | 0.8.0 | `vinodex-0.8.0.md`, sections A–L | **NEW MAPS, NEW MAKER.** All thirty country/state outlines regenerated from authored lon/lat rings, with the generator and its data now *in the repo* — once every outline is derived the script is the master art. Gated on **A0b**, its own commit: the six quantising importers routed through a pinned `quantize_stable` and through `save_stable`, so a re-run is byte-identical and a three-colour outline never meets a quantiser at all. Every one of the 121 authored `mapPosition` dots checked against the new art (**8 were already in the sea**, 7 re-authored, 1 — the Canary Islands, at fraction (-0.49, 2.07) of Iberia — named as genuinely off-map). Plus: BIOS by HORIZON/GODOT, centred and larger; the orb becomes a lamp in height *and* treatment; "paper" becomes "exam" in every player-facing string and no identifier; a rosé chip that had been resolving to grey since it shipped; four menu tiles that finally share a baseline; type-ahead in WHAT'S THAT…? restricted to entries the player has met. | 446, untouched; `regions.ts` mapPosition ×7, `continents.ts` Europe colour, `firmware.ts` | 582 tests, clean build, `npm run generate` + `find-missing-refs` + `icons:verify` green, **not deployed** |
+| 0.8.3 | `vinodex-0.8.3.md`, sections A–H | **THE SHELVES BECOME CARTRIDGES, AND A PAYWALL COMES DOWN WITHOUT TAKING ANYTHING WITH IT.** **D** was the item that could fail and the spec's own reconnaissance was wrong about where it lived: the flavour wheel and the Italy/France/Spain packs are not `ExpansionPack`s at all — they are `Entitlement` rows in `SettingsPanel.shopUpgrades`, and the three countries were never chosen but *computed* by a `topCountries` helper taking the largest three by region count. So `ExpansionPacks.all.count` stays **12** and `FREE_COMMON_ORIGINS` never came into it. What did matter is that `country:France` is a string on disk: the cases are **retired, not deleted** (`Entitlement.isRetired`), so `init(id:)` still parses, `covers` still opens, and a 0.8.2 owner loses nothing — while `canPurchase` refuses them and `offer(for:)` collapses to `.pro`, because a paywall prompt naming a product no storefront lists *is* the orphaning the item warns about. The gate is `everyEntryHasABuyableOffer`, which asserts both halves over all 446 entries; the old test checked only coverage and would have passed through the failure. **C4** turned the other flagged risk into a measurement: the label well is at the **same fractional position on all seventeen** sprites, the three 2× files included — what varies is the **aspect ratio** (0.678–0.798), so a fraction-of-tile overlay would have drifted out of the well under `.aspectRatio(.fit)`, and the rect is computed off the fitted image instead. **B1** was art, not code: the cast shadow is painted into the sources as the magenta key at half value, so `strip_key_shadow` clears it in `import-footer-art.py` (27,885 pixels) — nothing in SwiftUI was drawing it. **A** and **H** are one mechanism with a parameter: `DexRoute.marqueeArt` feeds both, and `DexChromeGlyph.flatten` decides silhouette or drawing. **F** finished `ScreenMockup` by making it *be* the CUSTOMIZE card rather than a likeness — which is how the missing monochrome pass was found: AMBER and VINTAGE were previewing in the green they derive from. | 446 / 177 / 124 / 33 / 106 / 26, all untouched; `firmware.ts` only | **601 tests**, clean build, `generate` (no drift) + `find-missing-refs` (zero dangling) + `icons:verify` (312 identical) + `outlines:check` green; four `FooterArt` PNGs re-exported, **not deployed** |
 | 0.8.2 | sommbot's data-pass handoff + five coordinator items | **THE LINEAGE DATA ARRIVES, AND THE TILES BUILT FOR IT MEET THEIR FIRST USERS.** Sommbot takes authored lineage from 61 grapes to **163** and sets `parentageUnknown` on **74**; iOS lands the pins and finds the handoff wrong in three places. **The category is not empty**: `derivedOnlyGrapesAreConnected` was told to retire because "zero grapes are connected only by derived edges", and there are **fourteen** — Nebbiolo among them. Its old assertion `lineage == nil` was a proxy for *authors no edge*, and 0.8.2 is the batch that pulled the two apart. Handoff also missed `siblingsGroupThroughExternalParents` (Gouais Blanc 10 → 13 children) and claimed `colorOverridesResolve` was red when only its **title** was. The 0.8.0 `.unrecorded` tile and 0.8.1's off-catalog box had never drawn for a real entry in three releases and now serve 32 and 69 respectively. Plus a live `related` de-dupe defect pinned before data could trip it. Coordinator: **four drawn footer caps** that are whole moulded buttons rather than glyphs, re-inked per skin by a `GrapeSpriteLoader`-shaped HSV pass; **17 drawn cartridges** on the shop shelf and three times larger on the splash; display packs previewed as **screens** rather than as a device with a tinted sliver; and a share sheet that finally has a header, via `LinkPresentation`. | 446 / 177 / 124 / 33 / 106 / 26, all untouched; `grapes.ts`, `styles.ts` (S033/S034 → ORIGIN), `entryUtils.ts` (`madeira` → WHITE), `types.ts`, `firmware.ts` — all sommbot's | **596 tests**, clean build, `generate` (no drift) + `find-missing-refs` (zero dangling) + `icons:verify` (312 identical) + `outlines:check` green, **not deployed** |
 | 0.8.1 | `vinodex-0.8.1.md`, sections A–F, H–J (**G held**) | **PROSECCO IS NOT A ROSÉ.** A bug hunt that turned out to be a whole missing table: `EntryDisplay.colorType` is a port of `entryUtils.ts`'s `getColorType` and had never carried `STYLE_NAME_COLOR_OVERRIDES`, so **16 of 33 styles reported a different colour on the device than in the data** — 15 silently as DUAL, and Prosecco as ROSÉ because the port matched substrings and `"p*rose*cco"` contains one. Fixed as a port plus a cross-end pin (`palette.styleColorTypes`), then **D** spends it: COLOUR and COUNTRY join STYLE CLASS on the styles list. **F3** was expected to be the same shape and was not — the keys matched perfectly; `getFlavorSubclassChipColors` simply had no case for six ids and its `default` is byte-identical to the reader's fallback, so six chips were the neutral *written into the table under a valid key*. **J** wires 30 of 32 new button faces in behind a fitted square box, through an eighth importer registered in all four rosters and both search paths. Plus a lineage tree whose connectors now reach the boxes, a marquee glyph that dissolves with its word, and a toast that changes language every five seconds. | 446, untouched; `chipColors.ts`, `colorUtils.ts`, `entryUtils.ts` (`MARINE` retired), `firmware.ts` | 590 tests, clean build, `generate` + `find-missing-refs` (zero dangling) + `icons:verify` (291 identical) + `outlines:check` green, **not deployed** |
 | 0.7.6 | v0.7.5 spec (lands as 0.7.6), sections A–F | **THE CONSOLIDATION.** The Decision: three ways to reach the same places become one — the two marquee lamps *are* the pins, always visible, each reassignable by holding it. `MarqueeDrawer` deleted, the corner pin buttons deleted, the panel is a display again. `QuickPinStore` reused, not forked: `MarqueePin`'s raw values are a superset of `SettingsSection`'s, so no pins are reset. The idle timer stops being two stages (screensaver 15→**30s**, the marquee greeting folded into it and firing on **any** screen, revertible by giving `IdleSchedule.toast` a number back); the screensaver gets a random start, kept as a phase so the closed form survives. Plus two new workshop axes (10 in all), the **W64** shell, a stadium orb, bigger shop splashes with previews of their contents, and the tutorial into SETTINGS > DEVICE. | 438, untouched | 501 tests, clean build, `npm run generate` + `find-missing-refs` + `npm run icons` green, **not deployed** |
@@ -2268,6 +2269,146 @@ work.
   isolation immediately after, and again in every subsequent full run. It touches
   `UserDefaults(suiteName:)` on corelibs-foundation and nothing in this batch
   goes near `TypeScale`. Worth watching rather than chasing.
+
+**0.8.3, Four things leave the shop and nothing leaves the dex**
+(`horizon-md/vinodex-0.8.3.md`, sections A-H). Gates: **601 tests**, clean
+`xtool dev build`, `npm run generate` (no drift) + `find-missing-refs` (zero
+dangling) + `icons:verify` (312 identical, 0 changed) + `outlines:check` green.
+**Not deployed** -- 0.7.9 through 0.8.2 are also still undeployed, though 0.8.2
+was put on the phone and tested before this branch was cut.
+
+- **D's reconnaissance did not survive contact, and that is the finding.** The
+  spec said "remove flavorwheel, Italy pack, France pack and Spain pack", warned
+  that `ExpansionPacks.all.count` is pinned at 12, and pointed at
+  `FREE_COMMON_ORIGINS`. None of those three is where the packs are. There is no
+  flavorwheel `ExpansionPack` and no country `ExpansionPack`: the twelve are
+  three atlas, six device and three display, and all twelve stay. The four
+  things being removed are `Entitlement` rows in `SettingsPanel.shopUpgrades` --
+  `.flavors`, plus three `.country(_:)` bundles that **nobody named**. A
+  `topCountries` helper counted region entries per origin and took the largest
+  three, which is Italy (21), France (19) and Spain (19) *today*; a data batch
+  adding four Portuguese regions would silently have changed which packs the
+  shop sold. That helper is gone with the rows, and `all.count == 12` and
+  `FREE_COMMON_ORIGINS` are both untouched.
+- **Retired, not deleted, and the two invariants are pinned separately.**
+  `Entitlement.id` writes `"country:France"` into `grantedEntitlements`, and
+  `LocalEntitlementStore` reads it back through `init(id:)` and `compactMap` --
+  so deleting the cases would not have crashed, it would have dropped somebody's
+  purchase in silence, which is worse. The cases stay, parse, and cover exactly
+  what they always covered; `AccessTests.retiredGrantsSurvive` writes the raw
+  strings into a defaults suite and asserts every French entry and every flavour
+  still opens. What changes is only what can be *sold*:
+  `LocalPurchaseProvider.canPurchase` refuses a retired bundle, so a second
+  surface listing products cannot resurrect a row.
+- **The orphan the item is actually about is `offer(for:)`, and it was two
+  lines.** That function chose what the paywall prompt sells: flavours got the
+  flavour wheel, anything with an origin got its country. Remove those from the
+  shop and leave `offer` alone, and every locked French grape raises a prompt for
+  a product with no storefront behind it -- content gated by an id nothing sells,
+  verbatim. It collapses to `.pro`.
+  `AccessTests.everyEntryHasABuyableOffer` is the gate, and it replaces a test
+  that would have passed straight through the failure: the old one asserted the
+  offer *covers* the entry, which a retired bundle does perfectly well. It now
+  asserts covers **and** purchasable, over all 446 entries rather than only the
+  locked ones.
+- **Worth recording what was deliberately not done.** The free tier is
+  unchanged. The temptation was to widen `tiers.json` so the retired bundles'
+  content becomes literally free, and it is the wrong trade: it would move
+  roughly 160 entries into the starter tier, widen `DailyPick`'s pool, and
+  rewrite a product decision nobody asked about. The reachability argument does
+  not need it -- `AccessStore.isLocked` returns `false` outright unless
+  `starterOnly` is set, that switch is a developer control off on every real
+  install, and **23 of the 26 country bundles were already unlisted**. The three
+  being removed join the twenty-three; they do not form a new class.
+- **C4's flagged risk was measurable, and the measurement inverted it.** The
+  worry carried from 0.8.2 was that `chassisskins`, `screenmodes` and
+  `vinodexpro` ship at 418x564 against the other fourteen's ~225x302, so the
+  label well would not be in the same relative place on all seventeen. Measured,
+  it is: the well spans y 0.813-0.934 and x 0.105-0.888 on **every one of the
+  seventeen**, large files included. They are the same drawing at twice the
+  resolution. What does vary is the **aspect ratio**, 0.678 (`vessel`, `wines`)
+  to 0.798 (`godforsaken`), and `.aspectRatio(contentMode: .fit)` letterboxes --
+  so a fraction of the *tile* would have landed in the well on whichever sprite
+  the numbers were tuned against and progressively outside it on the rest.
+  `PackCartridge.labelWell(for:in:)` computes the rect off the fitted image and
+  adds the letterbox offset back, which is why it takes two sizes.
+- **The "file icon behind the pack" is `CartridgeShape`, and it is not one
+  component.** E said "if the backing icon is one component, delete it once", and
+  it is one *shape* in two unrelated roles: `DexPickerTile`'s stroked border
+  around the swatch (a stepped-corner square around a cartridge drawn to fit
+  inside it, which is exactly what reads as a file card behind the pack), and two
+  ghost plates fanned behind the splash hero. Two edits. `DexPickerTile.outline`
+  became optional rather than gaining a `showsOutline` flag, so the shop's call
+  site says `CartridgeShape?.none` instead of passing a shape it then suppresses;
+  the workshop's colour chips are flat fills with no edge of their own and keep
+  theirs.
+- **B1 was art and could not have been code.** The four caps' cast shadow is
+  painted into the sources as the magenta chroma key **at half value** --
+  (128, 12, 102) against the key's (239, 4, 225) -- and `strip_background` keys
+  out only the pure form, so it survived import as a dark plum blob.
+  `ChassisButton` carried a comment explicitly declining to draw one
+  (`// No .shadow: the sprite casts its own`), so there was no SwiftUI change
+  available. `strip_key_shadow` in `import-footer-art.py` keys on **chroma**
+  rather than on darkness, which is what makes it safe: a shadow pixel sits on
+  the key's hue at any value, and every cap pixel is either cream (a green
+  channel far too high) or the near-neutral black of the cel outline (a green
+  channel level with the other two). 27,885 pixels cleared across four caps;
+  rim, lit face, internal shading and incised symbol all intact. The correction
+  lives **inside** the importer, so a re-import keeps it.
+- **A and H are one mechanism with a parameter, which is what the spec asked
+  for.** `DexRoute.marqueeArt` is a new Core table beside `marqueeSymbol` --
+  separate rather than a rename, because `ChromeTests.glyphsAreDistinct`
+  requires symbols to be unique and the art deliberately repeats (a category
+  listing and its detail pages want one picture). `MarqueePin.artStem` reads the
+  same table, so both marquee surfaces resolve through it. The treatment is then
+  `DexChromeGlyph.flatten`: non-nil renders the face as a `.template` silhouette
+  in one colour (A, black), nil keeps the drawing (H, coloured). Neither can leak
+  into the other, because it is an argument at the call site.
+  `ChromeTests.marqueeArtIsOnDisk` walks every stem against
+  `art/icons/buttons/`, which is the only thing that can tell "not converted
+  yet" from "converted, string wrong" -- both render as the old SF Symbol.
+- **The ink rule A asked about does not fight black on any skin.** The marquee's
+  ink is `skin.marqueeShadow` and its ground is `skin.marqueeText`, and all
+  twenty-one grounds are lit colours -- the dimmest is CLASSIC's `green500`. A
+  black silhouette is the highest-contrast mark available on every one, so no
+  skin is exempted because none needed to be. The `ink` fallback stays for the
+  sixteen routes with no drawn face: recruiting those into the flat treatment
+  would have changed pages A does not name.
+- **F was finishing, and the finishing found the bug.** `ScreenMockup` shipped in
+  0.8.2 as a *reduction* of the CUSTOMIZE card -- bezel, ground, accent bar,
+  three body lines, no glyph, and no `.grayscale` / `.colorMultiply` pass. That
+  last omission is the real defect: AMBER, VINTAGE, TERMINAL and GRUENER BOY are
+  built by greying the dark theme and multiplying by one phosphor, so the shop
+  was previewing the RETRO pack's screens **in green**. Rather than adding the
+  pass, `ScreenMockup` *became* the card and `modeGrid` now calls it, so "exactly
+  as it appears in Customise" is true by construction. Both surfaces gained
+  `ownInk` over `text` on the way -- `text` returns the workshop's chosen font
+  colour, so the picker had been showing every mode in one ink whenever one was
+  fitted.
+- **G factored, as 0.8.0's G2 predicted it would.** `attributeBar` took a third
+  caller with no change: same flag well, same label-over-value, same chevron. The
+  one thing this caller does that the other two do not is *not appear* -- a style
+  whose origin is "various" has no country to name.
+- **Two smaller spec corrections.** The footer caps go through
+  `import-footer-art.py`, not `import-button-art.py` as B says -- 0.8.2 split the
+  two deliberately, and three of the four stems (`home`, `settings`, `user`)
+  already exist under `buttons/` as different pictures. And the press feel: the
+  cog was `DexPressStyle(scale: 0.9)` and the other three `0.96`, so B2 is not
+  adding a depress to parts that had none but replacing two shallow ones.
+  `ChassisPress` now holds the orb's three numbers once, and the orb, the three
+  caps and the cog all read them -- which retires 0.6.7's "the cog presses deeper
+  than its neighbours" exception by overtaking it.
+- **Things to eyeball, in order.** (1) The pack splash -- the cartridge is 260pt
+  now against 168, the name is printed in the sprite's own label well at a fixed
+  `#2B2118`, and CHASSIS SKINS / GRAPE LINEAGE at thirteen characters are the
+  longest strings it has to hold. (2) The marquee page glyph as a flat black
+  silhouette: a template render discards internal detail by design, and `grapes`
+  (a bunch with a leaf) and `regions` are the two whose silhouettes carry the
+  most. (3) The two marquee lamps in full colour -- five faces sitting on lamp
+  faces that are themselves saturated, on a skin like CHRISTMAS whose trio is
+  three identical berries. (4) The four footer caps with no shadow and a 0.88
+  depress, on a light shell and a dark one. (5) The shop shelf at 58pt with no
+  outline around the tiles.
 
 **0.8.2, A hundred and two new statements about parentage, and twenty-one drawn
 parts** (sommbot's data-pass handoff, plus five coordinator items). Gates:

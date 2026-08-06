@@ -7,8 +7,10 @@ import VinodexCore
 ///
 /// **The problem, stated plainly.** `art/icons/footerbuttons/` holds four
 /// drawings — Back, Home, Settings, User — and each one is a *whole moulded
-/// cap*: rim, lit face, cast shadow, and the symbol incised into it. They are
-/// drawn once, in one cream colourway. The app has twenty-one chassis skins,
+/// cap*: rim, lit face, and the symbol incised into it. (Each carried a painted
+/// cast shadow too, until 0.8.3's B1 stripped it at import — see
+/// `import-footer-art.py`.) They are drawn once, in one cream colourway. The
+/// app has twenty-one chassis skins,
 /// and a skin's identity is largely the colour of these four caps. Shipping the
 /// art untouched would put the same cream button on BLUSH, on HALLOWEEN and on
 /// the console liveries, which does not degrade the skin system so much as
@@ -23,7 +25,9 @@ import VinodexCore
 /// - `.renderingMode(.template)` is the usual SwiftUI answer and is wrong here.
 ///   It discards everything but alpha, so a moulded cap with a rim, a highlight
 ///   and an incised glyph collapses to a solid disc. The drawing *is* the
-///   product.
+///   product. (0.8.3's A does reach for exactly that operation, deliberately,
+///   on a different surface: `DexChromeGlyph.flatten` renders a marquee page
+///   glyph as a black silhouette, where losing the modelling is the ask.)
 /// - `.colorMultiply` — the idiom the LCD's monochrome modes use — can only
 ///   darken. Eleven of the skins give their caps a white glyph, where multiply
 ///   is a no-op and the cap stays cream; the light skins multiply toward black
@@ -101,9 +105,12 @@ final class ChassisCapLoader {
             let a = data[i + 3]
             guard a > 0 else { continue }
             let (_, _, value) = hsv(r: data[i], g: data[i + 1], b: data[i + 2], a: a)
-            // A near-black pixel has no colour to restate: the outline and the
-            // cast shadow are structure, and pushing a hue into them would tint
-            // the shadow the cap casts onto the chassis behind it.
+            // A near-black pixel has no colour to restate: the cel outline is
+            // structure, and pushing a hue into it would draw the cap's own
+            // edge in the skin's colour and lose the thing that separates the
+            // part from the shell behind it. (Through 0.8.2 this also protected
+            // the painted cast shadow; 0.8.3's B1 removed that at import, so
+            // the outline is all this clause is guarding now.)
             guard value > 0.06 else { continue }
             let out = rgb(h: target.h, s: target.s, v: value)
             data[i] = UInt8(out.r * CGFloat(a) / 255)

@@ -54,10 +54,22 @@ struct DexPickerTile<Swatch: View, Outline: InsettableShape>: View {
     /// GRIS DE GRIS and GODFORSAKEN both wrap.
     var labelSize: CGFloat = 8
     var labelMinHeight: CGFloat = 20
-    /// The border drawn around the swatch. A circle for the workshop's colour
-    /// chips, a rounded rectangle for a cartridge. No default — Swift has none
-    /// for a generic parameter, and the two call sites both mean something by it.
-    let outline: Outline
+    /// The border drawn around the swatch, or nil for none.
+    ///
+    /// A circle for the workshop's colour chips. **Nil for the shop's
+    /// cartridges since 0.8.3 (E1/C1)**: the drawn cartridges carry their own
+    /// black outline, and `CartridgeShape` stroked around one put a second
+    /// border — differently shaped, a few points further out, and squared off
+    /// where the sprite is not — around every tile on four shelves. What that
+    /// reads as is not a tile edge but a file card sitting behind the pack,
+    /// which is exactly the report E1 makes. The workshop's chips are flat
+    /// colour fills with no edge of their own and still need theirs, which is
+    /// why this became optional rather than being deleted.
+    ///
+    /// Optional rather than a `showsOutline` flag beside a shape nobody draws:
+    /// a parameter that is passed and then suppressed is the next reader's
+    /// puzzle, and `CartridgeShape?.none` says the thing outright.
+    let outline: Outline?
     let action: () -> Void
     @ViewBuilder let swatch: () -> Swatch
 
@@ -80,12 +92,14 @@ struct DexPickerTile<Swatch: View, Outline: InsettableShape>: View {
                                 .shadow(color: .black.opacity(0.7), radius: 0, x: 1, y: 1)
                         }
                     }
-                    .overlay(
-                        outline.strokeBorder(
-                            isChosen ? lcd.onAccent : lcd.surfaceEdge,
-                            lineWidth: isChosen ? 2 : 1
-                        )
-                    )
+                    .overlay {
+                        if let outline {
+                            outline.strokeBorder(
+                                isChosen ? lcd.onAccent : lcd.surfaceEdge,
+                                lineWidth: isChosen ? 2 : 1
+                            )
+                        }
+                    }
                 Text(label)
                     .font(DexFont.retro(labelSize))
                     .tracking(0.5)

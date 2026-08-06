@@ -43,14 +43,33 @@ struct CartridgeArtTests {
     }
 
     /// Everything the shop can put a cartridge under: the twelve packs and the
-    /// five standalone upgrades. Country packs are excluded — there is one per
-    /// country with regions and no art was ever drawn for them.
+    /// five standalone upgrades.
+    ///
+    /// **Exactly seventeen since 0.8.3 (D)**, and for the first time the number
+    /// is not a coincidence. The flavour wheel and the country packs are gone
+    /// from the shop, and they were the two things it sold that had no drawing —
+    /// so every row on every shelf now has a cartridge, and the fallback below
+    /// is a guard rather than a routine path.
     private static var sellableIDs: Set<String> {
         var ids = Set(ExpansionPacks.all.map { Entitlement.expansion($0.id).id })
-        for entitlement: Entitlement in [.pro, .flavors, .skins, .lightMode, .workshop, .lineage] {
+        for entitlement: Entitlement in [.pro, .skins, .lightMode, .workshop, .lineage] {
             ids.insert(entitlement.id)
         }
         return ids
+    }
+
+    /// The shop's own list and this one have to agree, or a row appears with no
+    /// art and nothing notices. Asserted through `isRetired` because that is
+    /// what `shopUpgrades` filters on — `SettingsPanel` is in `VinodexUI` and
+    /// invisible from here, so the shared fact is the one worth pinning.
+    @Test("nothing retired is counted as sellable")
+    func retiredIsNotSellable() {
+        for id in Self.sellableIDs {
+            let entitlement = Entitlement(id: id)
+            #expect(entitlement != nil, "'\(id)' does not decode")
+            #expect(entitlement?.isRetired == false, "'\(id)' is retired but counted as sellable")
+        }
+        #expect(Self.sellableIDs.count == 17)
     }
 
     @Test("every mapped stem has a file behind it")
@@ -80,12 +99,13 @@ struct CartridgeArtTests {
         }
     }
 
-    /// **The two known gaps, pinned as gaps.** Both fall back to the code-drawn
-    /// cartridge, which is correct and must stay correct — the fallback is the
-    /// only thing standing between an unmapped product and an empty tile. Pinned
-    /// rather than left implicit so that art arriving for either one is a
-    /// deliberate edit here and not a surprise.
-    @Test("the flavour wheel and the country packs have no cartridge, and fall back")
+    /// **The two known gaps, closed by removal in 0.8.3 (D).** Both fell back to
+    /// the code-drawn cartridge, and both are off the shop now — so the fallback
+    /// is no longer reached by anything the shelves draw. It stays asserted
+    /// anyway, and stays in `PackCartridge`: a pack id written by a later build
+    /// resolves to no stem here, and an empty tile is the failure the drawn
+    /// cartridge exists to prevent.
+    @Test("the retired products still have no cartridge, and still fall back")
     func knownGapsFallBack() {
         #expect(CartridgeArt.stem(for: .flavors) == nil)
         #expect(CartridgeArt.stem(for: .country("France")) == nil)

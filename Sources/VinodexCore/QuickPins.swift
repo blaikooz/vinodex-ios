@@ -64,6 +64,16 @@ public enum MarqueePin: String, CaseIterable, Hashable, Sendable, Identifiable {
     public var symbol: String {
         section?.symbol ?? DexRoute.minigames.marqueeSymbol
     }
+
+    /// The drawn face, from the same two places (0.8.3, H).
+    ///
+    /// All five resolve — `SettingsSection.artStem` is total and TOOLS has its
+    /// own — so the lamps are the one marquee surface where the conversion is
+    /// complete. The fallback stays wired anyway: a sixth pin would arrive
+    /// through this expression, and a lamp with no glyph reads as a fault.
+    public var artStem: String? {
+        section?.artStem ?? DexRoute.minigames.marqueeArt
+    }
 }
 
 /// What the marquee's two lamp buttons are pointed at (0.7.1 B5; rebuilt 0.7.6, A1).

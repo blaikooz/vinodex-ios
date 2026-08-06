@@ -202,7 +202,95 @@ struct ChromeTests {
             )
             #expect(pin.symbol == pin.route.marqueeSymbol)
             #expect(pin.displayName == pin.route.title)
+            // 0.8.3's H puts the drawn face on the lamp. Same property as the
+            // symbol above, and it has to hold for the same reason: a lamp that
+            // wore one destination's picture and landed on another is exactly
+            // what routing both through the pin is meant to make impossible.
+            #expect(pin.artStem == pin.route.marqueeArt)
+            #expect(pin.artStem != nil, "\(pin.rawValue) has no drawn face; the lamp would fall back")
         }
+    }
+
+    // MARK: Marquee art (0.8.3, A/H)
+
+    /// **Every stem the marquee can ask for is a file on disk.**
+    ///
+    /// The gate this repo has needed three times. `PixelArtLoader.image` returns
+    /// nil in silence, so a stem typed wrong here does not fail, does not warn,
+    /// and does not blank the panel — it quietly falls back to the SF Symbol
+    /// that was there before, which is *the same picture the marquee showed in
+    /// 0.8.2*. There is no state of the running app that distinguishes "the
+    /// conversion has not reached this route" from "the conversion reached it
+    /// and the string is wrong". Only this does.
+    ///
+    /// Reached through `#filePath` like `CartridgeArtTests` and
+    /// `ArtPipelineRosterTests`: the source art is the authority and it is not
+    /// in the bundle at test time.
+    @Test("every marquee art stem names a drawn button face")
+    func marqueeArtIsOnDisk() throws {
+        let dir = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("art")
+            .appendingPathComponent("icons")
+            .appendingPathComponent("buttons")
+        let onDisk = Set(
+            try FileManager.default.contentsOfDirectory(atPath: dir.path)
+                .filter { $0.lowercased().hasSuffix(".png") }
+                .map { String($0.dropLast(4)) }
+        )
+        #expect(!onDisk.isEmpty, "art/icons/buttons is empty — is the checkout complete?")
+
+        for route in Self.allRoutes {
+            guard let stem = route.marqueeArt else { continue }
+            #expect(onDisk.contains(stem), "\(route.title) names button art '\(stem)' that is not on disk")
+        }
+        for category in EntryCategory.allCases {
+            guard let stem = category.marqueeArt else { continue }
+            #expect(onDisk.contains(stem), "\(category) names button art '\(stem)' that is not on disk")
+        }
+        for pin in MarqueePin.allCases {
+            guard let stem = pin.artStem else { continue }
+            #expect(onDisk.contains(stem), "\(pin.rawValue) names button art '\(stem)' that is not on disk")
+        }
+    }
+
+    /// **K2 rule 1, now literally checkable.** "A page's glyph is the glyph on
+    /// the control that opens it" could only ever be asserted between two SF
+    /// Symbol tables before; the drop makes it a claim about one file being used
+    /// twice, and these are the pairs where both ends are in Core.
+    ///
+    /// Deliberately *not* asserting that art stems are distinct the way
+    /// `glyphsAreDistinct` asserts symbols are. The art repeats on purpose — a
+    /// category listing and that category's detail pages share a face, which is
+    /// the same documented exemption `glyphsAreDistinct` carries and the reason
+    /// `marqueeArt` had to be a table separate from `marqueeSymbol` rather than
+    /// a rename of it.
+    @Test("the marquee's faces are the faces on the controls that open the pages")
+    func marqueeArtFollowsItsControl() {
+        // The four main-menu tiles.
+        #expect(EntryCategory.grapes.marqueeArt == "grapes")
+        #expect(EntryCategory.regions.marqueeArt == "regions")
+        #expect(EntryCategory.styles.marqueeArt == "styles")
+        #expect(EntryCategory.flavors.marqueeArt == "flavors")
+        // No face draws a world; the globe keeps its symbol.
+        #expect(EntryCategory.continents.marqueeArt == nil)
+        #expect(DexRoute.globe.marqueeArt == nil)
+        // A filtered listing is not its category (K2, rule 2), so it does not
+        // borrow the category's picture either.
+        #expect(DexRoute.list(category: .regions, filter: nil).marqueeArt == "regions")
+        #expect(DexRoute.list(category: .regions, filter: .soil("Limestone")).marqueeArt == nil)
+        // The SETTINGS grid owns its own table and this defers to it rather
+        // than restating five strings.
+        for section in SettingsSection.allCases {
+            #expect(DexRoute.settingsSection(section).marqueeArt == section.artStem)
+        }
+        // The collision `SettingsSection.artStem` documents from the other
+        // side: the route *titled* SYSTEM is `.settings` and takes `settings`;
+        // the drop's `system` face belongs to the chassis cog.
+        #expect(DexRoute.settings.marqueeArt == "settings")
+        #expect(DexRoute.settingsSection(.settings).marqueeArt == "settings")
     }
 
     /// The two lamps the device ships with are the two 0.7.2's A9 hardwired.
