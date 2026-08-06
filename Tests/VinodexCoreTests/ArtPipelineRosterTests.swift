@@ -624,11 +624,32 @@ struct ArtPipelineRosterTests {
         )
     }
 
+    /// Stems the app asks for that nobody has drawn yet (0.8.6, C6).
+    ///
+    /// **A named backlog, checked both ways**, on the model of
+    /// `regionsHaveOutlineArt`: a stem missing from here and from the drop fails
+    /// the roster, *and* a stem listed here that has since been drawn fails it
+    /// too — so the list cannot quietly become an excuse.
+    ///
+    /// These two exist because 8.6's C6 asked for the two new badges' art under
+    /// the names `stamp1` and `stamp2`, and those names were already spent:
+    /// `art/icons/stamps/stamp1.png` and `stamp2.png` came in the 0.8.4 drop and
+    /// 0.8.5's F1 wired them as `BackPlateDecal.decalOne` / `.decalTwo`, the two
+    /// franked stamps printed on the plate. Reusing the names would have
+    /// replaced two shipped decals with two undrawn badges — silently, since
+    /// `import-stamp-art.py` copies by source stem. So the badges took stems of
+    /// their own and the art is a real gap, which is what this records.
+    private static let undrawnStampStems: Set<String> = [
+        "stamp-all-grapes",
+        "stamp-all-styles",
+    ]
+
     /// **The stamp drop maps every source file onto a stem the app asks for.**
     ///
-    /// Six Passport badges and four back-plate decals. `StampCatalog.artStem`
-    /// and `BackPlateDecal.artStem` are both in Core, so this compares the
-    /// Python against the types themselves rather than against another list.
+    /// Eight Passport badges and four back-plate decals, less whatever
+    /// `undrawnStampStems` names. `StampCatalog.artStem` and
+    /// `BackPlateDecal.artStem` are both in Core, so this compares the Python
+    /// against the types themselves rather than against another list.
     @Test("every stamp source maps to a stem the app asks for, and back")
     func stampRosterIsComplete() throws {
         let map = Self.pythonMap(try Self.read("scripts", "import-stamp-art.py"), named: "STEM_FOR")
@@ -648,12 +669,29 @@ struct ArtPipelineRosterTests {
         let produced = Set(map.map(\.1))
         let wanted = Set(StampCatalog.all.map(\.artStem))
             .union(BackPlateDecal.allCases.map(\.artStem))
+
+        // The backlog, both ways. First: everything on it is genuinely something
+        // the app asks for — a row naming a stem nothing wants is a typo, and a
+        // typo here would hide a real gap.
         #expect(
-            produced == wanted,
+            Self.undrawnStampStems.isSubset(of: wanted),
+            "undrawnStampStems names stems nothing asks for: \(Self.undrawnStampStems.subtracting(wanted).sorted())"
+        )
+        // Second: nothing on it has quietly been drawn. When it has, this fails
+        // and the row comes out — which is the half that stops a backlog rotting
+        // into a permanent exemption.
+        #expect(
+            Self.undrawnStampStems.isDisjoint(with: produced),
+            "these are drawn now — delete them from undrawnStampStems: \(Self.undrawnStampStems.intersection(produced).sorted())"
+        )
+
+        let expected = wanted.subtracting(Self.undrawnStampStems)
+        #expect(
+            produced == expected,
             """
             import-stamp-art.py's output stems and the app's disagree — \
-            produced but nothing asks for: \(produced.subtracting(wanted).sorted()), \
-            asked for but not produced: \(wanted.subtracting(produced).sorted())
+            produced but nothing asks for: \(produced.subtracting(expected).sorted()), \
+            asked for but not produced: \(expected.subtracting(produced).sorted())
             """
         )
 
@@ -662,8 +700,8 @@ struct ArtPipelineRosterTests {
         // bundle if nobody ran `npm run icons`.
         let bundled = try Self.pngStems("Sources", "VinodexUI", "Resources", "StampArt")
         #expect(
-            bundled == wanted,
-            "Resources/StampArt holds \(bundled.sorted()), the app asks for \(wanted.sorted())"
+            bundled == expected,
+            "Resources/StampArt holds \(bundled.sorted()), the app asks for \(expected.sorted())"
         )
     }
 

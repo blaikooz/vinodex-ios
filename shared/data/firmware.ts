@@ -39,6 +39,25 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.8.6",
+  date: "2026-08-06",
+  // The plate stops framing things that are already framed, the cog finally
+  // takes one colour, and the stamps get a room of their own.
+  headline: "A STICKER, NOT A FRAME",
+  notes: [
+    "The shell's artifact is printed on the back plate at the size of the barcode beside it. It had been a drawn sticker mounted inside a drawn sticker, at a third of the space.",
+    "The six stamps are their own drawings too, and smaller. The frame the app used to build around each one is now only what a stamp nobody has drawn yet falls back to.",
+    "STAMPS is the first thing under your rank, above the counting, with a way into the collection: every stamp in the series at a size worth looking at, the unearned ones drained rather than hidden, each one tappable for its story.",
+    "Two new stamps. TRIED ALL GRAPES and TRIED ALL STYLES -- the two hardest in the series, and the two dearest.",
+    "TASTINGS wears the drawn marquee glyphs. Grapes, styles, countries and continents each had one and none of them was being used here.",
+    "The settings cog stops wearing two colours. The bottom of its knurled rim was being painted in the glyph's ink -- a near-white on most shells, which is why it read as grey plastic on a coloured button.",
+    "Nothing on the four footer caps is trimmed off any more. They are clipped to their own outline instead of to a fitted circle, which is what was fraying the dark line around the edge of the cog and the house.",
+    "TOOLS and CUSTOMIZE are the same size on the two lamps. Every word up there was being fitted separately, so the short ones came out bigger.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const DISPLACED_0_8_5: FirmwareRelease = {
   version: "0.8.5",
   date: "2026-08-06",
   // The panel starts saying who you are, the four buttons finally sit still in
@@ -149,6 +168,7 @@ const DISPLACED_0_8_1: FirmwareRelease = {
 
 /** Everything before `CURRENT`, newest first. */
 const PREVIOUS: FirmwareRelease[] = [
+  DISPLACED_0_8_5,
   DISPLACED_0_8_4,
   DISPLACED_0_8_3,
   DISPLACED_0_8_2,

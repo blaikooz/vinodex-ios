@@ -53,24 +53,64 @@ struct PerforatedStampShape: Shape {
 /// pass over the lot. Rendered "realistically like the barcode sticker" —
 /// opaque label stock, faded inks, a real drop shadow — decoration that has
 /// *happened to* the plate, not UI chrome.
+/// **The drawn stamp is the stamp (0.8.6, C1/C4).** Everything above describes
+/// an object this view draws around an illustration: perforated stock, an inner
+/// keyline, a title, a denomination corner. The drop that landed in 0.8.5 draws
+/// all of it — six complete franked objects, with their own perforation or
+/// die-cut, their own wavy cancellation marks and their own aged paper. Framing
+/// one put a code-drawn stamp around a drawn stamp, which is the nesting A1
+/// removes from the artifact eight lines of plate away.
+///
+/// So the two paths separate, exactly as `SkinStickerView`'s do. **Art**: the
+/// file, at its own aspect, with the worn pass and the contact shadow over it.
+/// **No art**: the frame above at 0.7.0's own 88x104, scaled into whatever box
+/// the caller asked for — which is the one piece of arithmetic here worth
+/// explaining. E1 sized that frame to hold a two-line pixel-face title at its
+/// accessibility floor; re-laying it out inside a 72x66 box would crush the
+/// title back to the ~7pt E1 spent an item fixing. Scaling the finished drawing
+/// instead keeps every proportion E1 measured and simply makes it smaller,
+/// which is what a *stand-in* should do. Two stamps reach that path today: the
+/// completions C6 adds, whose art nobody has drawn.
 struct BackPlateStampView: View {
     let stamp: BackPlateStamp
-    /// 88x104 since 0.7.0 (E1), up from 76x90.
-    ///
-    /// The title is the widest thing on a stamp and it did not fit; the two ways
-    /// out were to shrink the words further or to give them room, and the words
-    /// were already being crushed to an illegible size. See the note on the
-    /// title itself for the arithmetic. `DeviceBackPlate.stampSize` mirrors
-    /// this, because the slot origins and the drag clamp both need it.
-    var width: CGFloat = 88
-    var height: CGFloat = 104
+    /// 72x66 since 0.8.6 (C1), down from the 88x104 that 0.7.0's E1 sized for a
+    /// two-line title. See the type's note, and `DeviceBackPlate.stampSize`,
+    /// which mirrors this because the slot origins and the drag clamp need it.
+    var width: CGFloat = 72
+    var height: CGFloat = 66
+
+    /// The code-drawn frame's own geometry, kept at E1's numbers.
+    private static let drawnSize = CGSize(width: 88, height: 104)
 
     private var ink: Color { Color(dexHex: stamp.colorHex) }
 
     var body: some View {
+        Group {
+            if let art = PixelArtLoader.shared.image(stamp.artStem) {
+                Image(uiImage: art)
+                    // Smooth since 0.8.5 (F1) — see `SkinStickerView.drawn`,
+                    // which makes the identical argument about the identical
+                    // situation. The drawings are painted at ~300px.
+                    .interpolation(.high)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: width, height: height)
+            } else {
+                codeDrawn
+                    .frame(width: Self.drawnSize.width, height: Self.drawnSize.height)
+                    .scaleEffect(min(width / Self.drawnSize.width, height / Self.drawnSize.height))
+                    .frame(width: width, height: height)
+            }
+        }
+        .modifier(WornOverlay(seed: WornOverlay.seed(stamp.id)))
+        .shadow(color: .black.opacity(0.25), radius: 1, y: 1)
+    }
+
+    /// The perforated frame, the stand-in for a stamp nobody has drawn.
+    private var codeDrawn: some View {
         let paper = Color(dexHex: "#E9E6DA")   // the barcode sticker's stock
 
-        ZStack {
+        return ZStack {
             PerforatedStampShape()
                 .fill(paper, style: FillStyle(eoFill: true))
 
@@ -131,33 +171,18 @@ struct BackPlateStampView: View {
                 .padding(.top, 8)
                 .padding(.trailing, 9)
         }
-        .frame(width: width, height: height)
-        .modifier(WornOverlay(seed: WornOverlay.seed(stamp.id)))
-        .shadow(color: .black.opacity(0.25), radius: 1, y: 1)
     }
 
-    /// The illustration: the authored pixel-art glyph when
-    /// `art/icons/stamps/` has shipped one, the SF Symbol stand-in until
-    /// then. The art path renders as drawn — the pipeline's portraits carry
-    /// their own colours — while the stand-in prints in the stamp's ink,
-    /// which is what a one-colour engraving would do.
-    @ViewBuilder
+    /// The stand-in illustration, printed in the stamp's ink — which is what a
+    /// one-colour engraving would do.
+    ///
+    /// **The art branch left this property in 0.8.6 (C4)** and became the whole
+    /// view; see the type's note. What is here is only ever reached by a stamp
+    /// with no file.
     private var glyph: some View {
-        if let art = PixelArtLoader.shared.image(stamp.artStem) {
-            Image(uiImage: art)
-                // Smooth since 0.8.5 (F1) — see `SkinStickerView.glyph`, which
-                // makes the identical argument about the identical situation.
-                // This branch had never run either: `StampArt` was empty from
-                // 0.6.4 until the badges were drawn in this batch, and the
-                // drawings are painted at ~300px inside an 88x104 stamp.
-                .interpolation(.high)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-        } else {
-            Image(systemName: stamp.fallbackSymbol)
-                .font(.system(size: 26, weight: .semibold))
-                .foregroundStyle(ink)
-        }
+        Image(systemName: stamp.fallbackSymbol)
+            .font(.system(size: 26, weight: .semibold))
+            .foregroundStyle(ink)
     }
 }
 

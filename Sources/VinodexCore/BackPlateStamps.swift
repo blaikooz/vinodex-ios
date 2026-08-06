@@ -115,6 +115,41 @@ public enum StampCatalog {
             fallbackSymbol: "graduationcap.fill",
             denomination: "50¢"
         ),
+        // **The two completions (0.8.6, C6), and their stems are not `stamp1`
+        // and `stamp2`.** The item names those two assets, and they are taken:
+        // `art/icons/stamps/stamp1.png` and `stamp2.png` arrived in the 0.8.4
+        // drop and 0.8.5's F1 wired them as `BackPlateDecal.decalOne` and
+        // `.decalTwo` — the two loose franked stamps printed on the plate. They
+        // are drawn, imported, bundled and on screen. Claiming the names here
+        // would have replaced two shipped decals with two undrawn badges and
+        // left `import-stamp-art.py` mapping one source file onto two meanings.
+        //
+        // So the *names* move and the drawings stay: these take stems of their
+        // own, spelled for what they are like the six above them, and the art is
+        // a genuine gap rather than a collision. `ArtPipelineRosterTests`'
+        // `undrawnStampStems` is where that gap is named, two-way, so the day
+        // somebody draws `allgrapes.png` the test fails until the row is removed.
+        //
+        // Denominations continue the climb: these are the two hardest stamps in
+        // the series, so they are the two dearest.
+        BackPlateStamp(
+            id: "allGrapes",
+            title: "ALL GRAPES",
+            info: "Every grape in the catalog, tried. There is nothing left on the vine; go outside.",
+            colorHex: "#8F3366",
+            artStem: "stamp-all-grapes",
+            fallbackSymbol: "circle.grid.3x3.fill",
+            denomination: "75¢"
+        ),
+        BackPlateStamp(
+            id: "allStyles",
+            title: "ALL STYLES",
+            info: "Every style in the catalog, tried. Still, sparkling, fortified and everything between.",
+            colorHex: "#3F6E33",
+            artStem: "stamp-all-styles",
+            fallbackSymbol: "wineglass.fill",
+            denomination: "$1"
+        ),
     ]
 
     /// The stamp for one badge id, or nil for an id the series does not know.

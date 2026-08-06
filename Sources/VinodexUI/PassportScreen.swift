@@ -15,7 +15,15 @@ public struct PassportScreen: View {
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
-    public init() {}
+    /// Opens the stamp collection (0.8.6, C3). Optional, and the button is
+    /// withheld rather than dead when it is nil — the same rule the chassis
+    /// lamps follow, and what keeps `PassportScreen()` a valid call for the demo
+    /// reel and for previews.
+    private let onStampCollection: (() -> Void)?
+
+    public init(onStampCollection: (() -> Void)? = nil) {
+        self.onStampCollection = onStampCollection
+    }
 
     /// The unlock queue (0.7.1, D2) and the one being shown.
     @State private var unlockQueue: [BackPlateStamp] = []
@@ -86,28 +94,62 @@ public struct PassportScreen: View {
                 VStack(alignment: .leading, spacing: 18) {
                     rankCard(passport)
 
+                    // **STAMPS first (0.8.6, C2).** It was last, under four
+                    // sections of counters, which put the one part of this page
+                    // that is a *collection* below everything that merely
+                    // measures — and put it off the bottom of the screen on
+                    // first open. The order now reads rank, what you have earned,
+                    // then what you have counted.
+                    section("STAMPS") {
+                        VStack(spacing: 10) {
+                            LazyVGrid(columns: columns, spacing: 8) {
+                                ForEach(passport.badges) { badge in
+                                    badgeTile(badge)
+                                }
+                            }
+                            stampsButton(passport)
+                        }
+                    }
+
                     section("TASTINGS") {
                         LazyVGrid(columns: columns, spacing: 8) {
+                            // **The drawn marquee glyphs (0.8.6, C5).** These
+                            // four tiles carried the SF Symbols the marquee's own
+                            // `marqueeSymbol` table names, which was right when
+                            // there was nothing else; 0.8.4's A drew a dot-matrix
+                            // face for every one of them. `DexChromeGlyph` falls
+                            // back to the same symbol when a stem misses, so the
+                            // pair passed here is the picture and its stand-in
+                            // rather than a replacement.
+                            //
+                            // COUNTRIES takes `marquee-countryscan` — the country
+                            // page's own face — because that is what the row
+                            // counts. It is not `EntryCategory`, which has no
+                            // countries case; the other three are.
                             statTile(
-                                symbol: "circle.grid.3x3.fill",
+                                art: EntryCategory.grapes.marqueeArt,
+                                symbol: EntryCategory.grapes.marqueeSymbol,
                                 tint: Color(dexHex: "#a855f7"),
                                 value: "\(passport.triedGrapes)/\(passport.totalGrapes)",
                                 label: "GRAPES"
                             )
                             statTile(
-                                symbol: "wineglass.fill",
+                                art: EntryCategory.styles.marqueeArt,
+                                symbol: EntryCategory.styles.marqueeSymbol,
                                 tint: Color(dexHex: "#f97316"),
                                 value: "\(passport.triedStyles)/\(passport.totalStyles)",
                                 label: "STYLES"
                             )
                             statTile(
+                                art: DexRoute.country(name: "").marqueeArt,
                                 symbol: "flag.fill",
                                 tint: Dex.yellow,
                                 value: "\(passport.countries)",
                                 label: "COUNTRIES"
                             )
                             statTile(
-                                symbol: "map.fill",
+                                art: EntryCategory.continents.marqueeArt,
+                                symbol: EntryCategory.continents.marqueeSymbol,
                                 tint: Dex.blue,
                                 value: "\(passport.continents.count)/6",
                                 label: "CONTINENTS"
@@ -147,14 +189,6 @@ public struct PassportScreen: View {
 
                     section("ACTIVITY") {
                         activityGraph(passport.activity)
-                    }
-
-                    section("STAMPS") {
-                        LazyVGrid(columns: columns, spacing: 8) {
-                            ForEach(passport.badges) { badge in
-                                badgeTile(badge)
-                            }
-                        }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -383,13 +417,75 @@ public struct PassportScreen: View {
         }
     }
 
+    /// The way into the collection (0.8.6, C3).
+    ///
+    /// Under the badge grid rather than beside the section heading: the grid says
+    /// *which* stamps are earned and this opens the page where they are objects
+    /// rather than ticks, so it reads as the end of the section rather than as a
+    /// second control competing with the eight tiles above it. Full width, in the
+    /// panel's own button idiom — the same well, edge and press the rank card's
+    /// share affordance uses.
+    @ViewBuilder
+    private func stampsButton(_ passport: Passport) -> some View {
+        if let onStampCollection {
+            let earned = passport.badges.filter(\.earned).count
+            Button {
+                Haptics.select()
+                onStampCollection()
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: DexRoute.stampCollection.marqueeSymbol)
+                        .font(.system(size: 16, weight: .semibold))
+                    Text("STAMP COLLECTION")
+                        .font(DexFont.retro(12))
+                        .tracking(1)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                    Spacer(minLength: 0)
+                    Text("\(earned)/\(passport.badges.count)")
+                        .font(DexFont.mono(15))
+                }
+                .foregroundStyle(lcd.accent)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 11)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(RoundedRectangle(cornerRadius: 6).fill(lcd.buttonWell))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6).strokeBorder(lcd.accent, lineWidth: 2)
+                )
+            }
+            .buttonStyle(DexPressStyle(scale: 0.97))
+            .accessibilityLabel("Stamp collection, \(earned) of \(passport.badges.count) earned")
+        }
+    }
+
     /// The DATA panel's stat tile, at passport duty.
-    private func statTile(symbol: String, tint: Color, value: String, label: String) -> some View {
+    ///
+    /// `art` is the drawn marquee face (0.8.6, C5) and `symbol` the stand-in
+    /// `DexChromeGlyph` prints when the stem misses — the pair every drawn-art
+    /// surface in this app is called with.
+    private func statTile(
+        art: String?,
+        symbol: String,
+        tint: Color,
+        value: String,
+        label: String
+    ) -> some View {
         HStack(spacing: 10) {
-            Image(systemName: symbol)
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(tint)
-                .frame(width: 26)
+            // `art ?? ""` because `DexChromeGlyph` takes a stem rather than an
+            // optional: an empty stem resolves in no directory, which is exactly
+            // the fallback a nil art wants, and it keeps the nil-handling in one
+            // expression rather than in a second initialiser. `smoothing` for the
+            // reason that flag exists — these are antialiased dots, not a grid.
+            DexChromeGlyph(
+                art ?? "",
+                symbol: symbol,
+                size: 22,
+                weight: .semibold,
+                tint: tint,
+                smoothing: true
+            )
+            .frame(width: 26)
             VStack(alignment: .leading, spacing: 3) {
                 Text(value)
                     .font(DexFont.retro(15))
@@ -513,6 +609,11 @@ public struct PassportScreen: View {
         case "regionComplete": "map.fill"
         case "streakWeek": DexGlyph.challenge
         case "sommelier": "graduationcap.fill"
+        // The two completions (0.8.6, C6), on the glyphs their categories wear
+        // on the marquee and on the menu — a completion badge says which shelf
+        // it emptied, so it takes that shelf's mark.
+        case "allGrapes": EntryCategory.grapes.marqueeSymbol
+        case "allStyles": EntryCategory.styles.marqueeSymbol
         default: "seal.fill"
         }
     }
@@ -525,6 +626,11 @@ public struct PassportScreen: View {
         case "regionComplete": Dex.green500
         case "streakWeek": Color(dexHex: "#f97316")
         case "sommelier": Color(dexHex: "#a855f7")
+        // Their stamps' own inks (0.8.6, C6), so a badge tile and the stamp it
+        // issues are the same colour — which is true of none of the six above,
+        // and is the small thing worth getting right on the two being added.
+        case "allGrapes": Color(dexHex: "#8F3366")
+        case "allStyles": Color(dexHex: "#3F6E33")
         default: lcd.accent
         }
     }

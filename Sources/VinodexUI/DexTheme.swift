@@ -1363,6 +1363,45 @@ public enum DexFont {
         CGFloat(TypeScale.resolve(nominal: Double(nominal), step: TextScale.current))
     }
 
+    /// The display face's advance width, as a fraction of the point size
+    /// (0.8.6, D1).
+    ///
+    /// Both branches of `retro` are monospaced, so one character's advance is
+    /// every character's and a label's width is a multiplication rather than a
+    /// layout pass. **Measured rather than assumed** because the two faces do
+    /// not agree — Press Start 2P advances a full em where the `.monospaced`
+    /// system fallback advances about six tenths of one — so a constant would
+    /// have been right for whichever face happened to be registered on the day
+    /// it was written, and wrong, invisibly, on a device where registration
+    /// failed. Computed once; a face's registration cannot change at runtime.
+    public static let retroAdvanceRatio: CGFloat = {
+        let probe: CGFloat = 100
+        let font = retroAvailable
+            ? UIFont(name: names.retro, size: probe)
+            : UIFont.monospacedSystemFont(ofSize: probe, weight: .bold)
+        guard let font else { return 1 }
+        let width = ("M" as NSString).size(withAttributes: [.font: font]).width
+        return width > 0 ? width / probe : 1
+    }()
+
+    /// The display face at an exact point size, with `TextScale` deliberately
+    /// **not** applied (0.8.6, D1).
+    ///
+    /// For legends cut into moulded parts, where the surface cannot grow with
+    /// the setting. `DexMetrics.bandPillLabel`'s own note has said this since
+    /// 0.8.5 — "a legend that grew with SETTINGS > TEXT SIZE would push itself
+    /// off a cap whose height does not move" — while the call site went through
+    /// `retro`, which scales; the label then absorbed the difference in
+    /// `minimumScaleFactor`, and *that* is what made two lamps side by side
+    /// render their words at two different sizes. This is the missing half of
+    /// that argument, not a new exemption: everything reachable by a text-size
+    /// setting still goes through `retro`.
+    public static func retroFixed(_ pt: CGFloat) -> Font {
+        retroAvailable
+            ? .custom(names.retro, fixedSize: pt)
+            : .system(size: pt, weight: .bold, design: .monospaced)
+    }
+
     /// Pixel display face — titles, category labels, chips.
     ///
     /// `fixedSize:`, not `size:`, and that one token is half of AUDIT H11.

@@ -49,14 +49,22 @@ struct StampUnlockedPrompt: View {
                     .tracking(2)
                     .foregroundStyle(ink)
 
-                BackPlateStampView(stamp: stamp)
+                // **Its own size, not the plate's** (0.8.6, C1). C1 shrinks
+                // `BackPlateStampView`'s default to 72x66 because six stamps
+                // scattered on the back of a device should be small; this is one
+                // stamp being handed to you, and it is the only thing on the
+                // card. So the size is passed rather than inherited, at the
+                // drawn stamps' own 1.1 aspect rather than the retired 88x104,
+                // which was a portrait box sized for a title the art carries
+                // itself.
+                BackPlateStampView(stamp: stamp, width: 132, height: 120)
                     .rotationEffect(.degrees(landed ? -7 : 14))
                     .scaleEffect(landed ? 1 : 2.1)
                     .opacity(landed ? 1 : 0)
                     .shadow(color: ink.opacity(landed ? 0.5 : 0), radius: 14)
                     // Sized to the resting stamp so the oversized first frame
                     // does not push the card open and then let it collapse.
-                    .frame(width: 88, height: 104)
+                    .frame(width: 132, height: 120)
 
                 Text(stamp.title)
                     .font(DexFont.retro(14))

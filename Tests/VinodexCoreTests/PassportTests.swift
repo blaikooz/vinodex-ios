@@ -25,7 +25,8 @@ struct PassportTests {
         #expect(passport.triedStyles == 0)
         #expect(passport.countries == 0)
         #expect(passport.continents.isEmpty)
-        #expect(passport.badges.count == 6)
+        // 8 since 0.8.6 (C6): TRIED ALL GRAPES and TRIED ALL STYLES.
+        #expect(passport.badges.count == 8)
         #expect(passport.badges.allSatisfy { !$0.earned })
     }
 

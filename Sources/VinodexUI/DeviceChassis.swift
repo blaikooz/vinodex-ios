@@ -1596,14 +1596,32 @@ public struct DeviceChassis<Content: View>: View {
                     // resolves all five and is still what `MarqueeLampChooser`
                     // draws, so the faces have a surface and this one has a
                     // word.
-                    Text(pin.displayName)
-                        .font(DexFont.retro(DexMetrics.bandPillLabel))
-                        .tracking(0.5)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.45)
-                        .foregroundStyle(ink)
-                        .engraved(light: 0.42, dark: 0.30)
-                        .padding(.horizontal, 7)
+                    //
+                    // **One size for all five, fitted to the longest (0.8.6,
+                    // D1).** A2 left this on `DexFont.retro` plus a scale factor
+                    // down to 0.45, and the two halves of that combined into the
+                    // defect the item names: `retro` multiplies by `TextScale`,
+                    // which `bandPillLabel`'s own note says this legend must not
+                    // do, and `minimumScaleFactor` then fits *each label
+                    // separately* — so DATA rendered at the full size, SETTINGS a
+                    // little under it and CUSTOMIZE well under, and the two lamps
+                    // sitting side by side wore two different types.
+                    //
+                    // The fix is to fit once, to the widest word in the
+                    // vocabulary, and give every lamp that answer. Rendering at a
+                    // fixed size is the whole reason `retroFixed` exists; the
+                    // fitting is `lampLabelSize`, which measures the face rather
+                    // than assuming a ratio.
+                    GeometryReader { geo in
+                        Text(pin.displayName)
+                            .font(DexFont.retroFixed(LampLegend.size(in: geo.size.width)))
+                            .tracking(LampLegend.tracking)
+                            .lineLimit(1)
+                            .foregroundStyle(ink)
+                            .engraved(light: 0.42, dark: 0.30)
+                            .frame(width: geo.size.width, height: geo.size.height)
+                    }
+                    .padding(.horizontal, LampLegend.inset)
                 }
                 // No bead (0.7.2, A4) — it would sit on the legend.
                 .recessedLamp(
@@ -1646,6 +1664,49 @@ public struct DeviceChassis<Content: View>: View {
         // action or the whole of A1's customisation is unreachable with the
         // screen reader on — the same provision the drawer's chips carried.
         .accessibilityAction(named: "Reassign") { lampBeingAssigned = slot }
+    }
+}
+
+// MARK: - The lamp legend's one size (0.8.6, D1)
+
+/// The arithmetic behind the two marquee lamps' engraved words.
+///
+/// **A file-private enum rather than statics on `DeviceChassis`**, which is
+/// generic over its content and so cannot hold a static stored property at all —
+/// Swift refuses them on generic types, and the two constants and the measured
+/// longest word all want to be computed once rather than per lamp per frame.
+private enum LampLegend {
+    /// The gap between a legend and the ends of its cap.
+    static let inset: CGFloat = 7
+    /// Letter-spacing, in points. Absolute rather than proportional, which is
+    /// why it is subtracted from the budget below rather than divided into it.
+    static let tracking: CGFloat = 0.5
+
+    /// The widest legend any lamp can ever carry.
+    ///
+    /// Taken from `MarqueePin.allCases` rather than written down as "CUSTOMIZE",
+    /// so a sixth pin — or a `SettingsSection` renamed to something longer —
+    /// moves the fitting instead of silently overflowing a cap. Counted in
+    /// characters because the face is monospaced; see `DexFont.retroAdvanceRatio`.
+    static let longest: Int = MarqueePin.allCases.map(\.displayName.count).max() ?? 9
+
+    /// The size every lamp's legend renders at, on a cap this wide.
+    ///
+    /// The width of `n` monospaced characters at point size `s` is
+    /// `n × (advance × s + tracking)`, so the largest `s` that fits a budget `w`
+    /// is `(w / n − tracking) / advance`. Capped at `bandPillLabel`, which is
+    /// what the type would be if the longest word did not need the help — on a
+    /// wide enough device the cap applies and nothing is shrunk at all.
+    ///
+    /// The result is deliberately *not* per-label: it is computed for `longest`
+    /// and handed to whatever word this lamp happens to be showing, which is the
+    /// whole item. `lineLimit(1)` still guards the arithmetic, and it truncates
+    /// rather than shrinking — a visible failure rather than the silent
+    /// per-label refitting that was the bug.
+    static func size(in width: CGFloat) -> CGFloat {
+        let n = CGFloat(max(longest, 1))
+        let fitted = (max(width, 1) / n - tracking) / DexFont.retroAdvanceRatio
+        return max(min(DexMetrics.bandPillLabel, fitted), 6)
     }
 }
 

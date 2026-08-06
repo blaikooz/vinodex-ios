@@ -104,10 +104,21 @@ final class ChassisCapLoader {
     /// cached per stem, and independent of ink -- so a session that tries on
     /// twelve skins measures each cap once.
     private struct CapShape {
-        /// Centre and radius of the moulded part, in pixels.
+        /// Centre of the moulded part and its median radius, in pixels.
+        ///
+        /// **A scale, not a boundary, since 0.8.6 (B1).** Through 0.8.5 this
+        /// circle was both: the mask normalised its radii by it *and* every
+        /// pixel outside it was cut away. It is only the first now — see
+        /// `coverage` for what replaced the second — so the percentile that
+        /// makes it a good scale is the median rather than the 10th, which was
+        /// chosen to trim the hand-drawn wobble off a clip.
         let cx: CGFloat
         let cy: CGFloat
         let radius: CGFloat
+        /// How much of each pixel belongs to the cap: 0 outside the moulded
+        /// part, 1 in its interior, ramping over `edgeFeather` at its edge
+        /// (0.8.6, B1).
+        let coverage: [CGFloat]
         /// One flag per pixel: this is the incised symbol and takes the glyph
         /// ink rather than the body's.
         let isGlyph: [Bool]
@@ -125,15 +136,31 @@ final class ChassisCapLoader {
     /// A dark region is the symbol only if it reaches this far *in*.
     ///
     /// See `capShape` for why the test is on a connected region rather than on
-    /// a pixel. The rim, the bevel and the knurl are all annuli: none of them
-    /// has a pixel within half a radius of the centre. Every symbol in the drop
-    /// does -- the deepest-starting one is the cog's ring at 0.30.
-    private static let glyphInnerReach: CGFloat = 0.50
+    /// a pixel. The rim, the bevel and the knurl are annuli, and every symbol
+    /// in the drop covers the middle of the face.
+    ///
+    /// **0.50 through 0.8.5, and it was measured off a misidentified region
+    /// (0.8.6, B1).** That pass recorded "the deepest-starting non-symbol is the
+    /// knurl at 0.61" and "the cog's own ring is the widest symbol at 0.73". The
+    /// second is not the cog. On `settings` the *facets along the bottom of the
+    /// dial* are joined into one 2,491-pixel region by the moulded shading they
+    /// sit in, and that region runs 0.30 to 0.735 — it is what 0.8.5 measured,
+    /// admitted at both ends, and then re-inked as the symbol. Which is the grey
+    /// band across the lower teeth of the gear in the reference photographs: the
+    /// glyph ink is a near-white on most liveries, and a near-white has no
+    /// saturation to give, so a pixel wrongly claimed by it comes out at its own
+    /// value in grey and reads as art that was never recoloured at all.
+    ///
+    /// Re-measured over the four: the symbols reach 0.002, 0.038, 0.043 and
+    /// 0.107, and the nearest thing that is not one bottoms out at 0.297. The
+    /// bound goes between them rather than beside one of them.
+    private static let glyphInnerReach: CGFloat = 0.20
 
-    /// And it may not reach this far out. The cog's ring is the widest symbol
-    /// at 0.73; the nearest non-symbol region begins at 0.61 but always runs
-    /// past 0.80, which is what makes the pair of bounds separate them when
-    /// neither bound does alone.
+    /// And it may not reach this far out. Kept from 0.8.5 as a second guard:
+    /// with the inner reach corrected it excludes nothing on this drop, and it
+    /// is what would stop a knurl that merged into a symbol from carrying the
+    /// symbol's ink out to the rim. The symbols run to 0.578-0.624, so it is not
+    /// close to any of them.
     private static let glyphOuterLimit: CGFloat = 0.78
 
     /// The width, in source pixels, of the alpha ramp at the cap's edge.
@@ -173,16 +200,28 @@ final class ChassisCapLoader {
     /// visibly rather than silently for one drawn in some other style: its
     /// symbol stays the body colour, which is where all four sat in 0.8.3.
     ///
-    /// **The circle is fitted too, and 0.8.4 fitted it to the wrong thing.**
-    /// That pass clipped at `min(w, h) / 2` about the *image* centre. The
-    /// drawings are not centred in their files -- the mask's centroid sits
-    /// (5, 3.5) off it -- and the cap's radius is ~122 where the inscribed
-    /// circle is 127. So the clip lay outside the drawing over most of the
-    /// perimeter, doing nothing, and cut a one-pixel crescent off the far side,
-    /// doing the wrong thing. Here the centre is the alpha centroid and the
-    /// radius is the 10th percentile of the silhouette's own radius over 360
-    /// rays -- a percentile rather than the mean, so the hand-drawn wobble is
-    /// trimmed *off* rather than split down the middle.
+    /// **And the clip is not a circle any more (0.8.6, B1).** 0.8.4 clipped at
+    /// `min(w, h) / 2` about the image centre; 0.8.5 refitted that to the alpha
+    /// centroid and the 10th percentile of 360 rays, which was a better circle
+    /// and still the wrong *kind* of boundary. Two things are wrong with fitting
+    /// one at all. The cap the fit was validated on is a disc and the cog is a
+    /// knurled dial, so the one sprite whose silhouette the measurement does not
+    /// describe is the one the item is about. And a low percentile is by
+    /// construction inside the drawing: measured, it cut away 1,387 opaque
+    /// pixels of `settings`, 2,912 of `home`, and left the cel outline under two
+    /// pixels thick on 25 of 360 rays around the cog and gone entirely on 154
+    /// around the house. An outline that survives on some rays and not others is
+    /// a ragged dark rim, which is the fringe the photographs show.
+    ///
+    /// The clip the drawing already carries is its own alpha. So the moulded
+    /// part is the **largest connected opaque component** and the coverage ramps
+    /// with each pixel's distance to the outside of it -- shape-correct for a
+    /// disc, for a gear, and for whatever a fifth cap is drawn as, with no
+    /// constant to re-fit. What the disc was there to remove in 0.8.4, the 301
+    /// to 630 stray pixels the painted cast shadow left outside each cap, this
+    /// removes by the same rule: after 0.8.5 border-flooded that shadow at
+    /// import, the strays are down to **159 pixels on `home` and one or two on
+    /// the other three**, and they are speckle detached from the part.
     private func capShape(stem: String, data: [UInt8], w: Int, h: Int) -> CapShape {
         if let hit = shapes[stem] { return hit }
         let fitted = fitCap(data: data, w: w, h: h)
@@ -193,21 +232,79 @@ final class ChassisCapLoader {
     /// The measurement itself. Separate from the cache so the cache is one line
     /// and the geometry is the rest of the file.
     private func fitCap(data: [UInt8], w: Int, h: Int) -> CapShape {
-        var sx = 0, sy = 0, n = 0
-        for y in 0..<h {
-            for x in 0..<w where data[(y * w + x) * 4 + 3] > 0 {
-                sx += x; sy += y; n += 1
+        let count = w * h
+        let blank = CapShape(cx: CGFloat(w) / 2, cy: CGFloat(h) / 2,
+                             radius: CGFloat(min(w, h)) / 2,
+                             coverage: [CGFloat](repeating: 0, count: count),
+                             isGlyph: [Bool](repeating: false, count: count))
+
+        // The moulded part: the largest connected run of opaque pixels. Flood
+        // fills throughout this method use an explicit stack rather than
+        // recursion — a cap is a quarter of a million pixels and one region can
+        // be most of them.
+        var opaque = [Bool](repeating: false, count: count)
+        for p in 0..<count where data[p * 4 + 3] > 0 { opaque[p] = true }
+        var seen = [Bool](repeating: false, count: count)
+        var part = [Bool](repeating: false, count: count)
+        var stack: [Int] = []
+        var region: [Int] = []
+        var bestSize = 0
+        for start in 0..<count where opaque[start] && !seen[start] {
+            stack.removeAll(keepingCapacity: true)
+            region.removeAll(keepingCapacity: true)
+            stack.append(start)
+            seen[start] = true
+            while let p = stack.popLast() {
+                region.append(p)
+                let x = p % w, y = p / w
+                if x > 0, opaque[p - 1], !seen[p - 1] { seen[p - 1] = true; stack.append(p - 1) }
+                if x < w - 1, opaque[p + 1], !seen[p + 1] { seen[p + 1] = true; stack.append(p + 1) }
+                if y > 0, opaque[p - w], !seen[p - w] { seen[p - w] = true; stack.append(p - w) }
+                if y < h - 1, opaque[p + w], !seen[p + w] { seen[p + w] = true; stack.append(p + w) }
+            }
+            if region.count > bestSize {
+                bestSize = region.count
+                part = [Bool](repeating: false, count: count)
+                for p in region { part[p] = true }
             }
         }
-        guard n > 0 else {
-            return CapShape(cx: CGFloat(w) / 2, cy: CGFloat(h) / 2,
-                            radius: CGFloat(min(w, h)) / 2,
-                            isGlyph: [Bool](repeating: false, count: w * h))
+        guard bestSize > 0 else { return blank }
+
+        // Coverage: a breadth-first distance from the outside of the part, in
+        // pixels, converted to an alpha ramp `edgeFeather` wide. Four-connected
+        // is exact enough for a ramp a pixel and a half across.
+        var dist = [Int32](repeating: .max, count: count)
+        var queue: [Int] = []
+        queue.reserveCapacity(bestSize / 4)
+        for p in 0..<count where part[p] {
+            let x = p % w, y = p / w
+            let edge = x == 0 || x == w - 1 || y == 0 || y == h - 1
+                || !part[p - 1] || !part[p + 1] || !part[p - w] || !part[p + w]
+            if edge { dist[p] = 1; queue.append(p) }
         }
+        var head = 0
+        while head < queue.count {
+            let p = queue[head]; head += 1
+            let x = p % w, y = p / w
+            let next = dist[p] + 1
+            if x > 0, part[p - 1], dist[p - 1] > next { dist[p - 1] = next; queue.append(p - 1) }
+            if x < w - 1, part[p + 1], dist[p + 1] > next { dist[p + 1] = next; queue.append(p + 1) }
+            if y > 0, part[p - w], dist[p - w] > next { dist[p - w] = next; queue.append(p - w) }
+            if y < h - 1, part[p + w], dist[p + w] > next { dist[p + w] = next; queue.append(p + w) }
+        }
+        var coverage = [CGFloat](repeating: 0, count: count)
+        for p in 0..<count where part[p] {
+            coverage[p] = min(CGFloat(dist[p]) / Self.edgeFeather, 1)
+        }
+
+        var sx = 0, sy = 0, n = 0
+        for p in 0..<count where part[p] { sx += p % w; sy += p / w; n += 1 }
         let cx = CGFloat(sx) / CGFloat(n)
         let cy = CGFloat(sy) / CGFloat(n)
 
-        // The silhouette's outermost opaque radius, per ray.
+        // The part's outermost radius per ray, taken at the median: the mask
+        // below divides by this, so what is wanted is the cap's size, not a
+        // boundary anything is cut at.
         let rays = 360
         var radii = [CGFloat](repeating: 0, count: rays)
         let limit = CGFloat(max(w, h))
@@ -219,30 +316,24 @@ final class ChassisCapLoader {
             while r < limit {
                 let x = Int((cx + r * dx).rounded())
                 let y = Int((cy + r * dy).rounded())
-                if x >= 0, x < w, y >= 0, y < h, data[(y * w + x) * 4 + 3] > 0 { last = r }
+                if x >= 0, x < w, y >= 0, y < h, part[y * w + x] { last = r }
                 r += 0.5
             }
             radii[i] = last
         }
         radii.sort()
-        let radius = max(radii[rays / 10], 1)
+        let radius = max(radii[rays / 2], 1)
 
-        // Dark regions, grouped. An explicit stack rather than recursion: a cap
-        // is a quarter of a million pixels and one region can be most of them.
-        var dark = [Bool](repeating: false, count: w * h)
-        for y in 0..<h {
-            for x in 0..<w {
-                let i = (y * w + x) * 4
-                guard data[i + 3] > 0 else { continue }
-                let v = Self.value(r: data[i], g: data[i + 1], b: data[i + 2], a: data[i + 3])
-                dark[y * w + x] = v > 0.06 && v < Self.glyphValue
-            }
+        // Dark regions, grouped.
+        var dark = [Bool](repeating: false, count: count)
+        for p in 0..<count where part[p] {
+            let i = p * 4
+            let v = Self.value(r: data[i], g: data[i + 1], b: data[i + 2], a: data[i + 3])
+            dark[p] = v > 0.06 && v < Self.glyphValue
         }
-        var isGlyph = [Bool](repeating: false, count: w * h)
-        var visited = [Bool](repeating: false, count: w * h)
-        var stack: [Int] = []
-        var region: [Int] = []
-        for start in 0..<(w * h) where dark[start] && !visited[start] {
+        var isGlyph = [Bool](repeating: false, count: count)
+        var visited = [Bool](repeating: false, count: count)
+        for start in 0..<count where dark[start] && !visited[start] {
             stack.removeAll(keepingCapacity: true)
             region.removeAll(keepingCapacity: true)
             stack.append(start)
@@ -265,7 +356,7 @@ final class ChassisCapLoader {
             for p in region { isGlyph[p] = true }
         }
 
-        return CapShape(cx: cx, cy: cy, radius: radius, isGlyph: isGlyph)
+        return CapShape(cx: cx, cy: cy, radius: radius, coverage: coverage, isGlyph: isGlyph)
     }
 
     private static func value(r: UInt8, g: UInt8, b: UInt8, a: UInt8) -> CGFloat {
@@ -279,9 +370,9 @@ final class ChassisCapLoader {
     /// and saturation. See the type's note for why this and not a template or a
     /// multiply, and `glyphRadius` / `glyphValue` for how the two are told apart.
     ///
-    /// **And the disc clip, refitted and feathered (0.8.5, E2).** See
-    /// `capShape` for what the 0.8.4 clip was measuring and why it was neither
-    /// where nor how large the cap is. What is left of that pass's reasoning is
+    /// **And the clip, which is the silhouette's own since 0.8.6 (B1).** See
+    /// `capShape` for the three fits this has had and why a circle was the wrong
+    /// kind of boundary for a knurled dial. What survives from 0.8.4's pass is
     /// the part that was right and is kept verbatim: the clip belongs *here*
     /// rather than in a `.clipShape(Circle())` at the call site, because the
     /// view lays the sprite out with `.aspectRatio(.fit)` inside a square frame,
@@ -291,11 +382,10 @@ final class ChassisCapLoader {
     /// it. In pixel space the two are the same by construction, and this runs
     /// once per (stem, ink) pair rather than every frame.
     ///
-    /// The alpha now *ramps* over the last `edgeFeather` pixels instead of
-    /// stopping dead. The sprites are strictly binary -- there is not one
+    /// The alpha *ramps* over the last `edgeFeather` pixels instead of stopping
+    /// dead (0.8.5, E2). The sprites are strictly binary -- there is not one
     /// partially transparent pixel in the drop -- so every edge in this pipeline
-    /// was aliased from the file all the way to the screen, and a hard clip only
-    /// added a second aliased boundary that did not follow the first.
+    /// was aliased from the file all the way to the screen.
     private func reink(_ image: UIImage, stem: String, to hex: String, glyph glyphHex: String?) -> UIImage? {
         guard let cg = image.cgImage else { return nil }
         let w = cg.width, h = cg.height
@@ -313,7 +403,6 @@ final class ChassisCapLoader {
         ctx.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
 
         let shape = capShape(stem: stem, data: data, w: w, h: h)
-        let inner = max(shape.radius - Self.edgeFeather, 0)
 
         for y in 0..<h {
             for x in 0..<w {
@@ -322,16 +411,13 @@ final class ChassisCapLoader {
                 let a = data[i + 3]
                 guard a > 0 else { continue }
 
-                let dx = CGFloat(x) - shape.cx
-                let dy = CGFloat(y) - shape.cy
-                let d = (dx * dx + dy * dy).squareRoot()
-                // Nothing outside the moulded part reaches the chassis, and the
-                // last pixel and a half of it fades rather than stops.
-                if d >= shape.radius {
+                // Nothing detached from the moulded part reaches the chassis,
+                // and the last pixel and a half of it fades rather than stops.
+                let coverage = shape.coverage[p]
+                if coverage <= 0 {
                     data[i] = 0; data[i + 1] = 0; data[i + 2] = 0; data[i + 3] = 0
                     continue
                 }
-                let coverage = d <= inner ? 1 : (shape.radius - d) / Self.edgeFeather
 
                 let (_, _, value) = hsv(r: data[i], g: data[i + 1], b: data[i + 2], a: a)
                 // A near-black pixel has no colour to restate: the cel outline is

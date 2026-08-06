@@ -222,6 +222,26 @@ public struct Passport: Sendable, Equatable {
             triedGrapeKeys.contains(TextNormalize.label($0.common.name))
         }
 
+        // **The two completions (0.8.6, C6).** ALL NOBLE is the same shape
+        // narrowed to one rarity, so these are written the same way and for the
+        // same reason: the tried set is folded through `TextNormalize.label`
+        // because the shelf stores ids while the catalog is compared by name
+        // everywhere else in this function, and a grape whose entry has been
+        // retired must not be able to make the set uncompletable.
+        //
+        // Guarded on non-empty for the reason `regionComplete` is: an empty
+        // requirement is not an achievement, and a database that failed to load
+        // would otherwise hand out both of the hardest badges on first launch.
+        let allGrapesTried = !allGrapes.isEmpty && allGrapes.allSatisfy {
+            triedGrapeKeys.contains(TextNormalize.label($0.common.name))
+        }
+        // Styles by *id*, not by name. They are entries rather than a typed
+        // model, so there is no `common.name` to fold and the shelf's own ids are
+        // the exact keys — which is the stronger comparison where it is available.
+        let triedStyleIDs = Set(styles.map(\.id))
+        let allStyleIDs = Set(db.entries(in: .styles).map(\.id))
+        let allStylesTried = !allStyleIDs.isEmpty && allStyleIDs.isSubset(of: triedStyleIDs)
+
         let triedCount = grapes.count + styles.count
         let badges: [Badge] = [
             Badge(
@@ -253,6 +273,22 @@ public struct Passport: Sendable, Equatable {
                 id: "sommelier", title: "SOMMELIER",
                 blurb: "The quiz's top tier, unlocked.",
                 earned: highestTier == .sommelier
+            ),
+            // **Appended, not inserted (0.8.6, C6).** The array's order is the
+            // order the passport grid draws, the order `StampCatalog.all` mirrors
+            // and the order the unlock queue announces in; the two hardest badges
+            // in the set belong at the end of all three, and appending is also
+            // what keeps `PassportProgress`'s seeded ids stable for anyone
+            // holding a 0.8.5 passport.
+            Badge(
+                id: "allGrapes", title: "TRIED ALL GRAPES",
+                blurb: "Every grape in the catalog, tried.",
+                earned: allGrapesTried
+            ),
+            Badge(
+                id: "allStyles", title: "TRIED ALL STYLES",
+                blurb: "Every style in the catalog, tried.",
+                earned: allStylesTried
             ),
         ]
 

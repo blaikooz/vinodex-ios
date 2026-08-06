@@ -42,6 +42,22 @@ Target stems are the `artStem` field on each record in `StampCatalog`
 every one of them begins `stamp-`. Nothing derives them from a badge's title,
 so a badge can be renamed without orphaning its art.
 
+## Wanted — the two completions (0.8.6, C6)
+
+- `allgrapes.png` → `stamp-all-grapes` — TRIED ALL GRAPES. Every grape in the
+  catalog. A bare vine, or a cellar with nothing left in it.
+- `allstyles.png` → `stamp-all-styles` — TRIED ALL STYLES. Every style. A still
+  glass, a sparkling one and a fortified one in a row.
+
+Both are wired, both fall back to their SF Symbol stand-ins, and
+`ArtPipelineRosterTests.undrawnStampStems` names them so the gap is a test row
+rather than a note. Drop the files in, add the two rows to `STEM_FOR`, delete
+the two rows from that set, and run `npm run icons`.
+
+**They are not `stamp1` and `stamp2`.** The 8.6 spec asked for those names and
+they were already spent — see below. Naming them for the picture is the rule
+this directory has followed since 0.8.5 anyway.
+
 ## The four back-plate decals
 
 Not badges — printed on the device rather than earned, and drawn whole rather
@@ -51,7 +67,12 @@ than as an illustration inside a code-drawn frame. Their roster is
 - `barcode.png` → `stamp-barcode` — replaces the `Canvas`-drawn barcode label
 - `pricesticker.png` → `stamp-price-tag` — replaces the code-drawn ripped tag
 - `stamp1.png` → `stamp-decal-one`, `stamp2.png` → `stamp-decal-two` — two loose
-  postage stamps the plate is franked with
+  postage stamps the plate is franked with. **These two names are taken**: the
+  8.6 spec asked for them again, for the two new badges above, and they have
+  been drawn, imported, bundled and on the plate since 0.8.5. A verbatim reuse
+  would have replaced two shipped decals with two undrawn badges and left this
+  file mapping one source PNG onto two meanings. The badges took stems of their
+  own instead.
 
 The first two keep their code-drawn versions as fallbacks (`PlateDecal` in
 `DeviceBackPlate.swift`), so a lookup that misses shows the old sticker rather

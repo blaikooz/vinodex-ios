@@ -557,7 +557,18 @@ public struct DeviceBackPlate: View {
 
     /// `BackPlateStampView`'s own frame, which the slot arithmetic has to know
     /// to place an origin and to clamp a drag. Matches its defaults.
-    private static let stampSize = CGSize(width: 88, height: 104)
+    ///
+    /// **72x66, down from 88x104 (0.8.6, C1).** Both numbers move and the
+    /// *shape* moves with them, which is the part worth writing down. 88x104 was
+    /// set by 0.7.0's E1 to hold a two-line title in a pixel face at its
+    /// accessibility floor — the stamp was portrait because the words were. The
+    /// drawn stamps carry no words: they are complete franked objects, six of
+    /// them between 1.09 and 1.22 wide for their height, so a portrait box left
+    /// a fifth of the frame empty above and below every one of them. This is
+    /// their own aspect, smaller in both axes, and the code-drawn fallback keeps
+    /// E1's geometry rather than being crushed back into the bug it fixed — see
+    /// `BackPlateStampView`.
+    private static let stampSize = CGSize(width: 72, height: 66)
 
     private struct StampSlot {
         /// Positive = from the leading edge, negative = from the trailing.
@@ -600,7 +611,18 @@ public struct DeviceBackPlate: View {
         "allNoble": StampSlot(dx: -34, dy: -168, rotation: -7),
         "regionComplete": StampSlot(dx: 46, dy: -230, rotation: 10),
         "streakWeek": StampSlot(dx: -128, dy: -84, rotation: -15),
-        "sommelier": StampSlot(dx: 132, dy: 150, rotation: 5),
+        // Outboard by 44pt since 0.8.6 (A1): the artifact below it is 112 wide
+        // where the die-cut was 70, so 132 put this stamp's leading edge inside
+        // the picture's trailing one.
+        "sommelier": StampSlot(dx: 176, dy: 150, rotation: 5),
+        // The two completions (0.8.6, C6), in the two runs of plate the six
+        // above and the leavings left free: outboard of the enlarged artifact on
+        // the trailing side, and below it on the leading one. Authored by
+        // measurement against the other eight objects at 393x760 rather than by
+        // eye, and worth a look on a taller device, where the negative-offset
+        // slots move down and these two do not.
+        "allGrapes": StampSlot(dx: -46, dy: 300, rotation: -9),
+        "allStyles": StampSlot(dx: 30, dy: 372, rotation: 11),
     ]
 
     /// This skin's plate material (0.7.0, F1) — see `ChassisSkin.backPlate`.

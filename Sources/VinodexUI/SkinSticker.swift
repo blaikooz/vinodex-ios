@@ -1,5 +1,6 @@
 #if canImport(SwiftUI) && canImport(UIKit)
 import SwiftUI
+import UIKit
 import VinodexCore
 
 // MARK: - The die-cut silhouette
@@ -111,9 +112,34 @@ private struct PeelFlap: Shape {
 /// stamps' `art/icons/stamps/` -> `Resources/StampArt` path is now entirely
 /// separate, so an illustrator working one set cannot land a file in the
 /// other's namespace by mistake.
+/// **The drawn artifact is the sticker, and the frame around it is gone
+/// (0.8.6, A1).** Everything above describes an object this view *draws*: a
+/// die-cut margin, a printed face, a lifted corner, a gloss sweep. The drop that
+/// landed in 0.8.5 draws all four itself. Every one of the twenty files is a
+/// complete die-cut sticker — pale uncut border, peeled corner, scuffs and
+/// creases painted in — so mounting one inside this frame put a sticker on a
+/// sticker, at 50% of a 70pt box, which is a 35pt picture on a plate whose
+/// barcode is 122pt across.
+///
+/// So the two paths separate. **Art**: rendered directly on the plate at its own
+/// aspect, `stickerWidth` across, with nothing under it and nothing over it but
+/// the shadow that says it is stuck on. **No art**: the frame above, unchanged,
+/// because a bare SF Symbol lying on brushed aluminium is not a leaving — and
+/// because one of the twenty-one shells still has no file.
+///
+/// What is *not* conditional is `WornOverlay` and the drop shadow: those are the
+/// plate's own material and the object's contact with it, and they belong on
+/// both. `allowsHitTesting(false)` likewise.
 struct SkinStickerView: View {
     let skin: ChassisSkin
+    /// The die-cut frame's box, on the fallback path only.
     var size: CGFloat = 70
+    /// The drawn artifact's width, sized against the plate's other leavings
+    /// rather than against the frame it used to sit in (0.8.6, A1): the barcode
+    /// is 122 and the price tag 96, and the item asks for "comparable". Height
+    /// follows the file, which is portrait on thirteen of the twenty and roughly
+    /// square on the rest.
+    var stickerWidth: CGFloat = 112
 
     /// The vinyl's die-cut margin — the uncut border every sticker carries
     /// around its artwork. Warmer and lighter than the stamps' `#E9E6DA`
@@ -127,9 +153,50 @@ struct SkinStickerView: View {
     private var foldFraction: CGFloat { 0.22 }
 
     var body: some View {
+        Group {
+            if let art = PixelArtLoader.shared.image(skin.stickerStem) {
+                drawn(art)
+            } else {
+                framed
+            }
+        }
+        .modifier(WornOverlay(seed: WornOverlay.seed(skin.rawValue)))
+        .shadow(color: .black.opacity(0.28), radius: 1.5, y: 1.5)
+        // **Inert, and it says so itself** (0.7.8, A1). The call site on
+        // `DeviceBackPlate` also declines hits, as every other leaving on the
+        // plate does — this is the belt to that pair of braces, because the
+        // stamps' whole drag mechanism sits one `ZStack` layer above and the
+        // 0.7.2 A2 failure was a hit region reaching somewhere nobody expected
+        // it to. A decoration that can only ever refuse a touch cannot be the
+        // cause of the next one of those. There is deliberately no
+        // `contentShape` anywhere in this file.
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    /// The artifact as drawn (0.8.6, A1) — the whole file, at its own aspect.
+    private func drawn(_ art: UIImage) -> some View {
+        Image(uiImage: art)
+            // **Smooth since 0.8.5 (F1).** `StickerArt` was empty from the day
+            // 0.7.8 created it, so `.interpolation(.none)` was the house default
+            // applied to a code path with nothing to apply it to. The drop is
+            // painted illustration at 255-296px wide — 35,000 to 75,000 distinct
+            // colours before quantisation — and even at the size A1 gives it
+            // that is well over a 2x downscale. The house rule is about art
+            // drawn *on a grid*, where a filter smears an authored decision;
+            // nothing here was drawn on a grid. Same exception, same argument,
+            // as `DexChromeGlyph`'s marquee dots (0.8.4) and the footer caps.
+            .interpolation(.high)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: stickerWidth)
+    }
+
+    /// The code-drawn die-cut, for a shell whose artifact nobody has drawn.
+    private var framed: some View {
         let shape = DieCutStickerShape(foldFraction: foldFraction)
 
-        ZStack {
+        return ZStack {
             // The die-cut margin, then the printed face inset inside it. Two
             // fills rather than a stroke: a sticker's border is uncut vinyl of
             // the same sheet, so it has the shape's own dog-ear rather than a
@@ -172,42 +239,16 @@ struct SkinStickerView: View {
             .clipShape(shape)
             .allowsHitTesting(false)
         )
-        .modifier(WornOverlay(seed: WornOverlay.seed(skin.rawValue)))
-        .shadow(color: .black.opacity(0.28), radius: 1.5, y: 1.5)
-        // **Inert, and it says so itself** (0.7.8, A1). The call site on
-        // `DeviceBackPlate` also declines hits, as every other leaving on the
-        // plate does — this is the belt to that pair of braces, because the
-        // stamps' whole drag mechanism sits one `ZStack` layer above and the
-        // 0.7.2 A2 failure was a hit region reaching somewhere nobody expected
-        // it to. A decoration that can only ever refuse a touch cannot be the
-        // cause of the next one of those. There is deliberately no
-        // `contentShape` anywhere in this file.
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
     }
 
+    /// What goes inside the code-drawn die-cut.
+    ///
+    /// **The art branch left this property in 0.8.6 (A1)** and became the whole
+    /// view — see `drawn`. What is here is only ever reached by a shell with no
+    /// file, so it is the emblem or the stand-in symbol and nothing else.
     @ViewBuilder
     private var glyph: some View {
-        if let art = PixelArtLoader.shared.image(skin.stickerStem) {
-            Image(uiImage: art)
-                // **Smooth since 0.8.5 (F1), and this branch had never once
-                // run before it.** `StickerArt` was empty from the day 0.7.8
-                // created it, so `.interpolation(.none)` was the house default
-                // applied to a code path with nothing to apply it to. The drop
-                // that arrived is painted illustration at 255-296px — 35,000 to
-                // 75,000 distinct colours before quantisation — shown inside a
-                // 70pt die-cut, which is roughly a fifth scale. Nearest-
-                // neighbour there keeps one pixel in five and discards the
-                // other four, and what it discards is most of the drawing.
-                //
-                // The house rule is about art drawn *on a grid*, where a filter
-                // smears an authored decision. Nothing here was drawn on a
-                // grid. Same exception, same argument, as `DexChromeGlyph`'s
-                // marquee dots (0.8.4) and the footer caps (0.8.5, E2).
-                .interpolation(.high)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-        } else if skin.drawnMark != nil {
+        if skin.drawnMark != nil {
             // The drawn mark outranks the SF-Symbol stand-in (0.6.7, K1) — it
             // *is* this skin's emblem, not a placeholder for one.
             SkinEmblem(skin: skin, size: size * 0.36, tint: ink)

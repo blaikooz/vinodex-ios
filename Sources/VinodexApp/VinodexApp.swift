@@ -505,7 +505,10 @@ struct RootView: View {
             )
 
         case .passport:
-            PassportScreen()
+            PassportScreen(onStampCollection: { push(.stampCollection) })
+
+        case .stampCollection:
+            StampCollectionScreen()
 
         case .globeSearch:
             // Continents and regions between them carry country and state

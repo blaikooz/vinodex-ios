@@ -306,6 +306,14 @@ public enum DexRoute: Hashable, Sendable {
     case dailyChallenge
     /// The tried shelf's stats page — see `Passport`.
     case passport
+    /// The stamp series, read rather than counted (0.8.6, C3).
+    ///
+    /// The passport's STAMPS grid says which badges are earned; this is where
+    /// the stamps themselves are, at a size their drawings are worth, with the
+    /// story each one carries. Separate from `.passport` because the passport is
+    /// a page of numbers and this is a page of objects — the same split the back
+    /// plate makes between its counters and its collection.
+    case stampCollection
     /// The guided tour. Opt-in from the settings grid, never shown unasked.
     case walkthrough
     /// The installed firmware and every release before it (0.7.3, A3). Reads
@@ -433,6 +441,11 @@ public enum DexRoute: Hashable, Sendable {
             "DAILY CHALLENGE"
         case .passport:
             "PASSPORT"
+        // Not "STAMP COLLECTION": the marquee fits fourteen characters before it
+        // scales, and this is sixteen — the same arithmetic FIRMWARE and WORKSHOP
+        // below are the result of. The screen's own heading says COLLECTION.
+        case .stampCollection:
+            "STAMPS"
         case .walkthrough:
             "WALKTHROUGH"
         // Not "FIRMWARE HISTORY": the marquee fits fourteen characters before it
@@ -570,6 +583,12 @@ public enum DexRoute: Hashable, Sendable {
             DexGlyph.challenge
         case .passport:
             "book.closed.fill"
+        // A stamp, and the one glyph in SF Symbols that is literally one. It has
+        // to differ from `.passport`'s book because `glyphsAreDistinct` says so
+        // and because the two pages are a page apart. SF Symbols 1 — well under
+        // the iOS 17 floor.
+        case .stampCollection:
+            "seal.fill"
         case .walkthrough:
             "figure.walk"
         // Both match the System-panel rows that open them (K2, rule 1). A chip
@@ -693,6 +712,12 @@ public enum DexRoute: Hashable, Sendable {
         case .cheatConsole: "marquee-cheatcodes"
         case .deviceWorkshop: "marquee-deviceworkshop"
         case .passport: "marquee-passport"
+        // The passport's own picture, shared on purpose (0.8.6, C3). Nobody drew
+        // a stamp for the marquee, and the rule this table runs under is that art
+        // may repeat where a *subject* repeats — the collection is the passport's
+        // stamps, which is as close as any two pages in the app get. Only
+        // `marqueeSymbol` has to be distinct, and it is.
+        case .stampCollection: "marquee-passport"
         // The magnifier the round button that opens it already wears — drawn as
         // the master search rather than as a bare glass.
         case .chipFilter: "marquee-mastersearch"

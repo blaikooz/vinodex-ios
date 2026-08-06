@@ -55,6 +55,8 @@ struct ChromeTests {
             // 0.8.4 (C1). Added in the same edit as the case, which is the
             // discipline 0.7.3a's two missing routes were the argument for.
             .pack(id: "does-not-exist"),
+            // 0.8.6 (C3), same edit as the case, same discipline.
+            .stampCollection,
         ]
         routes += EntryCategory.allCases.map { .list(category: $0, filter: nil) }
         routes += SettingsSection.allCases.map { .settingsSection($0) }
@@ -188,7 +190,9 @@ struct ChromeTests {
         // which is a harder mistake to make than forgetting the list entirely —
         // and `DexRoute` carries associated values, so it cannot be
         // `CaseIterable` and there is nothing to derive from.
-        #expect(Self.allRoutes.count == 33, "add the new route to `allRoutes`")
+        // 34 since 0.8.6 (C3), which adds `.stampCollection` — the stamp series
+        // as a page of objects rather than as the passport's tick list.
+        #expect(Self.allRoutes.count == 34, "add the new route to `allRoutes`")
     }
 
     // MARK: The shared glyph constants (0.7.0 D1, 0.7.1 E1/A2)
