@@ -732,4 +732,22 @@ enum Diagnostics {
         }
     }
 }
+
+// **Xcode only, and it has to be gated.** `#Preview` expands through the
+// `PreviewsMacros` compiler plugin, which ships in Xcode's toolchain and not in
+// the Linux swiftly toolchain that `xtool dev build` runs on — there, it is a
+// hard error ("plugin for module 'PreviewsMacros' not found"), not a skipped
+// macro. This arrived with the Aug 5 Xcode/simulator branch, where it built
+// correctly; it only became a break when that branch met the xtool line.
+//
+// A flag rather than a deletion, because the preview is genuinely useful on the
+// toolchain that can expand it: build with `-D XCODE_PREVIEWS` (Xcode: Build
+// Settings ▸ Other Swift Flags) and it comes back. There is no source-level
+// condition that detects the *host* toolchain, which is why this is opt-in
+// rather than automatic.
+#if XCODE_PREVIEWS
+#Preview {
+    RootView()
+}
+#endif
 #endif

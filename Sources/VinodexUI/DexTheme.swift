@@ -1269,7 +1269,7 @@ public enum DexFont {
     public static let registration: Registration = {
         var out = Registration()
         for name in [names.retro, names.mono] {
-            guard let url = DexResources.url(named: name, ext: "ttf", subdirectory: "Resources/Fonts") else {
+            guard let url = DexResources.url(named: name, ext: "ttf", subdirectory: "Fonts") else {
                 out.failed.append(name + " (not in bundle)")
                 continue
             }

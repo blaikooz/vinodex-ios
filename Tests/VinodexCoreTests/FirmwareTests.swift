@@ -32,9 +32,12 @@ struct FirmwareTests {
     @Test("AppVersion reports the catalog's version")
     func appVersionFollowsTheCatalog() {
         #expect(AppVersion.fallback == catalog.version)
-        // `current` goes through `resolve`, and on Linux the bundle declares
-        // nothing, so this is the path every xtool build takes as well.
-        #expect(AppVersion.current == catalog.version)
+        // Exercise `resolve` on the nil-bundle path directly rather than through
+        // `current`. That is the path every xtool build takes (Linux carries no
+        // Info.plist), and it is the only stable one under test: an Xcode test
+        // host leaks its own CFBundleShortVersionString into `Bundle.main`, so
+        // `current` would read the runner's version, not the app's.
+        #expect(AppVersion.resolve(bundled: nil) == catalog.version)
     }
 
     /// The head of the list is the current build, and it has notes — the panel

@@ -27,6 +27,18 @@ import Testing
 /// real and the clean `xtool` build is what covers it: a directory the loader
 /// never searches yields a nil image, and nil images are silent.
 ///
+/// **That last paragraph was wrong, and a sixth place has since appeared.** The
+/// gap was not that `VinodexUI` is uncompilable here — this suite never compiles
+/// anything it checks. It reads shell and Python off disk through `#filePath`,
+/// and `EntryVisual.swift` is a text file by the same measure. The clean `xtool`
+/// build does *not* cover it either: an unsearched directory yields nil, nil is
+/// silent, and the build is green. The `Bundle layout` section below closes it,
+/// and closes the sixth place with it — `Package.swift` now names each bundled
+/// directory by hand (a codesign requirement, see there), which turns a list
+/// that used to maintain itself into one more hand-kept roster of exactly the
+/// kind this suite was written for. It had already drifted by three entries on
+/// arrival.
+///
 /// **Why a Swift test for shell and Python.** It is the only gate that runs on every
 /// push. `npm run icons` needs network access and `rsvg-convert`; `icons:verify`
 /// needs Pillow; neither runs in CI. `swift test` does, on every branch. The same
@@ -54,6 +66,9 @@ struct ArtPipelineRosterTests {
     /// Enough of a parser for the shapes involved — a Python tuple of literals, a
     /// `DIRS = (...)` line, an `output_dir(ROOT, "X")` call — and it needs no regex
     /// engine, which keeps the test identical on Linux and Darwin.
+    ///
+    /// It does **not** understand comments, and callers that read a heavily
+    /// annotated list must account for that — see `loaderSearchPath`.
     private static func quoted(_ text: String) -> [String] {
         text.split(separator: "\"", omittingEmptySubsequences: false)
             .enumerated()
@@ -192,6 +207,194 @@ struct ArtPipelineRosterTests {
             dirs.subtracting(declared).isEmpty,
             "verify-art.py's DIRS names directories no importer writes: \(dirs.subtracting(declared).sorted())"
         )
+    }
+
+    // MARK: - The bundle layout (merged from the Aug 5 Xcode/codesign branch)
+
+    /// Directories that exist under `Sources/VinodexUI/Resources/`.
+    private static var bundledDirectoriesOnDisk: Set<String> {
+        get throws {
+            var url = repoRoot
+            for component in ["Sources", "VinodexUI", "Resources"] {
+                url.appendPathComponent(component)
+            }
+            let names = try FileManager.default.contentsOfDirectory(
+                at: url,
+                includingPropertiesForKeys: [.isDirectoryKey]
+            )
+            return Set(
+                names
+                    .filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true }
+                    .map(\.lastPathComponent)
+            )
+        }
+    }
+
+    /// `Package.swift`'s `VinodexUI` resource list, less the `Resources/` prefix
+    /// each `.copy` path carries.
+    ///
+    /// Sliced from the `VinodexUI` target rather than the whole file, because
+    /// `VinodexCore`'s list above it names eight JSON *files* by the same
+    /// `.copy("Resources/...")` spelling and would otherwise be counted in.
+    ///
+    /// **Two slices, not one**, and the reason is worth writing down because the
+    /// one-slice version parsed to an empty set and the empty set is what a
+    /// silently-passing gate looks like. `slice(_:from:to:)` stops at the first
+    /// closing character, and the first `]` after `name: "VinodexUI"` closes
+    /// `dependencies: ["VinodexCore"]`, not the resource list. So this narrows to
+    /// the target first and to `resources: [` second. The `!declared.isEmpty`
+    /// assertion below is what caught it, and it is there for exactly this — the
+    /// same reason `rostersParse` exists one section up.
+    private static var packageResourceDirectories: Set<String> {
+        get throws {
+            let text = try read("Package.swift")
+            // Everything from the target's name onward — no closing character,
+            // because the first `)` after it belongs to a `.copy(...)` call
+            // inside the very list being looked for.
+            guard let name = text.range(of: "name: \"VinodexUI\"") else { return [] }
+            let target = String(text[name.upperBound...])
+            guard let list = slice(target, from: "resources: [", to: "]") else { return [] }
+            return Set(
+                quoted(list)
+                    .filter { $0.hasPrefix("Resources/") }
+                    .map { String($0.dropFirst("Resources/".count)) }
+            )
+        }
+    }
+
+    /// `PixelArtLoader.subdirectories`, as written in `EntryVisual.swift`.
+    ///
+    /// Parsed off disk for the reason every roster above is: the loader lives in
+    /// `VinodexUI`, which no Linux gate can compile, and this suite's own header
+    /// records that gap as real and uncovered. It is a text file either way.
+    private static var loaderSearchPath: [String] {
+        get throws {
+            let text = try read("Sources", "VinodexUI", "EntryVisual.swift")
+            guard let list = slice(text, from: "private static let subdirectories = [", to: "]") else { return [] }
+            // **Keep only what can be a directory name.** `quoted` has no idea
+            // what a comment is, and this is the most heavily annotated list in
+            // the package — a paragraph per entry explaining why the order is
+            // what it is. Prose about strings tends to quote them, and one of
+            // those notes reads `so "first hit wins" stays a statement about
+            // ordering`, which parses as a tenth search path. A directory name
+            // here is a single bare word, so requiring that is enough to tell
+            // the entries from the prose, and it fails loudly rather than
+            // silently if a real entry ever stops looking like one.
+            return quoted(list).filter { name in
+                !name.isEmpty && name.allSatisfy { $0.isLetter || $0.isNumber }
+            }
+        }
+    }
+
+    /// Declared on the loader's search path but not yet drawn, so no directory
+    /// exists and `.copy` would fail the build if `Package.swift` named one.
+    ///
+    /// A named exemption rather than a silent subtraction: the day either set is
+    /// authored, the importer creates the directory, the equality below starts
+    /// failing, and the fix is to add the `.copy` *and* delete the name from
+    /// here. Both halves, which is what an exemption list is for.
+    private static let unauthoredArtDirectories: Set<String> = ["StampArt", "StickerArt"]
+
+    /// **Every bundled directory is declared, and nothing is declared twice over.**
+    ///
+    /// `Package.swift` used to say `.copy("Resources")` and pick up a new
+    /// directory the moment an importer created one. The Aug 5 codesign fix had
+    /// to stop doing that — a shallow iOS bundle whose root holds a folder named
+    /// `Resources` is rejected by codesign — so the children are now listed by
+    /// hand, and a hand-kept list of directories is precisely what this suite
+    /// exists to police for scripts.
+    ///
+    /// It was already wrong when it arrived, through nobody's fault: `ButtonArt`
+    /// (0.8.1), `FooterArt` and `CartridgeArt` (0.8.2) were being written on a
+    /// batch branch while the list was written on another. A bundle missing them
+    /// compiles, signs, installs and runs — and every drawn face, footer cap and
+    /// cartridge silently falls back, because `PixelArtLoader` and `IconLoader`
+    /// both return nil rather than throwing.
+    @Test("every bundled resource directory is copied by Package.swift")
+    func bundledArtDirectoriesAreRegistered() throws {
+        let onDisk = try Self.bundledDirectoriesOnDisk
+        let declared = try Self.packageResourceDirectories
+        #expect(onDisk.count >= 10, "found only \(onDisk.sorted()) — did the slice parse?")
+        #expect(!declared.isEmpty, "could not parse Package.swift's VinodexUI resource list")
+        #expect(
+            declared == onDisk,
+            """
+            Package.swift and Sources/VinodexUI/Resources/ disagree — \
+            on disk but not bundled: \(onDisk.subtracting(declared).sorted()), \
+            bundled but absent (this is a build error): \(declared.subtracting(onDisk).sorted())
+            """
+        )
+    }
+
+    /// **The loader searches only directories that will be in the bundle.**
+    ///
+    /// The other half of the same fault. A stem is looked up by walking this list,
+    /// so a directory that ships but is never searched is art nobody can reach,
+    /// and a directory that is searched but never ships is a lookup that always
+    /// misses. Both are invisible at runtime.
+    @Test("PixelArtLoader searches only directories that ship")
+    func loaderSearchPathIsBundled() throws {
+        let search = try Self.loaderSearchPath
+        let declared = try Self.packageResourceDirectories
+        #expect(search.count >= 8, "could not parse PixelArtLoader.subdirectories")
+
+        for entry in search {
+            // The prefix is the bug this whole merge was about: under the new
+            // bundle layout `Resources/ButtonArt` resolves to nothing, and
+            // `DexResources.url`'s fallback is a *root*-level lookup that cannot
+            // find a nested file either. Nil, in silence, forever.
+            #expect(
+                !entry.hasPrefix("Resources/"),
+                "PixelArtLoader searches '\(entry)' — the bundle has no Resources/ wrapper any more"
+            )
+            #expect(
+                declared.contains(entry) || Self.unauthoredArtDirectories.contains(entry),
+                "PixelArtLoader searches '\(entry)', which Package.swift does not bundle"
+            )
+        }
+
+        // And the exemptions must still be exemptions: a directory that has been
+        // drawn since this list was written is one Package.swift now has to name.
+        let onDisk = try Self.bundledDirectoriesOnDisk
+        for name in Self.unauthoredArtDirectories {
+            #expect(
+                !onDisk.contains(name),
+                "\(name) now exists — bundle it in Package.swift and drop it from unauthoredArtDirectories"
+            )
+        }
+    }
+
+    /// **No stale `Resources/` prefix anywhere in the UI module.**
+    ///
+    /// The general form, swept textually, because the two tests above only see
+    /// the lists — a one-off `DexResources.url(..., subdirectory: "Resources/X")`
+    /// in a view body is reachable by neither. There were eleven such call sites
+    /// before the merge and every one of them had to move.
+    ///
+    /// `VinodexCore` is deliberately not swept: its three JSON lookups still ask
+    /// for `subdirectory: "Resources"` first and fall through to a bare
+    /// `Bundle.module.url(forResource:withExtension:)`, which finds them because
+    /// under the new layout those files sit at the bundle *root*. The art cannot
+    /// use that trick — it is one level deeper — which is exactly why the fix had
+    /// to touch the UI module and not this one.
+    @Test("no VinodexUI lookup still asks for the Resources wrapper")
+    func noPrefixedSubdirectoryLookupsSurvive() throws {
+        let dir = Self.repoRoot
+            .appendingPathComponent("Sources")
+            .appendingPathComponent("VinodexUI")
+        let files = try FileManager.default
+            .contentsOfDirectory(atPath: dir.path)
+            .filter { $0.hasSuffix(".swift") }
+        #expect(files.count >= 20, "found only \(files.count) sources under Sources/VinodexUI")
+
+        for file in files.sorted() {
+            let text = try String(contentsOf: dir.appendingPathComponent(file), encoding: .utf8)
+            let lines: [Substring] = text.split(separator: Character("\n"), omittingEmptySubsequences: false)
+            for (offset, line) in lines.enumerated()
+            where line.contains("subdirectory: \"Resources") && !line.contains("///") {
+                Issue.record("\(file):\(offset + 1) still asks for the Resources/ wrapper: \(line.trimmingCharacters(in: .whitespaces))")
+            }
+        }
     }
 
     /// The per-importer convenience scripts. `npm run icons` chains all of them;

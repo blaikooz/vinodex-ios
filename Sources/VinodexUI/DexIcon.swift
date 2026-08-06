@@ -52,7 +52,7 @@ public final class IconLoader {
     private func load(slug: String) -> UIImage? {
         for scale in stride(from: preferredScale, through: 1, by: -1) {
             let name = scale == 1 ? slug : "\(slug)@\(scale)x"
-            guard let url = DexResources.url(named: name, ext: "png", subdirectory: "Resources/Icons"),
+            guard let url = DexResources.url(named: name, ext: "png", subdirectory: "Icons"),
                   let data = try? Data(contentsOf: url),
                   let image = UIImage(data: data, scale: CGFloat(scale))
             else { continue }

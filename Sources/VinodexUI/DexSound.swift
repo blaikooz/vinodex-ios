@@ -128,7 +128,7 @@ private final class SoundEngine {
         try? AVAudioSession.sharedInstance().setActive(true)
 
         for kind in Kind.allCases {
-            guard let url = DexResources.url(named: kind.rawValue, ext: "mp3", subdirectory: "Resources/SFX"),
+            guard let url = DexResources.url(named: kind.rawValue, ext: "mp3", subdirectory: "SFX"),
                   let file = try? AVAudioFile(forReading: url),
                   let buffer = AVAudioPCMBuffer(
                     pcmFormat: file.processingFormat,

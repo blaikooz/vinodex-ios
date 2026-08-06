@@ -324,18 +324,38 @@ public final class EntryVisualCache {
 public final class PixelArtLoader {
     public static let shared = PixelArtLoader()
 
+    /// **Bare directory names, not `Resources/...` paths** (merged from the
+    /// Aug 5 Xcode/codesign branch).
+    ///
+    /// `Package.swift` used to ship `.copy("Resources")`, which put a directory
+    /// literally named `Resources` at the root of the bundle — and a shallow
+    /// iOS bundle shaped that way makes codesign refuse it as "bundle format
+    /// unrecognized", because it can no longer tell a flat bundle from a deep
+    /// macOS-style one. The fix copies each *child* individually, so the
+    /// wrapper is gone from the bundle and every `Bundle.module` subdirectory
+    /// lookup drops the prefix to match. The source tree is untouched; the
+    /// importers still write to `Sources/VinodexUI/Resources/<Dir>`.
+    ///
+    /// **This is a silent failure if it is got wrong**, which is why it is
+    /// worth a note rather than a shrug: `DexResources.url` falls back to a
+    /// root-level lookup when the subdirectory misses, and a nested file is not
+    /// at the root, so a stale `Resources/ButtonArt` returns nil and every
+    /// drawn face degrades to the SF Symbol it replaced. Nothing throws and
+    /// nothing logs. `ArtPipelineRosterTests.bundledArtDirectoriesAreRegistered`
+    /// holds this list, `Package.swift` and the directories on disk equal so a
+    /// tenth entry cannot land in two of the three.
     private static let subdirectories = [
-        "Resources/FlavorArt",
-        "Resources/GrapeArt",
-        "Resources/StyleArt",
+        "FlavorArt",
+        "GrapeArt",
+        "StyleArt",
         // Taxonomy + outline art (v0.5.7): classes, subclasses, colour, body,
         // climate, soils, style classes and country outlines, reached through
         // `art:` icon ids — see `DexIcon`.
-        "Resources/ClassArt",
+        "ClassArt",
         // Back-plate Passport stamp glyphs (0.6.4, F2), imported from
         // art/icons/stamps/ — the directory ships empty-of-art until the
         // glyphs are authored; a miss falls through to the SF stand-ins.
-        "Resources/StampArt",
+        "StampArt",
         // Per-skin back-plate sticker glyphs (0.7.8, A1), imported from
         // art/icons/stickers/. Its own directory since the sticker stopped
         // being a stamp — the two families are commissioned separately and a
@@ -346,7 +366,7 @@ public final class PixelArtLoader {
         // stems are disjoint by construction (`stamp-*` from `StampCatalog`,
         // `sticker-*` from `ChassisSkin.stickerStem`), so "first hit wins"
         // stays a statement about ordering rather than about precedence.
-        "Resources/StickerArt",
+        "StickerArt",
         // Drawn button faces (0.8.1, J2), imported from art/icons/buttons/.
         //
         // **Last on purpose, and the first entry that could actually collide.**
@@ -361,7 +381,7 @@ public final class PixelArtLoader {
         // keeps winning and the button falls back to its stand-in, which is the
         // recoverable direction — the reverse would silently swap a portrait
         // for a piece of chrome.
-        "Resources/ButtonArt",
+        "ButtonArt",
         // Drawn footer caps (0.8.2), imported from art/icons/footerbuttons/,
         // and drawn cartridges (0.8.2), from art/icons/cartridges/.
         //
@@ -373,8 +393,8 @@ public final class PixelArtLoader {
         // by construction, exactly as `stamp-` and `sticker-` are. It is the
         // convention to follow for the next directory — a second bare-word set
         // would mean two entries whose safety is a fact about today's catalog.
-        "Resources/FooterArt",
-        "Resources/CartridgeArt",
+        "FooterArt",
+        "CartridgeArt",
     ]
 
     private var cache: [String: UIImage?] = [:]
@@ -415,7 +435,7 @@ public final class FlagLoader {
         if let hit = cache[country] { return hit }
 
         let loaded: UIImage? = WineDatabase.shared.icons.flagSlug(for: country)
-            .flatMap { DexResources.url(named: $0, ext: "png", subdirectory: "Resources/Flags") }
+            .flatMap { DexResources.url(named: $0, ext: "png", subdirectory: "Flags") }
             .flatMap { UIImage(contentsOfFile: $0.path) }
 
         cache[country] = loaded

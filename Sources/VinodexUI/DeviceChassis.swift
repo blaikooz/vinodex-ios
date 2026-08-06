@@ -1963,7 +1963,7 @@ final class ChassisPatternLoader {
 
     func image(_ name: String) -> UIImage? {
         if let hit = cache[name] { return hit }
-        let loaded = DexResources.url(named: name, ext: "png", subdirectory: "Resources/Chassis")
+        let loaded = DexResources.url(named: name, ext: "png", subdirectory: "Chassis")
             .flatMap { UIImage(contentsOfFile: $0.path) }
         cache[name] = loaded
         return loaded
@@ -2985,7 +2985,7 @@ public struct LogoMark: View {
     public init() {}
 
     public var body: some View {
-        if let url = DexResources.url(named: "vinodex-logo", ext: "png", subdirectory: "Resources/Logo"),
+        if let url = DexResources.url(named: "vinodex-logo", ext: "png", subdirectory: "Logo"),
            let image = UIImage(contentsOfFile: url.path) {
             Image(uiImage: image)
                 .resizable()

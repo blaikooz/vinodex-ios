@@ -140,6 +140,18 @@ const PREVIOUS: FirmwareRelease[] = [
     // The batch's own headline was the orb, but the orb is a bead on the chassis
     // and WHAT'S THAT...? is a tool that stopped being a reveal and became a game
     // you can lose. That is the one a player notices.
+    //
+    // **There was a second 0.7.9, and it is not in this list on purpose.** A
+    // parallel session on `testing` (Aug 5) shipped an entry called XCODE BUILD
+    // under this same number: an Xcode/simulator build target plus the codesign
+    // fix that stopped bundling `Resources` as a folder. Its *code* is merged --
+    // `Package.swift`, every `Bundle.module` subdirectory lookup, and the
+    // `FirmwareTests` bundle-leak fix all came across intact. The changelog
+    // entry did not, by the user's ruling, for the reason this file states in
+    // its own header: it holds what the device is willing to say about itself,
+    // and "resource folders are bundled one by one" is not a sentence a player
+    // has any use for. Two entries under one number would also have broken the
+    // generator's no-duplicates assertion, which is what surfaced the collision.
     headline: "NAME THAT WINE",
     notes: [
       "WHAT'S THAT...? is a guessing game now. Clues arrive one at a time and you name the wine.",
