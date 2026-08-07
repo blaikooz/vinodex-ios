@@ -840,7 +840,7 @@ private struct BiosVignette: View {
 /// The pixel "V", cream over a magenta drop shadow (B4).
 ///
 /// **The asset B4 names is not where B4 says it is any more.** The spec asks for
-/// `art/icons/dvd/`, which is the artist's master; 0.7.5's A5 established that
+/// `art/icons/chrome/logo/`, which is the artist's master; 0.7.5's A5 established that
 /// `Resources/Icons` is the wrong home for a hand-made asset — `rasterize-icons.sh`
 /// deletes any PNG there that the generated manifest does not list — so the mark
 /// ships in `Resources/Logo` as two masks split on luminance by

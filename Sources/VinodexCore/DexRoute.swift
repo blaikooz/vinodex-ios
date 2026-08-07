@@ -712,12 +712,14 @@ public enum DexRoute: Hashable, Sendable {
         case .cheatConsole: "marquee-cheatcodes"
         case .deviceWorkshop: "marquee-deviceworkshop"
         case .passport: "marquee-passport"
-        // The passport's own picture, shared on purpose (0.8.6, C3). Nobody drew
-        // a stamp for the marquee, and the rule this table runs under is that art
-        // may repeat where a *subject* repeats — the collection is the passport's
-        // stamps, which is as close as any two pages in the app get. Only
-        // `marqueeSymbol` has to be distinct, and it is.
-        case .stampCollection: "marquee-passport"
+        // **No longer the passport's (0.8.9a, A6).** C3 shared the picture on
+        // the grounds that nobody had drawn a stamp for the marquee and that
+        // art may repeat where a subject repeats. The first half stopped being
+        // true — the drop has a franked stamp in the dot-matrix register — and
+        // once it did, the second half stopped being a reason: a permitted
+        // repeat is not a preferred one, and the collection and the passport
+        // are two pages a user can be on.
+        case .stampCollection: "marquee-stamps"
         // The magnifier the round button that opens it already wears — drawn as
         // the master search rather than as a bare glass.
         case .chipFilter: "marquee-mastersearch"

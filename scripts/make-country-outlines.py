@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Draws the 30 country/state outline masters from authored lon/lat rings.
 
-`npm run outlines`. Writes `art/icons/countries/*.png`, which is the *source*
+`npm run outlines`. Writes `art/icons/entries/countries/*.png`, which is the *source*
 side of the pipeline -- `import-class-art.py` then converts those into the
 bundle's `ClassArt/outline-*.png`. Two steps rather than one on purpose: the
 masters are what an artist would hand-edit and what `icons:verify` regenerates
@@ -363,7 +363,7 @@ def main():
         sys.exit(1 if check_dots() else 0)
 
     # **The drawing half no longer has a default destination (0.8.4, F1).**
-    # It used to write straight into `art/icons/countries/`, which was correct
+    # It used to write straight into `art/icons/entries/countries/`, which was correct
     # while it was the master of that directory and is a footgun now that it is
     # not: one absent-minded `npm run outlines` would have replaced 46
     # hand-drawn coastlines with 30 ring approximations, and `save_stable` would
@@ -381,7 +381,7 @@ def main():
             "                       the 0.8.4 hand-drawn masters; see the module note)"
         )
     if "--out" not in sys.argv:
-        sys.exit("--draw needs --out DIR: this no longer writes art/icons/countries")
+        sys.exit("--draw needs --out DIR: this no longer writes art/icons/entries/countries")
     out_dir = sys.argv[sys.argv.index("--out") + 1]
 
     os.makedirs(out_dir, exist_ok=True)

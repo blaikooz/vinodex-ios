@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Import the Vinodex wordmark master into the two tinted layers the app ships.
 
-The master (``art/icons/<folder>/vinodex-dvd-icon.png``) is a 1024x1024 render
+The master (``art/icons/chrome/logo/vinodex-dvd-icon.png``) is a 1024x1024 render
 with a clean alpha channel: a white glyph face over a darker extruded edge, and
 nothing else -- the glow visible in an alpha-ignoring viewer sits entirely in
 pixels the alpha already discards.
@@ -45,7 +45,7 @@ REPO = Path(__file__).resolve().parent.parent
 # The master's folder name is an artist's filing convention and is not a name
 # this project uses for anything: no type, comment, string or shipped file
 # repeats it. The output below is the naming the app knows.
-MASTER = REPO / "art" / "icons" / "dvd" / "vinodex-dvd-icon.png"
+MASTER = REPO / "art" / "icons" / "chrome" / "logo" / "vinodex-dvd-icon.png"
 # Through `art_common.output_dir` rather than a literal path so `ART_OUT`
 # redirects it, which is what lets `scripts/verify-art.py` re-run this importer
 # into a temp tree instead of rewriting the working copy (0.7.5, A026). Every

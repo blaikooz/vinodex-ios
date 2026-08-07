@@ -61,7 +61,7 @@ PREFIX = "cartridge-"
 def source_dir():
     if len(sys.argv) > 1:
         return sys.argv[1]
-    return os.path.join(ROOT, "art", "icons", "cartridges")
+    return os.path.join(ROOT, "art", "icons", "chrome", "cartridges")
 
 
 def main():

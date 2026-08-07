@@ -244,7 +244,7 @@ def art_stems(manifest):
 
 
 def main():
-    src = resolve_source_dir(ROOT)
+    src = resolve_source_dir(ROOT, "entries")
     with open(MANIFEST, encoding="utf-8") as fh:
         stems = art_stems(json.load(fh))
     if not stems:

@@ -27,12 +27,15 @@ struct CartridgeArtTests {
             .deletingLastPathComponent()
     }
 
-    /// The stems on disk under `art/icons/cartridges/`, less the extension.
+    /// The stems on disk under `art/icons/chrome/cartridges/`, less the extension.
     private static var stemsOnDisk: Set<String> {
         get throws {
             let dir = repoRoot
                 .appendingPathComponent("art")
                 .appendingPathComponent("icons")
+                // Under `chrome/` since 0.8.9a (A1) — a cartridge is device
+                // furniture, not a picture of anything the catalog names.
+                .appendingPathComponent("chrome")
                 .appendingPathComponent("cartridges")
             let names = try FileManager.default.contentsOfDirectory(atPath: dir.path)
             return Set(
@@ -76,7 +79,7 @@ struct CartridgeArtTests {
     func stemsResolveToArt() throws {
         let onDisk = try Self.stemsOnDisk
         for (id, stem) in CartridgeArt.stems {
-            #expect(onDisk.contains(stem), "\(id) names cartridge art '\(stem)' that is not in art/icons/cartridges/")
+            #expect(onDisk.contains(stem), "\(id) names cartridge art '\(stem)' that is not in art/icons/chrome/cartridges/")
         }
     }
 
@@ -87,7 +90,7 @@ struct CartridgeArtTests {
     func artIsAllClaimed() throws {
         let mapped = Set(CartridgeArt.stems.values)
         for stem in try Self.stemsOnDisk {
-            #expect(mapped.contains(stem), "art/icons/cartridges/\(stem).png is drawn but nothing in the shop claims it")
+            #expect(mapped.contains(stem), "art/icons/chrome/cartridges/\(stem).png is drawn but nothing in the shop claims it")
         }
     }
 

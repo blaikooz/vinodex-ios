@@ -2801,7 +2801,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // sticker — the exact three costs HALLOWINE's rename was written up to
         // avoid. Checked rather than assumed: `"PET NAT"` appears nowhere in
         // `shared/`, the generated JSON or the art scripts. (The `petnat`
-        // hits in `icons.json` and `art/icons/styles/` are the *wine style*
+        // hits in `icons.json` and `art/icons/entries/styles/` are the *wine style*
         // Pétillant Naturel and have nothing to do with this skin.)
         case .petNat: "FIBERGLASS"
         case .waldglas: "WALDGLAS"

@@ -1428,7 +1428,15 @@ public struct SettingsSectionPanel: View {
         settingsSection("SOUNDS") {
             VStack(alignment: .leading, spacing: 10) {
                 settingRow(
-                    symbol: "speaker.wave.2.fill", art: "sounds",
+                    // **Two faces, not one (0.8.9a, A7).** Every other row
+                    // here has a single drawn face because every other row's
+                    // glyph names a *place*; this one names a state, and the
+                    // drop is the only one so far to deliver both halves of a
+                    // toggle. The SF symbol stays singular deliberately -- it
+                    // is the fallback, and a fallback that also branched would
+                    // be two ways to be wrong about the same pixel.
+                    symbol: "speaker.wave.2.fill",
+                    art: soundsOn ? UIGlyph.soundsOn.artStem : UIGlyph.soundsOff.artStem,
                     tint: soundsOn ? Dex.green : lcd.subtext,
                     title: "SOUNDS",
                     detail: soundsOn

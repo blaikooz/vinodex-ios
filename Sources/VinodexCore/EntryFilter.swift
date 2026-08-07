@@ -349,8 +349,24 @@ public enum EntryFilter: Sendable, Hashable {
     /// `.styleColor` and every reachable `.type` now take the magnifier with the
     /// rest. `.soil` remains the single undrawn name and the single filter kind
     /// nothing pushes as a route — the backlog has not grown and has not moved.
+    ///
+    /// **Ten of ten since 0.8.9a (A5), and the backlog is closed by a drawing
+    /// rather than by a redefinition.** The four-name shortfall B1 opened has
+    /// been shrinking the wrong way for two releases: C1 and 0.8.8's C1 between
+    /// them retired three of the names by making those filters stop being
+    /// scans, which is a real fix for those three and no progress at all on the
+    /// fourth. `soil` needed a rock and now has one — a vine rooted in a mound,
+    /// in the dot-matrix register, drawn for this surface.
+    ///
+    /// **And the chips stop borrowing.** They wore `marquee-mastersearch`
+    /// because it was the only magnifier on disk and their title reads FILTER
+    /// SEARCH; the drop has a magnifier with a funnel in it, so FILTER SEARCH
+    /// gets its own face and MASTER SEARCH keeps the plain glass it was drawn
+    /// as. `DexRoute.chipFilter` is deliberately *not* moved with them: that
+    /// route is the search screen itself, titled MASTER SEARCH, and the two
+    /// pictures now say which of the two you are looking at.
     public var marqueeArt: String? {
-        if chipOption != nil { return "marquee-mastersearch" }
+        if chipOption != nil { return "marquee-filtersearch" }
         switch self {
         // A continent's countries, drawn as a continent — which is the sector
         // this scan actually covers, and the same picture `.continent` wears.
@@ -361,8 +377,8 @@ public enum EntryFilter: Sendable, Hashable {
         // borrowed parent's: `.origin` narrows to one region's entries and the
         // title says so.
         case .origin: return "marquee-regions"
-        // Nobody drew a rock. See the note.
-        case .soil: return nil
+        // Somebody drew a rock (0.8.9a, A5). See the note.
+        case .soil: return "marquee-soilscan"
         // Not reached today: every value of these five answers `chipOption`, so
         // the early return above has already fired. (`.type` is the exception —
         // its body values have no chip and do reach the arm above.) Left spelled

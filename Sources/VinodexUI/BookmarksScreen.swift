@@ -511,9 +511,14 @@ public struct BookmarksScreen: View {
 
             if streak.current > 0 {
                 HStack(spacing: 6) {
-                    Image(systemName: DexGlyph.challenge)
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Dex.yellow)
+                    // The Tools tile's own face (0.8.9a, A7). The streak is
+                    // the daily challenge's number, so it wears the daily
+                    // challenge's picture -- the tile has had this art since
+                    // 0.8.1 and the counter it feeds had not.
+                    DexChromeGlyph(
+                        "dailychallenge", symbol: DexGlyph.challenge,
+                        size: 13, weight: .bold, tint: Dex.yellow
+                    )
                     Text("\(streak.current) DAY\(streak.current == 1 ? "" : "S")")
                         .font(DexFont.retro(11))
                         .tracking(1)

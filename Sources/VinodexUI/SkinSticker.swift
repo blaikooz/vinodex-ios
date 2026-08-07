@@ -109,7 +109,7 @@ private struct PeelFlap: Shape {
 /// Art arrives as `sticker-<skin>` through **its own** pipeline —
 /// `art/icons/stickers/` -> `scripts/import-sticker-art.py` ->
 /// `Resources/StickerArt` — with the skin's emblem standing in until then. The
-/// stamps' `art/icons/stamps/` -> `Resources/StampArt` path is now entirely
+/// stamps' `art/icons/chrome/stamps/` -> `Resources/StampArt` path is now entirely
 /// separate, so an illustrator working one set cannot land a file in the
 /// other's namespace by mistake.
 /// **The drawn artifact is the sticker, and the frame around it is gone

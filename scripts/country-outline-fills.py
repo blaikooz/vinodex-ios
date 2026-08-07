@@ -4,7 +4,7 @@
 **Moved here from `country-outline-rings.py`, and that move is the point.** In
 0.8.0 the fill was one argument to a rasteriser: the script drew the silhouette
 *and* chose its colour, so the two lived together. 0.8.4 replaces the drawn
-half with hand-made art -- 46 masters under `art/icons/countries/`, each a flat
+half with hand-made art -- 46 masters under `art/icons/entries/countries/`, each a flat
 cream silhouette on a magenta key -- and the colour is now applied at import
 time by `import-class-art.py` over art it did not draw. One table, one reader,
 and the rings file keeps only the geometry it is named for.

@@ -177,13 +177,25 @@ struct ChromeTests {
     /// search exactly when it is expressible as a chip — so what is pinned is
     /// *which* filters land on which side, because that is the decision a future
     /// edit would move without noticing.
+    ///
+    /// **The magnifier is its own magnifier since 0.8.9a (A5).** C1 gave these
+    /// filters `marquee-mastersearch` because that was the only glass on disk
+    /// and their title reads FILTER SEARCH; the drop has a glass with a funnel
+    /// in it, so the third identity this test is named for now has a third
+    /// picture instead of borrowing MASTER SEARCH's. Everything C1 asserted is
+    /// unchanged — one destination, one title, one symbol — and the symbol
+    /// stays `DexGlyph.search` on purpose: `marqueeSymbol` is the fallback, and
+    /// SF has no funnelled magnifier that is safe on iOS 17.
     @Test("a filter that is a chip is a filter search, and wears the magnifier")
     func filterSearchIsOneDestination() {
         for filter in Self.allFilters {
             guard filter.chipOption != nil else { continue }
             #expect(filter.scanTitle == "FILTER SEARCH")
             #expect(filter.marqueeSymbol == DexGlyph.search)
-            #expect(filter.marqueeArt == "marquee-mastersearch")
+            #expect(filter.marqueeArt == "marquee-filtersearch")
+            // And the screen they land on keeps the plain glass it was drawn
+            // as, which is the whole reason the two are now different files.
+            #expect(DexRoute.chipFilter.marqueeArt == "marquee-mastersearch")
             // Rule 2 still holds over the same routes: the face is the
             // filter's, never the category's.
             for category in EntryCategory.allCases {
@@ -258,15 +270,26 @@ struct ChromeTests {
         #expect(EntryFilter.origin("France").chipOption == nil)
         #expect(EntryFilter.origin("France").scanTitle == "REGION SCAN")
 
-        // **The backlog, and it is one name now.** 0.8.5's B1 left four scans
-        // with no drawn marquee face — GEOLOGY, RARITY, SYSTEM and CLIMATE.
-        // Three of them stopped being scans in C1 and took the magnifier that
-        // was already on disk, so nothing was drawn to close them. `soil` is
-        // what remains, and it is the one filter kind nothing in the app pushes
-        // as a route.
+        // **The backlog is closed (0.8.9a, A5), and it took a drawing.**
+        // 0.8.5's B1 left four scans with no drawn marquee face — GEOLOGY,
+        // RARITY, SYSTEM and CLIMATE. Three of them stopped being scans in C1
+        // and took the magnifier that was already on disk, which retired the
+        // names without drawing anything; GEOLOGY was the one that actually
+        // needed a rock, and the 0.8.9 drop has one.
+        //
+        // **Pinned at zero rather than deleted**, and the direction that
+        // matters is the one this now fails in: a filter kind added without a
+        // marquee face fails here, where before it would merely have joined a
+        // backlog that had a documented member and therefore looked healthy.
+        // That is the same reason `undrawnStampStems` is kept at zero entries
+        // instead of removed.
         let artless = Self.allFilters.filter { $0.marqueeArt == nil }
-        #expect(artless.count == 1, "artless scans: \(artless.map(\.scanTitle))")
-        #expect(artless.first?.scanTitle == "GEOLOGY SCAN")
+        #expect(artless.isEmpty, "artless scans: \(artless.map(\.scanTitle))")
+        #expect(EntryFilter.soil("Limestone").marqueeArt == "marquee-soilscan")
+        // FILTER SEARCH stops borrowing MASTER SEARCH's glass. The chip branch
+        // is an early return over eight of the ten kinds, so one of them
+        // standing for the rest is the whole of it.
+        #expect(EntryFilter.rarity(.noble).marqueeArt == "marquee-filtersearch")
     }
 
     /// **Every chip a filter names must be a chip the row actually offers.**
@@ -483,15 +506,20 @@ struct ChromeTests {
     /// Reached through `#filePath` like `CartridgeArtTests` and
     /// `ArtPipelineRosterTests`: the source art is the authority and it is not
     /// in the bundle at test time.
-    /// Stems drawn in `art/icons/<folder>`, as bare filenames.
-    private static func artOnDisk(_ folder: String) throws -> Set<String> {
-        let dir = URL(fileURLWithPath: #filePath)
+    /// Stems drawn in `art/icons/<components>`, as bare filenames.
+    ///
+    /// **Variadic since 0.8.9a (A1).** The registers are two deep now —
+    /// `entries/` for art *of* what the catalog names, `chrome/` for the
+    /// device's own furniture — so a caller names the path rather than one
+    /// folder. See `art/icons/README.md` for the split.
+    private static func artOnDisk(_ components: String...) throws -> Set<String> {
+        var dir = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .appendingPathComponent("art")
             .appendingPathComponent("icons")
-            .appendingPathComponent(folder)
+        for component in components { dir.appendPathComponent(component) }
         return Set(
             try FileManager.default.contentsOfDirectory(atPath: dir.path)
                 .filter { $0.lowercased().hasSuffix(".png") }
@@ -504,18 +532,18 @@ struct ChromeTests {
     /// Through 0.8.3 both halves of this test read `art/icons/buttons`, because
     /// the marquee wore the same files its controls did. A1 gives the panel its
     /// own dot-matrix set and the two now diverge by *surface*: a page glyph on
-    /// a lit segment LCD comes from `marqueeglyphs`, and a moulded lamp on the
-    /// chassis stays on `buttons` with the rest of the hardware.
+    /// a lit segment LCD comes from `chrome/marquee`, and a moulded lamp on the
+    /// chassis stays on `chrome/buttons` with the rest of the hardware.
     ///
     /// The `marquee-` prefix is `import-marquee-art.py`'s and is stripped here,
     /// which also makes this the gate on the prefix itself: a stem that forgets
     /// it fails with the name it actually has.
     @Test("every marquee art stem names art that exists")
     func marqueeArtIsOnDisk() throws {
-        let glyphs = try Self.artOnDisk("marqueeglyphs")
-        let buttons = try Self.artOnDisk("buttons")
-        #expect(!glyphs.isEmpty, "art/icons/marqueeglyphs is empty — is the checkout complete?")
-        #expect(!buttons.isEmpty, "art/icons/buttons is empty — is the checkout complete?")
+        let glyphs = try Self.artOnDisk("chrome", "marquee")
+        let buttons = try Self.artOnDisk("chrome", "buttons")
+        #expect(!glyphs.isEmpty, "art/icons/chrome/marquee is empty — is the checkout complete?")
+        #expect(!buttons.isEmpty, "art/icons/chrome/buttons is empty — is the checkout complete?")
 
         let prefix = "marquee-"
         func check(_ stem: String, _ who: String) {
@@ -598,7 +626,16 @@ struct ChromeTests {
         // A filtered listing is not its category (K2, rule 2), so it does not
         // borrow the category's picture either.
         #expect(DexRoute.list(category: .regions, filter: nil).marqueeArt == "marquee-regions")
-        #expect(DexRoute.list(category: .regions, filter: .soil("Limestone")).marqueeArt == nil)
+        #expect(
+            DexRoute.list(category: .regions, filter: .soil("Limestone")).marqueeArt
+                == "marquee-soilscan"
+        )
+        // **The passport and its collection are two pictures now (0.8.9a,
+        // A6).** 0.8.6's C3 shared one because nobody had drawn a stamp for
+        // this surface; the drop has one, and a repeat that art permits is not
+        // a repeat art prefers.
+        #expect(DexRoute.stampCollection.marqueeArt == "marquee-stamps")
+        #expect(DexRoute.passport.marqueeArt == "marquee-passport")
         // The SETTINGS grid owns both tables and this defers to the marquee one
         // rather than restating five strings.
         for section in SettingsSection.allCases {

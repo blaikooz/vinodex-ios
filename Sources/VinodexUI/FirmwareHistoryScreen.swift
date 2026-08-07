@@ -68,9 +68,17 @@ public struct FirmwareHistoryScreen: View {
                 .tracking(1.5)
                 .foregroundStyle(lcd.subtext)
             HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Image(systemName: "memorychip.fill")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(lcd.accent)
+                // The drawn chip (0.8.9a, A7). The *route* title goes on the
+                // chassis marquee and already wears `marquee-firmware`, which
+                // is the dot-matrix register -- a painted glyph there would be
+                // flattened to a silhouette by `DexChromeGlyph(flatten:)` and
+                // lose the thing that makes it worth drawing. This readout is
+                // the page's own title, on a lit LCD that renders art as art,
+                // and it is where a painted chip belongs.
+                DexChromeGlyph(
+                    UIGlyph.firmware.artStem, symbol: "memorychip.fill",
+                    size: 20, weight: .bold, tint: lcd.accent
+                )
                 Text(AppVersion.display)
                     .font(DexFont.retro(20))
                     .tracking(1)

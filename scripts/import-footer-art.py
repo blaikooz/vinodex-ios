@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Imports the drawn footer button caps into the app bundle (0.8.2, coordinator 1).
 
-Sources are individual PNGs in art/icons/footerbuttons, one per control in the
+Sources are individual PNGs in art/icons/chrome/footer, one per control in the
 chassis band: `back`, `home`, `settings`, `user`. Same treatment as every other
 importer — background removed via art_common.py, palette-quantised, written to
 Sources/VinodexUI/Resources/FooterArt.
@@ -9,7 +9,7 @@ Sources/VinodexUI/Resources/FooterArt.
 **Why this is not `import-button-art.py` with four more files in it.** The two
 sets look alike and are not the same kind of thing:
 
-- The 32 faces under `art/icons/buttons/` are *glyphs*. They sit inside a
+- The 32 faces under `art/icons/chrome/buttons/` are *glyphs*. They sit inside a
   control the app draws — `DexChromeGlyph` fits them into a square and the
   circle, rim and shadow around them belong to `ChassisButton`.
 - These four are *whole moulded caps*, drawn with their own rim, their own cast
@@ -135,7 +135,7 @@ SHADOW_BALANCE_FLOOR = 0.5
 def source_dir():
     if len(sys.argv) > 1:
         return sys.argv[1]
-    return os.path.join(ROOT, "art", "icons", "footerbuttons")
+    return os.path.join(ROOT, "art", "icons", "chrome", "footer")
 
 
 def _is_key_shadow(r, g, b):

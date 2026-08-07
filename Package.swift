@@ -83,6 +83,9 @@ let package = Package(
                 .copy("Resources/FlavorArt"),
                 .copy("Resources/Fonts"),
                 .copy("Resources/FooterArt"),
+                // The painted UI glyphs and the Professor Vino expression
+                // set (0.8.9a, A2/A3).
+                .copy("Resources/GlyphArt"),
                 .copy("Resources/GrapeArt"),
                 .copy("Resources/Icons"),
                 .copy("Resources/Logo"),
@@ -95,6 +98,7 @@ let package = Package(
                 .copy("Resources/StampArt"),
                 .copy("Resources/StickerArt"),
                 .copy("Resources/StyleArt"),
+                .copy("Resources/VinoArt"),
             ]
         ),
         .target(

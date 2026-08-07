@@ -27,7 +27,7 @@ public struct BackPlateStamp: Sendable, Equatable, Identifiable {
     /// like a real series.
     public let colorHex: String
     /// Pixel-art glyph stem under `Resources/StampArt`, through the
-    /// `art/icons/stamps/` pipeline. The art set is still being authored, so
+    /// `art/icons/chrome/stamps/` pipeline. The art set is still being authored, so
     /// the view falls back to `fallbackSymbol` when the stem has no PNG yet —
     /// dropping the file in is the whole upgrade.
     public let artStem: String
@@ -182,7 +182,7 @@ public enum StampCatalog {
 /// hand-listed its bar widths, `RippedPriceTag` hand-listed its tear steps —
 /// and F1 replaces the first two with drawn art and adds two more. That makes
 /// four stems the bundle has to hold and the importer has to produce, and the
-/// lesson of `art/icons/stamps/` arriving with ten files named for their
+/// lesson of `art/icons/chrome/stamps/` arriving with ten files named for their
 /// pictures is that a stem agreed by convention between a Python dict and a
 /// Swift view is a stem nobody checks.
 ///

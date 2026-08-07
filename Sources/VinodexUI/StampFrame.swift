@@ -199,7 +199,7 @@ struct BackPlateStampView: View {
 //
 // What went with it: `ChassisSkin.stickerStem` / `.stickerSymbol`, and the art
 // namespace — `sticker-*` now imports from `art/icons/stickers/` into
-// `Resources/StickerArt`, leaving `art/icons/stamps/` -> `Resources/StampArt`
+// `Resources/StickerArt`, leaving `art/icons/chrome/stamps/` -> `Resources/StampArt`
 // to the six Passport badges alone. `WornOverlay` was declared here and used
 // by both; it is a material rather than either object's identity, so it is now
 // in `AgedMaterial.swift` and this file imports it on the same terms the

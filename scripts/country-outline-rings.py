@@ -4,7 +4,7 @@
 **Superseded as master art in 0.8.4 (F1), and kept anyway.** The thirty
 outlines this file describes were replaced by forty-six hand-drawn ones, which
 are real coastlines rather than 30-vertex approximations on a 106-cell grid;
-`art/icons/countries/` is authored art again, and nothing in the build reads
+`art/icons/entries/countries/` is authored art again, and nothing in the build reads
 `RINGS`. What survives is the reason it was written down: thirty authored
 geographies, and a rasteriser one command away
 (`make-country-outlines.py --draw --out DIR`) for the next country nobody has
@@ -49,7 +49,7 @@ ever drawn alone in an icon well, so two countries sharing a colour costs
 nothing and a country wearing somebody else's flag costs the whole point.
 """
 
-# stem -> output filename under art/icons/countries. The spellings are
+# stem -> output filename under art/icons/entries/countries. The spellings are
 # `import-class-art.py`'s `SOURCE_FOR`, including the two with no separator and
 # the one with a space, which are the artist's originals and are preserved on
 # the `crubeaujolas` precedent.

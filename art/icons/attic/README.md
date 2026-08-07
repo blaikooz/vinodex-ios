@@ -22,6 +22,23 @@ Two worth knowing about:
 - The `legacy-2new-*` set is the pre-0.6.5 style portraits, superseded by the
   `newpass` drop that landed in `art/icons/styles/`.
 
+## `alt-marquee-*` (0.8.9a, A2)
+
+Two files from the v9.0 drop that redraw marquee glyphs already on disk:
+`alt-marquee-labelscanner.png` is the bottle the panel shows for LABEL SCAN,
+`alt-marquee-flavorscan.png` the cherry pair it shows for FLAVORS. Both are the
+right register (no cel outline, magenta key) and both are *larger* than the set
+they would join — roughly 320px against the 110-160px the 0.8.4 drop was drawn
+at — and both carry scan-reticle corner brackets that no other one of the
+thirty-four has.
+
+So adopting them was a look decision, not a wiring one, and it was declined
+this pass: the marquee draws these silhouetted at one size, so a finer dot pitch
+on two glyphs out of thirty-four reads as an inconsistency rather than as
+detail. Parked instead of dropped because it is one `git mv` each to reverse,
+and because the same drop's `soilscan` and `stamps` — genuinely new names —
+carry the brackets too and did ship.
+
 ## Everything else
 
 Earlier unreferenced pieces (`grape-*`, `greenpear`, `oakbarrel`, plus

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Imports the back-plate Passport stamp glyphs into the app bundle (0.6.4, F2).
 
-Sources are individual PNGs in art/icons/stamps. Same treatment as the other
+Sources are individual PNGs in art/icons/chrome/stamps. Same treatment as the other
 importers: background removed via art_common.py (export on a magenta chroma key
 for the robust path), palette-quantised, written to
 Sources/VinodexUI/Resources/StampArt.
@@ -89,7 +89,7 @@ STEM_FOR = {
 def source_dir():
     if len(sys.argv) > 1:
         return sys.argv[1]
-    return os.path.join(ROOT, "art", "icons", "stamps")
+    return os.path.join(ROOT, "art", "icons", "chrome", "stamps")
 
 
 def main():

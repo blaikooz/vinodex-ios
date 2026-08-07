@@ -180,9 +180,9 @@ struct RankUnlockedPrompt: View {
                     .tracking(2)
                     .foregroundStyle(ink)
 
-                Image(systemName: "seal.fill")
-                    .font(.system(size: 76, weight: .semibold))
-                    .foregroundStyle(ink)
+                // The rung's own shield (0.8.9a, A4), so RANK UP shows what
+                // you just earned rather than the same seal for all four.
+                DexChromeGlyph(tier.glyph.artStem, symbol: "seal.fill", size: 76, tint: ink)
                     .rotationEffect(.degrees(landed ? 0 : -18))
                     .scaleEffect(landed ? 1 : 2.1)
                     .opacity(landed ? 1 : 0)

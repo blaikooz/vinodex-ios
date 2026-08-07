@@ -177,10 +177,12 @@ public struct TastingQuizScreen: View {
     /// The daily's done card: today's paper is sat, come back tomorrow.
     private var dailyDone: some View {
         VStack(spacing: 18) {
-            Image(systemName: DexGlyph.challenge)
-                .font(.system(size: 56, weight: .semibold))
-                .foregroundStyle(streak.current > 0 ? Dex.yellow : lcd.subtext)
-                .shadow(color: Dex.yellow.opacity(streak.current > 0 ? 0.5 : 0), radius: 8)
+            // Same face as the tile and the streak capsule (0.8.9a, A7).
+            DexChromeGlyph(
+                "dailychallenge", symbol: DexGlyph.challenge, size: 56,
+                tint: streak.current > 0 ? Dex.yellow : lcd.subtext
+            )
+            .shadow(color: Dex.yellow.opacity(streak.current > 0 ? 0.5 : 0), radius: 8)
 
             // "PAPER COMPLETE" through 0.6.6. The code's own vocabulary is
             // "paper" throughout — it is a WSET-shaped app — but the *user*

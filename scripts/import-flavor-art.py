@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Imports the pixel-art flavour portraits into the app bundle.
 
-Sources are the hand-drawn PNGs in art/icons/flavors. They ship
+Sources are the hand-drawn PNGs in art/icons/entries/flavors. They ship
 on a near-white opaque ground, so this pass:
 
   1. removes the background via the shared pass in art_common.py — the
@@ -16,7 +16,7 @@ the source of truth (it feeds icons.json), and this script converts exactly
 the stems that table names. Run `npm run generate` first if you changed it.
 
 Usage: python3 scripts/import-flavor-art.py [source-dir]
-Source defaults to the repo's art/icons/flavors — the flat, per-use layout
+Source defaults to the repo's art/icons/entries/flavors — the per-use layout
 the drop-folder waves were re-foldered into (0.5.8, A1; landed 0.6.4).
 Requires Pillow.
 """
@@ -52,7 +52,7 @@ def source_file(src, stem):
 
 
 def main():
-    src = resolve_source_dir(ROOT, "flavors")
+    src = resolve_source_dir(ROOT, "entries", "flavors")
     with open(MANIFEST, encoding="utf-8") as fh:
         stems = sorted(set(json.load(fh).get("flavorArt", {}).values()))
     if not stems:

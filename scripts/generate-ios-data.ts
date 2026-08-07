@@ -333,7 +333,7 @@ const FALLBACK_ICON = 'mdi:help-circle-outline';
 
 // Full-colour pixel-art portraits for flavours, keyed by normalised flavour
 // name. Values are PNG stems under Sources/VinodexUI/Resources/FlavorArt —
-// the art itself is imported from art/icons/flavors by a one-off pass (see
+// the art itself is imported from art/icons/entries/flavors by a one-off pass (see
 // v0.5.1), not rasterised here; this table only keeps the wiring stable
 // across regenerations. Names with no convincing art are deliberately absent
 // and keep their tinted glyph.
@@ -457,7 +457,7 @@ const FLAVOR_ART: Record<string, string> = {
 //
 // `art:` ids (v0.5.7, B1) name drawn pixel art rather than Iconify glyphs:
 // `art:<stem>` loads `<stem>.png` from Resources/ClassArt, imported from
-// art/icons/{classes,subclasses,color,body,climate,soil,countries} by
+// art/icons/entries/{classes,subclasses,color,body,climate,soil,countries} by
 // scripts/import-class-art.py. The Swift side
 // branches on the prefix in `DexIcon`; these ids never reach the Iconify
 // rasteriser (`unique` excludes them below).
@@ -729,7 +729,7 @@ const FLAG_PATHS: Record<string, string> = {
 
 // Full-colour pixel-art portraits for styles (0.5.6), keyed by normalised
 // style name. Values are PNG stems under Sources/VinodexUI/Resources/StyleArt,
-// imported from art/icons/styles by scripts/import-style-art.py. All 32
+// imported from art/icons/entries/styles by scripts/import-style-art.py. All 32
 // shipped styles are covered; `crubeaujolas` preserves the artist's spelling.
 // The three 0.6 styles carry portraits derived from their nearest siblings
 // (recolour passes over fullbodywhite/mediumbodyred/dessertwine) — distinct
@@ -822,7 +822,7 @@ function buildGrapeArt(): Record<string, string> {
   return out;
 }
 
-/// Drawn per-continent globes (v0.5.8, B1) — art/icons/continents via
+/// Drawn per-continent globes (v0.5.8, B1) — art/icons/entries/continents via
 /// import-class-art.py. Each continent finally gets its own face; the three
 /// shared Iconify globes they replaced left Africa and Europe identical.
 const CONTINENT_ICONS: Record<string, string> = {
@@ -1534,7 +1534,7 @@ function assertOutlineCoverage(entries: readonly WineEntry[]): string[] {
     throw new CoverageError(
       'regions name places with no outline art:\n'
         + unexpected.map((p) => `  - ${p}: ${(missing.get(p) ?? []).join(', ')}`).join('\n')
-        + '\nDraw the outline into art/icons/countries/ and wire it through '
+        + '\nDraw the outline into art/icons/entries/countries/ and wire it through '
         + 'COUNTRY_SHAPE_ICONS and scripts/import-class-art.py.',
     );
   }

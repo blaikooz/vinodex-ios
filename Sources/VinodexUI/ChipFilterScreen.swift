@@ -197,9 +197,14 @@ public struct ChipFilterScreen: View {
             // bars while the button that opened it wears a magnifier. The bars
             // stay where they mean "a filter is narrowing a list you are
             // already looking at" — `EncyclopediaListScreen.filterBanner`.
-            Image(systemName: DexGlyph.search)
-                .font(.system(size: 26, weight: .semibold))
-                .foregroundStyle(lcd.accent)
+            // Drawn as of 0.8.9a (A7), and it is the face the round menu
+            // button that opens this screen already wears -- which is K2 rule 1
+            // ("a page's glyph is the glyph on the control that opens it")
+            // reaching the one hero on the page that had stayed a symbol.
+            DexChromeGlyph(
+                "search", symbol: DexGlyph.search,
+                size: 26, tint: lcd.accent
+            )
 
             VStack(alignment: .leading, spacing: 3) {
                 let total = results.count + countryResults.count
@@ -254,9 +259,14 @@ public struct ChipFilterScreen: View {
             withAnimation(.easeOut(duration: 0.2)) { showsChips.toggle() }
         } label: {
             HStack(spacing: 10) {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(lcd.accent)
+                // The drawn cog (0.8.9a, A7). The SF bars stay as the
+                // fallback rather than being deleted: `PixelArtLoader` answers
+                // nil in silence for a stem it cannot find, so the symbol is
+                // what stands between a missing asset and an empty row.
+                DexChromeGlyph(
+                    UIGlyph.cog.artStem, symbol: "slider.horizontal.3",
+                    size: 16, tint: lcd.accent
+                )
                 // Guarded (0.7.1, A4): with a filter on, the row needed
                 // 334pt of a 311pt width — glyph, label, the "n ON" badge and
                 // the chevron — and the label wrapped to two lines the moment

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Imports the grape bunch sprites into the app bundle.
 
-Sources are the recoloured bunch set in art/icons/grapes (0.5.8, A1) — one
+Sources are the recoloured bunch set in art/icons/entries/grapes (0.5.8, A1) — one
 identical bunch per file, recoloured across colour/depth/blend with the leaf
 coloured by rarity. This pass canonicalises the artist's file names into the
 `<color>-<depth>[-<blend>]-<leaf>` stems the generator's `grapeArt` table
@@ -105,7 +105,7 @@ MASTERS = {"gold-full-rare", "gold-light-rare", "gold-medium-rare"}
 
 
 def main():
-    src = resolve_source_dir(ROOT, "grapes")
+    src = resolve_source_dir(ROOT, "entries", "grapes")
     os.makedirs(DST, exist_ok=True)
 
     converted = 0

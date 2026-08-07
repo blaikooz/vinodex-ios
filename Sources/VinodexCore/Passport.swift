@@ -63,6 +63,28 @@ public enum PassportTier: String, CaseIterable, Codable, Sendable, Identifiable 
     /// Order for comparisons: master < grandmaster < legend < immortal.
     public var rank: Int { Self.allCases.firstIndex(of: self) ?? 0 }
 
+    /// The drawn tier badge (0.8.9a, A4) — a numbered shield, I through IV.
+    ///
+    /// **A switch rather than `UIGlyph(rawValue: "level\(rank + 1)")`.** The
+    /// arithmetic version reads better and fails worse: it is total over an
+    /// enum that is explicitly append-only (`rankIndicesAreStable`), so a fifth
+    /// rung would resolve to `level5` — which is drawn — and a *sixth* would
+    /// resolve to nil at runtime with nothing to catch it. Exhaustive here
+    /// means appending a rung is a compile error in the one file that has to
+    /// decide what it looks like.
+    ///
+    /// Five shields were delivered and there are four rungs; `level5` is parked
+    /// in `UIGlyph.unwired` with the reason. Adding the fifth rung is an append
+    /// and the art for it is already on disk.
+    public var glyph: UIGlyph {
+        switch self {
+        case .master: .level1
+        case .grandmaster: .level2
+        case .legend: .level3
+        case .immortal: .level4
+        }
+    }
+
     /// The rung above, or nil at the top.
     public var next: PassportTier? {
         let all = Self.allCases

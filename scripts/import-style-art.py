@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Imports the pixel-art style portraits into the app bundle.
 
-Sources are the 31 individual style PNGs in art/icons/styles (contact sheets
+Sources are the 31 individual style PNGs in art/icons/entries/styles (contact sheets
 live in art/icons/reference, not here — 0.5.8, A1). Same
 treatment as the flavour importer: background removed via the shared
 border-flood pass in art_common.py (interior white preserved — 0.5.7 B2),
@@ -44,13 +44,13 @@ DST = output_dir(ROOT, "StyleArt")
 # strip_background. See art_common.copy_master (AUDIT H12).
 #
 # `mediumbodywhite` left this set in the testing merge: the 0.6.5 newpass
-# batch delivered a real raw master for it (art/icons/styles), so it goes
+# batch delivered a real raw master for it (art/icons/entries/styles), so it goes
 # through the normal strip/quantise pass like any other style now.
 MASTERS = {"sweetwhite"}
 
 
 def main():
-    src = resolve_source_dir(ROOT, "styles")
+    src = resolve_source_dir(ROOT, "entries", "styles")
     with open(MANIFEST, encoding="utf-8") as fh:
         stems = sorted(set(json.load(fh).get("styleArt", {}).values()))
     if not stems:

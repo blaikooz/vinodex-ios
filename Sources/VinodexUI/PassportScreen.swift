@@ -246,13 +246,18 @@ public struct PassportScreen: View {
     private func rankCard(_ passport: Passport) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
-                Image(systemName: passport.tier == nil ? "seal" : "seal.fill")
-                    .font(.system(size: 30, weight: .semibold))
-                    .foregroundStyle(passport.tier == nil ? lcd.disabledText : Dex.yellow)
-                    .shadow(
-                        color: passport.tier == nil ? .clear : Dex.yellow.opacity(0.45),
-                        radius: 7
-                    )
+                // The drawn shield, one per rung (0.8.9a, A4). UNRANKED keeps
+                // the hollow seal it always had and gains no badge, because a
+                // numbered shield is a thing you have earned and the whole
+                // point of the empty state is that you have not.
+                if let tier = passport.tier {
+                    DexChromeGlyph(tier.glyph.artStem, symbol: "seal.fill", size: 30, tint: Dex.yellow)
+                        .shadow(color: Dex.yellow.opacity(0.45), radius: 7)
+                } else {
+                    Image(systemName: "seal")
+                        .font(.system(size: 30, weight: .semibold))
+                        .foregroundStyle(lcd.disabledText)
+                }
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(passport.tier?.displayName ?? "UNRANKED")
@@ -442,8 +447,11 @@ public struct PassportScreen: View {
                 onStampCollection()
             } label: {
                 HStack(spacing: 10) {
-                    Image(systemName: DexRoute.stampCollection.marqueeSymbol)
-                        .font(.system(size: 16, weight: .semibold))
+                    DexChromeGlyph(
+                        UIGlyph.stamp.artStem,
+                        symbol: DexRoute.stampCollection.marqueeSymbol,
+                        size: 16
+                    )
                     Text("STAMP COLLECTION")
                         .font(DexFont.retro(12))
                         .tracking(1)

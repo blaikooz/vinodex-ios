@@ -353,11 +353,11 @@ public final class PixelArtLoader {
         // `art:` icon ids — see `DexIcon`.
         "ClassArt",
         // Back-plate Passport stamp glyphs (0.6.4, F2), imported from
-        // art/icons/stamps/ — the directory ships empty-of-art until the
+        // art/icons/chrome/stamps/ — the directory ships empty-of-art until the
         // glyphs are authored; a miss falls through to the SF stand-ins.
         "StampArt",
         // Per-skin back-plate sticker glyphs (0.7.8, A1), imported from
-        // art/icons/stickers/. Its own directory since the sticker stopped
+        // art/icons/chrome/stickers/. Its own directory since the sticker stopped
         // being a stamp — the two families are commissioned separately and a
         // shared folder was how a decal could be filed as a badge unnoticed.
         // Also ships empty-of-art; a miss falls through to the skin emblem.
@@ -367,7 +367,7 @@ public final class PixelArtLoader {
         // `sticker-*` from `ChassisSkin.stickerStem`), so "first hit wins"
         // stays a statement about ordering rather than about precedence.
         "StickerArt",
-        // Drawn button faces (0.8.1, J2), imported from art/icons/buttons/.
+        // Drawn button faces (0.8.1, J2), imported from art/icons/chrome/buttons/.
         //
         // **Last on purpose, and the first entry that could actually collide.**
         // The two above are safe by construction — their stems carry `stamp-`
@@ -382,8 +382,8 @@ public final class PixelArtLoader {
         // recoverable direction — the reverse would silently swap a portrait
         // for a piece of chrome.
         "ButtonArt",
-        // Drawn footer caps (0.8.2), imported from art/icons/footerbuttons/,
-        // and drawn cartridges (0.8.2), from art/icons/cartridges/.
+        // Drawn footer caps (0.8.2), imported from art/icons/chrome/footer/,
+        // and drawn cartridges (0.8.2), from art/icons/chrome/cartridges/.
         //
         // **Both prefixed, which is what keeps the entry above the last one
         // that had to argue about ordering.** `ButtonArt`'s note explains that
@@ -396,7 +396,7 @@ public final class PixelArtLoader {
         "FooterArt",
         "CartridgeArt",
         // The dot-matrix marquee glyphs (0.8.4, A1), from
-        // art/icons/marqueeglyphs/. `marquee-` prefixed, which is the
+        // art/icons/chrome/marquee/. `marquee-` prefixed, which is the
         // convention the entry above asks the next directory to follow — and
         // here it is load-bearing rather than tidy: nineteen of the thirty-four
         // stems are words `ButtonArt` already uses (`settings`, `system`,
@@ -407,6 +407,27 @@ public final class PixelArtLoader {
         // surface. Unprefixed, "first hit wins" would have decided which
         // register every one of those controls got, by list order.
         "MarqueeArt",
+        // The painted UI glyphs (0.8.9a, A2), from art/icons/chrome/glyphs/,
+        // and the Professor Vino expression set (A3), from
+        // art/icons/chrome/vino/.
+        //
+        // **`glyph-` is the entry `ButtonArt`'s note was written for.** That
+        // note argues that its own bare words are safe only as a fact about
+        // today's catalog, and asks the next set to carry a prefix. This is
+        // that set, and it needed the prefix on arrival rather than later:
+        // `tools`, `firmware`, `seal` and `stamp` are all words already
+        // spoken for above — by `ButtonArt`, by `MarqueeArt` and by
+        // `StampArt` — so unprefixed, three of them would have been decided
+        // by list order between two live drawings of the same subject in two
+        // different registers, which is the exact fault `marquee-` was
+        // introduced to prevent.
+        "GlyphArt",
+        // `VinoArt` ships ahead of anything that draws it: the presenter is
+        // 0.8.9's phase 2. A directory searched before its art exists is the
+        // case `unauthoredArtDirectories` was built for and this is not it —
+        // the art is here, the *caller* is not, which no gate needs to know
+        // about because a stem nobody asks for is simply never looked up.
+        "VinoArt",
     ]
 
     private var cache: [String: UIImage?] = [:]

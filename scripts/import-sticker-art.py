@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Imports the per-skin back-plate sticker glyphs into the app bundle (0.7.8, A1).
 
-Sources are individual PNGs in **art/icons/artifacts** (0.8.5, F1), one per
+Sources are individual PNGs in **art/icons/chrome/stickers** (0.8.5, F1), one per
 shell. Same treatment as the other importers: background removed via
 art_common.py (export on a magenta chroma key for the robust path),
 palette-quantised, written to Sources/VinodexUI/Resources/StickerArt.
@@ -115,7 +115,7 @@ def bundle_stem(skin_raw_value):
 def source_dir():
     if len(sys.argv) > 1:
         return sys.argv[1]
-    return os.path.join(ROOT, "art", "icons", "artifacts")
+    return os.path.join(ROOT, "art", "icons", "chrome", "stickers")
 
 
 def main():

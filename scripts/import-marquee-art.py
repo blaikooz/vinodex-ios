@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Imports the dot-matrix marquee glyphs into the app bundle (0.8.4, A1).
 
-Sources are individual PNGs in art/icons/marqueeglyphs, one per page the
+Sources are individual PNGs in art/icons/chrome/marquee, one per page the
 marquee can name (`grapescan`, `system`, `mastersearch`, `menu`, ...), drawn as
 a grid of cream dots on a magenta chroma key. Written to
 Sources/VinodexUI/Resources/MarqueeArt.
@@ -91,7 +91,7 @@ INK_G = 224
 def source_dir():
     if len(sys.argv) > 1:
         return sys.argv[1]
-    return os.path.join(ROOT, "art", "icons", "marqueeglyphs")
+    return os.path.join(ROOT, "art", "icons", "chrome", "marquee")
 
 
 def key_to_alpha(img):

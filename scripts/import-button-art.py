@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Imports the drawn button faces into the app bundle (0.8.1, J2).
 
-Sources are individual PNGs in art/icons/buttons, one per button face, named
+Sources are individual PNGs in art/icons/chrome/buttons, one per button face, named
 for the control they sit on (`search`, `passport`, `labelscanner`, ...). Same
 treatment as the other importers: background removed via art_common.py (export
 on a magenta chroma key for the robust path), palette-quantised, written to
@@ -52,7 +52,7 @@ DST = output_dir(ROOT, "ButtonArt")
 def source_dir():
     if len(sys.argv) > 1:
         return sys.argv[1]
-    return os.path.join(ROOT, "art", "icons", "buttons")
+    return os.path.join(ROOT, "art", "icons", "chrome", "buttons")
 
 
 def main():

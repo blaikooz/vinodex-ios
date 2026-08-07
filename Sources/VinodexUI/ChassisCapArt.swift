@@ -5,7 +5,7 @@ import VinodexCore
 
 /// Serves the drawn footer caps re-inked to the chassis skin (0.8.2).
 ///
-/// **The problem, stated plainly.** `art/icons/footerbuttons/` holds four
+/// **The problem, stated plainly.** `art/icons/chrome/footer/` holds four
 /// drawings — Back, Home, Settings, User — and each one is a *whole moulded
 /// cap*: rim, lit face, and the symbol incised into it. (Each carried a painted
 /// cast shadow too, until 0.8.3's B1 stripped it at import — see
