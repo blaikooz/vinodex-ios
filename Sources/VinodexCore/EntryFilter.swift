@@ -71,20 +71,126 @@ public enum EntryFilter: Sendable, Hashable {
     case system(String)
     case climate(ClimateClass)
 
-    /// LCD header title when this filter is active.
-    public var scanTitle: String {
+    /// The same constraint as a chip, where one says the same thing (0.8.7, C1).
+    ///
+    /// ## What this is for
+    ///
+    /// Six of the seven cross-linked tiles on an entry's page push a
+    /// `.list(category:filter:)` — tap SWEET on a flavour, or a grape's COLOR,
+    /// or a region's CLIMATE, and you land on that category's listing narrowed
+    /// to one facet. That listing has carried a chip row since 0.6.9 offering
+    /// exactly those facets, and the two mechanisms never met: the marquee said
+    /// FLAVOR SCAN, a banner said `FILTER: SWEET`, and the FILTER dropdown two
+    /// lines below said nothing was on. The item asks for one destination
+    /// instead — **FILTER SEARCH, with the chip already selected** — which is
+    /// what this makes expressible.
+    ///
+    /// ## Why this does not reopen K2 rule 2
+    ///
+    /// Rule 2 — pinned as `filteredListingsKeepTheirOwnArt` — says a filtered
+    /// listing may never fall through to its *parent category's* face, because a
+    /// GEOLOGY SCAN is not a regions listing. That is a rule about not borrowing
+    /// the wrong identity, and it is untouched: nothing here reads
+    /// `EntryCategory`. The filter still answers with its own title and its own
+    /// picture; what changed is what six of them consider themselves to *be*.
+    ///
+    /// ## Which ones convert, and why by derivation rather than by table
+    ///
+    /// A filter is a filter search when it can be said as a chip, because that
+    /// is precisely when the destination is a search the user can go on
+    /// adjusting. `.region` (a continent's country list) and `.soil` have no
+    /// chip facet and stay scans.
+    ///
+    /// **`.origin` deliberately does not convert.** It is expressible as the
+    /// COUNTRY chip only approximately — the filter matches an entry's tags as
+    /// well as its origin, through `matchesWholeTerm`, where the chip compares
+    /// the origin alone — and nothing in the app pushes it as a route anyway
+    /// (`CountryScreen` uses it as a query). An approximate conversion on a
+    /// destination nobody visits is a behaviour change with no upside.
+    ///
+    /// **`.type` converts only for a grape's colour.** The COLOR tile sends
+    /// `.type("red")` / `.type("white")`, which is the `.color` chip exactly:
+    /// measured over the shipped catalog, 96 grapes and 96, 81 and 81. The
+    /// *body* tile sends `.type(grapeStyle)` — "Full-Body Red", ten values
+    /// crossing colour with body — and the nearest chip is BODY, which has
+    /// three: 35 entries against 47, 20 against 67, 7 against 47, 40 against 63.
+    /// No chip expresses it, so it keeps STYLE SCAN. A case answering
+    /// differently for different values has precedent one property below, where
+    /// `.system` titles itself from its value.
+    ///
+    /// **`.tasting` converts as the flavour CLASS tile.** The case is named for
+    /// what it did before the taxonomy existed — it matches tasting *notes* as
+    /// well as classifications — but the one place that builds it as a route is
+    /// that tile, always with a classification, and over the shipped catalog the
+    /// two select identically on all five (SWEET 37/37, UMAMI 44/44, BITTER
+    /// 13/13, SOUR 8/8, SALTY 4/4). The residual risk is a `.tasting(note)`
+    /// pushed as a route one day, which would light a chip no row offers; the
+    /// screen guards that by only pre-selecting an option its facet actually
+    /// offers. See `EncyclopediaListScreen`.
+    public var chipOption: ChipOption? {
         switch self {
-        case .region: "SECTOR SCAN"
-        case .type: "STYLE SCAN"
-        case .tasting: "FLAVOR SCAN"
-        case .flavorSubclass: "FLAVOR SCAN"
-        case .soil: "GEOLOGY SCAN"
-        case .origin: "REGION SCAN"
-        case .rarity: "RARITY SCAN"
+        case .type(let value):
+            // Only the two grape colours. See the note above for the body tile.
+            guard let color = GrapeColor(rawValue: TextNormalize.label(value)) else { return nil }
+            return ChipOption(
+                facet: .color,
+                value: color.rawValue,
+                label: color.rawValue.uppercased()
+            )
+        case .tasting(let value):
+            let v = value.uppercased()
+            return ChipOption(facet: .flavorClass, value: v, label: v)
+        case .flavorSubclass(let value):
+            let v = value.uppercased()
+            return ChipOption(
+                facet: .flavorSubclass,
+                value: v,
+                label: v.replacingOccurrences(of: "_", with: " ")
+            )
+        case .rarity(let value):
+            return ChipOption(facet: .rarity, value: value.rawValue, label: value.rawValue)
+        case .system(let value):
+            return ChipOption(facet: .styleClass, value: value, label: value)
+        case .climate(let value):
+            return ChipOption(
+                facet: .climate,
+                value: value.rawValue,
+                label: value.rawValue.uppercased()
+            )
+        // A continent's countries, a soil keyword and a region's own origin.
+        // None is a row of chips. See the note.
+        case .region, .soil, .origin:
+            return nil
+        }
+    }
+
+    /// LCD header title when this filter is active.
+    ///
+    /// **One title for every filter that is a chip** (0.8.7, C1). See
+    /// `chipOption`: those listings are one destination reached seven ways, and
+    /// naming each arrival after the facet it came in on told the user which
+    /// door they used rather than which room they are in. The two that are not
+    /// chips keep the scan they always had.
+    ///
+    /// FILTER SEARCH rather than MASTER SEARCH, which is `DexRoute.chipFilter`'s
+    /// title and stays it: that one searches the whole catalog from nothing,
+    /// this one opens already narrowed to a category and a facet. FILTER is also
+    /// the word on the dropdown this page has had since 0.6.9, which is now the
+    /// control the title is naming.
+    public var scanTitle: String {
+        if chipOption != nil { return "FILTER SEARCH" }
+        switch self {
+        case .region: return "SECTOR SCAN"
+        case .type: return "STYLE SCAN"
+        case .tasting: return "FLAVOR SCAN"
+        case .flavorSubclass: return "FLAVOR SCAN"
+        case .soil: return "GEOLOGY SCAN"
+        case .origin: return "REGION SCAN"
+        case .rarity: return "RARITY SCAN"
         // The value, not the word SYSTEM (0.6.2, D1): a class filter opened
         // from the ORIGIN chip must read "ORIGIN SCAN", not "SYSTEM SCAN".
-        case .system(let v): "\(v.uppercased()) SCAN"
-        case .climate: "CLIMATE SCAN"
+        case .system(let v): return "\(v.uppercased()) SCAN"
+        case .climate: return "CLIMATE SCAN"
         }
     }
 
@@ -100,19 +206,27 @@ public enum EntryFilter: Sendable, Hashable {
     /// new filter kind that gets a title without a glyph is the bug this fixes.
     /// All iOS 17-safe — see KNOWN-ISSUES on symbols with a later OS floor
     /// rendering blank rather than failing to compile.
+    ///
+    /// **The magnifier where the filter is a chip** (0.8.7, C1), pairing with
+    /// `scanTitle` as this property's own note demands. `DexGlyph.search` is
+    /// 0.7.1 A2's one magnifying glass — the same glyph the search bars, the
+    /// menu's round button and MASTER SEARCH wear — so a page that has become a
+    /// filter search reads as one. `glyphsAreDistinct` is untroubled: it walks
+    /// `allRoutes`, which holds unfiltered listings only.
     public var marqueeSymbol: String {
+        if chipOption != nil { return DexGlyph.search }
         switch self {
         // A continent's countries — the sector this scan covers.
-        case .region: "globe.europe.africa.fill"
-        case .type: "wineglass.fill"
-        case .tasting, .flavorSubclass: "leaf.fill"
+        case .region: return "globe.europe.africa.fill"
+        case .type: return "wineglass.fill"
+        case .tasting, .flavorSubclass: return "leaf.fill"
         // Rock, for a soil scan. The one filter whose subject is literally
         // under the vineyard.
-        case .soil: "mountain.2.fill"
-        case .origin: "mappin.and.ellipse"
-        case .rarity: "star.fill"
-        case .system: "checkmark.seal.fill"
-        case .climate: "thermometer.medium"
+        case .soil: return "mountain.2.fill"
+        case .origin: return "mappin.and.ellipse"
+        case .rarity: return "star.fill"
+        case .system: return "checkmark.seal.fill"
+        case .climate: return "thermometer.medium"
         }
     }
 
@@ -133,24 +247,40 @@ public enum EntryFilter: Sendable, Hashable {
     /// as `marqueeSymbol` beside it has done since 0.7.0. What it may never do
     /// is fall through to the parent category's.
     ///
-    /// Four of the nine resolve. `soil`, `rarity`, `system` and `climate` have
-    /// no dot-matrix glyph drawn for them and keep the SF Symbol, which is the
-    /// fallback working rather than a gap — and is the honest state of a
-    /// conversion that is complete on pages and partial on facets. The next
-    /// glyph drawn for one of them is one line here.
+    /// **Eight of the nine resolve since 0.8.7 (C1), and no glyph was drawn to
+    /// get there.** B1 left a four-name backlog — nobody had drawn a rock, a
+    /// star, a seal or a thermometer, so GEOLOGY, RARITY, SYSTEM and CLIMATE
+    /// SCAN kept their SF Symbols. C1 makes RARITY, SYSTEM and CLIMATE stop
+    /// being scans at all: they are chips, so they are FILTER SEARCH and they
+    /// wear `marquee-mastersearch`, the magnifier already on disk and already
+    /// worn by `DexRoute.chipFilter`. The backlog is one name, `soil` — and
+    /// `.soil` is the one filter kind with no navigation entry point in the app,
+    /// so nothing on screen is falling back today.
+    ///
+    /// `marquee-stylescan` and `marquee-flavorscan` are not orphaned by this:
+    /// they are `EntryCategory.styles` and `.flavors`' own faces and are still
+    /// worn by the unfiltered listings, which is where they were drawn for.
     public var marqueeArt: String? {
+        if chipOption != nil { return "marquee-mastersearch" }
         switch self {
         // A continent's countries, drawn as a continent — which is the sector
         // this scan actually covers, and the same picture `.continent` wears.
-        case .region: "marquee-continentscan"
-        case .type: "marquee-stylescan"
-        case .tasting, .flavorSubclass: "marquee-flavorscan"
+        case .region: return "marquee-continentscan"
+        case .type: return "marquee-stylescan"
+        case .tasting, .flavorSubclass: return "marquee-flavorscan"
         // REGION SCAN, and the regions face is this filter's own rather than a
         // borrowed parent's: `.origin` narrows to one region's entries and the
         // title says so.
-        case .origin: "marquee-regions"
-        // Nobody drew a rock, a star, a seal or a thermometer. See the note.
-        case .soil, .rarity, .system, .climate: nil
+        case .origin: return "marquee-regions"
+        // Nobody drew a rock. See the note.
+        case .soil: return nil
+        // Not reached today: every value of these five answers `chipOption`, so
+        // the early return above has already fired. (`.type` is the exception —
+        // its body values have no chip and do reach the arm above.) Left spelled
+        // out rather than defaulted, because these are what the property should
+        // answer if a facet ever loses its chip row, and a `default` would have
+        // answered nil for a filter that had just become a scan again.
+        case .rarity, .system, .climate: return nil
         }
     }
 

@@ -28,6 +28,9 @@ public struct PassportScreen: View {
     /// The unlock queue (0.7.1, D2) and the one being shown.
     @State private var unlockQueue: [BackPlateStamp] = []
     @State private var showingUnlock: BackPlateStamp?
+    /// The rung crossed since this ledger was last asked (0.8.7, D1). One at
+    /// most — see `PassportProgress.announceTier`.
+    @State private var pendingRank: PassportTier?
     @State private var passportProgress = PassportProgress.shared
     /// The rendered card waiting on the share sheet (0.7.8, B2/B3/B4).
     @State private var sharePayload: SharePayload?
@@ -59,16 +62,6 @@ public struct PassportScreen: View {
         }
     }
 
-    private func shareBadge(_ badge: Passport.Badge) {
-        Haptics.select()
-        let achievement = ShareCard.Achievement.unlocked(badge.title, blurb: badge.blurb)
-        if let image = ShareCardRenderer.image({
-            AchievementShareCard(achievement: achievement, symbol: badgeSymbol(badge.id))
-        }) {
-            sharePayload = .image(image, title: badge.title)
-        }
-    }
-
     private var passport: Passport {
         Passport.compute(
             tried: bookmarks.ids(on: .tried),
@@ -94,21 +87,22 @@ public struct PassportScreen: View {
                 VStack(alignment: .leading, spacing: 18) {
                     rankCard(passport)
 
-                    // **STAMPS first (0.8.6, C2).** It was last, under four
-                    // sections of counters, which put the one part of this page
-                    // that is a *collection* below everything that merely
-                    // measures — and put it off the bottom of the screen on
-                    // first open. The order now reads rank, what you have earned,
-                    // then what you have counted.
+                    // **STAMPS first (0.8.6, C2), and now only the way in
+                    // (0.8.7, B1).**
+                    //
+                    // C2 moved this section above the counters and C3 gave it a
+                    // collection screen; what it left behind was the eight-tile
+                    // grid, so the same eight stamps were drawn twice in two
+                    // sizes one tap apart — a symbol and two words here, the
+                    // franked object over there. The item removes the duplicate,
+                    // and it is the grid that goes rather than the page: a tile
+                    // that shrinks a drawing to a lock glyph is the thing C3
+                    // was written to stop doing.
+                    //
+                    // What is left is one row saying how many of the series you
+                    // hold and opening the place where they are objects.
                     section("STAMPS") {
-                        VStack(spacing: 10) {
-                            LazyVGrid(columns: columns, spacing: 8) {
-                                ForEach(passport.badges) { badge in
-                                    badgeTile(badge)
-                                }
-                            }
-                            stampsButton(passport)
-                        }
+                        stampsButton(passport)
                     }
 
                     section("TASTINGS") {
@@ -195,12 +189,19 @@ public struct PassportScreen: View {
             }
             .contentMargins(12, for: .scrollContent)
 
+            // One celebration at a time, stamps before the ladder (0.8.7, D1).
+            // A tasting can earn both — a tenth entry that is also a rung — and
+            // the rank is the larger event, so it is the one left on screen when
+            // the stamps have been cleared.
             if let stamp = showingUnlock {
                 StampUnlockedPrompt(stamp: stamp) { advanceUnlockQueue() }
+            } else if let tier = pendingRank {
+                RankUnlockedPrompt(tier: tier) { pendingRank = nil }
             }
         }
         .shareCard($sharePayload)
         .animation(DexMotion.overlay, value: showingUnlock?.id)
+        .animation(DexMotion.overlay, value: pendingRank)
         // The backstop (0.7.1, D2). Unlocks are announced at the moment they
         // happen — see `EntryDetailScreen` — but three of the six badges can be
         // earned somewhere that has no passport in front of it (the quiz's top
@@ -209,7 +210,14 @@ public struct PassportScreen: View {
         .task {
             let current = passport
             passportProgress.seed(with: current)
+            // The ladder's own seed, on its own flag (0.8.7, D1). It has to be a
+            // second call rather than a line inside the first: `seededKey` is
+            // already true on every install, so a ladder folded into it would
+            // never be seeded and this screen would open on a celebration for a
+            // rank the user has held since 0.7.1. See `PassportProgress`.
+            passportProgress.seedTier(with: current)
             unlockQueue = passportProgress.announce(current)
+            pendingRank = passportProgress.announceTier(current)
             advanceUnlockQueue()
         }
     }
@@ -464,6 +472,35 @@ public struct PassportScreen: View {
     /// `art` is the drawn marquee face (0.8.6, C5) and `symbol` the stand-in
     /// `DexChromeGlyph` prints when the stem misses — the pair every drawn-art
     /// surface in this app is called with.
+    ///
+    /// ## Why the drawn face takes the tile's colour (0.8.7, B2)
+    ///
+    /// C5 gave these four tiles the marquee drop and left them looking like four
+    /// of the same thing. `DexChromeGlyph` renders art in the art's own colours
+    /// unless `flatten` is passed, and the marquee faces are one drop drawn for
+    /// one lit panel — so the four glyphs arrived here in a single ink while
+    /// every other part of the tile was already saying which row it was: the
+    /// border is `tint`, and `tint` is a different colour per row.
+    ///
+    /// **The right ink here is not the one 0.8.4's A2 chose**, and this is the
+    /// place to say why, because the expression is tempting to copy. A2 gave the
+    /// *marquee* glyph `ink` / `skin.marqueeShadow` — the same expression the
+    /// letters beside it read — on the argument that a glyph and the title next
+    /// to it are one legend cut into one lit panel, so they must be the same
+    /// material. That argument holds there and points somewhere else here. This
+    /// is not a legend beside a title; it is a row's mark beside that row's
+    /// numbers, on a surface where colour already carries which row you are
+    /// looking at. Reading `lcd.text` would make the four identical again, one
+    /// register brighter; reading `lcd.accent` would make them identical *and*
+    /// the same colour as the section heading above them.
+    ///
+    /// So it is `tint` — the colour the tile has been drawing its own border in
+    /// since the section shipped. The tile now has one colour rather than a
+    /// colour and a glyph that ignored it, which is A2's actual principle
+    /// applied to this surface: the mark is the same material as what it marks.
+    ///
+    /// The SF Symbol stand-in already took `tint` and always has, so this only
+    /// closes the gap the drawn branch opened.
     private func statTile(
         art: String?,
         symbol: String,
@@ -483,6 +520,7 @@ public struct PassportScreen: View {
                 size: 22,
                 weight: .semibold,
                 tint: tint,
+                flatten: tint,
                 smoothing: true
             )
             .frame(width: 26)
@@ -542,97 +580,17 @@ public struct PassportScreen: View {
         }
     }
 
-    /// An earned stamp is a button that shares it (0.7.8, B3/B4); an unearned
-    /// one stays inert, because there is nothing yet to announce.
-    @ViewBuilder
-    private func badgeTile(_ badge: Passport.Badge) -> some View {
-        if badge.earned {
-            Button { shareBadge(badge) } label: { badgeFace(badge) }
-                .buttonStyle(DexPressStyle(scale: 0.97))
-                .accessibilityLabel("Share \(badge.title)")
-                .accessibilityHint("Earned")
-        } else {
-            badgeFace(badge)
-        }
-    }
-
-    private func badgeFace(_ badge: Passport.Badge) -> some View {
-        VStack(spacing: 8) {
-            Image(systemName: badge.earned ? badgeSymbol(badge.id) : "lock.fill")
-                .font(.system(size: 26, weight: .semibold))
-                .foregroundStyle(badge.earned ? badgeTint(badge.id) : lcd.disabledText)
-                .frame(height: 30)
-            Text(badge.title)
-                .font(DexFont.retro(10))
-                .tracking(1)
-                .foregroundStyle(badge.earned ? lcd.text : lcd.disabledText)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-            Text(badge.blurb)
-                .font(DexFont.mono(15))
-                .foregroundStyle(lcd.subtext)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .minimumScaleFactor(0.8)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity)
-        .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
-        .overlay(
-            RoundedRectangle(cornerRadius: 6)
-                .strokeBorder(
-                    badge.earned ? badgeTint(badge.id).opacity(0.5) : lcd.surfaceEdge,
-                    lineWidth: badge.earned ? 2 : 1
-                )
-        )
-        // The affordance, small and in the corner: without it an earned stamp
-        // is a button nobody knows to press, which is the exact failure B4
-        // singles out.
-        .overlay(alignment: .topTrailing) {
-            if badge.earned {
-                Image(systemName: "square.and.arrow.up")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(lcd.subtext)
-                    .padding(6)
-            }
-        }
-        .opacity(badge.earned ? 1 : 0.75)
-    }
-
-    private func badgeSymbol(_ id: String) -> String {
-        switch id {
-        case "firstSip": "drop.fill"
-        case "tenBottles": "shippingbox.fill"
-        case "allNoble": "crown.fill"
-        case "regionComplete": "map.fill"
-        case "streakWeek": DexGlyph.challenge
-        case "sommelier": "graduationcap.fill"
-        // The two completions (0.8.6, C6), on the glyphs their categories wear
-        // on the marquee and on the menu — a completion badge says which shelf
-        // it emptied, so it takes that shelf's mark.
-        case "allGrapes": EntryCategory.grapes.marqueeSymbol
-        case "allStyles": EntryCategory.styles.marqueeSymbol
-        default: "seal.fill"
-        }
-    }
-
-    private func badgeTint(_ id: String) -> Color {
-        switch id {
-        case "firstSip": Dex.red500
-        case "tenBottles": Dex.blue
-        case "allNoble": Dex.yellow
-        case "regionComplete": Dex.green500
-        case "streakWeek": Color(dexHex: "#f97316")
-        case "sommelier": Color(dexHex: "#a855f7")
-        // Their stamps' own inks (0.8.6, C6), so a badge tile and the stamp it
-        // issues are the same colour — which is true of none of the six above,
-        // and is the small thing worth getting right on the two being added.
-        case "allGrapes": Color(dexHex: "#8F3366")
-        case "allStyles": Color(dexHex: "#3F6E33")
-        default: lcd.accent
-        }
-    }
 }
+
+// The eight-tile badge grid and its three helpers — `badgeTile`, `badgeFace`,
+// `badgeSymbol`, `badgeTint` — were deleted here in 0.8.7 (B1) along with the
+// section that drew them. `shareBadge` went with them and reappears in
+// `StampCollectionScreen`, which is where an earned stamp now is.
+//
+// The two lookup tables did *not* survive as tables. `badgeSymbol` and
+// `badgeTint` were a second opinion about every stamp's symbol and colour,
+// beside `StampCatalog`'s `fallbackSymbol` and `colorHex` — and they disagreed
+// on two of the eight (FIRST SIP was a drop here and a wineglass there, REGION
+// COMPLETE a filled map and a pin). The collection reads the catalog, which is
+// the record that also feeds the plate, the drawn stamp and the share card.
 #endif

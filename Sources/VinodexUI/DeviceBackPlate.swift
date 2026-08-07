@@ -106,62 +106,27 @@ public struct DeviceBackPlate: View {
                 .padding(.top, 104)
                 .allowsHitTesting(false)
 
-            // Two loose postage stamps, printed rather than earned (0.8.5, F1).
+            // **The two loose postage stamps are gone (0.8.7, A1).** 0.8.5's F1
+            // read `stamp1.png` and `stamp2.png` as the plate's own franking and
+            // mounted them here, below the price tag and under the serial block,
+            // as `BackPlateDecal.decalOne` / `.decalTwo`. Those two pictures are
+            // TRIED ALL GRAPES and TRIED ALL STYLES — see `StampCatalog` — so
+            // the decals lost the art. They had no code-drawn fallback (nothing
+            // was ever drawn here in `Canvas`), so keeping the cases would have
+            // left two permanently blank slots rather than two stickers, and the
+            // cases went with the pictures.
             //
-            // **They are franking, not collection**, which is the whole reason
-            // they sit here among the leavings and not in `stampField`: a stamp
-            // the Passport issues is a thing you got, it opens its own story on
-            // a tap, and it can be dragged. These two arrived on the device.
-            // Mounting them in the field would have put two permanently-earned
-            // badges in a collection of six, which is the confusion 0.7.8's A1
-            // spent a whole item undoing for the skin decal.
-            //
-            // Placed in the two corners the plate had left — below the price
-            // tag on the trailing edge, and under the serial block on the
-            // leading one — clear of all six `stampSlots` at their default
-            // offsets. They have no fallback: nothing was ever drawn here, so a
-            // miss is simply an emptier plate rather than a hole where
-            // something should be.
-            PlateDecal(.decalOne, width: 72) { EmptyView() }
-                .rotationEffect(.degrees(11))
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-                .padding(.trailing, 40)
-                .padding(.bottom, 196)
-                .allowsHitTesting(false)
-            PlateDecal(.decalTwo, width: 66) { EmptyView() }
-                .rotationEffect(.degrees(-9))
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-                .padding(.leading, 44)
-                .padding(.bottom, 214)
-                .allowsHitTesting(false)
+            // Nothing structural left with them: they were leavings, the plate
+            // keeps four kinds of leaving, and the two runs of bare plate they
+            // held are now somewhere the artifact can be dragged to.
 
-            // The skin's own aged sticker (0.6.4, F3) — the per-skin artifact
-            // the 0.6.2 stamp field displaced, back in the plate's fiction:
-            // something a previous owner stuck on. One per skin, so swapping
-            // shells swaps the sticker with it.
+            // Everything on the plate you can pick up (0.8.7, A2).
             //
-            // **A decal again, not a stamp** (0.7.8, A1). It is mounted here,
-            // among the factory leavings and *below* `stampField`, because
-            // that is what it is: 0.6.5 dressed it in the badge stamps'
-            // perforated frame and the plate has read as carrying seven
-            // collectibles ever since. Position in this `ZStack` is load-
-            // bearing for the same reason it declines hits — the stamps are
-            // the layer above, so even a decoration that somehow accepted a
-            // touch could not take one from them.
-            SkinStickerView(skin: skin)
-                .rotationEffect(.degrees(-7))
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .padding(.leading, 36)
-                .padding(.top, 190)
-                .allowsHitTesting(false)
-
             // Postage stamps (0.6.4, F2 — the redo of 0.6.2's rubber-ink
             // blocks): each Passport unlock sticks another paper stamp
             // somewhere else on the plate, and tapping one opens its story.
-            // Hit-testable on purpose, unlike every other leaving — the
-            // stamps are the plate's collection, and the info tap is F2's
-            // point.
-            stampField
+            // Plus, since A2, the shell's own artifact — see `plateField`.
+            plateField
 
             // The way back, in the corner nearest the thumb (0.6.8, B3).
             // Mounted after the stamps so a stamp dragged onto it cannot bury
@@ -334,7 +299,53 @@ public struct DeviceBackPlate: View {
     /// ("a plain tap fails the press … and falls through to `onTapGesture`");
     /// this is the modifier that actually grants it. The marquee lamps' hold-to-pin
     /// had reached the same conclusion from the other direction.
-    private var stampField: some View {
+    ///
+    /// ## One mechanism, two kinds of object (0.8.7, A2)
+    ///
+    /// The item asks for the shell's artifact to be movable "as well". Every
+    /// paragraph above is the cost of getting one draggable object on this
+    /// surface right — four releases of it — so the artifact goes through the
+    /// **same** `PlateDraggable`, and `stampField` became `plateField`: a stack
+    /// of *things on the plate you can pick up*, which today is eight stamps and
+    /// one artifact.
+    ///
+    /// `StampLayoutStore` takes the artifact's offset under a reserved id
+    /// (`artifactID`). That is a strict widening of a persisted vocabulary — the
+    /// store is `[String: StampOffset]` and reads with `try?` over a dictionary
+    /// rather than a fixed shape, so an install that has never moved the
+    /// artifact has no key for it, and one that has keeps every stamp key it
+    /// already had. Nothing needed a decoder.
+    ///
+    /// ## Tap and drag on the same object (0.8.7, A4)
+    ///
+    /// The item also asks that one tap on a stamp opens its info, and pairing
+    /// that with a drag on the same object is the thing most likely to ship
+    /// broken here — `VinodexUI` is invisible to `swift test`, so nothing
+    /// automated sees a gesture that never fires.
+    ///
+    /// What was wrong is narrow and was hiding behind the 0.25s hold. A press
+    /// shorter than that fails `LongPressGesture` and falls through to
+    /// `onTapGesture`, which opened the story — that path always worked. A press
+    /// *longer* than that is claimed by the high-priority sequence, and the
+    /// sequence's `onEnded` did nothing with a release that had not moved: it
+    /// wrote the stamp's existing offset back and buzzed. So whether a tap
+    /// opened anything depended on how long the finger happened to rest, at a
+    /// quarter of a second, with no feedback saying which side of it you landed
+    /// on.
+    ///
+    /// Arbitration is now by **movement, not duration**: a release the drag
+    /// never moved is a tap, at any hold length, and opens the object's story;
+    /// a release that moved commits the move. The threshold is 8pt, which is
+    /// not a new constant — it is 0.6.7's own measurement of the slop in an
+    /// ordinary touch, the number that batch cited when it removed
+    /// `DragGesture(minimumDistance: 8)` for firing on people who were only
+    /// reading a stamp. Below it, the finger did not mean to move.
+    ///
+    /// The lift-off keeps its job. It still says "this is yours to move now" the
+    /// instant the hold completes; what changed is that declining to move is no
+    /// longer a dead end, so the lift is an invitation rather than a mode you
+    /// have to tap your way back out of.
+    private var plateField: some View {
         let passport = Passport.compute(
             tried: BookmarkStore.shared.ids(on: .tried),
             in: WineDatabase.shared,
@@ -347,198 +358,61 @@ public struct DeviceBackPlate: View {
                 // against — the positioned children contribute none.
                 Color.clear
 
-                ForEach(StampCatalog.unlocked(from: passport)) { stamp in
-                    let slot = Self.stampSlots[stamp.id] ?? StampSlot(dx: 0, dy: 0, rotation: 0)
-                    let home = Self.origin(of: slot, in: geo.size)
-                    let live = dragging == stamp.id ? drag : .zero
-                    let moved = layout.offset(for: stamp.id)
-                    let at = Self.clamp(
-                        CGPoint(
-                            x: home.x + CGFloat(moved.dx) + live.width,
-                            y: home.y + CGFloat(moved.dy) + live.height
-                        ),
-                        in: geo.size
+                // The shell's own aged sticker (0.6.4, F3) — the per-skin
+                // artifact the 0.6.2 stamp field displaced, back in the plate's
+                // fiction: something a previous owner stuck on. One per shell,
+                // so swapping shells swaps the sticker with it.
+                //
+                // **Draggable, and therefore in this stack** (0.8.7, A2). It
+                // used to be mounted below the field with `allowsHitTesting`
+                // off, positioned by alignment and padding — which is the form
+                // 0.6.7's C1 had to abandon for the stamps, because an alignment
+                // can put a thing against an edge but has nowhere to put "and
+                // then 40pt right of that", and there is no plate size in scope
+                // to clamp a drag against.
+                //
+                // First in the stack, so it is *under* every stamp. That
+                // preserves the one thing 0.7.8's A1 bought with the old mount
+                // order: the plate carries eight collectibles and one
+                // decoration, and where they overlap the collectible is on top.
+                SkinStickerView(skin: skin)
+                    .modifier(
+                        PlateDraggable(
+                            id: Self.artifactID,
+                            slot: Self.artifactSlot,
+                            size: artifactSize,
+                            plate: geo.size,
+                            layout: layout,
+                            armed: $armed,
+                            dragging: $dragging,
+                            drag: $drag,
+                            label: "\(skin.displayName) artifact.",
+                            // No story: it is a decoration, not a badge. A tap
+                            // that opens nothing is honest here — the object
+                            // says what it is by being the shell's picture — and
+                            // it is what keeps A1's "seven collectibles" mistake
+                            // from coming back through the new gesture.
+                            onTap: nil
+                        )
                     )
 
-                    let lifted = armed == stamp.id || dragging == stamp.id
-
-                    // **Modifier order is the whole fix** (0.7.0, E2). See the
-                    // note on `stampField` above; the two rules are that every
-                    // transform the gesture drives sits *below* the gesture, and
-                    // that the gesture measures in the plate's space rather than
-                    // in the stamp's own.
+                ForEach(StampCatalog.unlocked(from: passport)) { stamp in
                     BackPlateStampView(stamp: stamp)
-                        .rotationEffect(.degrees(slot.rotation))
-                        // **The lift-off** (0.6.8, B1). Bigger and further off
-                        // the plate than 0.6.7's 1.08, and — crucially — it
-                        // happens the instant the hold completes, *before*
-                        // anything has moved. It is the whole feedback for a
-                        // gesture that is otherwise invisible: the stamp
-                        // peeling up is what says "this is yours to move now".
-                        .scaleEffect(lifted ? 1.16 : 1)
-                        .shadow(
-                            color: .black.opacity(lifted ? 0.45 : 0),
-                            radius: 12,
-                            y: 8
+                        .modifier(
+                            PlateDraggable(
+                                id: stamp.id,
+                                slot: Self.stampSlots[stamp.id]
+                                    ?? StampSlot(dx: 0, dy: 0, rotation: 0),
+                                size: Self.stampSize,
+                                plate: geo.size,
+                                layout: layout,
+                                armed: $armed,
+                                dragging: $dragging,
+                                drag: $drag,
+                                label: "\(stamp.title) stamp. Opens its story.",
+                                onTap: { openStamp = stamp }
+                            )
                         )
-                        .animation(DexMotion.press, value: lifted)
-                        // Frame and position first — everything below this line
-                        // is attached to a view already sitting where it belongs
-                        // in the plate's coordinate space, which is what stops
-                        // the drag from chasing its own tail.
-                        .frame(width: Self.stampSize.width, height: Self.stampSize.height)
-                        // **Inside the offset, deliberately** (0.7.2, A2). This
-                        // one line is the whole non-functional-stamps bug: out
-                        // here on the far side of `.offset` it pinned every
-                        // stamp's touch target to the un-offset layout frame in
-                        // the plate's top-left corner. See `stampField`'s note.
-                        .contentShape(Rectangle())
-                        .offset(x: at.x, y: at.y)
-                        .onTapGesture {
-                            // A tap on a lifted stamp puts it back down rather
-                            // than opening its story: someone who armed a drag
-                            // and changed their mind has no other way out, and
-                            // a modal appearing instead would read as the hold
-                            // having failed.
-                            Haptics.select()
-                            if lifted {
-                                armed = nil
-                            } else {
-                                openStamp = stamp
-                            }
-                        }
-                        // **Hold, then drag** (0.6.8, B1).
-                        //
-                        // 0.6.7 ran a bare `DragGesture(minimumDistance: 8)`
-                        // alongside the tap, which is why the plate felt buggy:
-                        // eight points is inside the slop of an ordinary touch,
-                        // so *reading* a stamp routinely nudged it, and the
-                        // recogniser also claimed the horizontal movement the
-                        // plate's own swipe-to-return needed (that swipe is gone
-                        // in this batch — see `body` — but the arming is the
-                        // fix either way, because I1's LCD swipe has the same
-                        // shape).
-                        //
-                        // `sequenced` rather than two independent gestures: it
-                        // is one recogniser that cannot start dragging until the
-                        // press has completed, so a plain tap fails the press,
-                        // never reaches the drag, and falls through to
-                        // `onTapGesture` above. Two gestures would race.
-                        //
-                        // **Named coordinate space** (0.7.0, E2), and the second
-                        // half of the fix. A bare `DragGesture` reports its
-                        // translation in `.local` — the *attached view's* space —
-                        // which here is a stamp carrying a `rotationEffect` of up
-                        // to 15° and, while lifted, a `scaleEffect` of 1.16.
-                        // Both transforms sit below the gesture, so a local
-                        // translation came back rotated and 16% long: dragging
-                        // right moved a tilted stamp right-and-up, and moved it
-                        // further than the finger went. Measuring in the plate's
-                        // own space is transform-free by construction.
-                        //
-                        // **Shortened to 0.25s (0.7.1, D3.)** The 0.7.0 fix
-                        // above is arithmetically right — the stamp tracks the
-                        // finger exactly — and D3 still arrived saying dragging
-                        // does not work. The remaining failure is not the
-                        // tracking, it is the *entry*: `LongPressGesture` fails
-                        // if the finger travels more than ~10pt before the
-                        // duration elapses, so anyone who presses and starts
-                        // moving straight away — which is what "drag this" means
-                        // to almost everybody — gets no gesture at all and
-                        // concludes it is broken. 0.35s is a long time to hold
-                        // perfectly still. 0.25 is about the shortest that still
-                        // cannot fire on a tap, and it is paired with the
-                        // engraved hint on the plate (see `nameplate`) so the
-                        // hold is something the device tells you about rather
-                        // than something you have to guess.
-                        //
-                        // **`highPriorityGesture`, not `gesture` (0.7.2, A2).**
-                        // The paragraph above this one describes a tap falling
-                        // through to `onTapGesture` *after* failing the press,
-                        // which is the behaviour of a gesture that gets first
-                        // refusal — and `.gesture(_:)` is documented as attaching
-                        // with lower precedence than gestures already declared on
-                        // the view. `onTapGesture` is declared on the view, four
-                        // lines up. So the sequence was the loser of that
-                        // exclusive pair, and since `TapGesture` has no maximum
-                        // duration, holding still and releasing simply read as a
-                        // slow tap.
-                        .highPriorityGesture(
-                            LongPressGesture(minimumDuration: 0.25)
-                                .onEnded { _ in
-                                    armed = stamp.id
-                                    Haptics.select()
-                                }
-                                .sequenced(
-                                    before: DragGesture(
-                                        minimumDistance: 0,
-                                        coordinateSpace: .named(Self.plateSpace)
-                                    )
-                                )
-                                .onChanged { value in
-                                    guard case .second(true, let move?) = value else { return }
-                                    dragging = stamp.id
-                                    drag = move.translation
-                                }
-                                .onEnded { value in
-                                    defer {
-                                        armed = nil
-                                        dragging = nil
-                                        drag = .zero
-                                    }
-                                    // The press completed but the finger lifted
-                                    // without moving: nothing to commit, and the
-                                    // stamp settles back where it was.
-                                    //
-                                    // **Falls back to the last live translation**
-                                    // (0.7.1, D3). A sequenced gesture that is
-                                    // interrupted rather than released — the
-                                    // classic case being an incoming call or the
-                                    // device being turned over mid-drag — can
-                                    // end without a `.second` payload, and the
-                                    // 0.7.0 code silently discarded the move. A
-                                    // position the user visibly dragged a stamp
-                                    // to and then lost is the exact complaint
-                                    // D3 makes, so the last translation this
-                                    // drag reported is committed instead.
-                                    let translation: CGSize
-                                    if case .second(true, let move?) = value {
-                                        translation = move.translation
-                                    } else if dragging == stamp.id, drag != .zero {
-                                        translation = drag
-                                    } else {
-                                        return
-                                    }
-                                    let settled = Self.clamp(
-                                        CGPoint(
-                                            x: home.x + CGFloat(moved.dx) + translation.width,
-                                            y: home.y + CGFloat(moved.dy) + translation.height
-                                        ),
-                                        in: geo.size
-                                    )
-                                    // Stored relative to the issued spot, not
-                                    // absolutely — see `StampOffset`.
-                                    layout.move(
-                                        stamp.id,
-                                        to: StampOffset(
-                                            dx: Double(settled.x - home.x),
-                                            dy: Double(settled.y - home.y)
-                                        )
-                                    )
-                                    Haptics.select()
-                                }
-                        )
-                        .accessibilityLabel("\(stamp.title) stamp. Opens its story.")
-                        .accessibilityHint("Press and hold, then drag to move it on the plate.")
-                        // VoiceOver cannot perform a hold-then-drag at all, so
-                        // the two things the gesture does are also offered as
-                        // named actions (0.7.1, D3): put it back where it was
-                        // issued, which is the only destination a screen reader
-                        // user could name unambiguously.
-                        .accessibilityAction(named: "Reset position") {
-                            layout.move(stamp.id, to: .zero)
-                            Haptics.select()
-                        }
                 }
             }
             // The space every drag is measured in — the plate's, not a stamp's.
@@ -548,12 +422,56 @@ public struct DeviceBackPlate: View {
         }
     }
 
+    /// The artifact's box on the plate (0.8.7, A2).
+    ///
+    /// **The drawing's own box, resolved from the file** rather than a constant
+    /// tall enough for all twenty. `SkinStickerView` lays the art out at a fixed
+    /// width with the height following the aspect, which runs 0.658 to 1.090
+    /// across the drop — a fixed 112x170 box would have given NOCTURNE its own
+    /// size and PÉT-NAT sixty points of empty hit region below it, and the clamp
+    /// works on this box, so the short shells would have been unable to reach
+    /// the bottom of the plate.
+    ///
+    /// The loader is cached and the lookup is a dictionary hit, so reading the
+    /// image here costs a `frame` rather than a decode. A shell with no drawn
+    /// artifact falls back to the code-drawn die-cut, which is square.
+    private var artifactSize: CGSize {
+        guard let art = PixelArtLoader.shared.image(skin.stickerStem),
+              art.size.width > 0, art.size.height > 0 else {
+            return CGSize(
+                width: SkinStickerView.fallbackSide,
+                height: SkinStickerView.fallbackSide
+            )
+        }
+        let width = SkinStickerView.drawnWidth
+        return CGSize(
+            width: width,
+            height: (width * art.size.height / art.size.width).rounded()
+        )
+    }
+
+    /// `StampLayoutStore`'s key for the artifact (0.8.7, A2).
+    ///
+    /// Prefixed so it cannot collide with a badge id, on the same rule
+    /// `EncyclopediaListScreen` applies to its search-bar anchor and
+    /// `SearchRow` to its country rows. `StampCatalog`'s ids are camel-case
+    /// words; nothing in the series could produce this.
+    static let artifactID = "__artifact__"
+
+    /// Where the artifact is issued.
+    ///
+    /// The spot it has occupied since 0.7.8 (A1), converted from the alignment
+    /// and padding it used to be laid out with: leading edge, below the top
+    /// screw, above the barcode. Same numbers, expressed the way a slot is.
+    private static let artifactSlot = StampSlot(dx: 36, dy: 190, rotation: -7)
+
     /// Name of the plate's coordinate space (0.7.0, E2).
     ///
     /// A constant rather than a literal at both ends: a typo in either would not
     /// fail to compile, it would silently fall back to a global measurement and
-    /// reintroduce a subtler version of the bug this fixes.
-    private static let plateSpace = "backPlateField"
+    /// reintroduce a subtler version of the bug this fixes. `fileprivate` since
+    /// 0.8.7 (A2), because `PlateDraggable` is the end that measures.
+    fileprivate static let plateSpace = "backPlateField"
 
     /// `BackPlateStampView`'s own frame, which the slot arithmetic has to know
     /// to place an origin and to clamp a drag. Matches its defaults.
@@ -570,34 +488,13 @@ public struct DeviceBackPlate: View {
     /// `BackPlateStampView`.
     private static let stampSize = CGSize(width: 72, height: 66)
 
-    private struct StampSlot {
+    /// `fileprivate` since 0.8.7 (A2): `PlateDraggable` places against it.
+    fileprivate struct StampSlot {
         /// Positive = from the leading edge, negative = from the trailing.
         let dx: CGFloat
         /// Positive = from the top edge, negative = from the bottom.
         let dy: CGFloat
         let rotation: Double
-    }
-
-    /// A slot's top-leading origin on a plate of this size. Negative offsets
-    /// measure back from the far edge, which is exactly what the trailing and
-    /// bottom paddings used to do.
-    private static func origin(of slot: StampSlot, in size: CGSize) -> CGPoint {
-        CGPoint(
-            x: slot.dx >= 0 ? slot.dx : size.width + slot.dx - stampSize.width,
-            y: slot.dy >= 0 ? slot.dy : size.height + slot.dy - stampSize.height
-        )
-    }
-
-    /// Keeps a dragged stamp on the plate. Clamped on the *unrotated* frame:
-    /// the stamps sit at up to 15°, so a corner does poke a few points past the
-    /// edge — which is what a stamp stuck near the edge of a real thing looks
-    /// like, and much better than reserving a rotation-proof margin the user
-    /// would feel as an invisible wall well inside the plate.
-    private static func clamp(_ point: CGPoint, in size: CGSize) -> CGPoint {
-        CGPoint(
-            x: min(max(point.x, 0), max(size.width - stampSize.width, 0)),
-            y: min(max(point.y, 0), max(size.height - stampSize.height, 0))
-        )
     }
 
     /// Where each stamp is *issued* — scattered clear of the engraving block,
@@ -848,6 +745,213 @@ public struct DeviceBackPlate: View {
         .allowsHitTesting(false)
     }
 
+}
+
+/// Everything it takes to make one object on the back plate pick-up-able
+/// (0.8.7, A2).
+///
+/// **Extracted rather than written twice**, which is the whole reason it is a
+/// type. `DeviceBackPlate.plateField`'s note is four releases of findings about
+/// this exact chain of modifiers — a feedback loop from applying the offset
+/// above the gesture (0.7.0, E2), six stamps sharing one hit region in the
+/// corner because `.contentShape` sat outside the offset (0.7.2, A2), a hold
+/// duration nobody could enter (0.7.1, D3), a sequence that lost its own
+/// exclusive pair (0.7.2, A2) — and the item asking for the artifact to move
+/// "as well" is an invitation to reproduce all four badly. There is one chain
+/// on this surface and both kinds of object go through it.
+///
+/// The three pieces of live gesture state are `@Binding` rather than local:
+/// they are *plate*-wide, because only one object can be under the finger, and
+/// a per-object copy would let two things be lifted at once.
+///
+/// The geometry is here too, since it is now per-object arithmetic — the
+/// artifact's box is not a stamp's — where 0.6.7's C1 could keep it as two
+/// statics reading one `stampSize`.
+private struct PlateDraggable: ViewModifier {
+    /// `StampLayoutStore`'s key. A badge id, or `DeviceBackPlate.artifactID`.
+    let id: String
+    let slot: DeviceBackPlate.StampSlot
+    /// This object's own box: the hit region, the layout frame, and what the
+    /// clamp keeps on the plate.
+    let size: CGSize
+    /// The plate's bounds, from the field's `GeometryReader`.
+    let plate: CGSize
+    let layout: StampLayoutStore
+
+    @Binding var armed: String?
+    @Binding var dragging: String?
+    @Binding var drag: CGSize
+
+    let label: String
+    /// What a tap opens, or nil for an object with nothing to say.
+    let onTap: (() -> Void)?
+
+    /// A release that travelled less than this is a tap (0.8.7, A4).
+    ///
+    /// 0.6.7's own number, and its own measurement: that batch ran a bare
+    /// `DragGesture(minimumDistance: 8)` and removed it because "eight points is
+    /// inside the slop of an ordinary touch, so *reading* a stamp routinely
+    /// nudged it". The finding is reused rather than re-derived — what was a
+    /// floor on starting a drag is now the floor on committing one.
+    private static let tapSlop: CGFloat = 8
+
+    /// A slot's top-leading origin on a plate of this size. Negative offsets
+    /// measure back from the far edge, which is exactly what the trailing and
+    /// bottom paddings used to do.
+    private var home: CGPoint {
+        CGPoint(
+            x: slot.dx >= 0 ? slot.dx : plate.width + slot.dx - size.width,
+            y: slot.dy >= 0 ? slot.dy : plate.height + slot.dy - size.height
+        )
+    }
+
+    /// Keeps a dragged object on the plate. Clamped on the *unrotated* frame:
+    /// these sit at up to 15°, so a corner does poke a few points past the
+    /// edge — which is what something stuck near the edge of a real thing looks
+    /// like, and much better than reserving a rotation-proof margin the user
+    /// would feel as an invisible wall well inside the plate.
+    private func clamp(_ point: CGPoint) -> CGPoint {
+        CGPoint(
+            x: min(max(point.x, 0), max(plate.width - size.width, 0)),
+            y: min(max(point.y, 0), max(plate.height - size.height, 0))
+        )
+    }
+
+    private var lifted: Bool { armed == id || dragging == id }
+
+    func body(content: Content) -> some View {
+        let moved = layout.offset(for: id)
+        let live = dragging == id ? drag : .zero
+        let at = clamp(
+            CGPoint(
+                x: home.x + CGFloat(moved.dx) + live.width,
+                y: home.y + CGFloat(moved.dy) + live.height
+            )
+        )
+
+        // **Modifier order is the whole fix** (0.7.0, E2 / 0.7.2, A2). The two
+        // rules are that every transform the gesture drives sits *below* the
+        // gesture, and that the gesture measures in the plate's space rather
+        // than in the object's own.
+        return content
+            .rotationEffect(.degrees(slot.rotation))
+            // **The lift-off** (0.6.8, B1). It happens the instant the hold
+            // completes, *before* anything has moved. It is the whole feedback
+            // for a gesture that is otherwise invisible: the object peeling up
+            // is what says "this is yours to move now".
+            .scaleEffect(lifted ? 1.16 : 1)
+            .shadow(color: .black.opacity(lifted ? 0.45 : 0), radius: 12, y: 8)
+            .animation(DexMotion.press, value: lifted)
+            // Frame and position first — everything below this line is attached
+            // to a view already sitting where it belongs in the plate's
+            // coordinate space, which is what stops the drag chasing its tail.
+            .frame(width: size.width, height: size.height)
+            // **Inside the offset, deliberately** (0.7.2, A2). Out on the far
+            // side of `.offset` this pinned every object's touch target to the
+            // un-offset layout frame in the plate's top-left corner, so all six
+            // stamps shared one hit region under the top screw and every stamp
+            // on screen was inert.
+            .contentShape(Rectangle())
+            .offset(x: at.x, y: at.y)
+            // The short-press path. A press under 0.25s fails the sequence
+            // below and lands here; a longer one is claimed by the sequence,
+            // which now ends in the same place when nothing moved. Both roads
+            // lead to the story, which is the point of A4 — see
+            // `DeviceBackPlate.plateField`.
+            .onTapGesture { tapped() }
+            // **Hold, then drag** (0.6.8, B1), `sequenced` so it is one
+            // recogniser that cannot start dragging until the press completes,
+            // measuring in the plate's named space (0.7.0, E2) because a local
+            // translation comes back rotated by up to 15° and 16% long while
+            // lifted, at 0.25s (0.7.1, D3) because `LongPressGesture` fails if
+            // the finger travels ~10pt first and 0.35s is a long time to hold
+            // still, and `highPriorityGesture` (0.7.2, A2) because `.gesture`
+            // attaches *below* the `onTapGesture` declared above it and
+            // `TapGesture` has no maximum duration, so the sequence was losing
+            // the exclusive pair to a slow tap.
+            .highPriorityGesture(
+                LongPressGesture(minimumDuration: 0.25)
+                    .onEnded { _ in
+                        armed = id
+                        Haptics.select()
+                    }
+                    .sequenced(
+                        before: DragGesture(
+                            minimumDistance: 0,
+                            coordinateSpace: .named(DeviceBackPlate.plateSpace)
+                        )
+                    )
+                    .onChanged { value in
+                        guard case .second(true, let move?) = value else { return }
+                        dragging = id
+                        drag = move.translation
+                    }
+                    .onEnded { value in
+                        defer {
+                            armed = nil
+                            dragging = nil
+                            drag = .zero
+                        }
+                        // **Falls back to the last live translation** (0.7.1,
+                        // D3). A sequenced gesture interrupted rather than
+                        // released — an incoming call, the device turned over
+                        // mid-drag — can end without a `.second` payload, and
+                        // the 0.7.0 code silently discarded the move.
+                        let translation: CGSize
+                        if case .second(true, let move?) = value {
+                            translation = move.translation
+                        } else if dragging == id, drag != .zero {
+                            translation = drag
+                        } else {
+                            translation = .zero
+                        }
+
+                        // **The arbitration** (0.8.7, A4). A release that never
+                        // travelled is a tap however long it was held, so it
+                        // opens the story instead of writing the object's
+                        // existing offset back over itself — which is all this
+                        // branch used to do, and is why one tap opened nothing
+                        // whenever the finger rested past a quarter of a second.
+                        guard hypot(translation.width, translation.height)
+                                >= Self.tapSlop else {
+                            tapped()
+                            return
+                        }
+
+                        let settled = clamp(
+                            CGPoint(
+                                x: home.x + CGFloat(moved.dx) + translation.width,
+                                y: home.y + CGFloat(moved.dy) + translation.height
+                            )
+                        )
+                        // Stored relative to the issued spot, not absolutely —
+                        // see `StampOffset`.
+                        layout.move(
+                            id,
+                            to: StampOffset(
+                                dx: Double(settled.x - home.x),
+                                dy: Double(settled.y - home.y)
+                            )
+                        )
+                        Haptics.select()
+                    }
+            )
+            .accessibilityLabel(label)
+            .accessibilityHint("Press and hold, then drag to move it on the plate.")
+            // VoiceOver cannot perform a hold-then-drag at all, so the thing the
+            // gesture does is also offered as a named action (0.7.1, D3): put it
+            // back where it was issued, which is the only destination a screen
+            // reader user could name unambiguously.
+            .accessibilityAction(named: "Reset position") {
+                layout.move(id, to: .zero)
+                Haptics.select()
+            }
+    }
+
+    private func tapped() {
+        Haptics.select()
+        onTap?()
+    }
 }
 
 extension View {

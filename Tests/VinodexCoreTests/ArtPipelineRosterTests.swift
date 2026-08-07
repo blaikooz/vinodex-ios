@@ -631,22 +631,23 @@ struct ArtPipelineRosterTests {
     /// the roster, *and* a stem listed here that has since been drawn fails it
     /// too — so the list cannot quietly become an excuse.
     ///
-    /// These two exist because 8.6's C6 asked for the two new badges' art under
-    /// the names `stamp1` and `stamp2`, and those names were already spent:
-    /// `art/icons/stamps/stamp1.png` and `stamp2.png` came in the 0.8.4 drop and
-    /// 0.8.5's F1 wired them as `BackPlateDecal.decalOne` / `.decalTwo`, the two
-    /// franked stamps printed on the plate. Reusing the names would have
-    /// replaced two shipped decals with two undrawn badges — silently, since
-    /// `import-stamp-art.py` copies by source stem. So the badges took stems of
-    /// their own and the art is a real gap, which is what this records.
-    private static let undrawnStampStems: Set<String> = [
-        "stamp-all-grapes",
-        "stamp-all-styles",
-    ]
+    /// **Empty since 0.8.7 (A1), and it emptied itself by that second rule.**
+    /// It held `stamp-all-grapes` and `stamp-all-styles` for one release: 8.6's
+    /// C6 asked for those two badges to take `stamp1.png` and `stamp2.png`, the
+    /// names were spent on the two back-plate decals, and the
+    /// badges got stems with no art behind them. 0.8.7's item 4 settles the
+    /// collision the other way — the badges take the pictures, the two decals
+    /// leave the plate — so the gap closed and the two rows came out. That is
+    /// the half of the design that stops a backlog rotting into an exemption,
+    /// working exactly once, which is the only way to find out that it does.
+    ///
+    /// Kept rather than deleted: the mechanism is the point, and the next stamp
+    /// wired ahead of its art is one row.
+    private static let undrawnStampStems: Set<String> = []
 
     /// **The stamp drop maps every source file onto a stem the app asks for.**
     ///
-    /// Eight Passport badges and four back-plate decals, less whatever
+    /// Eight Passport badges and two back-plate decals, less whatever
     /// `undrawnStampStems` names. `StampCatalog.artStem` and
     /// `BackPlateDecal.artStem` are both in Core, so this compares the Python
     /// against the types themselves rather than against another list.

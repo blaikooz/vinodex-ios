@@ -2365,6 +2365,11 @@ enum SavedDataReset {
             StampLayoutStore.storageKey,
             BookmarkStore.triedDaysKey,
             PassportProgress.storageKey,
+            // The ladder's ledger (0.8.7, D1). Belt to `PassportProgress.reset()`'s
+            // braces, exactly as the badge key above it is — the two `seeded`
+            // flags stay internal to Core and are only reachable through
+            // `reset()`, which this list is a second line of defence for.
+            PassportProgress.tierStorageKey,
             QuickPinStore.storageKey,
             StreakStore.streakKey,
             StreakStore.lastDayKey,

@@ -39,6 +39,26 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.8.7",
+  date: "2026-08-06",
+  // The two stamps nobody could earn find their pictures, the plate lets you
+  // move everything on it, and the ladder finally says something when you
+  // climb it.
+  headline: "PICK IT UP AND MOVE IT",
+  notes: [
+    "TRIED ALL GRAPES and TRIED ALL STYLES are drawn. The two pictures were printed on the back of the device as decoration; they are the two stamps now, and the decoration is gone.",
+    "The shell's artifact can be dragged around the back plate like the stamps, and one tap on a stamp opens its story however long you hold it.",
+    "The faint brown rectangle behind every stamp and behind the artifact is gone. The ageing was being painted over the whole box a drawing sits in rather than over the drawing.",
+    "The stamps are in one place. The passport says how many of the series you hold and opens the collection; the collection is where all eight are, and where you share one.",
+    "Levelling up says so. Crossing into VINODEX MASTER, GRANDMASTER, LEGEND or IMMORTAL raises the same kind of card a new stamp does -- and never for a rank you already held.",
+    "Every cross-link that lands in a filtered list now says FILTER SEARCH under a magnifying glass, with the chip you arrived on already lit and switchable. Seven differently-named scans were one screen.",
+    "The colour bleeding under the HOME button is gone. It was the cast shadow's own outline, welded to the bottom of the cap.",
+    "The four glyphs in TASTINGS take their row's colour instead of arriving in one ink.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const DISPLACED_0_8_6: FirmwareRelease = {
   version: "0.8.6",
   date: "2026-08-06",
   // The plate stops framing things that are already framed, the cog finally
@@ -168,6 +188,7 @@ const DISPLACED_0_8_1: FirmwareRelease = {
 
 /** Everything before `CURRENT`, newest first. */
 const PREVIOUS: FirmwareRelease[] = [
+  DISPLACED_0_8_6,
   DISPLACED_0_8_5,
   DISPLACED_0_8_4,
   DISPLACED_0_8_3,

@@ -41,6 +41,11 @@ public final class PassportProgress {
         self.defaults = defaults
         let raw = defaults.string(forKey: Self.storageKey) ?? ""
         seen = Set(raw.split(separator: ",").map(String.init)).filter { !$0.isEmpty }
+        // `object(forKey:)` rather than `integer(forKey:)`: the latter answers 0
+        // for an absent key, and 0 is VINODEX MASTER — "never announced" and
+        // "announced the first rung" are different states and the first must not
+        // decode as the second (0.8.7, D1).
+        seenTierRank = defaults.object(forKey: Self.tierStorageKey) as? Int
     }
 
     /// Whether anything has been recorded yet.
@@ -82,8 +87,11 @@ public final class PassportProgress {
 
     public func reset() {
         seen = []
+        seenTierRank = nil
         defaults.removeObject(forKey: Self.seededKey)
+        defaults.removeObject(forKey: Self.tierSeededKey)
         persist()
+        persistTier()
     }
 
     static let seededKey = "passportSeenBadgesSeeded"
@@ -93,6 +101,101 @@ public final class PassportProgress {
             defaults.removeObject(forKey: Self.storageKey)
         } else {
             defaults.set(seen.sorted().joined(separator: ","), forKey: Self.storageKey)
+        }
+    }
+
+    // MARK: - The ladder (0.8.7, D1)
+
+    /// The highest rung already announced, as `PassportTier.rank`.
+    ///
+    /// **The index, not the tier.** `PassportTier`'s rawValue *is* its display
+    /// copy — `PassportProgressionTests.tiersAreNotStorage` pins that equality
+    /// precisely so a rung can be renamed without a migration, and its own note
+    /// says "the moment a tier is written to defaults, the rename freedom is
+    /// gone and this test should be the thing that forces the conversation".
+    /// This is that conversation, and the answer is to store the thing that is
+    /// not the label. `rank` is `allCases.firstIndex(of:)`, so what this
+    /// commits to is the ladder's *order* rather than its words — and the order
+    /// is already pinned ascending by `PassportTierTests`. Renaming VINODEX
+    /// LEGEND stays free; inserting a rung between two existing ones would
+    /// silently promote everybody, which is the trade written down here and
+    /// asserted by `rankIndicesAreStable`.
+    public static let tierStorageKey = "passportSeenTierRank"
+
+    /// **A second flag, and the whole of D1's upgrade safety.**
+    ///
+    /// It would have been tidier to fold the ladder into `seededKey` and seed
+    /// both together. That is exactly the bug 0.7.5 flagged against `seed`
+    /// running once ever: `seededKey` has been true on every install since
+    /// 0.7.1, so a ladder guarded by it would never be seeded at all, and the
+    /// first `announceTier` after this update would celebrate a rank the user
+    /// has held for months. A vocabulary added later needs a flag added later.
+    static let tierSeededKey = "passportSeenTierSeeded"
+
+    /// nil means nothing has been announced — which is also a genuinely
+    /// unranked player, and is why the flag above exists separately.
+    private(set) public var seenTierRank: Int?
+
+    /// The rung crossed since the last call, or nil.
+    ///
+    /// Returns *the tier now held* rather than each rung passed on the way: the
+    /// ladder can be climbed by more than one rung in a single tasting only by
+    /// importing a shelf, and three stacked celebrations for one tap would be
+    /// the unreadable pile `advanceUnlockQueue` avoids for stamps. Recorded by
+    /// the act of asking, on `announce`'s contract and for its reason.
+    @discardableResult
+    public func announceTier(_ passport: Passport) -> PassportTier? {
+        guard let tier = passport.tier else { return nil }
+        if let seenTierRank, seenTierRank >= tier.rank { return nil }
+        seenTierRank = tier.rank
+        persistTier()
+        return tier
+    }
+
+    /// Mark the rung currently held as already announced. Once ever, on its own
+    /// flag — see `tierSeededKey`.
+    public func seedTier(with passport: Passport) {
+        guard !defaults.bool(forKey: Self.tierSeededKey) else { return }
+        seenTierRank = passport.tier?.rank
+        defaults.set(true, forKey: Self.tierSeededKey)
+        persistTier()
+    }
+
+    /// Whether either ledger still owes a seed.
+    ///
+    /// Exposed so a screen can decide *not* to compute a `Passport` — see
+    /// `seedIfNeeded`.
+    public var needsSeeding: Bool {
+        !defaults.bool(forKey: Self.seededKey) || !defaults.bool(forKey: Self.tierSeededKey)
+    }
+
+    /// Seed both ledgers, computing the passport only if one of them needs it.
+    ///
+    /// **Why this exists rather than another `seed(with:)` call site.** Seeding
+    /// has happened in exactly one place since 0.7.1 — the passport screen's
+    /// `task` — which leaves a hole D1 makes reachable: a user who updates and
+    /// then taps TRIED without ever opening the passport announces against an
+    /// unseeded ledger. For badges that hole has been open since 0.7.1 and costs
+    /// a stale celebration; for the ladder it would cost one on the *first tap
+    /// after updating*, which is the likeliest thing a returning player does.
+    ///
+    /// So the entry page seeds on appear, which is always before its own TRIED
+    /// pill can be pressed. `@autoclosure` keeps that free: after the first
+    /// launch `needsSeeding` is false and the passport is never computed, so
+    /// opening an entry does not walk the catalog for a flag that will be false
+    /// for the rest of the install's life.
+    public func seedIfNeeded(_ passport: @autoclosure () -> Passport) {
+        guard needsSeeding else { return }
+        let computed = passport()
+        seed(with: computed)
+        seedTier(with: computed)
+    }
+
+    private func persistTier() {
+        if let seenTierRank {
+            defaults.set(seenTierRank, forKey: Self.tierStorageKey)
+        } else {
+            defaults.removeObject(forKey: Self.tierStorageKey)
         }
     }
 }

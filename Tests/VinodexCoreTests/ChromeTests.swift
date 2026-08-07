@@ -161,6 +161,121 @@ struct ChromeTests {
         }
     }
 
+    /// **Filter search is one destination, and it is not the category's**
+    /// (0.8.7, C1).
+    ///
+    /// The item asks for every cross-linked tile that lands in a filter search
+    /// to say so, with the magnifier, and for the chip it arrived on to be lit.
+    /// That looks like it fights K2 rule 2 — `filteredListingsKeepTheirOwnArt`
+    /// above — and does not: rule 2 forbids a filtered listing from borrowing
+    /// its *parent category's* face, and this gives it a third identity of its
+    /// own. Both are asserted here, on the same routes, so the day one is
+    /// "fixed" at the other's expense this fails.
+    ///
+    /// The split itself is derived rather than listed — a filter is a filter
+    /// search exactly when it is expressible as a chip — so what is pinned is
+    /// *which* filters land on which side, because that is the decision a future
+    /// edit would move without noticing.
+    @Test("a filter that is a chip is a filter search, and wears the magnifier")
+    func filterSearchIsOneDestination() {
+        for filter in Self.allFilters {
+            guard filter.chipOption != nil else { continue }
+            #expect(filter.scanTitle == "FILTER SEARCH")
+            #expect(filter.marqueeSymbol == DexGlyph.search)
+            #expect(filter.marqueeArt == "marquee-mastersearch")
+            // Rule 2 still holds over the same routes: the face is the
+            // filter's, never the category's.
+            for category in EntryCategory.allCases {
+                let route = DexRoute.list(category: category, filter: filter)
+                #expect(route.title == "FILTER SEARCH")
+                #expect(route.marqueeArt == filter.marqueeArt)
+                #expect(route.marqueeSymbol == filter.marqueeSymbol)
+            }
+        }
+    }
+
+    /// Which filters convert, and the facet each becomes.
+    ///
+    /// A table because the derivation has two value-dependent arms and both were
+    /// settled by measuring the shipped catalog rather than by reading the code
+    /// — see `EntryFilter.chipOption`. `.type` converts for a grape's colour
+    /// (96 entries and 96, 81 and 81) and not for its body ("Full-Body Red" is
+    /// 35 where the BODY chip's "Full" is 47); `.origin` is left alone because
+    /// it matches tags as well as origins and nothing pushes it as a route.
+    @Test("the filters that are chips are exactly these, on exactly these facets")
+    func chipMappingIsPinned() {
+        #expect(EntryFilter.type("red").chipOption?.facet == .color)
+        #expect(EntryFilter.type("white").chipOption?.facet == .color)
+        // Case and diacritics fold, because the tile sends the raw value.
+        #expect(EntryFilter.type("Red").chipOption?.value == "red")
+        // The body tile. No chip says this, so it stays a scan.
+        #expect(EntryFilter.type("Full-Body Red").chipOption == nil)
+        #expect(EntryFilter.type("Full-Body Red").scanTitle == "STYLE SCAN")
+        // A style's colour tile can send these three; none is a grape colour.
+        #expect(EntryFilter.type("Rose").chipOption == nil)
+        #expect(EntryFilter.type("Orange").chipOption == nil)
+        #expect(EntryFilter.type("Dual").chipOption == nil)
+
+        #expect(EntryFilter.tasting("SWEET").chipOption?.facet == .flavorClass)
+        #expect(EntryFilter.tasting("SWEET").chipOption?.value == "SWEET")
+        #expect(EntryFilter.flavorSubclass("BERRY").chipOption?.facet == .flavorSubclass)
+        // The row's label unpicks the stored spelling, as the chip row does.
+        #expect(EntryFilter.flavorSubclass("STONE_FRUIT").chipOption?.label == "STONE FRUIT")
+        #expect(EntryFilter.rarity(.noble).chipOption?.facet == .rarity)
+        #expect(EntryFilter.system("ORIGIN").chipOption?.facet == .styleClass)
+        #expect(EntryFilter.climate(.cool).chipOption?.facet == .climate)
+
+        // The two that are not chips, and keep the scans they always had.
+        #expect(EntryFilter.region(["France"]).chipOption == nil)
+        #expect(EntryFilter.region(["France"]).scanTitle == "SECTOR SCAN")
+        #expect(EntryFilter.soil("Limestone").chipOption == nil)
+        #expect(EntryFilter.soil("Limestone").scanTitle == "GEOLOGY SCAN")
+        #expect(EntryFilter.origin("France").chipOption == nil)
+        #expect(EntryFilter.origin("France").scanTitle == "REGION SCAN")
+
+        // **The backlog, and it is one name now.** 0.8.5's B1 left four scans
+        // with no drawn marquee face — GEOLOGY, RARITY, SYSTEM and CLIMATE.
+        // Three of them stopped being scans in C1 and took the magnifier that
+        // was already on disk, so nothing was drawn to close them. `soil` is
+        // what remains, and it is the one filter kind nothing in the app pushes
+        // as a route.
+        let artless = Self.allFilters.filter { $0.marqueeArt == nil }
+        #expect(artless.count == 1, "artless scans: \(artless.map(\.scanTitle))")
+        #expect(artless.first?.scanTitle == "GEOLOGY SCAN")
+    }
+
+    /// **Every chip a filter names must be a chip the row actually offers.**
+    ///
+    /// `chipOption` builds an option from the filter's value, and a value no
+    /// facet lists would light a chip the user can neither see nor clear while
+    /// emptying the list under it. `EncyclopediaListScreen` guards that at the
+    /// seam; this is the same check where a test can reach it, over the values
+    /// the cross-linked tiles genuinely send.
+    @Test("a pre-selected chip is one its facet offers")
+    func presetChipsAreOffered() {
+        var live: [EntryFilter] = [
+            .type("red"), .type("white"),
+            .rarity(.noble), .rarity(.common),
+            .system("ORIGIN"), .system("METHOD"),
+        ]
+        live += ClimateClass.allCases.map { EntryFilter.climate($0) }
+        for entry in WineDatabase.shared.entries {
+            guard case .flavor(let flavor) = entry else { continue }
+            live.append(.tasting(flavor.details.classification))
+            live.append(.flavorSubclass(flavor.details.subclass))
+        }
+        for filter in live {
+            guard let option = filter.chipOption else {
+                Issue.record("\(filter) should be a chip")
+                continue
+            }
+            #expect(
+                ChipFilter.options(for: option.facet).contains(option),
+                "\(option.facet) offers no chip for \(option.value)"
+            )
+        }
+    }
+
     /// Catches a route added to the enum and never listed above — without which
     /// `glyphsAreDistinct` would silently stop covering it.
     ///

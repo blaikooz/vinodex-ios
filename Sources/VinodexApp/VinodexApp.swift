@@ -454,7 +454,18 @@ struct RootView: View {
         // is the narrowest of the three and the one this screen has taught.
         case .styles: [.styleClass, .styleColor, .country]
         case .flavors: [.flavorClass, .flavorSubclass]
-        case .regions, .continents: []
+        // **REGIONS gains CLIMATE (0.8.7, C1).** The note above says place
+        // filtering lives on the world search and this screen has none, which
+        // was true of *place* — country and region are search-bar territory by
+        // `ChipFacet`'s own closed-set rule. Climate is not a place: it is five
+        // values, regions-only, and it is what a region's CLIMATE tile
+        // cross-links on. C1 turns that cross-link into a pre-selected chip, so
+        // the row it lands in has to exist; without it the arrival would light a
+        // chip nobody could see or clear. The guard in
+        // `EncyclopediaListScreen.init` checks exactly that and would have
+        // declined to seed rather than break, which is how this was caught.
+        case .regions: [.climate]
+        case .continents: []
         }
     }
 

@@ -115,20 +115,29 @@ public enum StampCatalog {
             fallbackSymbol: "graduationcap.fill",
             denomination: "50¢"
         ),
-        // **The two completions (0.8.6, C6), and their stems are not `stamp1`
-        // and `stamp2`.** The item names those two assets, and they are taken:
-        // `art/icons/stamps/stamp1.png` and `stamp2.png` arrived in the 0.8.4
-        // drop and 0.8.5's F1 wired them as `BackPlateDecal.decalOne` and
-        // `.decalTwo` — the two loose franked stamps printed on the plate. They
-        // are drawn, imported, bundled and on screen. Claiming the names here
-        // would have replaced two shipped decals with two undrawn badges and
-        // left `import-stamp-art.py` mapping one source file onto two meanings.
+        // **The two completions, and they own `stamp1.png` and `stamp2.png`
+        // (0.8.7, A1 — reversing 0.8.6's C6).**
         //
-        // So the *names* move and the drawings stay: these take stems of their
-        // own, spelled for what they are like the six above them, and the art is
-        // a genuine gap rather than a collision. `ArtPipelineRosterTests`'
-        // `undrawnStampStems` is where that gap is named, two-way, so the day
-        // somebody draws `allgrapes.png` the test fails until the row is removed.
+        // 0.8.6 read the same two files as the plate's franking and gave these
+        // two badges stems with no art behind them, on the grounds that
+        // `BackPlateDecal.decalOne` / `.decalTwo` were already drawn, imported,
+        // bundled and on screen. The person who drew them has settled it the
+        // other way: the pictures are these two badges. So the two decals are
+        // gone from the plate — the enum is two cases shorter — and
+        // `import-stamp-art.py` points `stamp1` / `stamp2` here.
+        //
+        // The stems below did **not** change with the decision. They are spelled
+        // for what the badge is, which is this catalog's rule, and nothing
+        // derives a stem from a source filename; the whole reversal is two rows
+        // of `STEM_FOR` and two deleted enum cases. That is the property the
+        // 0.8.5 note about hand-written stem maps was arguing for, tested here
+        // rather than asserted: had either end spelled the other's names, this
+        // would have been a rename across four files and a bundle.
+        //
+        // With the art present, `ArtPipelineRosterTests.undrawnStampStems` is
+        // empty — the two-way gate now says "nothing is missing" rather than
+        // naming a gap, which is the state that list was built to be able to
+        // reach.
         //
         // Denominations continue the climb: these are the two hardest stamps in
         // the series, so they are the two dearest.
@@ -189,19 +198,30 @@ public enum StampCatalog {
 /// `Canvas`-drawn barcode and price tag it has always had, and draws them when
 /// `PixelArtLoader` returns nil. The gate above is what makes that a safety net
 /// instead of the state nobody notices we are in.
+///
+/// **Two cases, not four, since 0.8.7 (A1).** `decalOne` and `decalTwo` were the
+/// two loose postage stamps `stamp1.png` and `stamp2.png` were wired to in
+/// 0.8.5's F1. Those two pictures are TRIED ALL GRAPES and TRIED ALL STYLES —
+/// see `StampCatalog` — so the decals lost the art and, having no art and no
+/// fallback, they left the plate rather than becoming two blank slots.
+///
+/// **Nothing structural went with them.** These four were always leavings: the
+/// plate's fiction is a device that sat on a shelf, and it keeps the barcode,
+/// the price tag, the per-skin artifact and up to eight earned stamps. What the
+/// two decals occupied were the two runs of bare plate at
+/// `(trailing 40, bottom 196)` and `(leading 44, bottom 214)`, which are now
+/// free — and, since A2 makes the artifact draggable, free in a way the user can
+/// use. No replacement art is proposed here; a decal nobody has drawn is a
+/// decision for whoever draws one.
 public enum BackPlateDecal: String, CaseIterable, Sendable, Identifiable {
     /// The sun-faded barcode label, bottom-leading.
     case barcode
     /// The ripped price tag, top-trailing.
     case priceTag
-    /// Two loose postage stamps, printed rather than earned — the plate's own
-    /// franking rather than anything the Passport issues.
-    case decalOne
-    case decalTwo
 
     public var id: String { rawValue }
 
-    /// Ships in `StampArt` under the `stamp-` prefix, with the badges. A fifth
+    /// Ships in `StampArt` under the `stamp-` prefix, with the badges. A third
     /// prefix would have bought nothing: `PixelArtLoader`'s namespace is flat,
     /// these come out of the same source directory, and the stems are disjoint
     /// from `StampCatalog`'s by inspection and by test.
@@ -209,8 +229,6 @@ public enum BackPlateDecal: String, CaseIterable, Sendable, Identifiable {
         switch self {
         case .barcode: "stamp-barcode"
         case .priceTag: "stamp-price-tag"
-        case .decalOne: "stamp-decal-one"
-        case .decalTwo: "stamp-decal-two"
         }
     }
 }

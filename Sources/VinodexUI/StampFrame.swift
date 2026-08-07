@@ -102,7 +102,11 @@ struct BackPlateStampView: View {
                     .frame(width: width, height: height)
             }
         }
-        .modifier(WornOverlay(seed: WornOverlay.seed(stamp.id)))
+        // `.worn` rather than `.modifier(WornOverlay(…))` since 0.8.7 (A3): the
+        // aged pass now clips itself to whatever it is applied to, which is what
+        // stops the tea-stain painting the letterbox around a fitted drawing.
+        // See `WornOverlay`.
+        .worn(id: stamp.id)
         .shadow(color: .black.opacity(0.25), radius: 1, y: 1)
     }
 

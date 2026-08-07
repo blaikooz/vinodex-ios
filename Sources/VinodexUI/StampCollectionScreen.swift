@@ -36,7 +36,37 @@ public struct StampCollectionScreen: View {
     /// what that modal is for.
     @State private var openStamp: BackPlateStamp?
 
+    /// The rendered card waiting on the share sheet (0.8.7, B1).
+    ///
+    /// Arrived with the passport's badge grid, which is where an earned stamp
+    /// was shareable from until B1 removed the grid. The affordance follows the
+    /// object rather than dying with the tile that used to carry it — this is
+    /// now the only page in the app that draws all eight.
+    @State private var sharePayload: SharePayload?
+
     public init() {}
+
+    /// Announce one stamp (0.7.8, B3/B4 — moved here in 0.8.7, B1).
+    ///
+    /// Reads `StampCatalog` for the symbol rather than carrying a table of its
+    /// own. The passport had one, and after eight releases it disagreed with the
+    /// catalog on two of the eight badges: FIRST SIP was a drop there and a
+    /// wineglass here, REGION COMPLETE a filled map there and a pin here. A
+    /// share card is a picture of a thing the app also draws, so it reads the
+    /// record the app draws it from.
+    ///
+    /// `blurb` is the Passport's — what it took to earn — rather than the
+    /// stamp's `info`, which is the joke. A card that goes to somebody else says
+    /// what was achieved.
+    private func share(_ stamp: BackPlateStamp, blurb: String) {
+        Haptics.select()
+        let achievement = ShareCard.Achievement.unlocked(stamp.title, blurb: blurb)
+        if let image = ShareCardRenderer.image({
+            AchievementShareCard(achievement: achievement, symbol: stamp.fallbackSymbol)
+        }) {
+            sharePayload = .image(image, title: stamp.title)
+        }
+    }
 
     private var passport: Passport {
         Passport.compute(
@@ -81,6 +111,7 @@ public struct StampCollectionScreen: View {
                 .padding(14)
             }
         }
+        .shareCard($sharePayload)
         .overlay {
             if let stamp = openStamp {
                 DexAlert(
@@ -102,7 +133,7 @@ public struct StampCollectionScreen: View {
                 .font(DexFont.retro(14))
                 .tracking(1.5)
                 .foregroundStyle(lcd.accent)
-            Text("\(earnedCount) OF \(total) ISSUED. TAP A STAMP FOR ITS STORY.")
+            Text("\(earnedCount) OF \(total) ISSUED. TAP FOR ITS STORY, OR SHARE ONE YOU HOLD.")
                 .font(DexFont.mono(15))
                 .foregroundStyle(lcd.subtext)
                 .fixedSize(horizontal: false, vertical: true)
@@ -164,6 +195,30 @@ public struct StampCollectionScreen: View {
             "\(stamp.title). \(earned ? "Earned, \(stamp.denomination)." : "Not yet earned. \(blurb)")"
         )
         .accessibilityHint("Opens its story.")
+        // **A sibling of the tile, not a control inside it** (0.8.7, B1). The
+        // face is already a `Button`, and a second `Button` in its *label* is
+        // inside another button's hit region — the outer one wins and the share
+        // never fires. An `.overlay` on the finished button is a peer in the
+        // hit-test tree, drawn above, so it takes the touches that land on it
+        // and the rest of the card still opens the story.
+        //
+        // Unearned stamps get no control, for 0.7.8 B4's reason: there is
+        // nothing yet to announce.
+        .overlay(alignment: .topTrailing) {
+            if earned {
+                Button { share(stamp, blurb: blurb) } label: {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(lcd.accent)
+                        .frame(width: 30, height: 30)
+                        .background(Circle().fill(lcd.buttonWell))
+                        .overlay(Circle().strokeBorder(ink.opacity(0.55), lineWidth: 1.5))
+                }
+                .buttonStyle(DexPressStyle(scale: 0.9))
+                .padding(6)
+                .accessibilityLabel("Share \(stamp.title)")
+            }
+        }
     }
 }
 #endif

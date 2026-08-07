@@ -52,25 +52,37 @@ ROOT = os.path.dirname(HERE)
 # turn `npm run icons:verify` into a write (0.7.5, A027).
 DST = output_dir(ROOT, "StampArt")
 
-# Source file stem -> bundle stem. The six badges are `StampCatalog.artStem`
-# verbatim; the four decals are `BackPlateDecal.artStem` on the Swift side.
+# Source file stem -> bundle stem. The eight badges are `StampCatalog.artStem`
+# verbatim; the two decals are `BackPlateDecal.artStem` on the Swift side.
 # `StampRosterTests` asserts this table against both, in both directions.
 STEM_FOR = {
-    # The six Passport badges.
+    # The eight Passport badges.
     "firstsip": "stamp-first-sip",
     "tenbottles": "stamp-ten-bottles",
     "allnoble": "stamp-all-noble",
     "regioncomplete": "stamp-region-complete",
     "streakweek": "stamp-streak-week",
     "sommelier": "stamp-sommelier",
-    # The four back-plate decals (0.8.5, F1). `stamp-` rather than a fifth
+    # **The two completions, and this pair of rows is 0.8.7's item 4 (A1).**
+    # 0.8.6's C6 read the same two files as the plate's franking and minted
+    # `stamp-all-grapes` / `stamp-all-styles` for the badges, on the grounds
+    # that the decals were drawn, shipped and on screen. That decision is
+    # reversed by the person who drew them: these two pictures are TRIED ALL
+    # GRAPES and TRIED ALL STYLES, and the two loose decals they were wired to
+    # are gone from the plate rather than re-drawn.
+    #
+    # The *stems* stay spelled for what they are, which is this directory's rule
+    # since 0.8.5 -- what moved is which source file feeds them. Nothing here
+    # derives a stem from a filename, so a file renamed on the illustrator's
+    # disk is one row of this table.
+    "stamp1": "stamp-all-grapes",
+    "stamp2": "stamp-all-styles",
+    # The two back-plate decals (0.8.5, F1). `stamp-` rather than a third
     # prefix: they ship in this directory, they are drawn to the same brief, and
     # `PixelArtLoader`'s namespace is flat -- a second prefix here would buy
     # nothing and cost the loader another entry to reason about.
     "barcode": "stamp-barcode",
     "pricesticker": "stamp-price-tag",
-    "stamp1": "stamp-decal-one",
-    "stamp2": "stamp-decal-two",
 }
 
 

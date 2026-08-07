@@ -163,6 +163,63 @@ final class ChassisCapLoader {
     /// close to any of them.
     private static let glyphOuterLimit: CGFloat = 0.78
 
+    /// How far, in source pixels, a dark pixel may sit from the cap's lit body
+    /// and still be the cap's own cel outline (0.8.7, E1).
+    ///
+    /// **The residual 0.8.6 left, and it is not a clip problem either.** B1
+    /// replaced the fitted disc with "the largest connected opaque component"
+    /// and reported that what the disc had been introduced to remove was down to
+    /// "159 pixels on `home` and one or two on the other three, and they are
+    /// detached speckle, which is exactly what a largest-component rule takes".
+    /// Both halves of that are true and the sentence stops one measurement
+    /// short: the 159 *are* detached and *are* taken. What it did not measure is
+    /// what else `home` carries, which is **708 pixels of the largest component
+    /// itself lying past 1.05x its median radius** — 339 due south, 324
+    /// south-east, in a band from y=180 to y=247 — where the other three caps
+    /// carry none at all. That is a component the rule adopts, so no
+    /// component rule can remove it, and it is why the fringe under the house
+    /// survived a fix that worked everywhere else.
+    ///
+    /// **What it is.** The cast shadow's own cel outline. 0.8.3's B1 keyed the
+    /// shadow's *fill* out at import and 0.8.5's E2 made that sweep
+    /// border-connected; neither touches the black line drawn around it, because
+    /// `_is_key_shadow` needs chroma and a cel line has none — measured, the
+    /// survivors are (9,7,9), (8,7,9), (9,6,9): value 8-9, `g/max(r,b)` 0.67 to
+    /// 1.00, i.e. neutral. Relaxing the importer's predicate to reach them was
+    /// tried and is destructive: dropping `SHADOW_VALUE_FLOOR` from 16 to 4
+    /// takes `back`'s silhouette from sd 1.33 to **5.59** and punches 502
+    /// detached fragments out of it, because at that value the shadow's line and
+    /// the *cap's* line are the same colour. There is no threshold there.
+    ///
+    /// **What separates them is what an outline is for.** A cel line belongs to
+    /// the thing it encloses, and the shadow's line encloses nothing — its fill
+    /// is gone. So the measurement is the geodesic distance, inside the alpha,
+    /// from the cap's largest **lit** region, and it is not close:
+    ///
+    /// | cap | outline reaches | orphan |
+    /// | --- | --- | --- |
+    /// | `back` | 11 | — |
+    /// | `settings` | 12 (4px) | — |
+    /// | `user` | 11 | — |
+    /// | `home` | 12 (13px) | **2,079 pixels at 13 and beyond** |
+    ///
+    /// Twelve is between them. At that bound `back` and `user` lose nothing,
+    /// `settings` loses four pixels, and `home` loses the whole arc — rendered
+    /// over two liveries before the build, where it is the dark smear hanging
+    /// under the house and nothing else.
+    ///
+    /// It is deliberately *not* another radius: it is a statement about a
+    /// drawing style this whole drop shares — a moulded part with a line round
+    /// it — in the same spirit as B1's own connected-region glyph mask, and it
+    /// costs nothing on a fifth cap drawn the same way. A cap drawn with a
+    /// genuinely detached decoration would lose it, which is the honest failure
+    /// and the loud one.
+    ///
+    /// The glyph mask is unaffected: re-measured on the reduced parts, the four
+    /// symbols run 0.019-0.596, 0.038-0.597, 0.043-0.578 and 0.107-0.624, and
+    /// the nearest non-symbol still bottoms out at 0.297.
+    private static let outlineReach = 12
+
     /// The width, in source pixels, of the alpha ramp at the cap's edge.
     ///
     /// The sprites have strictly binary alpha -- measured: zero pixels between
@@ -244,31 +301,81 @@ final class ChassisCapLoader {
         // be most of them.
         var opaque = [Bool](repeating: false, count: count)
         for p in 0..<count where data[p * 4 + 3] > 0 { opaque[p] = true }
-        var seen = [Bool](repeating: false, count: count)
-        var part = [Bool](repeating: false, count: count)
         var stack: [Int] = []
         var region: [Int] = []
-        var bestSize = 0
-        for start in 0..<count where opaque[start] && !seen[start] {
-            stack.removeAll(keepingCapacity: true)
-            region.removeAll(keepingCapacity: true)
-            stack.append(start)
-            seen[start] = true
-            while let p = stack.popLast() {
-                region.append(p)
-                let x = p % w, y = p / w
-                if x > 0, opaque[p - 1], !seen[p - 1] { seen[p - 1] = true; stack.append(p - 1) }
-                if x < w - 1, opaque[p + 1], !seen[p + 1] { seen[p + 1] = true; stack.append(p + 1) }
-                if y > 0, opaque[p - w], !seen[p - w] { seen[p - w] = true; stack.append(p - w) }
-                if y < h - 1, opaque[p + w], !seen[p + w] { seen[p + w] = true; stack.append(p + w) }
+
+        /// The largest four-connected region of `mask`, as a mask.
+        func largestRegion(of mask: [Bool]) -> (part: [Bool], size: Int) {
+            var seen = [Bool](repeating: false, count: count)
+            var best = [Bool](repeating: false, count: count)
+            var bestSize = 0
+            for start in 0..<count where mask[start] && !seen[start] {
+                stack.removeAll(keepingCapacity: true)
+                region.removeAll(keepingCapacity: true)
+                stack.append(start)
+                seen[start] = true
+                while let p = stack.popLast() {
+                    region.append(p)
+                    let x = p % w, y = p / w
+                    if x > 0, mask[p - 1], !seen[p - 1] { seen[p - 1] = true; stack.append(p - 1) }
+                    if x < w - 1, mask[p + 1], !seen[p + 1] { seen[p + 1] = true; stack.append(p + 1) }
+                    if y > 0, mask[p - w], !seen[p - w] { seen[p - w] = true; stack.append(p - w) }
+                    if y < h - 1, mask[p + w], !seen[p + w] { seen[p + w] = true; stack.append(p + w) }
+                }
+                if region.count > bestSize {
+                    bestSize = region.count
+                    best = [Bool](repeating: false, count: count)
+                    for p in region { best[p] = true }
+                }
             }
-            if region.count > bestSize {
-                bestSize = region.count
-                part = [Bool](repeating: false, count: count)
-                for p in region { part[p] = true }
+            return (best, bestSize)
+        }
+
+        var (part, bestSize) = largestRegion(of: opaque)
+        guard bestSize > 0 else { return blank }
+
+        // **And the part is not everything attached to it** (0.8.7, E1). See
+        // `outlineReach`: the cast shadow's own cel line survives import (it has
+        // no chroma to key on) and touches the cap's line at the ends of the
+        // arc, so the component rule above adopts it. A cel line belongs to what
+        // it encloses, so anything more than `outlineReach` from the cap's lit
+        // body is not this cap's outline — and the shadow's line encloses
+        // nothing, because 0.8.3's B1 removed its fill.
+        var litMask = [Bool](repeating: false, count: count)
+        for p in 0..<count where part[p] {
+            let i = p * 4
+            if Self.value(r: data[i], g: data[i + 1], b: data[i + 2], a: data[i + 3]) > 0.06 {
+                litMask[p] = true
             }
         }
-        guard bestSize > 0 else { return blank }
+        let (body, bodySize) = largestRegion(of: litMask)
+        if bodySize > 0 {
+            var depth = [Int32](repeating: .max, count: count)
+            var walk: [Int] = []
+            walk.reserveCapacity(bodySize)
+            for p in 0..<count where body[p] { depth[p] = 0; walk.append(p) }
+            var cursor = 0
+            while cursor < walk.count {
+                let p = walk[cursor]; cursor += 1
+                guard depth[p] < Int32(Self.outlineReach) else { continue }
+                let x = p % w, y = p / w
+                let next = depth[p] + 1
+                if x > 0, part[p - 1], depth[p - 1] > next { depth[p - 1] = next; walk.append(p - 1) }
+                if x < w - 1, part[p + 1], depth[p + 1] > next { depth[p + 1] = next; walk.append(p + 1) }
+                if y > 0, part[p - w], depth[p - w] > next { depth[p - w] = next; walk.append(p - w) }
+                if y < h - 1, part[p + w], depth[p + w] > next { depth[p + w] = next; walk.append(p + w) }
+            }
+            var kept = [Bool](repeating: false, count: count)
+            for p in 0..<count where part[p] && depth[p] <= Int32(Self.outlineReach) { kept[p] = true }
+            // One piece again: trimming the arc cannot disconnect a disc, but
+            // asserting it by construction costs one pass and means no later
+            // drop can leave the coverage ramp measuring two things.
+            let (trimmed, trimmedSize) = largestRegion(of: kept)
+            if trimmedSize > 0 {
+                part = trimmed
+                bestSize = trimmedSize
+            }
+        }
 
         // Coverage: a breadth-first distance from the outside of the part, in
         // pixels, converted to an alpha ramp `edgeFeather` wide. Four-connected

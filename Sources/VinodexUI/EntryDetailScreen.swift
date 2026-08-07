@@ -53,6 +53,10 @@ public struct EntryDetailScreen: View {
     /// the rating prompt to close (0.7.1, D2).
     @State private var pendingUnlocks: [BackPlateStamp] = []
     @State private var showingUnlock: BackPlateStamp?
+    /// The rung the same tap crossed, if any (0.8.7, D1). Shown after the
+    /// stamps, which is why it is not in that queue: the queue is a list of one
+    /// kind of thing and this is the other kind.
+    @State private var pendingRank: PassportTier?
     @State private var bookmarks = BookmarkStore.shared
     /// Raised when TRIED turns on, and again from MY RATING's EDIT.
     @State private var showingRating = false
@@ -167,6 +171,13 @@ public struct EntryDetailScreen: View {
                 )
             } else if let stamp = showingUnlock {
                 StampUnlockedPrompt(stamp: stamp) { showNextUnlock() }
+            } else if let tier = pendingRank {
+                // After the stamps, before the paywall (0.8.7, D1). One tasting
+                // can produce a rating prompt, two stamps and a rung, and this
+                // ladder is what keeps them one at a time; the rank goes last of
+                // the celebrations because it is the biggest, and a paywall is
+                // not a celebration.
+                RankUnlockedPrompt(tier: tier) { pendingRank = nil }
             } else if let bundle = lockedBundle {
                 UpgradePrompt(
                     entitlement: bundle,
@@ -191,7 +202,27 @@ public struct EntryDetailScreen: View {
         }
         .animation(DexMotion.overlay, value: showingRating)
         .animation(DexMotion.overlay, value: showingUnlock?.id)
+        .animation(DexMotion.overlay, value: pendingRank)
         .animation(DexMotion.overlay, value: lockedBundle)
+        // **Seed both ledgers before this page's own TRIED pill can be pressed**
+        // (0.8.7, D1). Seeding has lived only in the passport screen's `task`
+        // since 0.7.1, which leaves a returning player who updates and taps
+        // TRIED without opening the passport announcing against an unseeded
+        // ledger — a stale stamp today, and a stale *rank* once D1 lands, on the
+        // first tap after updating. `seedIfNeeded` short-circuits on a flag
+        // before computing anything, so this costs nothing for the rest of the
+        // install's life. Not keyed on the entry: it is a once-ever job.
+        .task {
+            PassportProgress.shared.seedIfNeeded(
+                Passport.compute(
+                    tried: bookmarks.ids(on: .tried),
+                    in: db,
+                    bestStreak: StreakStore.shared.best,
+                    highestTier: QuizProgress.shared.highestUnlocked,
+                    triedDays: bookmarks.triedDayLog
+                )
+            )
+        }
         // The recent trail (0.6.3, item 3). Keyed on the id so a cross-link —
         // which swaps the entry without tearing this view down — records the
         // new entry too; a bare `.onAppear` would have credited only the first
@@ -336,6 +367,19 @@ public struct EntryDetailScreen: View {
                     let added = bookmarks.toggle(entry.id, on: .tried)
                     if added {
                         showingRating = true
+                        // The ladder moves on `triedTotal` and `triedTotal`
+                        // moves here and nowhere else, so this is the only live
+                        // moment a rung can be crossed (0.8.7, D1). Recorded at
+                        // the tap, like the stamps, never in a view body.
+                        pendingRank = PassportProgress.shared.announceTier(
+                            Passport.compute(
+                                tried: bookmarks.ids(on: .tried),
+                                in: db,
+                                bestStreak: StreakStore.shared.best,
+                                highestTier: QuizProgress.shared.highestUnlocked,
+                                triedDays: bookmarks.triedDayLog
+                            )
+                        )
                         // **The one moment a passport badge can be earned by
                         // tasting** (0.7.1, D2). Recorded here, at the tap,
                         // never in a view body — `TastingQuizScreen` carries

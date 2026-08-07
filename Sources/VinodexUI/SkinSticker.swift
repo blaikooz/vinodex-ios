@@ -98,7 +98,7 @@ private struct PeelFlap: Shape {
 /// | stock | cream postage paper | tinted vinyl over a cream die-cut margin |
 /// | printing | inner keyline, denomination corner, title | the glyph alone |
 /// | surface | matte | a gloss sweep — vinyl catches light, paper does not |
-/// | interaction | tap for its story, hold to drag | **inert** |
+/// | interaction | tap for its story, hold to drag | **hold to drag, no story** (0.8.7, A2) |
 /// | earned | by a Passport unlock | comes with the shell |
 ///
 /// What they still share is `WornOverlay`, and only that: both are objects
@@ -131,15 +131,25 @@ private struct PeelFlap: Shape {
 /// plate's own material and the object's contact with it, and they belong on
 /// both. `allowsHitTesting(false)` likewise.
 struct SkinStickerView: View {
-    let skin: ChassisSkin
-    /// The die-cut frame's box, on the fallback path only.
-    var size: CGFloat = 70
     /// The drawn artifact's width, sized against the plate's other leavings
     /// rather than against the frame it used to sit in (0.8.6, A1): the barcode
     /// is 122 and the price tag 96, and the item asks for "comparable". Height
     /// follows the file, which is portrait on thirteen of the twenty and roughly
-    /// square on the rest.
-    var stickerWidth: CGFloat = 112
+    /// square on the rest — measured, the aspect runs 0.658 to 1.090, so at this
+    /// width the drawings stand 103pt to 170pt tall.
+    ///
+    /// A `static` since 0.8.7 (A2), because the plate now has to know this box
+    /// before it lays the artifact out: it is a draggable object with a slot, an
+    /// origin and a clamp, exactly like a stamp, and all three are arithmetic on
+    /// the object's size. See `DeviceBackPlate.artifactSize`, which resolves the
+    /// height off the loaded drawing rather than assuming one.
+    static let drawnWidth: CGFloat = 112
+    /// The die-cut frame's box, on the fallback path only.
+    static let fallbackSide: CGFloat = 70
+
+    let skin: ChassisSkin
+    var size: CGFloat = SkinStickerView.fallbackSide
+    var stickerWidth: CGFloat = SkinStickerView.drawnWidth
 
     /// The vinyl's die-cut margin — the uncut border every sticker carries
     /// around its artwork. Warmer and lighter than the stamps' `#E9E6DA`
@@ -160,18 +170,34 @@ struct SkinStickerView: View {
                 framed
             }
         }
-        .modifier(WornOverlay(seed: WornOverlay.seed(skin.rawValue)))
+        // Clipped to the sticker's own die-cut since 0.8.7 (A3) — see
+        // `WornOverlay`. This is the object the bug was most visible on: the art
+        // is a die-cut with a peeled corner inside a fitted box, so the aged
+        // wash was painting every pixel of the box the sticker does not occupy.
+        .worn(id: skin.rawValue)
         .shadow(color: .black.opacity(0.28), radius: 1.5, y: 1.5)
-        // **Inert, and it says so itself** (0.7.8, A1). The call site on
-        // `DeviceBackPlate` also declines hits, as every other leaving on the
-        // plate does — this is the belt to that pair of braces, because the
-        // stamps' whole drag mechanism sits one `ZStack` layer above and the
-        // 0.7.2 A2 failure was a hit region reaching somewhere nobody expected
-        // it to. A decoration that can only ever refuse a touch cannot be the
-        // cause of the next one of those. There is deliberately no
-        // `contentShape` anywhere in this file.
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
+        // **No longer inert (0.8.7, A2), and the paragraph this replaces was
+        // right for its own release.**
+        //
+        // 0.7.8's A1 made this decline hits twice over — here and at the call
+        // site — with the argument that "a decoration that can only ever refuse
+        // a touch cannot be the cause of the next" 0.7.2-style dead-control bug.
+        // The item asks for the artifact to be movable like the stamps, so it
+        // stops being a decoration that refuses touches and becomes an object
+        // you can pick up.
+        //
+        // What A1's caution earns instead is *where* the gesture lives: this
+        // file still has no `contentShape` and no gesture in it. The plate
+        // mounts the artifact through the **same** `PlateDraggable` the eight
+        // stamps go through, so there is one hit-region rule on this surface
+        // rather than two, and the 0.7.2 failure — a `.contentShape` on the
+        // wrong side of an `.offset` — cannot be reintroduced here without
+        // being reintroduced for the stamps at the same time, where it would be
+        // noticed immediately.
+        //
+        // `accessibilityHidden` goes with it: an object a sighted user can move
+        // needs the named action a screen-reader user moves it with, and
+        // `PlateDraggable` supplies both that and the label.
     }
 
     /// The artifact as drawn (0.8.6, A1) — the whole file, at its own aspect.

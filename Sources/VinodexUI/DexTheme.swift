@@ -2632,7 +2632,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     ///
     /// **The rawValue is three separate commitments and was chosen once,
     /// carefully.** It is the `chassisSkin` `@AppStorage` value, the FNV-1a seed
-    /// `WornOverlay.seed(skin.rawValue)` draws the back plate's procedural wear
+    /// `WornSeed.of(skin.rawValue)` draws the back plate's procedural wear
     /// from, and the stem `stickerStem` derives (`sticker-w64`). Moving it later
     /// resets the shell, repaints the wear on the devices that survive, and
     /// orphans the sticker — the three costs FIBERGLASS's and HALLOWINE's rename
@@ -2794,7 +2794,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // PÉT-NAT → FIBERGLASS (0.7.5, A4). Label only, per the note above,
         // and the note is load-bearing on this case in particular: the rawValue
         // `"PET NAT"` is the `chassisSkin` `@AppStorage` value on every install
-        // wearing this shell, the FNV-1a seed `WornOverlay.seed(skin.rawValue)`
+        // wearing this shell, the FNV-1a seed `WornSeed.of(skin.rawValue)`
         // draws the back plate's procedural wear from, and the stem
         // `stickerStem` derives (`sticker-pet-nat`). Moving it would reset the
         // shell, repaint the wear on the devices that survived, and orphan the
@@ -2807,7 +2807,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .waldglas: "WALDGLAS"
         // HALLOWEEN → HALLOWINE (0.7.1, C4). Label only — the rawValue is the
         // `@AppStorage` key *and* the seed for the back plate's procedural wear
-        // (see `WornOverlay.seed`), so moving it would both reset every device
+        // (see `WornSeed.of`), so moving it would both reset every device
         // wearing this shell and repaint the ones that survived.
         case .halloween: "HALLOWINE"
         // The one skin whose label and stored word are the same string on

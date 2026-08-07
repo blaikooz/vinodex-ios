@@ -273,14 +273,132 @@ struct PassportProgressTests {
         #expect(store.announce(passport(earning: ["firstSip"])).map(\.id) == ["firstSip"])
     }
 
+    // MARK: - The ladder (0.8.7, D1)
+
+    /// A passport standing at one rung.
+    private func passport(at tier: PassportTier?) -> Passport {
+        let base = passport(earning: [])
+        return Passport(
+            triedGrapes: 0, totalGrapes: 0, triedStyles: 0, totalStyles: 0,
+            byColor: [:], colorTotals: [:], byRarity: [:], rarityTotals: [:],
+            countries: 0, continents: [], badges: base.badges,
+            triedTotal: tier?.threshold ?? 0,
+            tier: tier, nextTier: tier?.next ?? .master, towardNext: 0,
+            activity: []
+        )
+    }
+
+    @MainActor
+    @Test("a rung is announced once, and only upward")
+    func announcesTierOnce() {
+        let store = PassportProgress(defaults: makeDefaults())
+        store.seedTier(with: passport(at: nil))
+
+        #expect(store.announceTier(passport(at: nil)) == nil)
+        #expect(store.announceTier(passport(at: .master)) == .master)
+        #expect(store.announceTier(passport(at: .master)) == nil)
+        #expect(store.announceTier(passport(at: .grandmaster)) == .grandmaster)
+        // Two rungs in one step announces the rung reached, not each one
+        // passed — see `announceTier`.
+        #expect(store.announceTier(passport(at: .immortal)) == .immortal)
+        // And nothing on the way back down, which a shelf edit can cause.
+        #expect(store.announceTier(passport(at: .legend)) == nil)
+    }
+
+    /// **The 0.7.5 trap, and the whole reason the ladder has a flag of its
+    /// own.** `passportSeenBadgesSeeded` is already true on every install that
+    /// has opened the passport since 0.7.1, so a ladder guarded by it would
+    /// never be seeded and would celebrate a rank held for months on the first
+    /// launch after updating.
+    @MainActor
+    @Test("D1: an existing user's rank is seeded even though the badges already were")
+    func tierSeedsIndependentlyOfBadges() {
+        let defaults = makeDefaults()
+
+        // The 0.8.6 install: badges seeded, ladder unheard of.
+        let before = PassportProgress(defaults: defaults)
+        before.seed(with: passport(earning: ["firstSip", "tenBottles"]))
+
+        // First launch on 0.8.7.
+        let after = PassportProgress(defaults: defaults)
+        let held = passport(at: .legend)
+        after.seed(with: held)        // a no-op: the badge flag is set
+        after.seedTier(with: held)
+        #expect(after.announceTier(held) == nil, "celebrated a rank already held")
+
+        // And the rung above it is still news.
+        #expect(after.announceTier(passport(at: .immortal)) == .immortal)
+    }
+
+    @MainActor
+    @Test("seedIfNeeded computes nothing once both ledgers are seeded")
+    func seedIfNeededShortCircuits() {
+        let defaults = makeDefaults()
+        let store = PassportProgress(defaults: defaults)
+        var computed = 0
+        func make() -> Passport {
+            computed += 1
+            return passport(at: .master)
+        }
+        store.seedIfNeeded(make())
+        #expect(computed == 1)
+        #expect(!store.needsSeeding)
+        store.seedIfNeeded(make())
+        #expect(computed == 1, "recomputed the passport for a flag already set")
+        #expect(store.announceTier(passport(at: .master)) == nil)
+    }
+
+    /// The ledger persists a rank *index*, so "never announced" and "announced
+    /// the first rung" must survive a relaunch as different states —
+    /// `integer(forKey:)` answers 0 for both, and 0 is VINODEX MASTER.
+    @MainActor
+    @Test("an unannounced ladder does not decode as MASTER")
+    func absentRankIsNotZero() {
+        let defaults = makeDefaults()
+        let store = PassportProgress(defaults: defaults)
+        store.seedTier(with: passport(at: nil))
+        #expect(store.seenTierRank == nil)
+
+        let reloaded = PassportProgress(defaults: defaults)
+        #expect(reloaded.seenTierRank == nil)
+        #expect(reloaded.announceTier(passport(at: .master)) == .master)
+
+        let again = PassportProgress(defaults: defaults)
+        #expect(again.seenTierRank == 0)
+        #expect(again.announceTier(passport(at: .master)) == nil)
+    }
+
+    /// **What storing an index commits to.** Renaming a rung stays free — that
+    /// is `tiersAreNotStorage`'s whole point and this does not touch it — but
+    /// the *order* is now persisted, so inserting a rung between two existing
+    /// ones would promote every saved player by one. This is the pin that makes
+    /// that a decision rather than an accident.
+    @Test("rank indices are the ladder's order, and the ladder is append-only")
+    func rankIndicesAreStable() {
+        #expect(PassportTier.allCases.map(\.rank) == [0, 1, 2, 3])
+        #expect(PassportTier.master.rank == 0)
+        #expect(PassportTier.immortal.rank == 3)
+        // Ascending thresholds, which is what makes a higher index a higher
+        // rank rather than merely a later case.
+        let thresholds = PassportTier.allCases.map(\.threshold)
+        #expect(thresholds == thresholds.sorted())
+    }
+
     @MainActor
     @Test("reset clears the ledger and the seeded flag")
     func resetClears() {
         let defaults = makeDefaults()
         let store = PassportProgress(defaults: defaults)
         store.seed(with: passport(earning: ["firstSip"]))
+        store.seedTier(with: passport(at: .legend))
         store.reset()
         #expect(store.seen.isEmpty)
+        // Both ledgers and both flags (0.8.7, D1): a wipe that left the rank
+        // seeded would make the next MASTER silent on a device that has just
+        // been emptied.
+        #expect(store.seenTierRank == nil)
+        store.seedTier(with: passport(at: nil))
+        #expect(store.announceTier(passport(at: .master)) == .master)
         // Seeded again after a wipe, so a fresh start does not immediately
         // re-announce the badges the wipe was supposed to have removed.
         store.seed(with: passport(earning: []))

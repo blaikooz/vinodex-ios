@@ -81,10 +81,62 @@ public struct EncyclopediaListScreen: View {
         // restored and dropped together. `SearchStateStore.key` is static, so
         // it can be called before `self` is usable.
         let key = SearchStateStore.key(categories: categories, filter: filter)
-        _chips = State(
-            initialValue: ScreenStateStore.shared
-                .decoded(ChipFilter.self, "chips", for: key) ?? ChipFilter()
-        )
+        var restored = ScreenStateStore.shared
+            .decoded(ChipFilter.self, "chips", for: key) ?? ChipFilter()
+
+        // **The chip you arrived on, already lit** (0.8.7, C1).
+        //
+        // A cross-linked tile pushes `.list(category:filter:)`, and where that
+        // filter is expressible as a chip the page is a filter search — see
+        // `EntryFilter.chipOption` and `queryFilter` below. Seeding it here
+        // rather than in a `task` is 0.6.9's own argument for restoring in
+        // `init`: the list must open filtered rather than open wrong and correct
+        // itself a frame later.
+        //
+        // **Only when nothing is restored.** The chip is a live control now, so
+        // a user who turns it off must be able to; the key includes the filter,
+        // so "nothing restored" means "this is the first time this door has been
+        // opened", and adjusting the row is remembered from then on.
+        //
+        // **And only if the row actually offers it.** `chipOption` is derived
+        // from the filter's value, and a value no facet lists — a `.tasting`
+        // built from a tasting note rather than a classification — would light a
+        // chip that cannot be seen or cleared and would empty the list. Checked
+        // against the same `options(for:in:)` the row draws from, so the guard
+        // and the row can never disagree.
+        if restored.isEmpty,
+           let preset = filter?.chipOption,
+           chipFacets.contains(preset.facet),
+           ChipFilter.options(
+               for: preset.facet,
+               in: categories,
+               includingCountries: showsCountries
+           ).contains(preset) {
+            restored.toggle(preset)
+        }
+        _chips = State(initialValue: restored)
+    }
+
+    /// The filter as a chip, when it is one (0.8.7, C1).
+    private var presetChip: ChipOption? { filter?.chipOption }
+
+    /// The filter the *query* applies.
+    ///
+    /// **Nil once the constraint has been handed to the chip row**, which is the
+    /// half of C1 that makes the pre-selected chip a control rather than a
+    /// decoration. Applying both would have narrowed the list twice by the same
+    /// predicate — harmless, since the two are the same set — and left the chip
+    /// unable to widen it again: turning SWEET off would have changed nothing,
+    /// because `EntryQuery`'s filter would still be there. A control that cannot
+    /// be turned off is worse than no control.
+    ///
+    /// The two are only exchanged where they are the same set, which
+    /// `EntryFilter.chipOption` establishes by measurement rather than by
+    /// assertion — and the extra `presetChip == chips`-shaped conditions in
+    /// `init` mean the exchange only happens when the chip is really lit.
+    private var queryFilter: EntryFilter? {
+        guard let presetChip, chips.isOn(presetChip) else { return filter }
+        return nil
     }
 
     /// Recomputed only when the query actually changes.
@@ -141,7 +193,7 @@ public struct EncyclopediaListScreen: View {
         // `db.entries(matching:)`, not `db.entries.apply(_:)`: the folding and
         // the sort are done once at load rather than per keystroke (AUDIT M5).
         let entries = db.entries(
-            matching: EntryQuery(categories: categories, filter: filter, search: search)
+            matching: EntryQuery(categories: categories, filter: queryFilter, search: search)
         )
             // The chip predicate rides on the survivors of the indexed pass,
             // exactly as `ChipFilterScreen` does it — and short-circuited when
@@ -198,8 +250,17 @@ public struct EncyclopediaListScreen: View {
 
     private var content: some View {
         VStack(spacing: 0) {
-            if let filter {
-                filterBanner(filter)
+            // The banner says what is narrowing this list — unless the chip row
+            // is already saying it (0.8.7, C1). Before C1 a cross-linked arrival
+            // showed `FILTER: SWEET` in a strip it could not act on, above a
+            // FILTER dropdown reporting nothing on; now the constraint is a lit
+            // chip in that dropdown, and a second immovable statement of it
+            // would be the redundancy the item is complaining about.
+            //
+            // `queryFilter`, not `filter`: they differ exactly when the chip has
+            // taken over, so this cannot drift from what is actually filtering.
+            if let banner = queryFilter {
+                filterBanner(banner)
             }
 
             ZStack {

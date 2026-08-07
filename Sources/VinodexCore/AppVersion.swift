@@ -229,7 +229,7 @@ public enum AppVersion {
     /// does not change layout, that pinned all six stamps' hit regions to one
     /// 88×104 box in the plate's top-left corner. Taps were dead too — nobody
     /// reported it because the drag was what people were trying. The lesson is
-    /// in `DeviceBackPlate.stampField`: a threshold that changes nothing is
+    /// in `DeviceBackPlate.plateField`: a threshold that changes nothing is
     /// evidence the event never arrived, not evidence it needs to be lower.
     ///
     /// The rest is the marquee, which is now the app's control surface rather
