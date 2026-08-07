@@ -303,8 +303,10 @@ public enum ExamPaper {
 
         let categories = ExamCategory.allCases
         var rng = ExamRandom(seed: seed)
-        // One shuffled queue per category, drawn from the front.
-        var queues: [[ExamQuestion]] = categories.map {
+        // One shuffled queue per category, drawn from the front. `let`, not
+        // `var`: the draw is done by `cursors` below rather than by removing
+        // from the queues, so nothing here is ever mutated after the shuffle.
+        let queues: [[ExamQuestion]] = categories.map {
             catalog.questions(tier: tier, category: $0).shuffled(using: &rng)
         }
         var cursors = [Int](repeating: 0, count: categories.count)
