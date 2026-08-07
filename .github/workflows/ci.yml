@@ -27,7 +27,17 @@ jobs:
   test:
     name: swift test (Linux)
     runs-on: ubuntu-latest
-    container: swift:6.0
+    # Pinned to the toolchain the maintainers actually build with (WSL runs
+    # 6.3.3), and that is the entire point of the pin. It was `swift:6.0` from
+    # the day this file was written, two generations behind the local
+    # toolchain, and the gap is what kept CI red: 6.0's type-checker gives up on
+    # expressions 6.3 accepts, so `Insight.swift` and `GrapeLineageIndex.swift`
+    # failed here while every local gate stayed green. A gate that cannot agree
+    # with the developer's compiler is not a gate.
+    #
+    # Bump this deliberately and together with the macOS jobs below — never let
+    # one drift ahead of the other.
+    container: swift:6.3.3
     steps:
       - uses: actions/checkout@v4
 
@@ -104,6 +114,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The runner's *default* Xcode was 16.4 (Swift 6.1.x) while the app ships
+      # off a 6.3.3 toolchain, and that two-generation gap is not cosmetic:
+      # Swift 6.2 changed default closure isolation, so `BookmarksScreen`'s
+      # PhotosPicker label produced six main-actor errors here and none locally.
+      # Selecting the newest Xcode on the image is what makes this job agree
+      # with the compiler that actually builds the shipped app.
+      #
+      # Chosen by sort rather than pinned by name so a runner-image refresh
+      # cannot fail the job on a missing `Xcode_x.y.app`; the version is echoed
+      # so a behaviour change is attributable to the log.
+      - name: Select the newest Xcode
+        run: |
+          ls -d /Applications/Xcode*.app
+          latest=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          echo "selecting $latest"
+          sudo xcode-select -s "$latest/Contents/Developer"
+
       - name: Show toolchain
         run: |
           xcodebuild -version
@@ -133,6 +160,15 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+
+      # Kept in lockstep with the `ios` job above — see the note there. Two
+      # macOS jobs on different Xcodes would be worse than one.
+      - name: Select the newest Xcode
+        run: |
+          ls -d /Applications/Xcode*.app
+          latest=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          echo "selecting $latest"
+          sudo xcode-select -s "$latest/Contents/Developer"
 
       - name: Available simulators
         run: xcrun simctl list devices available
