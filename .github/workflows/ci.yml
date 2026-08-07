@@ -61,12 +61,29 @@ jobs:
       # cache, so the next rename misses instead of poisoning. `restore-keys` is
       # scoped the same way for the same reason — an unscoped prefix fallback
       # would walk straight back into a stale entry.
+      #
+      # **The toolchain is part of that identity too, and leaving it out cost a
+      # second incident.** Bumping the container from 6.0 to 6.3.3 changes
+      # nothing this key hashes, so the first 6.3.3 run restored a `.build` the
+      # 6.0 container had written and `swift test` ran against stale artefacts:
+      # 738/738 passing locally, a crashing suite here, and symptoms —
+      # relationship counts of zero, quizzes generating no questions — that read
+      # exactly like corrupted data. It was never the data; the iOS Simulator
+      # job ran the same tests off the same JSON and passed.
+      #
+      # So the compiler that wrote the cache now names it. A toolchain bump
+      # misses cleanly instead of poisoning, which is the same discipline the
+      # rename taught, applied to the other half of the cache's identity.
+      - name: Toolchain fingerprint for the cache key
+        id: toolchain
+        run: echo "id=$(swift --version | head -1 | sed 's/.*version \([0-9.]*\).*/\1/')" >> "$GITHUB_OUTPUT"
+
       - name: Cache .build
         uses: actions/cache@v4
         with:
           path: .build
-          key: ${{ runner.os }}-swiftpm-${{ github.repository }}-${{ hashFiles('Package.swift', 'Package.resolved') }}
-          restore-keys: ${{ runner.os }}-swiftpm-${{ github.repository }}-
+          key: ${{ runner.os }}-swiftpm-${{ github.repository }}-swift${{ steps.toolchain.outputs.id }}-${{ hashFiles('Package.swift', 'Package.resolved') }}
+          restore-keys: ${{ runner.os }}-swiftpm-${{ github.repository }}-swift${{ steps.toolchain.outputs.id }}-
 
       - name: Test
         run: swift test --enable-code-coverage
