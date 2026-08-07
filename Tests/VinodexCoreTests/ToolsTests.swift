@@ -358,8 +358,20 @@ struct TastingQuizTests {
 struct QuizSessionTests {
     private let db = WineDatabase.shared
 
-    private func someQuestion(for session: QuizSession) -> QuizQuestion {
-        TastingQuiz.question(number: session.index, sessionSeed: session.seed, in: db)!
+    /// `try #require` rather than `!`, and the difference is what the run looks
+    /// like when the quiz stops generating: a force unwrap traps, which kills
+    /// the whole test process on SIGILL and takes every suite that had not run
+    /// yet with it — the reason a stale CI cache surfaced as a crash and a
+    /// hundred lines of backtrace instead of a named failing test.
+    ///
+    /// It stays an assertion. Returning an optional and letting callers skip a
+    /// nil question would turn "the quiz is broken" into a silently shorter
+    /// test, which is the one outcome worse than a crash.
+    private func someQuestion(for session: QuizSession) throws -> QuizQuestion {
+        try #require(
+            TastingQuiz.question(number: session.index, sessionSeed: session.seed, in: db),
+            "seed \(session.seed) question \(session.index) produced nothing"
+        )
     }
 
     @Test("a fresh session starts clean")
@@ -374,11 +386,11 @@ struct QuizSessionTests {
     }
 
     @Test("choosing scores rights and not wrongs, and the first tap is final")
-    func choosingScores() {
+    func choosingScores() throws {
         var session = QuizSession(seed: 5)
-        let q = someQuestion(for: session)
+        let q = try someQuestion(for: session)
 
-        let wrong = q.optionIDs.first { $0 != q.answerID }!
+        let wrong = try #require(q.optionIDs.first { $0 != q.answerID })
         session.choose(wrong, in: q)
         #expect(session.correct == 0)
         #expect(session.chosenID == wrong)
@@ -389,13 +401,13 @@ struct QuizSessionTests {
         #expect(session.chosenID == wrong)
 
         session.advance()
-        let q2 = someQuestion(for: session)
+        let q2 = try someQuestion(for: session)
         session.choose(q2.answerID, in: q2)
         #expect(session.correct == 1)
     }
 
     @Test("advance requires an answer, clears it, and completes at ten")
-    func advanceWalksTheRun() {
+    func advanceWalksTheRun() throws {
         var session = QuizSession(seed: 9)
 
         // Advancing an unanswered question is a no-op.
@@ -404,7 +416,7 @@ struct QuizSessionTests {
 
         for number in 0..<QuizSession.length {
             #expect(session.index == number)
-            let q = someQuestion(for: session)
+            let q = try someQuestion(for: session)
             session.choose(q.answerID, in: q)
             #expect(session.answered)
             session.advance()
@@ -422,12 +434,13 @@ struct QuizSessionTests {
 
     /// The 80% boundary: eight right passes, seven fails.
     @Test("the pass mark sits at eight of ten")
-    func passBoundary() {
+    func passBoundary() throws {
         for target in [QuizSession.passMark - 1, QuizSession.passMark] {
             var session = QuizSession(seed: 12)
             for number in 0..<QuizSession.length {
-                let q = someQuestion(for: session)
-                let id = number < target ? q.answerID : q.optionIDs.first { $0 != q.answerID }!
+                let q = try someQuestion(for: session)
+                let wrong = try #require(q.optionIDs.first { $0 != q.answerID })
+                let id = number < target ? q.answerID : wrong
                 session.choose(id, in: q)
                 session.advance()
             }
@@ -437,9 +450,9 @@ struct QuizSessionTests {
     }
 
     @Test("retry starts a different paper from scratch")
-    func retryIsFresh() {
+    func retryIsFresh() throws {
         var session = QuizSession(seed: 21)
-        let q = someQuestion(for: session)
+        let q = try someQuestion(for: session)
         session.choose(q.answerID, in: q)
         session.advance()
 
@@ -455,7 +468,7 @@ struct QuizSessionTests {
     @Test("a session round-trips through JSON")
     func codableRoundTrip() throws {
         var session = QuizSession(seed: 33, tier: .sommelier)
-        let q = someQuestion(for: session)
+        let q = try someQuestion(for: session)
         session.choose(q.answerID, in: q)
 
         let data = try JSONEncoder().encode(session)
