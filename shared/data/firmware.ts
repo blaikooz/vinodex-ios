@@ -39,6 +39,27 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.8.8",
+  date: "2026-08-06",
+  // The guessing game gets an economy and a memory, six tools learn to
+  // introduce themselves, and the tour stops describing a device that changed
+  // underneath it.
+  headline: "EVERY CLUE HAS A PRICE",
+  notes: [
+    "WHAT'S THAT...? is a game now. Every clue is priced by how much it gives away and you choose which to buy; naming the wrong wine turns over the cheapest one left, and running out of clues loses the round. Guessing used to be free, which made spamming names the best way to play.",
+    "It keeps score. Rounds played, solves, best score and a run of consecutive solves, on the screen and on disk -- the old score was thrown away the moment you left.",
+    "Each tool explains itself the first time you open it: what it is, how it works, and what it costs you. One card per tool, and one control on the card that dismisses all six.",
+    "The tour covers the passport, the workshop and the shop, and no longer lists a tool that is not on the shelf while omitting one that is. Its device is a fixed size on every step instead of growing and shrinking with the paragraph beside it.",
+    "STYLE SCAN is gone. A grape's TYPE tile lands on FILTER SEARCH with a STYLE chip lit -- ten values the catalog already carried, none of which the BODY and COLOUR chips could say between them.",
+    "A style's COLOR tile goes to styles of that colour instead of to grapes. It used to send you to every red grape, to all 177 grapes from a dual style, or to nothing at all from a rose or an orange one.",
+    "Sharing a stamp sends the stamp. The card drew a plain symbol in the screen's colour for an object the app draws properly in three other places.",
+    "The DATA screen's six counts wear their drawn faces, each in its own row's colour -- and REGIONS and CONTINENTS had their symbols the wrong way round.",
+    "SAVE THIS BUILD and SAVED BUILDS sit above SHELL in the workshop, next to the device they save rather than ten sections below it.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const DISPLACED_0_8_7: FirmwareRelease = {
   version: "0.8.7",
   date: "2026-08-06",
   // The two stamps nobody could earn find their pictures, the plate lets you
@@ -188,6 +209,7 @@ const DISPLACED_0_8_1: FirmwareRelease = {
 
 /** Everything before `CURRENT`, newest first. */
 const PREVIOUS: FirmwareRelease[] = [
+  DISPLACED_0_8_7,
   DISPLACED_0_8_6,
   DISPLACED_0_8_5,
   DISPLACED_0_8_4,

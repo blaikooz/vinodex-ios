@@ -1561,7 +1561,10 @@ public struct SettingsSectionPanel: View {
                 }
                 .buttonStyle(DexPressStyle(scale: 0.98))
 
-                Text("Erases bookmarks, tastings and ratings, quiz progress, the daily streak, name and photo, purchases, skin, screen and text settings. The encyclopedia itself is untouched.")
+                // "quiz and game scores" since 0.8.8 (E3): WHAT'S THAT…? keeps a
+                // record now and this button erases it, so the sentence that
+                // tells you what you are about to lose has to say so.
+                Text("Erases bookmarks, tastings and ratings, quiz and game scores, the daily streak, name and photo, purchases, skin, screen and text settings. The encyclopedia itself is untouched.")
                     .font(DexFont.mono(17))
                     .foregroundStyle(lcd.subtext)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1914,9 +1917,29 @@ public struct SettingsSectionPanel: View {
                 // Centred (0.6.4, C3) — the "ACROSS 6 TABLES" tail is gone;
                 // the number is the fact, so it holds the middle.
                 HStack(spacing: 12) {
-                    Image(systemName: "square.stack.3d.up.fill")
-                        .font(.system(size: 26, weight: .semibold))
-                        .foregroundStyle(lcd.accent)
+                    // **`marquee-encyclopedia`, claimed here (0.8.8, G1).** The
+                    // 0.8.4 drop shipped 34 faces and five of them were never
+                    // wired to anything; this is the one whose subject is
+                    // literally "the whole catalog", which is what this block
+                    // counts. `lcd.accent` rather than a row colour — see
+                    // `statGlyph`'s note for why that is the same rule as the
+                    // tiles below and not an exception to it.
+                    //
+                    // The file arrived spelled `encylopedia.png`. It was
+                    // **renamed** rather than mapped, on 0.8.3's cartridge rule:
+                    // a typo in a filename is a typo, a typo in a table is a
+                    // permanent second spelling. Nothing referenced the
+                    // misspelling — it was unclaimed, which is the only moment
+                    // renaming one of these is free.
+                    DexChromeGlyph(
+                        "marquee-encyclopedia",
+                        symbol: "square.stack.3d.up.fill",
+                        size: 26,
+                        weight: .semibold,
+                        tint: lcd.accent,
+                        flatten: lcd.accent,
+                        smoothing: true
+                    )
                     Text("\(stats.total)")
                         .font(DexFont.retro(24))
                         .foregroundStyle(lcd.text)
@@ -1955,17 +1978,69 @@ public struct SettingsSectionPanel: View {
         ]
     }
 
-    /// Glyph and tint per table. The five categories reuse the main menu's own
-    /// symbols and colours so a count is recognisably the same thing as the
-    /// tile that opens it; COUNTRIES is the odd one out and gets a flag.
-    private func statGlyph(_ label: String) -> (symbol: String, tint: Color) {
+    /// Art, glyph and tint per table.
+    ///
+    /// ## The drawn face, and where the symbol now comes from (0.8.8, G1)
+    ///
+    /// The six tiles were bare `Image(systemName:)` — this panel is the
+    /// *ancestor* of the passport's TASTINGS tile (`PassportScreen.statTile`
+    /// opens "the DATA panel's stat tile, at passport duty"), and it had been
+    /// left behind by 0.8.6's C5 and 0.8.7's B2. The 0.8.4 drop already holds a
+    /// face for all six rows, so this needed no art drawn.
+    ///
+    /// **The symbols were hand-listed here and two of them were wrong.** This
+    /// table gave REGIONS `globe.americas.fill` and CONTINENTS `map.fill`;
+    /// `EntryCategory.marqueeSymbol` gives regions `map.fill` and continents
+    /// `globe.europe.africa.fill`. The two were swapped against the canonical
+    /// table, which is exactly the drift a second hand-written copy produces and
+    /// the reason this now reads `EntryCategory` for the five real tables rather
+    /// than restating them. The old comment's claim — that the tiles "reuse the
+    /// main menu's own symbols so a count is recognisably the same thing as the
+    /// tile that opens it" — is true for the first time.
+    ///
+    /// COUNTRIES is not an `EntryCategory` and takes `DexRoute.country(name:)`'s
+    /// pair, which is the same source the passport's COUNTRIES tile reads.
+    ///
+    /// ## Why `tint`, worked out here rather than carried over
+    ///
+    /// 0.8.7's B2 chose `tint` over 0.8.4 A2's `ink` on the passport, and the
+    /// argument has to be re-made on this surface rather than copied, because
+    /// A2's principle — a glyph and the thing beside it are one mark in one
+    /// material — is what decides it and it points at different colours on
+    /// different surfaces. On the chassis marquee the material is the lit panel,
+    /// so the glyph reads `skin.marqueeShadow`, the same expression the letters
+    /// do. Here the tile has drawn its border in `glyph.tint` since the panel
+    /// shipped and its SF stand-in has always been `glyph.tint` too, so the row's
+    /// own colour is already the material and the drawn face arriving in one ink
+    /// would be the only part of the tile not saying which row it is. `lcd.text`
+    /// would make all six identical; `lcd.accent` would make them identical *and*
+    /// the same colour as the DATABASE heading above them.
+    ///
+    /// So `tint` — but note this is not simply the passport's answer restated.
+    /// TOTAL ENTRIES below takes `lcd.accent`, and that is the same rule reaching
+    /// a different colour: it is not a row, it is the total, it has no per-row
+    /// colour to be the material of, and `lcd.accent` is what it has drawn its
+    /// number's companion in all along.
+    private func statGlyph(_ label: String) -> (art: String?, symbol: String, tint: Color) {
+        if let category = EntryCategory(rawValue: label) {
+            return (category.marqueeArt, category.marqueeSymbol, statTint(label))
+        }
+        // COUNTRIES — synthesised rows, no category of their own.
+        let route = DexRoute.country(name: "")
+        return (route.marqueeArt, "flag.fill", Dex.yellow)
+    }
+
+    /// The row's colour. Unchanged values — four of the six are the same hexes
+    /// the passport's TASTINGS tiles use, which is why the two panels read as
+    /// one vocabulary and why neither should be renumbered alone.
+    private func statTint(_ label: String) -> Color {
         switch label {
-        case "GRAPES": ("circle.grid.3x3.fill", Color(dexHex: "#a855f7"))
-        case "REGIONS": ("globe.americas.fill", Color(dexHex: "#22c55e"))
-        case "STYLES": ("wineglass.fill", Color(dexHex: "#f97316"))
-        case "FLAVORS": ("leaf.fill", Color(dexHex: "#10b981"))
-        case "CONTINENTS": ("map.fill", Dex.blue)
-        default: ("flag.fill", Dex.yellow)
+        case "GRAPES": Color(dexHex: "#a855f7")
+        case "REGIONS": Color(dexHex: "#22c55e")
+        case "STYLES": Color(dexHex: "#f97316")
+        case "FLAVORS": Color(dexHex: "#10b981")
+        case "CONTINENTS": Dex.blue
+        default: Dex.yellow
         }
     }
 
@@ -1973,10 +2048,22 @@ public struct SettingsSectionPanel: View {
         let glyph = statGlyph(label)
 
         return HStack(spacing: 10) {
-            Image(systemName: glyph.symbol)
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(glyph.tint)
-                .frame(width: 26)
+            // `art ?? ""` for `DexChromeGlyph`'s reason on the passport: it takes
+            // a stem rather than an optional, and an empty stem resolves in no
+            // directory, which is precisely the fallback a nil art wants.
+            // `flatten:` and `tint:` take the same colour so the drawn branch and
+            // the SF stand-in cannot disagree. `smoothing:` because these are
+            // antialiased dots rather than a pixel grid.
+            DexChromeGlyph(
+                glyph.art ?? "",
+                symbol: glyph.symbol,
+                size: 20,
+                weight: .semibold,
+                tint: glyph.tint,
+                flatten: glyph.tint,
+                smoothing: true
+            )
+            .frame(width: 26)
             VStack(alignment: .leading, spacing: 3) {
                 Text("\(count)")
                     .font(DexFont.retro(15))
@@ -2349,6 +2436,14 @@ enum SavedDataReset {
         // key loop below — every `DeviceAxis` is in it — but the saved recipes
         // are their own store and would survive a wipe otherwise.
         CustomDeviceStore.shared.reset()
+        // WHAT'S THAT…?'s record and the tool cards (0.8.8, E3/D1). Both are
+        // exactly the shape this function's other entries warn about: a wipe
+        // that left the record standing would open a fresh start claiming a
+        // hundred solves and a live run, and one that left the seen-ids set
+        // would silently swallow all six introductions on the one run where
+        // meeting the tools again is the whole point.
+        WhatsThatRecordStore.shared.reset()
+        ToolIntroStore.shared.reset()
         ScreenStateStore.shared.clear()
         SearchStateStore.shared.clear()
 
@@ -2377,6 +2472,8 @@ enum SavedDataReset {
             ExamRecordStore.storageKey,
             ExamRecordStore.bestStreakKey,
             CustomDeviceStore.storageKey,
+            WhatsThatRecordStore.storageKey,
+            ToolIntroStore.storageKey,
             // `LcdMode.storageKey` and `ChassisSkin.storageKey` are no longer
             // listed here: both are `DeviceAxis` entries now (0.7.3, B1) and
             // arrive through the eight keys prepended above. Listing them twice

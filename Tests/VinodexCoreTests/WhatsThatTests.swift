@@ -176,32 +176,212 @@ struct WhatsThatTests {
 
     // MARK: - Scoring
 
-    /// Fewer chips revealed, higher score. The curve is a fraction of the
-    /// round's own length so a five-clue round and a six-clue round pay the same
-    /// for the same *proportion* of the way through.
-    @Test("score falls as the clues come out")
-    func scoreFallsWithReveals() throws {
-        let round = try #require(self.round(3))
-        var last = Int.max
-        for revealed in 1...round.clues.count {
-            let score = round.score(revealed: revealed)
-            #expect(score < last, "score did not fall at \(revealed)")
-            #expect(score >= 20)
-            #expect(score <= 100)
-            last = score
+    /// **Every clue costs something, and buying the round bottoms it out**
+    /// (0.8.8, E2).
+    ///
+    /// Walked over every round the dealer produces rather than one sampled
+    /// entry, and that is deliberate: the score is now a function of *which*
+    /// clues were bought, so a single round only ever exercises one weight
+    /// combination. What breaks in a weighted model is a branch — one kind whose
+    /// weight is wrong or zero — and the branch is only visible across the set.
+    @Test("score falls with every clue, and the floor is the whole round")
+    func scoreFallsWithEveryClue() throws {
+        for cursor in 0..<60 {
+            let round = try #require(self.round(cursor))
+            var revealed: Set<WhatsThat.Clue.Kind> = []
+            #expect(round.score(revealed: revealed) == 100)
+
+            // In the round's own order, then in reverse — a weighted score must
+            // not depend on the order the same set was bought in.
+            for clue in round.purchasable {
+                let before = round.score(revealed: revealed)
+                revealed.insert(clue.kind)
+                let after = round.score(revealed: revealed)
+                #expect(after < before, "\(clue.kind) cost nothing in round \(cursor)")
+                #expect(after >= WhatsThat.scoreFloor)
+            }
+            #expect(round.score(revealed: revealed) == WhatsThat.scoreFloor)
+
+            let reversed = Set(round.purchasable.reversed().map(\.kind))
+            #expect(round.score(revealed: reversed) == WhatsThat.scoreFloor)
+            // A kind this round does not hold cannot be spent.
+            #expect(
+                round.score(revealed: [.appellation, .grape, .region, .style])
+                    == round.score(
+                        revealed: Set(round.purchasable.map(\.kind))
+                            .intersection([.appellation, .grape, .region, .style])
+                    )
+            )
         }
-        #expect(round.score(revealed: 1) == 100)
-        // Out of range clamps rather than going negative or over 100.
-        #expect(round.score(revealed: 0) == 100)
-        #expect(round.score(revealed: 99) == round.score(revealed: round.clues.count))
+    }
+
+    /// The advertised price is exactly what pressing the chip takes off.
+    @Test("a clue's price is the score it removes")
+    func priceMatchesTheDrop() throws {
+        for cursor in 0..<40 {
+            let round = try #require(self.round(cursor))
+            var revealed: Set<WhatsThat.Clue.Kind> = []
+            for clue in round.purchasable {
+                let quoted = round.price(of: clue, revealed: revealed)
+                let before = round.score(revealed: revealed)
+                revealed.insert(clue.kind)
+                #expect(before - round.score(revealed: revealed) == quoted)
+                #expect(quoted > 0, "\(clue.kind) is free")
+            }
+        }
+    }
+
+    /// A specific clue costs more than a vague one, which is the decision E2
+    /// adds — without it, choosing which chip to buy collapses to "the most
+    /// specific one, always".
+    @Test("giving more away costs more")
+    func weightsRankTheKinds() {
+        #expect(WhatsThat.Clue.Kind.category.weight == 0)
+        #expect(WhatsThat.Clue.Kind.appellation.weight > WhatsThat.Clue.Kind.color.weight)
+        #expect(WhatsThat.Clue.Kind.grape.weight > WhatsThat.Clue.Kind.country.weight)
+        #expect(WhatsThat.Clue.Kind.region.weight > WhatsThat.Clue.Kind.rarity.weight)
+        // Only the opener is free. Anything else at zero would be a chip that
+        // costs nothing and so is never a decision.
+        for kind in WhatsThat.Clue.Kind.allCases where kind != .category {
+            #expect(kind.weight > 0, "\(kind) is free")
+        }
     }
 
     @Test("two rounds of different lengths pay the same at the same point")
     func scoreIsProportional() {
         let five = WhatsThat.Round(answerID: "X", answerName: "X", clues: Self.blankClues(5))
         let six = WhatsThat.Round(answerID: "Y", answerName: "Y", clues: Self.blankClues(6))
-        #expect(five.score(revealed: 1) == six.score(revealed: 1))
-        #expect(five.score(revealed: 5) == six.score(revealed: 6))
+        #expect(five.score(revealed: []) == six.score(revealed: []))
+        // Buying the whole of either lands on the floor — the property that
+        // stops the game rewarding a short draw.
+        #expect(five.score(revealed: Set(five.purchasable.map(\.kind))) == WhatsThat.scoreFloor)
+        #expect(six.score(revealed: Set(six.purchasable.map(\.kind))) == WhatsThat.scoreFloor)
+    }
+
+    // MARK: - Playing (0.8.8, E1/E2)
+
+    /// **A wrong name costs a clue; nonsense does not.** The economy E1 adds,
+    /// and the reason the game had a dominant strategy before it: guessing was
+    /// free, so the optimal play was to type every name you knew before ever
+    /// spending a point.
+    @Test("a named wrong guess turns over the cheapest clue left")
+    func wrongGuessesCost() throws {
+        let round = try #require(self.round(5))
+        var play = WhatsThat.Play(round: round)
+        #expect(play.revealed.count == 1)
+        #expect(play.revealed.first == .category)
+        #expect(play.round.score(revealed: play.revealedKinds) == 100)
+
+        let expected = try #require(play.forfeit)
+        // The cheapest of what is left, not the next in order.
+        for clue in play.hidden {
+            #expect(play.price(of: expected) <= play.price(of: clue))
+        }
+
+        let taken = play.record(.wrong(named: "Merlot"))
+        #expect(taken?.id == expected.id)
+        #expect(play.revealedKinds.contains(expected.kind))
+        #expect(play.wrongGuesses == 1)
+        #expect(!play.isOver)
+
+        // Nothing in the dex by that name is a typo, not a wrong answer.
+        let before = play.revealedKinds
+        #expect(play.record(.unrecognized) == nil)
+        #expect(play.revealedKinds == before)
+        #expect(play.wrongGuesses == 1)
+    }
+
+    /// The losing condition the game did not have.
+    @Test("wrong with nothing left to turn over ends the round")
+    func runningOutIsALoss() throws {
+        let round = try #require(self.round(7))
+        var play = WhatsThat.Play(round: round)
+        while play.forfeit != nil { play.record(.wrong(named: "Merlot")) }
+        #expect(!play.isOver, "the round ended before the clues ran out")
+        #expect(play.hidden.isEmpty)
+
+        play.record(.wrong(named: "Merlot"))
+        #expect(play.outcome == .lost)
+        #expect(play.score == 0)
+        // A finished round absorbs nothing further.
+        let settled = play
+        play.record(.correct)
+        play.reveal(.appellation)
+        play.giveUp()
+        #expect(play == settled)
+    }
+
+    @Test("solving banks the score the chips said it would")
+    func solvingPaysTheQuotedScore() throws {
+        let round = try #require(self.round(11))
+        var play = WhatsThat.Play(round: round)
+        let bought = try #require(play.hidden.first)
+        let quoted = play.price(of: bought)
+        play.reveal(bought.kind)
+        play.record(.correct)
+        #expect(play.outcome == .solved)
+        #expect(play.score == 100 - quoted)
+    }
+
+    @Test("a round survives being put down and picked up")
+    func playIsCodable() throws {
+        let round = try #require(self.round(13))
+        var play = WhatsThat.Play(round: round)
+        play.record(.wrong(named: "Merlot"))
+        play.reveal(try #require(play.hidden.last).kind)
+        let data = try JSONEncoder().encode(play)
+        #expect(try JSONDecoder().decode(WhatsThat.Play.self, from: data) == play)
+    }
+
+    // MARK: - The record (0.8.8, E3)
+
+    @Test("the record counts a round once, and only a solve pays")
+    func recordFolds() throws {
+        let round = try #require(self.round(17))
+        var record = WhatsThatRecord.empty
+        #expect(record.isEmpty)
+
+        // In progress — nothing to count yet.
+        var live = WhatsThat.Play(round: round)
+        record.record(live)
+        #expect(record.played == 0)
+
+        live.record(.correct)
+        record.record(live)
+        #expect(record.played == 1)
+        #expect(record.solved == 1)
+        #expect(record.streak == 1)
+        #expect(record.bestStreak == 1)
+        #expect(record.bestScore == 100)
+        #expect(record.averageScore == 100)
+        #expect(record.solveRate == 100)
+
+        var lost = WhatsThat.Play(round: round)
+        lost.giveUp()
+        record.record(lost)
+        #expect(record.played == 2)
+        #expect(record.solved == 1)
+        // The run breaks; the best it reached does not.
+        #expect(record.streak == 0)
+        #expect(record.bestStreak == 1)
+        #expect(record.bestScore == 100)
+        #expect(record.solveRate == 50)
+    }
+
+    /// The migration hazard, checked from the direction it actually arrives:
+    /// a blob written before a field existed must still decode.
+    @Test("a record saved before a field existed still decodes")
+    func recordDecodesLeniently() throws {
+        let partial = Data(#"{"played":4,"solved":3}"#.utf8)
+        let record = try JSONDecoder().decode(WhatsThatRecord.self, from: partial)
+        #expect(record.played == 4)
+        #expect(record.solved == 3)
+        #expect(record.bestStreak == 0)
+
+        // A present-but-wrong value loses the field, not the record.
+        let corrupt = Data(#"{"played":4,"bestScore":"lots"}"#.utf8)
+        #expect(try JSONDecoder().decode(WhatsThatRecord.self, from: corrupt).played == 4)
+        #expect(try JSONDecoder().decode(WhatsThatRecord.self, from: corrupt).bestScore == 0)
     }
 
     private static func blankClues(_ n: Int) -> [WhatsThat.Clue] {

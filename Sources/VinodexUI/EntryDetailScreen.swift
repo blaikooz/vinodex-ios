@@ -606,9 +606,19 @@ public struct EntryDetailScreen: View {
                 let color = EntryDisplay.colorType(name: s.common.name)
                 VStack(spacing: 10) {
                     HStack(alignment: .top, spacing: 8) {
+                        // **Styles, not grapes (0.8.8, C1).** This tile pushed
+                        // `.list(category: .grapes, filter: .type(color.rawValue))`
+                        // from 0.6.2, which answered a question about wines with
+                        // a list of fruit — and answered it with *nothing* on a
+                        // rosé or an orange style, since no grape carries either
+                        // word, and with *every grape* on a dual one. Its sibling
+                        // CLASS below has always gone to `.styles`; this now does
+                        // the same, through the `.styleColor` chip the styles
+                        // listing has offered since 0.8.1's D. See
+                        // `EntryFilter.styleColor`.
                         tile(label: "COLOR",
                              chip: chip(color.rawValue, .colorType, key: color.rawValue),
-                             destination: .list(category: .grapes, filter: .type(color.rawValue))) { tint in
+                             destination: .list(category: .styles, filter: .styleColor(color))) { tint in
                             DexIcon(iconID: db.icons.colorIcon(color.rawValue), size: 32, color: tint)
                         }
                         tile(label: "CLASS",

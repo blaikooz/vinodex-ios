@@ -9,6 +9,28 @@ public enum ChipFacet: String, CaseIterable, Codable, Sendable, Identifiable {
     case category
     case color
     case body
+    /// **What kind of wine a grape makes** (0.8.8, C1): FULL-BODY RED,
+    /// AROMATIC WHITE, MADEIRA — the catalog's own `grapeStyle` vocabulary, ten
+    /// values, grapes only.
+    ///
+    /// **Separate from `.body`, and this is the facet's whole justification.**
+    /// The obvious reading is that this row is BODY crossed with COLOUR and so
+    /// says nothing the two existing rows cannot say together. Measured over the
+    /// shipped catalog that is false on both halves. Four of the ten values —
+    /// AROMATIC WHITE, SWEET WHITE, MADEIRA, SPARKLING RED — are not compounds
+    /// at all and name no body. And the six that look like compounds do not
+    /// agree with the compound: `grapeBodyClass` and `grapeStyle` are separately
+    /// authored fields, so BODY=Full ∧ COLOUR=white selects 12 grapes where
+    /// `grapeStyle == "Full-Body White"` selects 7, the five in the gap being
+    /// the full-bodied whites the catalog files as AROMATIC WHITE or MADEIRA.
+    /// The same gap opens on three of the other five. A compound chip would have
+    /// been a chip that lights and shows a different list from the one it claims.
+    ///
+    /// Titled STYLE rather than TYPE, and this is the item's actual ask: the
+    /// grape detail page's second tile is labelled TYPE and its destination said
+    /// STYLE SCAN, which is two words for one thing and the wrong one on the
+    /// bigger surface. The row is what the marquee no longer has to be.
+    case grapeStyle
     case rarity
     case climate
     /// Countries joined in 0.6.x — the closed-set rule above bent once the
@@ -53,6 +75,7 @@ public enum ChipFacet: String, CaseIterable, Codable, Sendable, Identifiable {
         case .category: "TYPE"
         case .color: "COLOUR"
         case .body: "BODY"
+        case .grapeStyle: "STYLE"
         case .rarity: "RARITY"
         case .climate: "CLIMATE"
         case .country: "COUNTRY"
@@ -71,6 +94,7 @@ public enum ChipFacet: String, CaseIterable, Codable, Sendable, Identifiable {
         case .category: "Which tables to search."
         case .color: "Grapes only — everything else drops out."
         case .body: "Grapes only."
+        case .grapeStyle: "Grapes only — the wine the grape makes."
         case .rarity: "Grapes and styles carry a rarity."
         case .climate: "Regions only."
         case .country: "Anything with an origin — flavors drop out."
@@ -191,6 +215,18 @@ public struct ChipFilter: Codable, Sendable, Hashable {
             let actual = TextNormalize.label(g.grapeBodyClass)
             return chosen.contains { TextNormalize.label($0) == actual }
 
+        case .grapeStyle:
+            // Normalised like BODY and COUNTRY, and for the same reason: this is
+            // a hand-authored string on the grape, not an enum's raw value.
+            // Comparing `grapeStyle` alone — not `wineType` as well — is what
+            // makes the chip and `EntryFilter.type` the same set: the two fields
+            // are equal on all 177 grapes, so reading one is reading both, and
+            // reading only the one the vocabulary is derived from means the row
+            // can never offer a value the predicate cannot match.
+            guard case .grape(let g) = entry else { return false }
+            let actual = TextNormalize.label(g.grapeStyle)
+            return chosen.contains { TextNormalize.label($0) == actual }
+
         case .rarity:
             guard let rarity = entry.rarity else { return false }
             return chosen.contains(rarity.rawValue)
@@ -294,6 +330,13 @@ public struct ChipFilter: Codable, Sendable, Hashable {
         case .body:
             return GrapeBody.allCases.map {
                 ChipOption(facet: facet, value: $0.rawValue, label: $0.label)
+            }
+        // From the data, like the flavour rows and `styleClass` — and here there
+        // is not even an enum to have been tempted by. See
+        // `WineDatabase.grapeStyles`.
+        case .grapeStyle:
+            return WineDatabase.shared.grapeStyles.map {
+                ChipOption(facet: facet, value: $0, label: $0.uppercased())
             }
         case .rarity:
             return RarityLabel.allCases.map {

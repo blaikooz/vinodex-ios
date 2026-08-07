@@ -173,11 +173,49 @@ public extension WineDatabase {
         }
     }
 
-    /// Distinct values of some field across flavour entries, most common first,
-    /// ties broken alphabetically so the order is stable between builds.
-    private func counted(_ key: (WineEntry) -> String?) -> [String] {
+    /// **The grape styles present in the data, in descending size (0.8.8, C1).**
+    ///
+    /// The catalog's own spelling of `grapeStyle` — "Full-Body Red", "Aromatic
+    /// White" — not a normalised or reconstructed form, because this is the
+    /// vocabulary a chip's stored value has to equal and the value is what
+    /// `EntryFilter.type` already compares.
+    ///
+    /// **Derived rather than enumerated, and there is no enum to enumerate.**
+    /// This is the fourth data-driven row and the first whose vocabulary has no
+    /// Swift type at all: `grapeStyle` is a free-text field on the grape, ten
+    /// distinct values across 177 grapes today, and the shape of the ten is the
+    /// whole reason this facet exists rather than a body-and-colour compound.
+    /// Six of them read as a compound (`Full-Body Red`, `Light-Body White`);
+    /// **four do not** — `Aromatic White`, `Sweet White`, `Madeira`,
+    /// `Sparkling Red` — and those four sit on 14 grapes whose separate
+    /// `grapeBodyClass` and `grapeType` fields say something else entirely.
+    /// Gewürztraminer is `Full` and `white` and `Aromatic White`. See
+    /// `EntryFilter.chipOption` for the measurement that settles it.
+    ///
+    /// `Madeira` is a fortified wine rather than a grape style and rests on
+    /// three grapes; that is a data question and is left to one, but it is a
+    /// good illustration of why the row is read off the catalog — an authored
+    /// list here would have quietly dropped it.
+    var grapeStyles: [String] {
+        counted(in: .grapes) { entry in
+            guard case .grape(let g) = entry else { return nil }
+            return g.grapeStyle
+        }
+    }
+
+    /// Distinct values of some field across one category's entries, most common
+    /// first, ties broken alphabetically so the order is stable between builds.
+    ///
+    /// The category became a parameter in 0.8.8's C1, when `grapeStyles` joined
+    /// the two flavour rows. It was hardcoded to `.flavors` because both callers
+    /// were flavour rows; a third caller over a different table is exactly the
+    /// moment to pass it rather than to write the loop again.
+    private func counted(
+        in category: EntryCategory = .flavors,
+        _ key: (WineEntry) -> String?
+    ) -> [String] {
         var tally: [String: Int] = [:]
-        for entry in entries(in: .flavors) {
+        for entry in entries(in: category) {
             guard let value = key(entry), !value.isEmpty else { continue }
             tally[value, default: 0] += 1
         }

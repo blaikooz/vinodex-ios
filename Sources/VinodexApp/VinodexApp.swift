@@ -79,6 +79,8 @@ struct RootView: View {
     /// would make the alert un-dismissable. Detail stays in the DEV panel.
     @State private var showingDataAlert = !WineDatabase.shared.decodeErrors.isEmpty
     @State private var access = AccessStore.shared
+    /// Which tool cards have been shown (0.8.8, D1). See `toolIntro`.
+    @State private var toolIntros = ToolIntroStore.shared
     /// The boot POST (0.7.3, A1). True for the first ~1.9 seconds of a launch,
     /// or until the screen is tapped.
     @State private var booting = true
@@ -231,6 +233,27 @@ struct RootView: View {
                 // apply either, because this is opaque and it is not an overlay.
                 // See `BootScreen` for the long version.
                 //
+                // **The tool's own introduction, once each** (0.8.8, D1).
+                //
+                // Here rather than inside the six tool screens, which is the
+                // whole reason it is one flag check and not six: `toolIntro`
+                // reads the current route, so a seventh tool is a roster entry
+                // and a route arm rather than another screen learning to raise a
+                // card. It sits above the upgrade prompt and the data notice for
+                // the ordinary reason — it is the newest thing on screen — and
+                // below the BIOS, which must cover everything.
+                //
+                // Raised on the route rather than in `onAppear` so it cannot
+                // fire twice for one arrival, and dismissed by writing the id,
+                // which is what makes it once-ever.
+                if let intro = toolIntro {
+                    ToolIntroCard(
+                        intro: intro,
+                        onStart: { toolIntros.markSeen(intro.id) },
+                        onSkipAll: { toolIntros.markAllSeen() }
+                    )
+                }
+
                 // Last in this stack, so it covers the two prompts above rather
                 // than booting underneath them.
                 if booting {
@@ -245,6 +268,7 @@ struct RootView: View {
             }
             .animation(DexMotion.overlay, value: lockedAttempt?.id)
             .animation(DexMotion.overlay, value: showingDataAlert)
+            .animation(DexMotion.overlay, value: toolIntro?.id)
         }
         // **The picture is in the display; the input is the window's** (0.7.8,
         // A4). Everything on the chassis is live and now visible around the
@@ -419,6 +443,24 @@ struct RootView: View {
         return route.marqueeArt
     }
 
+    /// The introduction owed for the route currently open, if any (0.8.8, D1).
+    ///
+    /// Nil while booting, because a card raised over the BIOS would be waiting
+    /// behind it — the boot screen covers this stack deliberately, and a player
+    /// who lands on a tool through the demo loop or a restored route should meet
+    /// the card when the device is actually on.
+    ///
+    /// The route-to-tool pairing lives on `ToolRoster` rather than here, because
+    /// this module is the one no test can see: `ToolRosterTests` walks the roster
+    /// against it and fails on an entry no route produces, so a card that is
+    /// written and never raised is a test failure rather than a thing nobody
+    /// notices. All this holds is the "and has it been shown yet" half.
+    private var toolIntro: ToolIntro? {
+        guard !booting, let route = path.last,
+              let intro = ToolRoster.intro(for: route) else { return nil }
+        return toolIntros.pending(intro.id)
+    }
+
     /// Which chip rows a category listing offers (0.7.0, H2/H3, extending
     /// 0.6.9's I3).
     ///
@@ -446,7 +488,18 @@ struct RootView: View {
     ///   filtering lives — H1 put the chips there rather than here.
     private static func chipFacets(for category: EntryCategory) -> [ChipFacet] {
         switch category {
-        case .grapes: [.color, .body, .rarity]
+        // **GRAPES gains STYLE (0.8.8, C1)**, for 0.8.7's reason on REGIONS: the
+        // body tile's cross-link is a chip now, so the row it lands in has to
+        // exist — without it the arrival would light a chip nobody could see or
+        // clear, and `EncyclopediaListScreen.init`'s guard would decline to seed
+        // it, leaving a FILTER SEARCH title over an untouched list.
+        //
+        // Last of the four, not beside BODY. The rule this table states is that a
+        // facet earns its row by having more than one live value and no value
+        // that empties the list, which STYLE passes on ten. But it is the longest
+        // row of the four and the only one that wraps, and COLOUR/BODY/RARITY are
+        // the three this screen has taught since 0.6.9.
+        case .grapes: [.color, .body, .rarity, .grapeStyle]
         // COLOUR and COUNTRY join STYLE CLASS (0.8.1, D). Both tables already
         // shipped — `colorTypeChips` and `countryChips` are probed by the
         // generator and drawn on every style tile — so this is a screen being

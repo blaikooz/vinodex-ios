@@ -592,9 +592,42 @@ struct ProfileShareCard: View {
 // MARK: - B3, a passport milestone
 
 /// "SOMMELIER UNLOCKED", "42/171 GRAPES COLLECTED".
+///
+/// ## The card carries the stamp (0.8.8, F1)
+///
+/// Every stamp has had drawn art since 0.8.7's A1 emptied
+/// `undrawnStampStems` — a whole franked object, perforation and denomination
+/// and ink, which is what the collection tile shows, what the back plate holds
+/// and what `StampUnlockedPrompt` presses onto the screen when you earn one.
+/// The share card was the one surface that did not show it. It drew
+/// `stamp.fallbackSymbol` at 62pt in `lcd.accent` — the field whose own doc
+/// comment calls it "an SF Symbol standing in until the drawn glyph exists" —
+/// so the picture a player sent to somebody else was the placeholder, in the
+/// screen's colour rather than the stamp's, for an object they had just been
+/// shown twice in its real form.
+///
+/// **`BackPlateStampView`, not a fourth drawing of a stamp.** That view already
+/// resolves art-or-fallback, wears `.worn(id:)` and carries its contact shadow,
+/// and it is what both other surfaces call. Passing the stamp itself rather
+/// than a symbol name is what makes `stamp.colorHex`, `stamp.denomination` and
+/// `stamp.artStem` reach this card at all — three fields the share path had
+/// never consulted.
+///
+/// **The symbol parameter stays** and is not merely vestigial: `stamp` is
+/// optional because `ShareCard.Achievement` is a passport milestone in general,
+/// not a stamp — `.collected` builds "42/171 GRAPES COLLECTED", which has no
+/// stamp behind it and would have nothing to draw. A milestone with no stamp
+/// keeps the symbol it always had.
+///
+/// Sized 168x152 against `StampFrame`'s 1.1 aspect, which is what the
+/// collection tile (128x116) and the unlock prompt (132x120) use. Larger than
+/// both because this render is 3x into 1080x1350 and the stamp is the subject
+/// here rather than one tile of eight.
 struct AchievementShareCard: View {
     let achievement: ShareCard.Achievement
     var symbol: String = "rosette"
+    /// The stamp this milestone is, when it is one.
+    var stamp: BackPlateStamp?
 
     private var lcd: LcdMode { LcdMode.current }
 
@@ -603,9 +636,13 @@ struct AchievementShareCard: View {
             VStack(spacing: 16) {
                 Spacer(minLength: 0)
 
-                Image(systemName: symbol)
-                    .font(.system(size: 62, weight: .semibold))
-                    .foregroundStyle(lcd.accent)
+                if let stamp {
+                    BackPlateStampView(stamp: stamp, width: 168, height: 152)
+                } else {
+                    Image(systemName: symbol)
+                        .font(.system(size: 62, weight: .semibold))
+                        .foregroundStyle(lcd.accent)
+                }
 
                 Text(achievement.headline)
                     .font(DexFont.retro(22))

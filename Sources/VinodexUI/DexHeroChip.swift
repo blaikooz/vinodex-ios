@@ -114,6 +114,22 @@ public extension Palette {
             return colorTypeChips[option.value.uppercased()] ?? fallback
         case .body:
             return Self.bodyChips[option.value] ?? fallback
+        // **`wineTypeChips`, which is what that table has always been for**
+        // (0.8.8, C1). The generator has emitted a colour per grape style since
+        // the palette shipped — it is what a grape's own TYPE tile reads,
+        // through `EntryTileView`'s `.wineType` arm — and until C1 there was no
+        // chip row keyed by those ten names for it to also serve. Keyed by the
+        // catalog's spelling, which is exactly what `ChipOption.value` carries
+        // here (see `ChipFilter.options`), so a chip and the tile it filters to
+        // are the same colour by construction, as BODY and the three 0.7.0
+        // facets below both are.
+        //
+        // 0.6.9's I1 is the reason this deserves the sentence: the grape colour
+        // chip read `wineTypeChips` with a `grapeType` key, missed on all 146
+        // grapes and fell through to a neutral — a chip that says RED and is
+        // grey reads as a styling choice rather than as a miss.
+        case .grapeStyle:
+            return wineTypeChips[option.value] ?? fallback
         case .rarity:
             return rarityChips[option.value] ?? fallback
         case .climate:

@@ -55,6 +55,16 @@ public struct StampCollectionScreen: View {
     /// share card is a picture of a thing the app also draws, so it reads the
     /// record the app draws it from.
     ///
+    /// **The whole stamp goes now, not its symbol (0.8.8, F1).** The paragraph
+    /// above already had the right principle — "a share card is a picture of a
+    /// thing the app also draws" — and was applying it one field short: it
+    /// handed over `fallbackSymbol`, which is the stand-in for the drawing
+    /// rather than the drawing. Passing the record itself lets the card call
+    /// `BackPlateStampView`, the same view the collection tile above and the
+    /// unlock prompt both use, so the three surfaces are now three sizes of one
+    /// object instead of two pictures and a placeholder. `symbol:` is still
+    /// passed for the milestones that are not stamps — see the card.
+    ///
     /// `blurb` is the Passport's — what it took to earn — rather than the
     /// stamp's `info`, which is the joke. A card that goes to somebody else says
     /// what was achieved.
@@ -62,7 +72,11 @@ public struct StampCollectionScreen: View {
         Haptics.select()
         let achievement = ShareCard.Achievement.unlocked(stamp.title, blurb: blurb)
         if let image = ShareCardRenderer.image({
-            AchievementShareCard(achievement: achievement, symbol: stamp.fallbackSymbol)
+            AchievementShareCard(
+                achievement: achievement,
+                symbol: stamp.fallbackSymbol,
+                stamp: stamp
+            )
         }) {
             sharePayload = .image(image, title: stamp.title)
         }

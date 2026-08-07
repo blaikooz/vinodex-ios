@@ -62,6 +62,39 @@ public enum WhatsThat {
             case style
             /// A village or cru inside this region. The giveaway, and last.
             case appellation
+
+            /// **How much of the answer this kind of clue hands over** (0.8.8,
+            /// E2).
+            ///
+            /// Relative, not points. `Round.score` turns these into a price by
+            /// dividing each clue's weight by the round's total, so a round is
+            /// always worth the same to someone who buys the same *proportion*
+            /// of it — which is the property `score(revealed:)` had when it
+            /// counted chips and which had to survive chips ceasing to be
+            /// interchangeable.
+            ///
+            /// The numbers are this enum's own ordering made arithmetic. The
+            /// declaration order is already the app's statement of how much of
+            /// the catalog each kind eliminates ("sorted by how much of the
+            /// catalog they eliminate" — see the note above), so what these add
+            /// is only *how far apart* the rungs are: naming a cru is four times
+            /// the give-away of naming a colour, not one rung more.
+            ///
+            /// `category` is 0 because it is the opening clue and is never
+            /// bought — every round starts with IT'S A GRAPE or IT'S A WINE
+            /// REGION showing, and a price on a thing you cannot decline is not
+            /// a price.
+            var weight: Int {
+                switch self {
+                case .category: 0
+                case .color, .body, .tannin: 2
+                case .climate, .rarity: 3
+                case .country, .flavor: 4
+                case .style: 5
+                case .region, .grape: 6
+                case .appellation: 8
+                }
+            }
         }
 
         public let kind: Kind
@@ -98,20 +131,60 @@ public enum WhatsThat {
             self.clues = clues
         }
 
-        /// Points for guessing right with `revealed` chips showing.
+        /// The clue every round opens with, free.
+        public var opening: Clue? { clues.first }
+
+        /// The clues that can be bought — everything after the opener.
+        public var purchasable: [Clue] { Array(clues.dropFirst()) }
+
+        /// Points for guessing right having revealed `revealed`.
         ///
-        /// Full marks for a first-chip guess, sliding to a fifth of that on the
-        /// last. It is a fraction of the round's own length rather than a table,
-        /// so a five-clue round and a six-clue round are worth the same to
-        /// someone who solves them at the same *proportion* of the way through —
-        /// otherwise the game would quietly reward drawing an easy entry.
-        public func score(revealed: Int) -> Int {
-            guard !clues.isEmpty else { return 0 }
-            let used = min(max(revealed, 1), clues.count)
-            let remaining = Double(clues.count - used + 1) / Double(clues.count)
-            return max(20, Int((100 * remaining).rounded()))
+        /// **Full marks down to a floor of `scoreFloor`, spent by weight rather
+        /// than by count (0.8.8, E2).** The old shape counted chips: a round was
+        /// worth `(remaining + 1) / total` of 100, so every clue in a round cost
+        /// the same and the only decision left was *how many*. Chips are not
+        /// interchangeable — one of them names a cru inside the answer — so
+        /// pricing them alike is what made NEXT CLUE the whole interface.
+        ///
+        /// What is preserved is the reason the old shape divided by the round's
+        /// own length, and it is worth restating because it is the subtle half:
+        /// the denominator is this round's total weight, so buying the whole of
+        /// a cheap five-clue round and the whole of an expensive six-clue one
+        /// both land on the floor. Without that the game would quietly reward
+        /// drawing an easy entry, which is the one thing a player cannot
+        /// influence.
+        ///
+        /// Unknown kinds in `revealed` are ignored rather than trusted, so a
+        /// restored session that has drifted cannot spend points on a clue this
+        /// round does not contain.
+        public func score(revealed: Set<Clue.Kind>) -> Int {
+            let total = purchasable.reduce(0) { $0 + $1.kind.weight }
+            guard total > 0 else { return 100 }
+            let spent = purchasable
+                .filter { revealed.contains($0.kind) }
+                .reduce(0) { $0 + $1.kind.weight }
+            let fraction = Double(spent) / Double(total)
+            return max(
+                WhatsThat.scoreFloor,
+                Int((100 - Double(100 - WhatsThat.scoreFloor) * fraction).rounded())
+            )
+        }
+
+        /// What buying `clue` would cost, given what is already revealed.
+        ///
+        /// Derived as the drop in `score` rather than computed alongside it, so
+        /// the number printed on a chip is *exactly* what pressing it takes off.
+        /// Computing a price independently and a score independently is how the
+        /// two come to disagree by a rounding step, which on a 20-point floor is
+        /// visible.
+        public func price(of clue: Clue, revealed: Set<Clue.Kind>) -> Int {
+            score(revealed: revealed) - score(revealed: revealed.union([clue.kind]))
         }
     }
+
+    /// The least a solved round can be worth. A round you have opened entirely
+    /// is still a round you finished.
+    public static let scoreFloor = 20
 
     /// Fewer than this and a round is a coin toss; more and it is a reading
     /// exercise. The catalog reliably supports five for a grape and five for a
@@ -119,6 +192,145 @@ public enum WhatsThat {
     /// entries standing.
     public static let minClues = 4
     public static let maxClues = 6
+
+    // MARK: - Playing one
+
+    /// How a round ended.
+    public enum Outcome: String, Sendable, Hashable, Codable {
+        case solved
+        case gaveUp
+        /// Wrong with nothing left to reveal. The losing condition the game did
+        /// not have before 0.8.8.
+        case lost
+    }
+
+    /// **One round in progress — the state the screen used to hold loose
+    /// (0.8.8, E1/E2).**
+    ///
+    /// ## Why this type exists at all
+    ///
+    /// `WhatsThatScreen` held `revealed`, `verdict`, `solvedAt` and `gaveUp` as
+    /// four `@State` properties and moved between them itself, which put the
+    /// game's transitions in the one module `swift test` cannot see — in a file
+    /// whose own header says "this file draws and nothing else". `QuizSession`,
+    /// the nearest sibling on the same shelf, has had exactly this shape since
+    /// it shipped: an immutable question set, a mutable cursor over it, and
+    /// `mutating` verbs that are the only way to move. This is that, and it is
+    /// the reason E1 and E2 are testable at all.
+    ///
+    /// ## What was wrong with the game, stated plainly
+    ///
+    /// The round had exactly one cost — pressing NEXT CLUE — and guessing was
+    /// free and unlimited. So the dominant strategy was to type every name you
+    /// could think of before ever spending a clue, and the score measured
+    /// patience rather than knowledge. Nothing was recorded either:
+    /// `ScreenStateStore` is session state and is deliberately never written to
+    /// disk, and `VinodexApp` forgets the key on leaving the route, so a
+    /// hundred-point solve and a twenty-point solve were the same event, which
+    /// is to say neither was one.
+    ///
+    /// Three changes, one economy:
+    ///
+    /// **E1 — a wrong guess costs a clue.** A guess that names a real catalog
+    /// entry and is not the answer reveals one, at that clue's price. An
+    /// *unrecognised* guess costs nothing, deliberately: nothing in the dex by
+    /// that name is a typo or a blank, not a wrong answer, and charging for it
+    /// would make the field punish spelling. When there is nothing left to
+    /// reveal a wrong guess ends the round — which is the losing condition the
+    /// game did not have.
+    ///
+    /// **The clue a wrong guess reveals is the cheapest one left**, not the next
+    /// in order and not the player's pick. Being wrong should cost the *choice*
+    /// as well as the points, and the cheapest is the least informative thing
+    /// remaining, so the penalty is proportionate rather than a windfall: a
+    /// player cannot farm the giveaway clue by guessing rubbish, because
+    /// rubbish is unrecognised and a named wrong answer hands over the least it
+    /// can.
+    ///
+    /// **E2 — the clue is chosen, and they are not all the same price.** See
+    /// `Clue.Kind.weight` and `Round.score`.
+    public struct Play: Sendable, Hashable, Codable {
+        public let round: Round
+        /// In purchase order, opener first. An array rather than a set so the
+        /// order a player opened the round in survives a round trip — it is what
+        /// the chips are drawn in and it is the shape of the decision they made.
+        public private(set) var revealed: [Clue.Kind]
+        public private(set) var outcome: Outcome?
+        /// Named-but-wrong guesses. Unrecognised typing is not counted.
+        public private(set) var wrongGuesses: Int
+
+        public init(round: Round) {
+            self.round = round
+            self.revealed = round.opening.map { [$0.kind] } ?? []
+            self.outcome = nil
+            self.wrongGuesses = 0
+        }
+
+        // MARK: Reading
+
+        public var isOver: Bool { outcome != nil }
+        public var revealedKinds: Set<Clue.Kind> { Set(revealed) }
+        public var score: Int { outcome == .solved ? round.score(revealed: revealedKinds) : 0 }
+
+        /// Clues still to be bought, in the round's own vague-to-specific order.
+        public var hidden: [Clue] {
+            let shown = revealedKinds
+            return round.clues.filter { !shown.contains($0.kind) }
+        }
+
+        /// What buying this clue takes off the score right now.
+        public func price(of clue: Clue) -> Int {
+            round.price(of: clue, revealed: revealedKinds)
+        }
+
+        /// The clue a wrong guess would turn over — the cheapest left, ties
+        /// broken by the round's own order so this is deterministic.
+        public var forfeit: Clue? {
+            hidden.min { price(of: $0) < price(of: $1) }
+        }
+
+        // MARK: Moving
+
+        /// Buy one clue. Silently ignores a clue already showing, one this round
+        /// does not hold, and any call after the round is over — all three are
+        /// double-taps rather than states worth modelling.
+        public mutating func reveal(_ kind: Clue.Kind) {
+            guard !isOver, round.clues.contains(where: { $0.kind == kind }) else { return }
+            guard !revealed.contains(kind) else { return }
+            revealed.append(kind)
+        }
+
+        /// Fold a judged guess into the round.
+        ///
+        /// Returns the clue the guess cost, if it cost one, so the screen can say
+        /// which — a chip turning over on its own is otherwise a thing that
+        /// happened rather than a consequence.
+        @discardableResult
+        public mutating func record(_ verdict: Verdict) -> Clue? {
+            guard !isOver else { return nil }
+            switch verdict {
+            case .correct:
+                outcome = .solved
+                return nil
+            case .unrecognized:
+                // Not a guess at the answer. Costs nothing, by design.
+                return nil
+            case .wrong:
+                wrongGuesses += 1
+                guard let taken = forfeit else {
+                    outcome = .lost
+                    return nil
+                }
+                reveal(taken.kind)
+                return taken
+            }
+        }
+
+        public mutating func giveUp() {
+            guard !isOver else { return }
+            outcome = .gaveUp
+        }
+    }
 
     // MARK: - Does an entry fit a clue
 

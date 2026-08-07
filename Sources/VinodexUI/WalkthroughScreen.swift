@@ -50,28 +50,55 @@ public struct WalkthroughScreen: View {
             // spare height from the spacer into the diagram does both items at
             // once: the device gets bigger *because* the text moved down.
             //
-            // `maxHeight: .infinity` and no floor, deliberately. `DeviceDiagram`
-            // is a `GeometryReader` and has no minimum of its own, so it takes
-            // whatever is left over and nothing else on this page can be
-            // squeezed by it — which matters because this is one of the two
-            // screens in the app that does not scroll. (See the note on the
-            // LCD's clamp in `DeviceChassis.innerBezel`.)
-            VStack(spacing: 14) {
-                progress
+            // **The device is a fixed size now (0.8.8, D2), and the page scrolls
+            // instead.**
+            //
+            // The paragraph above is the 0.6.7 argument for the *opposite*, and
+            // it was right about the layout it was fixing and wrong about what it
+            // cost. `maxHeight: .infinity` with no floor means the diagram is
+            // whatever the copy leaves it: the shortest step's body is 84
+            // characters and the longest is 175, so the device visibly grew and
+            // shrank as you pressed NEXT — a picture that changes size between
+            // steps reads as the thing itself changing, which on a tour *about*
+            // the device is the one impression it must not give. On a small
+            // phone the longest steps squeezed it toward unreadable, and D2 adds
+            // four more steps, three of them long.
+            //
+            // `diagramHeight` is fitted rather than round: it is what the old
+            // layout gave the diagram on a mid-size phone with a two-line body,
+            // so the common case is unchanged and only the extremes stop moving.
+            // The page gains a `ScrollView` in exchange, which is what the 0.6.7
+            // note's "one of the two screens that does not scroll" was protecting
+            // — a fixed picture and a fixed paragraph cannot both be honoured on
+            // every device, and the paragraph is the part you can scroll to.
+            ScrollView {
+                VStack(spacing: 14) {
+                    progress
 
-                DeviceDiagram(highlight: step.highlight, isolated: step.isolated, skin: skin, lcd: lcd)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    DeviceDiagram(
+                        highlight: step.highlight,
+                        isolated: step.isolated,
+                        skin: skin,
+                        lcd: lcd
+                    )
+                    .frame(maxWidth: .infinity)
+                    .frame(height: Self.diagramHeight)
                     // Redrawn per step so the lit part animates rather than
                     // cutting, which is what makes it read as "look here".
                     .animation(.easeInOut(duration: 0.3), value: step.highlight)
 
-                copy
+                    copy
 
-                controls
+                    controls
+                }
+                .padding(16)
             }
-            .padding(16)
+            .scrollBounceBehavior(.basedOnSize)
         }
     }
+
+    /// The device's one size, on every step. See `body`.
+    private static let diagramHeight: CGFloat = 300
 
     private var progress: some View {
         HStack(spacing: 5) {
@@ -157,6 +184,25 @@ public struct WalkthroughScreen: View {
 /// Deliberately schematic — this is a map, not a screenshot. Everything unlit is
 /// drawn at low opacity so the highlighted part is the only thing with contrast,
 /// which is the whole job.
+/// The white ring and glow a pointed-at tile wears on the little LCD.
+///
+/// A modifier rather than the inline overlay it was, because 0.8.8's D2 needs
+/// three tiles able to wear it rather than one, and three copies of a border and
+/// a shadow is how two of them come to differ.
+private struct MiniTileGlow: ViewModifier {
+    let on: Bool
+    let control: CGFloat
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                RoundedRectangle(cornerRadius: control * 0.18)
+                    .strokeBorder(.white, lineWidth: on ? 2 : 0)
+            )
+            .shadow(color: Dex.yellow.opacity(on ? 0.9 : 0), radius: 6)
+    }
+}
+
 struct DeviceDiagram: View {
     let highlight: WalkthroughStep.Highlight
     /// See `WalkthroughStep.isolated`: the opening step hides everything
@@ -180,7 +226,10 @@ struct DeviceDiagram: View {
     /// is showing that path.
     private func lit(_ part: WalkthroughStep.Highlight) -> Bool {
         highlight == .device || highlight == part
-            || (part == .settings && highlight == .tools)
+            // The cog lights for anything that lives behind it — TOOLS since
+            // v0.5.4, and the passport, workshop and shop since 0.8.8's D2. The
+            // step's point in every case is the path, and the path starts here.
+            || (part == .settings && (highlight == .tools || highlight == .collection))
     }
 
     private func dim(_ part: WalkthroughStep.Highlight) -> Double {
@@ -254,25 +303,44 @@ struct DeviceDiagram: View {
         }
     }
 
-    /// The tools step's little LCD: a mock of the settings grid, with the
-    /// TOOLS tile glowing. The other three tiles are the grid's real
-    /// neighbours (TUTORIAL, CUSTOMIZE, SETTINGS), so the drawing points at
-    /// where TOOLS actually sits rather than at a made-up menu.
-    private func miniSettingsGrid(control: CGFloat, spacing: CGFloat) -> some View {
+    /// The settings grid on the little LCD, with one tile glowing.
+    ///
+    /// **Redrawn to the grid that actually exists (0.8.8, D2).** This mock drew
+    /// four tiles — TUTORIAL, TOOLS, CUSTOMIZE, SETTINGS — and its own comment
+    /// called them "the grid's real neighbours". They stopped being that in
+    /// 0.7.6's F1, which took TUTORIAL off the grid entirely (it is a row inside
+    /// SETTINGS > DEVICE now, and is where *this very tour* is launched from) and
+    /// left five tiles in three rows: two, two, and SHOP the width of the panel.
+    /// So the tour's picture of the settings panel had a tile on it that the
+    /// panel has not had for four releases — and the tile it had was the tour.
+    ///
+    /// Symbols and layout track `SettingsPanel.body`; the colours are this
+    /// diagram's own flat faces rather than that panel's ground-aware pairs,
+    /// because a 20pt square inside a mocked LCD is not the surface those were
+    /// tuned for.
+    ///
+    /// `glowing` is which tile the step is pointing at, so one drawing serves the
+    /// tools step and D2's three collection steps rather than four mocks.
+    private func miniSettingsGrid(
+        control: CGFloat,
+        spacing: CGFloat,
+        glowing: WalkthroughStep.Highlight
+    ) -> some View {
         VStack(spacing: spacing) {
             HStack(spacing: spacing) {
-                miniMenuTile("flag.checkered", "#22c55e", control: control)
                 miniMenuTile("wrench.and.screwdriver.fill", "#FACC15", control: control, ink: Dex.amber900)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: control * 0.18)
-                            .strokeBorder(.white, lineWidth: 2)
-                    )
-                    .shadow(color: Dex.yellow.opacity(0.9), radius: 6)
+                    .modifier(MiniTileGlow(on: glowing == .tools, control: control))
+                miniMenuTile("paintpalette.fill", "#ef4444", control: control)
+                    .modifier(MiniTileGlow(on: glowing == .collection, control: control))
             }
             HStack(spacing: spacing) {
-                miniMenuTile("paintpalette.fill", "#ef4444", control: control)
                 miniMenuTile("slider.horizontal.3", "#f97316", control: control)
+                miniMenuTile("chart.bar.fill", "#22c55e", control: control)
             }
+            // SHOP, the width of the panel — F1's own layout.
+            miniMenuTile("bag.fill", "#a855f7", control: control)
+                .frame(height: control * 0.7)
+                .modifier(MiniTileGlow(on: glowing == .collection, control: control))
         }
     }
 
@@ -383,12 +451,16 @@ struct DeviceDiagram: View {
                                 .padding(h * 0.022)
                         )
                         .overlay {
-                            if highlight == .tools {
-                                // The tools step swaps the little LCD to a
-                                // mock of the settings grid — see
-                                // `miniSettingsGrid`.
-                                miniSettingsGrid(control: control, spacing: h * 0.016)
-                                    .padding(h * 0.05)
+                            if highlight == .tools || highlight == .collection {
+                                // The tools step, and D2's three collection
+                                // steps, swap the little LCD to a mock of the
+                                // settings grid — see `miniSettingsGrid`.
+                                miniSettingsGrid(
+                                    control: control,
+                                    spacing: h * 0.016,
+                                    glowing: highlight
+                                )
+                                .padding(h * 0.05)
                             } else if highlight == .entry {
                                 miniEntryMock(control: control, spacing: h * 0.016)
                                     .padding(h * 0.05)
@@ -431,7 +503,8 @@ struct DeviceDiagram: View {
                         // *inside* the housing — dimming the housing would dim
                         // its own subject.
                         .opacity(
-                            highlight == .search || highlight == .tools || highlight == .entry
+                            highlight == .search || highlight == .tools
+                                || highlight == .entry || highlight == .collection
                                 ? 1 : dim(.screen)
                         )
                         .shadow(color: lcd.accent.opacity(lit(.screen) ? 0.7 : 0), radius: 8)

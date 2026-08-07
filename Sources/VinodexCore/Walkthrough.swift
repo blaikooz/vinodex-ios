@@ -33,6 +33,11 @@ public struct WalkthroughStep: Sendable, Hashable, Identifiable {
         case saved
         case home
         case marquee
+        /// The shop, the workshop and the passport all live behind the cog and
+        /// all want the settings grid lit — but they are not "the settings
+        /// step", so they get their own name rather than three steps claiming
+        /// `.settings` and tripping `idsAreUnique`'s sibling assertion.
+        case collection
     }
 
     public let id: String
@@ -54,14 +59,34 @@ public struct WalkthroughStep: Sendable, Hashable, Identifiable {
 }
 
 public enum Walkthrough {
-    /// Nine steps. The tour opens on the main screen — the whole app is up
-    /// there — then search, an entry, and the
-    /// controls. Rewritten terse in v0.5.4: the old copy read well aloud but
-    /// nobody reads a tour aloud; two sentences a page is the budget. The orb
-    /// step is gone — an easter egg you are told about is not an easter egg.
+    /// The tour opens on the main screen — the whole app is up there — then
+    /// search, an entry, and the controls. Rewritten terse in v0.5.4: the old
+    /// copy read well aloud but nobody reads a tour aloud; two sentences a page
+    /// is the budget. The orb step is gone — an easter egg you are told about is
+    /// not an easter egg.
     ///
-    /// The ninth is the marquee's two lamp buttons (0.7.6, A1) — see the note
+    /// The marquee's two lamp buttons arrived in 0.7.6 (A1) — see the note
     /// beside it for why a tour step is the right home for a hold gesture.
+    ///
+    /// ## What 0.8.8's D2 added, and what it found
+    ///
+    /// The tour was written at v0.5.4 and last touched for content in 0.7.2.
+    /// Twelve releases shipped features it never mentions, and the item's brief
+    /// — "work out what it now fails to mention" — is most of the work. What it
+    /// omitted entirely: the **shop** and the packs, the **passport** and its
+    /// stamps, the **device workshop**, the **globe**, and **grape lineage**.
+    /// Three steps cover the first three; the globe is reachable from the main
+    /// menu the opening step already describes, and lineage is a row on an entry
+    /// page, which step three's "a row with an arrow opens the next entry"
+    /// already covers. A tour that names everything is a manual.
+    ///
+    /// **And one thing it said was wrong.** The tools step listed six tools, one
+    /// of which — master search — is not on that shelf and never has been (it is
+    /// the main menu's middle button, which step two describes), while WHAT'S
+    /// THAT…? was missing. That is exactly the drift the step's own 0.7.2 note
+    /// was written to fix, recurring because prose and a grid of literals cannot
+    /// be compared. The sentence is now built from `ToolRoster`, so it cannot say
+    /// six when the shelf holds six different ones.
     public static let steps: [WalkthroughStep] = [
         WalkthroughStep(
             id: "screen",
@@ -141,18 +166,52 @@ public enum Walkthrough {
         WalkthroughStep(
             id: "tools",
             title: "TOOLS",
-            // Rewritten in 0.7.2 (LR1). Two of the five names here had been
-            // renamed out from under this copy — SCANNER became BLIND TASTING
-            // (0.7.1, E3) and FILTER SEARCH became MASTER SEARCH (0.7.1, A1) —
-            // so the tour was naming tiles that no longer exist, which on a
-            // *tour* is worse than saying nothing. LABEL SCAN joins as the
-            // sixth.
+            // Rewritten in 0.7.2 (LR1), and **derived rather than written in
+            // 0.8.8 (D2)** — see the roster note above. The 0.7.2 rewrite fixed
+            // two renamed tiles by hand and the copy went wrong again within two
+            // releases, which is the argument for building the sentence.
+            // `ToolRoster.sentence` is the six titles the shelf actually draws,
+            // and each of them now also has a card of its own the first time you
+            // open it.
             body: """
-            Also behind the cog: the wrench tile. Blind tasting, label scan, \
-            master search, the wine exam, the daily challenge, and the moon \
-            dial.
+            Also behind the cog: the wrench tile. \
+            \(ToolRoster.sentence.prefix(1).uppercased())\(ToolRoster.sentence.dropFirst()). \
+            Each one explains itself the first time you open it.
             """,
             highlight: .tools
+        ),
+        // **Three steps for twelve releases of features the tour never
+        // mentioned** (0.8.8, D2). See the roster note above for what was
+        // considered and left out.
+        WalkthroughStep(
+            id: "passport",
+            title: "WHAT YOU'VE TASTED",
+            body: """
+            Mark an entry tried and it lands in your passport — counts, a rank, \
+            and stamps you earn along the way. The stamps stick to the back of \
+            the device, and you can move them about.
+            """,
+            highlight: .collection
+        ),
+        WalkthroughStep(
+            id: "workshop",
+            title: "BUILD YOUR OWN",
+            body: """
+            The workshop takes the device apart: shell, buttons, orb, lamps, \
+            grille, screen and font, each chosen separately. Save a build under \
+            a name and fit it again whenever you like.
+            """,
+            highlight: .collection
+        ),
+        WalkthroughStep(
+            id: "shop",
+            title: "MORE OF IT",
+            body: """
+            The shop holds expansion packs — more of the catalog by country, \
+            plus skins, screen modes and the workshop itself. What you own \
+            stays owned.
+            """,
+            highlight: .collection
         ),
         WalkthroughStep(
             id: "done",

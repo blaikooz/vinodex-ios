@@ -689,8 +689,128 @@ struct WalkthroughTests {
     @Test("the parts the diagram can light are all covered")
     func coversTheControls() {
         let used = Set(Walkthrough.steps.map(\.highlight))
-        for required: WalkthroughStep.Highlight in [.screen, .search, .entry, .settings, .tools, .back, .home] {
+        for required: WalkthroughStep.Highlight in [
+            .screen, .search, .entry, .settings, .tools, .back, .home, .marquee, .collection,
+        ] {
             #expect(used.contains(required), "no step highlights \(required.rawValue)")
         }
+    }
+
+    /// **The tour names the tools the shelf actually holds** (0.8.8, D2).
+    ///
+    /// This is the assertion that would have caught the bug D2 found: the step
+    /// listed six tools, one of which (master search) is not on that shelf and
+    /// never has been, while WHAT'S THAT…? was absent. It had been wrong since
+    /// 0.7.9, through a release that rewrote the very tool it omitted, because
+    /// prose in one file and a grid of literals in another cannot be compared.
+    /// The sentence is derived from `ToolRoster` now, so this test is really
+    /// pinning that it *stays* derived.
+    @Test("the tools step names the shelf")
+    func toolsStepNamesTheShelf() throws {
+        let step = try #require(Walkthrough.steps.first { $0.id == "tools" })
+        let body = step.body.lowercased()
+        for tool in ToolRoster.all {
+            #expect(body.contains(tool.title.lowercased()), "the tour never mentions \(tool.title)")
+        }
+        // The one that is not a tool, and the reason this test exists.
+        #expect(!body.contains("master search"))
+    }
+}
+
+/// **The tool roster is the shelf, the tour and the cards** (0.8.8, D1/D2).
+@Suite("Tool roster")
+struct ToolRosterTests {
+    @Test("every tool has a card worth reading")
+    func introsAreWritten() {
+        #expect(ToolRoster.all.count == 6)
+        for intro in ToolRoster.all {
+            #expect(!intro.id.isEmpty)
+            #expect(!intro.title.isEmpty)
+            #expect(!intro.art.isEmpty)
+            #expect(!intro.symbol.isEmpty)
+            #expect(intro.tagline.count > 20, "\(intro.id) tagline is a stub")
+            // Long enough to say how the thing works, short enough to read
+            // before you have started using it.
+            #expect(intro.body.count > 100, "\(intro.id) body is \(intro.body.count) chars")
+            #expect(intro.body.count < 400, "\(intro.id) body is \(intro.body.count) chars")
+            #expect(intro.faceHex.hasPrefix("#") && intro.faceHex.count == 7)
+        }
+    }
+
+    @Test("ids and faces are distinct")
+    func rosterIsWellFormed() {
+        let ids = ToolRoster.all.map(\.id)
+        #expect(Set(ids).count == ids.count)
+        let stems = ToolRoster.all.map(\.art)
+        #expect(Set(stems).count == stems.count)
+        // Six tiles told apart at a glance is the shelf's own rule.
+        let faces = ToolRoster.all.map(\.faceHex)
+        #expect(Set(faces).count == faces.count)
+    }
+
+    /// **Every card is reachable, and only tools raise one.**
+    ///
+    /// The failure this catches is a card written, shipped and never shown —
+    /// which is invisible on the device, because the symptom is nothing
+    /// happening. Checked from both directions: each roster entry must be
+    /// produced by some route, and no non-tool route may produce one.
+    @Test("every tool card has a route that raises it")
+    func everyToolIsReachable() {
+        let toolRoutes: [DexRoute] = [
+            .scanner, .labelReader, .wsetQuiz, .dailyChallenge, .dailyGrape, .moonDial,
+        ]
+        let reached = Set(toolRoutes.compactMap { ToolRoster.intro(for: $0)?.id })
+        #expect(reached == Set(ToolRoster.all.map(\.id)))
+
+        for route: DexRoute in [
+            .globe, .passport, .chipFilter, .settings, .bookmarks,
+            .walkthrough, .deviceWorkshop, .stampCollection,
+            .list(category: .grapes, filter: nil), .detail(entryID: "G001"),
+        ] {
+            #expect(ToolRoster.intro(for: route) == nil, "\(route) raised a tool card")
+        }
+    }
+
+    @Test("the sentence lists all six and reads as one")
+    func sentenceIsComplete() {
+        let sentence = ToolRoster.sentence
+        for intro in ToolRoster.all {
+            #expect(sentence.contains(intro.title.lowercased()))
+        }
+        #expect(sentence.contains(", and "))
+    }
+
+    /// The store's contract: additive, id-keyed, and unknown ids dropped so a
+    /// tool removed later cannot hold a slot forever.
+    @MainActor
+    @Test("seen ids persist, widen and survive a stranger")
+    func storeRoundTrips() {
+        let defaults = UserDefaults(suiteName: "toolIntroTests-\(UUID().uuidString)")!
+        let store = ToolIntroStore(defaults: defaults)
+        #expect(store.seen.isEmpty)
+        #expect(store.pending("whatsThat")?.id == "whatsThat")
+
+        store.markSeen("whatsThat")
+        #expect(store.hasSeen("whatsThat"))
+        #expect(store.pending("whatsThat") == nil)
+        // A tool with no roster entry cannot be marked seen.
+        store.markSeen("nosuchtool")
+        #expect(store.seen == ["whatsThat"])
+        #expect(store.pending("nosuchtool") == nil)
+
+        #expect(ToolIntroStore(defaults: defaults).seen == ["whatsThat"])
+
+        // A stored id the roster no longer knows is dropped on read.
+        defaults.set("whatsThat,retiredTool", forKey: ToolIntroStore.storageKey)
+        #expect(ToolIntroStore(defaults: defaults).seen == ["whatsThat"])
+
+        store.markAllSeen()
+        #expect(store.seen == Set(ToolRoster.all.map(\.id)))
+        for intro in ToolRoster.all {
+            #expect(store.pending(intro.id) == nil)
+        }
+
+        store.reset()
+        #expect(ToolIntroStore(defaults: defaults).seen.isEmpty)
     }
 }

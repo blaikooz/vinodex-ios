@@ -144,12 +144,32 @@ public struct DeviceWorkshopScreen: View {
             DexScreenBackground()
 
             ScrollView {
+                // **SAVE THIS BUILD and SAVED BUILDS ride above SHELL (0.8.8,
+                // H1).** They sat last because they were written last, and the
+                // shape of the page argues against it: the ten axis sections
+                // below are one long editing pass, so the two controls that act
+                // on the *result* of that pass were ten scroll-lengths from the
+                // schematic showing what you had made. Directly under the
+                // schematic they are next to the thing they save, and FIT on a
+                // stored build is now the first control on the page rather than
+                // the last — which is the right order for the commoner visit,
+                // since choosing a build you already made is one tap and making
+                // a new one is ten sections.
+                //
+                // Order within the pair is unchanged and deliberate: you save
+                // what is fitted, then you see what you have.
+                //
+                // `section(_:)` sets `.id(title)`, and those ids are the scroll
+                // anchors `ScreenStateStore.deviceWorkshop` persists. Moving a
+                // section does not change its id, so a restored anchor still
+                // finds its section — it simply lands at a different offset,
+                // which is what moving it means.
                 VStack(alignment: .leading, spacing: 18) {
                     schematic
+                    savedBuilds
                     ForEach(DeviceAxis.allCases) { axis in
                         section(axis.title) { chooser(for: axis) }
                     }
-                    savedBuilds
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .scrollTargetLayout()

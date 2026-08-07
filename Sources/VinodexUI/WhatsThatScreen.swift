@@ -38,13 +38,28 @@ public struct WhatsThatScreen: View {
     /// the hard way: this view is destroyed by any navigation away from it, so
     /// opening the answer's entry and pressing Back used to deal a new hand and
     /// lose the game you had just won.
+    /// **One `Play` where there were four loose flags (0.8.8, E1/E2).**
+    ///
+    /// `revealed`/`solvedAt`/`gaveUp` were `@State` here and the transitions
+    /// between them were written in this file, which put the game's rules in the
+    /// module `swift test` cannot reach — in the file whose own header says it
+    /// draws and nothing else. `WhatsThat.Play` is the same shape `QuizSession`
+    /// has, for the same reason, and it is why the economy this batch adds is
+    /// covered by tests rather than by eyeballing.
     @State private var screens = ScreenStateStore.shared
-    @State private var round: WhatsThat.Round?
-    @State private var revealed = 1
+    @State private var play: WhatsThat.Play?
     @State private var guess = ""
     @State private var verdict: WhatsThat.Verdict?
-    @State private var solvedAt: Int?
-    @State private var gaveUp = false
+    /// The clue a wrong guess just turned over, so the screen can say which.
+    @State private var forfeited: WhatsThat.Clue?
+    /// Whether this round has already been folded into the record.
+    ///
+    /// Persisted alongside the play in `ScreenStateStore`, because leaving the
+    /// screen and coming back restores a *finished* round and must not count it
+    /// a second time. `PassportProgress.announce`'s "record at the moment it
+    /// happens" is the same hazard from the other side.
+    @State private var recorded = false
+    @State private var records = WhatsThatRecordStore.shared
 
     private let db = WineDatabase.shared
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
@@ -61,18 +76,16 @@ public struct WhatsThatScreen: View {
     private var stateKey: String { ScreenStateStore.dailyGrape }
 
     private var answer: WineEntry? {
-        round.flatMap { db.entry(id: $0.answerID) }
+        play.flatMap { db.entry(id: $0.round.answerID) }
     }
-
-    private var isOver: Bool { solvedAt != nil || gaveUp }
 
     public var body: some View {
         ZStack {
             DexScreenBackground()
 
-            if let round {
+            if let play {
                 ScrollView {
-                    content(round)
+                    content(play)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 18)
                 }
@@ -88,9 +101,7 @@ public struct WhatsThatScreen: View {
             }
         }
         .onAppear(perform: restoreOrDeal)
-        .onChange(of: revealed) { _, _ in save() }
-        .onChange(of: solvedAt) { _, _ in save() }
-        .onChange(of: gaveUp) { _, _ in save() }
+        .onChange(of: play) { _, _ in save() }
     }
 
     // MARK: - Deal, restore, save
@@ -99,38 +110,51 @@ public struct WhatsThatScreen: View {
     /// every keystroke of the guess field, and a pick read there would deal a
     /// new answer under the player's fingers.
     private func restoreOrDeal() {
-        guard round == nil else { return }
-        if let held = screens.decoded(WhatsThat.Round.self, "round", for: stateKey) {
-            round = held
-            revealed = Int(screens.number("revealed", for: stateKey) ?? 1)
-            gaveUp = screens.isOn("gaveUp", for: stateKey)
-            if let at = screens.number("solvedAt", for: stateKey) { solvedAt = Int(at) }
+        guard play == nil else { return }
+        // The key holds a whole `Play` since 0.8.8 where it held a `Round` and
+        // three scalars. `ScreenStateStore` is session state and is never
+        // written to disk (see its own note), so there is no stored vocabulary
+        // to migrate and a session held across the update simply deals again.
+        if let held = screens.decoded(WhatsThat.Play.self, "play", for: stateKey) {
+            play = held
+            recorded = screens.isOn("recorded", for: stateKey)
             return
         }
         deal()
     }
 
     private func deal() {
-        round = WhatsThat.round(cursor: RevealCursor.shared.advance(), in: db)
-        revealed = 1
+        play = WhatsThat.round(cursor: RevealCursor.shared.advance(), in: db)
+            .map { WhatsThat.Play(round: $0) }
         guess = ""
         verdict = nil
-        solvedAt = nil
-        gaveUp = false
+        forfeited = nil
+        recorded = false
         save()
     }
 
     private func save() {
-        screens.encode(round, "round", for: stateKey)
-        screens.setNumber(Double(revealed), "revealed", for: stateKey)
-        screens.setFlag("gaveUp", gaveUp, for: stateKey)
-        screens.setNumber(solvedAt.map(Double.init), "solvedAt", for: stateKey)
+        screens.encode(play, "play", for: stateKey)
+        screens.setFlag("recorded", recorded, for: stateKey)
+    }
+
+    /// Fold a finished round into the record exactly once.
+    ///
+    /// Called from the three transitions that can end a round — never from a
+    /// body, which is `PassportProgress.announce`'s contract and would otherwise
+    /// count a re-render. `recorded` rides in `ScreenStateStore` so navigating
+    /// away from a finished round and back cannot count it again either.
+    private func bank() {
+        guard let play, play.isOver, !recorded else { return }
+        records.record(play)
+        recorded = true
+        save()
     }
 
     // MARK: - Layout
 
     @ViewBuilder
-    private func content(_ round: WhatsThat.Round) -> some View {
+    private func content(_ play: WhatsThat.Play) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             // **E1 (0.8.0) takes the whole screen up one register**, the same
             // ask B5 makes of the BIOS and for the same reason: this is a
@@ -145,88 +169,123 @@ public struct WhatsThatScreen: View {
             // Unlike the BIOS there is no width budget to derive against: this
             // page is inside a `ScrollView`, so the failure mode of going too far
             // is a longer scroll rather than a clipped composition.
-            Text(isOver ? "IT WAS…" : "WHAT'S THAT…?")
+            Text(play.isOver ? "IT WAS…" : "WHAT'S THAT…?")
                 .font(DexFont.retro(17))
                 .tracking(2)
                 .foregroundStyle(Dex.yellow)
                 .frame(maxWidth: .infinity, alignment: .center)
 
-            clueList(round)
+            scoreBar(play)
+            clueList(play)
 
-            if isOver {
-                resultCard(round)
+            if play.isOver {
+                resultCard(play)
             } else {
-                nextClueButton(round)
-                guessField(round)
+                guessField(play)
             }
         }
     }
 
-    /// The chips, revealed ones first and the rest as empty slots.
+    /// What the round is currently worth, and the run it belongs to (0.8.8, E2/E3).
     ///
-    /// The unrevealed slots are drawn rather than omitted, because how many are
-    /// left is the whole tension of the round — and because the score the player
-    /// is playing for is a fraction of the total (see `Round.score`), which they
-    /// cannot reason about without seeing the denominator.
-    private func clueList(_ round: WhatsThat.Round) -> some View {
-        VStack(spacing: 8) {
-            ForEach(Array(round.clues.enumerated()), id: \.element.id) { index, clue in
-                let shown = index < revealed || isOver
-                HStack(spacing: 10) {
-                    Text("\(index + 1)")
-                        .font(DexFont.retro(10))
-                        .foregroundStyle(shown ? lcd.accent : Dex.stone600)
-                        .frame(width: 20)
-                    Text(shown ? clue.text : "· · · · ·")
-                        .font(DexFont.retro(13))
-                        .tracking(0.5)
-                        .foregroundStyle(shown ? lcd.text : Dex.stone600)
-                        .multilineTextAlignment(.leading)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.7)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 0)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(shown ? lcd.surface : lcd.well)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 4)
-                        .strokeBorder(
-                            shown ? lcd.surfaceEdge : Dex.stone800,
-                            style: StrokeStyle(lineWidth: 2, dash: shown ? [] : [4, 3])
-                        )
-                )
-            }
+    /// The score used to appear only on the NEXT CLUE button, as the value the
+    /// *next* purchase would leave you with, which meant the number a player was
+    /// playing for was legible only as a consequence of an action they had not
+    /// taken. It is a live readout now, beside the streak — because a score that
+    /// feeds a run is a different number from one that does not, and E3 is what
+    /// makes that true.
+    private func scoreBar(_ play: WhatsThat.Play) -> some View {
+        HStack(spacing: 10) {
+            readout("WORTH", "\(play.round.score(revealed: play.revealedKinds))", tint: lcd.accent)
+            readout("STREAK", "\(records.record.streak)", tint: Dex.yellow)
+            readout("BEST", "\(records.record.bestScore)", tint: Dex.green)
         }
     }
 
-    private func nextClueButton(_ round: WhatsThat.Round) -> some View {
-        let last = revealed >= round.clues.count
-        return Button {
-            Haptics.select()
-            withAnimation(DexMotion.settle) { revealed = min(revealed + 1, round.clues.count) }
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "plus.magnifyingglass")
-                    .font(.system(size: 16, weight: .bold))
-                // The cost is printed on the button. A player who cannot see
-                // what a clue costs is not making a choice.
-                Text(last
-                     ? "NO CLUES LEFT"
-                     : "NEXT CLUE  ·  \(round.score(revealed: revealed + 1)) PTS")
-                    .font(DexFont.retro(13))
-                    .tracking(1)
-            }
-            .foregroundStyle(last ? Dex.stone600 : lcd.accent)
-            .frame(maxWidth: .infinity)
-            .frame(height: 50)
-            .background(Capsule().fill(lcd.well))
-            .overlay(Capsule().strokeBorder(last ? Dex.stone800 : lcd.surfaceEdge, lineWidth: 2))
+    private func readout(_ label: String, _ value: String, tint: Color) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(DexFont.retro(15))
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+            Text(label)
+                .font(DexFont.retro(10))
+                .tracking(0.8)
+                .foregroundStyle(lcd.subtext)
         }
-        .buttonStyle(DexPressStyle(scale: 0.98))
-        .disabled(last)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .background(RoundedRectangle(cornerRadius: 5).fill(lcd.well))
+        .overlay(
+            RoundedRectangle(cornerRadius: 5).strokeBorder(tint.opacity(0.4), lineWidth: 1)
+        )
+    }
+
+    /// **The chips, and the hidden ones are the shop (0.8.8, E2).**
+    ///
+    /// The unrevealed slots were drawn rather than omitted because how many are
+    /// left is the tension of the round, and that reason still holds. What is
+    /// new is that each one is a *button* carrying its own price, because the
+    /// clues are no longer interchangeable and pricing them alike is what left
+    /// NEXT CLUE as the only decision on the screen. Buying the appellation
+    /// early is now a thing a player can do and pay four times over for.
+    ///
+    /// The order stays the round's own vague-to-specific order rather than
+    /// re-sorting bought clues to the top: the list is the round's shape, and a
+    /// list that reorders under a tap is a list you have to re-read.
+    private func clueList(_ play: WhatsThat.Play) -> some View {
+        VStack(spacing: 8) {
+            ForEach(Array(play.round.clues.enumerated()), id: \.element.id) { index, clue in
+                let shown = play.revealedKinds.contains(clue.kind) || play.isOver
+                let cost = play.price(of: clue)
+                Button {
+                    guard !shown, !play.isOver else { return }
+                    Haptics.select()
+                    forfeited = nil
+                    withAnimation(DexMotion.settle) { self.play?.reveal(clue.kind) }
+                } label: {
+                    HStack(spacing: 10) {
+                        Text("\(index + 1)")
+                            .font(DexFont.retro(10))
+                            .foregroundStyle(shown ? lcd.accent : Dex.stone600)
+                            .frame(width: 20)
+                        Text(shown ? clue.text : "· · · · ·")
+                            .font(DexFont.retro(13))
+                            .tracking(0.5)
+                            .foregroundStyle(shown ? lcd.text : Dex.stone600)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.7)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                        // The price rides on the chip it buys. A player who
+                        // cannot see what a clue costs is not making a choice —
+                        // 0.8.0's argument for printing it on NEXT CLUE, now
+                        // that there are five different answers to it.
+                        if !shown && !play.isOver {
+                            Text("−\(cost)")
+                                .font(DexFont.retro(11))
+                                .foregroundStyle(Dex.amber400)
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(shown ? lcd.surface : lcd.well)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .strokeBorder(
+                                clue.id == forfeited?.id ? Dex.red500
+                                    : (shown ? lcd.surfaceEdge : Dex.stone800),
+                                style: StrokeStyle(lineWidth: 2, dash: shown ? [] : [4, 3])
+                            )
+                    )
+                }
+                .buttonStyle(DexPressStyle(scale: 0.99))
+                .disabled(shown || play.isOver)
+            }
+        }
     }
 
     // MARK: - Guessing
@@ -247,13 +306,19 @@ public struct WhatsThatScreen: View {
     /// the answer, and filtering the answer out of a pool they *have* met would
     /// be an oracle: silence on `NEBB` tells you it is Nebbiolo. A search bar
     /// that searches the catalog is what this must never become.
-    private func guessField(_ round: WhatsThat.Round) -> some View {
+    ///
+    /// **What a guess costs now (0.8.8, E1).** The caption under the field says
+    /// it outright, because the round's whole economy changed and a control that
+    /// silently started charging would be worse than one that never did. A
+    /// named-but-wrong guess turns over the cheapest clue left; typing something
+    /// the dex has never heard of is free.
+    private func guessField(_ play: WhatsThat.Play) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             DexSearchBarShell {
                 DexSearchField(text: $guess, placeholder: "TYPE YOUR GUESS…", fontSize: 25)
                     .frame(height: 34)
                 Button {
-                    submit(round)
+                    submit()
                 } label: {
                     Text("GUESS")
                         .font(DexFont.retro(12))
@@ -273,6 +338,13 @@ public struct WhatsThatScreen: View {
                 verdictLine(verdict)
             }
 
+            Text(play.forfeit.map { "A WRONG NAME COSTS \(play.price(of: $0)) PTS" }
+                 ?? "NO CLUES LEFT — A WRONG NAME ENDS IT")
+                .font(DexFont.retro(10))
+                .tracking(0.8)
+                .foregroundStyle(Dex.stone400)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
             // **A red button rather than a line of text (0.8.0, E3).** GIVE UP
             // was grey type on the background, which put the one irreversible
             // control on this screen in the register the app uses for captions —
@@ -284,7 +356,8 @@ public struct WhatsThatScreen: View {
             // panel rather than as a second primary action beside GUESS.
             Button {
                 Haptics.select()
-                withAnimation(DexMotion.settle) { gaveUp = true }
+                withAnimation(DexMotion.settle) { self.play?.giveUp() }
+                bank()
             } label: {
                 Text("GIVE UP")
                     .font(DexFont.retro(12))
@@ -381,27 +454,35 @@ public struct WhatsThatScreen: View {
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func submit(_ round: WhatsThat.Round) {
-        let result = WhatsThat.judge(guess, in: round)
+    /// **Judge, then let the round absorb it (0.8.8, E1).**
+    ///
+    /// The verdict is still `WhatsThat.judge`'s and the consequence is now
+    /// `Play.record`'s — this function does neither, which is the file's own
+    /// rule finally applied to the one place that was breaking it. What is left
+    /// here is the two things that genuinely are drawing: which haptic fires,
+    /// and which chip flashes red.
+    private func submit() {
+        guard var current = play, !current.isOver else { return }
+        let result = WhatsThat.judge(guess, in: current.round)
         verdict = result
-        guard case .correct = result else {
-            Haptics.tap()
-            return
+        let taken = current.record(result)
+        withAnimation(DexMotion.settle) {
+            play = current
+            forfeited = taken
         }
-        Haptics.select()
-        withAnimation(DexMotion.settle) { solvedAt = revealed }
+        if case .correct = result { Haptics.select() } else { Haptics.tap() }
+        bank()
     }
 
     // MARK: - The end of a round
 
-    private func resultCard(_ round: WhatsThat.Round) -> some View {
-        let won = solvedAt != nil
-        let score = solvedAt.map { round.score(revealed: $0) } ?? 0
+    private func resultCard(_ play: WhatsThat.Play) -> some View {
+        let won = play.outcome == .solved
         return VStack(spacing: 14) {
             if let answer {
                 EntryIconWell(entry: answer, size: 110, cornerRadius: 14)
             }
-            Text(round.answerName.uppercased())
+            Text(play.round.answerName.uppercased())
                 .font(DexFont.retro(23))
                 .foregroundStyle(lcd.text)
                 .shadow(color: lcd.accent.opacity(0.55), radius: 0, x: 3, y: 3)
@@ -409,12 +490,22 @@ public struct WhatsThatScreen: View {
                 .lineLimit(2)
                 .minimumScaleFactor(0.5)
 
-            Text(won
-                 ? "SOLVED ON CLUE \(solvedAt ?? 0)  ·  \(score) PTS"
-                 : "NOT GUESSED  ·  0 PTS")
+            // Three endings now, where there were two. Running out of clues with
+            // a wrong name on the field is a *loss* rather than a surrender, and
+            // saying so is the difference between a game you failed and a game
+            // you left.
+            Text(endingLine(play))
                 .font(DexFont.retro(13))
                 .tracking(1)
                 .foregroundStyle(won ? Dex.green : Dex.stone400)
+                .multilineTextAlignment(.center)
+
+            if won, records.record.streak > 1 {
+                Text("\(records.record.streak) IN A ROW")
+                    .font(DexFont.retro(11))
+                    .tracking(1)
+                    .foregroundStyle(Dex.yellow)
+            }
 
             if let answer {
                 Button {
@@ -441,6 +532,18 @@ public struct WhatsThatScreen: View {
             RoundedRectangle(cornerRadius: 8)
                 .strokeBorder((won ? Dex.green : Dex.stone600).opacity(0.6), lineWidth: 2)
         )
+    }
+
+    private func endingLine(_ play: WhatsThat.Play) -> String {
+        switch play.outcome {
+        case .solved:
+            let opened = play.revealed.count
+            return "SOLVED ON \(opened) CLUE\(opened == 1 ? "" : "S")  ·  \(play.score) PTS"
+        case .lost:
+            return "OUT OF CLUES  ·  0 PTS"
+        case .gaveUp, .none:
+            return "NOT GUESSED  ·  0 PTS"
+        }
     }
 
     private func pill(_ text: String, fill: Color, ink: Color) -> some View {

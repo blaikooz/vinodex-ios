@@ -74,6 +74,7 @@ struct ChromeTests {
         .rarity(.noble),
         .system("Origin"),
         .climate(.continental),
+        .styleColor(.red),
     ]
 
     @Test("every route has a title and a glyph")
@@ -196,25 +197,49 @@ struct ChromeTests {
 
     /// Which filters convert, and the facet each becomes.
     ///
-    /// A table because the derivation has two value-dependent arms and both were
+    /// A table because the derivation has value-dependent arms and every one was
     /// settled by measuring the shipped catalog rather than by reading the code
-    /// — see `EntryFilter.chipOption`. `.type` converts for a grape's colour
-    /// (96 entries and 96, 81 and 81) and not for its body ("Full-Body Red" is
-    /// 35 where the BODY chip's "Full" is 47); `.origin` is left alone because
-    /// it matches tags as well as origins and nothing pushes it as a route.
+    /// — see `EntryFilter.chipOption`. `.origin` is left alone because it
+    /// matches tags as well as origins and nothing pushes it as a route.
+    ///
+    /// **0.8.8's C1 moves the `.type` rows and this is the record of it.** 0.8.7
+    /// pinned `.type("Full-Body Red")` as *not* a chip, on the true measurement
+    /// that it is not the BODY chip. The user overruled the resulting STYLE SCAN
+    /// title, and the honest way to satisfy that was to widen the chip
+    /// vocabulary rather than to point the title at a chip that would show a
+    /// different list — so `.grapeStyle` exists and the ten values convert
+    /// exactly. `.type("Rose")` and `.type("Orange")` are still not chips and
+    /// now nothing sends them: the style COLOR tile sends `.styleColor`.
     @Test("the filters that are chips are exactly these, on exactly these facets")
     func chipMappingIsPinned() {
         #expect(EntryFilter.type("red").chipOption?.facet == .color)
         #expect(EntryFilter.type("white").chipOption?.facet == .color)
         // Case and diacritics fold, because the tile sends the raw value.
         #expect(EntryFilter.type("Red").chipOption?.value == "red")
-        // The body tile. No chip says this, so it stays a scan.
-        #expect(EntryFilter.type("Full-Body Red").chipOption == nil)
-        #expect(EntryFilter.type("Full-Body Red").scanTitle == "STYLE SCAN")
-        // A style's colour tile can send these three; none is a grape colour.
+
+        // The body tile, converted in 0.8.8's C1. The chip's stored value is the
+        // catalog's own spelling whatever case the filter carried, so it is one
+        // `ChipFilter.options` offers — `presetChipsAreOffered` checks all ten.
+        #expect(EntryFilter.type("Full-Body Red").chipOption?.facet == .grapeStyle)
+        #expect(EntryFilter.type("Full-Body Red").chipOption?.value == "Full-Body Red")
+        #expect(EntryFilter.type("full-body red").chipOption?.value == "Full-Body Red")
+        #expect(EntryFilter.type("Full-Body Red").scanTitle == "FILTER SEARCH")
+        // The four values that are *not* body-and-colour compounds, which is why
+        // the facet is the catalog's vocabulary and not BODY crossed with COLOUR.
+        #expect(EntryFilter.type("Aromatic White").chipOption?.facet == .grapeStyle)
+        #expect(EntryFilter.type("Madeira").chipOption?.facet == .grapeStyle)
+
+        // Neither a grape colour nor a grape style, and nothing sends them any
+        // more — the style COLOR tile pushes `.styleColor` since C1.
         #expect(EntryFilter.type("Rose").chipOption == nil)
         #expect(EntryFilter.type("Orange").chipOption == nil)
+        // And `.type("Dual")` no longer answers "every grape": D2's special case
+        // went with its caller.
         #expect(EntryFilter.type("Dual").chipOption == nil)
+        #expect(WineDatabase.shared.entries.filter { EntryFilter.type("Dual").matches($0) }.isEmpty)
+
+        #expect(EntryFilter.styleColor(.red).chipOption?.facet == .styleColor)
+        #expect(EntryFilter.styleColor(.dual).chipOption?.facet == .styleColor)
 
         #expect(EntryFilter.tasting("SWEET").chipOption?.facet == .flavorClass)
         #expect(EntryFilter.tasting("SWEET").chipOption?.value == "SWEET")
@@ -253,18 +278,7 @@ struct ChromeTests {
     /// the cross-linked tiles genuinely send.
     @Test("a pre-selected chip is one its facet offers")
     func presetChipsAreOffered() {
-        var live: [EntryFilter] = [
-            .type("red"), .type("white"),
-            .rarity(.noble), .rarity(.common),
-            .system("ORIGIN"), .system("METHOD"),
-        ]
-        live += ClimateClass.allCases.map { EntryFilter.climate($0) }
-        for entry in WineDatabase.shared.entries {
-            guard case .flavor(let flavor) = entry else { continue }
-            live.append(.tasting(flavor.details.classification))
-            live.append(.flavorSubclass(flavor.details.subclass))
-        }
-        for filter in live {
+        for (filter, _) in Self.liveCrossLinks {
             guard let option = filter.chipOption else {
                 Issue.record("\(filter) should be a chip")
                 continue
@@ -272,6 +286,87 @@ struct ChromeTests {
             #expect(
                 ChipFilter.options(for: option.facet).contains(option),
                 "\(option.facet) offers no chip for \(option.value)"
+            )
+        }
+    }
+
+    /// Every filter a cross-linked tile can actually build, paired with the
+    /// category that tile pushes into.
+    ///
+    /// Enumerated from the catalog rather than sampled, which is the lesson
+    /// `bodyFromText` cost: Cabernet Sauvignon was the only grape pinned
+    /// anywhere and it sat on the correct side of a broken branch for two
+    /// releases. What breaks in this area is a *branch* — one arm of a
+    /// value-dependent derivation — so the set is what has to be walked.
+    static var liveCrossLinks: [(EntryFilter, EntryCategory)] {
+        var live: [(EntryFilter, EntryCategory)] = [
+            (.type("red"), .grapes), (.type("white"), .grapes),
+            (.system("ORIGIN"), .styles), (.system("METHOD"), .styles),
+        ]
+        live += RarityLabel.allCases.map { (EntryFilter.rarity($0), EntryCategory.grapes) }
+        live += ClimateClass.allCases.map { (EntryFilter.climate($0), EntryCategory.regions) }
+        // The grape body tile: every style the catalog carries (0.8.8, C1).
+        live += WineDatabase.shared.grapeStyles.map { (EntryFilter.type($0), EntryCategory.grapes) }
+        for entry in WineDatabase.shared.entries {
+            switch entry {
+            case .flavor(let flavor):
+                live.append((.tasting(flavor.details.classification), .flavors))
+                live.append((.flavorSubclass(flavor.details.subclass), .flavors))
+            // The style COLOR tile, over every style in the catalog.
+            case .style(let style):
+                live.append((.styleColor(EntryDisplay.colorType(name: style.common.name)), .styles))
+            default:
+                continue
+            }
+        }
+        return live
+    }
+
+    /// **The invariant the whole conversion rests on: a lit chip shows the list
+    /// the filter showed, and turning it off widens the list.**
+    ///
+    /// `EncyclopediaListScreen` hands the constraint from `EntryQuery.filter` to
+    /// the chip row on arrival and then drops the query filter, so the chip is a
+    /// control the user can switch off rather than a decoration over an
+    /// unremovable filter. That exchange is only sound where the two select the
+    /// same entries, and "the same entries" is a claim about the shipped
+    /// catalog that no amount of reading the code establishes — 0.8.7 chose
+    /// correctly *against* converting the body tile on exactly this basis, and
+    /// 0.8.8 converts it only because a facet now exists that measures identical.
+    ///
+    /// Two halves, and the second is what a set-equality check alone would miss:
+    ///
+    /// 1. **Same set.** The filtered listing equals the chip-filtered listing,
+    ///    entry for entry, in the category the tile pushes into.
+    /// 2. **Not everything.** The chip must actually narrow — a chip whose result
+    ///    set is the whole category is a control that appears to do nothing, and
+    ///    that is precisely what `.type("Dual")` was until C1 removed it: it lit,
+    ///    it claimed DUAL, and it returned all 177 grapes.
+    @Test("a lit chip reproduces the filtered listing, and narrows it")
+    func chipsReproduceTheirFilters() {
+        let db = WineDatabase.shared
+        for (filter, category) in Self.liveCrossLinks {
+            guard let option = filter.chipOption else { continue }
+            let byFilter = db.entries(
+                matching: EntryQuery(categories: [category], filter: filter)
+            )
+            var chips = ChipFilter()
+            chips.toggle(option)
+            let byChip = db.entries(matching: EntryQuery(categories: [category]))
+                .filter { chips.matches($0) }
+
+            #expect(
+                byFilter.map(\.id) == byChip.map(\.id),
+                """
+                \(filter) and \(option.facet):\(option.value) disagree in \(category.rawValue) — \
+                filter \(byFilter.count), chip \(byChip.count)
+                """
+            )
+            let whole = db.entries(matching: EntryQuery(categories: [category])).count
+            #expect(!byFilter.isEmpty, "\(filter) lands on an empty \(category.rawValue) listing")
+            #expect(
+                byFilter.count < whole,
+                "\(filter) selects the whole of \(category.rawValue) — the chip cannot be turned off"
             )
         }
     }
