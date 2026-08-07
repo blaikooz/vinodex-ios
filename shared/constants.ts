@@ -203,6 +203,28 @@ const buildFlavorDescription = (
   return closer ? `${body} — ${closer}.` : `${body}.`;
 };
 
+/**
+ * A flavour's id, derived from its own name rather than from its position.
+ *
+ * This is the fix for a defect that shipped from the beginning until 0.8.9.
+ * The id read `FLAVOR-${idx + 1}` inside a `Map.forEach`, whose callback is
+ * `(value, key, map)` — so `idx` was never an index. It was the lowercased
+ * note, and every id went out as the note with a stray `1` welded on:
+ * `FLAVOR-blackcurrant1`, 37 of the 106 carrying a space.
+ *
+ * The obvious repair — `FLAVOR-1` … `FLAVOR-106` — is the wrong one, and it
+ * is worth writing down why. The other four categories *author* their ids
+ * (`G001`, `R001`, `S001`) in their data files, so those ids never move.
+ * Flavours have no data file: the set is derived from the union of every
+ * grape's tasting notes, in grape-file order. A positional id over a derived
+ * set renumbers whenever a note is added to an early grape or retired from
+ * the set — so it would break saved entries on ordinary catalog growth, which
+ * is a worse failure than the one being fixed. A slug moves only when the
+ * note is renamed, which is a deliberate act.
+ */
+const flavorSlug = (note: string): string =>
+  note.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
 const buildFlavorEntries = (grapeEntries: GrapeEntry[]): FlavorEntry[] => {
   const flavorMap = new Map<string, { note: string; icon: string; color?: string; grapes: string[]; cls: FlavorClass; subclass: string }>();
 
@@ -222,7 +244,9 @@ const buildFlavorEntries = (grapeEntries: GrapeEntry[]): FlavorEntry[] => {
   const flavorEntries: FlavorEntry[] = [];
   const flavorValues = Array.from(flavorMap.values());
 
-  flavorMap.forEach((flavor, idx) => {
+  // Second argument named for what it is. It was called `idx` and read as one,
+  // which is the whole of the id defect above.
+  flavorMap.forEach((flavor, _noteKey) => {
     const clsColors = FLAVOR_CLASS_COLORS[flavor.cls];
     const subclass = flavor.subclass || categorizeFlavorSubclass(flavor.note);
     const subclassLabel = formatSubclassLabel(subclass);
@@ -236,7 +260,7 @@ const buildFlavorEntries = (grapeEntries: GrapeEntry[]): FlavorEntry[] => {
       }));
 
     flavorEntries.push({
-      id: `FLAVOR-${idx + 1}`,
+      id: `FLAVOR-${flavorSlug(flavor.note)}`,
       name: flavor.note,
       description: buildFlavorDescription(flavor.note, flavor.cls, subclassLabel),
       category: 'FLAVORS',

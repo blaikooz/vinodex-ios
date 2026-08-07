@@ -1700,6 +1700,62 @@ function assertAssetsExist(icons: ReturnType<typeof buildIconManifest>): number 
  * blank box, exactly the failure `assertFirmware` exists to prevent one panel
  * over. The bank is already clean; this keeps it that way.
  */
+/**
+ * The two things about flavours that nothing else can see.
+ *
+ * **Ids.** Flavours are the only category whose ids are derived rather than
+ * authored, and until 0.8.9 they were derived wrong — `FLAVOR-${idx + 1}`
+ * inside a `Map.forEach`, where the second callback argument is the key, not
+ * an index. Every id shipped as `FLAVOR-blackcurrant1` and 37 of 106 carried a
+ * space. Nothing caught it because nothing reads a flavour id except
+ * `Bookmarks`, on a user's disk, where an id it cannot resolve is *silently
+ * dropped*. The shape is asserted here so the derivation cannot rot back: ids
+ * are `FLAVOR-` plus a slug of the note, and they are unique. Uniqueness is
+ * the load-bearing half — two notes slugging to one id would silently merge
+ * two entries into one, and the count would still read 106 upstream.
+ *
+ * **`FLAVOR_ART` keys.** The table is keyed on the normalised *note name*, so
+ * renaming a note in `grapes.ts` orphans its art with no error anywhere: the
+ * entry simply falls back to a tinted glyph and looks deliberate. The exam
+ * bank's `noteKey` arm already throws on a stale key (see `assertExam`), but
+ * that only covers the 75 notes the exam happens to reference. This covers all
+ * of them, which converts the whole rename class from silent to loud — and the
+ * flavour rework's Batch C renames and retirements are exactly that class.
+ */
+function assertFlavorIds(entries: readonly WineEntry[]): void {
+  const problems: string[] = [];
+  const flavors = entries.filter((e) => e.category === 'FLAVORS');
+
+  const seen = new Map<string, string>();
+  for (const f of flavors) {
+    if (!/^FLAVOR-[A-Z0-9]+(-[A-Z0-9]+)*$/.test(f.id)) {
+      problems.push(`"${f.name}": id "${f.id}" is not FLAVOR- plus an uppercase slug`);
+    }
+    const prior = seen.get(f.id);
+    if (prior !== undefined) {
+      problems.push(`id "${f.id}" is shared by "${prior}" and "${f.name}" — two notes slug to one id`);
+    } else {
+      seen.set(f.id, f.name);
+    }
+  }
+
+  // Both directions would be wrong to assert: a note with no art is the
+  // documented default (see FLAVOR_ART's own comment — "names with no
+  // convincing art are deliberately absent"). A *key* with no note is the
+  // error, because it can only mean the note was renamed or retired out from
+  // under it.
+  const liveNotes = new Set(flavors.map((f) => f.name.trim().toLowerCase()));
+  for (const key of Object.keys(FLAVOR_ART)) {
+    if (!liveNotes.has(key)) {
+      problems.push(`FLAVOR_ART key "${key}" names no live flavour — renamed or retired, and its art is orphaned`);
+    }
+  }
+
+  if (problems.length) {
+    throw new Error(`Flavour ids/art:\n  ${problems.join('\n  ')}`);
+  }
+}
+
 function assertExam(): void {
   const problems: string[] = [];
   const tiers = new Set<string>(EXAM_TIERS);
@@ -1838,6 +1894,7 @@ function main() {
   const summary = assertCoverage(entries, palette);
   const icons = buildIconManifest(entries);
   assertFirmware();
+  assertFlavorIds(entries);
   assertExam();
   const outlineBacklog = assertOutlineCoverage(entries);
 
