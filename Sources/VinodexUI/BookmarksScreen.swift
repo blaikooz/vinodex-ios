@@ -515,6 +515,10 @@ public struct BookmarksScreen: View {
                 .background(Capsule().fill(lcd.accent))
             }
             .buttonStyle(DexPressStyle(scale: 0.95))
+            // The second half of the walkthrough's last step (0.8.9d, G2): the
+            // chassis user button gets you here, this gets you to the passport.
+            // One target id, two publishers, one on screen at a time.
+            .coachmarkTarget(.passportButton)
 
             if streak.current > 0 {
                 HStack(spacing: 6) {

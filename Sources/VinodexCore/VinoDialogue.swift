@@ -335,18 +335,21 @@ public enum VinoDialogue {
             expression: .neutral,
             chirp: .boop,
             // Gag 1 of 4. The character premise: without it he is a database.
-            gag: true,
-            deferredUntil: "Phase 3 (spec F1) - the ask needs a capture field"
+            gag: true
+            // Live from 0.8.9d. The capture field it was waiting for is
+            // `VinoIntroCard`, which draws this line above a text box; Phase 2
+            // predicted "a text field plus two `fireOnce` calls" and that is
+            // exactly what it cost.
         ),
         VinoLine(
             trigger: .firstLaunchNamed,
             line: "Pleasure, {name}. You taste the world; I catalogue it. Together we fill the Vinodex.",
-            expression: .smiling,
             // Fires on submit **or** on skip, with the fallback substituted:
             // this line carries the division of labour every later line assumes,
             // so suppressing it on skip means the player who skips never learns
-            // what he is for.
-            deferredUntil: "Phase 3 (spec F1) - fires on name submit or skip"
+            // what he is for. Live from 0.8.9d, and `VinoIntroCard` honours the
+            // both-ways rule literally - SKIP goes to this page too.
+            expression: .smiling
         ),
 
         // --- The four catalog categories.
@@ -589,7 +592,11 @@ public enum VinoDialogue {
     }
 
     /// The first character outside printable ASCII, described for the message.
-    private static func firstNonASCII(in text: String) -> String? {
+    ///
+    /// Internal rather than private since 0.8.9d: `CoachmarkWalkthrough.problems`
+    /// applies the same rule to the same bubble in the same two fonts, and two
+    /// copies of this loop is how one of them comes to allow a curly apostrophe.
+    static func firstNonASCII(in text: String) -> String? {
         for scalar in text.unicodeScalars where scalar.value < 0x20 || scalar.value > 0x7E {
             return "U+" + String(format: "%04X", scalar.value) + " (\(Character(scalar)))"
         }

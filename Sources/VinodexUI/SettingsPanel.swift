@@ -303,6 +303,10 @@ public struct SettingsSectionPanel: View {
     /// Reminders (0.7.8, D1). Observed rather than read from a stored bool —
     /// see `dailyReminderRow`.
     @State private var notifications = NotificationScheduler.shared
+    /// Professor Vino's ledger, for the silence row (0.8.9d). Observed rather
+    /// than `@AppStorage` for `notifications`' reason: the store is the writer,
+    /// and a second one bound to the same key is a second writer.
+    @State private var triggers = FirstTimeTriggerStore.shared
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
     @AppStorage(TextScale.storageKey) private var scaleRaw = TextScale.small.rawValue
     @AppStorage(UIScale.storageKey) private var uiScaleRaw = UIScale.small.rawValue
@@ -339,6 +343,10 @@ public struct SettingsSectionPanel: View {
         self.onOpenPack = onOpenPack
         self.onClosePack = onClosePack
     }
+
+    /// The switch reads the inverse of the stored preference: the row is about
+    /// him being *on*, the storage is about him being silenced.
+    private var vinoOn: Bool { !triggers.isSilenced }
 
     private var screenKey: String { ScreenStateStore.settings(section.rawValue) }
 
@@ -390,7 +398,7 @@ public struct SettingsSectionPanel: View {
             } else if offeringTour {
                 DexAlert(
                     title: "TAKE THE TOUR?",
-                    message: "A quick walk round the device — what each button does and where things live. About a minute, and you can leave at any point.",
+                    message: "A quick walk round the device — what each button does and where things live. About a minute, and at the end Professor Vino offers to walk you through a first tasting.",
                     confirmLabel: "YES",
                     cancelLabel: "NOT NOW",
                     onConfirm: {
@@ -1480,7 +1488,11 @@ public struct SettingsSectionPanel: View {
                         symbol: "flag.checkered", art: "tutorial",
                         tint: lcd.accent,
                         title: "TUTORIAL",
-                        detail: "A guided walk round the device. About a minute, and you can leave at any point."
+                        // Names both halves (0.8.9d, G2). One row, because a
+                        // second row here would be a second tutorial in the same
+                        // menu — see `CoachmarkWalkthrough`. The tour's last step
+                        // is where the guided run is offered.
+                        detail: "A guided walk round the device, then a run through your first tasting if you want one."
                     ) {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 14, weight: .bold))
@@ -1488,6 +1500,33 @@ public struct SettingsSectionPanel: View {
                     }
                 }
                 .buttonStyle(DexPressStyle(scale: 0.98))
+
+                // **The hide-him switch** (0.8.9d), and the call site 0.8.9c's
+                // `FirstTimeTriggerStore` note said this batch would have to
+                // supply or leave the method unwritten. It sits beside TUTORIAL
+                // because that note named this row's neighbour as its home, and
+                // because the two are the same subject: how much the device
+                // volunteers.
+                //
+                // The detail line is careful about what it does *not* do. The
+                // tutorial's bubbles are content the player pressed a button to
+                // start, not `fireOnce` remarks, so they are unaffected — and a
+                // switch labelled as silencing him that then narrated a
+                // walkthrough would be the kind of half-true control this
+                // section is otherwise free of.
+                settingRow(
+                    symbol: "bubble.left.fill", art: VinoExpression.neutral.artStem,
+                    tint: vinoOn ? lcd.accent : lcd.subtext,
+                    title: "PROFESSOR VINO",
+                    detail: vinoOn
+                        ? "One tip, once, the first time you try something new."
+                        : "Quiet. He still guides the tutorial when you ask for it."
+                ) {
+                    DexToggle(isOn: vinoOn, tint: Dex.green) {
+                        Haptics.select()
+                        triggers.setSilenced(vinoOn)
+                    }
+                }
 
                 Button {
                     Haptics.screenTap()
@@ -2460,6 +2499,11 @@ enum SavedDataReset {
         // would be a no-op. The queue is cleared as well, so a bubble fired a
         // second before the wipe does not survive it.
         FirstTimeTriggerStore.shared.reset()
+        // The onboarding walkthrough's three flags (0.8.9d, G2), for exactly the
+        // reason above it: a wipe that left `hasBeenOffered` standing would open
+        // a fresh start with the guided first find already spent, on the one run
+        // where it is the whole point.
+        CoachmarkEngine.shared.reset()
         VinoPresenter.shared.clear()
         ScreenStateStore.shared.clear()
         SearchStateStore.shared.clear()
@@ -2496,6 +2540,12 @@ enum SavedDataReset {
             // key-loop-only wipe would miss.
             FirstTimeTriggerStore.storageKey,
             FirstTimeTriggerStore.seededKey,
+            // The silence preference and the walkthrough's three flags (0.8.9d),
+            // belt to their own `reset()`s in the same manner.
+            FirstTimeTriggerStore.silencedKey,
+            CoachmarkEngine.reachedKey,
+            CoachmarkEngine.offeredKey,
+            CoachmarkEngine.completedKey,
             // `LcdMode.storageKey` and `ChassisSkin.storageKey` are no longer
             // listed here: both are `DeviceAxis` entries now (0.7.3, B1) and
             // arrive through the eight keys prepended above. Listing them twice

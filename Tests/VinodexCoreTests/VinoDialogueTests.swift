@@ -196,8 +196,13 @@ struct FirstTimeTriggerTests {
     @Test("the roster is the spec's fifteen, plus the launch split and FLAVORS")
     func rosterSize() {
         #expect(FirstTimeTrigger.allCases.count == 17)
+        // **Down to one in 0.8.9d.** Both launch lines were deferred on "Phase 3
+        // owns the capture field a question needs"; `VinoIntroCard` is that
+        // field, so the gate comes off and sixteen of the seventeen are live.
+        // `firstFlavorViewed` still waits on the flavour rework's Batch C, which
+        // is a different batch's promise and not this one's to cash.
         let deferred = VinoDialogue.all.filter(\.isDeferred).map(\.trigger)
-        #expect(Set(deferred) == [.firstLaunch, .firstLaunchNamed, .firstFlavorViewed])
+        #expect(Set(deferred) == [.firstFlavorViewed])
     }
 
     /// The reachability half Core can actually prove. Every trigger declaring
@@ -270,8 +275,12 @@ struct FirstTimeTriggerTests {
         let store = store()
         #expect(store.fireOnce(.firstFlavorViewed) == nil)
         #expect(!store.hasFired(.firstFlavorViewed))
-        #expect(store.fireOnce(.firstLaunch) == nil)
-        #expect(!store.hasFired(.firstLaunch))
+        // The launch pair moved to the live side in 0.8.9d — see `rosterSize`.
+        // Kept here as the *contrast*, so this test still proves the rule rather
+        // than just the one remaining instance of it: a live line burns, a
+        // deferred one does not.
+        #expect(store.fireOnce(.firstLaunch) != nil)
+        #expect(store.hasFired(.firstLaunch))
     }
 
     @Test("the seen set survives a reload and drops unknown keys")

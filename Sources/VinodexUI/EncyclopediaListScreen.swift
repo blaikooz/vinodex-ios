@@ -314,6 +314,13 @@ public struct EncyclopediaListScreen: View {
                                     ) {
                                         onSelect(entry)
                                     }
+                                    // The walkthrough's second step (0.8.9d,
+                                    // G2) lights the top row, whichever entry
+                                    // that is. Compared by id rather than taken
+                                    // from an enumerated index, so `ForEach`
+                                    // keeps the stable identity the scroll
+                                    // restoration below depends on.
+                                    .coachmarkTarget(row.id == rows.first?.id ? .listingRow : nil)
                                 }
                             }
                         }

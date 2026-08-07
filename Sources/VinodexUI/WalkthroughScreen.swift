@@ -17,8 +17,15 @@ import VinodexCore
 /// It is drawn from the same `DexMetrics` proportions as the real chassis and
 /// tinted by the same `ChassisSkin`, so it is recognisably *this* device in
 /// *your* colourway rather than generic artwork.
+///
+/// **The other half of the tutorial starts here** (0.8.9d, G2). The objections
+/// above are all about a tour that *drives* the navigation stack;
+/// `CoachmarkEngine` never drives, it follows, which is why the two can be the
+/// two halves of one tutorial rather than two tutorials. `onGuidedRun` is the
+/// last step's hand-off — see `CoachmarkWalkthrough` for the argument.
 public struct WalkthroughScreen: View {
     let onFinish: () -> Void
+    let onGuidedRun: () -> Void
 
     @State private var index = 0
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
@@ -27,8 +34,9 @@ public struct WalkthroughScreen: View {
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
     private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
 
-    public init(onFinish: @escaping () -> Void = {}) {
+    public init(onFinish: @escaping () -> Void = {}, onGuidedRun: @escaping () -> Void = {}) {
         self.onFinish = onFinish
+        self.onGuidedRun = onGuidedRun
     }
 
     private var steps: [WalkthroughStep] { Walkthrough.steps }
@@ -133,35 +141,63 @@ public struct WalkthroughScreen: View {
         )
     }
 
+    /// **The last step offers the live half** (0.8.9d, G2).
+    ///
+    /// SHOW ME takes the accent and its own full-width row; FINISH demotes to
+    /// DONE and to the secondary fill beside BACK. That ordering is the whole
+    /// design decision made visible — the guided run is what this page is now
+    /// *for*, and leaving is the alternative rather than the default.
+    ///
+    /// Three pills would not fit one row at the LARGE text scale: `pill` sets no
+    /// line limit and takes `maxWidth: .infinity`, so a third would wrap
+    /// "SHOW ME" across two lines inside a capsule. Stacking is also the honest
+    /// hierarchy.
     private var controls: some View {
-        HStack(spacing: 10) {
-            if index > 0 {
+        VStack(spacing: 10) {
+            if isLast {
                 Button {
-                    Haptics.select()
-                    withAnimation(.easeOut(duration: 0.2)) { index -= 1 }
+                    Haptics.screenTap()
+                    onGuidedRun()
                 } label: {
-                    pill("BACK", fill: lcd.surface, ink: lcd.subtext, border: lcd.surfaceEdge)
+                    pill(
+                        "SHOW ME",
+                        fill: lcd.accent,
+                        // Never white on mint — see the note in `ChipFilterScreen`.
+                        ink: lcd.isLight ? .white : .black,
+                        border: lcd.accent
+                    )
                 }
                 .buttonStyle(DexPressStyle(scale: 0.97))
             }
 
-            Button {
-                Haptics.screenTap()
-                if isLast {
-                    onFinish()
-                } else {
-                    withAnimation(.easeOut(duration: 0.2)) { index += 1 }
+            HStack(spacing: 10) {
+                if index > 0 {
+                    Button {
+                        Haptics.select()
+                        withAnimation(.easeOut(duration: 0.2)) { index -= 1 }
+                    } label: {
+                        pill("BACK", fill: lcd.surface, ink: lcd.subtext, border: lcd.surfaceEdge)
+                    }
+                    .buttonStyle(DexPressStyle(scale: 0.97))
                 }
-            } label: {
-                pill(
-                    isLast ? "FINISH" : "NEXT",
-                    fill: lcd.accent,
-                    // Never white on mint — see the note in `ChipFilterScreen`.
-                    ink: lcd.isLight ? .white : .black,
-                    border: lcd.accent
-                )
+
+                Button {
+                    Haptics.screenTap()
+                    if isLast {
+                        onFinish()
+                    } else {
+                        withAnimation(.easeOut(duration: 0.2)) { index += 1 }
+                    }
+                } label: {
+                    pill(
+                        isLast ? "DONE" : "NEXT",
+                        fill: isLast ? lcd.surface : lcd.accent,
+                        ink: isLast ? lcd.subtext : (lcd.isLight ? .white : .black),
+                        border: isLast ? lcd.surfaceEdge : lcd.accent
+                    )
+                }
+                .buttonStyle(DexPressStyle(scale: 0.97))
             }
-            .buttonStyle(DexPressStyle(scale: 0.97))
         }
     }
 

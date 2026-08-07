@@ -136,7 +136,10 @@ public struct EntryDetailScreen: View {
                 if !entry.entryDescription.isEmpty {
                     infoSection.id(Anchor.info)
                 }
-                insightSection.id(Anchor.insight)
+                // The walkthrough's fourth step lights this panel *after* the
+                // tried tap changed it (0.8.9d, G2), which is why that step has
+                // nothing to do but be read. See `CoachmarkAction.acknowledged`.
+                insightSection.id(Anchor.insight).coachmarkTarget(.insightPanel)
                 if entry.isTastable, bookmarks.contains(entry.id, on: .tried) {
                     myTasting
                 }
@@ -413,6 +416,15 @@ public struct EntryDetailScreen: View {
                     Haptics.select()
                     let added = bookmarks.toggle(entry.id, on: .tried)
                     if added {
+                        // **The walkthrough's third step** (0.8.9d, G2), and one
+                        // of its two doors — the label reader's confirm is the
+                        // other. The step advances on the *write*, not on the
+                        // screen, which is what lets a player with a bottle in
+                        // hand satisfy it through the scanner without the
+                        // sequence needing a branch. See `CoachmarkWalkthrough`.
+                        //
+                        // Inside `if added` because un-marking is not a tasting.
+                        CoachmarkEngine.shared.report(.markedTried)
                         showingRating = true
                         // The ladder moves on `triedTotal` and `triedTotal`
                         // moves here and nowhere else, so this is the only live
@@ -461,6 +473,8 @@ public struct EntryDetailScreen: View {
                         if !pendingUnlocks.isEmpty { vino.fireOnce(.firstStamp) }
                     }
                 }
+                // The pill the spotlight cuts out (0.8.9d, G2).
+                .coachmarkTarget(.triedControl)
             }
 
             // **Every entry, tastable or not** (0.7.8, B4). The three pills

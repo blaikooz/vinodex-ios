@@ -216,12 +216,24 @@ public enum Walkthrough {
             """,
             highlight: .collection
         ),
+        // **The hand-off to the live half** (0.8.9d, G2). See
+        // `CoachmarkWalkthrough` for the argument in full; the short version is
+        // that this step has always ended by telling you to go and press
+        // something, and it can now come with you.
+        //
+        // It goes here rather than becoming a second row in SETTINGS > DEVICE
+        // because a menu with TUTORIAL and a second tutorial beside it is the
+        // failure this batch was written to avoid. The diagram is the map and
+        // the guided run is the first errand; a picker offering both would ask a
+        // brand-new user to choose between two things they cannot yet tell
+        // apart, which is 0.7.5 D1's shape exactly.
         WalkthroughStep(
             id: "done",
             title: "THAT'S IT.",
             body: """
-            Press Home and pick a tile. Rerun this tour any time from \
-            TUTORIAL in settings.
+            That was the map. SHOW ME and Professor Vino walks you through a \
+            first tasting on the real screens; DONE and you're on your own. \
+            Both live under TUTORIAL in settings.
             """,
             highlight: .device
         ),

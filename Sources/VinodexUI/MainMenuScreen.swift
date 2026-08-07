@@ -97,6 +97,11 @@ public struct MainMenuScreen: View {
                              face: "#a855f7", shadow: "#6b21a8") {
                             onSelect(.list(category: .grapes, filter: nil))
                         }
+                        // The walkthrough's first step (0.8.9d, G2). GRAPES
+                        // rather than one of the other three because it is the
+                        // shelf with a TRIED control at the end of it, which is
+                        // where the sequence is going.
+                        .coachmarkTarget(.menuTile)
                         tile("REGIONS", quadrant: .topTrailing,
                              art: "regions", symbol: "globe.americas.fill",
                              face: "#22c55e", shadow: "#15803d") {

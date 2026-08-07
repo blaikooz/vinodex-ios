@@ -209,12 +209,47 @@ public final class FirstTimeTriggerStore {
 
     public nonisolated static let storageKey = "firstTimeTriggersSeen"
     public nonisolated static let seededKey = "firstTimeTriggersSeeded"
+    public nonisolated static let silencedKey = "vinoSilenced"
 
     private let defaults: UserDefaults
     private(set) public var seen: Set<String>
 
+    /// **The hide-him preference** (0.8.9d), and the call site the note below
+    /// this said it would need.
+    ///
+    /// It is a **filter, not a consumption**: a silenced trigger returns nil
+    /// from `fireOnce` *without* marking the key seen, exactly as a deferred
+    /// line does. Turning him back on therefore restores the whole unseen set
+    /// rather than a blank, and the lines arrive one navigation at a time as
+    /// they always would have — the difference between a mute and a wipe.
+    ///
+    /// The case for it is not "seventeen bubbles is a lot": it is the returning
+    /// player. Fourteen of the seventeen are deliberately unseeded (see `seed`),
+    /// so somebody who has used this app for a year meets Professor Vino
+    /// fourteen times over their next few sessions, in every corner of an app
+    /// they already know. Seeding those away would have robbed every new player
+    /// of the character; this gives the one player who does not want him a
+    /// switch instead.
+    ///
+    /// **It does not silence the tutorial.** `CoachmarkWalkthrough`'s lines are
+    /// not `fireOnce` calls — they are the content of something the player
+    /// pressed a button to start — so they are unaffected by construction, and
+    /// the settings row says so rather than leaving a switch that half works.
+    ///
+    /// A method rather than a settable property because `@Observable` rewrites
+    /// stored properties into computed ones, and a `didSet` hung off that is a
+    /// place where the persistence and the published value can disagree.
+    private(set) public var isSilenced: Bool
+
+    public func setSilenced(_ silenced: Bool) {
+        guard silenced != isSilenced else { return }
+        isSilenced = silenced
+        defaults.set(silenced, forKey: Self.silencedKey)
+    }
+
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        isSilenced = defaults.bool(forKey: Self.silencedKey)
         let raw = defaults.string(forKey: Self.storageKey) ?? ""
         let known = Set(FirstTimeTrigger.allCases.map(\.rawValue))
         // Unknown keys dropped: a trigger retired in a later release should not
@@ -236,9 +271,11 @@ public final class FirstTimeTriggerStore {
     /// of the request rather than of the presentation.
     ///
     /// Returns nil for a deferred line (`VinoLine.deferredUntil`) **without**
-    /// marking it seen, so switching one on later still shows it.
+    /// marking it seen, so switching one on later still shows it — and nil for
+    /// every line while `isSilenced`, on the same terms and for the same reason.
     @discardableResult
     public func fireOnce(_ trigger: FirstTimeTrigger) -> VinoLine? {
+        guard !isSilenced else { return nil }
         guard let line = VinoDialogue.line(for: trigger), !line.isDeferred else { return nil }
         guard seen.insert(trigger.rawValue).inserted else { return nil }
         persist()
@@ -293,8 +330,13 @@ public final class FirstTimeTriggerStore {
     /// backs it.
     public func reset() {
         seen = []
+        // The silence preference goes with them (0.8.9d): CLEAR SAVED DATA is
+        // "back to a fresh install", and a fresh install has not asked to be
+        // left alone.
+        isSilenced = false
         defaults.removeObject(forKey: Self.storageKey)
         defaults.removeObject(forKey: Self.seededKey)
+        defaults.removeObject(forKey: Self.silencedKey)
     }
 
     private func persist() {
@@ -366,6 +408,23 @@ public final class VinoPresenter {
 
     /// `true` while anything is holding the queue.
     public var isSuspended: Bool { !suspensions.isEmpty }
+
+    /// `true` while anything **other than** `reason` is holding the screen.
+    ///
+    /// **The coachmark spotlight is the third writer to this set** (0.8.9d, G1),
+    /// and it is the first that needs to read it as well. It suspends the queue
+    /// under its own reason while it runs — Vino cannot remark over his own
+    /// tutorial — but it must itself stand down for the rating prompt and the
+    /// stamp celebration that a spotlit TRIED tap raises inside
+    /// `EntryDetailScreen`, or its input barrier would trap the player behind a
+    /// modal it is covering.
+    ///
+    /// Answering that with a second mechanism would have meant two sets of
+    /// reasons kept in agreement. This is the same set read from the other end:
+    /// "is anybody talking apart from me".
+    public func isSuspended(otherThan reason: String) -> Bool {
+        !suspensions.subtracting([reason]).isEmpty
+    }
 
     /// Declare (or withdraw) one host's claim on the screen. Idempotent, so it
     /// can be called from a SwiftUI body-adjacent modifier on every render.

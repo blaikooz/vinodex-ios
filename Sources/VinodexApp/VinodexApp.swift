@@ -85,6 +85,13 @@ struct RootView: View {
     /// (0.8.9c, D1/E1). See `vinoHold` and `fireRouteTriggers`.
     @State private var vino = VinoPresenter.shared
     @State private var triggers = FirstTimeTriggerStore.shared
+    /// The grayout walkthrough (0.8.9d, G1/G2). Everything about *which* step
+    /// is up lives in Core; this view supplies the geometry and the barrier.
+    @State private var coachmarks = CoachmarkEngine.shared
+    /// Professor Vino's introduction and the name field (0.8.9d, F1). Raised
+    /// once the BIOS clears, on a device that has never been offered the
+    /// walkthrough. See `VinoIntroCard`.
+    @State private var showingIntro = false
     /// The boot POST (0.7.3, A1). True for the first ~1.9 seconds of a launch,
     /// or until the screen is tapped.
     @State private var booting = true
@@ -274,6 +281,19 @@ struct RootView: View {
                     VinoBubble(line: line) { vino.dismiss() }
                 }
 
+                // **The introduction, and the name** (0.8.9d, F1).
+                //
+                // Inside the LCD like every other modal, unlike the coachmark
+                // spotlight below — this one asks a question and has buttons, so
+                // it is a `DexAlert`-shaped thing and follows the house rule.
+                //
+                // Above the bubble because it *is* him, and the queue is held
+                // anyway: `chromeIsUp` counts this. Below the BIOS for the
+                // ordinary reason.
+                if showingIntro {
+                    VinoIntroCard { finishIntro() }
+                }
+
                 // Last in this stack, so it covers the two prompts above rather
                 // than booting underneath them.
                 if booting {
@@ -290,6 +310,7 @@ struct RootView: View {
             .animation(DexMotion.overlay, value: showingDataAlert)
             .animation(DexMotion.overlay, value: toolIntro?.id)
             .animation(DexMotion.overlay, value: vino.current?.id)
+            .animation(DexMotion.overlay, value: showingIntro)
         }
         // **The four-way collision, sequenced** (0.8.9c, D1).
         //
@@ -310,16 +331,47 @@ struct RootView: View {
         .onChange(of: chromeIsUp, initial: true) { _, up in
             vino.setSuspended(up, by: Self.vinoHold)
         }
+        // **The spotlight is the third writer to the same set** (0.8.9d, G1).
+        //
+        // He must not remark over his own tutorial, so a running walkthrough
+        // holds the queue — under its own reason, because
+        // `CoachmarkOverlay` also has to *read* the set to know when to stand
+        // down for the rating prompt that its own spotlit TRIED tap raises. One
+        // mechanism, both directions; see `VinoPresenter.isSuspended(otherThan:)`.
+        .onChange(of: coachmarks.isRunning, initial: true) { _, running in
+            vino.setSuspended(running, by: Self.coachmarkHold)
+            // Everything queued while it ran was about a screen the walkthrough
+            // has just narrated better. Dropped rather than delivered as a
+            // burst the moment the spotlight lifts — the same judgement
+            // `fireRouteTriggers` makes when you navigate away from a line.
+            if !running { vino.clear() }
+        }
         // Every arrival, from wherever — a tile, a cross-link, a marquee lamp, a
         // Back, the demo loop. One place, so a new screen cannot forget to
         // introduce itself, which is the same argument `open(_:)` makes for the
         // paywall gate.
-        .onChange(of: path) { _, _ in fireRouteTriggers() }
+        .onChange(of: path) { _, _ in
+            fireRouteTriggers()
+            // Three of the walkthrough's five actions are arrivals, and this is
+            // the same single place they are noticed from. The route-to-action
+            // table is `CoachmarkAction.action(for:)`, in Core, for the reason
+            // `FirstTimeTrigger.triggers(for:entry:)` is.
+            if let route = path.last, let action = CoachmarkAction.action(for: route) {
+                coachmarks.report(action)
+            }
+        }
         // And the route that was already open when the BIOS finished: a launch
         // restores nothing today, but demo mode and a tapped-through boot both
         // land here with a path already set.
         .onChange(of: booting) { _, isBooting in
-            if !isBooting { fireRouteTriggers() }
+            if !isBooting {
+                fireRouteTriggers()
+                // **§F1's "after BIOS"**, and the one thing in this batch that
+                // happens to somebody who did not ask for it. Gated twice: on
+                // never having been offered, and on `seed(hasHistory:)` having
+                // already said whether this is a new install — see `onAppear`.
+                if coachmarks.shouldAutoStart { showingIntro = true }
+            }
         }
         // **The picture is in the display; the input is the window's** (0.7.8,
         // A4). Everything on the chassis is live and now visible around the
@@ -335,6 +387,38 @@ struct RootView: View {
         // pin, `onAppear`) keep applying to both without being restated.
         .overlay {
             if booting { BootAdvanceCatcher(onAdvance: finishBoot) }
+        }
+        // **The grayout walkthrough** (0.8.9d, G1) — the one overlay in this app
+        // that covers the chassis rather than living inside the LCD, because one
+        // of its six targets *is* the chassis (the user button). See
+        // `CoachmarkOverlay` for why that is forced and why it does not read as
+        // the power cut 0.7.8's A4 was guarding against.
+        //
+        // `overlayPreferenceValue` rather than `overlay` so the targets arrive
+        // with it: every `.coachmarkTarget(_:)` in the subtree — LCD content and
+        // furniture alike — reduces into one dictionary here, and `proxy[anchor]`
+        // resolves it into this layer's own space.
+        //
+        // Not drawn while anything *else* holds the screen. The spotlit TRIED
+        // tap raises the rating prompt and possibly a stamp celebration inside
+        // `EntryDetailScreen`, and a hit-test barrier over those would trap the
+        // player behind a modal the walkthrough is covering. The step does not
+        // advance meanwhile, so nothing is lost — it simply waits, exactly as
+        // his bubbles do.
+        .overlayPreferenceValue(CoachmarkTargetKey.self) { anchors in
+            GeometryReader { proxy in
+                if let step = coachmarks.current,
+                   !vino.isSuspended(otherThan: Self.coachmarkHold) {
+                    CoachmarkOverlay(
+                        step: step,
+                        spotlight: step.target.flatMap { anchors[$0] }.map { proxy[$0] },
+                        position: coachmarks.position ?? 1,
+                        total: CoachmarkWalkthrough.count,
+                        onAcknowledge: { coachmarks.report(.acknowledged) },
+                        onSkip: { coachmarks.skip() }
+                    )
+                }
+            }
         }
         .animation(DexMotion.overlay, value: booting)
         .id(scaleRaw + "|" + uiScaleRaw)
@@ -375,6 +459,21 @@ struct RootView: View {
             triggers.seed(
                 triedCount: DiscoveryStore.shared.triedCount,
                 hasAnnouncedStamps: !PassportProgress.shared.isEmpty
+            )
+            // **The same trap, one size larger** (0.8.9d, G2). What would fire
+            // for an existing player here is not a bubble but a six-step
+            // spotlight taking the whole screen on the first launch after an
+            // update, so it gets the same treatment and the same launch slot.
+            //
+            // Three signals rather than the tried count alone, because the
+            // question is "is this plainly not a fresh install" and a player can
+            // have used this app for a year without marking a single wine: any
+            // tasting, anything saved, or a name they typed on the USER screen.
+            // Cheap — two counts off a store already in memory and one default.
+            coachmarks.seed(
+                hasHistory: BookmarkStore.shared.count(on: .tried) > 0
+                    || BookmarkStore.shared.count(on: .saved) > 0
+                    || VinoName.clean(UserDefaults.standard.string(forKey: VinoName.storageKey)) != nil
             )
             ScreenWake.keepAwake(true)
             // The power-on chime, once per launch — this view appears exactly
@@ -520,6 +619,33 @@ struct RootView: View {
     /// This view's key in `VinoPresenter.suspensions`.
     private static let vinoHold = "chrome"
 
+    /// The walkthrough's key in the same set (0.8.9d). Its own rather than
+    /// folded into `vinoHold`, because `CoachmarkOverlay` needs to ask whether
+    /// anything *other than itself* holds the screen — see the
+    /// `overlayPreferenceValue` note in `body`.
+    private static let coachmarkHold = "coachmark"
+
+    // MARK: The onboarding walkthrough (0.8.9d, F1/G2)
+
+    /// The introduction is over: burn both launch keys and hand straight to the
+    /// walkthrough.
+    ///
+    /// **Fired here rather than inside the card**, because `fireOnce` marks on
+    /// the way out: a card that spent both keys as it drew them would leave an
+    /// app killed on the name field with an introduction it had already used up.
+    /// Both lines were shown by the time this runs, and 0.8.9c's `firstLaunch`
+    /// note reserves them for exactly this call.
+    ///
+    /// The return values are discarded rather than enqueued — the card *is* the
+    /// presentation, and re-presenting the same two sentences as bubbles a
+    /// moment later would be saying everything twice.
+    private func finishIntro() {
+        showingIntro = false
+        triggers.fireOnce(.firstLaunch)
+        triggers.fireOnce(.firstLaunchNamed)
+        coachmarks.start()
+    }
+
     /// Whether one of the overlays this view owns is on top.
     ///
     /// `EntryDetailScreen` and `PassportScreen` publish their own holds under
@@ -528,6 +654,10 @@ struct RootView: View {
     /// than a boolean.
     private var chromeIsUp: Bool {
         booting || toolIntro != nil || lockedAttempt != nil || showingDataAlert
+            // The introduction is him, at length, with a keyboard up. A queued
+            // remark landing across the bottom of it would be him interrupting
+            // himself. (0.8.9d, F1)
+            || showingIntro
     }
 
     /// Fire whatever arriving at the current route is worth saying.
@@ -564,8 +694,16 @@ struct RootView: View {
     /// against it and fails on an entry no route produces, so a card that is
     /// written and never raised is a test failure rather than a thing nobody
     /// notices. All this holds is the "and has it been shown yet" half.
+    ///
+    /// **Suppressed while the walkthrough runs** (0.8.9d, G2). Three teaching
+    /// mechanisms now exist — the tool cards, his first-time bubbles, and the
+    /// spotlight — and a new player could meet all three on one screen. The
+    /// bubbles are *held* by the suspension set because they are queued; a tool
+    /// card is re-derived from the route on every render, so suppressing it here
+    /// costs nothing at all: it simply arrives the next time the player opens
+    /// that tool on their own, which is when it was always meant to.
     private var toolIntro: ToolIntro? {
-        guard !booting, let route = path.last,
+        guard !booting, !coachmarks.isRunning, let route = path.last,
               let intro = ToolRoster.intro(for: route) else { return nil }
         return toolIntros.pending(intro.id)
     }
@@ -806,10 +944,23 @@ struct RootView: View {
             TastingQuizScreen(onOpen: { open($0) }, onExit: { goBack() })
 
         case .walkthrough:
-            // FINISH goes Home rather than Back: the tour's last step tells you
-            // to press Home and pick a tile, and landing back in the settings
-            // grid you started from would contradict it.
-            WalkthroughScreen { goHome() }
+            // DONE goes Home rather than Back: the tour's last step tells you to
+            // go and press something, and landing back in the settings grid you
+            // started from would contradict it.
+            //
+            // **SHOW ME is the second half** (0.8.9d, G2) — and the reason
+            // SETTINGS > DEVICE still has exactly one TUTORIAL row. Home first
+            // for the same reason `startDemo` goes home: the walkthrough drives
+            // nothing, so it has to begin where its first target is, and leaving
+            // the settings stack underneath it would give Back a trail out
+            // through a tour that has ended.
+            WalkthroughScreen(
+                onFinish: { goHome() },
+                onGuidedRun: {
+                    goHome()
+                    coachmarks.start()
+                }
+            )
 
         case .scanner:
             ScannerScreen { open($0) }

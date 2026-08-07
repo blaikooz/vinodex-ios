@@ -39,6 +39,29 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.8.9",
+  date: "2026-08-07",
+  // The whole of 0.8.9, in one entry rather than four. The release was built in
+  // four sub-batches (a: the art foundation; b: discovery and INSIGHT; c: the
+  // presenter and the triggers; d: onboarding), and each of the first three
+  // deliberately held the version so this could describe the feature instead of
+  // its instalments.
+  headline: "MEET PROFESSOR VINO",
+  notes: [
+    "The device has somebody in it. Professor Vino introduces himself when you first switch it on, asks what to call you, and then says one useful thing the first time you do anything -- open your first grape, run your first scan, earn your first stamp. Seventeen remarks in total, once each, and then he is quiet.",
+    "He walks you through your first tasting. After the introduction the screen dims to one lit control at a time and he takes you from the menu to a grape, to marking it TRIED, to watching INSIGHT change, to your Passport. It advances when you press the thing, never on a timer, and SKIP is on screen throughout. Stop halfway and it picks up where you left off.",
+    "The tutorial in SETTINGS > DEVICE is now two halves: the diagram of the device you already had, and that guided run offered at the end of it. Both live behind the same one row.",
+    "You can turn him off. PROFESSOR VINO in SETTINGS > DEVICE silences the first-time tips without spending them -- switch him back on and the ones you have not met are still waiting. He still guides the tutorial if you ask for it.",
+    "Every grape and style entry has an INSIGHT panel: what your own tastings say about the thing you are looking at. How many of a region's grapes you have had, how close it sits to your palate, which of your wines it resembles. It starts as a teaser and unlocks more lines as your shelf grows, and it tells you how many tastings away the next depth is.",
+    "The Passport counts what you have tried against what exists -- grapes and styles, X of N -- and suggests what to drink next from your own history. The two hardest stamps, TRIED ALL GRAPES and TRIED ALL STYLES, are wired to those counts.",
+    "A fifth rank joins the ladder. APPRENTICE sits between the first rung and JOURNEYMAN, and every rank now wears a numbered shield instead of sharing a picture.",
+    "LABEL SCAN can shelve what you drank. A recognised label offers one button that marks every grape and the style it found as TRIED -- and it asks rather than assuming, because the lists it shows are the wine's possibilities, not its contents.",
+    "Thirty-two drawn pictures land: twenty painted glyphs across the tool shelf and settings rows, five dot-matrix faces for the marquee, and six expressions for Professor Vino himself. Four marquee headings that had been showing a letter instead of a picture now have one.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const DISPLACED_0_8_8: FirmwareRelease = {
   version: "0.8.8",
   date: "2026-08-06",
   // The guessing game gets an economy and a memory, six tools learn to
@@ -209,6 +232,7 @@ const DISPLACED_0_8_1: FirmwareRelease = {
 
 /** Everything before `CURRENT`, newest first. */
 const PREVIOUS: FirmwareRelease[] = [
+  DISPLACED_0_8_8,
   DISPLACED_0_8_7,
   DISPLACED_0_8_6,
   DISPLACED_0_8_5,

@@ -316,7 +316,19 @@ public struct LabelReaderView: View {
                         // Only when this tap actually shelved something - the
                         // button is hidden once everything is marked, but a
                         // race or a repeat must not spend the line on nothing.
-                        if justMarked > 0 { vino.fireOnce(.firstTried) }
+                        if justMarked > 0 {
+                            vino.fireOnce(.firstTried)
+                            // **The walkthrough's other door** (0.8.9d, F1/G2).
+                            //
+                            // This is where §F1's scanner-first framing and
+                            // 0.8.9b's A2 confirm-before-marking are reconciled:
+                            // the guided step advances on the write landing, not
+                            // on a particular screen, so a player who does have a
+                            // bottle can satisfy it here and the ask stays an
+                            // ask. See `CoachmarkWalkthrough` for why the
+                            // sequence itself still goes through the catalog.
+                            CoachmarkEngine.shared.report(.markedTried)
+                        }
                     }
                     Text("Adds them to your tried shelf, where the passport and INSIGHT read from.")
                         .font(DexFont.mono(13))

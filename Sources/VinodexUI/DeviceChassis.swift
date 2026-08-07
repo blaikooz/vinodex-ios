@@ -1387,6 +1387,14 @@ public struct DeviceChassis<Content: View>: View {
             ChassisButton(kind: .bookmarks, size: DexMetrics.bandControl, enabled: onBookmarks != nil) {
                 onBookmarks?()
             }
+            // **The one coachmark target on the plastic** (0.8.9d, G2), and the
+            // reason the spotlight overlay covers the whole window rather than
+            // living inside the LCD like every other popup: the passport is
+            // behind this button, and a walkthrough that could not point at the
+            // furniture would have to teach its last step by pointing at
+            // nothing. `BookmarksScreen`'s PASSPORT row publishes the same
+            // target and takes over once you are through this door.
+            .coachmarkTarget(.passportButton)
         }
     }
 
