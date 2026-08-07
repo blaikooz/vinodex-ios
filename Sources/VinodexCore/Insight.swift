@@ -141,10 +141,17 @@ public struct PalateProfile: Sendable, Equatable {
             // Mean absolute distance across the four authored bars, over the
             // 0...5 range they are authored on. COLOR INTENSITY is left out:
             // it is a description of the liquid, not of a preference.
-            let distance = (
-                abs(c.body - meanBody) + abs(c.acid - meanAcid)
-                    + abs(c.tannin - meanTannin) + abs(c.aromatics - meanAromatics)
-            ) / 4
+            //
+            // Split into typed locals rather than one expression: four generic
+            // `abs` calls and an untyped literal divisor in a single tree put
+            // this past the type-checker's budget on Swift 6.0/6.1, which
+            // failed all three compile jobs while the local 6.3 toolchain
+            // accepted it. Same operands, same left-to-right sum, same value.
+            let bodyGap: Double = abs(c.body - meanBody)
+            let acidGap: Double = abs(c.acid - meanAcid)
+            let tanninGap: Double = abs(c.tannin - meanTannin)
+            let aromaticsGap: Double = abs(c.aromatics - meanAromatics)
+            let distance: Double = (bodyGap + acidGap + tanninGap + aromaticsGap) / 4
             let statScore = max(0, 1 - distance / 5)
             let colorScore = g.grapeType == .red ? redShare : 1 - redShare
             return Self.percent(0.55 * noteScore + 0.25 * statScore + 0.20 * colorScore)

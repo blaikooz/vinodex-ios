@@ -409,9 +409,18 @@ public struct GrapeLineageIndex: Sendable {
         // remembering to append — and it cannot fall out of step with what the
         // tree actually drew, which is the failure mode a parallel list has.
         var notes: [String] = []
-        let noteSources =
-            [lineage?.note] + (parents + [mutationOf].compactMap { $0 } + offspring
-                + mutations + siblings + related).map(\.note)
+        // Accumulated into a typed local rather than one expression: the six-way
+        // array `+` chain, the `compactMap` closure and the `\.note` key path in
+        // a single tree put this past the type-checker's budget on Swift
+        // 6.0/6.1, which failed all three compile jobs while the local 6.3
+        // toolchain accepted it. Same six blocks, same order, same result.
+        var edgeNodes: [LineageNode] = parents
+        if let mutationOf { edgeNodes.append(mutationOf) }
+        edgeNodes += offspring
+        edgeNodes += mutations
+        edgeNodes += siblings
+        edgeNodes += related
+        let noteSources: [String?] = [lineage?.note] + edgeNodes.map(\.note)
         for note in noteSources.compactMap({ $0 }) where !note.isEmpty {
             if !notes.contains(note) { notes.append(note) }
         }
