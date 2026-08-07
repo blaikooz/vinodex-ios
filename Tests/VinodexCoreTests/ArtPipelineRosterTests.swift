@@ -728,8 +728,9 @@ struct ArtPipelineRosterTests {
 
     /// **The twenty UI glyphs: directory, type and bundle all agree.**
     ///
-    /// The joint that matters is the last one. `UIGlyph.unwired` names eleven
-    /// glyphs no screen asks for yet, and the temptation with a list like that
+    /// The joint that matters is the last one. `UIGlyph.unwired` names ten
+    /// glyphs no screen asks for yet — eleven until 0.8.9b gave `level5` a rung
+    /// — and the temptation with a list like that
     /// is to let it excuse a missing file — so the equality below is over
     /// *every* case, wired or not. A parked glyph must still be drawn and still
     /// be in the bundle; what "parked" means is that no view names it, which is
@@ -768,17 +769,33 @@ struct ArtPipelineRosterTests {
             UIGlyph.unwired.isSubset(of: Set(UIGlyph.allCases)),
             "UIGlyph.unwired names cases that do not exist"
         )
-        // And that the four tiers are not on it. This is the half of the ladder
+        // And that no tier's shield is on it. This is the half of the ladder
         // wiring a roster can see: `PassportTier.glyph` is exhaustive, so every
-        // rung has a shield, and `level5` being parked is only honest while
-        // level1-4 are not.
+        // rung has a shield.
         for tier in PassportTier.allCases {
             #expect(
                 !UIGlyph.unwired.contains(tier.glyph),
                 "\(tier.displayName) draws \(tier.glyph.artStem), which is parked as unwired"
             )
         }
-        #expect(UIGlyph.unwired.contains(.level5), "level5 has a rung now — take it off the list")
+        // **This line used to read the other way** — `unwired.contains(.level5)`,
+        // with the message "level5 has a rung now — take it off the list". It
+        // got one in 0.8.9b (WINE MONK), so the assertion flips, which is the
+        // whole behaviour a two-way gate is for: the parked list cannot rot into
+        // an excuse, because coming *off* it is as checked as going on.
+        //
+        // All five shields are now spoken for, so the stronger statement is
+        // available and worth making: no `level*` glyph is parked at all.
+        for glyph in UIGlyph.allCases where glyph.rawValue.hasPrefix("level") {
+            #expect(
+                !UIGlyph.unwired.contains(glyph),
+                "\(glyph.artStem) is parked, but every numbered shield has a rung now"
+            )
+        }
+        #expect(
+            Set(PassportTier.allCases.map(\.glyph)).count == PassportTier.allCases.count,
+            "two rungs share a shield"
+        )
     }
 
     /// **The six Professor Vino expressions: directory, type and bundle.**

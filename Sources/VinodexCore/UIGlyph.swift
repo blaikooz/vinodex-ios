@@ -50,7 +50,7 @@ public enum UIGlyph: String, CaseIterable, Sendable {
     /// are the same observation — which is precisely how three silent
     /// missing-asset bugs shipped in three consecutive batches.
     ///
-    /// Eleven of twenty, and each for one of three reasons:
+    /// Ten of twenty, and each for one of three reasons:
     ///
     /// - **A sprite cannot serve.** `battery` — `BiosBatteryGlyph` makes its
     ///   fill a function of `UIDevice.batteryLevel`, so a static PNG would have
@@ -67,14 +67,24 @@ public enum UIGlyph: String, CaseIterable, Sendable {
     ///   seal are all features nothing in the app has yet. The wiring spec
     ///   marks exactly these rows as best-guess and asks for them to be parked
     ///   until their screen exists.
-    /// - **The ladder is shorter than the art.** `level5` — five numbered
-    ///   shields were drawn and `PassportTier` has four rungs. A fifth is an
-    ///   *append* (`rankIndicesAreStable` permits that and forbids an insert),
-    ///   but it needs a threshold, a name and a blurb, which is content design
-    ///   and not this sub-batch's.
+    /// **`level5` came out in 0.8.9b.** It was parked here for one batch with
+    /// the note that the fifth shield needed "a threshold, a name and a blurb,
+    /// which is content design and not this sub-batch's". It got all three —
+    /// the ladder is now APPRENTICE, MASTER, GRANDMASTER, LEGENDARY, WINE MONK —
+    /// so `PassportTier.glyph` draws all five shields and the list is one
+    /// shorter. That is the move this set was built to make legible: a glyph
+    /// leaves by acquiring a call site, not by being deleted from a list.
+    ///
+    /// Nothing was adopted for this batch's own chrome. The INSIGHT panel takes
+    /// an SF Symbol, per the house rule that new UI chrome does — and because
+    /// none of the parked candidates depicts the thing: `heart` and `star` read
+    /// as favourite, `bookmark` as save, `seal` as verified, and a derived
+    /// palate readout is none of those. Adopting one to avoid drawing a new
+    /// picture would put the wrong picture on a shipping screen, which is worse
+    /// than the list staying long.
     public static let unwired: Set<UIGlyph> = [
         .battery, .bookmark, .gaming, .hammer, .heart,
-        .level5, .mail, .seal, .star, .tools, .trophy,
+        .mail, .seal, .star, .tools, .trophy,
     ]
 }
 

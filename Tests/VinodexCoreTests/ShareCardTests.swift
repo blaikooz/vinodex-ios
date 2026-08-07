@@ -88,7 +88,7 @@ struct ShareCardTests {
         let tried = db.entries(in: .grapes).prefix(30).map(\.id)
         let passport = Passport.compute(tried: Array(tried), in: db, bestStreak: 0, highestTier: .novice)
         let headline = ShareCard.headline(for: passport)
-        #expect(headline.headline == "VINODEX MASTER UNLOCKED")
+        #expect(headline.headline == "MASTER UNLOCKED")
     }
 
     @Test("an empty passport still has something to say")

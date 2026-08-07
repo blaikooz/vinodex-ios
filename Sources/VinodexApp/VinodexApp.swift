@@ -569,7 +569,13 @@ struct RootView: View {
             )
 
         case .passport:
-            PassportScreen(onStampCollection: { push(.stampCollection) })
+            // `open(_:)` rather than `push(.entry(...))`: it is the one door
+            // every entry paywall is checked at (see `EntryDetailScreen`'s note
+            // on `lockedBundle`), and a recommendation must not be a way past it.
+            PassportScreen(
+                onStampCollection: { push(.stampCollection) },
+                onSelectEntry: { open($0) }
+            )
 
         case .stampCollection:
             StampCollectionScreen()

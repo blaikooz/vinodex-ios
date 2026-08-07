@@ -42,9 +42,10 @@ public final class PassportProgress {
         let raw = defaults.string(forKey: Self.storageKey) ?? ""
         seen = Set(raw.split(separator: ",").map(String.init)).filter { !$0.isEmpty }
         // `object(forKey:)` rather than `integer(forKey:)`: the latter answers 0
-        // for an absent key, and 0 is VINODEX MASTER — "never announced" and
-        // "announced the first rung" are different states and the first must not
-        // decode as the second (0.8.7, D1).
+        // for an absent key, and 0 is MASTER — "never announced" and "announced
+        // MASTER" are different states and the first must not decode as the
+        // second (0.8.7, D1). Still index 0 after 0.8.9b, which is the whole
+        // point of appending APPRENTICE rather than prepending it.
         seenTierRank = defaults.object(forKey: Self.tierStorageKey) as? Int
     }
 
@@ -106,7 +107,7 @@ public final class PassportProgress {
 
     // MARK: - The ladder (0.8.7, D1)
 
-    /// The highest rung already announced, as `PassportTier.rank`.
+    /// The highest rung already announced, as `PassportTier.storageIndex`.
     ///
     /// **The index, not the tier.** `PassportTier`'s rawValue *is* its display
     /// copy — `PassportProgressionTests.tiersAreNotStorage` pins that equality
@@ -114,12 +115,24 @@ public final class PassportProgress {
     /// says "the moment a tier is written to defaults, the rename freedom is
     /// gone and this test should be the thing that forces the conversation".
     /// This is that conversation, and the answer is to store the thing that is
-    /// not the label. `rank` is `allCases.firstIndex(of:)`, so what this
-    /// commits to is the ladder's *order* rather than its words — and the order
-    /// is already pinned ascending by `PassportTierTests`. Renaming VINODEX
-    /// LEGEND stays free; inserting a rung between two existing ones would
-    /// silently promote everybody, which is the trade written down here and
-    /// asserted by `rankIndicesAreStable`.
+    /// not the label.
+    ///
+    /// **0.8.9b tested that promise and it held.** LEGEND became LEGENDARY and
+    /// IMMORTAL became WINE MONK, all four lost the `VINODEX ` prefix, and not a
+    /// byte of stored state moved — because what is on disk is a declaration
+    /// index and those four declarations did not move. The same batch added a
+    /// rung *below* MASTER, which is the thing this scheme genuinely could not
+    /// absorb, and the answer was to append it rather than insert it: see
+    /// `PassportTier`'s type note.
+    ///
+    /// The consequence for this file is one line, and it is `announceTier`'s
+    /// comparison. Declaration order is no longer the ladder, so "have I already
+    /// announced something at least this high" is a **threshold** question now.
+    /// Comparing the raw stored integers would say APPRENTICE (index 4) outranks
+    /// WINE MONK (index 3).
+    ///
+    /// The key keeps its 0.8.7 spelling on purpose — renaming a defaults key is
+    /// a migration, and none of this is one.
     public static let tierStorageKey = "passportSeenTierRank"
 
     /// **A second flag, and the whole of D1's upgrade safety.**
@@ -146,8 +159,13 @@ public final class PassportProgress {
     @discardableResult
     public func announceTier(_ passport: Passport) -> PassportTier? {
         guard let tier = passport.tier else { return nil }
-        if let seenTierRank, seenTierRank >= tier.rank { return nil }
-        seenTierRank = tier.rank
+        // By threshold, never by stored index — see `tierStorageKey`. An index
+        // this build does not know resolves to nil and is treated as "nothing
+        // announced", which at worst repeats one card and never invents a
+        // demotion.
+        if let seen = seenTierRank.flatMap(PassportTier.fromStorage),
+           seen.threshold >= tier.threshold { return nil }
+        seenTierRank = tier.storageIndex
         persistTier()
         return tier
     }
@@ -156,7 +174,7 @@ public final class PassportProgress {
     /// flag — see `tierSeededKey`.
     public func seedTier(with passport: Passport) {
         guard !defaults.bool(forKey: Self.tierSeededKey) else { return }
-        seenTierRank = passport.tier?.rank
+        seenTierRank = passport.tier?.storageIndex
         defaults.set(true, forKey: Self.tierSeededKey)
         persistTier()
     }

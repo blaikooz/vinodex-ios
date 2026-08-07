@@ -30,6 +30,13 @@ public struct LabelReaderView: View {
     /// symbol that way, and the LCD's idiom for waiting is something dimming and
     /// coming back.
     @State private var pulsing = false
+    /// The tried shelf, for A2. `@State` on an `@Observable` so the button
+    /// re-renders into its confirmed state the moment it writes.
+    @State private var discovery = DiscoveryStore.shared
+    /// How many this scan's button actually added, so the confirmation can say
+    /// a number. Session-local and per-reading: SCAN AGAIN tears this view's
+    /// result down, and a count carried across two bottles would be a lie.
+    @State private var justMarked = 0
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
@@ -214,12 +221,94 @@ public struct LabelReaderView: View {
                 suggestionSections(reading)
             }
 
+            markTriedControl(reading)
+
             extractedText(reading)
 
             bigButton("SCAN AGAIN", symbol: "arrow.counterclockwise", tint: lcd.subtext) {
+                // Cleared with the reading: SCAN AGAIN is the only way back to
+                // the camera from a result, so this is the one place a carried
+                // count could become a lie about the next bottle.
+                justMarked = 0
                 model.reset()
             }
         }
+    }
+
+    // MARK: Scan to tried (0.8.9b, A2)
+
+    /// One tap that marks everything this read identified as tried.
+    ///
+    /// **The spec says "on a successful Label Reader result, mark the matched
+    /// grapes + style as tried", and this asks first.** The reason is on the
+    /// screen directly above: the two lists are headed POSSIBLE GRAPES and
+    /// POSSIBLE STYLES, and they mean it — `grapeIDs` is usually *inferred from
+    /// the place* rather than read off the bottle, so a Bordeaux label produces
+    /// six grapes of which the bottle held some unknown subset, and a scan taken
+    /// in a shop out of curiosity produces the same six. Writing those silently
+    /// would move the rank ladder, stamp the activity graph and count toward
+    /// both completion badges on evidence the app itself calls possible, and
+    /// undoing it means visiting seven entry pages.
+    ///
+    /// One tap for six grapes and a style is still the fast path the spec wants
+    /// — the alternative it is being measured against is seven separate visits,
+    /// not zero taps. What it is not is the app deciding on the user's behalf
+    /// that they drank something.
+    ///
+    /// The button says what it will do and then what it did, and it goes away
+    /// when there is nothing left to add — a control that stays lit after its
+    /// work is done invites a second press that would find nothing to do.
+    /// `LabelReading.triedCandidateIDs` decides eligibility and is tested in
+    /// Core; the marking goes through `DiscoveryStore`, which is the tried
+    /// shelf, so a scanned tasting is dated, earns stamps and clears the
+    /// wishlist exactly as a hand-marked one does.
+    @ViewBuilder
+    private func markTriedControl(_ reading: LabelReading) -> some View {
+        let candidates = reading.triedCandidateIDs
+        let pending = candidates.filter { !discovery.isTried($0) }
+        if !candidates.isEmpty {
+            VStack(spacing: 8) {
+                if pending.isEmpty {
+                    HStack(spacing: 10) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 19, weight: .bold))
+                        Text(justMarked > 0 ? markedLabel : "ALREADY ON YOUR TRIED SHELF")
+                            .font(DexFont.retro(12))
+                            .tracking(1)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.6)
+                            .multilineTextAlignment(.center)
+                    }
+                    .foregroundStyle(lcd.accent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(RoundedRectangle(cornerRadius: 6).fill(lcd.accent.opacity(0.1)))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .strokeBorder(lcd.accent.opacity(0.5), lineWidth: 2)
+                    )
+                    .accessibilityElement(children: .combine)
+                } else {
+                    bigButton(
+                        pending.count == 1 ? "I DRANK THIS" : "I DRANK THIS \u{2014} MARK \(pending.count) TRIED",
+                        symbol: "checkmark.circle",
+                        tint: Dex.yellow
+                    ) {
+                        justMarked = discovery.markTried(ids: pending).count
+                    }
+                    Text("Adds them to your tried shelf, where the passport and INSIGHT read from.")
+                        .font(DexFont.mono(13))
+                        .foregroundStyle(lcd.subtext)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+        }
+    }
+
+    private var markedLabel: String {
+        justMarked == 1 ? "MARKED 1 TRIED" : "MARKED \(justMarked) TRIED"
     }
 
     /// The identification, in the spec's own row order — producer, region,

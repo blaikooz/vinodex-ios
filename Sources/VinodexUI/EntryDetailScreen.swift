@@ -86,6 +86,7 @@ public struct EntryDetailScreen: View {
         static let hero = "hero"
         static let tiles = "tiles"
         static let info = "info"
+        static let insight = "insight"
         static let sections = "sections"
     }
 
@@ -120,6 +121,7 @@ public struct EntryDetailScreen: View {
                 if !entry.entryDescription.isEmpty {
                     infoSection.id(Anchor.info)
                 }
+                insightSection.id(Anchor.insight)
                 if entry.isTastable, bookmarks.contains(entry.id, on: .tried) {
                     myTasting
                 }
@@ -477,6 +479,91 @@ public struct EntryDetailScreen: View {
             .overlay(Capsule().strokeBorder(lcd.accent, lineWidth: 2))
         }
         .buttonStyle(DexPressStyle(scale: 0.94))
+    }
+
+    // MARK: INSIGHT (0.8.9b, B2)
+
+    /// What your tried shelf has to say about this entry.
+    ///
+    /// **INSIGHT is the word, on screen and in the code.** The concept did not
+    /// exist anywhere in the tree before this batch, so the name was a free
+    /// choice — and the same batch fixed `ToolIntro`'s "the written paper",
+    /// a string that drifted from the identifier beside it and survived a whole
+    /// rename because nothing held the two together. Choosing a prettier
+    /// synonym for the header while the type stayed `InsightService` would be
+    /// starting that fault deliberately. Phase 2's dialogue is written against
+    /// this word.
+    ///
+    /// Every sentence here is derived in Core and tested there; this draws
+    /// them. The panel deepens with the tried count — see `InsightDepth` — and
+    /// says so, because a section that quietly grows new lines reads as
+    /// inconsistency rather than as progress.
+    ///
+    /// An SF Symbol rather than one of `UIGlyph.unwired`'s parked candidates:
+    /// new UI chrome is SF Symbols by house convention, and none of the parked
+    /// pictures depicts a derived readout — `heart` and `star` say favourite,
+    /// `seal` says verified. See the note on `UIGlyph.unwired`.
+    @ViewBuilder
+    private var insightSection: some View {
+        // Reads `bookmarks`, which is `@Observable`, so a TRIED tap two rows
+        // below rebuilds this panel in the same frame. That is the whole of
+        // Phase 1's "updates live" criterion on this screen.
+        let index = DiscoveryIndex(tried: bookmarks.ids(on: .tried), in: db)
+        let panel = InsightService.panel(
+            for: entry,
+            index: index,
+            profile: PalateProfile(index: index),
+            in: db,
+            triedDays: bookmarks.triedDayLog
+        )
+        if !panel.isEmpty {
+            section("INSIGHT", symbol: "lightbulb.fill") {
+                VStack(alignment: .leading, spacing: 8) {
+                    if let teaser = panel.teaser {
+                        Text(teaser)
+                            .font(DexFont.mono(15))
+                            .foregroundStyle(lcd.subtext)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    ForEach(panel.lines) { line in
+                        HStack(alignment: .top, spacing: 8) {
+                            // A bullet rather than a glyph per line: seven kinds
+                            // would be seven pictures to draw and to keep in a
+                            // roster, and the sentences already say which is
+                            // which.
+                            Text("\u{25B8}")
+                                .font(DexFont.mono(15))
+                                .foregroundStyle(lcd.accent)
+                            Text(line.text)
+                                .font(DexFont.mono(16))
+                                .foregroundStyle(lcd.bodyText)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                    if panel.nextDepth != nil, panel.toNextDepth > 0 {
+                        Text(
+                            panel.toNextDepth == 1
+                                ? "1 MORE TASTING DEEPENS THIS PANEL."
+                                : "\(panel.toNextDepth) MORE TASTINGS DEEPEN THIS PANEL."
+                        )
+                        .font(DexFont.retro(9))
+                        .tracking(1)
+                        .foregroundStyle(lcd.subtext)
+                        .padding(.top, 2)
+                        // The depth is deliberately not named on screen —
+                        // "SHALLOW" is a worse word than a count of what it
+                        // costs — so the spoken version says the same thing.
+                        .accessibilityLabel(
+                            "\(panel.toNextDepth) more tastings unlock more insight"
+                        )
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            .padding(.bottom, 18)
+        }
     }
 
     private var infoSection: some View {

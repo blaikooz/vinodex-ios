@@ -307,6 +307,22 @@ public final class WineDatabase: Sendable {
     /// whole entry array. Every navigation used to pay that scan.
     private let byID: [String: WineEntry]
 
+    /// The tastable half of the catalog, folded once (0.8.9b).
+    ///
+    /// Built here for the reason `byID`, `byName` and `lineage` are, and the
+    /// note on `byName` is the precedent word for word: `DiscoveryIndex` is
+    /// constructed on every evaluation of the entry screen's INSIGHT panel — and
+    /// the entry screen re-evaluates on scroll, because its anchor is state — so
+    /// the catalog side of it would otherwise fold ~180 grape names through
+    /// `TextNormalize.label` and scan the entry array twice, per scroll event.
+    /// That is precisely the "tens of thousands of diacritic foldings per
+    /// render" `byName` was extracted to stop.
+    ///
+    /// The catalog cannot change for a loaded database, so only the *shelf* side
+    /// of `DiscoveryIndex` is per-call, and that is proportional to what the
+    /// user has actually tried.
+    public let discoveryCatalog: DiscoveryCatalog
+
     /// (category, normalised name-or-synonym) -> entry.
     ///
     /// `entry(named:)` is the hottest call in the app: resolving one region row's
@@ -398,6 +414,7 @@ public final class WineDatabase: Sendable {
         self.byID = ids
         self.byName = names
         self.byNameAnyCategory = anyName
+        self.discoveryCatalog = DiscoveryCatalog(entries: entries)
 
         let sorted = entries.sorted {
             $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending

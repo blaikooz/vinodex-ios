@@ -145,11 +145,14 @@ public enum Walkthrough {
         // drawer gone the tour is where that sentence lives, which is also why
         // F1 moving the tour into SETTINGS > DEVICE and A1 needing somewhere to
         // teach a gesture are the same batch.
+        // Said "customise" against a button that reads CUSTOMIZE, until 0.8.9b.
+        // Player-facing copy in this app is US-spelled; the doc comments are
+        // not, and do not need to be.
         WalkthroughStep(
             id: "marquee",
             title: "THE TWO LIGHTS",
             body: """
-            The lights above the panel are buttons: tools and customise. \
+            The lights above the panel are buttons: tools and customize. \
             Hold either one to point it somewhere else.
             """,
             highlight: .marquee

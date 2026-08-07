@@ -21,8 +21,18 @@ public struct PassportScreen: View {
     /// reel and for previews.
     private let onStampCollection: (() -> Void)?
 
-    public init(onStampCollection: (() -> Void)? = nil) {
+    /// Opens one of the YOU MIGHT LIKE rows (0.8.9b, C1). Optional on the same
+    /// rule as `onStampCollection`: with no way to open a recommendation the
+    /// section is withheld rather than drawn dead, so `PassportScreen()` stays a
+    /// valid call for previews and the demo reel.
+    private let onSelectEntry: ((WineEntry) -> Void)?
+
+    public init(
+        onStampCollection: (() -> Void)? = nil,
+        onSelectEntry: ((WineEntry) -> Void)? = nil
+    ) {
         self.onStampCollection = onStampCollection
+        self.onSelectEntry = onSelectEntry
     }
 
     /// The unlock queue (0.7.1, D2) and the one being shown.
@@ -151,6 +161,13 @@ public struct PassportScreen: View {
                         }
                     }
 
+                    // Directly under the counters (0.8.9b, C1). The section
+                    // above says "12 of 80"; the obvious next thought is "which
+                    // of the other 68", and this answers it. Everything below is
+                    // a record of what you have done, which is the wrong
+                    // neighbourhood for a suggestion.
+                    recommendations
+
                     section("BY COLOUR") {
                         VStack(spacing: 10) {
                             progressRow(
@@ -240,9 +257,22 @@ public struct PassportScreen: View {
     ///
     /// Above everything else on the screen, because it is the one line that
     /// answers "how am I doing" — the six sections below it answer "at what".
-    /// Before MASTER it shows the climb rather than a placeholder rank: D4
-    /// names MASTER as the *first* tier, so there is deliberately nothing
-    /// below it to be called.
+    /// Before the first rung it shows the climb rather than a placeholder rank:
+    /// there is deliberately nothing below APPRENTICE to be called.
+    ///
+    /// **The first rung is APPRENTICE at five, not MASTER at twenty-five**
+    /// (0.8.9b). D4's "the ladder begins with VINODEX MASTER" was the rule when
+    /// this card was written; the user has since put a rung underneath it, and
+    /// the unranked line below reads its threshold from the ladder rather than
+    /// spelling a number that would go stale the next time one moves.
+    /// The unranked line, with the bottom rung's cost read from the ladder
+    /// rather than written out. The old copy said "Twenty-five entries" and was
+    /// wrong the moment APPRENTICE landed at five; this cannot go stale.
+    private var unrankedBlurb: String {
+        guard let first = PassportTier.ladder.first else { return "" }
+        return "\(first.threshold) entries earns your first rank."
+    }
+
     private func rankCard(_ passport: Passport) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
@@ -266,7 +296,7 @@ public struct PassportScreen: View {
                         .foregroundStyle(passport.tier == nil ? lcd.subtext : lcd.text)
                         .lineLimit(1)
                         .minimumScaleFactor(0.5)
-                    Text(passport.tier?.blurb ?? "Twenty-five entries earns your first rank.")
+                    Text(passport.tier?.blurb ?? unrankedBlurb)
                         .font(DexFont.mono(14))
                         .foregroundStyle(lcd.subtext)
                         .lineLimit(2)
@@ -414,6 +444,45 @@ public struct PassportScreen: View {
     // MARK: Furniture
 
     /// The settings panels' section heading, verbatim — same size, same rule.
+    // MARK: You might like (0.8.9b, C1)
+
+    /// Untried grapes and styles that score well against the palate profile.
+    ///
+    /// **Withheld rather than empty.** Three things can make this nothing —
+    /// no way to open a row, a profile too thin to be worth guessing from, or a
+    /// palate whose good matches are all already drunk — and in every one of
+    /// them the honest rendering is no section at all. A YOU MIGHT LIKE header
+    /// over an empty box invites the reader to conclude the app has nothing for
+    /// them, which is a stronger claim than "not yet".
+    ///
+    /// The scoring, the floor, the cap and the ordering are all in
+    /// `PalateProfile` and tested there; this is layout, like the rest of the
+    /// screen.
+    @ViewBuilder
+    private var recommendations: some View {
+        if let onSelectEntry {
+            let index = DiscoveryIndex(tried: bookmarks.ids(on: .tried), in: db)
+            let picks = PalateProfile(index: index).recommendations(index: index)
+            if !picks.isEmpty {
+                section("YOU MIGHT LIKE") {
+                    VStack(spacing: 6) {
+                        ForEach(picks) { pick in
+                            LinkedRow(
+                                title: pick.name,
+                                entry: pick,
+                                fallbackColor: Dex.stone800,
+                                resolved: true
+                            ) {
+                                Haptics.select()
+                                onSelectEntry(pick)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private func section<C: View>(
         _ title: String,
         @ViewBuilder content: () -> C

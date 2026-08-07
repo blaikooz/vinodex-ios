@@ -6,28 +6,50 @@ import Foundation
 @Suite("Passport tiers")
 struct PassportTierTests {
 
-    /// D4's headline requirement, pinned by name. The spec names one tier and
-    /// says it is the first; if a later batch inserts something below it, this
-    /// is what says the batch was wrong.
-    @Test("D4: the ladder begins with VINODEX MASTER")
-    func masterIsFirst() {
-        #expect(PassportTier.allCases.first == .master)
-        #expect(PassportTier.master.displayName == "VINODEX MASTER")
-        #expect(PassportTier.master.rank == 0)
+    /// **The ladder, by name and in order** (0.8.9b).
+    ///
+    /// This used to pin D4's "the ladder begins with VINODEX MASTER". The user
+    /// has since put a rung underneath it, so the requirement it was guarding is
+    /// gone — but the *shape* of the guard is not, and this is the replacement:
+    /// the five rungs, in climbing order, spelled out. A batch that reorders the
+    /// ladder or renames a rung has to come here and say so.
+    @Test("the ladder is five rungs, apprentice to wine monk")
+    func ladderInOrder() {
+        #expect(PassportTier.ladder == [.apprentice, .master, .grandmaster, .legendary, .wineMonk])
+        #expect(PassportTier.ladder.map(\.displayName) == [
+            "APPRENTICE", "MASTER", "GRANDMASTER", "LEGENDARY", "WINE MONK",
+        ])
+        // `ladder` is a sort of `allCases`, so it cannot silently lose one.
+        #expect(Set(PassportTier.ladder) == Set(PassportTier.allCases))
+        #expect(PassportTier.ladder.count == PassportTier.allCases.count)
     }
 
-    @Test("thresholds ascend with rank")
+    @Test("thresholds ascend along the ladder, and are distinct")
     func thresholdsAscend() {
-        let tiers = PassportTier.allCases
+        let tiers = PassportTier.ladder
         for (lower, higher) in zip(tiers, tiers.dropFirst()) {
             #expect(
                 lower.threshold < higher.threshold,
                 "\(higher.rawValue) must cost more than \(lower.rawValue)"
             )
-            #expect(lower.rank < higher.rank)
             #expect(lower.next == higher)
         }
         #expect(tiers.last?.next == nil)
+        // Distinct, which is what makes "the rung above" answerable at all.
+        #expect(Set(tiers.map(\.threshold)).count == tiers.count)
+    }
+
+    /// The four thresholds that were already on shipped devices. Moving one
+    /// demotes somebody who had earned it — the invariant the whole ladder is
+    /// built around — so they are pinned by value rather than by relationship.
+    @Test("the pre-0.8.9b thresholds did not move")
+    func inheritedThresholdsFrozen() {
+        #expect(PassportTier.master.threshold == 25)
+        #expect(PassportTier.grandmaster.threshold == 100)
+        #expect(PassportTier.legendary.threshold == 250)
+        #expect(PassportTier.wineMonk.threshold == 400)
+        // The new rung, low enough to land in a first sitting.
+        #expect(PassportTier.apprentice.threshold == 5)
     }
 
     @Test("every tier is labelled")
@@ -44,13 +66,18 @@ struct PassportTierTests {
     @Test("earned(by:) is inclusive at the threshold and nil below the first")
     func earnedAtBoundaries() {
         #expect(PassportTier.earned(by: 0) == nil)
-        #expect(PassportTier.earned(by: PassportTier.master.threshold - 1) == nil)
+        #expect(PassportTier.earned(by: PassportTier.apprentice.threshold - 1) == nil)
+        #expect(PassportTier.earned(by: PassportTier.apprentice.threshold) == .apprentice)
+        #expect(PassportTier.earned(by: PassportTier.master.threshold - 1) == .apprentice)
         #expect(PassportTier.earned(by: PassportTier.master.threshold) == .master)
         #expect(PassportTier.earned(by: PassportTier.grandmaster.threshold - 1) == .master)
         #expect(PassportTier.earned(by: PassportTier.grandmaster.threshold) == .grandmaster)
         // Past the top rung it stays at the top rather than wrapping or
-        // vanishing.
-        #expect(PassportTier.earned(by: 10_000) == PassportTier.allCases.last)
+        // vanishing. **`ladder.last`, not `allCases.last`** — since 0.8.9b those
+        // are different tiers, and that is the whole hazard this batch handled.
+        #expect(PassportTier.earned(by: 10_000) == PassportTier.ladder.last)
+        #expect(PassportTier.earned(by: 10_000) == .wineMonk)
+        #expect(PassportTier.allCases.last == .apprentice)
     }
 
     /// The rawValue is the display copy here, so it is safe to rename — but it
@@ -300,9 +327,9 @@ struct PassportProgressTests {
         #expect(store.announceTier(passport(at: .grandmaster)) == .grandmaster)
         // Two rungs in one step announces the rung reached, not each one
         // passed — see `announceTier`.
-        #expect(store.announceTier(passport(at: .immortal)) == .immortal)
+        #expect(store.announceTier(passport(at: .wineMonk)) == .wineMonk)
         // And nothing on the way back down, which a shelf edit can cause.
-        #expect(store.announceTier(passport(at: .legend)) == nil)
+        #expect(store.announceTier(passport(at: .legendary)) == nil)
     }
 
     /// **The 0.7.5 trap, and the whole reason the ladder has a flag of its
@@ -321,13 +348,13 @@ struct PassportProgressTests {
 
         // First launch on 0.8.7.
         let after = PassportProgress(defaults: defaults)
-        let held = passport(at: .legend)
+        let held = passport(at: .legendary)
         after.seed(with: held)        // a no-op: the badge flag is set
         after.seedTier(with: held)
         #expect(after.announceTier(held) == nil, "celebrated a rank already held")
 
         // And the rung above it is still news.
-        #expect(after.announceTier(passport(at: .immortal)) == .immortal)
+        #expect(after.announceTier(passport(at: .wineMonk)) == .wineMonk)
     }
 
     @MainActor
@@ -350,7 +377,7 @@ struct PassportProgressTests {
 
     /// The ledger persists a rank *index*, so "never announced" and "announced
     /// the first rung" must survive a relaunch as different states —
-    /// `integer(forKey:)` answers 0 for both, and 0 is VINODEX MASTER.
+    /// `integer(forKey:)` answers 0 for both, and 0 is MASTER.
     @MainActor
     @Test("an unannounced ladder does not decode as MASTER")
     func absentRankIsNotZero() {
@@ -368,20 +395,94 @@ struct PassportProgressTests {
         #expect(again.announceTier(passport(at: .master)) == nil)
     }
 
-    /// **What storing an index commits to.** Renaming a rung stays free — that
-    /// is `tiersAreNotStorage`'s whole point and this does not touch it — but
-    /// the *order* is now persisted, so inserting a rung between two existing
-    /// ones would promote every saved player by one. This is the pin that makes
-    /// that a decision rather than an accident.
-    @Test("rank indices are the ladder's order, and the ladder is append-only")
+    /// **What storing an index commits to, restated for 0.8.9b.**
+    ///
+    /// This test used to assert that declaration order *was* the ladder and that
+    /// the enum was append-only. Half of that is now false on purpose: the user
+    /// added a rung at the bottom, a literal prepend would have shifted every
+    /// stored index by one, and the fix was to append APPRENTICE and let the
+    /// ladder sort itself by threshold instead. So the invariant it guards has
+    /// two halves now, and deleting it would have thrown away the only thing
+    /// standing between a future insert and a silent mass promotion.
+    ///
+    /// **Half one: the four indices already written to real devices are
+    /// frozen.** These are the exact integers sitting in `passportSeenTierRank`
+    /// on every install since 0.8.7. Nothing may ever be declared before
+    /// `master`, and none of these four may be reordered.
+    ///
+    /// **Half two: declaration order is not the ladder, and nothing may assume
+    /// it is.** Pinned as an inequality rather than left implicit, so that a
+    /// future batch which "tidies up" by moving `apprentice` to the front breaks
+    /// this test rather than four hundred users' rank cards.
+    @Test("storage indices are frozen, and declaration order is not the ladder")
     func rankIndicesAreStable() {
-        #expect(PassportTier.allCases.map(\.rank) == [0, 1, 2, 3])
-        #expect(PassportTier.master.rank == 0)
-        #expect(PassportTier.immortal.rank == 3)
-        // Ascending thresholds, which is what makes a higher index a higher
-        // rank rather than merely a later case.
-        let thresholds = PassportTier.allCases.map(\.threshold)
-        #expect(thresholds == thresholds.sorted())
+        #expect(PassportTier.master.storageIndex == 0)
+        #expect(PassportTier.grandmaster.storageIndex == 1)
+        #expect(PassportTier.legendary.storageIndex == 2)
+        #expect(PassportTier.wineMonk.storageIndex == 3)
+        #expect(PassportTier.apprentice.storageIndex == 4)
+
+        // Every index round-trips through the resolver the ledger reads with,
+        // and an index from a build with more rungs is nil rather than a clamp.
+        for tier in PassportTier.allCases {
+            #expect(PassportTier.fromStorage(tier.storageIndex) == tier)
+        }
+        #expect(PassportTier.fromStorage(-1) == nil)
+        #expect(PassportTier.fromStorage(PassportTier.allCases.count) == nil)
+
+        // The two orderings genuinely disagree, and the ladder is the one that
+        // means something. `allCases` is storage; `ladder` is rank.
+        #expect(PassportTier.allCases != PassportTier.ladder)
+        #expect(PassportTier.allCases.first == .master)
+        #expect(PassportTier.ladder.first == .apprentice)
+        let ladderThresholds = PassportTier.ladder.map(\.threshold)
+        #expect(ladderThresholds == ladderThresholds.sorted())
+    }
+
+    /// **The regression the append was chosen to avoid** (0.8.9b).
+    ///
+    /// A device that announced MASTER under 0.8.7 has the integer 0 on disk.
+    /// Under a prepended APPRENTICE that 0 would decode as the new bottom rung,
+    /// the player would be found to hold MASTER, and they would be handed a
+    /// second "you reached MASTER" card for something they did months ago. This
+    /// walks that exact path: write the old byte, reload, and expect silence.
+    @MainActor
+    @Test("a rank announced before 0.8.9b is not announced again")
+    func storedRankSurvivesTheNewRung() {
+        let defaults = makeDefaults()
+        // The literal on-disk state of a 0.8.7 install that reached MASTER.
+        defaults.set(0, forKey: PassportProgress.tierStorageKey)
+        defaults.set(true, forKey: PassportProgress.tierSeededKey)
+
+        let store = PassportProgress(defaults: defaults)
+        #expect(store.seenTierRank == 0)
+        #expect(store.announceTier(passport(at: .master)) == nil, "re-announced a held rank")
+        // The rung below is not an announcement either — you cannot be demoted
+        // into a celebration.
+        #expect(store.announceTier(passport(at: .apprentice)) == nil)
+        // Climbing still works.
+        #expect(store.announceTier(passport(at: .grandmaster)) == .grandmaster)
+        #expect(store.seenTierRank == PassportTier.grandmaster.storageIndex)
+    }
+
+    /// The comparison is by threshold, not by stored integer. APPRENTICE has the
+    /// *highest* storage index and the *lowest* threshold, so a ledger that
+    /// compared raw integers would treat it as outranking WINE MONK and go
+    /// permanently silent after one tasting.
+    @MainActor
+    @Test("APPRENTICE's high storage index does not outrank anything")
+    func apprenticeDoesNotOutrank() {
+        let defaults = makeDefaults()
+        let store = PassportProgress(defaults: defaults)
+        store.seedTier(with: passport(at: nil))
+
+        #expect(store.announceTier(passport(at: .apprentice)) == .apprentice)
+        #expect(store.seenTierRank == 4, "apprentice stores at the end of the enum")
+        // Four is numerically larger than every other index. The ladder must
+        // still climb.
+        #expect(store.announceTier(passport(at: .master)) == .master)
+        #expect(store.announceTier(passport(at: .wineMonk)) == .wineMonk)
+        #expect(store.announceTier(passport(at: .legendary)) == nil)
     }
 
     @MainActor
@@ -390,7 +491,7 @@ struct PassportProgressTests {
         let defaults = makeDefaults()
         let store = PassportProgress(defaults: defaults)
         store.seed(with: passport(earning: ["firstSip"]))
-        store.seedTier(with: passport(at: .legend))
+        store.seedTier(with: passport(at: .legendary))
         store.reset()
         #expect(store.seen.isEmpty)
         // Both ledgers and both flags (0.8.7, D1): a wipe that left the rank

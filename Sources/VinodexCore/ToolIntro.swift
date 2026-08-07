@@ -100,7 +100,10 @@ public enum ToolRoster {
         ToolIntro(
             id: "wineExam",
             title: "WINE EXAM",
-            tagline: "The written paper, in three tiers.",
+            // "paper", not "exam", survived 0.8.0's rename of the concept in
+            // every other player-facing string — the last one, found by
+            // `sommbot` reading shipped copy against the spec (0.8.9b).
+            tagline: "The written exam, in three tiers.",
             body: """
                 Hundreds of authored questions across sixteen subjects, with an \
                 explanation on every answer whether you got it right or not. Pass a \
