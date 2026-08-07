@@ -2452,6 +2452,15 @@ enum SavedDataReset {
         // meeting the tools again is the whole point.
         WhatsThatRecordStore.shared.reset()
         ToolIntroStore.shared.reset()
+        // Professor Vino's ledger (0.8.9c, E1), for the reason the tool cards
+        // above are here: a wipe that left the seen-ids set standing would open
+        // a fresh start with him already silent, on the one run where meeting
+        // him again is the whole point. `reset()` drops the seeded flag too, or
+        // the wiped device would decline to re-seed and every later `seed` call
+        // would be a no-op. The queue is cleared as well, so a bubble fired a
+        // second before the wipe does not survive it.
+        FirstTimeTriggerStore.shared.reset()
+        VinoPresenter.shared.clear()
         ScreenStateStore.shared.clear()
         SearchStateStore.shared.clear()
 
@@ -2482,6 +2491,11 @@ enum SavedDataReset {
             CustomDeviceStore.storageKey,
             WhatsThatRecordStore.storageKey,
             ToolIntroStore.storageKey,
+            // Belt to `FirstTimeTriggerStore.reset()`'s braces, like the two
+            // above it. The seeded flag is listed too because it is the half a
+            // key-loop-only wipe would miss.
+            FirstTimeTriggerStore.storageKey,
+            FirstTimeTriggerStore.seededKey,
             // `LcdMode.storageKey` and `ChassisSkin.storageKey` are no longer
             // listed here: both are `DeviceAxis` entries now (0.7.3, B1) and
             // arrive through the eight keys prepended above. Listing them twice

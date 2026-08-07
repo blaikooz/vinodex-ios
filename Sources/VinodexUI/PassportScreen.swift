@@ -41,6 +41,9 @@ public struct PassportScreen: View {
     /// The rung crossed since this ledger was last asked (0.8.7, D1). One at
     /// most — see `PassportProgress.announceTier`.
     @State private var pendingRank: PassportTier?
+    /// Professor Vino's queue (0.8.9c). This screen holds him quiet while a
+    /// celebration is up and is the backstop for `firstStamp`.
+    @State private var vino = VinoPresenter.shared
     @State private var passportProgress = PassportProgress.shared
     /// The rendered card waiting on the share sheet (0.7.8, B2/B3/B4).
     @State private var sharePayload: SharePayload?
@@ -219,6 +222,15 @@ public struct PassportScreen: View {
         .shareCard($sharePayload)
         .animation(DexMotion.overlay, value: showingUnlock?.id)
         .animation(DexMotion.overlay, value: pendingRank)
+        // **This screen's hold on Professor Vino** (0.8.9c, D1), for
+        // `EntryDetailScreen`'s reason and one of its own: `firstPassport` fires
+        // on *arriving here*, and the backstop below can raise a stamp
+        // celebration on the same arrival. Without the hold, the two land
+        // together on the one screen guaranteed to have both.
+        .onChange(of: passportPromptIsUp, initial: true) { _, up in
+            vino.setSuspended(up, by: Self.vinoHold)
+        }
+        .onDisappear { vino.setSuspended(false, by: Self.vinoHold) }
         // The backstop (0.7.1, D2). Unlocks are announced at the moment they
         // happen — see `EntryDetailScreen` — but three of the six badges can be
         // earned somewhere that has no passport in front of it (the quiz's top
@@ -235,6 +247,11 @@ public struct PassportScreen: View {
             passportProgress.seedTier(with: current)
             unlockQueue = passportProgress.announce(current)
             pendingRank = passportProgress.announceTier(current)
+            // The backstop catches stamps earned where no passport was open, so
+            // it is also the backstop for `firstStamp` (0.8.9c, E2) - a player
+            // whose first badge came from a quiz tier or a streak day meets it
+            // here rather than never.
+            if !unlockQueue.isEmpty { vino.fireOnce(.firstStamp) }
             advanceUnlockQueue()
         }
     }
@@ -242,6 +259,13 @@ public struct PassportScreen: View {
     /// One at a time, in catalog order: two stamps arriving together is
     /// possible (a tenth entry that is also a region's last grape), and two
     /// overlapping celebrations would be one unreadable pile.
+    /// This screen's key in `VinoPresenter.suspensions`.
+    private static let vinoHold = "passportPrompt"
+
+    private var passportPromptIsUp: Bool {
+        showingUnlock != nil || pendingRank != nil
+    }
+
     private func advanceUnlockQueue() {
         guard !unlockQueue.isEmpty else {
             showingUnlock = nil

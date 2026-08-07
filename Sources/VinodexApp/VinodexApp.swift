@@ -81,6 +81,10 @@ struct RootView: View {
     @State private var access = AccessStore.shared
     /// Which tool cards have been shown (0.8.8, D1). See `toolIntro`.
     @State private var toolIntros = ToolIntroStore.shared
+    /// Professor Vino's bubble queue and the once-ever ledger behind it
+    /// (0.8.9c, D1/E1). See `vinoHold` and `fireRouteTriggers`.
+    @State private var vino = VinoPresenter.shared
+    @State private var triggers = FirstTimeTriggerStore.shared
     /// The boot POST (0.7.3, A1). True for the first ~1.9 seconds of a launch,
     /// or until the screen is tapped.
     @State private var booting = true
@@ -254,6 +258,22 @@ struct RootView: View {
                     )
                 }
 
+                // **Professor Vino** (0.8.9c, D1/D2).
+                //
+                // Above the screen and *below* the tool card, the upgrade prompt
+                // and the data notice — but the position barely matters, because
+                // `vinoHold` means he is never drawn at the same time as any of
+                // them. The ordering is here so that if a future overlay lands
+                // without teaching this view about itself, the failure is a
+                // bubble underneath it rather than over it.
+                //
+                // A remark, not a modal: no scrim, bottom of the LCD, and the
+                // screen behind stays live because the line is usually about
+                // what is on it. See `VinoBubble`.
+                if let line = vino.current {
+                    VinoBubble(line: line) { vino.dismiss() }
+                }
+
                 // Last in this stack, so it covers the two prompts above rather
                 // than booting underneath them.
                 if booting {
@@ -269,6 +289,37 @@ struct RootView: View {
             .animation(DexMotion.overlay, value: lockedAttempt?.id)
             .animation(DexMotion.overlay, value: showingDataAlert)
             .animation(DexMotion.overlay, value: toolIntro?.id)
+            .animation(DexMotion.overlay, value: vino.current?.id)
+        }
+        // **The four-way collision, sequenced** (0.8.9c, D1).
+        //
+        // Four of the fifteen triggers fire on screens that already raise a
+        // first-run explainer card — LABEL SCAN, WINE EXAM, DAILY CHALLENGE and
+        // BLIND TASTING. Un-sequenced the player meets two first-run
+        // interruptions on one screen, one explaining the mode and one
+        // explaining it again in a funnier voice, which is worse than either
+        // alone. `sommbot`'s rewrites already dropped the explaining half from
+        // those four lines; this is the other half of the fix.
+        //
+        // The line is **held, not dropped** — it lands as the card leaves. And
+        // the same hold covers the BIOS, the paywall and the data notice, none
+        // of which should be talked over either.
+        //
+        // `initial: true` because a launch that starts inside the BIOS must
+        // suspend before the first line can fire, not after it.
+        .onChange(of: chromeIsUp, initial: true) { _, up in
+            vino.setSuspended(up, by: Self.vinoHold)
+        }
+        // Every arrival, from wherever — a tile, a cross-link, a marquee lamp, a
+        // Back, the demo loop. One place, so a new screen cannot forget to
+        // introduce itself, which is the same argument `open(_:)` makes for the
+        // paywall gate.
+        .onChange(of: path) { _, _ in fireRouteTriggers() }
+        // And the route that was already open when the BIOS finished: a launch
+        // restores nothing today, but demo mode and a tapped-through boot both
+        // land here with a path already set.
+        .onChange(of: booting) { _, isBooting in
+            if !isBooting { fireRouteTriggers() }
         }
         // **The picture is in the display; the input is the window's** (0.7.8,
         // A4). Everything on the chassis is live and now visible around the
@@ -303,6 +354,27 @@ struct RootView: View {
             // first, and on any device where the user has set it themselves.
             TextScale.seedIfUnset(
                 systemOrdinal: DynamicTypeSize.allCases.firstIndex(of: systemType) ?? 3
+            )
+            // **The first-run trap, answered** (0.8.9c, E1) — and the third
+            // batch running to meet it, after 0.8.7's D1 and 0.8.8's D1/D2.
+            //
+            // Three of the fifteen triggers are true of an existing player
+            // *already*: they have tastings on disk, INSIGHT has been showing
+            // them derived lines for a release, and their stamps were earned
+            // weeks ago. Left unseeded, the first grape they open after updating
+            // hands them two bubbles for things they did in July.
+            //
+            // The other twelve are deliberately **not** seeded, and that is the
+            // half worth guarding: seeding the lot would silently rob every
+            // existing player of the entire character. See
+            // `FirstTimeTriggerStore` for the split and why it is by shape.
+            //
+            // Cheap enough for the launch path: `seed` short-circuits on a flag
+            // before reading anything, and both inputs are counts off stores
+            // already in memory rather than a computed `Passport`.
+            triggers.seed(
+                triedCount: DiscoveryStore.shared.triedCount,
+                hasAnnouncedStamps: !PassportProgress.shared.isEmpty
             )
             ScreenWake.keepAwake(true)
             // The power-on chime, once per launch — this view appears exactly
@@ -441,6 +513,43 @@ struct RootView: View {
             return entry.scanArt
         }
         return route.marqueeArt
+    }
+
+    // MARK: Professor Vino (0.8.9c, D1/E2)
+
+    /// This view's key in `VinoPresenter.suspensions`.
+    private static let vinoHold = "chrome"
+
+    /// Whether one of the overlays this view owns is on top.
+    ///
+    /// `EntryDetailScreen` and `PassportScreen` publish their own holds under
+    /// their own keys — their prompts are raised inside them and are invisible
+    /// from here, which is exactly why suspension is a set of reasons rather
+    /// than a boolean.
+    private var chromeIsUp: Bool {
+        booting || toolIntro != nil || lockedAttempt != nil || showingDataAlert
+    }
+
+    /// Fire whatever arriving at the current route is worth saying.
+    ///
+    /// **Clears first.** A line is always about the screen you are on, so
+    /// anything queued for the screen you just left is dropped rather than
+    /// delivered late over unrelated content. It is not un-fired — once is once,
+    /// which is the deliberate cost of leaving before reading.
+    ///
+    /// The route-to-trigger table itself lives on `FirstTimeTrigger`, not here,
+    /// for the reason `ToolRoster.intro(for:)` does: this module is the one no
+    /// test can see, and `routeTriggersAreReachable` walks that table so a line
+    /// that is written and never raised is a test failure rather than a thing
+    /// nobody notices.
+    private func fireRouteTriggers() {
+        vino.clear()
+        // An empty path is the main menu, which owes no line - and Home is the
+        // one navigation that should always leave him quiet.
+        guard !booting, let route = path.last else { return }
+        var entry: WineEntry?
+        if case .detail(let id) = route { entry = db.entry(id: id) }
+        vino.fireOnce(for: route, entry: entry, in: triggers)
     }
 
     /// The introduction owed for the route currently open, if any (0.8.8, D1).

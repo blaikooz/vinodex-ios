@@ -5,8 +5,15 @@ import VinodexCore
 
 /// The profile's only stored field. A named constant so CLEAR SAVED DATA can
 /// name the key without spelling the literal twice.
+///
+/// **The literal moved to `VinoName.storageKey` in 0.8.9c** and this forwards to
+/// it. Professor Vino addresses the player by the name they gave themselves
+/// here, so Core needs to read the same default this screen writes — and a key
+/// spelled in two modules is a key that can be renamed in one of them. Same
+/// value, same behaviour, one spelling. See `VinoName` for why no second name
+/// was minted.
 public enum UserProfile {
-    public static let displayNameKey = "userDisplayName"
+    public static let displayNameKey = VinoName.storageKey
 }
 
 /// The user screen: who you are, and your three shelves.

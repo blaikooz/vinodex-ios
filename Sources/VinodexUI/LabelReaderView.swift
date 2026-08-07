@@ -37,6 +37,11 @@ public struct LabelReaderView: View {
     /// a number. Session-local and per-reading: SCAN AGAIN tears this view's
     /// result down, and a count carried across two bottles would be a lie.
     @State private var justMarked = 0
+    /// Professor Vino (0.8.9c, E2). Two triggers land here: `firstScan` on a
+    /// confident read, and `firstTried` when this screen is the one that puts
+    /// the first wine on the shelf — a scan-first player never taps the entry
+    /// screen's pill, and firing it only there would have lost them the line.
+    @State private var vino = VinoPresenter.shared
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
@@ -84,6 +89,19 @@ public struct LabelReaderView: View {
             .ignoresSafeArea()
         }
         .animation(DexMotion.overlay, value: model.phase)
+        // **The first successful label read** (0.8.9c, E2).
+        //
+        // On `.identified` only. An ambiguous shortlist or a no-match is the
+        // reader failing to do the thing his line is about ("I read wine
+        // beautifully"), and spending the once-ever bubble on a miss would be
+        // both a lie and unrecoverable.
+        //
+        // Watched on the phase rather than called from `results(_:)`, which is a
+        // view builder and would re-fire on every render of the results card.
+        .onChange(of: model.phase) { _, phase in
+            guard case .result(let reading) = phase, reading.outcome == .identified else { return }
+            vino.fireOnce(.firstScan)
+        }
     }
 
     @ViewBuilder
@@ -295,6 +313,10 @@ public struct LabelReaderView: View {
                         tint: Dex.yellow
                     ) {
                         justMarked = discovery.markTried(ids: pending).count
+                        // Only when this tap actually shelved something - the
+                        // button is hidden once everything is marked, but a
+                        // race or a repeat must not spend the line on nothing.
+                        if justMarked > 0 { vino.fireOnce(.firstTried) }
                     }
                     Text("Adds them to your tried shelf, where the passport and INSIGHT read from.")
                         .font(DexFont.mono(13))

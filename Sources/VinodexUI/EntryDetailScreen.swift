@@ -72,11 +72,26 @@ public struct EntryDetailScreen: View {
     @State private var access = AccessStore.shared
     /// The rendered card waiting on the share sheet (0.7.8, B1/B4).
     @State private var sharePayload: SharePayload?
+    /// Professor Vino's queue (0.8.9c, E2). Three of the fifteen triggers fire
+    /// on this screen — `firstTried`, `firstInsight` and `firstStamp` — because
+    /// this is where a tasting is recorded and where the panel it deepens is
+    /// drawn. The fourth thing this screen owes him is silence while its own
+    /// celebrations are up; see `entryPromptIsUp`.
+    @State private var vino = VinoPresenter.shared
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
 
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
     private var screenKey: String { ScreenStateStore.detail(entry.id) }
+
+    /// This screen's key in `VinoPresenter.suspensions`.
+    private static let vinoHold = "entryPrompt"
+
+    /// Whether one of this screen's four prompts is on top. See the
+    /// `onChange` that publishes it.
+    private var entryPromptIsUp: Bool {
+        showingRating || showingUnlock != nil || pendingRank != nil || lockedBundle != nil
+    }
 
     /// Coarser than the other screens': the category sections are built by a
     /// `@ViewBuilder` switch over the entry variant, so they share one anchor
@@ -206,6 +221,36 @@ public struct EntryDetailScreen: View {
         .animation(DexMotion.overlay, value: showingUnlock?.id)
         .animation(DexMotion.overlay, value: pendingRank)
         .animation(DexMotion.overlay, value: lockedBundle)
+        // **This screen's own hold on Professor Vino** (0.8.9c, D1).
+        //
+        // `RootView` suspends him for the chrome overlays it owns, but the four
+        // prompts above are raised in here and it cannot see them — and this is
+        // precisely the screen where `firstTried` and `firstStamp` fire. Without
+        // this, marking a wine TRIED puts a speech bubble across the bottom of
+        // the stamp celebration it is congratulating.
+        //
+        // Keyed by reason so the two hosts cannot release each other's hold; see
+        // `VinoPresenter.suspensions`.
+        .onChange(of: entryPromptIsUp, initial: true) { _, up in
+            vino.setSuspended(up, by: Self.vinoHold)
+        }
+        // Leaving with a prompt open would otherwise wedge the queue for the
+        // rest of the session - the hold is on a store that outlives this view.
+        .onDisappear { vino.setSuspended(false, by: Self.vinoHold) }
+        // **The first time INSIGHT actually says something** (0.8.9c, E2).
+        //
+        // Keyed on the tried count rather than on appearance, because the line
+        // is about unlocking: the panel goes from teaser to derived lines on the
+        // TRIED tap, and that is the moment worth remarking on. Re-runs when the
+        // count moves, which is exactly when the depth can change.
+        //
+        // `lines` rather than `isEmpty` - `InsightPanel.isEmpty` is false in the
+        // teaser state too, so keying on it would fire "INSIGHT unlocked" on the
+        // first grape a brand-new player opened, before anything was unlocked.
+        .task(id: bookmarks.count(on: .tried)) {
+            guard !insightPanel.lines.isEmpty else { return }
+            vino.fireOnce(.firstInsight)
+        }
         // **Seed both ledgers before this page's own TRIED pill can be pressed**
         // (0.8.7, D1). Seeding has lived only in the passport screen's `task`
         // since 0.7.1, which leaves a returning player who updates and taps
@@ -403,6 +448,17 @@ public struct EntryDetailScreen: View {
                                 triedDays: bookmarks.triedDayLog
                             )
                         )
+                        // **The first tasting, and the first stamp** (0.8.9c,
+                        // E2). Fired at the tap for the same reason `announce`
+                        // is: this is the one live moment either becomes true,
+                        // and a view body would re-fire on every render.
+                        //
+                        // Both bubbles wait behind the rating prompt and the
+                        // celebrations, which hold the presenter — see
+                        // `entryPromptIsUp`. That ordering is the point: the
+                        // stamp card is the event and his remark is about it.
+                        vino.fireOnce(.firstTried)
+                        if !pendingUnlocks.isEmpty { vino.fireOnce(.firstStamp) }
                     }
                 }
             }
@@ -503,19 +559,27 @@ public struct EntryDetailScreen: View {
     /// new UI chrome is SF Symbols by house convention, and none of the parked
     /// pictures depicts a derived readout — `heart` and `star` say favourite,
     /// `seal` says verified. See the note on `UIGlyph.unwired`.
-    @ViewBuilder
-    private var insightSection: some View {
-        // Reads `bookmarks`, which is `@Observable`, so a TRIED tap two rows
-        // below rebuilds this panel in the same frame. That is the whole of
-        // Phase 1's "updates live" criterion on this screen.
+    /// Reads `bookmarks`, which is `@Observable`, so a TRIED tap two rows below
+    /// rebuilds this panel in the same frame. That is the whole of Phase 1's
+    /// "updates live" criterion on this screen.
+    ///
+    /// A computed property since 0.8.9c so the view and the `firstInsight`
+    /// trigger read the same panel rather than each deciding for itself what
+    /// counts as unlocked.
+    private var insightPanel: InsightPanel {
         let index = DiscoveryIndex(tried: bookmarks.ids(on: .tried), in: db)
-        let panel = InsightService.panel(
+        return InsightService.panel(
             for: entry,
             index: index,
             profile: PalateProfile(index: index),
             in: db,
             triedDays: bookmarks.triedDayLog
         )
+    }
+
+    @ViewBuilder
+    private var insightSection: some View {
+        let panel = insightPanel
         if !panel.isEmpty {
             section("INSIGHT", symbol: "lightbulb.fill") {
                 VStack(alignment: .leading, spacing: 8) {
