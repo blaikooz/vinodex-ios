@@ -14,6 +14,15 @@ public struct EntryTileView: View {
     /// tapping it is how the upgrade prompt is reached — it just reads as
     /// unavailable.
     var locked: Bool = false
+    /// Whether this entry is on the TRIED shelf (0.8.91, B2).
+    ///
+    /// **Passed in rather than read from `BookmarkStore` here.** The store is
+    /// observable, so a row that read it would make every listing re-render every
+    /// row on every bookmark change; the caller reads it once and hands each row
+    /// its own answer. It is also what keeps this view free of a store
+    /// dependency, which is why it can be used by the exam and the quiz — two
+    /// screens where the tried state is deliberately not shown.
+    var tried: Bool = false
     /// Off in the saved list, where the row's top-right corner belongs to the
     /// remove button.
     var showsChevron: Bool = true
@@ -26,12 +35,14 @@ public struct EntryTileView: View {
         entry: WineEntry,
         palette: Palette,
         locked: Bool = false,
+        tried: Bool = false,
         showsChevron: Bool = true,
         action: @escaping () -> Void
     ) {
         self.entry = entry
         self.palette = palette
         self.locked = locked
+        self.tried = tried
         self.showsChevron = showsChevron
         self.action = action
     }
@@ -79,12 +90,33 @@ public struct EntryTileView: View {
             .saturation(locked ? 0.15 : 1)
             .opacity(locked ? 0.55 : 1)
             .background(lcd.surface)
+            // **The tried border** (0.8.91, B2). The row's own edge recoloured
+            // rather than a second ring outside it: one border is what the tile
+            // has always had, and a rule that adds an outline changes the row's
+            // height and makes a tried row a different size from an untried one
+            // in the same list.
+            //
+            // `Dex.green` is a fixed hex, like the OWNED badge and the complete
+            // progress bar it matches. Under the monochrome LCD modes it
+            // flattens with everything else — which is correct, because those
+            // modes have one phosphor and a green that survived them would be
+            // the only colour on the screen.
+            //
+            // Locked wins over tried, and cannot collide with it in practice:
+            // nothing behind the paywall can be on your shelf. Ordered anyway,
+            // because "cannot happen" is how a border ends up drawn in two
+            // colours at once.
             .overlay(
                 RoundedRectangle(cornerRadius: 4)
-                    .strokeBorder(locked ? lcd.surfaceEdge.opacity(0.6) : lcd.surfaceEdge, lineWidth: 2)
+                    .strokeBorder(triedAwareEdge, lineWidth: 2)
             )
         }
         .buttonStyle(DexPressStyle(scale: 0.98))
+    }
+
+    private var triedAwareEdge: Color {
+        if locked { return lcd.surfaceEdge.opacity(0.6) }
+        return tried ? Dex.green : lcd.surfaceEdge
     }
 
     private var iconSlot: some View {

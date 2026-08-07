@@ -699,13 +699,13 @@ public struct EntryDetailScreen: View {
                              chip: chip(g.grapeType.rawValue.uppercased(), .colorType),
                              destination: .list(category: .grapes, filter: .type(g.grapeType.rawValue)),
                              compact: true) { tint in
-                            DexIcon(iconID: db.icons.colorIcon(g.grapeType.rawValue.uppercased()), size: 26, color: tint)
+                            DexIcon(iconID: db.icons.colorIcon(g.grapeType.rawValue.uppercased()), size: 30, color: tint)
                         }
                         tile(label: "TYPE",
                              chip: chip(EntryDisplay.grapeBodyLabel(g), .wineType, key: g.grapeStyle),
                              destination: .list(category: .grapes, filter: .type(g.grapeStyle)),
                              compact: true) { tint in
-                            DexIcon(iconID: db.icons.bodyIcon(g.grapeBodyClass), size: 26, color: tint)
+                            DexIcon(iconID: db.icons.bodyIcon(g.grapeBodyClass), size: 30, color: tint)
                         }
                     }
                     attributeBar(
@@ -738,7 +738,7 @@ public struct EntryDetailScreen: View {
                         tile(label: "CLIMATE",
                              chip: chip((r.climate?.rawValue ?? "N/A").uppercased(), .climate, key: r.climate?.rawValue ?? ""),
                              destination: r.climate.map { .list(category: .regions, filter: .climate($0)) }) { tint in
-                            DexIcon(iconID: db.icons.climateIcon(r.climate), size: 32, color: tint)
+                            DexIcon(iconID: db.icons.climateIcon(r.climate), size: 36, color: tint)
                         }
                         tile(label: "COUNTRY",
                              chip: chip(r.details.origin.uppercased(), .country, key: r.details.origin),
@@ -784,7 +784,7 @@ public struct EntryDetailScreen: View {
                         tile(label: "COLOR",
                              chip: chip(color.rawValue, .colorType, key: color.rawValue),
                              destination: .list(category: .styles, filter: .styleColor(color))) { tint in
-                            DexIcon(iconID: db.icons.colorIcon(color.rawValue), size: 32, color: tint)
+                            DexIcon(iconID: db.icons.colorIcon(color.rawValue), size: 36, color: tint)
                         }
                         tile(label: "CLASS",
                              // The *inferred* class, not the raw classification
@@ -1109,7 +1109,7 @@ public struct EntryDetailScreen: View {
 
         return section("CLIMATE", symbol: "wind") {
             HStack(spacing: 10) {
-                DexIcon(iconID: db.icons.climateIcon(r.climate), size: 26, color: Color(dexHex: colors.border))
+                DexIcon(iconID: db.icons.climateIcon(r.climate), size: 30, color: Color(dexHex: colors.border))
                 Text((meta?.name ?? "Unknown Climate").uppercased())
                     .font(DexFont.mono(22))
                     .tracking(1.5)

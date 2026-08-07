@@ -27,12 +27,19 @@ public struct PassportScreen: View {
     /// valid call for previews and the demo reel.
     private let onSelectEntry: ((WineEntry) -> Void)?
 
+    /// Opens the full ranking (0.8.91, B3). Optional on the same rule as the two
+    /// above: with no way to push the page, SHOW ALL is withheld rather than
+    /// drawn dead, and the strip degrades to what it was.
+    private let onShowAllRecommendations: (() -> Void)?
+
     public init(
         onStampCollection: (() -> Void)? = nil,
-        onSelectEntry: ((WineEntry) -> Void)? = nil
+        onSelectEntry: ((WineEntry) -> Void)? = nil,
+        onShowAllRecommendations: (() -> Void)? = nil
     ) {
         self.onStampCollection = onStampCollection
         self.onSelectEntry = onSelectEntry
+        self.onShowAllRecommendations = onShowAllRecommendations
     }
 
     /// The unlock queue (0.7.1, D2) and the one being shown.
@@ -388,18 +395,22 @@ public struct PassportScreen: View {
 
     // MARK: Activity (D1)
 
-    /// Entries collected per day for the last month.
+    /// Entries collected per day for the last week (0.8.91, E1 — it was a
+    /// month; see `Passport.activitySpan` for why it is not).
     ///
-    /// A `Canvas`, following `DataWave` in the settings panel: thirty columns
-    /// is thirty subviews otherwise, and they are rectangles with no behaviour.
+    /// A `Canvas`, following `DataWave` in the settings panel: seven columns is
+    /// seven subviews otherwise, and they are rectangles with no behaviour. The
+    /// `Canvas` was chosen when there were thirty and is kept at seven, because
+    /// the reason it is not thirty views is the same reason it should not become
+    /// seven — the span is a constant somebody may move again.
     ///
     /// **Scaled to the busiest day, with a floor of three.** Scaling to the
-    /// maximum alone means a month whose best day was one entry draws a
+    /// maximum alone means a week whose best day was one entry draws a
     /// full-height bar for it, which reads as a heroic session. A floor of
-    /// three keeps a quiet month looking quiet, and any real streak of activity
+    /// three keeps a quiet week looking quiet, and any real streak of activity
     /// outgrows it immediately.
     ///
-    /// The empty state says why it is empty rather than drawing thirty zeroes,
+    /// The empty state says why it is empty rather than drawing seven zeroes,
     /// because for every existing user it *will* be empty on the day they
     /// update: nothing recorded a date before 0.7.1 and back-filling would have
     /// meant inventing one. See `BookmarkStore.triedDay(for:)`.
@@ -443,7 +454,11 @@ public struct PassportScreen: View {
             HStack {
                 Text("\(days.count) DAYS AGO")
                 Spacer()
-                Text(total == 0 ? "NOTHING LOGGED YET" : "\(total) THIS MONTH")
+                // "THIS MONTH" was the caption when the span was thirty. It is
+                // the span's own word now rather than a second literal, so a
+                // future change to `activitySpan` cannot leave the axis saying
+                // one period and the total saying another (0.8.91, E1).
+                Text(total == 0 ? "NOTHING LOGGED YET" : "\(total) THIS WEEK")
                 Spacer()
                 Text("TODAY")
             }
@@ -486,8 +501,19 @@ public struct PassportScreen: View {
     private var recommendations: some View {
         if let onSelectEntry {
             let index = DiscoveryIndex(tried: bookmarks.ids(on: .tried), in: db)
-            let picks = PalateProfile(index: index).recommendations(index: index)
+            let profile = PalateProfile(index: index)
+            // **Five, and the sixth is a door** (0.8.91, B3). The cap is
+            // `PalateProfile.recommendationStrip` rather than a literal, and the
+            // page behind SHOW ALL is the same ranking uncapped — see
+            // `allRecommendations` and the test that holds the two together.
+            let picks = profile.recommendations(
+                index: index,
+                limit: PalateProfile.recommendationStrip
+            )
             if !picks.isEmpty {
+                // Costed once here rather than inside the button: it is a full
+                // pass over the tastable catalog, and this is a body property.
+                let total = profile.allRecommendations(index: index).count
                 section("YOU MIGHT LIKE") {
                     VStack(spacing: 6) {
                         ForEach(picks) { pick in
@@ -500,6 +526,30 @@ public struct PassportScreen: View {
                                 Haptics.select()
                                 onSelectEntry(pick)
                             }
+                        }
+
+                        // Only when there is more behind it. A SHOW ALL that
+                        // opened the five rows you are already looking at is a
+                        // button that lies about having something.
+                        if let onShowAllRecommendations, total > picks.count {
+                            Button {
+                                Haptics.screenTap()
+                                onShowAllRecommendations()
+                            } label: {
+                                Text("SHOW ALL (\(total))")
+                                    .font(DexFont.retro(11))
+                                    .tracking(1.5)
+                                    .foregroundStyle(lcd.accent)
+                                    .padding(.vertical, 12)
+                                    .frame(maxWidth: .infinity)
+                                    .background(RoundedRectangle(cornerRadius: 6).fill(lcd.well))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .strokeBorder(lcd.accent.opacity(0.55), lineWidth: 2)
+                                    )
+                            }
+                            .buttonStyle(DexPressStyle(scale: 0.98))
+                            .padding(.top, 2)
                         }
                     }
                 }

@@ -66,8 +66,33 @@ public enum ChipFacet: String, CaseIterable, Codable, Sendable, Identifiable {
     /// **A flavour's family** (0.7.0, H3): BERRY, SMOKY, STONE FRUIT and the
     /// rest. Twenty-two values — long like COUNTRY, and it wraps like COUNTRY.
     case flavorSubclass
+    /// **Your three shelves** (0.8.91, B1): SAVED, WANTED, TRIED.
+    ///
+    /// **The one facet that is not a property of the catalog**, and the reason
+    /// `matches` grew a parameter. Every other facet can be answered from the
+    /// `WineEntry` alone; this one is a fact about the *player*, held in
+    /// `BookmarkStore` and therefore in `UserDefaults` — so a screen that wants
+    /// it has to hand the membership in. See `ShelfMembership`.
+    ///
+    /// §B1 asks for Saved and Wanted as "new user states". They are not new:
+    /// `Shelf` has had all three since the user panel shipped and
+    /// `EntryDetailScreen` has had all three setters since. What was missing was
+    /// the *filter*, which is what this is — no new storage, no new key, and
+    /// nothing about tried that the v9.0 discovery system did not already own.
+    /// Building a second store for a shelf that exists is how two answers to
+    /// "have I tried this" come to disagree.
+    case shelf
 
     public var id: String { rawValue }
+
+    /// Whether this facet asks about the player rather than about the catalog.
+    ///
+    /// Exists so `ChipFacetTests.facetsAreLive` can say what it means: every
+    /// other row must offer only chips some entry can satisfy, because a chip
+    /// that always empties the listing is a broken control. A shelf chip on a
+    /// fresh device matches nothing *correctly* — that is the honest answer to
+    /// "show me what I have tried" before you have tried anything.
+    public var isUserState: Bool { self == .shelf }
 
     /// Row heading.
     public var title: String {
@@ -83,6 +108,7 @@ public enum ChipFacet: String, CaseIterable, Codable, Sendable, Identifiable {
         case .styleColor: "COLOUR"
         case .flavorClass: "TASTE"
         case .flavorSubclass: "FAMILY"
+        case .shelf: "YOURS"
         }
     }
 
@@ -102,7 +128,75 @@ public enum ChipFacet: String, CaseIterable, Codable, Sendable, Identifiable {
         case .styleColor: "Styles only — the colour in the glass."
         case .flavorClass: "Flavors only — the basic taste."
         case .flavorSubclass: "Flavors only — the flavour family."
+        case .shelf: "What you have saved, wanted or tried."
         }
+    }
+}
+
+public extension Shelf {
+    /// The word the chip wears (0.8.91, B1).
+    ///
+    /// `wantToTry`'s raw value is a storage key and may never change — see
+    /// `storageKey` — so the label is a separate member, exactly as
+    /// `SettingsSection.displayName` is separate from its persisted raw value.
+    var chipLabel: String {
+        switch self {
+        case .saved: "SAVED"
+        case .wantToTry: "WANTED"
+        case .tried: "TRIED"
+        }
+    }
+}
+
+/// Which entries sit on which shelf, as a value (0.8.91, B1).
+///
+/// **The whole reason this is a snapshot rather than a reference to the store.**
+/// `ChipFilter.matches` is pure, Foundation-only and not `@MainActor`;
+/// `BookmarkStore` is an observable singleton and is all three of the opposite.
+/// Reaching into it from the matcher would have made every filtering call site
+/// main-actor-bound and every test of the filter dependent on a real
+/// `UserDefaults` suite. A snapshot is a `Hashable` value, which is also what
+/// lets a SwiftUI screen key a recompute on it.
+///
+/// Empty is a legitimate value and means what it says: nothing is on any shelf.
+/// A caller with no store — the counting helper below, a test — gets the honest
+/// answer for a device where nothing has been marked, rather than a crash or a
+/// silently-inverted filter.
+public struct ShelfMembership: Sendable, Hashable {
+    private let ids: [Shelf: Set<String>]
+
+    /// Nothing on any shelf.
+    public static let empty = ShelfMembership(ids: [:])
+
+    public init(ids: [Shelf: Set<String>]) {
+        self.ids = ids
+    }
+
+    public func contains(_ id: String, on shelf: Shelf) -> Bool {
+        ids[shelf]?.contains(id) ?? false
+    }
+
+    /// Whether an entry is on any shelf at all — what the tried border and the
+    /// shelf pip on a tile ask.
+    public func shelves(for id: String) -> Set<Shelf> {
+        Set(Shelf.allCases.filter { contains(id, on: $0) })
+    }
+
+    public var isEmpty: Bool { ids.values.allSatisfy(\.isEmpty) }
+}
+
+public extension BookmarkStore {
+    /// This store's three shelves as a value the filter can hold (0.8.91, B1).
+    ///
+    /// Read once per recompute rather than per entry: `ids(on:)` decodes out of
+    /// `UserDefaults` and the listing screens ask about several hundred entries
+    /// a pass.
+    var membership: ShelfMembership {
+        ShelfMembership(
+            ids: Dictionary(
+                uniqueKeysWithValues: Shelf.allCases.map { ($0, Set(ids(on: $0))) }
+            )
+        )
     }
 }
 
@@ -181,14 +275,35 @@ public struct ChipFilter: Codable, Sendable, Hashable {
     /// How many chips are lit, for the RESET button's badge.
     public var count: Int { selected.values.reduce(0) { $0 + $1.count } }
 
+    /// Whether any lit chip needs the player's shelves to be answered (0.8.91,
+    /// B1).
+    ///
+    /// Lets a screen pass `.empty` — and skip reading `UserDefaults` at all —
+    /// on the overwhelmingly common pass where no shelf chip is lit, which is
+    /// also what keeps the recompute from re-running every time a bookmark
+    /// changes on a listing that is not filtering by one.
+    public var usesUserState: Bool {
+        ChipFacet.allCases.contains { facet in
+            facet.isUserState && !(selected[facet.rawValue] ?? []).isEmpty
+        }
+    }
+
     public mutating func clear() { selected.removeAll() }
 
     // MARK: Matching
 
-    public func matches(_ entry: WineEntry) -> Bool {
+    /// - Parameter shelves: the player's three shelves, for the `.shelf` facet
+    ///   (0.8.91, B1). Defaulted, and the default is *correct* rather than
+    ///   convenient — `.empty` says nothing has been saved, wanted or tried,
+    ///   which is what a caller with no store is entitled to assume. Every other
+    ///   facet ignores it entirely, so the parameter costs nothing until a
+    ///   shelf chip is lit.
+    public func matches(_ entry: WineEntry, shelves: ShelfMembership = .empty) -> Bool {
         for facet in ChipFacet.allCases {
             guard let chosen = selected[facet.rawValue], !chosen.isEmpty else { continue }
-            guard Self.entry(entry, satisfies: facet, anyOf: chosen) else { return false }
+            guard Self.entry(entry, satisfies: facet, anyOf: chosen, shelves: shelves) else {
+                return false
+            }
         }
         return true
     }
@@ -196,7 +311,8 @@ public struct ChipFilter: Codable, Sendable, Hashable {
     private static func entry(
         _ entry: WineEntry,
         satisfies facet: ChipFacet,
-        anyOf chosen: Set<String>
+        anyOf chosen: Set<String>,
+        shelves: ShelfMembership
     ) -> Bool {
         switch facet {
         case .category:
@@ -260,6 +376,17 @@ public struct ChipFilter: Codable, Sendable, Hashable {
         case .flavorSubclass:
             guard case .flavor(let f) = entry else { return false }
             return chosen.contains(f.details.subclass.uppercased())
+
+        case .shelf:
+            // OR within the facet like every other row: SAVED + TRIED means
+            // "either", which is what two lit chips read as. An unknown raw
+            // value decodes to nothing rather than throwing — a restored
+            // `ScreenStateStore` blob written by a build that knew a fourth
+            // shelf must not take the whole filter down with it.
+            return chosen.contains { raw in
+                guard let shelf = Shelf(rawValue: raw) else { return false }
+                return shelves.contains(entry.id, on: shelf)
+            }
         }
     }
 
@@ -393,6 +520,15 @@ public struct ChipFilter: Codable, Sendable, Hashable {
             return WineDatabase.shared.flavorSubclasses.map {
                 ChipOption(facet: facet, value: $0, label: $0.replacingOccurrences(of: "_", with: " "))
             }
+        // The shelves themselves rather than a derived list — this is the one
+        // row whose vocabulary is a type and not a catalog, because the shelves
+        // are the app's own furniture. All three are always offered, including
+        // empty ones: a row that hid TRIED until you had tried something would
+        // hide the control at exactly the moment somebody was looking for it.
+        case .shelf:
+            return Shelf.allCases.map {
+                ChipOption(facet: facet, value: $0.rawValue, label: $0.chipLabel)
+            }
         }
     }
 }
@@ -402,8 +538,8 @@ public extension WineDatabase {
     /// listing uses.
     /// Filtering the pre-sorted list rather than sorting the survivors: the
     /// order is already right, and this ran per body pass (AUDIT M5).
-    func entries(matching filter: ChipFilter) -> [WineEntry] {
-        entriesInDisplayOrder.filter { filter.matches($0) }
+    func entries(matching filter: ChipFilter, shelves: ShelfMembership = .empty) -> [WineEntry] {
+        entriesInDisplayOrder.filter { filter.matches($0, shelves: shelves) }
     }
 
     /// What the result count *would be* if this chip were tapped.
@@ -412,8 +548,12 @@ public extension WineDatabase {
     /// have to probe by trial and one you can read. 284 entries against a couple
     /// of dozen chips is a few thousand comparisons — cheap enough to do on
     /// every render rather than caching and having to invalidate it.
-    func count(withChip option: ChipOption, added filter: ChipFilter) -> Int {
+    func count(
+        withChip option: ChipOption,
+        added filter: ChipFilter,
+        shelves: ShelfMembership = .empty
+    ) -> Int {
         let candidate = filter.toggling(option)
-        return entries.reduce(0) { $0 + (candidate.matches($1) ? 1 : 0) }
+        return entries.reduce(0) { $0 + (candidate.matches($1, shelves: shelves) ? 1 : 0) }
     }
 }

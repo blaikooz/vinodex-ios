@@ -57,6 +57,9 @@ struct ChromeTests {
             .pack(id: "does-not-exist"),
             // 0.8.6 (C3), same edit as the case, same discipline.
             .stampCollection,
+            // 0.8.91 (B3, F1), same edit as the cases, same discipline.
+            .recommendations,
+            .support,
         ]
         routes += EntryCategory.allCases.map { .list(category: $0, filter: nil) }
         routes += SettingsSection.allCases.map { .settingsSection($0) }
@@ -425,7 +428,10 @@ struct ChromeTests {
         // `CaseIterable` and there is nothing to derive from.
         // 34 since 0.8.6 (C3), which adds `.stampCollection` — the stamp series
         // as a page of objects rather than as the passport's tick list.
-        #expect(Self.allRoutes.count == 34, "add the new route to `allRoutes`")
+        // **36 since 0.8.91**, which adds `.recommendations` (B3, the full
+        // ranking behind the passport's capped YOU MIGHT LIKE strip) and
+        // `.support` (F1, the contact screen behind SYSTEM's new SUPPORT row).
+        #expect(Self.allRoutes.count == 36, "add the new route to `allRoutes`")
     }
 
     // MARK: The shared glyph constants (0.7.0 D1, 0.7.1 E1/A2)

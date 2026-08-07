@@ -247,11 +247,23 @@ public struct Passport: Sendable, Equatable {
 
     /// How many days the activity graph shows.
     ///
-    /// Four weeks and change. Long enough that a weekly rhythm is visible,
-    /// short enough that thirty bars still have width on the LCD — at 60 the
-    /// columns are under two points wide and the chart stops being readable
-    /// before it stops being drawable.
-    public static let activitySpan = 30
+    /// **One week** (0.8.91, E1), down from thirty.
+    ///
+    /// The old note argued for four weeks and change so "a weekly rhythm is
+    /// visible", and the upper bound it worried about was legibility — at 60 the
+    /// columns are under two points wide. Thirty cleared that bound and still
+    /// missed the point: this graph sits on a 225-point LCD next to a rank and
+    /// three counters, and at thirty columns a single day is a 5pt sliver you
+    /// cannot pick out, so what it actually showed was a texture rather than a
+    /// week. Seven columns are wide enough to read *individually*, which is what
+    /// makes the difference between "did I taste anything yesterday" and "the
+    /// month looks busy-ish".
+    ///
+    /// The rhythm argument survives, inverted: a week is the rhythm. Nothing
+    /// downstream depends on the number — `activity(from:today:span:)` takes it
+    /// as a parameter and the `Canvas` lays itself out from `days.count` — so
+    /// this constant is the whole change.
+    public static let activitySpan = 7
 
     /// Everything above, from the tried shelf plus the two progression facts
     /// the badges need.

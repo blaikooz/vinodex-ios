@@ -122,9 +122,16 @@ public struct LabelReaderView: View {
 
     private var chooser: some View {
         VStack(spacing: 18) {
-            Image(systemName: "camera.viewfinder")
-                .font(.system(size: 74, weight: .semibold))
-                .foregroundStyle(lcd.accent)
+            // §C2's glyph. `DexChromeGlyph` keeps the old symbol as its
+            // fallback, so this is the drawing where there is one and exactly
+            // what was here before where there is not.
+            DexChromeGlyph(
+                UIGlyph.labelscanner.artStem,
+                symbol: "camera.viewfinder",
+                size: 84,
+                weight: .semibold,
+                tint: lcd.accent
+            )
 
             Text("READ A LABEL")
                 .font(DexFont.retro(20))

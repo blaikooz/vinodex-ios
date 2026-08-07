@@ -1,5 +1,6 @@
 #if canImport(SwiftUI) && canImport(UIKit)
 import SwiftUI
+import UIKit
 import VinodexCore
 
 /// The outline of a game cartridge (0.7.3, 0.7.3c — A2).
@@ -134,6 +135,19 @@ struct PackCartridge: View {
     /// glyph plate where the well would be, and printing a name over it would
     /// stack two identities on one plate.
     var label: String?
+    /// The pack's name, printed in the **top band** of the drawn cartridge
+    /// (0.8.91, A1).
+    ///
+    /// Separate from `label` rather than a placement flag on it, because the two
+    /// are different jobs and the splash wants both: the well at the bottom is
+    /// the cartridge's own printed label, and this is the shelf's answer to
+    /// "which pack is this" without reading the caption underneath.
+    ///
+    /// §A1 says "the top burgundy band", which is the atlas packs' colour. It is
+    /// teal on the device packs and amber on the display ones — the item names
+    /// all three shelves in the same sentence, so the band is what it means
+    /// rather than the hue. `bandInk` is what copes with that.
+    var title: String?
 
     init(
         symbol: String,
@@ -141,7 +155,8 @@ struct PackCartridge: View {
         ground: Color,
         isComplete: Bool,
         art: String? = nil,
-        label: String? = nil
+        label: String? = nil,
+        title: String? = nil
     ) {
         self.symbol = symbol
         self.ink = ink
@@ -149,6 +164,7 @@ struct PackCartridge: View {
         self.isComplete = isComplete
         self.art = art
         self.label = label
+        self.title = title
     }
 
     /// The 0.7.3c call: a pack draws its own glyph.
@@ -158,11 +174,12 @@ struct PackCartridge: View {
         ground: Color,
         isComplete: Bool,
         art: String? = nil,
-        label: String? = nil
+        label: String? = nil,
+        title: String? = nil
     ) {
         self.init(
             symbol: pack.symbol, ink: ink, ground: ground,
-            isComplete: isComplete, art: art, label: label
+            isComplete: isComplete, art: art, label: label, title: title
         )
     }
 
@@ -179,6 +196,9 @@ struct PackCartridge: View {
                         .frame(width: geo.size.width, height: geo.size.height)
                         .overlay(alignment: .topLeading) {
                             wellLabel(image: image, in: geo.size)
+                        }
+                        .overlay(alignment: .topLeading) {
+                            bandTitle(image: image, stem: art, in: geo.size)
                         }
                 } else {
                     drawn(side: side)
@@ -233,21 +253,13 @@ struct PackCartridge: View {
     ///
     /// `.zero` on a degenerate size — the first layout pass hands out zeroes,
     /// and the same NaN argument `CartridgeShape.path(in:)` makes applies here.
+    ///
+    /// Through the shared `rect(origin:size:for:in:)` since 0.8.91 (A1), which
+    /// is the same arithmetic the top band needs — two rectangles on one sprite
+    /// with two copies of the letterbox maths is how they come to disagree by a
+    /// point on the one cartridge with an odd aspect.
     static func labelWell(for image: CGSize, in container: CGSize) -> CGRect {
-        guard image.width > 0, image.height > 0,
-              container.width > 0, container.height > 0 else { return .zero }
-        let scale = min(container.width / image.width, container.height / image.height)
-        let fitted = CGSize(width: image.width * scale, height: image.height * scale)
-        let inset = CGPoint(
-            x: (container.width - fitted.width) / 2,
-            y: (container.height - fitted.height) / 2
-        )
-        return CGRect(
-            x: inset.x + fitted.width * wellOrigin.x,
-            y: inset.y + fitted.height * wellOrigin.y,
-            width: fitted.width * wellSize.width,
-            height: fitted.height * wellSize.height
-        )
+        rect(origin: wellOrigin, size: wellSize, for: image, in: container)
     }
 
     /// The name, printed in the well.
@@ -281,6 +293,148 @@ struct PackCartridge: View {
                     .foregroundStyle(Color(dexHex: "#2B2118"))
                     .frame(width: well.width, height: well.height)
                     .offset(x: well.minX, y: well.minY)
+            }
+        }
+    }
+
+    // MARK: The top band (0.8.91, A1)
+
+    /// The band in the sprite's own coordinates, as fractions.
+    ///
+    /// Measured across all seventeen shipped cartridges, the same way
+    /// `wellOrigin`/`wellSize` were: the band's full extent runs y 0.101-0.216
+    /// and x 0.07-0.94, and these are the rectangle that is *inside* it on every
+    /// one of them. The aspect ratios vary from 0.678 to 0.798, so the
+    /// letterbox arithmetic in `titleBand(for:in:)` is not optional — it is the
+    /// same arithmetic `labelWell` does and for the same reason.
+    private static let bandOrigin = CGPoint(x: 0.135, y: 0.125)
+    private static let bandSize = CGSize(width: 0.735, height: 0.063)
+
+    /// The band in the tile's coordinates. See `labelWell(for:in:)`, which this
+    /// mirrors — one derivation, two rectangles.
+    static func titleBand(for image: CGSize, in container: CGSize) -> CGRect {
+        rect(origin: bandOrigin, size: bandSize, for: image, in: container)
+    }
+
+    /// The letterbox-aware mapping both rectangles need.
+    private static func rect(
+        origin: CGPoint,
+        size: CGSize,
+        for image: CGSize,
+        in container: CGSize
+    ) -> CGRect {
+        guard image.width > 0, image.height > 0,
+              container.width > 0, container.height > 0 else { return .zero }
+        let scale = min(container.width / image.width, container.height / image.height)
+        let fitted = CGSize(width: image.width * scale, height: image.height * scale)
+        let inset = CGPoint(
+            x: (container.width - fitted.width) / 2,
+            y: (container.height - fitted.height) / 2
+        )
+        return CGRect(
+            x: inset.x + fitted.width * origin.x,
+            y: inset.y + fitted.height * origin.y,
+            width: fitted.width * size.width,
+            height: fitted.height * size.height
+        )
+    }
+
+    /// Cream or near-black, decided by the band the type lands on.
+    ///
+    /// **Measured, not tabled by pack kind.** A table keyed on
+    /// `ExpansionPack.Kind` would be a second place the art's colours are
+    /// written down, and the shop's five upgrade cartridges are not a `Kind` at
+    /// all. So this reads the sprite: the mean luminance of the band rectangle,
+    /// once per stem, cached.
+    ///
+    /// The split is not close. Across the seventeen the means run 0.27-0.41 on
+    /// the burgundy and teal bands and 0.65-0.70 on the amber and gold ones,
+    /// with nothing between — so a threshold at 0.5 has a quarter of the range
+    /// of headroom on both sides, and a nineteenth cartridge in some new colour
+    /// gets the right ink by arriving.
+    ///
+    /// The two inks are the picture's own: `#2B2118` is what `wellLabel`
+    /// already prints in, and the cream is the chrome family's highlight.
+    private static let bandInkThreshold: CGFloat = 0.5
+
+    @MainActor private static var bandLuminance: [String: CGFloat] = [:]
+
+    @MainActor
+    private static func bandIsLight(_ image: UIImage, stem: String) -> Bool {
+        if let hit = bandLuminance[stem] { return hit >= bandInkThreshold }
+        let measured = measureBand(image) ?? 0
+        bandLuminance[stem] = measured
+        return measured >= bandInkThreshold
+    }
+
+    /// The mean luminance of the band's opaque pixels, or nil when the sprite
+    /// cannot be read. Nil resolves to dark, which puts cream on it — the safer
+    /// failure, because fifteen of seventeen bands are dark and a cream label on
+    /// a light band is faint where a dark one on a dark band is gone.
+    private static func measureBand(_ image: UIImage) -> CGFloat? {
+        guard let cg = image.cgImage else { return nil }
+        let w = cg.width, h = cg.height
+        guard w > 0, h > 0 else { return nil }
+        var data = [UInt8](repeating: 0, count: w * h * 4)
+        guard let ctx = CGContext(
+            data: &data, width: w, height: h,
+            bitsPerComponent: 8, bytesPerRow: w * 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        ctx.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
+
+        let y0 = Int(CGFloat(h) * bandOrigin.y)
+        let y1 = min(h - 1, Int(CGFloat(h) * (bandOrigin.y + bandSize.height)))
+        let x0 = Int(CGFloat(w) * bandOrigin.x)
+        let x1 = min(w - 1, Int(CGFloat(w) * (bandOrigin.x + bandSize.width)))
+        guard y0 <= y1, x0 <= x1 else { return nil }
+
+        var total: CGFloat = 0
+        var n = 0
+        for y in y0...y1 {
+            for x in x0...x1 {
+                let i = (y * w + x) * 4
+                guard data[i + 3] > 200 else { continue }
+                total += (0.299 * CGFloat(data[i])
+                    + 0.587 * CGFloat(data[i + 1])
+                    + 0.114 * CGFloat(data[i + 2])) / 255
+                n += 1
+            }
+        }
+        return n > 0 ? total / CGFloat(n) : nil
+    }
+
+    /// The name, printed in the top band.
+    ///
+    /// Sized off the band and floored by `minimumScaleFactor`, exactly as
+    /// `wellLabel` is and for the same reason: `DexFont.retro` follows TEXT
+    /// SIZE, the band does not, so the setting can only push the name out of the
+    /// stripe it belongs in. The longest names on sale are CHASSIS SKINS and
+    /// GRAPE LINEAGE at thirteen characters, which is what the floor clears.
+    ///
+    /// A one-pixel shadow in the opposite ink, which the well label does not
+    /// have. The well is a flat cream recess; these bands carry a moulded
+    /// highlight along their top edge on several sprites, and a single hard
+    /// offset is what keeps the type off it without a halo.
+    @ViewBuilder
+    private func bandTitle(image: UIImage, stem: String?, in container: CGSize) -> some View {
+        if let title, let stem {
+            let band = Self.titleBand(for: image.size, in: container)
+            if band.width > 0, band.height > 0 {
+                let light = Self.bandIsLight(image, stem: stem)
+                Text(title)
+                    .font(DexFont.retro(min(10, band.height * 0.62)))
+                    .tracking(0.5)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.35)
+                    .foregroundStyle(light ? Color(dexHex: "#2B2118") : Color(dexHex: "#F7DEB6"))
+                    .shadow(
+                        color: (light ? Color.white : Color.black).opacity(0.45),
+                        radius: 0, x: 0, y: 1
+                    )
+                    .frame(width: band.width, height: band.height)
+                    .offset(x: band.minX, y: band.minY)
             }
         }
     }

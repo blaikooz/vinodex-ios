@@ -175,6 +175,14 @@ public struct PalateProfile: Sendable, Equatable {
     /// wearing a number.
     public static let recommendationFloor = 55
 
+    /// How many the passport's strip shows before SHOW ALL (0.8.91, B3).
+    ///
+    /// Five, per the spec, down from the six the strip used to draw. Here rather
+    /// than as a literal in the view because the whole point of a capped strip
+    /// is that a *different* screen shows the rest, and two numbers in two files
+    /// is how a "show all" comes to show the same list.
+    public static let recommendationStrip = 5
+
     /// Untried grapes and styles that score well against the profile, best
     /// first, ties broken by name.
     ///
@@ -196,6 +204,16 @@ public struct PalateProfile: Sendable, Equatable {
             }
             .prefix(limit)
             .map(\.entry)
+    }
+
+    /// Everything above the floor, uncapped (0.8.91, B3) — what SHOW ALL opens.
+    ///
+    /// The same ranking with the cap taken off rather than a second query, so
+    /// the strip is provably the head of this list: `recommendationsAreTheHead`
+    /// asserts exactly that, which is the one thing a SHOW ALL can be wrong
+    /// about in a way nobody notices.
+    public func allRecommendations(index: DiscoveryIndex) -> [WineEntry] {
+        recommendations(index: index, limit: .max)
     }
 }
 

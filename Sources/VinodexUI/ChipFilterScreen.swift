@@ -34,6 +34,9 @@ public struct ChipFilterScreen: View {
     @State private var showsChips = false
     @State private var screens = ScreenStateStore.shared
     @State private var access = AccessStore.shared
+    /// The three shelves, for the YOURS chip row and the tried border
+    /// (0.8.91, B1/B2).
+    @State private var bookmarks = BookmarkStore.shared
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
@@ -88,24 +91,46 @@ public struct ChipFilterScreen: View {
     private static let allOptions: [ChipOption] =
         ChipFacet.allCases.flatMap { ChipFilter.options(for: $0) }
 
+    /// The shelves this pass needs, or nothing when no shelf chip is lit — see
+    /// `ChipFilter.usesUserState` (0.8.91, B1). Resolving to `.empty` is what
+    /// keeps a listing with no YOURS chip on it from re-filtering every time a
+    /// bookmark changes somewhere else in the app.
+    private var shelves: ShelfMembership {
+        filter.usesUserState ? bookmarks.membership : .empty
+    }
+
+    /// The filter and the state it needs, as one `task(id:)` key.
+    private struct ChipPass: Equatable {
+        let filter: ChipFilter
+        let shelves: ShelfMembership
+    }
+
+    private var chipPass: ChipPass { ChipPass(filter: filter, shelves: shelves) }
+
     private func recomputeResults() {
         let q = query.trimmingCharacters(in: .whitespaces)
+        let shelves = self.shelves
         // One indexed pass (AUDIT M5): `entries(matching:)` walks the
         // pre-sorted list against haystacks folded at load, and the chip
         // predicate rides along on the survivors. The old shape ran the chip
         // filter and then re-folded and re-sorted the result through
         // `apply(.masterSearch(_:))`.
-        results = db.entries(matching: .masterSearch(q)).filter { filter.matches($0) }
+        results = db.entries(matching: .masterSearch(q))
+            .filter { filter.matches($0, shelves: shelves) }
         countryResults = filter.includesCountries ? db.countries(matching: q) : []
     }
 
     private func recomputeChipCounts() {
         // Countries are not entries, so their share is added by hand (0.6.2, B3).
         let countryShare = db.searchableCountries.count
+        // Costed against the real shelves regardless of what is lit: the badge
+        // on an *unlit* TRIED chip is the whole reason to look at it, and
+        // `usesUserState` is false in exactly that case.
+        let shelves = bookmarks.membership
         var costed: [ChipOption: Int] = [:]
         costed.reserveCapacity(Self.allOptions.count)
         for option in Self.allOptions {
-            costed[option] = db.count(withChip: option, added: filter)
+            costed[option] = db.count(withChip: option, added: filter, shelves: shelves)
                 + (filter.toggling(option).includesCountries ? countryShare : 0)
         }
         chipCounts = costed
@@ -157,7 +182,8 @@ public struct ChipFilterScreen: View {
                             EntryTileView(
                                 entry: entry,
                                 palette: db.palette,
-                                locked: access.isLocked(entry, in: db)
+                                locked: access.isLocked(entry, in: db),
+                                tried: bookmarks.contains(entry.id, on: .tried)
                             ) {
                                 onSelect(entry)
                             }
@@ -172,7 +198,7 @@ public struct ChipFilterScreen: View {
         // A chip tap is a discrete act, so it re-costs immediately; typing is a
         // burst, so it is debounced — `task(id:)` cancels the pending run on the
         // next keystroke, filtering once at the end of the burst (AUDIT M5).
-        .task(id: filter) {
+        .task(id: chipPass) {
             recomputeChipCounts()
             recomputeResults()
         }

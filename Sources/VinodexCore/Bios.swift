@@ -2,7 +2,7 @@ import Foundation
 
 /// The BIOS screen's fixed text and its one live readout (0.7.7).
 ///
-/// **Why any of this is in Core.** `BootScreen` is a bespoke pixel composition
+/// **Why any of this is in Core.** `VinodexBootView` is a bespoke pixel composition
 /// and almost all of it is geometry, which belongs in the view and is invisible
 /// to `swift test` anyway. What is *not* geometry is the handful of things the
 /// screen asserts about the machine — the firmware version, the copyright year,

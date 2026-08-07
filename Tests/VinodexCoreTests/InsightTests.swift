@@ -330,6 +330,30 @@ struct InsightTests {
         #expect(picks.map(\.id) == again.map(\.id))
     }
 
+    /// **The strip is the head of the page** (0.8.91, B3).
+    ///
+    /// SHOW ALL opens the same ranking with the cap taken off, so the first five
+    /// rows of the page must be the five rows the passport just showed. The way
+    /// this goes wrong is silent — a second query with its own sort, or a cap
+    /// applied before the ordering — and the symptom is a "show all" that
+    /// reshuffles, which reads as the recommendation being arbitrary.
+    @Test("show all is the same ranking with the cap removed")
+    func recommendationsAreTheHead() {
+        let tried = triedIDs(40)
+        let index = DiscoveryIndex(tried: tried, in: db)
+        let profile = PalateProfile(index: index)
+
+        let strip = profile.recommendations(index: index, limit: PalateProfile.recommendationStrip)
+        let all = profile.allRecommendations(index: index)
+
+        #expect(strip.count <= PalateProfile.recommendationStrip)
+        #expect(all.count >= strip.count)
+        #expect(Array(all.prefix(strip.count)).map(\.id) == strip.map(\.id))
+        // Uncapped means uncapped: the page must be allowed to be longer than
+        // the old hardcoded six.
+        #expect(all.count == profile.recommendations(index: index, limit: .max).count)
+    }
+
     @Test("a thin profile recommends nothing rather than guessing")
     func thinProfileIsSilent() {
         let index = DiscoveryIndex(tried: triedIDs(2), in: db)

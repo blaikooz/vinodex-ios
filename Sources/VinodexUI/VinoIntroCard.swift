@@ -56,7 +56,12 @@ public struct VinoIntroCard: View {
     private var ask: VinoLine? { VinoDialogue.line(for: .firstLaunch) }
     private var named: VinoLine? { VinoDialogue.line(for: .firstLaunchNamed) }
 
-    private var portraitSize: CGFloat { 64 * UIScale.current.factor }
+    /// **64 to 84** (0.8.91, G1). The card is the first thing a new device shows
+    /// after the BIOS and it is the one screen that is *only* him — no list
+    /// behind it, no control it is annotating — so it is where the portrait can
+    /// afford to be the picture rather than the icon. The panel widens with him
+    /// (320 to 340) so the growth is the portrait's and not the card's margins'.
+    private var portraitSize: CGFloat { 84 * UIScale.current.factor }
 
     public var body: some View {
         ZStack {
@@ -84,7 +89,7 @@ public struct VinoIntroCard: View {
                 }
 
                 Text(line)
-                    .font(DexFont.mono(18))
+                    .font(DexFont.mono(20))
                     .foregroundStyle(lcd.text)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -125,7 +130,7 @@ public struct VinoIntroCard: View {
                 }
             }
             .padding(18)
-            .frame(maxWidth: 320)
+            .frame(maxWidth: 340)
             .background(RoundedRectangle(cornerRadius: 8).fill(lcd.surface))
             .overlay(
                 RoundedRectangle(cornerRadius: 8).strokeBorder(lcd.accent.opacity(0.8), lineWidth: 2)

@@ -204,7 +204,7 @@ public struct ToolsScreen: View {
                 // Drawn faces since 0.8.1 (J3), in a square box for the
                 // reason the menu tiles keep theirs: six bitmaps at six
                 // aspects would otherwise be six tile heights.
-                DexChromeGlyph(art, symbol: symbol, size: 44, tint: label)
+                DexChromeGlyph(art, symbol: symbol, size: DexMetrics.tileGlyph, tint: label)
                     .shadow(color: .black.opacity(0.3), radius: 0, x: 1, y: 2)
                 Text(title)
                     .font(DexFont.retro(13))

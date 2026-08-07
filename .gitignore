@@ -20,3 +20,4 @@ scripts/__pycache__/
 # reference render rather than a source: useful to look at, never shipped, and
 # never a diff to review.
 art/icons/countries-from-rings/
+build.log

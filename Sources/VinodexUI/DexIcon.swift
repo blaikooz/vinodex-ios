@@ -77,7 +77,7 @@ public struct DexIcon: View {
     var color: Color
     var outlined: Bool
 
-    public init(iconID: String, size: CGFloat = 30, color: Color = .white, outlined: Bool = true) {
+    public init(iconID: String, size: CGFloat = 34, color: Color = .white, outlined: Bool = true) {
         self.iconID = iconID
         self.size = size
         self.color = color

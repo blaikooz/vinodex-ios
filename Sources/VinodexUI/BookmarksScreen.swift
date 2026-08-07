@@ -557,6 +557,11 @@ public struct BookmarksScreen: View {
                     entry: entry,
                     palette: db.palette,
                     locked: access.isLocked(entry, in: db),
+                    // The TRIED shelf's own rows all wear it, which is correct
+                    // rather than redundant: the shelves share one list style,
+                    // and a border that vanished on the shelf it names would
+                    // read as the shelf being a different kind of thing.
+                    tried: bookmarks.contains(entry.id, on: .tried),
                     showsChevron: false
                 ) {
                     onSelect(entry)

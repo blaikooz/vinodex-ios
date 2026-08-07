@@ -2983,9 +2983,26 @@ public struct MarqueeBanner: View {
     /// reason: one transition, not a transition plus a reflow. The flag and its
     /// branch are gone rather than left passing `false`, because a layout switch
     /// nothing selects is a switch that will be re-selected by accident.
+    ///
+    /// **The glyph slot only exists when there is a glyph** (0.8.91, G2).
+    ///
+    /// §G2 reports the screensaver toast off-centre, and this stack is why. The
+    /// greetings carry no symbol — `footerSymbol` and `footerArt` both return
+    /// nil while the script is at `.cheers` — but the slot was unconditional, so
+    /// the panel still paid `marqueeGlyphGap` for a child with nothing in it.
+    /// At rest that is a nil-optional child and SwiftUI mostly forgives it; on
+    /// the way *in* to CHEERS! it is a live `TimelineView` wrapping two empty
+    /// glyphs, which is a real view with a real slot, and the word sat four
+    /// points low for the whole 1.4-second dissolve — the one moment the toast
+    /// is being looked at.
+    ///
+    /// Gating the child *and* the spacing rather than only the child, because a
+    /// `VStack` with one child and a spacing still reserves nothing but a
+    /// `VStack` with two children one of which measures zero reserves the gap.
+    /// One condition, both terms.
     private var content: some View {
-        VStack(spacing: DexMetrics.marqueeGlyphGap) {
-            glyph
+        VStack(spacing: hasGlyph ? DexMetrics.marqueeGlyphGap : 0) {
+            if hasGlyph { glyph }
             title
         }
         .padding(.horizontal, DexMetrics.marqueeTextInset + edgeReserve)
@@ -3007,6 +3024,10 @@ public struct MarqueeBanner: View {
     /// different treatments. Same clock, same `fadeStart`, so the two
     /// `TimelineView`s cannot drift; the cell size differs because the cell is
     /// a fraction of what it is dissolving, and the glyph is not the type.
+    /// Whether either side of a dissolve has a symbol. Both, not just the
+    /// incoming one — a glyph on its way out still needs somewhere to be.
+    private var hasGlyph: Bool { shownSymbol != nil || outgoingSymbol != nil }
+
     @ViewBuilder
     private var glyph: some View {
         if fadeStart == nil {

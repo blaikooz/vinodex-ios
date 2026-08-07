@@ -373,7 +373,7 @@ public enum AppVersion {
     ///
     /// The BIOS also reverses 0.7.3a's "inside the LCD" decision and re-pins
     /// `BootSequenceTests.brief`; both are argued where they live, in
-    /// `BootScreen` and in the test.
+    /// `VinodexBootView` and in the test.
     ///
     /// No catalog change: 438 stands, `waveMilestones` does not move, and no
     /// `shared/` data outside `firmware.ts` was touched.

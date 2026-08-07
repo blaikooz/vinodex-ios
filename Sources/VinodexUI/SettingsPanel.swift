@@ -168,7 +168,7 @@ public struct SettingsPanel: View {
             VStack(spacing: 12) {
                 // Squared at 44 (0.8.1, J3) — the same box the tools shelf
                 // uses, so the two grids of tiles stay one instrument.
-                DexChromeGlyph(art ?? symbol, symbol: symbol, size: 44, tint: ink)
+                DexChromeGlyph(art ?? symbol, symbol: symbol, size: DexMetrics.tileGlyph, tint: ink)
                     .shadow(color: .black.opacity(0.3), radius: 0, x: 1, y: 2)
                 Text(title)
                     .font(DexFont.retro(13))
@@ -224,6 +224,9 @@ public struct SettingsSectionPanel: View {
     /// the user out of settings entirely.
     let onFirmwareHistory: () -> Void
     let onCheatConsole: () -> Void
+    /// The contact screen (0.8.91, F1). A route push like its neighbours, so
+    /// Back returns to SYSTEM rather than dropping out of settings.
+    let onSupport: () -> Void
     /// The guided tour (0.7.6, F1). A fourth door in the DEVICE section, and a
     /// route push like the two above so Back returns to SETTINGS rather than
     /// dropping the user out of the panel entirely.
@@ -326,6 +329,7 @@ public struct SettingsSectionPanel: View {
         onDev: @escaping () -> Void = {},
         onFirmwareHistory: @escaping () -> Void = {},
         onCheatConsole: @escaping () -> Void = {},
+        onSupport: @escaping () -> Void = {},
         onWalkthrough: @escaping () -> Void = {},
         onDemoMode: @escaping () -> Void = {},
         onDeviceWorkshop: @escaping () -> Void = {},
@@ -337,6 +341,7 @@ public struct SettingsSectionPanel: View {
         self.onDev = onDev
         self.onFirmwareHistory = onFirmwareHistory
         self.onCheatConsole = onCheatConsole
+        self.onSupport = onSupport
         self.onWalkthrough = onWalkthrough
         self.onDemoMode = onDemoMode
         self.onDeviceWorkshop = onDeviceWorkshop
@@ -737,6 +742,12 @@ public struct SettingsSectionPanel: View {
         } label: {
             settingRow(
                 symbol: notifications.isOn ? "bell.fill" : "bell.slash.fill",
+                // **The drawn bell** (0.8.91, C3). One face for both states,
+                // unlike SOUNDS' pair below: the row already says which way it
+                // is set twice over — the tint goes green and the toggle is
+                // right there — and a second bell with a stroke through it
+                // would have meant drawing a second master to repeat it.
+                art: UIGlyph.bell.artStem,
                 tint: notifications.isOn ? Dex.green : lcd.subtext,
                 title: "DAILY REMINDER",
                 detail: reminderDetail
@@ -794,8 +805,16 @@ public struct SettingsSectionPanel: View {
             // J3's problem — a fixed width every row's glyph is fitted into.
             // `DexChromeGlyph` squares it so the drawn faces cannot make the
             // rows different heights either.
-            DexChromeGlyph(art ?? symbol, symbol: symbol, size: 22, weight: .bold, tint: tint)
-                .frame(width: 30)
+            // §C4: the panel's one row-glyph size, now a metric rather than a
+            // literal. See `DexMetrics.rowGlyph`.
+            DexChromeGlyph(
+                art ?? symbol,
+                symbol: symbol,
+                size: DexMetrics.rowGlyph,
+                weight: .bold,
+                tint: tint
+            )
+            .frame(width: DexMetrics.rowGlyphGutter)
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(DexFont.retro(13))
@@ -950,7 +969,22 @@ public struct SettingsSectionPanel: View {
                     // The drawn cartridge on the shelf (0.8.2). Nil for the
                     // flavour wheel and the country packs, which keep A2's
                     // drawing — see `CartridgeArt`.
-                    art: CartridgeArt.stem(for: item.entitlement)
+                    art: CartridgeArt.stem(for: item.entitlement),
+                    // **The title in the top band** (0.8.91, A1), on all three
+                    // pack shelves — this one `ForEach` is every one of them;
+                    // see `packShelf`. Not `label:`, which prints in the bottom
+                    // well: at 58pt that well is six points of type, which is
+                    // the measurement that kept it off the shelf in 0.8.3's C4.
+                    // The band is wider and the type sits in a stripe rather
+                    // than in a recess, so it survives the same shrink.
+                    //
+                    // **Packs only**, which is what A1 asks for — "Atlas packs,
+                    // Device packs, and Display packs". The five upgrade
+                    // cartridges are not a `Kind` and are not on those shelves,
+                    // and their gold band already has a drawn star in the middle
+                    // of it, so a centred title would land on top of it. `pack`
+                    // is nil for exactly those five.
+                    title: item.pack != nil ? item.title : nil
                 )
             }
         )
@@ -1291,7 +1325,13 @@ public struct SettingsSectionPanel: View {
                 // splash's hero can be this size without the shelf's tile size
                 // deciding it — see `import-cartridge-art.py`.
                 art: CartridgeArt.stem(for: item.entitlement),
-                label: item.title
+                label: item.title,
+                // Both places on the hero (0.8.91, A1): the well is the
+                // cartridge's printed label and the band is its header. A real
+                // cartridge carries its name twice for the same reason — one
+                // for the shelf it stands on, one for the slot it goes in.
+                // Packs only, per the shelf tile above.
+                title: item.pack != nil ? item.title : nil
             )
             .frame(width: side, height: side)
             .frame(width: geo.size.width, height: geo.size.height)
@@ -1379,7 +1419,15 @@ public struct SettingsSectionPanel: View {
                         // Matches the marquee glyph the route wears (K2, rule 1)
                         // — see `DexRoute.deviceWorkshop`.
                         symbol: owned ? "hammer.fill" : "lock.fill",
-                        art: owned ? "workshop" : nil,
+                        // **`glyph-hammer`, not `workshop`** (0.8.91, C1). The
+                        // row wore `ButtonArt/workshop.png` — the drawn bench
+                        // scene — which is a picture of the room rather than of
+                        // the door. `UIGlyph`'s note parked the hammer on the
+                        // grounds that swapping a live control's drawing is a
+                        // look decision and not a wiring one; C1 makes the look
+                        // decision, and the hammer is also what the route's own
+                        // marquee symbol has always been (K2, rule 1).
+                        art: owned ? UIGlyph.hammer.artStem : nil,
                         tint: owned ? lcd.accent : Dex.yellow,
                         title: owned ? "OPEN" : "UNLOCK",
                         detail: owned
@@ -1541,6 +1589,29 @@ public struct SettingsSectionPanel: View {
                         // thing most people opening this want, and making them
                         // tap through for it would be a step for nothing.
                         detail: "\(AppVersion.display) — what changed, release by release."
+                    ) {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(lcd.subtext)
+                    }
+                }
+                .buttonStyle(DexPressStyle(scale: 0.98))
+
+                // **SUPPORT** (0.8.91, F1). Under FIRMWARE and above CHEAT
+                // CODES: the three doors above it are what the device *is*
+                // (reminder, tutorial, Vino) and what it is *running*
+                // (firmware), and "who do I tell" belongs with the second
+                // group. Above the cheat console because that one is a toy.
+                Button {
+                    Haptics.screenTap()
+                    onSupport()
+                } label: {
+                    settingRow(
+                        symbol: "checkmark.seal.fill",
+                        art: UIGlyph.seal.artStem,
+                        tint: lcd.accent,
+                        title: "SUPPORT",
+                        detail: "Something wrong, or an idea? Send a message."
                     ) {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 14, weight: .bold))

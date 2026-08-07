@@ -44,16 +44,39 @@ public struct WalkthroughStep: Sendable, Hashable, Identifiable {
     public let title: String
     public let body: String
     public let highlight: Highlight
+    /// Which face says it (0.8.91, I2).
+    ///
+    /// **The tour had no narrator and that was the finding.** §I2 asks for
+    /// Professor Vino to be the one telling a new user what to do rather than
+    /// "anonymous chrome", and the live half of the tutorial
+    /// (`CoachmarkWalkthrough`) already carried an expression per step while this
+    /// half — the map, the part you meet first — was a title over a paragraph in
+    /// a plain surface panel. One tutorial reading as two voices is worse than
+    /// either voice alone.
+    ///
+    /// A field rather than a constant portrait for the reason `CoachmarkStep` has
+    /// one: a tour whose presenter never changes expression is a portrait, not a
+    /// character. `WalkthroughVoiceTests` holds every face in use, the same
+    /// assertion `CoachmarkWalkthrough.problems()` makes.
+    public let expression: VinoExpression
     /// When set, the diagram *hides* everything that is not the subject
     /// rather than dimming it — the opening step shows one button and
     /// nothing else, so there is exactly one thing to look at.
     public let isolated: Bool
 
-    public init(id: String, title: String, body: String, highlight: Highlight, isolated: Bool = false) {
+    public init(
+        id: String,
+        title: String,
+        body: String,
+        highlight: Highlight,
+        expression: VinoExpression = .neutral,
+        isolated: Bool = false
+    ) {
         self.id = id
         self.title = title
         self.body = body
         self.highlight = highlight
+        self.expression = expression
         self.isolated = isolated
     }
 }
@@ -95,7 +118,8 @@ public enum Walkthrough {
             A wine encyclopedia on a handheld. Four tiles — grapes, regions, \
             styles, flavours — and everything links to everything.
             """,
-            highlight: .screen
+            highlight: .screen,
+            expression: .smiling
         ),
         WalkthroughStep(
             id: "search",
@@ -104,7 +128,8 @@ public enum Walkthrough {
             The middle button searches all of it at once. A grape, a place, \
             a flavour — a few letters is enough.
             """,
-            highlight: .search
+            highlight: .search,
+            expression: .thinking
         ),
         WalkthroughStep(
             id: "entry",
@@ -114,7 +139,8 @@ public enum Walkthrough {
             that link onward, then the readouts. A row with an arrow opens \
             the next entry.
             """,
-            highlight: .entry
+            highlight: .entry,
+            expression: .neutral
         ),
         WalkthroughStep(
             id: "back",
@@ -123,7 +149,8 @@ public enum Walkthrough {
             Back steps one screen at a time and remembers where you were — \
             scroll position, open sections, all of it.
             """,
-            highlight: .back
+            highlight: .back,
+            expression: .neutral
         ),
         WalkthroughStep(
             id: "home",
@@ -132,7 +159,8 @@ public enum Walkthrough {
             Home returns to the main menu and clears the trail. Feeling \
             lost? This one resets everything you didn't save.
             """,
-            highlight: .home
+            highlight: .home,
+            expression: .surprised
         ),
         // **The marquee step (0.7.6, A1/F1)**, and the first to use the
         // `.marquee` highlight — it has been on the diagram and in the enum
@@ -155,7 +183,8 @@ public enum Walkthrough {
             The lights above the panel are buttons: tools and customize. \
             Hold either one to point it somewhere else.
             """,
-            highlight: .marquee
+            highlight: .marquee,
+            expression: .thinking
         ),
         WalkthroughStep(
             id: "settings",
@@ -164,7 +193,8 @@ public enum Walkthrough {
             The cog: screen modes, chassis skins, text size, haptics, sound. \
             The person button beside Back keeps your shelf and profile.
             """,
-            highlight: .settings
+            highlight: .settings,
+            expression: .neutral
         ),
         WalkthroughStep(
             id: "tools",
@@ -181,7 +211,8 @@ public enum Walkthrough {
             \(ToolRoster.sentence.prefix(1).uppercased())\(ToolRoster.sentence.dropFirst()). \
             Each one explains itself the first time you open it.
             """,
-            highlight: .tools
+            highlight: .tools,
+            expression: .goodjob
         ),
         // **Three steps for twelve releases of features the tour never
         // mentioned** (0.8.8, D2). See the roster note above for what was
@@ -194,7 +225,8 @@ public enum Walkthrough {
             and stamps you earn along the way. The stamps stick to the back of \
             the device, and you can move them about.
             """,
-            highlight: .collection
+            highlight: .collection,
+            expression: .goodjob
         ),
         WalkthroughStep(
             id: "workshop",
@@ -204,7 +236,8 @@ public enum Walkthrough {
             grille, screen and font, each chosen separately. Save a build under \
             a name and fit it again whenever you like.
             """,
-            highlight: .collection
+            highlight: .collection,
+            expression: .thinking
         ),
         WalkthroughStep(
             id: "shop",
@@ -214,7 +247,8 @@ public enum Walkthrough {
             plus skins, screen modes and the workshop itself. What you own \
             stays owned.
             """,
-            highlight: .collection
+            highlight: .collection,
+            expression: .smiling
         ),
         // **The hand-off to the live half** (0.8.9d, G2). See
         // `CoachmarkWalkthrough` for the argument in full; the short version is
@@ -235,7 +269,8 @@ public enum Walkthrough {
             first tasting on the real screens; DONE and you're on your own. \
             Both live under TUTORIAL in settings.
             """,
-            highlight: .device
+            highlight: .device,
+            expression: .raiseaglass
         ),
     ]
 

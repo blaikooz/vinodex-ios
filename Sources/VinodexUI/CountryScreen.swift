@@ -294,7 +294,8 @@ public struct CountryScreen: View {
                     EntryTileView(
                         entry: entry,
                         palette: db.palette,
-                        locked: access.isLocked(entry, in: db)
+                        locked: access.isLocked(entry, in: db),
+                        tried: bookmarks.contains(entry.id, on: .tried)
                     ) {
                         onSelectRegion(entry)
                     }
@@ -426,7 +427,8 @@ public struct CountryScreen: View {
                     EntryTileView(
                         entry: entry,
                         palette: db.palette,
-                        locked: access.isLocked(entry, in: db)
+                        locked: access.isLocked(entry, in: db),
+                        tried: bookmarks.contains(entry.id, on: .tried)
                     ) {
                         onSelectRegion(entry)
                     }

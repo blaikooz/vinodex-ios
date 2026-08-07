@@ -151,6 +151,17 @@ public extension Palette {
             return flavorClassChips[option.value] ?? fallback
         case .flavorSubclass:
             return flavorSubclassChips[option.value] ?? fallback
+        // **YOUR shelves** (0.8.91, B1) -- the one facet with no generated
+        // table, because it names nothing in the catalog. Spelled out here for
+        // the reason TYPE and BODY are, and in the colours the shelves already
+        // wear elsewhere in the app: green for TRIED (`Dex.green`, the same ink
+        // the tried border takes in `EntryTileView`), amber for WANTED, and the
+        // saved shelf's own violet.
+        //
+        // Keyed by `Shelf.rawValue`, which is what `ChipOption.value` carries --
+        // `wantToTry`, not WANTED. The label is the other field.
+        case .shelf:
+            return Self.shelfChips[option.value] ?? fallback
         }
     }
 
@@ -163,6 +174,13 @@ public extension Palette {
         "FLAVORS": Chip(bg: "#2a1140", border: "#7c3aed", text: "#e9d5ff"),
         "CONTINENTS": Chip(bg: "#0b1f3a", border: "#2563eb", text: "#dbeafe"),
         "COUNTRIES": Chip(bg: "#08282a", border: "#0d9488", text: "#ccfbf1"),
+    ]
+
+    /// See `filterChip(_:)`. Keyed by `Shelf.rawValue` (0.8.91, B1).
+    static let shelfChips: [String: Chip] = [
+        "saved": Chip(bg: "#2a1140", border: "#7c3aed", text: "#e9d5ff"),
+        "wantToTry": Chip(bg: "#451a03", border: "#d97706", text: "#fde68a"),
+        "tried": Chip(bg: "#14300f", border: "#22c55e", text: "#d9f99d"),
     ]
 
     /// See `filterChip(_:)`. Keyed by `GrapeBody.rawValue`.

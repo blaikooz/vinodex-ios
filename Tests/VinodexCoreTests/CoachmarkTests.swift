@@ -367,4 +367,28 @@ struct WalkthroughHandoffTests {
         #expect(last?.id == "done")
         #expect(last?.body.contains("SHOW ME") == true)
     }
+
+    /// **Both halves of the tutorial are the same person** (0.8.91, I2).
+    ///
+    /// The map now carries an expression per step, like the guided run always
+    /// has. This is the assertion `CoachmarkWalkthrough.problems()` makes about
+    /// its own six steps, applied to the twelve: a presenter who wears one face
+    /// for a whole tour is a portrait rather than a character, and the way that
+    /// regresses is a new step taking the parameter's default and nobody
+    /// noticing, because a wrong face still compiles and still draws.
+    @Test("every one of Vino's faces is used somewhere in the tour")
+    func tourUsesEveryExpression() {
+        let used = Set(Walkthrough.steps.map(\.expression))
+        for face in VinoExpression.allCases {
+            #expect(used.contains(face), "no tour step uses \(face.rawValue)")
+        }
+    }
+
+    /// The closing step is the hand-off to the guided run, and the guided run's
+    /// own closing step raises a glass. Pinned because it is the one place the
+    /// two halves visibly meet, and a mismatch there is the seam §I2 is closing.
+    @Test("the tour and the guided run end on the same face")
+    func tourEndsAsTheGuidedRunDoes() {
+        #expect(Walkthrough.steps.last?.expression == CoachmarkWalkthrough.steps.last?.expression)
+    }
 }
