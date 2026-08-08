@@ -85,15 +85,20 @@ jobs:
           key: ${{ runner.os }}-swiftpm-${{ github.repository }}-swift${{ steps.toolchain.outputs.id }}-${{ hashFiles('Package.swift', 'Package.resolved') }}
           restore-keys: ${{ runner.os }}-swiftpm-${{ github.repository }}-swift${{ steps.toolchain.outputs.id }}-
 
-      - name: Test
-        run: swift test --enable-code-coverage
-
       # `TypeScale.nominalFloor` clamps at run time, so a sub-floor literal is
       # not a *bug* — it just draws at 10 while claiming to draw at 8, which is
       # how the app accumulated ten of them across six screens without anyone
       # noticing. The unit tests cannot see VinodexUI (it compiles to nothing on
       # Linux), so grep is the only thing that can hold this line. Closes the
       # loop on AUDIT H11.
+      #
+      # **Runs before the tests, and that ordering is the whole lesson.** It sat
+      # after `Test` for its entire life, so while `swift test` was red it never
+      # executed once — and 23 sub-floor literals accumulated behind it across 11
+      # files, including sites whose own comments show the author knew about the
+      # floor. A gate placed after a failing step is not a gate. This one needs
+      # no build at all, so it belongs as early as the checkout allows: cheap
+      # checks first, expensive ones after.
       - name: Type floor (AUDIT H11)
         run: |
           bad=$(grep -rnE 'DexFont\.(retro|mono)\(([0-9]|[0-9]\.[0-9]+)\)' Sources/ || true)
@@ -103,6 +108,9 @@ jobs:
             exit 1
           fi
           echo "no DexFont call site below the floor"
+
+      - name: Test
+        run: swift test --enable-code-coverage
 
       - name: Note what this does not cover
         if: always()
