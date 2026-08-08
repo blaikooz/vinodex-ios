@@ -54,14 +54,14 @@ struct PassportTests {
 
     /// Stale ids must not count — the shelf keeps ids, the passport keeps score.
     @Test("unresolvable ids are ignored")
-    func staleIDsIgnored() {
-        let passport = compute(tried: ["NOT_REAL", allGrapes[0].id])
+    func staleIDsIgnored() throws {
+        let passport = compute(tried: ["NOT_REAL", try #require(allGrapes.first).id])
         #expect(passport.triedGrapes == 1)
     }
 
     @Test("countries fold case-insensitively")
-    func countryFolding() {
-        let grape = allGrapes.first { !$0.grapeCountryOfOrigin.isEmpty }!
+    func countryFolding() throws {
+        let grape = try #require(allGrapes.first { !$0.grapeCountryOfOrigin.isEmpty })
         let passport = compute(tried: [grape.id, grape.id])
         // One origin, however many entries carry it.
         #expect(passport.countries >= 1)
@@ -78,11 +78,11 @@ struct PassportTests {
     }
 
     @Test("the first sip and ten bottles stamps track the count")
-    func countBadges() {
+    func countBadges() throws {
         func badge(_ id: String, in passport: Passport) -> Bool {
             passport.badges.first { $0.id == id }?.earned ?? false
         }
-        let one = compute(tried: [allGrapes[0].id])
+        let one = compute(tried: [try #require(allGrapes.first).id])
         #expect(badge("firstSip", in: one))
         #expect(!badge("tenBottles", in: one))
 

@@ -28,9 +28,9 @@ struct DiscoveryTests {
 
     @MainActor
     @Test("marking is idempotent where toggling is not")
-    func markIsIdempotent() {
+    func markIsIdempotent() throws {
         let store = makeStore()
-        let id = allGrapes[0].id
+        let id = try #require(allGrapes.first).id
         #expect(store.markTried(id) == true)
         #expect(store.isTried(id))
         // The bug this method exists to prevent: a second mark must not
@@ -53,9 +53,9 @@ struct DiscoveryTests {
 
     @MainActor
     @Test("marking dates the entry and un-marking forgets it")
-    func firstTriedDate() {
+    func firstTriedDate() throws {
         let store = makeStore()
-        let id = allGrapes[0].id
+        let id = try #require(allGrapes.first).id
         #expect(store.firstTriedDay(id) == nil)
         store.markTried(id)
         #expect(store.firstTriedDay(id) == DailyPick.dayIndex())
@@ -70,12 +70,12 @@ struct DiscoveryTests {
     /// reach the same shelf, or the passport and the panel disagree.
     @MainActor
     @Test("the discovery store and the tried shelf are the same shelf")
-    func oneSourceOfTruth() {
+    func oneSourceOfTruth() throws {
         let suite = UUID().uuidString
         guard let defaults = UserDefaults(suiteName: suite) else { fatalError("no suite") }
         let bookmarks = BookmarkStore(defaults: defaults)
         let store = DiscoveryStore(bookmarks: bookmarks)
-        let id = allGrapes[0].id
+        let id = try #require(allGrapes.first).id
 
         store.markTried(id)
         #expect(bookmarks.contains(id, on: .tried))
@@ -89,12 +89,12 @@ struct DiscoveryTests {
     /// `BookmarkStore.toggle` and would have been lost by a second store.
     @MainActor
     @Test("a scan-marked tasting still clears the wishlist row")
-    func couplingSurvivesTheFacade() {
+    func couplingSurvivesTheFacade() throws {
         let suite = UUID().uuidString
         guard let defaults = UserDefaults(suiteName: suite) else { fatalError("no suite") }
         let bookmarks = BookmarkStore(defaults: defaults)
         let store = DiscoveryStore(bookmarks: bookmarks)
-        let id = allGrapes[0].id
+        let id = try #require(allGrapes.first).id
 
         bookmarks.toggle(id, on: .wantToTry)
         #expect(bookmarks.contains(id, on: .wantToTry))
@@ -235,8 +235,8 @@ struct DiscoveryTests {
     /// Grapes fold by name and styles compare by id — the asymmetry 0.8.6
     /// established and this batch inherited rather than re-litigated.
     @Test("a grape is tried by name, a style by id")
-    func foldingRules() {
-        let grape = allGrapes[0]
+    func foldingRules() throws {
+        let grape = try #require(allGrapes.first)
         let index = DiscoveryIndex(tried: [grape.id], in: db)
         #expect(index.hasTriedGrape(named: grape.common.name))
         #expect(index.hasTriedGrape(named: grape.common.name.uppercased()))
@@ -246,9 +246,9 @@ struct DiscoveryTests {
     // MARK: A2 — what a scan may mark
 
     @Test("only an identified reading offers anything to mark")
-    func scanCandidates() {
-        let grape = allGrapes[0]
-        let style = allStyles[0]
+    func scanCandidates() throws {
+        let grape = try #require(allGrapes.first)
+        let style = try #require(allStyles.first)
 
         // Identified: a wine name carries the reading over the floor.
         let identified = LabelReading(
@@ -281,8 +281,8 @@ struct DiscoveryTests {
     /// A grape read outright *and* inferred from the appellation appears twice
     /// in the reading; it must not be offered twice.
     @Test("scan candidates are de-duplicated in place")
-    func scanCandidatesDeduplicate() {
-        let grape = allGrapes[0]
+    func scanCandidatesDeduplicate() throws {
+        let grape = try #require(allGrapes.first)
         let reading = LabelReading(
             recognizedText: ["X"],
             matches: [LabelMatch(field: .wineName, name: "X", readAs: "X")],
@@ -296,10 +296,10 @@ struct DiscoveryTests {
     /// through the store, and the counters and the passport move.
     @MainActor
     @Test("a scan updates the counts it is supposed to update")
-    func scanUpdatesCounts() {
+    func scanUpdatesCounts() throws {
         let store = makeStore()
-        let grape = allGrapes[0]
-        let style = allStyles[0]
+        let grape = try #require(allGrapes.first)
+        let style = try #require(allStyles.first)
         let reading = LabelReading(
             recognizedText: ["BAROLO"],
             matches: [LabelMatch(field: .wineName, name: "Barolo", readAs: "BAROLO")],

@@ -6,8 +6,14 @@ import Foundation
 struct ChipFilterTests {
     private let db = WineDatabase.shared
 
-    private func option(_ facet: ChipFacet, _ value: String) -> ChipOption {
-        ChipFilter.options(for: facet).first { $0.value == value }!
+    /// `try #require` rather than `!`: a facet losing an option is a data
+    /// change, and a data change should name the option it lost rather than
+    /// trap and take every remaining suite down with it.
+    private func option(_ facet: ChipFacet, _ value: String) throws -> ChipOption {
+        try #require(
+            ChipFilter.options(for: facet).first { $0.value == value },
+            "\(facet) has no option \(value)"
+        )
     }
 
     @Test("an empty filter excludes nothing")
@@ -34,9 +40,9 @@ struct ChipFilterTests {
     }
 
     @Test("toggling a chip on and off returns to empty")
-    func toggleRoundTrip() {
+    func toggleRoundTrip() throws {
         var filter = ChipFilter()
-        let red = option(.color, "red")
+        let red = try option(.color, "red")
 
         filter.toggle(red)
         #expect(filter.isOn(red))
@@ -51,14 +57,14 @@ struct ChipFilterTests {
     /// narrow. Getting this backwards produces a filter that behaves the
     /// opposite way to every chip UI anyone has used.
     @Test("within a facet chips OR, across facets they AND")
-    func orWithinAndAcross() {
+    func orWithinAndAcross() throws {
         var reds = ChipFilter()
-        reds.toggle(option(.color, "red"))
+        reds.toggle(try option(.color, "red"))
         var whites = ChipFilter()
-        whites.toggle(option(.color, "white"))
+        whites.toggle(try option(.color, "white"))
         var both = ChipFilter()
-        both.toggle(option(.color, "red"))
-        both.toggle(option(.color, "white"))
+        both.toggle(try option(.color, "red"))
+        both.toggle(try option(.color, "white"))
 
         let redCount = db.entries(matching: reds).count
         let whiteCount = db.entries(matching: whites).count
@@ -66,27 +72,27 @@ struct ChipFilterTests {
 
         // Across facets: adding a rarity can only shrink the red set.
         var redNoble = reds
-        redNoble.toggle(option(.rarity, "NOBLE"))
+        redNoble.toggle(try option(.rarity, "NOBLE"))
         #expect(db.entries(matching: redNoble).count <= redCount)
     }
 
     /// A grape-only facet has to exclude everything that cannot carry it, or
     /// "RED" would quietly return flavours too.
     @Test("a grape-only facet excludes other categories")
-    func grapeOnlyFacetsExclude() {
+    func grapeOnlyFacetsExclude() throws {
         var filter = ChipFilter()
-        filter.toggle(option(.color, "red"))
+        filter.toggle(try option(.color, "red"))
         #expect(db.entries(matching: filter).allSatisfy { $0.category == .grapes })
 
         var climate = ChipFilter()
-        climate.toggle(option(.climate, "maritime"))
+        climate.toggle(try option(.climate, "maritime"))
         #expect(db.entries(matching: climate).allSatisfy { $0.category == .regions })
     }
 
     @Test("a category chip returns only that category")
-    func categoryChip() {
+    func categoryChip() throws {
         var filter = ChipFilter()
-        filter.toggle(option(.category, "GRAPES"))
+        filter.toggle(try option(.category, "GRAPES"))
         let results = db.entries(matching: filter)
         #expect(!results.isEmpty)
         #expect(results.allSatisfy { $0.category == .grapes })
@@ -95,19 +101,19 @@ struct ChipFilterTests {
     /// Contradictory chips are allowed and simply return nothing — the screen
     /// says so rather than the model refusing the tap.
     @Test("incompatible facets yield nothing rather than throwing")
-    func contradictionIsEmpty() {
+    func contradictionIsEmpty() throws {
         var filter = ChipFilter()
-        filter.toggle(option(.category, "REGIONS"))
-        filter.toggle(option(.color, "red"))
+        filter.toggle(try option(.category, "REGIONS"))
+        filter.toggle(try option(.color, "red"))
         #expect(db.entries(matching: filter).isEmpty)
     }
 
     /// The number printed on each chip has to be the number you get after
     /// tapping it, or the tool lies.
     @Test("the count shown on a chip is the count it produces")
-    func chipCountsAreHonest() {
+    func chipCountsAreHonest() throws {
         var filter = ChipFilter()
-        filter.toggle(option(.category, "GRAPES"))
+        filter.toggle(try option(.category, "GRAPES"))
 
         for facet in ChipFacet.allCases {
             for chip in ChipFilter.options(for: facet) {
@@ -121,8 +127,8 @@ struct ChipFilterTests {
     @Test("a filter round-trips through JSON for the screen state store")
     func codableRoundTrip() throws {
         var filter = ChipFilter()
-        filter.toggle(option(.color, "white"))
-        filter.toggle(option(.rarity, "NOBLE"))
+        filter.toggle(try option(.color, "white"))
+        filter.toggle(try option(.rarity, "NOBLE"))
 
         let data = try JSONEncoder().encode(filter)
         let back = try JSONDecoder().decode(ChipFilter.self, from: data)
@@ -479,13 +485,17 @@ struct QuizSessionTests {
 
     /// The daily challenge's paper: a shorter session with its own pass mark.
     @Test("a custom-length session completes and grades on its own shape")
-    func customLengthSession() {
+    func customLengthSession() throws {
         for target in [3, 4] {
             var session = QuizSession(seed: 17, length: 5, passMark: 4)
             for number in 0..<5 {
                 #expect(!session.isComplete, "complete early at q\(number)")
-                let q = TastingQuiz.question(number: session.index, sessionSeed: session.seed, in: db)!
-                let id = number < target ? q.answerID : q.optionIDs.first { $0 != q.answerID }!
+                let q = try #require(
+                    TastingQuiz.question(number: session.index, sessionSeed: session.seed, in: db),
+                    "seed \(session.seed) question \(session.index) produced nothing"
+                )
+                let wrong = try #require(q.optionIDs.first { $0 != q.answerID })
+                let id = number < target ? q.answerID : wrong
                 session.choose(id, in: q)
                 session.advance()
             }

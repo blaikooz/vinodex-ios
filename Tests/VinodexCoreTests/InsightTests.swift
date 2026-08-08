@@ -64,8 +64,9 @@ struct InsightTests {
     }
 
     @Test("an empty shelf gets the teaser and no derived lines")
-    func teaserState() {
-        let entry = db.entry(id: allGrapes[0].id)!
+    func teaserState() throws {
+        let grape = try #require(allGrapes.first)
+        let entry = try #require(db.entry(id: grape.id))
         let p = panel(for: entry, tried: [])
         #expect(p.depth == .teaser)
         #expect(p.lines.isEmpty)
@@ -79,8 +80,9 @@ struct InsightTests {
     /// monotone rather than by counting exact sentences, because the *kinds*
     /// available depend on which entry is open.
     @Test("the panel never loses a line as the shelf grows")
-    func panelDeepens() {
-        let entry = db.entry(id: allGrapes[0].id)!
+    func panelDeepens() throws {
+        let grape = try #require(allGrapes.first)
+        let entry = try #require(db.entry(id: grape.id))
         var previous = 0
         var kinds: Set<InsightLine.Kind> = []
         for n in [0, 1, 5, 15, 40, 60] {
@@ -147,9 +149,9 @@ struct InsightTests {
     // MARK: The individual lines
 
     @Test("a tried entry says when, and an untried one says nothing")
-    func triedLine() {
-        let grape = allGrapes[0]
-        let entry = db.entry(id: grape.id)!
+    func triedLine() throws {
+        let grape = try #require(allGrapes.first)
+        let entry = try #require(db.entry(id: grape.id))
         let tried = triedIDs(20)
         #expect(tried.contains(grape.id))
 
@@ -171,8 +173,9 @@ struct InsightTests {
         #expect(future.lines.first { $0.kind == .tried }?.text == "On your tried shelf.")
 
         // Untried: no line at all.
-        let untried = allGrapes.last!
-        let other = panel(for: db.entry(id: untried.id)!, tried: triedIDs(20))
+        let untried = try #require(allGrapes.last)
+        let untriedEntry = try #require(db.entry(id: untried.id))
+        let other = panel(for: untriedEntry, tried: triedIDs(20))
         #expect(!other.lines.contains { $0.kind == .tried })
     }
 
@@ -249,13 +252,15 @@ struct InsightTests {
     // MARK: C1 — the profile
 
     @Test("an empty profile scores nothing and recommends nothing")
-    func emptyProfile() {
+    func emptyProfile() throws {
         let index = DiscoveryIndex(tried: [], in: db)
         let profile = PalateProfile(index: index)
         #expect(profile.sampleSize == 0)
         #expect(profile.topNotes.isEmpty)
         #expect(profile.topCountries.isEmpty)
-        #expect(profile.match(for: db.entry(id: allGrapes[0].id)!, index: index) == nil)
+        let grape = try #require(allGrapes.first)
+        let entry = try #require(db.entry(id: grape.id))
+        #expect(profile.match(for: entry, index: index) == nil)
         #expect(profile.recommendations(index: index).isEmpty)
     }
 
@@ -368,8 +373,9 @@ struct InsightTests {
     /// Phase 1's acceptance criterion, the insight half: marking something moves
     /// the panel, live.
     @Test("marking one more entry changes the panel")
-    func markingUpdatesInsight() {
-        let entry = db.entry(id: allGrapes.last!.id)!
+    func markingUpdatesInsight() throws {
+        let grape = try #require(allGrapes.last)
+        let entry = try #require(db.entry(id: grape.id))
         let before = panel(for: entry, tried: triedIDs(4))
         let after = panel(for: entry, tried: triedIDs(5))
         #expect(before.depth == .first)
