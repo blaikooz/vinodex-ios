@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  App-level privacy manifest (arch A2 / auditS H3). Absent, this is a
+  guaranteed ITMS-91053 rejection on first App Store submission: the app calls
+  a "required reason" API and every such call must be declared here.
+
+  What was enumerated to write this, and how to re-check it (2026-08-04):
+
+  * UserDefaults — the one required-reason API this app uses. All 20 persisted
+    keys are owned by `SavedDataKey` (Sources/VinodexCore/SavedData.swift), so
+    the surface is enumerable rather than grep-derived. Reason CA92.1 covers
+    reading and writing defaults accessible only to the app itself — correct
+    here: no app group, no extension, no shared container.
+  * File timestamps (C617.1) — NOT used, checked because auditS H3 raised it
+    for ProfileAvatar.swift: avatar.jpg and the SavedDataArchive export go
+    through Data(contentsOf:)/write(to:)/removeItem only, and no
+    creationDate/modificationDate/attributesOfItem/stat call exists anywhere
+    in Sources/. Re-grep before trusting this if file handling grows.
+  * System boot time, disk space, active keyboards — no call sites.
+
+  Tracking is false and both arrays are empty because nothing leaves the
+  device: no network calls at runtime, no analytics, no third-party SDK — the
+  package has zero dependencies.
+
+  Placement: this file ships at the root of Vinodex_VinodexApp.bundle via the
+  `.copy` resource rule (Apple's aggregation reads app and embedded bundle
+  roots; nesting it under a Resources/ subdirectory would hide it). xtool has
+  no passthrough for placing files at the .app root itself — the same gap that
+  keeps the Info.plist source and bundle version out of reach (auditS M6,
+  arch P5) — so when a signing pipeline exists, promote this file to the .app
+  bundle root alongside those. CI's `test` job fails if this file goes missing
+  or stops declaring the UserDefaults category.
+-->
+<plist version="1.0">
+<dict>
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

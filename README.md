@@ -6,12 +6,12 @@
 
 ### A wine encyclopedia that looks like a 90s handheld.
 
-**281 grapes, regions, styles and flavours** — colour-coded, cross-linked, and
-wrapped in a plastic shell you can re-skin ten different ways.
+**399 grapes, regions, styles and flavours** — colour-coded, cross-linked, and
+wrapped in a plastic shell you can re-skin sixteen different ways.
 
 ### **[Build it → `xtool dev run`](#running-it)**
 
-`Swift 6.3` · `SwiftUI` · `iOS 17+` · `SwiftPM` · `xtool`
+`Swift 6.0` · `SwiftUI` · `iOS 17+` · `SwiftPM` · `xtool`
 
 <p>
 <img src="Sources/VinodexUI/Resources/Flags/france.png" alt="France" height="24" />
@@ -43,7 +43,7 @@ wrapped in a plastic shell you can re-skin ten different ways.
 | **The dex** | Grapes, regions, styles, flavours and continents. Every entry cross-links to the others, and every link resolves — the tests pin that. |
 | **Globe scan** | A drag-to-spin globe. Continent markers open a continent screen, then its countries, then their regions. Where you spun it to survives the trip into a region. |
 | **Scanner** | Colour, body, origin, flavours — then a deduction. Flavours are ANDed, capped at three, because a fourth specific note reliably matches nothing. |
-| **Filter search** | Narrow all 281 entries by colour, body, rarity and climate at once. Every chip shows the count it would produce *before* you tap it. |
+| **Filter search** | Narrow all 399 entries by colour, body, rarity and climate at once. Every chip shows the count it would produce *before* you tap it. |
 | **Tasting quiz** | Three tiers — NOVICE, ENTHUSIAST, SOMMELIER — each a ten-question round, 8/10 to pass, and a pass unlocks the next. Generated from the data, so a question can never contradict the entry behind it. |
 | **Daily challenge** | One five-question paper per day, the same paper for everyone, 4/5 to pass. Passing keeps the streak alive; there is no retry, because the retry would be the same paper. |
 | **Tried & Passport** | Mark grapes and styles TRIED (with a 1–5 rating and a one-line note) or WANT TO TRY. The passport turns the tried shelf into progress — n of 80 grapes, countries visited, milestone stamps. |
@@ -59,7 +59,7 @@ CLEAR SAVED DATA button that puts all of it back to a fresh install. The paywall
 machinery you can see in the ACCESS panel is a test harness — off by default,
 there so the locked experience stays testable rather than hypothetical.
 
-## Fourteen devices, not one device in fourteen colours
+## Sixteen devices, not one device in sixteen colours
 
 Each chassis skin carries its own **orb**, its own **buttons** and its own
 **marquee phosphor** — the parts that look powered — on top of its moulding. The
@@ -71,18 +71,20 @@ LCD never changes with the skin, so a colourway can never hurt legibility.
 | **Côte de Nuits** | Graphite | Amethyst | Violet |
 | **Blanc de Blancs** | Bone | Champagne gold | Amber |
 | **Burgundy** | Velvet purple | Deep purple | Rose |
-| **Electric Riesling** | Walkman yellow | Signal red | Green |
+| **Vin Jaune** | Walkman yellow | Signal red | Green |
 | **Box Wine** | Forest green | Pea green | Pea green |
 | **Empty Bottle** | Clear smoke over mock internals, front and back | Orange | Orange |
 | **Smart Grape** | Calculator black | Calculator orange | Orange |
 | **Champagne Gold** | Pale champagne | Gold leaf | Gold |
 | **Wine Xmas** | Pixel wrapping paper on pine | Holly red | Holly red |
-| **Nouveau** | Atomic-purple smoke over mock internals | Grape purple | Lilac |
+| **Retrovin** | Atomic-purple smoke over mock internals | Grape purple | Lilac |
 | **Oaked** | Walnut woodgrain, cream faceplate | Chestnut | Amber |
 | **Vinho Verde** | Glow-in-the-dark green, glowing rim | Charged green | Green |
 | **Stainless Steel** | Brushed aluminium, crisp dark seams | Ice | Ice blue |
+| **Blush** | Rose pink, pale blush faceplate | Pearl pink | Pearl pink |
+| **PSVino** | Matte charcoal, console-grey faceplate | Cross blue | Triangle/circle/cross |
 
-Plus ten screen modes — dark, light, monochrome VINTAGE (black on grey-green
+Plus nine screen modes — dark, light, monochrome VINTAGE (black on grey-green
 like an old organiser), AMBER and TERMINAL phosphors, the GRÜNERBOY dot-matrix,
 the early-GUI WINE.OS, the VINOFD blue tube, and the L-WINES console. Two text
 sizes, a haptics switch, and an authored SFX pack — clicks, pings and stings,
@@ -97,7 +99,7 @@ rules — built on a different stack because it is for a different moment.
 | | **Vinodex for iOS** ← *this repo* | **Vinodex Web** |
 |---|---|---|
 | **What it is** | A native SwiftUI app for the phone in your pocket. Haptics on every button, the photo library for your avatar, and a real 3D globe. The one you open in a wine shop. | A progressive web app that runs in any browser and installs to a home screen. Nothing to download, nothing to sign. The one you send someone a link to. |
-| **Built with** | `Swift 6.3` · `SwiftUI` · `iOS 17+` · `SwiftPM` · `xtool` | `React 19` · `TypeScript` · `Vite` · `Tailwind v4` |
+| **Built with** | `Swift 6.0` · `SwiftUI` · `iOS 17+` · `SwiftPM` · `xtool` | `React 19` · `TypeScript` · `Vite` · `Tailwind v4` |
 | **Where** | [`blaikooz/vinodex-ios`](https://github.com/blaikooz/vinodex-ios) | [`blaikooz/vinodex-web`](https://github.com/blaikooz/vinodex-web) → **[open it](https://vinodex.vercel.app)** |
 | **Run it** | `swift test`, then `xtool dev run` | `npm install && npm run dev` |
 
@@ -120,7 +122,7 @@ kept deliberately close to it, and neither repo copies from the other.
 
 ## Running it
 
-Swift 6.3, and for a device build
+Swift 6.0, and for a device build
 [xtool **1.17.0**](https://github.com/xtool-org/xtool/releases/tag/v1.17.0) with
 a Darwin SDK. The app builds from the committed resources alone — **Node is not
 required** unless you are regenerating data. Development happens on Linux/WSL;
@@ -180,11 +182,11 @@ The build environment is part of the artifact, and none of it was written down
 release can be reproduced from the tag alone rather than from whoever cut it.
 
 ```bash
-swift --version            # expect 6.3
+swift --version            # expect 6.0
 xtool --version            # expect 1.17.0 — the pinned version, see above
 ```
 
-1. **Toolchain.** Swift 6.3, xtool 1.17.0. A different xtool is not
+1. **Toolchain.** Swift 6.0, xtool 1.17.0. A different xtool is not
    automatically wrong, but it is untested here — note the version you used and
    re-check the back plate's version readout, which is the thing its stamping
    bug breaks.
@@ -199,7 +201,10 @@ xtool --version            # expect 1.17.0 — the pinned version, see above
    target with the swift-testing macros stripped. The second exists because
    `swift test` does not run on either maintainer's machine (no `Testing`
    module), so until CI the test files are checked by nothing at all: a test
-   that does not compile is indistinguishable from one that passes.
+   that does not compile is indistinguishable from one that passes. Add
+   `--run` to that last one to *execute* the suites as well — same rewrite,
+   but the stand-ins record pass/fail and a generated call list drives every
+   `@Test`. Neither mode proves the macros expand; CI is still the gate.
 5. **Version.** Bump `AppVersion.fallback`, then tag `v<that number>`,
    annotated. **The tag is the version of record**, not the Info.plist. Add the
    release's section to [`CHANGELOG.md`](CHANGELOG.md) in the same commit — the
@@ -245,8 +250,8 @@ Regenerate only after changing something under `shared/`:
 
 ```bash
 npm install
-npm run generate           # rewrites the five JSON files
-npm run icons              # Icons/ + Flags/ + the four drawn-art importers
+npm run generate           # rewrites the six JSON files
+npm run icons              # Icons/ + Flags/ + the five drawn-art importers
 npm run icons:verify       # checks art/ still reproduces the committed art
 ```
 
@@ -259,8 +264,9 @@ themselves in the log.
 
 The drawn half of the pipeline reads `art/icons/**` and writes
 `Sources/VinodexUI/Resources/{FlavorArt,GrapeArt,StyleArt,ClassArt}`.
-`npm run icons:verify` re-runs those four importers into a temp directory —
-never over your working copy — and compares pixels against what is committed.
+`npm run icons:verify` re-runs the importers for those four directories into a
+temp directory — never over your working copy — and compares pixels against
+what is committed.
 It is not byte-exact by design: the 256-colour quantise resolves its palette
 slightly differently across Pillow builds, so ten saturated sources land a few
 pixels off. Those ten carry a recorded budget in `scripts/verify-art.py`;
@@ -304,8 +310,8 @@ binary is a permanent cost that a later `git rm` does not refund. Hence a policy
 
 3. **Source art earns its size; nothing else does.** `art/icons/**` are the
    masters — they are meant to be large, and `npm run icons` needs them. What is
-   worth a second look is `art/icons/reference/` (contact sheets, 11.7 MB) and
-   `art/icons/attic/` (drawn but unreferenced, 849 KB): both are kept
+   worth a second look is `art/icons/reference/` (contact sheets, 13.6 MB) and
+   `art/icons/attic/` (drawn but unreferenced, 2.6 MB): both are kept
    deliberately, and both are candidates for an assets repo rather than this one.
 
 4. **No new binary formats without a reason in the PR description.** A `.psd`, a

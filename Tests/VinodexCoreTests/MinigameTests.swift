@@ -6,6 +6,11 @@ import Foundation
 struct MoonCalendarTests {
     private func date(_ iso: String) -> Date {
         let f = DateFormatter()
+        // Pinned like the `utc` calendar beside this: inheriting the process
+        // locale/calendar makes the parse return nil under non-Gregorian or
+        // non-Latin-digit regions, and the `!` then kills the whole runner.
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.calendar = Calendar(identifier: .gregorian)
         f.dateFormat = "yyyy-MM-dd"
         f.timeZone = TimeZone(secondsFromGMT: 0)
         return f.date(from: iso)!
@@ -195,6 +200,11 @@ struct DailyRevealTests {
 
     private func date(_ iso: String) -> Date {
         let f = DateFormatter()
+        // Pinned like the `utc` calendar beside this: inheriting the process
+        // locale/calendar makes the parse return nil under non-Gregorian or
+        // non-Latin-digit regions, and the `!` then kills the whole runner.
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.calendar = Calendar(identifier: .gregorian)
         f.dateFormat = "yyyy-MM-dd"
         f.timeZone = TimeZone(secondsFromGMT: 0)
         return f.date(from: iso)!

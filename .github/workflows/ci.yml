@@ -77,6 +77,25 @@ jobs:
           fi
           echo "no DexFont call site below the floor"
 
+      # The app touches UserDefaults — a "required reason" API — at all 20
+      # SavedDataKey keys, so shipping without a privacy manifest declaring it
+      # is a guaranteed ITMS-91053 App Store rejection. The manifest went
+      # unwritten for the project's whole life because nothing owned it; this
+      # step exists so it cannot quietly vanish the same way. (arch A2 /
+      # auditS H3)
+      - name: Privacy manifest present (arch A2 / auditS H3)
+        run: |
+          f=Sources/VinodexApp/PrivacyInfo.xcprivacy
+          if [ ! -s "$f" ]; then
+            echo "::error title=Privacy manifest::$f is missing — UserDefaults is a required-reason API, so this is an ITMS-91053 rejection (arch A2 / auditS H3)"
+            exit 1
+          fi
+          if ! grep -q "NSPrivacyAccessedAPICategoryUserDefaults" "$f"; then
+            echo "::error title=Privacy manifest::$f no longer declares the UserDefaults required-reason category (CA92.1)"
+            exit 1
+          fi
+          echo "privacy manifest present; UserDefaults/CA92.1 declared"
+
       - name: Note what this does not cover
         if: always()
         run: |

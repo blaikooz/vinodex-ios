@@ -67,6 +67,13 @@ landed in: `SettingsCache` (**L16**) memoises the settings every render reads,
 `DexAssetAudit` (**L26**) resolves every manifest id through the bundle in
 SETTINGS > DEV. See the update log.
 
+**Then M36's blockers fell, 2026-08-05** — the owner answered both deferred
+questions (LICENSE: all-rights-reserved; SFX: first-party) plus the three
+provenance questions auditS carried, and `LICENSE`, `NOTICE.md`, `licenses/`,
+the bundled `OFL.txt` and `shared/PROVENANCE.md` landed at once. The open count
+below is unchanged at 4, but the character of M36 changed: it now waits only on
+the in-app credits surface, not on anyone's answer. See the update log.
+
 | Severity | Open | Resolved | Won't-fix | Total |
 |---|---:|---:|---:|---:|
 | Critical | 0 | — | — | 0 |
@@ -1222,7 +1229,11 @@ number misses, search for the quoted symbol.
     `Sources/VinodexUI/SavedDataActions.swift` ·
     `Tests/VinodexCoreTests/SavedDataArchiveTests.swift`
 - [~] **M36** · licensing · OFL fonts ship without license text and 87/99 icons are CC BY 3.0 with zero attribution; no repo LICENSE · `Sources/VinodexUI/Resources/Fonts/` → add OFL texts, a NOTICE/credits file (surfaced in settings), and a top-level LICENSE
-  - **Related:** [KNOWN-ISSUES.md:284](KNOWN-ISSUES.md:284) records that 4.5 MB of a copyrighted wine encyclopedia is committed and public in `blaikooz/vinodex`. Out of scope for this repo, but it belongs on the same cleanup pass.
+  - **Related:** `shared/PROVENANCE.md` (which replaced the deleted
+    KNOWN-ISSUES.md:284 note) records that 4.5 MB of a copyrighted wine
+    encyclopedia is committed and public in `blaikooz/vinodex`, is not a source
+    for this repo's dataset, and is slated for an upstream history purge. Out of
+    scope for this repo, but it belongs on the same cleanup pass.
   - **Partly done @b48ad20.** `README.md:220–224` now credits game-icons and the
     two fonts. **Still missing:** OFL license texts beside the `.ttf` files, a
     top-level `LICENSE`, a `NOTICE` file, an in-app credits surface — and the 11
@@ -1244,10 +1255,24 @@ number misses, search for the quoted symbol.
     writing it.
   - The two fonts' licences are *not* a question and need no decision — read
     straight out of their `name` tables (nameID 13/14): Press Start 2P,
-    "Copyright 2012 The Press Start 2P Project Authors (cody@zone38.net), with
-    Reserved Font Name", SIL OFL 1.1; VT323, "Copyright 2011, The VT323 Project
-    Authors (peter.hull@oikoi.com)", SIL OFL 1.1, no reserved name. Both ship
-    unmodified, so the RFN is satisfied.
+    "Copyright 2012 The Press Start 2P Project Authors, with Reserved Font
+    Name", SIL OFL 1.1; VT323, "Copyright 2011, The VT323 Project Authors",
+    SIL OFL 1.1, no reserved name. Both ship unmodified, so the RFN is
+    satisfied.
+  - **Both answers arrived 2026-08-05, and the clerical remainder landed the
+    same day.** The owner chose **all-rights-reserved** (the app will
+    eventually charge) and confirmed the four SFX are **first-party** — so the
+    top-level `LICENSE` exists (ARR with a third-party carve-out), `NOTICE.md`
+    carries the full credits inventory (all 68 icon ids credited by artist via
+    the game-icons repo tree, the R74n flag pack, and the first-party map, SFX,
+    drawn art and dataset), the license texts are vendored under `licenses/`,
+    and `OFL.txt` ships beside the fonts inside `.copy("Resources")`. auditS
+    **M1 M2 M4 L1** close on the same facts. Still open here — and the only
+    reason this stays `[~]` — is the in-app credits surface the item line asks
+    for ("surfaced in settings"); nothing about this item is blocked on the
+    owner anymore. **Deferred at the owner's direction, 2026-08-06** — held for
+    the release pass, the same way M31 is held, so the open row reads as
+    scheduling, not neglect.
 - [~] **M37** · release · no git tags, no CHANGELOG, no bundle version — no binary can be traced to a commit · `xtool.yml` → tag releases (start with v0.3.8), keep CHANGELOG.md, set CFBundleShortVersionString/CFBundleVersion
   - **Tags done at v0.4.3.** Releases now carry annotated tags named `v` +
     `AppVersion.fallback`, and the version scheme was cut back to three components
@@ -1771,6 +1796,21 @@ finding it answers — several of them (**L10**, **L16**, **L32**, **L33**,
 ---
 
 ## Update log
+
+**2026-08-05 — M36 unblocked; the clerical remainder landed.** The owner
+answered both deferred questions — top-level `LICENSE`: **all-rights-reserved**
+(proprietary, eventually paid); the four SFX: **first-party** — plus the three
+provenance questions auditS carried (map: first-party; dataset: first-party,
+Sotheby's text to be purged upstream; flag pack: R74n PixelFlags, whose R74n
+Content License v1.1 was located via the site's `llms.txt`). Landed together:
+`LICENSE`, `NOTICE.md`, `licenses/` (Lucide ISC+MIT, Pictogrammers, Apache-2.0,
+R74n v1.1), `Sources/VinodexUI/Resources/Fonts/OFL.txt`, and
+`shared/PROVENANCE.md`. auditS **M1 M2 M4 L1** close; auditS **H1** goes
+partial; auditS **H2**'s provenance question is answered, leaving its
+commercial condition (permission or first-party recreation before a paid
+release — R74n's terms are credit + non-commercial). **M36** stays `[~]` for
+the in-app credits surface alone. Open count here is unchanged at 4; what
+changed is that M36 is no longer blocked on anyone.
 
 **2026-08-03 — M30 M33 M35 M37 M47 M49.** Every remaining open item except the
 three that were held back: **M31** (excluded by the maintainer, as it was last

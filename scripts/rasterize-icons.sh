@@ -16,6 +16,9 @@
 # pixel art, source to bundle.
 #
 # Usage: bash rasterize-icons.sh [manifest] [outdir]
+#   Flags: the default run writes them beside the default outdir
+#   (Resources/Flags); a custom [outdir] keeps them inside it
+#   ([outdir]/Flags); FLAGDIR overrides either.
 
 set -euo pipefail
 
@@ -30,6 +33,11 @@ OUTDIR="${2:-$REPO_ROOT/Sources/VinodexUI/Resources/Icons}"
 BASE=64   # @1x edge in points; @2x and @3x are multiples
 
 [ -f "$MANIFEST" ] || { echo "manifest not found: $MANIFEST"; exit 1; }
+
+# python3 parses the icon list and runs every importer, so its absence is fatal.
+# Checked above the Pillow probe, which would otherwise swallow the real error
+# and misreport a missing python3 as "Pillow not found" (auditS L9).
+command -v python3 >/dev/null || { echo "python3 not found (Linux: apt install python3  •  macOS: brew install python)"; exit 1; }
 
 total=0
 failed=0
@@ -87,7 +95,26 @@ while IFS= read -r icon; do
     continue
   fi
 
-  # The API returns a 404 body as text rather than an error status in some cases.
+  # The API returns a 404 body as text rather than an error status in some
+  # cases — and an HTML error page can *embed* an inline `<svg` logo, so the
+  # presence sniff alone is trivially satisfiable (audit B15 / auditS L5).
+  # Three checks, cheapest first: a real glyph is never tiny (measured
+  # 2026-08-04: a small lucide glyph is 371 bytes; the API's "Not found" body
+  # is 9), is never an HTML document, and must still contain `<svg` near the
+  # start.
+  bytes=$(wc -c < "$tmp" | tr -d ' ')
+  if [ "$bytes" -lt 100 ]; then
+    echo "  FAIL not svg  $icon (body is ${bytes} bytes — too small for a glyph)"
+    failed=$((failed + 1))
+    rm -f "$tmp"
+    continue
+  fi
+  if head -c 200 "$tmp" | grep -qi "<!DOCTYPE html\|<html"; then
+    echo "  FAIL not svg  $icon (HTML error page)"
+    failed=$((failed + 1))
+    rm -f "$tmp"
+    continue
+  fi
   if ! head -c 200 "$tmp" | grep -qi "<svg"; then
     echo "  FAIL not svg  $icon"
     failed=$((failed + 1))
@@ -100,15 +127,20 @@ while IFS= read -r icon; do
   # scale set (e.g. @1x present, @3x missing) that could be committed unnoticed.
   ok=1
   moves=()
+  rast_err=""
   for scale in 1 2 3; do
     px=$((BASE * scale))
     suffix=""
     [ "$scale" -gt 1 ] && suffix="@${scale}x"
     out="$OUTDIR/${slug}${suffix}.png"
     tmpout="${out}.tmp.$$"
-    if rsvg-convert -w "$px" -h "$px" -o "$tmpout" "$tmp" 2>/dev/null; then
+    # stderr is kept for the failure report below — discarding it reduced a
+    # systemic failure (broken librsvg, malformed SVG) to a bare icon name
+    # repeated 68 times (audit B14).
+    if rast_err=$(rsvg-convert -w "$px" -h "$px" -o "$tmpout" "$tmp" 2>&1); then
       moves+=("$tmpout|$out")
     else
+      rast_err="rsvg-convert @${scale}x exit $?: ${rast_err:-<no stderr>}"
       ok=0
       break
     fi
@@ -119,8 +151,12 @@ while IFS= read -r icon; do
     for pair in "${moves[@]}"; do mv -f "${pair%%|*}" "${pair##*|}"; done
     total=$((total + 1))
   else
-    for pair in "${moves[@]}"; do rm -f "${pair%%|*}"; done
+    # `${moves[@]+...}` and not a bare `"${moves[@]}"`: an @1x failure leaves
+    # the array empty, and macOS's bash 3.2 treats expanding an empty array as
+    # unbound under `set -u`, killing the run before the report below prints.
+    for pair in ${moves[@]+"${moves[@]}"}; do rm -f "${pair%%|*}"; done
     echo "  FAIL rasterize $icon"
+    sed 's/^/    /' <<< "$rast_err"
     failed=$((failed + 1))
   fi
 done <<< "$ICONS"
@@ -153,9 +189,27 @@ echo "failed: $failed"
 # ---------------------------------------------------------------------------
 # Flags are already pixel-art PNGs in the web repo, so they are copied rather
 # than rendered. Only the countries present in the current selection ship.
+#
+# The shipped set is R74n's PixelFlags (licenses/LICENSE-r74n.txt: credit
+# given in NOTICE.md, non-commercial without explicit permission) — fine while
+# development builds are non-commercial, and the owner has emailed R74n for
+# permission ahead of the paid release (2026-08-06). If that answer is no, a
+# complete first-party replacement already exists: art/flags/, drawn in code
+# from the official flag constructions by scripts/generate-flag-art.py
+# (2026-08-05, same slugs and canvas) — flipping this block's source to
+# art/flags/<slug>.png is the whole swap (auditS H2).
 # ---------------------------------------------------------------------------
 
-FLAGDIR="$(dirname "$OUTDIR")/Flags"
+# Flags sit beside Icons under Resources/, so the default run writes to the
+# default outdir's sibling. A custom [outdir] keeps them inside it instead:
+# deriving the sibling from $2 silently scattered the 33 flag PNGs into an
+# unrelated directory next to whatever path was passed (audit B13). FLAGDIR
+# overrides either choice.
+if [ -n "${2:-}" ]; then
+  FLAGDIR="${FLAGDIR:-$OUTDIR/Flags}"
+else
+  FLAGDIR="${FLAGDIR:-$(dirname "$OUTDIR")/Flags}"
+fi
 # Pixelflags live at shared/pixelflags since 0.6.5 (batch 4, phase 1). They sit
 # in the cross-repo master rather than in this repo's art/ tree because they are
 # the one art asset BOTH apps consume — here, and the web app's flagImages.ts —

@@ -1,23 +1,3 @@
-export const isLightColor = (hex: string): boolean => {
-  const clean = hex.replace('#', '');
-  if (clean.length !== 6) return false;
-  const r = parseInt(clean.substring(0, 2), 16);
-  const g = parseInt(clean.substring(2, 4), 16);
-  const b = parseInt(clean.substring(4, 6), 16);
-  return (0.299 * r + 0.587 * g + 0.114 * b) > 160;
-};
-
-export const darkenHex = (hex: string, amount = 0.35): string => {
-  const clean = hex.replace('#', '');
-  if (clean.length !== 6) return hex;
-  const toChannel = (start: number) => {
-    const channel = parseInt(clean.substring(start, start + 2), 16);
-    const darkened = Math.max(0, Math.min(255, Math.round(channel * (1 - amount))));
-    return darkened.toString(16).padStart(2, '0');
-  };
-  return `#${toChannel(0)}${toChannel(2)}${toChannel(4)}`;
-};
-
 const REGION_CLASSIFICATION_ICON_COLORS: Record<string, string> = {
   aoc: '#f43f5e',
   docg: '#f59e0b',

@@ -1,28 +1,12 @@
-import type { DataCategory, EntryCategory, WineEntry } from '../types';
-
 // === Normalization ===
 
 const DIACRITIC_RANGE = /[̀-ͯ]/g;
 
-export const normalizeKey = (value: string) =>
-  value
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(DIACRITIC_RANGE, '')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim();
-
-export const normalizeEntryKey = normalizeKey;
-export const normalizeFlavorKey = normalizeKey;
-
-export const normalizeLabel = (value: string) =>
+const normalizeLabel = (value: string) =>
   value
     .toLowerCase()
     .normalize('NFD')
     .replace(DIACRITIC_RANGE, '');
-
-export const isVariousOrigin = (origin?: string) =>
-  (origin || '').trim().toLowerCase() === 'various';
 
 // === Flavor categorization ===
 
@@ -120,102 +104,3 @@ export const getStyleClassType = (name: string, classification?: string): StyleC
   return 'STYLE';
 };
 
-export type StyleColorType = 'RED' | 'WHITE' | 'ROSE' | 'ORANGE' | 'DUAL';
-
-const STYLE_NAME_COLOR_OVERRIDES: Record<string, StyleColorType> = {
-  'prosecco': 'WHITE',
-  'champagne': 'WHITE',
-  'cremant': 'WHITE',
-  'cava': 'WHITE',
-  'sparkling wine': 'WHITE',
-  'sherry': 'WHITE',
-  'port': 'RED',
-  'gsm blend': 'RED',
-  'bordeaux blend': 'RED',
-  'super tuscan': 'RED',
-  'cru beaujolais': 'RED',
-  'dessert wine': 'WHITE',
-  'late harvest': 'WHITE',
-  'ice wine': 'WHITE',
-  'botrytis wine': 'WHITE',
-  'qvevri amber': 'ORANGE',
-};
-
-export const getColorType = (name: string): StyleColorType => {
-  const n = normalizeLabel(name);
-  const override = STYLE_NAME_COLOR_OVERRIDES[n.trim()];
-  if (override) return override;
-  if (/\borange\b/.test(n)) return 'ORANGE';
-  if (/\brose\b/.test(n)) return 'ROSE';
-  if (/\bred\b/.test(n)) return 'RED';
-  if (/\bwhite\b/.test(n)) return 'WHITE';
-  return 'DUAL';
-};
-
-export const getStyleColorType = getColorType;
-
-// === Entry lookup ===
-
-export const matchesEntryKey = (entry: WineEntry, cleanName: string) => {
-  if (normalizeKey(entry.name) === cleanName) return true;
-  const synonyms = (entry.details as { synonyms?: string[] }).synonyms;
-  if (synonyms?.some((s) => normalizeKey(s) === cleanName)) return true;
-  return false;
-};
-
-export function findEntryByName(entries: WineEntry[], name: string): WineEntry | undefined;
-export function findEntryByName<C extends DataCategory>(
-  entries: WineEntry[],
-  name: string,
-  category: C,
-): Extract<WineEntry, { category: C }> | undefined;
-export function findEntryByName(
-  entries: WineEntry[],
-  name: string,
-  category?: EntryCategory,
-): WineEntry | undefined {
-  const clean = normalizeKey(name);
-  return entries.find((entry) => {
-    if (category && entry.category !== category) return false;
-    return matchesEntryKey(entry, clean);
-  });
-}
-
-export const findRelatedEntry = (
-  entries: WineEntry[],
-  name: string,
-  preferredCategory?: EntryCategory,
-): WineEntry | undefined => {
-  const cleanName = normalizeKey(name);
-
-  const exactInPreferred = preferredCategory
-    ? entries.find((entry) => entry.category === preferredCategory && matchesEntryKey(entry, cleanName))
-    : undefined;
-  if (exactInPreferred) return exactInPreferred;
-
-  const exactAny = entries.find((entry) => matchesEntryKey(entry, cleanName));
-  if (exactAny) return exactAny;
-
-  const fallbackPool = preferredCategory
-    ? [
-        ...entries.filter((entry) => entry.category === preferredCategory),
-        ...entries.filter((entry) => entry.category !== preferredCategory),
-      ]
-    : entries;
-
-  const cleanTokens = cleanName.split(' ').filter(Boolean);
-  return fallbackPool.find((entry) => {
-    const entryKey = normalizeKey(entry.name);
-    if (!entryKey) return false;
-
-    const entryTokens = entryKey.split(' ').filter(Boolean);
-    if (cleanTokens.length > 1 && entryTokens.length === 1) return false;
-    return entryKey.includes(cleanName) || cleanName.includes(entryKey);
-  });
-};
-
-export const findExactFlavorEntry = (entries: WineEntry[], name: string) =>
-  findEntryByName(entries, name, 'FLAVORS');
-
-export const findExactGrapeEntry = (entries: WineEntry[], name: string) =>
-  findEntryByName(entries, name, 'GRAPES');

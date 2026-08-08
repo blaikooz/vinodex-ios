@@ -27,7 +27,7 @@ import {
   resolveFlavorClassIcon,
   resolveFlavorSubclassIcon,
 } from '../shared/services/flavorIcon.ts';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync, rmSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -605,6 +605,13 @@ const DEFAULT_SOILS = ['Alluvial', 'Clay', 'Limestone'];
 /// that root and are shared with the web consumer, so they do not change when
 /// the root moves.
 ///
+/// R74n's pack is non-commercial without permission (auditS H2), so a
+/// first-party standby set exists at `art/flags/<slug>.png` (drawn by
+/// `scripts/generate-flag-art.py`, named by the `flagSlug()` values below).
+/// Development builds still ship the R74n pack — permission for the paid
+/// release has been requested from R74n (2026-08-06); if it is refused,
+/// `rasterize-icons.sh` flips its flag source to the standby set.
+///
 /// Originally just the countries that appeared as a grape/region `origin` in
 /// the starter selection. Now also covers every country the continent info
 /// screen lists (`data/continents.ts`' `keyRegions`), even where no grape or
@@ -998,18 +1005,27 @@ function assertCoverage(entries: readonly WineEntry[], palette: ReturnType<typeo
     check(`continent ${continent} has no region`, hit, `countries: ${(countries as string[]).join(', ')}`);
   }
 
-  // Flavours must be derived from the selected grapes, not filtered afterwards.
-  // 25 grapes x up to 3 notes = 75 instances collapsing to ~45-65 once shared
-  // notes (e.g. "cherry") merge across grapes. A count near the full
-  // database's total would mean the selection was applied after
-  // buildFlavorEntries instead of before.
-  if (STARTER_SELECTION) {
-    check(
-      `flavor count ${flavors.length} outside expected 40-75`,
-      flavors.length >= 40 && flavors.length <= 75,
-      'selection may have been applied after flavour derivation',
-    );
-  }
+  // Flavours must be derived from the grapes that ship, not selected or
+  // filtered independently of them. `buildFlavorEntries` emits exactly one
+  // FLAVORS entry per distinct tasting note (trimmed, lowercased) across its
+  // input grapes, so the two counts must agree: shipped flavours above the
+  // note count mean flavour derivation ran over grapes that were then
+  // deselected; below it, that flavours were filtered on their own. Holds
+  // under any selection — the 40-75 band it replaces was gated on a curated
+  // STARTER_SELECTION and died with it (audit B10).
+  const grapeNotes = new Set(
+    grapes.flatMap((g) =>
+      ((g as { tastingProfile?: { note: string }[] }).tastingProfile ?? []).map((f) =>
+        f.note.trim().toLowerCase(),
+      ),
+    ),
+  );
+  grapeNotes.delete('');
+  check(
+    `flavor count ${flavors.length} != ${grapeNotes.size} distinct grape tasting notes`,
+    flavors.length === grapeNotes.size,
+    'flavours must derive from the shipped grape set, nothing more or less',
+  );
 
   // Every flavour class and subclass must own a glyph, and no two may share
   // one: the scan's CLASS and SUBCLASS tiles sit side by side, so a duplicate
@@ -1179,9 +1195,9 @@ const ENTRY_ENUMS: Record<string, Set<string>> = {
   climate: new Set(['maritime', 'continental', 'cool', 'warm', 'mediterranean']),
 };
 
-function validateOutputs(dir: string): void {
+function validateOutputs(dir: string, suffix = ''): void {
   const problems: string[] = [];
-  const read = (name: string): unknown => JSON.parse(readFileSync(resolve(dir, name), 'utf8'));
+  const read = (name: string): unknown => JSON.parse(readFileSync(resolve(dir, name + suffix), 'utf8'));
   const has = (obj: unknown, key: string): boolean =>
     !!obj && typeof obj === 'object' && key in (obj as Record<string, unknown>);
 
@@ -1302,8 +1318,19 @@ function validateOutputs(dir: string): void {
   }
 
   const tiers = read('tiers.json');
-  if (!has(tiers, 'free') || !Array.isArray((tiers as { free?: unknown }).free)) {
-    problems.push('tiers.json missing free[]');
+  // Emptiness matters as much as presence: `{"free":[]}` decodes cleanly on
+  // device and unlocks every entry through the fail-open `freeIDs.isEmpty`
+  // short-circuit in WineDatabase (auditS L6).
+  const free = (tiers as { free?: unknown } | null)?.free;
+  if (!Array.isArray(free) || free.length === 0) {
+    problems.push('tiers.json missing or empty free[]');
+  } else if (Array.isArray(entries)) {
+    // A free id that names no entry is silent drift — `isFree` returns false
+    // for an id nobody looks up, quietly shrinking the free tier (auditS L17).
+    const ids = new Set(entries.map((e) => (e as { id?: unknown }).id));
+    for (const id of free) {
+      if (!ids.has(id)) problems.push(`tiers.json free id has no entry: ${String(id)}`);
+    }
   }
 
   const countries = read('countries.json');
@@ -1330,7 +1357,12 @@ function main() {
   // no case for it and `EntryCategory` cannot decode it — so shipping them
   // failed the *entire* entries.json decode on one bad category, taking the
   // whole database down with it. Excluded until that screen exists.
-  const entries = buildWineEntries(STARTER_SELECTION)
+  //
+  // With no selection active, `full` is reused rather than rebuilt — this used
+  // to be the second of three identical 405-entry builds per run (audit B11;
+  // the third was `WINE_ENTRIES` evaluating at import of shared/constants,
+  // now removed).
+  const entries = (STARTER_SELECTION ? buildWineEntries(STARTER_SELECTION) : full)
     .filter((entry) => entry.category !== 'COUNTRY_GATE');
   const palette = buildPalette(full);
 
@@ -1376,15 +1408,33 @@ function main() {
   const leanEntries = omitKeys(entries, STRIP_ENTRY_FIELDS);
   const leanPalette = omitKeys(palette, STRIP_PALETTE_FIELDS);
 
-  writeFileSync(resolve(OUT_DIR, 'entries.json'), serialize(leanEntries));
-  writeFileSync(resolve(OUT_DIR, 'tiers.json'), serialize(tiers));
-  writeFileSync(resolve(OUT_DIR, 'palette.json'), serialize(leanPalette));
-  writeFileSync(resolve(OUT_DIR, 'icons.json'), serialize(icons));
-  writeFileSync(resolve(OUT_DIR, 'countries.json'), serialize(countries));
-  writeFileSync(resolve(OUT_DIR, 'schema.json'), serialize({ schemaVersion: SCHEMA_VERSION }));
-
-  // AUDIT M3 — fail loudly here (and in CI) if the emitted JSON would not decode.
-  validateOutputs(OUT_DIR);
+  // Write temps, self-check them, then rename into place (audit B9). Every
+  // temp is written and validated before the first rename, so a crash or a
+  // failed self-check anywhere in the sequence leaves the previous consistent
+  // set on disk rather than a mixed one that decodes fine and renders wrong.
+  // schema.json still lands last — the signal M45's loadNotices check keys on
+  // for an interrupted first-ever generation — by design now rather than by
+  // write order.
+  const outputs: Array<[string, string]> = [
+    ['entries.json', serialize(leanEntries)],
+    ['tiers.json', serialize(tiers)],
+    ['palette.json', serialize(leanPalette)],
+    ['icons.json', serialize(icons)],
+    ['countries.json', serialize(countries)],
+    ['schema.json', serialize({ schemaVersion: SCHEMA_VERSION })],
+  ];
+  const tempOf = (name: string) => resolve(OUT_DIR, `${name}.tmp`);
+  try {
+    for (const [name, payload] of outputs) writeFileSync(tempOf(name), payload);
+    // AUDIT M3 — fail loudly here (and in CI) if the emitted JSON would not
+    // decode. Runs against the temps, so a failure keeps the previous set.
+    validateOutputs(OUT_DIR, '.tmp');
+    for (const [name] of outputs) renameSync(tempOf(name), resolve(OUT_DIR, name));
+  } finally {
+    // Resources/ ships into the bundle via `.copy`, so a failed run must not
+    // leave stray *.json.tmp behind to ride along.
+    for (const [name] of outputs) rmSync(tempOf(name), { force: true });
+  }
 
   const hexes = new Set(JSON.stringify(palette).match(/#[0-9a-fA-F]{6}/g) ?? []);
 

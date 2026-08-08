@@ -21,14 +21,6 @@ import {
   type FlavorClass,
 } from './services/entryUtils.ts';
 
-// Re-export individual collections
-export { GRAPES as GRAPES_LEGACY } from './data/grapes.ts';
-export { REGIONS } from './data/regions.ts';
-export { STYLES } from './data/styles.ts';
-export { GRAPE_CARDS } from './data/grapeCards.ts';
-export { CONTINENTS } from './data/continents.ts';
-export { COUNTRIES } from './data/countries.ts';
-
 const canonicalizeGrapeName = (value: string) =>
   /^syrah\s*\/\s*shiraz$/i.test(value.trim()) ? 'Syrah' : value;
 
@@ -312,9 +304,3 @@ export function buildWineEntries(selection?: EntrySelection): WineEntry[] {
     ...(selection?.includeCountries === false ? [] : COUNTRIES),
   ].map((entry) => applyCategoryCallbacks(canonicalizeEntry(entry)));
 }
-
-// Combined wine entries for the app
-export const WINE_ENTRIES: WineEntry[] = buildWineEntries();
-
-// Re-export shared helpers so existing consumers keep importing from `./constants`.
-export { FLAVOR_CLASS_COLORS, categorizeFlavor, categorizeFlavorSubclass };

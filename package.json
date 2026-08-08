@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Node tooling for regenerating the bundled data. Not needed to build or run the app — Sources/VinodexCore/Resources/*.json is committed.",
   "scripts": {
-    "generate": "ts-node --esm scripts/generate-ios-data.ts",
+    "generate": "node scripts/generate-ios-data.ts",
+    "generate:tsnode": "ts-node --esm scripts/generate-ios-data.ts",
     "typecheck": "tsc --noEmit",
     "icons": "bash scripts/rasterize-icons.sh",
     "flavor-art": "python3 scripts/import-flavor-art.py",

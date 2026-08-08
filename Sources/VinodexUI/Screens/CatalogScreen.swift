@@ -297,7 +297,13 @@ struct StatBar: View {
                 .frame(width: Self.labelWidth, alignment: .leading)
 
             HStack(spacing: 2) {
-                ForEach(0..<Int(maximum), id: \.self) { index in
+                // `0..<Int(maximum)` traps on a negative, NaN, infinite or
+                // out-of-Int-range maximum — latent while every caller takes
+                // the default 5, but both the property and the init are
+                // public. `Int(exactly:)` refuses all of those with nil, so a
+                // hostile value degrades to an empty bar instead (auditS L8).
+                let segments = max(0, Int(exactly: maximum.rounded()) ?? 0)
+                ForEach(0..<segments, id: \.self) { index in
                     Rectangle()
                         .fill(Double(index) < value ? fill : .clear)
                         .frame(height: 8)

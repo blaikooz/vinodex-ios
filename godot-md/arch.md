@@ -41,11 +41,11 @@ renumbered.
 | Area | Resolved | Partial | Open | Won't-fix | Unverified | Total |
 |---|---:|---:|---:|---:|---:|---:|
 | Blocking | 2 | — | — | — | — | 2 |
-| Repository & git | 7 | 1 | 4 | 1 | — | 13 |
+| Repository & git | 8 | 2 | 2 | 1 | — | 13 |
 | GitHub & platform | 5 | — | 2 | — | 3 | 10 |
-| Module architecture | 11 | 5 | 8 | — | — | 24 |
-| Build & pipeline | 5 | 1 | 9 | — | — | 15 |
-| **Total** | **30** | **7** | **23** | **1** | **3** | **64** |
+| Module architecture | 15 | 6 | 3 | — | — | 24 |
+| Build & pipeline | 14 | 1 | — | — | — | 15 |
+| **Total** | **44** | **9** | **7** | **1** | **3** | **64** |
 
 **Updated 2026-08-04 (third pass).** The `8bd6838` "gitquickfixes" commit
 (2026-08-03 17:51) closed the document's cheapest open items in one sitting,
@@ -66,6 +66,68 @@ same commit. **X2** and **P5** close (P5's bundle-version third deferred to a
 future signing pipeline, with the reopen condition recorded in the item). For
 the first time since this document was written, **no blocking item is open**
 and nothing exists only in a working tree.
+
+**Updated 2026-08-04, still the same day — five more discharged.** A second
+quickfix batch: **R4** (`.mailmap`, shortlog four identities → three), **B12**
+(the three `.ts` extensions; typecheck green, regen byte-identical), **B8**
+(all three governance tells), **A3** (the `.copy` sentence, on both targets)
+and **A4** (README's `Swift 6.3` — grown to five claims from the two listed —
+now reads `6.0` everywhere, agreeing with tools-version and CI's container).
+Five statuses moved; the table above reflects them.
+
+**Updated 2026-08-04, a fourth batch — the pipeline back-half.** Five more:
+**B9** (the six-file write is now write-temps → self-check → rename, with
+`validateOutputs` pointed at the temps, so any failure leaves the previous
+consistent set on disk), **B10** (the dead 40–75 band replaced by an always-on
+invariant: one FLAVORS entry per distinct tasting note across the grapes that
+ship — 106 == 106 today), **B11** (405 × 3 → × 1: `main` reuses the full build
+and the consumerless `WINE_ENTRIES` eager export is deleted from
+`shared/constants.ts`), **B13** (a custom `[outdir]` keeps flags inside it;
+`FLAGDIR` overrides either arm) and **B14** (`rsvg-convert` stderr now reaches
+the FAIL line — and exercising that path surfaced a latent macOS bash-3.2
+`set -u` kill in **L23**'s cleanup arm, fixed in the same pass). Typecheck
+green, regeneration byte-identical, the rasteriser changes exercised end-to-end
+against stub tooling. Section 4's open items are down to **B4** and **B15**.
+
+**Updated 2026-08-04, a fifth batch — the App Store gate, and section 4 closes.**
+Four more: **A2**'s privacy-manifest half — `PrivacyInfo.xcprivacy` exists,
+lints, declares UserDefaults/CA92.1 (the only required-reason API in use;
+the C617.1 file-timestamp question auditS H3 left open is answered **no** by
+grep over all of `Sources/`), rides the VinodexApp target at its bundle root,
+and is guarded by a new CI step — A2 moves to Partial, still owed an
+Info.plist source (auditS **M6**). **B4** — `npm run generate` now runs bare
+`node` (regeneration byte-identical under it); `generate:tsnode` keeps the old
+runner as the documented fallback for Node < 22.18. **B15** — the SVG sniff
+gained a measured 100-byte floor and an HTML-document reject, all four arms
+exercised against stub tooling (= auditS **L5**'s sniff half; the unpinned
+fetch stays with deferred **M40**). And step 4 of
+[owning `shared/`](#on-owning-shared-outright) is done by delete-and-typecheck
+rather than a new tool: **34 web-only exports deleted, 8 more de-exported to
+module-private**, −223 lines, typecheck green, regeneration byte-identical.
+**Section 4 has no open items left**; B2 stays partial exactly as far as M40's
+deferral reaches. Four statuses moved; the table above reflects them.
+
+**Updated 2026-08-05 — two architecture cheapies.** **A11** — `Haptics.swift:1`
+took the majority guard spelling, retiring the bare-`UIKit` variant that was
+**A1**'s failure shape one module down (49 majority + 1 correct `AVFoundation`
+variant is the whole census now). **A5** — `VinodexCore` and `VinodexUI` are
+`.library` products; each builds standalone via `swift build --product`, and
+`Package.swift`'s false "exactly one library product" claim is replaced with
+the real constraint. `swift build` and `typecheck-ios-surface.sh` both green.
+Two statuses moved; the table above reflects them.
+
+**Updated 2026-08-05, later — the owner's answers, and R7 moves.** The two
+one-sentence answers arrived (LICENSE: **all-rights-reserved**; SFX:
+**first-party**), along with the three provenance answers auditS carried (map
+first-party; dataset first-party, Sotheby's purge intended upstream; flag pack
+= **R74n PixelFlags**, its R74n Content License v1.1 found via the site's
+`llms.txt` after the page itself showed nothing). The paper landed in one pass:
+`LICENSE`, `NOTICE.md`, `licenses/`, the bundled `OFL.txt`, and
+`shared/PROVENANCE.md`. **R7** goes Open → **Partial**: the OFL and CC BY
+breaches are cured; what remains is not paper but the flags' commercial
+condition — R74n's terms are credit + non-commercial, so the planned paid
+release needs written permission or first-party recreations — plus the in-app
+credits surface (auditS H1). One status moved; the table above reflects it.
 
 **Updated 2026-08-03 (second pass).** The structural chain this document's
 *Recommended order* set out — **A6 → A17 → A15 → A22/A14** — was taken in one
@@ -102,9 +164,10 @@ grew with it: **A17** (24 → 57 `@AppStorage`), **A15** (21 → 49 flat files),
 uncheckable contract), **R2** (2.89 MiB → **42.32 MiB** pack), **B9** (4 → 6
 non-atomic writes), **P7** (1 → 11 undeleted remote branches).
 
-Three of those seven are now closed — **A17** (57 `@AppStorage` → **0**, one
+Four of those seven are now closed — **A17** (57 `@AppStorage` → **0**, one
 `AppSettings`), **A15** (49 flat files → **50 in five directories**), **A22**
-(12 literals → **one `DexAsset` enum**). The remaining four are unchanged.
+(12 literals → **one `DexAsset` enum**), **B9** (six sequential writes →
+temps validated, then renamed into place). The remaining three are unchanged.
 
 ---
 
@@ -199,12 +262,17 @@ Highest-leverage items remaining, in the order they unblock each other:
 2. ~~**A17** — one `AppSettings` type.~~ **Done.** It was the largest structural
    debt in the package and the only original "High" still fully open. The
    `.id(scaleRaw)` remount it was also meant to retire survives — see the item.
-3. **R7 / M36** — LICENSE and NOTICE. A public repo in breach of OFL and CC BY,
-   with 68 attributed-license glyphs, 465 flags of unknown provenance, two OFL
-   fonts, a 217 KB map and four SFX. Blocked on **two one-sentence answers from the
-   owner**, not on engineering. See auditS **H1 H2 M1 M2 L1**.
-4. **A2** — `PrivacyInfo.xcprivacy`. A hard App Store gate (ITMS-91053), still
-   absent, still unlisted in AUDIT.md. See auditS **H3**.
+3. ~~**R7 / M36** — LICENSE and NOTICE.~~ **Answered and landed, 2026-08-05.**
+   The owner called the LICENSE (all-rights-reserved) and the SFX (first-party);
+   `LICENSE`, `NOTICE.md`, `licenses/` and the bundled `OFL.txt` followed the
+   same day, curing the OFL and CC BY breaches. What survives: the flags'
+   commercial condition (R74n's license is credit + non-commercial — permission
+   or first-party recreation before a paid release) and the in-app credits
+   surface. See auditS **H1 H2**; **M1 M2 M4 L1** are closed.
+4. ~~**A2** — `PrivacyInfo.xcprivacy`. A hard App Store gate (ITMS-91053).~~
+   **Done, 2026-08-04**: written, bundled, CI-guarded — see auditS **H3**. What
+   is left of A2 is the Info.plist source (auditS **M6**), blocked on a signing
+   pipeline like **P5**'s bundle version.
 5. ~~**R3** — seven `.gitignore` patterns.~~ **Done, 2026-08-03** (`8bd6838`),
    with a comment naming both findings. See auditS **L11**.
 6. ~~**B5** — `"typecheck": "tsc --noEmit"`.~~ **Done, 2026-08-03** (`8bd6838`):
@@ -277,21 +345,22 @@ structural chain with exactly the broad `git add` this item wanted guarded —
 one day after the guard went in. With this, the second of the two original
 **High** items is off the board — **A17** was the first.
 
-### R4 · The commit `640efe9` is authored under a malformed email — **Open, unchanged**
+### R4 · The commit `640efe9` is authored under a malformed identity — **Resolved**
+
+**Resolved (2026-08-04)** — `.mailmap` folds the curly-quote identity into the
+real one; `git shortlog -sne` reports three identities, with `640efe9`
+counted under `mirrorfarm`. The `Claude` trailer identity is left unmapped,
+exactly as specified below.
+
+Still one commit of 77, still unattributable, still no `.mailmap`. The author
+identity is wrapped in **U+201C/U+201D curly quotes** and also drops the dot
+the real one carries. `git shortlog` now reports **four** identities:
 
 ```
-author mirrorfarm <\342\200\234<redacted>@gmail.com\342\200\235> 1785289764 -0400
-```
-
-Still one commit of 77, still unattributable, still no `.mailmap`. The address is
-wrapped in **U+201C/U+201D curly quotes** and also drops the dot the real address
-carries. `git shortlog` now reports **four** identities:
-
-```
-62  blaikooz <68969906+blaikooz@users.noreply.github.com>
-11  Claude <noreply@anthropic.com>
- 3  mirrorfarm <mirror.servicesnyc@gmail.com>
- 1  mirrorfarm <“mirrorservicesnyc@gmail.com”>
+62  blaikooz
+11  Claude
+ 3  mirrorfarm
+ 1  mirrorfarm (the curly-quoted variant)
 ```
 
 → A `.mailmap` collapsing the malformed identity into the real one. The `Claude`
@@ -316,7 +385,18 @@ reclaim the git bytes.** The original blob stays in the pack forever absent a
 history rewrite. AppIcon is now 1.5% of a 42.32 MiB pack rather than a third of a
 2.89 MiB one, so the rewrite is even less justified than it was.
 
-### R7 · Fonts, icons and flags are redistributed publicly with zero license text — **Open, and now the sharpest item in the repo**
+### R7 · Fonts, icons and flags are redistributed publicly with zero license text — **Partial: the paper landed 2026-08-05; the flags' commercial condition remains**
+
+**Update (2026-08-05)** — The two answers arrived and the clerical body landed
+the same day: top-level `LICENSE` (all-rights-reserved, the owner's call),
+`NOTICE.md` (68 icon ids credited by artist; flags credited to R74n; map, SFX,
+drawn art and dataset recorded first-party), `OFL.txt` beside the fonts inside
+`.copy("Resources")`, and the third-party texts vendored under `licenses/`.
+One premise below is corrected: R74n *does* publish terms — the R74n Content
+License v1.1, credit-required and non-commercial without explicit permission —
+so the remaining exposure is the planned paid release, which needs R74n's
+written permission or first-party recreations (auditS **H2**), plus the in-app
+credits surface (auditS **H1**). The original state, for the record:
 
 Unchanged in substance and now the subject of five separate findings across two
 other documents. Current state, re-verified:
@@ -344,7 +424,8 @@ technical one. That is the right call and this document does not second-guess it
 → The addition this item makes, and it still stands: **the distribution breach is
 independent of what the app displays.** OFL §2 and CC BY 3.0 §4(c) are being
 breached at the repository level right now, and have been for six days longer than
-when this was written. Two one-sentence answers from the owner unblock all of it.
+when this was written. Two one-sentence answers from the owner unblocked all of
+it on 2026-08-05 — see the update at the top of this item.
 
 ### R8 · Commit scope changed `(native)` → `(ios)` silently — **Resolved in practice**
 
@@ -405,7 +486,10 @@ commits the original pass saw. `.gitattributes` still classifies every tracked
 binary correctly. Working tree has no stashes, no submodules, no custom hooks.
 
 The 4.5 MB copyrighted Sotheby's text remains **absent from this mirror**; the
-mirroring boundary held and the exposure is upstream only (auditS **M4**).
+mirroring boundary held and the exposure is upstream only (auditS **M4**,
+closed 2026-08-05: `shared/PROVENANCE.md` now carries the standing record, the
+owner's independence declaration, and the intent to purge it from upstream
+history).
 
 Two claims from the original pass are **no longer re-verifiable and should not be
 relied on**: the "64/64 tracked text files are LF" census (the tree has grown well
@@ -806,7 +890,30 @@ Discharged by **P2**. Three mechanisms now do, listed under
 [the testing gap](#the-testing-gap-below-a1). The precondition this item named for
 **M28**, **M30** and **L9** was met and all three landed.
 
-### A2 · No app metadata exists anywhere, including no privacy manifest — **Open**
+### A2 · No app metadata exists anywhere, including no privacy manifest — **Partial: the manifest exists; the Info.plist source does not**
+
+**The privacy-manifest half closed (2026-08-04).**
+`Sources/VinodexApp/PrivacyInfo.xcprivacy` declares the one required-reason
+API the app uses — `NSPrivacyAccessedAPICategoryUserDefaults`, reason
+`CA92.1`, written *from* `SavedDataKey`'s 20-key enumeration — with tracking
+false and both privacy arrays empty, since nothing leaves the device and the
+package has zero dependencies. The file-timestamp category auditS **H3**
+wondered about is confirmed unnecessary: `ProfileAvatar` and
+`SavedDataArchive` never read a timestamp, and no boot-time, disk-space or
+keyboard API appears anywhere in `Sources/`. It ships by `.copy` on the
+**VinodexApp** target — the root of that target's resource bundle, since
+nesting under a `Resources/` directory would hide it from Apple's scanner —
+and CI's `test` job now fails if the file vanishes or drops the UserDefaults
+declaration. The re-check recipe lives in the manifest's own comment block.
+One placement residual is recorded in auditS H3 rather than left open: xtool
+cannot put a file at the `.app` bundle root, so promotion there joins the
+Info.plist work below when a signing pipeline exists.
+
+**What keeps this item Partial is its other half:** there is still no
+Info.plist source (auditS **M6** — export-compliance key, display name,
+version), and that is the same xtool gap **M17** proved and **P5**'s bundle
+version is deferred behind. The paragraphs below describe that gap as this
+item found it.
 
 **Structurally unchanged, and M17 proved the structural point.** `xtool.yml` is
 still `bundleID` + `iconPath` — now with 20 lines of comment explaining why an
@@ -1090,23 +1197,23 @@ left in there that arguably should not be is narrower and more specific now — 
 manifest slug consumption, and `DexAssetAudit`'s probe logic, which is **A21**. The
 fix is still to shrink what sits behind the guard, not to move the guard.
 
-### A11 · Three different guard spellings across the tree — **Open, unchanged in kind**
+### A11 · Three different guard spellings across the tree — **Resolved**
 
+**Resolved (2026-08-05)** — `Haptics.swift:1` took the majority spelling.
 Re-counted across `Sources/VinodexUI/`:
 
 ```
-48  #if canImport(SwiftUI) && canImport(UIKit)
+49  #if canImport(SwiftUI) && canImport(UIKit)
  1  #if canImport(UIKit) && canImport(AVFoundation)   — Platform/DexSound.swift
- 1  #if canImport(UIKit)                              — Platform/Haptics.swift
 ```
 
-47 → 48 with **A22**'s `Platform/DexAsset.swift`, which took the majority
-spelling. `Haptics.swift:1` still carries **A1**'s exact failure shape one module
-down. The
-`AVFoundation` variant is new and is *correct* — `DexSound` genuinely needs both —
-so the count is three spellings for two reasons, which is one more than necessary.
-
-Harmless today. It was harmless in `VinodexApp.swift` too, until it was not.
+Two spellings for two reasons, which is the necessary number: the `AVFoundation`
+variant is *correct* — `DexSound` genuinely needs both — and stays. The bare
+`UIKit` guard was **A1**'s exact failure shape one module down; that shape is now
+out of the tree. No behavioural change on any platform that exists — SwiftUI
+ships everywhere UIKit does — and `scripts/typecheck-ios-surface.sh` never keyed
+on a spelling (it matches the `^#if canImport(` prefix); its comment now counts
+two, not three.
 
 ### A13 · Core's public surface has two outliers — **Resolved, with a correction**
 
@@ -1162,7 +1269,12 @@ the module; `ScannerScreen.swift` is **1,079** and has never been audited by any
 — it postdates every pass in all three documents. **A15** put both under
 `Screens/`, which is a better address, not a smaller file.
 
-### A3 · `.copy("Resources")` is right but unexplained — **Open, Low**
+### A3 · `.copy("Resources")` is right but unexplained — **Resolved**
+
+**Resolved (2026-08-04)** — the sentence is in: `Package.swift` now says
+`.process` would flatten the directory structure every lookup depends on —
+`subdirectory: "Resources"` for the six JSONs, the twelve `DexAsset` paths in
+VinodexUI — with a one-line cross-reference on the VinodexUI target.
 
 `Package.swift` gained a good comment block about the `#if` guards and the
 single-product constraint, and still says nothing about `.copy`. The reasoning is
@@ -1170,7 +1282,13 @@ worth one sentence: `.process` would flatten the directory structure that all 12
 call sites in **A22** depend on. The cost — it ships the directory verbatim — is now
 smaller than it was, since **L17** added orphan pruning.
 
-### A4 · Toolchain versions disagree, in three places now — **Open, Low**
+### A4 · Toolchain versions disagree, in three places now — **Resolved**
+
+**Resolved (2026-08-04)** — the README was the outlier and now agrees: every
+`Swift 6.3` claim (five by resolution time, not the two listed below) reads
+`6.0`, matching `swift-tools-version: 6.0` and CI's `container: swift:6.0`.
+Every other `6.3` in the tree is the app version `0.6.3` or the maintainer's
+"6.3.3" batch label, not a toolchain claim.
 
 - `Package.swift:1` — `// swift-tools-version: 6.0`
 - `README.md:14,100` — `Swift 6.3`
@@ -1179,13 +1297,18 @@ smaller than it was, since **L17** added orphan pruning.
 Still no `swiftSettings`, no `.swift-version`. Two-way disagreement became
 three-way. Pairs with **L22**, which pinned xtool at 1.17.0 and left Swift alone.
 
-### A5 · Core and UI are not products — **Open, Low**
+### A5 · Core and UI are not products — **Resolved**
 
-Unchanged. `VinodexCore` — now 29 files and 6,102 lines of deliberately portable,
-Linux-testable code with 21 test files against it — still cannot be consumed by a
-future macOS target, CLI validator, or snapshot harness. Adding a second `.library`
-costs nothing and does not disturb xtool's one-product expectation, since xtool
-resolves the product it is told to build.
+**Resolved (2026-08-05)** — `Package.swift` now declares three `.library`
+products: `Vinodex` (the app, unchanged), `VinodexCore` and `VinodexUI`, so the
+deliberately portable, Linux-testable Core is consumable by a future macOS
+target, CLI validator or snapshot harness without going through the app.
+Verified exactly as this item predicted: `swift build --product VinodexCore`
+and `--product VinodexUI` each build, the plain `swift build` is unchanged, and
+xtool is undisturbed because it resolves the product it is told to build. The
+manifest comment that claimed otherwise — "xtool expects exactly one library
+product" — was the one casualty; it now states the real constraint and
+cross-references this item.
 
 ### A8 · `WineEntry.destination` puts navigation policy on the model — **Open, note**
 
@@ -1373,9 +1496,25 @@ rather than a gap: floating ranges plus an *enforced* lockfile means CI and a
 maintainer's clone resolve identically by construction, not by the
 output-determinism luck this item called out. What `npm ci` does not fix is
 **B4** — the command still routes through `ts-node --esm`, which is the
-remaining fragile half of the regeneration story.
+remaining fragile half of the regeneration story *(retired 2026-08-04 — see
+B4)*.
 
-### B4 · The declared runner is unnecessary and is the fragile path — **Open, unchanged**
+### B4 · The declared runner is unnecessary and is the fragile path — **Resolved**
+
+**Resolved (2026-08-04), by the narrowed advice below, verbatim.**
+`"generate"` runs `node scripts/generate-ios-data.ts` — no loader, no
+runner — and `"generate:tsnode"` keeps the old command as the documented
+fallback for Node below 22.18, where type stripping is not yet on by default
+(the fallback's home is one sentence in KNOWN-ISSUES § repo layout, beside
+the dependency-free rule it shares a reason with). Verified on this host
+(v25.3.0, the known-fragile pairing the finding named): regeneration under
+bare `node` is **byte-identical**, which also retires the risk the swap
+carried — nothing in the outputs depended on ts-node's compile step. Two
+earlier fixes were the enablers, in the order the audit took them: **B12**'s
+three `.ts` extensions (native stripping does not resolve extensionless
+specifiers; ts-node did) and **B3**'s `.nvmrc`, which CI's `data` job resolves
+to current Node 22 — past 22.18, so the same bare-`node` path runs there with
+no flag. `ts-node` stays in devDependencies as the fallback it now is.
 
 `package.json:8` still runs the generator through `ts-node --esm`. The finding this
 item rests on is re-confirmed: `shared/` and `scripts/` contain no TS-only runtime
@@ -1432,7 +1571,13 @@ it, and the country pages get their data from `countries.json` instead.
 → **This item's remedy is retracted.** Deleting `countries.ts` and the
 `includeCountries` flag would delete the country screen's content.
 
-### B8 · The governance surface has already gone stale — **Open, unchanged**
+### B8 · The governance surface has already gone stale — **Resolved**
+
+**Resolved (2026-08-04)** — all three tells: `flavorIcon.ts` now names its real
+consumer (`scripts/generate-ios-data.ts`), keeping the `FlavorIcon.jsx` origin
+as explicit provenance; the `scripts/.generate.mjs` ignore line is gone; and
+`.gitattributes` justifies `text=auto` in the present tense — WSL against a
+Windows filesystem — with no reference to the retired publish flow.
 
 Both tells this item named are still there, verbatim:
 
@@ -1448,9 +1593,19 @@ These remain the tells that `shared/` is documented as a mirrored artifact rathe
 than as owned source — and see [the note below](#on-owning-shared-outright), because
 the ownership answer has genuinely changed since this was written.
 
-### B9 · The four-file write is not atomic — **Open, worse: six files**
+### B9 · The four-file write is not atomic — **Resolved**
 
-`generate-ios-data.ts:1379-1384` now writes **six** files in sequence, no try/catch,
+**Resolved (2026-08-04)** — write-temps → self-check → rename. All six files
+are written as `*.json.tmp`, `validateOutputs` runs against the temps (it grew
+a `suffix` parameter), and only then do six renames put them in place — so a
+crash *or a failed self-check* anywhere before the renames leaves the previous
+consistent set untouched, and a `finally` sweeps temps out of `Resources/` so
+a failed run cannot ship them into the bundle via `.copy`. The mismatch window
+shrinks from six serialised writes to six metadata renames, and `schema.json`
+renaming last — the **M45** signal for an interrupted first-ever generation —
+is now ordered deliberately rather than by write-order luck.
+
+`generate-ios-data.ts:1379-1384` wrote **six** files in sequence, no try/catch,
 no temp-then-rename:
 
 ```
@@ -1467,22 +1622,45 @@ its absence a CI-red condition via `#expect(loadNotices.isEmpty)`. So a crash be
 the final write now fails the build rather than shipping quietly. That is luck
 rather than design, and it only covers the last of six windows.
 
-### B10 · One coverage assertion can never fire — **Open, unchanged**
+### B10 · One coverage assertion can never fire — **Resolved**
 
-`STARTER_SELECTION` is still `undefined` at `:128`, so the flavour-count guard at
+**Resolved (2026-08-04)** — the band is gone; the invariant it gestured at is
+asserted directly, in every configuration. `buildFlavorEntries` emits exactly
+one FLAVORS entry per distinct trimmed/lowercased tasting note across its
+input grapes, so `assertCoverage` now recomputes that note count from the
+grapes that actually ship and requires the shipped flavour count to equal it —
+above means derivation ran over grapes that were then deselected, below means
+flavours were filtered on their own. 106 == 106 on the current database, and
+the guard no longer references `STARTER_SELECTION` at all, so it cannot die
+with it again.
+
+`STARTER_SELECTION` was still `undefined` at `:128`, so the flavour-count guard at
 `:1006` is still dead code. **L8** did the other half of this — `CURATED_SELECTION`
 is now a live documented export with rationale as the one-line revert path, and
 survives `noUnusedLocals` — but the assertion it was meant to protect still never
 runs.
 
-### B11 · The full database is built three times per run — **Open, unchanged**
+### B11 · The full database is built three times per run — **Resolved**
 
-`shared/constants.ts:317` still evaluates `WINE_ENTRIES = buildWineEntries()` at
+**Resolved (2026-08-04)** — one build per run. `main` reuses `full` when no
+selection is active (the `:1327`/`:1333` pair collapses), and the import-time
+`WINE_ENTRIES = buildWineEntries()` at `shared/constants.ts:317` is deleted
+outright: nothing in this repo imported it — it was a pure web-app convenience
+this repo re-paid on every run — which makes it the first web-only export
+actually retired under step 4 of [owning `shared/`](#on-owning-shared-outright).
+Regeneration is byte-identical, which doubles as proof the eager build had no
+side effects the outputs depended on.
+
+`shared/constants.ts:317` evaluated `WINE_ENTRIES = buildWineEntries()` at
 import time (a web-app convenience), and the generator still calls it twice more at
 `:1327` and `:1333`. Now **405 entries × 3**, with the eager one discarded. Still
 harmless, still a web-app side effect this repo pays for on every run.
 
-### B12 · Three extensionless relative imports — **Open, unchanged**
+### B12 · Three extensionless relative imports — **Resolved**
+
+**Resolved (2026-08-04)** — the three one-line edits, exactly as prescribed:
+all three files now match their siblings on `'../types.ts'`. `npm run
+typecheck` green, regeneration byte-identical.
 
 Exactly the same three files, exactly the same line:
 
@@ -1500,27 +1678,61 @@ item predicted they "would be caught the moment **B5** lands"; B5 landed
 extensionless type-only imports — so the fix is still the three one-line edits,
 not the typecheck.
 
-### B13 · `FLAGDIR` is derived from an overridable `OUTDIR` — **Open, unchanged**
+### B13 · `FLAGDIR` is derived from an overridable `OUTDIR` — **Resolved**
+
+**Resolved (2026-08-04)** — the sibling derivation now applies only to the
+default layout, where it is byte-for-byte the old expression. With a custom
+`[outdir]`, flags land inside it (`[outdir]/Flags`), and `FLAGDIR` overrides
+either arm. No current caller passes `$2` — CI and both runbooks use
+`npm run icons` bare — so nothing observable changed for them. Verified with a
+stub manifest against a scratch outdir: flags in `out/Flags`, no stray sibling
+created, `FLAGDIR` honored.
 
 `scripts/rasterize-icons.sh:158` — `FLAGDIR="$(dirname "$OUTDIR")/Flags"`. Passing a
-custom output directory as `$2`, documented as supported, still silently scatters 33
+custom output directory as `$2`, documented as supported, silently scattered 33
 flag PNGs into an unrelated sibling directory.
 
-### B14 · Rasterizer failures report no cause — **Open, unchanged**
+### B14 · Rasterizer failures report no cause — **Resolved**
 
-`scripts/rasterize-icons.sh:109` still discards `rsvg-convert` stderr via
-`2>/dev/null`, so a systemic failure surfaces only as `FAIL rasterize <icon>`.
+**Resolved (2026-08-04)** — stderr is captured per scale and printed indented
+under the FAIL line, with the failing scale and exit code
+(`rsvg-convert @1x exit 1: Error reading SVG: …`). Exercising the failure path
+for the first time found a second bug hiding behind it: an @1x failure leaves
+the `moves` array empty, and macOS's bash 3.2 treats expanding an empty array
+as unbound under `set -u` — so on a Mac, **L23**'s cleanup arm killed the whole
+run before any FAIL line printed. CI's bash 5 tolerates it, which is why it
+never surfaced. Fixed with the portable `${moves[@]+…}` expansion, in the same
+spirit as **M43**'s portable `mktemp`.
+
+`scripts/rasterize-icons.sh:109` discarded `rsvg-convert` stderr via
+`2>/dev/null`, so a systemic failure surfaced only as `FAIL rasterize <icon>`.
 
 **H12** fixed this class of problem elsewhere in the same file — a shared
 `resolve_source_dir()` replaced four copies of a message naming neither the path nor
 the remedy, and the Pillow/`art/` preflight names what it wanted — so the fix's
 shape is already in-tree and this one line was simply not reached.
 
-### B15 · The SVG sniff is trivially satisfiable — **Open, unchanged**
+### B15 · The SVG sniff is trivially satisfiable — **Resolved**
 
-`scripts/rasterize-icons.sh:91` still accepts any response whose first 200 bytes
+**Resolved (2026-08-04), as the remedy specified, with the thresholds
+measured rather than guessed.** The download now has to clear three checks,
+cheapest first: a 100-byte floor — the API's "Not found" body is 9 bytes and
+a small real glyph 371, both measured live against `api.iconify.design` the
+day of the fix, and both numbers are in the script comment — then a reject on
+`<!DOCTYPE html` / `<html` in the first 200 bytes, then the original `<svg`
+presence check. The middle check is the one that closes this item's exact
+scenario: an HTML error page embedding an inline `<svg>` logo passes the old
+sniff *and* the new size floor, and only the document check names it. All
+three FAIL arms and the pass arm were exercised end-to-end with stub
+`curl`/`rsvg-convert` against a scratch outdir, the same harness style
+**B13**/**B14** used; failures print which check fired and the run exits
+non-zero. auditS **L5** stays open on its vendoring core (**M40**, deferred),
+which would make the sniff unnecessary for the 68 shipped glyphs — this fix
+is the containment until that lands.
+
+`scripts/rasterize-icons.sh:91` accepted any response whose first 200 bytes
 contain `<svg`. An HTML error page embedding an inline logo would pass and be
-rasterised as the wrong glyph. = auditS **L5**, also open.
+rasterised as the wrong glyph. = auditS **L5**'s sniff half.
 
 → Also assert a minimum byte size and that the body does not start with
 `<!DOCTYPE html`. Cheap, and it pairs naturally with **M40**'s vendoring, which
@@ -1535,10 +1747,26 @@ Four of six steps done. Re-checked against the tree:
    runbook into a layout section** — **done.** README:114-117 and
    KNOWN-ISSUES § Repo layout both state it.
 3. **Resolve `countries.ts` (B7)** — **done**, by building the screen.
-4. **Retire web-only exports** — **not done, and still needs a tool.**
-   `noUnusedLocals` does not catch unused *exports*; this needs `ts-prune` or
-   `knip`, or delete-and-typecheck — which **B5** unblocked on 2026-08-03: the
-   typecheck half of that loop is now one `npm run typecheck` away.
+4. **Retire web-only exports** — **done (2026-08-04)**, by the
+   delete-and-typecheck loop rather than a new tool, exactly as **B5**
+   unblocked it. **34 exports deleted** across seven files — the nine
+   `constants.ts` re-exports (six collections, plus the
+   `FLAVOR_CLASS_COLORS`/`categorize*` passthrough whose stated purpose was
+   "existing consumers keep importing from `./constants`" — the existing
+   consumers were the web app), the whole `entryUtils` lookup family
+   (`normalizeKey` + aliases, `matchesEntryKey`, `findEntryByName`,
+   `findRelatedEntry`, both `findExact*`), the style-colour subtree
+   (`getColorType`/`getStyleColorType`/`StyleColorType`), the six `is*Entry`
+   type guards, `DataCategory`, `WineStyle`, `Pairing`, `isLightColor`,
+   `darkenHex`, `extractTagAbbrev`, `getStylePalette`, `isVariousOrigin` —
+   and **8 de-exported to module-private** where the value is load-bearing
+   but the export was not (the three `flavorIcon` maps, `FLAG_GRADIENTS` +
+   `DEFAULT_FLAG_GRADIENT` + `FlagGradient`, `CLIMATE_CLASSES`,
+   `normalizeLabel`). Net −223 lines. `npm run typecheck` green —
+   `noUnusedLocals` doubling as the cascade detector, since a de-exported
+   symbol that turns out unused is an error, not a survivor — and
+   regeneration is byte-identical, which is the proof the deleted code was
+   consumed by nothing the outputs depend on.
 5. **Rename the vocabulary** — **the premise is now wrong.** This step argued
    `shared/` "shares with nothing once the web app pivots." It shares with the web
    app *today*: `shared/pixelflags/` is a cross-repo master mirrored from
@@ -1589,10 +1817,13 @@ would have silently changed visible pixels on ten shipped glyphs.
    everything is here.~~ **Fixed.** (**X1**, **P1**) — replaced as the top item by
    **X2**, itself discharged 2026-08-04: the work is here, committed, and on
    `main`.
-2. **The documented regeneration command is half-fixed.** ~~Resolves unpinned
-   ranges~~ — CI installs with `npm ci` under a repo-pinned Node (**B3**, fixed
-   2026-08-03). It still needs network and still routes through a runner the
-   script does not need (**B4**).
+2. ~~**The documented regeneration command is half-fixed.**~~ **Fixed in
+   full.** ~~Resolves unpinned ranges~~ — CI installs with `npm ci` under a
+   repo-pinned Node (**B3**, fixed 2026-08-03), and the runner the script
+   never needed is retired: `npm run generate` is bare `node` (**B4**, fixed
+   2026-08-04). What genuinely remains is that `npm ci` needs network — which
+   is inherent to installing, not a defect, and the committed outputs mean a
+   Swift build never pays it.
 3. ~~**`npm run icons` cannot run on macOS at all.**~~ **Fixed** by **M43**. The
    iconify fetch is still unpinned (**M40**, deferred) and there is still no
    `--check` mode (**B2**).
@@ -1648,9 +1879,12 @@ over files A17 had already touched. What remains structural is **A7** and
 **A21**, and both wait on the same thing — a `VinodexUITests` target.
 
 **Release gates, scheduled together:**
-- **A2** — `PrivacyInfo.xcprivacy` (= auditS **H3**) and an Info.plist source
-  (= auditS **M6**). Hard App Store gate, currently owned by no AUDIT.md item. The
-  Info.plist source is also where **M37**'s blocked bundle version lands.
+- **A2** — ~~`PrivacyInfo.xcprivacy` (= auditS **H3**) and~~ an Info.plist source
+  (= auditS **M6**). The manifest half is **done, 2026-08-04** — written,
+  bundled at the VinodexApp resource-bundle root, CI-guarded. The Info.plist
+  source remains the open half; it is also where **M37**'s blocked bundle
+  version and the manifest's own `.app`-root promotion land, all behind the
+  same future signing pipeline.
 
 **Worth doing once there is a `VinodexUITests` target:**
 - **A21 / A7** — the target itself is the unblock. CI's `ios-test` job already

@@ -209,7 +209,7 @@ Re-check in a **separate** invocation before believing it.
 
 ## Build & test gotchas
 
-### `swift build` cannot see two-thirds of the app — run the typecheck script
+### `swift build` cannot see three-quarters of the app — run the typecheck script
 
 `swift build` reports **"Build complete!"** with a type error sitting in
 `VinodexUI`. UIKit does not exist on macOS or Linux, so every file guarded
@@ -367,7 +367,7 @@ downloads. Run long jobs inline in an attached session.
 
 ```bash
 npm install
-npm run generate          # rewrites the five JSON files under Sources/
+npm run generate          # rewrites the six JSON files under Sources/
 npm run icons             # needs rsvg-convert + Pillow + network
 ```
 
@@ -440,15 +440,16 @@ a subdirectory. It owns everything it needs:
 |---|---|
 | `Sources/`, `Tests/`, `Package.swift`, `xtool.yml` | the app |
 | `shared/` | data + colour tables, pure TS, zero dependencies |
-| `shared/pixelflags/` | pixel-art flags — the one art asset both repos consume, so it lives in the cross-repo master (`HGapps\shared`, mirrored by `sync-shared.ps1`) rather than in `art/`. Source for `Sources/VinodexUI/Resources/Flags` |
-| `art/` | drawn icon source art + audio masters, one folder per use |
-| `scripts/` | `generate-ios-data.ts`, `rasterize-icons.sh`, the four art importers, `verify-art.py` |
+| `shared/pixelflags/` | pixel-art flags — the one art asset both repos consume, so it lives in the cross-repo master (`HGapps\shared`, mirrored by `sync-shared.ps1`) rather than in `art/`. Source for `Sources/VinodexUI/Resources/Flags`. The pack is R74n's: credited in NOTICE.md, non-commercial without permission (auditS H2) — fine for dev builds; permission has been requested from R74n, and a first-party standby set sits at `art/flags/` for the paid release |
+| `art/` | drawn icon source art + audio masters + the standby code-drawn flag set (`art/flags/`, from `scripts/generate-flag-art.py`), one folder per use |
+| `scripts/` | `generate-ios-data.ts`, `rasterize-icons.sh`, `generate-flag-art.py`, the five art importers, `verify-art.py` |
 
 One remote, `origin` → `blaikooz/vinodex-ios`. Commit and open PRs here.
 
-**Keep `shared/` dependency-free.** The generator runs it under plain `ts-node`
-where nothing else is installed; a single `react` import there breaks data
-regeneration.
+**Keep `shared/` dependency-free.** The generator runs it under bare `node`
+(v22.18+ strips TypeScript types natively; `npm run generate:tsnode` is the
+ts-node fallback for older Node — arch B4) where nothing else is installed; a
+single `react` import there breaks data regeneration.
 
 ### It used to be a generated mirror
 

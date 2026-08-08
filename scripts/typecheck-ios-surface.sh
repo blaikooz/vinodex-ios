@@ -85,9 +85,9 @@ cd "$WORK" || exit 2
 find Sources -name '*.swift' > files.txt
 
 while read -r f; do
-    # Open the `#if canImport(...)` gate. Three spellings exist — SwiftUI &&
-    # UIKit, UIKit && AVFoundation, and bare UIKit — so match the prefix, not
-    # any one of them, or two files silently stay empty.
+    # Open the `#if canImport(...)` gate. Two spellings exist — SwiftUI &&
+    # UIKit, and UIKit && AVFoundation in DexSound.swift — so match the
+    # prefix, not any one of them, or a file silently stays empty.
     if head -1 "$f" | grep -q '^#if canImport(' && [ "$(tail -1 "$f")" = "#endif" ]; then
         t=$(wc -l < "$f")
         perl -i -pe "s{^.*\$}{// ungated} if \$. == 1 || \$. == $t" "$f"

@@ -1,8 +1,6 @@
 
 export type EntryCategory = 'GRAPES' | 'REGIONS' | 'STYLES' | 'FLAVORS' | 'MASTER_SEARCH' | 'WORLD_SEARCH' | 'COUNTRY_GATE' | 'CONTINENTS' | 'RETRO_GLOBE';
 
-export type DataCategory = 'GRAPES' | 'REGIONS' | 'STYLES' | 'FLAVORS' | 'CONTINENTS' | 'COUNTRY_GATE';
-
 export type RarityTier = 'common' | 'uncommon' | 'rare' | 'epic' | 'noble' | 'godforsaken';
 
 export type RarityLabel = 'COMMON' | 'UNCOMMON' | 'RARE' | 'NOBLE' | 'GODFORSAKEN';
@@ -42,16 +40,6 @@ export interface GrapeCard {
   info: string;
   // cross-links
   styleId?: string;
-}
-
-export interface WineStyle {
-  id: string;
-  name: string;
-  type: 'red' | 'white';
-  description: string;
-  tastingProfile?: TastingNote[];
-  notableGrapes?: string[];
-  keyRegions?: string[];
 }
 
 export type TastingNoteIcon =
@@ -189,15 +177,6 @@ export type WineEntry =
   | ContinentEntry
   | CountryGateEntry;
 
-// === Type guards ===
-
-export const isGrapeEntry = (e: WineEntry): e is GrapeEntry => e.category === 'GRAPES';
-export const isRegionEntry = (e: WineEntry): e is RegionEntry => e.category === 'REGIONS';
-export const isStyleEntry = (e: WineEntry): e is StyleEntry => e.category === 'STYLES';
-export const isFlavorEntry = (e: WineEntry): e is FlavorEntry => e.category === 'FLAVORS';
-export const isContinentEntry = (e: WineEntry): e is ContinentEntry => e.category === 'CONTINENTS';
-export const isCountryGateEntry = (e: WineEntry): e is CountryGateEntry => e.category === 'COUNTRY_GATE';
-
 // Raw legacy grape source — not part of the WineEntry union.
 // Consumed by grapeCards.ts and constants.ts to derive the canonical GrapeEntry shape.
 export interface LegacyGrapeRecord {
@@ -220,16 +199,4 @@ export interface LegacyGrapeRecord {
     synonyms?: string[];
     classification?: string;
   };
-}
-
-export interface Pairing {
-  code: string;
-  name: string;
-  category: string;
-  compatibility: string;
-  intensity: string;
-  reasoning: string;
-  color: string;
-  servingTemp: string;
-  examples: string[];
 }

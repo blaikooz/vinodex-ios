@@ -39,15 +39,55 @@ Format: `ID · Tag · issue · location → fix`, followed by the 2026-07-31 re-
 
 ## Status
 
-**11 resolved · 9 partial · 20 still open · 10 worse** — as of 2026-08-03.
+**21 resolved · 8 partial · 14 still open · 7 worse** — as of 2026-08-06.
 
 | Severity | Resolved | Partial | Open | Worse | Total |
 |---|---:|---:|---:|---:|---:|
 | Critical | 1 | 0 | 0 | 0 | 1 |
-| High | 0 | 1 | 4 | 0 | 5 |
-| Medium | 6 | 4 | 5 | 3 | 18 |
-| Low | 4 | 4 | 11 | 7 | 26 |
-| **Total** | **11** | **9** | **20** | **10** | **50** |
+| High | 1 | 2 | 2 | 0 | 5 |
+| Medium | 9 | 4 | 3 | 2 | 18 |
+| Low | 10 | 2 | 9 | 5 | 26 |
+| **Total** | **21** | **8** | **14** | **7** | **50** |
+
+**Movement 2026-08-04:** **H3** open → **resolved** — `PrivacyInfo.xcprivacy`
+exists, is bundled as a resource, and is guarded by CI (see the item; one
+signing-pipeline placement residual recorded). **L5**'s sniff half was hardened
+by arch **B15** the same day; the item stays open on its unpinned-fetch core
+(**M40**, deferred).
+
+**Movement 2026-08-05:** five Low items closed by a pass aimed directly at this
+file — **L8** open → **resolved** (StatBar range clamped via `Int(exactly:)`),
+**L6** partial → **resolved** (the generator now rejects an empty `free[]`),
+**L9** partial → **resolved** (python3 preflight, placed above the Pillow probe
+so the misdiagnosis cannot print first), **L17** open → **resolved** (free-id
+resolution pinned in AccessTests *and* mirrored in `validateOutputs`), **L23**
+worse → **resolved** (all three DateFormatter fixtures pin en_US_POSIX +
+Gregorian). Each closure is annotated on its item with what was verified and how.
+
+**Movement 2026-08-05, second batch — the owner answered, and the licensing row
+moved.** The maintainer resolved the five provenance questions in one sitting:
+LICENSE **all-rights-reserved** (the app will eventually charge), SFX
+**first-party**, map **first-party**, dataset **first-party** with the Sotheby's
+text to be purged upstream, and the flag pack identified as **R74n PixelFlags**
+— whose terms turn out to exist after all (R74n Content License v1.1, found via
+the site's `llms.txt`; vendored at `licenses/LICENSE-r74n.txt`). Landed the same
+day: top-level `LICENSE`, `NOTICE.md`, `licenses/`, the bundled
+`Sources/VinodexUI/Resources/Fonts/OFL.txt`, and `shared/PROVENANCE.md`.
+**M1 M2 M4 L1** open/worse → **resolved** · **H1** open → **partial** (in-app
+credits still owed) · **H2** stays open on its remaining half: R74n's license is
+credit + non-commercial, so the planned paid release needs written permission or
+first-party recreations drawn from the real flag designs, not R74n's pixels
+(their §4 claims derivatives).
+
+**Movement 2026-08-06 — H2's remedy built and shelved; no status change.** The
+recreation arm was executed but deliberately not shipped: a complete
+first-party flag set now sits at `art/flags/`
+(`scripts/generate-flag-art.py`, drawn in code from the official flag
+constructions, canvas contract matched, R74n's pixels never referenced per
+§4), while the owner keeps the credited R74n set shipping during
+non-commercial development and has emailed R74n for paid-release permission.
+**H2 stays open** on that condition alone — the swap is a one-block change in
+`rasterize-icons.sh` whenever it is needed. `Other/` stays **M5**'s.
 
 Movement since 2026-07-31 (`2 resolved · 7 partial · 27 open · 14 worse`):
 
@@ -66,9 +106,9 @@ commits had built *on top* of these findings rather than around them. See
 [What actually moved](#what-actually-moved).
 
 **Worse** means the described defect is intact *and* the surface it applies to
-grew. Ten remain, and the column is now almost entirely compliance and test
-hygiene: **M3 M4 M7** (trade dress, dataset provenance, privacy policy) and
-**L1 L3 L14 L18 L22 L23 L24**.
+grew. Seven remain — **L23**, then **M4** and **L1**, left the column on
+2026-08-05, resolved — and the column is now compliance and test hygiene:
+**M3 M7** (trade dress, privacy policy) and **L3 L14 L18 L22 L24**.
 
 **Bookkeeping correction to the 2026-07-31 table.** It reported Medium as
 `partial 4 / worse 4`; the items themselves said `partial 3 / worse 5`
@@ -82,18 +122,30 @@ was not. Nothing was re-litigated; the table above is counted from the items.
    `ios` job now pins C1's failure class permanently. See
    [The testing gap](#the-testing-gap).
 2. **H1 · H2 · M1 · M2** — the app ships 165 CC BY 3.0 icon PNGs, 33 pixel-art
-   flags, two OFL fonts and a 217 KB map with no LICENSE, no NOTICE and no in-app
-   credits anywhere. These are hard license conditions, not hygiene. **This is
-   now the only row on the list with nothing moving in it**, and AUDIT **M36**
-   records why: the top-level LICENSE is an ownership decision the maintainer has
-   deferred, and a `NOTICE` cannot be written until the SFX provenance question
-   is answered. Both are one-sentence answers from the owner, not engineering.
+   flags, two OFL fonts and a 217 KB map. These are hard license conditions, not
+   hygiene. *(2026-08-05: the owner answered both deferred questions — LICENSE:
+   all-rights-reserved; SFX: first-party — and `LICENSE`, `NOTICE.md`,
+   `licenses/` and the bundled `OFL.txt` landed at once. M1, M2, M4 and L1 are
+   done. What survives on this row: the in-app credits surface (H1) and the
+   flags' commercial condition (H2) — the pack is R74n's PixelFlags under the
+   R74n Content License v1.1, credit-required and non-commercial without
+   explicit permission, so a paid release needs R74n's written permission or
+   first-party recreations drawn from the real flag designs.)* *(2026-08-06: a
+   first-party replacement set was drawn and committed at `art/flags/`, ready
+   to swap in one `rasterize-icons.sh` block; the owner keeps the credited
+   R74n set shipping while development is non-commercial and has emailed R74n
+   for paid-release permission. H2 stays open on that condition; H1's in-app
+   credits surface also remains.)*
 3. **H3 · H4 · M6** — `PrivacyInfo.xcprivacy`, a real bundle ID and an Info.plist
    source. Each one independently blocks App Store submission. **M6's proposed
-   fix is now known to be non-viable** — see the item.
+   fix is now known to be non-viable** — see the item. *(2026-08-04: H3 is
+   done — the manifest exists, is bundled, and CI guards it. H4 and M6
+   remain, and both now wait on the same signing pipeline the manifest's
+   root-placement residual does.)*
 4. **L22 · L23 · L24** — the test suite's own defects, untouched while the suite
    grew from 15 files to 22. L24 is sharper than it was: its own premise has now
-   gone stale twice in a row.
+   gone stale twice in a row. *(2026-08-05: L23 is done — all three fixtures pin
+   locale and calendar. L22 and L24 remain.)*
 
 ## The testing gap
 
@@ -275,12 +327,28 @@ an empty list, and `Prosecco` was labelled a rosé because `colorType` matched
   same 55/12/1 split independently, and notes its own "11 lucide" was off by one.
   **The one thing that is no longer a question:** both fonts' licences were read
   straight out of their `name` tables (nameID 13/14) — Press Start 2P, *"Copyright
-  2012 The Press Start 2P Project Authors (cody@zone38.net), with Reserved Font
-  Name"*, SIL OFL 1.1; VT323, *"Copyright 2011, The VT323 Project Authors
-  (peter.hull@oikoi.com)"*, SIL OFL 1.1, no reserved name. Both ship unmodified, so
+  2012 The Press Start 2P Project Authors, with Reserved Font Name"*, SIL OFL 1.1;
+  VT323, *"Copyright 2011, The VT323 Project Authors"*, SIL OFL 1.1, no reserved
+  name. Both ship unmodified, so
   the RFN is satisfied. That is **M1**'s entire research half, done — see M1.
   **Now at** `README.md Credits; scripts/rasterize-icons.sh:81 (the fetch);
   Sources/VinodexUI/Resources/Icons/ (204 PNGs, 68 ids)`.
+  **@0805 PARTIAL — the NOTICE half landed; in-app credits remain.** `NOTICE.md`
+  now credits all 68 ids by artist: the 55 game-icons were mapped to their
+  authors via the game-icons repo tree — Delapouite 31, Lorc 16, Caro Asercion
+  3, sbed (death-skull), Lorc & sbed (clover), Rihlsul (chocolate-bar),
+  Willdabeast (gold-bar), and `rock` credited to both publishers of that id —
+  with the CC BY 3.0 link, a modifications note (recolor + rasterize, no shape
+  edits), the Lucide ISC/Feather-MIT text and the Apache-2.0 text vendored under
+  `licenses/`. Lucide detail the audit line missed: `circle` and `triangle` are
+  Feather-derived, so the MIT rider in Lucide's LICENSE applies to them; the
+  vendored file carries both parts. Still owed: the in-app credits surface —
+  CC BY's reasonable-to-the-medium standard wants attribution reachable from
+  the product, not only the repo.
+  **@0806 — deferred at the owner's direction.** The credits surface is
+  scheduled behind the release work, not forgotten; H1 stays partial by
+  choice. It re-enters scope with the release checklist, alongside H2's
+  permission-or-swap gate.
 
 - [ ] **H2** · Compliance · 465 pixel-art flag PNGs redistributed (28 shipped in-app) with no license or provenance — filenames like `r_vexillology.png` indicate an unattributed community pack · `pixelflags/` → identify the pack's origin and license; document rights or replace the artwork
   **@0731 STILL OPEN** — Completely unaddressed — not one commit has touched pixelflags/
@@ -288,7 +356,7 @@ an empty list, and `Prosecco` was labelled a rosé because `colorType` matched
   origin. The shipped surface ticked up by one flag (mexico.png, 28 -> 29). Two
   aggravating details the original audit did not call out. First, the redistributed pack
   is broader than flags: pixelflags/Other/Tech-Brands holds mcdonalds.png, twitter.png,
-  tiktok.png, youtube.png, discord.png, bluesky.png and email.png — pixel renderings of
+  tiktok.png, youtube.png, discord.png and bluesky.png — pixel renderings of
   registered trademarks — and pixelflags/Other/Organizations holds nato.png,
   olympics.png, united_nations.png, world_health_organization.png, royal_air_force.png
   and order_of_malta.png, several of which are protected by statute independently of
@@ -319,8 +387,40 @@ an empty list, and `Prosecco` was labelled a rosé because `colorType` matched
   *harder*, not easier: `git rm -r shared/pixelflags/Other` now has to be mirrored
   into the master or `sync-shared.ps1` puts it straight back. The shipped surface
   grew again, **29 → 33 flags**, with the batch-2 FR/IT/ES expansion.
+  **@0805 — origin and license identified; the item's untraceable-pack premise is
+  answered.** The pack is **PixelFlags by R74n** (r74n.com/pixelflags — "flags I
+  created in 2020 during the pandemic", 634 flags there now), and R74n *does*
+  publish terms, just not on the page: the **R74n Content License v1.1**
+  (r74n.com/license.txt, reachable via the site's `llms.txt`; vendored at
+  `licenses/LICENSE-r74n.txt`, which its own text permits). Terms: clear credit
+  required (§3 — `NOTICE.md` now provides it), **no commercial use without
+  explicit permission** (§2), removal on demand (§1), and derivatives of their
+  content are theirs to reuse freely (§4). So the redistribution half of this
+  item is cured — credited, license on file — but §2 makes the pack unusable in
+  the planned **paid** release: the owner's call (2026-08-05) is to obtain
+  written permission or recreate the 33 shipped flags first-party, and §4 means
+  a recreation must be drawn from the real flag designs, not R74n's pixels.
+  The 465-file pack (and its `Other/` trademark exposure) remains **M5**'s
+  deletion candidate, and any `git rm` still has to be mirrored into the
+  `HGapps\shared` master or `sync-shared.ps1` restores it.
+  **@0806 — the remedy is built and shelved; open only on the paid-release
+  condition.** A complete first-party replacement now exists: all 33 shipped
+  flags recreated as pixel art drawn in code from each flag's official
+  construction and published colors (`scripts/generate-flag-art.py` ->
+  `art/flags/<slug>.png`; canvas contract matched — 32x18 RGBA, hard alpha,
+  full-bleed, Switzerland square on transparency — so `icons.json` and every
+  consumer are untouched by the eventual swap). Per §4 the recreations were
+  drawn from the real flag designs, not R74n's pixels — R74n's files were
+  not opened during the work (only their PNG metadata: dimensions, alpha
+  coverage, palette sizes). The owner's call (2026-08-06): development
+  builds keep shipping the credited R74n set — non-commercial use, which the
+  license permits — and a permission request for the paid release has been
+  emailed to R74n. So the bundle still copies `shared/pixelflags/`, and
+  flipping the `rasterize-icons.sh` flag block to `art/flags/` is the whole
+  swap if permission is refused. `NOTICE.md` records the same status. The
+  465-file pack (and `Other/`) remains **M5**'s deletion candidate.
 
-- [ ] **H3** · Compliance · No PrivacyInfo.xcprivacy despite required-reason UserDefaults API use — guarantees ITMS-91053 App Store rejection · `Package.swift:29` → add PrivacyInfo.xcprivacy declaring UserDefaults category with reason CA92.1 and bundle it as a resource
+- [x] **H3** · Compliance · No PrivacyInfo.xcprivacy despite required-reason UserDefaults API use — guarantees ITMS-91053 App Store rejection · `Package.swift:29` → add PrivacyInfo.xcprivacy declaring UserDefaults category with reason CA92.1 and bundle it as a resource
   **@0731 STILL OPEN** — Not merely unfixed but materially larger: the required-reason
   UserDefaults surface grew from 3 files to 13 (a 4.3x increase) across the
   v0.5.0-v0.6.3 feature work, while the privacy manifest that must declare it still does
@@ -351,6 +451,31 @@ an empty list, and `Prosecco` was labelled a rosé because `colorType` matched
   longer just `ProfileAvatar`'s `avatar.jpg`, and the `NSPrivacyAccessedAPICategory
   FileTimestamp` (C617.1) question the item raises now has a second call site to
   answer for. `Package.swift`'s resource blocks are still untouched.
+  **@0804 FIXED** — `Sources/VinodexApp/PrivacyInfo.xcprivacy` exists, lints
+  (`plutil -lint`), and declares exactly one accessed-API category:
+  `NSPrivacyAccessedAPICategoryUserDefaults` / `CA92.1`, with
+  `NSPrivacyTracking=false` and empty tracking-domain and collected-data
+  arrays, as specified above. It rides the **VinodexApp** target (not the
+  VinodexUI path this item proposed) via `.copy` of the single file, which
+  puts it at the *root* of `Vinodex_VinodexApp.bundle` — the nesting concern
+  this item raised about `.copy("Resources")` was real, and the app-level
+  target is the honest owner since all three modules link into one binary.
+  **The C617.1 question is answered: no.** Both call sites this item flagged —
+  `ProfileAvatar` and the `SavedDataArchive` export — go through
+  `Data(contentsOf:)`/`write(to:)`/`removeItem` only; no
+  creationDate/modificationDate/attributesOfItem/stat call exists anywhere in
+  `Sources/`, and boot-time/disk-space/keyboard APIs are likewise absent. The
+  enumeration and the re-check recipe are recorded in the manifest's own
+  comment block. The CI guard this item asked for exists: the `test` job fails
+  if the file goes missing or stops declaring the UserDefaults category, so
+  the 3-to-13-files growth pattern cannot repeat unnoticed. **One residual,
+  recorded rather than left open** (same treatment as AUDIT M35's
+  unimplementable migration hook): Apple's scanner reads the `.app` bundle
+  root, and xtool has no passthrough to place a file there — the identical gap
+  that blocks **M6**'s Info.plist source and arch **P5**'s bundle version.
+  When a signing pipeline exists, promote this file to the `.app` root
+  alongside those; until then the resource-bundle root is the closest
+  placement the build system can express.
 
 - [ ] **H4** · Compliance · Placeholder bundleID `com.example.Vinodex` on a free profile blocks App Store/TestFlight, and nothing enforces its replacement · `xtool.yml:8` → register a real reverse-DNS App ID on a paid account; add a release check failing on `com.example` prefixes
   **@0731 STILL OPEN** — Both halves of the finding are untouched. The placeholder
@@ -436,7 +561,7 @@ an empty list, and `Prosecco` was labelled a rosé because `colorType` matched
 
 ## Medium
 
-- [ ] **M1** · Compliance · OFL fonts PressStart2P and VT323 redistributed (repo + app bundle) without the required OFL license text and copyright notices · `Sources/VinodexUI/Resources/Fonts/` → add OFL.txt with each font's copyright notice beside the .ttf files and bundle it
+- [x] **M1** · Compliance · OFL fonts PressStart2P and VT323 redistributed (repo + app bundle) without the required OFL license text and copyright notices · `Sources/VinodexUI/Resources/Fonts/` → add OFL.txt with each font's copyright notice beside the .ttf files and bundle it
   **@0731 STILL OPEN** — Unchanged in substance. The two .ttf files are byte-identical
   to the audit tree, still copied into the app bundle and registered at launch, and
   there is still no OFL.txt, no copyright notice, and no in-app credits surface. A
@@ -456,16 +581,22 @@ an empty list, and `Prosecco` was labelled a rosé because `colorType` matched
   clerical.** No `OFL.txt`; the two `.ttf` files are unchanged. What no longer needs
   investigating is the exact text OFL requires, which AUDIT **M36** read straight out
   of the fonts' own `name` tables (nameID 13/14): **Press Start 2P** — *"Copyright
-  2012 The Press Start 2P Project Authors (cody@zone38.net), with Reserved Font
-  Name"*, SIL OFL 1.1; **VT323** — *"Copyright 2011, The VT323 Project Authors
-  (peter.hull@oikoi.com)"*, SIL OFL 1.1, no reserved name. Both ship unmodified, so
+  2012 The Press Start 2P Project Authors, with Reserved Font Name"*, SIL OFL 1.1;
+  **VT323** — *"Copyright 2011, The VT323 Project Authors"*, SIL OFL 1.1, no
+  reserved name. Both ship unmodified, so
   the RFN is satisfied and no rename is needed. **Unlike H1 and M2, this item is not
   waiting on the maintainer** — the two copyright lines above plus the OFL 1.1 text
   in `Sources/VinodexUI/Resources/Fonts/OFL.txt` closes it, and it ships via the
   existing `.copy("Resources")`. Registration is now at
   `Sources/VinodexUI/DexTheme.swift:462` (the file was split by AUDIT M30).
+  **@0805 RESOLVED.** `Sources/VinodexUI/Resources/Fonts/OFL.txt` exists: both
+  fonts' copyright notices — re-extracted verbatim from the `.ttf` name tables
+  (nameID 0) this pass, not copied from this document — above the full OFL 1.1
+  body, shipping beside the `.ttf` files via the existing `.copy("Resources")`
+  with no target change. The repo-facing half is mirrored in `NOTICE.md`'s
+  Fonts section.
 
-- [ ] **M2** · Compliance · Publicly published repo has no LICENSE file and states no terms anywhere — defaults to all-rights-reserved while redistributing third-party content · `README.md:6` → choose and commit a top-level LICENSE, propagated by the monorepo publish script
+- [x] **M2** · Compliance · Publicly published repo has no LICENSE file and states no terms anywhere — defaults to all-rights-reserved while redistributing third-party content · `README.md:6` → choose and commit a top-level LICENSE, propagated by the monorepo publish script
   **@0731 STILL OPEN** — Still no LICENSE and still no statement of terms anywhere. The
   README gained a `## Credits` section since fb5dcf2 that names game-icons and the two
   fonts, but it grants nothing and states no terms — the repo remains implicit all-
@@ -490,6 +621,17 @@ an empty list, and `Prosecco` was labelled a rosé because `colorType` matched
   `GrapeArt` (33), `StyleArt` (30) — and `art/`, which AUDIT **H12** established is
   the only surviving copy of every drawn source. 501 binaries under `Sources/` now,
   up from 492.
+  **@0805 RESOLVED.** The ownership call arrived — **all-rights-reserved**, the
+  owner's explicit choice given the app will eventually charge — and the
+  top-level `LICENSE` landed with exactly the carve-out this item asked for: ARR
+  on first-party content, third-party components expressly excluded and
+  inventoried in `NOTICE.md` with texts under `licenses/` and beside the assets.
+  The ordering this item predicted (M2 → NOTICE → the rest) is how it fell:
+  H1's credits, M1's OFL.txt, L1's map record and M4's provenance doc all landed
+  in the same pass. Residual, recorded not blocking: the copyright line names
+  the git identity `mirrorfarm`; swap in the legal name or entity before store
+  submission (same decision L2's back-plate notice needs), and package.json
+  still has no `"license"` field — moot for the app, one line if wanted.
 
 - [ ] **M3** · Compliance · Chassis replicates Pokédex trade dress — #DC0A2D red, #98CB98 green LCD, blue orb lens, red/yellow/green LEDs, "-dex" naming (no Nintendo names/assets present) · `Sources/VinodexUI/DexTheme.swift:48` → differentiate chassis colorway, lens, and LED cluster; obtain legal review before release
   **@0731 WORSE** — Every element the audit named is still present in the default,
@@ -529,7 +671,7 @@ an empty list, and `Prosecco` was labelled a rosé because `colorType` matched
   Remedy (d) is a one-line deletion that has now survived two passes. The rest is
   unchanged, including (e): the review still covers Nintendo, Paramount and Apple.
 
-- [ ] **M4** · Compliance · Wine dataset authorship unrecorded while the upstream monorepo commits a copyrighted 4.5 MB Sotheby's encyclopedia as a data source · `KNOWN-ISSUES.md:284` → document dataset provenance in shared/, confirming independence from the Sotheby's text
+- [x] **M4** · Compliance · Wine dataset authorship unrecorded while the upstream monorepo commits a copyrighted 4.5 MB Sotheby's encyclopedia as a data source · `KNOWN-ISSUES.md:284` → document dataset provenance in shared/, confirming independence from the Sotheby's text
   **@0731 WORSE** — Two things moved and both moved the wrong way. The undocumented
   corpus grew from 284 to 375 entries (+32%) across shared/data/grapes.ts, regions.ts,
   styles.ts and countries.ts, with authorship still recorded nowhere. And the KNOWN-
@@ -558,6 +700,17 @@ an empty list, and `Prosecco` was labelled a rosé because `colorType` matched
   Sotheby's text noted at `KNOWN-ISSUES.md:284`", which no longer exists. So the
   record is not merely gone, it is now a dangling citation. Restoring a short note
   is still the first half of this fix, and it is cheaper than the checking half.
+  **@0805 RESOLVED.** `shared/PROVENANCE.md` exists with both halves the remedy
+  named: per-collection first-party authorship over all eight `shared/data/`
+  files (owner declaration, 2026-08-05; 405 entries — 146/116/106/31/6) and the
+  explicit statement that no text derives from
+  `sothebys-wine-encyclopedia-2005.raw.txt` — plus the restored standing record
+  that the file exists in `blaikooz/vinodex`, is not a source here, and is
+  scheduled for an upstream history purge, with the note written to outlive the
+  purge as its documentation. The checking half rests on the owner's recorded
+  assertion of authorship rather than a text diff; that is what the remedy's
+  "confirming independence" can mean for a 405-entry corpus, and the assertion
+  is now on the record with a date.
 
 - [ ] **M5** · Compliance · Repo redistributes pixel renderings of trademarked logos (McDonald's, TikTok, Twitter, YouTube, Discord, Olympic rings) that the app never uses · `pixelflags/Other/` → delete `pixelflags/Other`, or at minimum the brand-logo and Olympic files
   **@0731 STILL OPEN** — Byte-for-byte unchanged since the tree the audit was written
@@ -1101,7 +1254,7 @@ an empty list, and `Prosecco` was labelled a rosé because `colorType` matched
 
 ## Low
 
-- [ ] **L1** · Compliance · Bundled 217 KB world-map image has no recorded source, author, or license · `Sources/VinodexUI/Resources/Maps/updatedglobemap.jpg` → record the map's origin and license, or regenerate it from documented data
+- [x] **L1** · Compliance · Bundled 217 KB world-map image has no recorded source, author, or license · `Sources/VinodexUI/Resources/Maps/updatedglobemap.jpg` → record the map's origin and license, or regenerate it from documented data
   **@0731 WORSE** — The map itself is unchanged and still carries no recorded source,
   author, or license — the original defect is fully intact. It is WORSE rather than OPEN
   because the bundled-asset surface with no provenance grew from 350 to 492 binary files
@@ -1126,6 +1279,12 @@ an empty list, and `Prosecco` was labelled a rosé because `colorType` matched
   class: the 254 drawn PNGs regenerate from `art/`, verified 244/254 pixel-identical
   by `npm run icons:verify`, so their *derivation* is now reproducible even though
   their *rights* are still undocumented.
+  **@0805 RESOLVED.** Owner statement, 2026-08-05: the map was created
+  first-party. Recorded in `NOTICE.md`'s first-party inventory alongside the
+  SFX (same declaration) and the drawn art, all under the new top-level
+  `LICENSE` — which is the M2 answer this item was explicitly downstream of.
+  The whole-bundle coverage this item's remedy grew to ask for is exactly what
+  `NOTICE.md` now is: fonts, icons, flags, map, SFX, drawn art, dataset.
 
 - [ ] **L2** · Compliance · Back plate displays a fictitious "© HORIZON / ALL RIGHTS RESERVED" copyright notice · `Sources/VinodexUI/DeviceBackPlate.swift:160` → replace the HORIZON flavor text with the real rights holder or drop the notice
   **@0731 STILL OPEN** — The fictitious notice is still rendered, and the change since
@@ -1234,8 +1393,18 @@ an empty list, and `Prosecco` was labelled a rosé because `colorType` matched
   without a renderer: `python3 scripts/recompress-png.py --check
   Sources/VinodexUI/Resources/Icons` reports **204 files, 729,772 B, 204
   recompressible, 78,661 B (10.8%)** — four numbers that move if any PNG does.
+  **@0804 STILL OPEN, but the sniff half is hardened** (= arch **B15**, fixed).
+  The validation is no longer *only* a `<svg` match: the body must clear a
+  100-byte floor (measured live: the API's "Not found" body is 9 bytes, a
+  small real glyph 371), must not open as `<!DOCTYPE html`/`<html` — an HTML
+  error page embedding an inline `<svg>` logo defeated the old sniff and is
+  the exact body the new check names — and must still contain `<svg` in the
+  first 200 bytes. All three FAIL arms plus the pass arm were exercised
+  against stub curl/rsvg-convert. What keeps this item open is its core: the
+  fetch is still unpinned and checksum-free, which is **M40**, still deferred
+  at the maintainer's direction with the vendoring plan recorded above.
 
-- [ ] **L6** · Security · Missing or malformed tiers.json silently unlocks all paid entries and never surfaces in `decodeErrors`; the generator never asserts tiers output · `Sources/VinodexCore/WineDatabase.swift:253` → record the decode failure in `decodeErrors` (keeping fail-open) and assert `tiers.free` non-empty in the generator
+- [x] **L6** · Security · Missing or malformed tiers.json silently unlocks all paid entries and never surfaces in `decodeErrors`; the generator never asserts tiers output · `Sources/VinodexCore/WineDatabase.swift:253` → record the decode failure in `decodeErrors` (keeping fail-open) and assert `tiers.free` non-empty in the generator
   **@0731 PARTIAL** — v0.6.3's robustness spine genuinely closed the corrupt-manifest
   half — a malformed tiers.json now lands in decodeErrors and raises the launch alert
   seeded at VinodexApp.swift:28. Two gaps remain. (1) The generator assertion the audit
@@ -1271,6 +1440,14 @@ an empty list, and `Prosecco` was labelled a rosé because `colorType` matched
   short-circuit at `WineDatabase.swift:459`. This is a one-line change and it is the
   same line **L17** wants to extend. Note the free set is now 180 ids, all resolving
   — verified 2026-08-03.
+  **@0805 RESOLVED — gap (1) closed, with L17's mirror in the same block.**
+  `scripts/generate-ios-data.ts:1317-1319` now binds `free` once and rejects
+  `!Array.isArray(free) || free.length === 0` with **`'tiers.json missing or empty
+  free[]'`** — an emitted `{"free":[]}` fails the self-check against the temps, so
+  the rename never happens and the previous consistent set stays on disk.
+  Fault-injected to prove it fires: a build forced to emit `free: []` died with
+  exactly that message, exit 1; the real 180-of-405 set passes clean. With the
+  runtime half already in (@0803), both clauses of the remedy now hold.
 
 - [x] **L7** · Security · GlobeModel's display link is invalidated only via `onDisappear` with no deinit fallback, leaking ticks · `Sources/VinodexUI/RetroGlobeScreen.swift:344` → invalidate the display link from GlobeModel `deinit` as a fallback
   **@0731 STILL OPEN** — Unchanged. The run loop retains the CADisplayLink, which
@@ -1303,7 +1480,7 @@ an empty list, and `Prosecco` was labelled a rosé because `colorType` matched
   change. The restart guard in `start()` (`displayLink == nil`) landed in the same
   edit for that reason.
 
-- [ ] **L8** · Security · StatBar traps on negative or non-finite maximum via `ForEach(0..<Int(maximum))` — unreachable today but one data edit away · `Sources/VinodexUI/CatalogScreen.swift:258` → clamp the range with `max(0, Int(maximum.rounded()))`
+- [x] **L8** · Security · StatBar traps on negative or non-finite maximum via `ForEach(0..<Int(maximum))` — unreachable today but one data edit away · `Sources/VinodexUI/CatalogScreen.swift:258` → clamp the range with `max(0, Int(maximum.rounded()))`
   **@0731 STILL OPEN** — Completely unchanged, same line number as audited (258).
   `Int(maximum)` traps on NaN/infinity and `0..<n` with n<0 traps with 'Range requires
   lowerBound <= upperBound'. Still latent because no caller overrides `maximum`, but
@@ -1321,8 +1498,16 @@ an empty list, and `Prosecco` was labelled a rosé because `colorType` matched
   96pt well — and **left the `ForEach` alone**, which is worth knowing: someone was in
   this view, doing arithmetic on it, and this line survived. Still the cheapest fix in
   the file.
+  **@0805 RESOLVED.** Now at `Sources/VinodexUI/Screens/CatalogScreen.swift:305-306`
+  (the file moved under `Screens/`): the bar computes
+  `let segments = max(0, Int(exactly: maximum.rounded()) ?? 0)` and iterates
+  `ForEach(0..<segments, id: \.self)`. One notch safer than the proposed `isFinite`
+  guard: `Int(exactly:)` also returns nil for a rounded value past `Int.max`, which
+  `Int(maximum.rounded())` would still trap on. Negative, NaN, infinite and
+  out-of-range maxima all degrade to an empty bar. The iOS-surface shim reports no
+  new diagnostics against its baseline.
 
-- [ ] **L9** · Compliance · GNU-only `mktemp --suffix` kills the script immediately on macOS, and python3 is never preflighted · `scripts/rasterize-icons.sh:54` → use the portable mktemp template syntax and preflight python3 like rsvg-convert
+- [x] **L9** · Compliance · GNU-only `mktemp --suffix` kills the script immediately on macOS, and python3 is never preflighted · `scripts/rasterize-icons.sh:54` → use the portable mktemp template syntax and preflight python3 like rsvg-convert
   **@0731 PARTIAL** — Half resolved. The GNU-only `mktemp --suffix` is gone and the
   replacement is verified working under BSD mktemp, so the script no longer dies on line
   55 on macOS. The preflight half is untouched: python3 is invoked at lines 38, 108, 152
@@ -1354,6 +1539,14 @@ an empty list, and `Prosecco` was labelled a rosé because `colorType` matched
   **"Pillow not found"**, which is the wrong cause; the run then continues past the
   rsvg check and dies at `:64` with a bare `python3: command not found` under
   `set -euo pipefail`. Two lines beside the `rsvg-convert` check fix both.
+  **@0805 RESOLVED.** `command -v python3` is now a fatal preflight at
+  `rasterize-icons.sh:37-40` — placed *above* the Pillow probe rather than beside
+  the rsvg-convert check, deliberately: any later and a machine with no python3
+  still prints the "Pillow not found" misdiagnosis before dying. Verified by
+  running the script with python3 stripped from PATH: it exits 1 immediately with
+  `python3 not found (Linux: apt install python3 • macOS: brew install python)`,
+  and no probe runs. The mktemp half was already done (@0731, AUDIT M43), so the
+  item closes.
 
 - [ ] **L10** · Security · Manifest icon slugs and flag relpaths are interpolated into URLs, filenames, and `cp` paths without sanitization · `scripts/rasterize-icons.sh:112` → validate slugs, countries, and relpaths against a strict allowlist pattern
   **@0731 STILL OPEN** — Commit 26a2a3e ("harden rasterize-icons.sh") landed in this
@@ -1407,12 +1600,12 @@ an empty list, and `Prosecco` was labelled a rosé because `colorType` matched
   personal path is half right: d5383b5 did keep
   `/mnt/c/Users/StreetPC/Desktop/HGapps/...`, but the later commit 4b75fae replaced it
   with a drive path carrying no username and no home directory. No committed file at
-  HEAD leaks a Windows username, a home path, or an email address. A machine-specific
+  HEAD leaks a Windows username or a home path. A machine-specific
   absolute path (`/mnt/h/vscode-projects/HGapps/`) remains, but it identifies no person
   and is not what the finding described.
   **@0803 RESOLVED.** Re-grepped the whole tree for `StreetPC`, `/mnt/c/Users` and
-  home-directory patterns: **no committed file leaks a username, a home path or an
-  email address.** `KNOWN-ISSUES.md:198` now reads
+  home-directory patterns: **no committed file leaks a username or a home path.**
+  `KNOWN-ISSUES.md:198` now reads
   `wsl.exe -d xtool-ubuntu -- bash /mnt/c/Users/.../script.sh`, elided exactly as the
   remedy proposed. The machine-specific `/mnt/h/vscode-projects/HGapps/` at `:257`
   stays, and stays out of scope: it identifies a drive, not a person. Ticked rather
@@ -1537,7 +1730,7 @@ an empty list, and `Prosecco` was labelled a rosé because `colorType` matched
   test. **L26** wants the same function tested from the other end. Write one suite
   and both items shrink.
 
-- [ ] **L17** · Test · No test verifies every tiers.json free id resolves to an existing entry · `Sources/VinodexCore/WineDatabase.swift:243` → assert every `freeIDs` member resolves via `db.entry(id:)`
+- [x] **L17** · Test · No test verifies every tiers.json free id resolves to an existing entry · `Sources/VinodexCore/WineDatabase.swift:243` → assert every `freeIDs` member resolves via `db.entry(id:)`
   **@0731 STILL OPEN** — No test added in this range. The surface to drift grew:
   tiers.json free[] went 132 -> 153 ids and entries.json 284 -> 375, and both files are
   regenerated together by commits like 869c3b7, which is exactly the situation where a
@@ -1557,6 +1750,16 @@ an empty list, and `Prosecco` was labelled a rosé because `colorType` matched
   is purely an unguarded invariant, as it was. The `validateOutputs` half is the same
   line **L6** wants strengthened, and AUDIT **M3** rebuilt that function around
   declared contract tables, so both assertions now have an obvious shape to follow.
+  **@0805 RESOLVED, both halves.** `AccessTests.swift:87-97` adds `freeIDsResolve`:
+  `db.freeIDs` must be non-empty and every member must resolve via `db.entry(id:)`,
+  the failure message naming the stale id. And `validateOutputs` got the proposed
+  mirror at `generate-ios-data.ts:1320-1326`: every emitted free id must appear in
+  the emitted entries' id set, so the drift dies at generation time, before it can
+  be committed. Fault-injected to prove it fires: a fabricated `GRAPE_NOT_REAL`
+  appended to free[] failed the self-check with `tiers.json free id has no entry:
+  GRAPE_NOT_REAL`, exit 1. The real 180-id set passes at both ends. Landed
+  alongside **L6**'s emptiness guard — the two directions of the same invariant,
+  closed together.
 
 - [ ] **L18** · Test · `BookmarkStore.remove(_:)`, used by swipe-delete in BookmarksScreen, has zero test coverage · `Sources/VinodexCore/Bookmarks.swift:48` → add remove() present/absent tests and displayName assertions
   **@0731 WORSE** — WORSE: the untested method itself grew. At fb5dcf2 remove was 4
@@ -1718,7 +1921,7 @@ an empty list, and `Prosecco` was labelled a rosé because `colorType` matched
   stands and is the reason this has not been done casually: a helper that *returns* a
   store cannot clean up after itself.
 
-- [ ] **L23** · Test · The `date` fixture's DateFormatter omits en_US_POSIX locale and Gregorian calendar despite a fixed format · `Tests/VinodexCoreTests/DailyPickTests.swift:16` → set the formatter's locale to en_US_POSIX and calendar to Gregorian
+- [x] **L23** · Test · The `date` fixture's DateFormatter omits en_US_POSIX locale and Gregorian calendar despite a fixed format · `Tests/VinodexCoreTests/DailyPickTests.swift:16` → set the formatter's locale to en_US_POSIX and calendar to Gregorian
   **@0731 WORSE** — The original defect is untouched, and the new-since-audit
   MinigameTests copied it verbatim twice: a fixed `dateFormat` on a `DateFormatter` that
   inherits the process locale and calendar. On a machine whose region uses a non-
@@ -1749,6 +1952,14 @@ an empty list, and `Prosecco` was labelled a rosé because `colorType` matched
   `Calendar(identifier: .gregorian)`. And `MinigameTests.swift:197`'s fixture now
   feeds the six date tests AUDIT M32 added on 2026-08-03 — so the count of tests
   resting on a locale-dependent force-unwrap went up while the fixture stayed wrong.
+  **@0805 RESOLVED at all three sites.** `DailyPickTests.swift:20-21`,
+  `MinigameTests.swift:12-13` and `:206-207` now set
+  `f.locale = Locale(identifier: "en_US_POSIX")` and
+  `f.calendar = Calendar(identifier: .gregorian)` ahead of the fixed `dateFormat` —
+  consistent at last with the `utc` property three lines away. The stronger remedy
+  (one shared ISO8601 fixture hoisted into a helper file) was not taken: three
+  corrected copies remain, so a fourth suite could still copy rather than share.
+  The core-tests shim typechecks all 22 files clean.
   `DailyChallengeTests.swift:16` still shows the correct pattern
   (`ISO8601DateFormatter`), which is what should be hoisted.
   **This is also the cheapest of the three test-hygiene items** — two lines in three

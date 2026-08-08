@@ -1,4 +1,4 @@
-#if canImport(UIKit)
+#if canImport(SwiftUI) && canImport(UIKit)
 import UIKit
 import VinodexCore
 

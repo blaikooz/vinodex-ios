@@ -7,7 +7,7 @@ export interface ClimateClassMeta {
   colors: { bg: string; border: string; text: string };
 }
 
-export const CLIMATE_CLASSES: ClimateClassMeta[] = [
+const CLIMATE_CLASSES: ClimateClassMeta[] = [
   {
     id: 'maritime',
     name: 'Maritime',
