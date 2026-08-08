@@ -240,7 +240,7 @@ struct EntryShareCard: View {
             ) {
                 ForEach(chips) { chip in
                     Text(chip.label)
-                        .font(DexFont.retro(9))
+                        .font(DexFont.retro(10))
                         .tracking(0.8)
                         .lineLimit(1)
                         .minimumScaleFactor(0.55)
@@ -324,7 +324,7 @@ struct EntryShareCard: View {
                 ForEach(g.grapeCharacteristics.bars, id: \.label) { bar in
                     HStack(spacing: 6) {
                         Text(bar.label)
-                            .font(DexFont.retro(8))
+                            .font(DexFont.retro(10))
                             .tracking(0.8)
                             .foregroundStyle(lcd.subtext)
                             .frame(width: 62, alignment: .leading)
@@ -363,7 +363,7 @@ struct EntryShareCard: View {
                             .fill(Color(dexHex: note.color))
                             .frame(width: 7, height: 7)
                         Text(note.note.uppercased())
-                            .font(DexFont.retro(8))
+                            .font(DexFont.retro(10))
                             .tracking(0.6)
                             .foregroundStyle(lcd.bodyText)
                             .lineLimit(1)
@@ -572,7 +572,7 @@ struct ProfileShareCard: View {
                     .minimumScaleFactor(0.5)
             }
             Text(label)
-                .font(DexFont.retro(8))
+                .font(DexFont.retro(10))
                 .tracking(0.8)
                 .foregroundStyle(lcd.subtext)
                 .lineLimit(1)

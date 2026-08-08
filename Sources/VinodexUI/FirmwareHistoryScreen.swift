@@ -109,7 +109,7 @@ public struct FirmwareHistoryScreen: View {
                     .foregroundStyle(isCurrent ? lcd.accent : lcd.text)
                 if isCurrent {
                     Text("CURRENT")
-                        .font(DexFont.retro(8))
+                        .font(DexFont.retro(10))
                         .tracking(1)
                         .foregroundStyle(lcd.onAccent)
                         .padding(.horizontal, 6)

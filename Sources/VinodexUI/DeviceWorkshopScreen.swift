@@ -727,7 +727,7 @@ public struct DeviceWorkshopScreen: View {
                     .minimumScaleFactor(0.6)
                 if isFitted {
                     Text("FITTED")
-                        .font(DexFont.retro(8))
+                        .font(DexFont.retro(10))
                         .tracking(1)
                         .foregroundStyle(lcd.onAccent)
                         .padding(.horizontal, 6)

@@ -124,15 +124,19 @@ struct BackPlateStampView: View {
                 // **The title fits inside the stamp** (0.7.0, E1).
                 //
                 // It did not, and the reason is worth writing down because the
-                // number in the call below is a lie about what renders.
+                // number in the call below used to be a lie about what renders.
                 // `DexFont.retro` routes through `TypeScale.resolve`, which
-                // applies `nominalFloor` **before** the scale step — so
-                // `retro(6)` has never rendered at 6pt. It renders at
-                // `max(10, 6) × factor`, i.e. 8.5pt at SMALL and 11.5pt at
-                // HUGE. The floor is right (it is an accessibility guarantee and
-                // there is no arguing with it), but it silently promoted this
-                // one label by 67% at some point in 0.6.x, and nothing on this
-                // surface was re-measured afterwards.
+                // applies `nominalFloor` **before** the scale step — so the
+                // `retro(6)` this call said for years never rendered at 6pt. It
+                // rendered at `max(10, 6) × factor`, i.e. 8.5pt at SMALL and
+                // 11.5pt at HUGE. The floor is right (it is an accessibility
+                // guarantee and there is no arguing with it), but it silently
+                // promoted this one label by 67% at some point in 0.6.x, and
+                // nothing on this surface was re-measured afterwards.
+                //
+                // The call now writes `retro(10)` — the size that was always
+                // drawn. The measurements below were taken against that same
+                // rendered size and are unchanged by saying it out loud.
                 //
                 // At 11.5pt in the Press Start face — a full em per character —
                 // COMPLETE alone is ~96pt of advance, against the 56pt the old
@@ -151,7 +155,7 @@ struct BackPlateStampView: View {
                 // now COMPLETE at HUGE, which needs ~0.77 — inside the floor,
                 // with the glyph above absorbing whatever the second line costs.
                 Text(stamp.title)
-                    .font(DexFont.retro(6))
+                    .font(DexFont.retro(10))
                     .tracking(0.5)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
@@ -170,7 +174,7 @@ struct BackPlateStampView: View {
         }
         .overlay(alignment: .topTrailing) {
             Text(stamp.denomination)
-                .font(DexFont.retro(7))
+                .font(DexFont.retro(10))
                 .foregroundStyle(ink)
                 .padding(.top, 8)
                 .padding(.trailing, 9)

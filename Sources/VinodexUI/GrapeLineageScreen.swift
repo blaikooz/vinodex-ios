@@ -240,7 +240,7 @@ public struct GrapeLineageScreen: View {
         let shown = expanded ? nodes : Array(nodes.prefix(Self.tierLimit))
 
         let label = Text(caption)
-            .font(DexFont.retro(9))
+            .font(DexFont.retro(10))
             .tracking(1.5)
             .foregroundStyle(lcd.subtext)
         let tiles = FlowLayout(spacing: Self.tierSpacing, alignment: .center) {
@@ -280,7 +280,7 @@ public struct GrapeLineageScreen: View {
                         Image(systemName: expanded ? "chevron.up" : "chevron.down")
                             .font(.system(size: 11, weight: .bold))
                         Text(expanded ? "SHOW FEWER" : "SHOW ALL \(nodes.count)")
-                            .font(DexFont.retro(9))
+                            .font(DexFont.retro(10))
                             .tracking(1)
                     }
                     .foregroundStyle(lcd.accent)
@@ -320,7 +320,7 @@ public struct GrapeLineageScreen: View {
                     ForEach(groups, id: \.via) { group in
                         VStack(alignment: .leading, spacing: 8) {
                             Text("THROUGH \(group.via.uppercased())")
-                                .font(DexFont.retro(8))
+                                .font(DexFont.retro(10))
                                 .tracking(1.2)
                                 .foregroundStyle(lcd.subtext)
                             ForEach(showingAllSiblings ? group.members : Array(group.members.prefix(3))) { node in
@@ -578,7 +578,7 @@ struct LineageTile: View {
                     .foregroundStyle(isSubject ? lcd.text : (node.isNavigable ? lcd.text : lcd.subtext))
                 if let role = node.role {
                     Text(role == .mother ? "SEED" : "POLLEN")
-                        .font(DexFont.retro(8))
+                        .font(DexFont.retro(10))
                         .tracking(1)
                         .foregroundStyle(lcd.subtext)
                 }

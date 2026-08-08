@@ -626,7 +626,7 @@ public struct EntryDetailScreen: View {
                                 ? "1 MORE TASTING DEEPENS THIS PANEL."
                                 : "\(panel.toNextDepth) MORE TASTINGS DEEPEN THIS PANEL."
                         )
-                        .font(DexFont.retro(9))
+                        .font(DexFont.retro(10))
                         .tracking(1)
                         .foregroundStyle(lcd.subtext)
                         .padding(.top, 2)
@@ -1242,7 +1242,7 @@ public struct EntryDetailScreen: View {
                                 .font(DexFont.retro(11))
                                 .foregroundStyle(lcd.text)
                             Text(Self.lineageTeaser(family))
-                                .font(DexFont.retro(8))
+                                .font(DexFont.retro(10))
                                 .tracking(0.8)
                                 .foregroundStyle(lcd.subtext)
                                 .multilineTextAlignment(.leading)
@@ -1274,7 +1274,7 @@ public struct EntryDetailScreen: View {
                             .font(DexFont.retro(11))
                             .foregroundStyle(lcd.subtext)
                         Text("NO ESTABLISHED CROSS FOR THIS VARIETY")
-                            .font(DexFont.retro(8))
+                            .font(DexFont.retro(10))
                             .tracking(0.8)
                             .foregroundStyle(Dex.stone600)
                             .fixedSize(horizontal: false, vertical: true)
