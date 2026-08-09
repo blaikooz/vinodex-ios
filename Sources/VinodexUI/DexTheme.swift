@@ -2554,6 +2554,24 @@ public enum ChassisSkinSection: String, CaseIterable, Identifiable, Sendable {
 /// `.classic` is what the whole chassis used before this existed. It is the
 /// house device and the reference the others are variations on; changing it
 /// would move the baseline rather than add to it.
+/// The plain-colour half of a chassis skin's look, grouped by skin (S3, phase 1).
+///
+/// One row per skin instead of one `switch` per property. See
+/// `ChassisSkin.palette` for why this shape and not a dictionary.
+public struct ChassisSkinPalette: Sendable {
+    public let globeTint: Color
+    public let body: Color
+    public let footerWash: Color
+    public let panel: Color
+    public let panelEdge: Color
+    public let grill: Color
+    public let orb: Color
+    public let orbGlow: Color
+    public let marqueeText: Color
+    public let marqueeGrid: Color
+    public let marqueeShadow: Color
+}
+
 public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     case classic = "CLASSIC"
     case midnight = "MIDNIGHT"
@@ -2723,39 +2741,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     /// The globe screen's sphere tint (0.6.2, F1) — every skin sees the world
     /// through its own colour. Pale on purpose: the tint multiplies over the
     /// map texture, so a saturated dark here would swallow the coastlines.
-    public var globeTint: Color {
-        switch self {
-        case .classic: Color(dexHex: "#B8FFD6")
-        case .midnight: Color(dexHex: "#D6B8FF")
-        case .original: Color(dexHex: "#FFEDBB")
-        case .burgundy: Color(dexHex: "#E4C0FF")
-        case .riesling: Color(dexHex: "#FFF4A8")
-        case .vinhoVerde: Color(dexHex: "#D9FFB8")
-        case .glouglou: Color(dexHex: "#FFD9B0")
-        case .smartGrape: Color(dexHex: "#FFCB79")
-        case .champagne: Color(dexHex: "#FFF0C8")
-        case .christmas: Color(dexHex: "#FFC2C2")
-        case .nouveau: Color(dexHex: "#DDBBFF")
-        case .oaked: Color(dexHex: "#FFDDAF")
-        case .nocturne: Color(dexHex: "#CCFFB8")
-        case .steel: Color(dexHex: "#CDE7FF")
-        case .blush: Color(dexHex: "#FFCCDD")
-        // Console-boot blue — the cross button, paled for the multiply.
-        case .psvino: Color(dexHex: "#BBD4F5")
-        // The DMG screen's own pea-green, paled for the multiply.
-        case .grisDeGris: Color(dexHex: "#DCE8C4")
-        case .orangeWine: Color(dexHex: "#FFDF8A")
-        // Pencil blue on paper — the one skin whose globe should look
-        // like a drawing of a globe.
-        case .petNat: Color(dexHex: "#DCE3F0")
-        // Seen through bottle glass.
-        case .waldglas: Color(dexHex: "#DCEAC0")
-        // Jack-o'-lantern light.
-        case .halloween: Color(dexHex: "#FFD6A8")
-        // The shell's own violet, paled for the multiply.
-        case .w64: Color(dexHex: "#DCC8F5")
-        }
-    }
+    public var globeTint: Color { palette.globeTint }
 
     /// What sits behind the shell: the shell itself for opaque skins, a
     /// near-black base under GLOUGLOU so the smoke plastic has something to be
@@ -3018,181 +3004,18 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     }
 
     /// The moulding.
-    public var body: Color {
-        switch self {
-        case .classic: Dex.red
-        case .midnight: Dex.graphite
-        case .original: Dex.bone
-        case .burgundy: Dex.velour
-        case .riesling: Dex.walkman
-        case .vinhoVerde: Color(dexHex: "#24402B")
-        // Smoke plastic — the only translucent body; see `underlay`.
-        case .glouglou: Color(dexHex: "rgba(204,216,224,0.40)")
-        case .smartGrape: Color(dexHex: "#1C1C1E")
-        case .champagne: Color(dexHex: "#E8D5A6")
-        case .christmas: Color(dexHex: "#1B4332")
-        // Atomic-purple smoke — translucent, like GLOUGLOU; see `underlay`.
-        case .nouveau: Color(dexHex: "rgba(147,51,234,0.42)")
-        // The walnut base the grain pattern sits over.
-        case .oaked: Color(dexHex: "#5C4028")
-        case .nocturne: Color(dexHex: "#C9F2BE")
-        // The aluminium base the brush pattern sits over.
-        case .steel: Color(dexHex: "#C7CBD1")
-        // Soft rose-pink moulding.
-        case .blush: Color(dexHex: "#EEA7B6")
-        // DualShock matte charcoal — near-black with the plastic's warmth.
-        case .psvino: Color(dexHex: "#232427")
-        // Warm handheld grey, a shade off neutral the way ABS ages.
-        case .grisDeGris: Color(dexHex: "#C8C4BC")
-        case .orangeWine: Color(dexHex: "#E8720E")
-        // Cartridge paper, slightly warm — pure white reads as a blank
-        // canvas rather than as a sheet somebody drew on.
-        case .petNat: Color(dexHex: "#EFE9DC")
-        // Olive-green smoke — translucent, like GLOUGLOU; see `underlay`.
-        // The colour iron in wood ash gives glass nobody decolourised.
-        case .waldglas: Color(dexHex: "rgba(160,183,116,0.42)")
-        // Not black: a true #000 shell has no moulding in it at all. This
-        // is near-black with a violet cast, which is what reads as night.
-        case .halloween: Color(dexHex: "#17141A")
-        // Grape violet, and opaque: the reference era is remembered for
-        // translucency, and a fourth clear shell would file this under
-        // CLEARTECH beside three skins it has nothing else in common with.
-        // The colour is the quotation; the plastic is ours.
-        case .w64: Color(dexHex: "#4A2E8C")
-        }
-    }
+    public var body: Color { palette.body }
 
     /// Wash behind the footer row, a shade off the body.
-    public var footerWash: Color {
-        switch self {
-        case .classic: Dex.red.opacity(0.7)
-        case .midnight: Dex.graphite.opacity(0.75)
-        case .original: Dex.bone.opacity(0.75)
-        case .burgundy: Dex.velour.opacity(0.75)
-        case .riesling: Dex.walkman.opacity(0.7)
-        case .vinhoVerde: Color(dexHex: "#24402B").opacity(0.75)
-        case .glouglou: Color(dexHex: "rgba(204,216,224,0.28)")
-        case .smartGrape: Color(dexHex: "#1C1C1E").opacity(0.75)
-        case .champagne: Color(dexHex: "#E8D5A6").opacity(0.75)
-        case .christmas: Color(dexHex: "#1B4332").opacity(0.75)
-        case .nouveau: Color(dexHex: "rgba(147,51,234,0.30)")
-        // No wash at all (v0.5.9, A4). 0.5.8's frosted-pan fix swapped the
-        // translucent wash for a solid deeper walnut, which traded the haze
-        // for a solid bar — still a bar. The walnut grain runs uninterrupted
-        // behind the footer now; the buttons sit directly on the deck.
-        case .oaked: Color.clear
-        case .nocturne: Color(dexHex: "#C9F2BE").opacity(0.75)
-        case .steel: Color(dexHex: "#B8BCC2").opacity(0.8)
-        case .blush: Color(dexHex: "#EEA7B6").opacity(0.75)
-        case .psvino: Color(dexHex: "#232427").opacity(0.75)
-        case .grisDeGris: Color(dexHex: "#C8C4BC").opacity(0.75)
-        case .orangeWine: Color(dexHex: "#E8720E").opacity(0.75)
-        // No wash, like OAKED: a translucent bar across a sheet of paper
-        // is a smudge. The grain runs uninterrupted under the buttons.
-        case .petNat: Color.clear
-        case .waldglas: Color(dexHex: "rgba(160,183,116,0.28)")
-        case .halloween: Color(dexHex: "#17141A").opacity(0.75)
-        case .w64: Color(dexHex: "#4A2E8C").opacity(0.75)
-        }
-    }
+    public var footerWash: Color { palette.footerWash }
 
     /// The panel the LCD is set into — white on the classic shell.
-    public var panel: Color {
-        switch self {
-        case .classic: Dex.ui
-        case .midnight: Dex.graphitePanel
-        case .original: Dex.bonePanel
-        case .burgundy: Dex.velourPanel
-        case .riesling: Dex.walkmanPanel
-        case .vinhoVerde: Color(dexHex: "#2E4F36")
-        case .glouglou: Color(dexHex: "rgba(234,241,246,0.55)")
-        case .smartGrape: Color(dexHex: "#2C2A28")
-        case .champagne: Color(dexHex: "#F6EEDC")
-        case .christmas: Color(dexHex: "#F4F7F2")
-        case .nouveau: Color(dexHex: "rgba(216,180,254,0.50)")
-        // The cream faceplate against the walnut deck.
-        case .oaked: Color(dexHex: "#F2E8D5")
-        case .nocturne: Color(dexHex: "#E9FBE0")
-        case .steel: Color(dexHex: "#DDE0E4")
-        // The pale blush faceplate against the rose shell.
-        case .blush: Color(dexHex: "#FBE9EC")
-        // Console grey — the PS2's own two-tone: charcoal shell, grey deck.
-        case .psvino: Color(dexHex: "#3B3C41")
-        // The lighter grey faceplate the original brick set its screen into.
-        case .grisDeGris: Color(dexHex: "#DAD6CE")
-        case .orangeWine: Color(dexHex: "#F6A550")
-        // A second sheet laid on the first, a shade brighter.
-        case .petNat: Color(dexHex: "#F8F4EA")
-        case .waldglas: Color(dexHex: "rgba(214,229,178,0.55)")
-        case .halloween: Color(dexHex: "#241E2B")
-        // A deeper violet faceplate, so the LCD is set into the shell rather
-        // than floating on it.
-        case .w64: Color(dexHex: "#33206B")
-        }
-    }
+    public var panel: Color { palette.panel }
 
-    public var panelEdge: Color {
-        switch self {
-        case .classic: Dex.stone400
-        case .midnight: Dex.graphiteEdge
-        case .original: Dex.boneEdge
-        case .burgundy: Dex.velourEdge
-        case .riesling: Dex.walkmanEdge
-        case .vinhoVerde: Color(dexHex: "#16281B")
-        case .glouglou: Color(dexHex: "rgba(148,163,184,0.85)")
-        case .smartGrape: Color(dexHex: "#5A5148")
-        case .champagne: Color(dexHex: "#B49B62")
-        case .christmas: Color(dexHex: "#9CAF9C")
-        case .nouveau: Color(dexHex: "rgba(233,213,255,0.90)")
-        // A hint of brass around the cream.
-        case .oaked: Color(dexHex: "#B5892E")
-        case .nocturne: Color(dexHex: "#8FCB7C")
-        case .steel: Color(dexHex: "#6B7078")
-        case .blush: Color(dexHex: "#D2718A")
-        case .psvino: Color(dexHex: "#141517")
-        case .grisDeGris: Color(dexHex: "#8B8880")
-        case .orangeWine: Color(dexHex: "#8A4406")
-        // The ink itself — the geometric rim is drawn at very low
-        // opacity under the hand line, so the two do not read as two
-        // outlines. See `DeviceChassis.screenHousing`.
-        case .petNat: Color(dexHex: "#2B3244")
-        case .waldglas: Color(dexHex: "rgba(122,142,84,0.85)")
-        case .halloween: Color(dexHex: "#0C0A10")
-        case .w64: Color(dexHex: "#1D1145")
-        }
-    }
+    public var panelEdge: Color { palette.panelEdge }
 
     /// Speaker grill slats.
-    public var grill: Color {
-        switch self {
-        case .classic: Dex.stone400
-        case .midnight: Dex.stone600
-        case .original: Dex.stone400
-        case .burgundy: Dex.velourEdge
-        case .riesling: Dex.walkmanEdge
-        case .vinhoVerde: Color(dexHex: "#16281B")
-        // Opaque on purpose: the slats sit over the internals and would
-        // otherwise vanish into them.
-        case .glouglou: Color(dexHex: "#64748B")
-        case .smartGrape: Color(dexHex: "#5A5148")
-        case .champagne: Color(dexHex: "#B49B62")
-        case .christmas: Color(dexHex: "#9CAF9C")
-        // Opaque over the internals, like GLOUGLOU's.
-        case .nouveau: Color(dexHex: "#7C3AED")
-        case .oaked: Color(dexHex: "#8A6B45")
-        case .nocturne: Color(dexHex: "#8FCB7C")
-        case .steel: Color(dexHex: "#6B7078")
-        case .blush: Color(dexHex: "#C8879A")
-        case .psvino: Color(dexHex: "#55575E")
-        case .grisDeGris: Color(dexHex: "#9A968E")
-        case .orangeWine: Color(dexHex: "#A85708")
-        case .petNat: Color(dexHex: "#4A5468")
-        // Opaque over the internals, like GLOUGLOU's and RETROVIN's.
-        case .waldglas: Color(dexHex: "#6C8348")
-        case .halloween: Color(dexHex: "#4A3F55")
-        case .w64: Color(dexHex: "#8B6FD4")
-        }
-    }
+    public var grill: Color { palette.grill }
 
     // MARK: Parts
     //
@@ -3203,89 +3026,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     // indicators are a different colour, and as a paint job when they are not.
 
     /// The glass orb on the island strip.
-    public var orb: Color {
-        switch self {
-        case .classic: Dex.cyan300
-        // Pinot noir after dark: amethyst rather than ice.
-        case .midnight: Color(dexHex: "#d8b4fe")
-        // A champagne bead on the pale shell — cyan vanished against bone.
-        case .original: Color(dexHex: "#ffd76e")
-        // Deep purple, matching the buttons — the whole powered set on this
-        // shell now runs one colour, like a single dye lot.
-        case .burgundy: Color(dexHex: "#7c3aed")
-        // A red signal lamp on the yellow shell — the one saturated colour the
-        // grey-buttoned livery leaves room for.
-        case .riesling: Color(dexHex: "#ef4444")
-        // The DMG's own pea-green screen, reborn as a lamp.
-        case .vinhoVerde: Color(dexHex: "#9BBC0F")
-        case .glouglou: Color(dexHex: "#FB923C")
-        // Calculator-orange, the operator key.
-        case .smartGrape: Color(dexHex: "#FF9F0A")
-        // A gold bead in a gold shell — one dye lot, like burgundy's purple.
-        case .champagne: Color(dexHex: "#F5D97E")
-        // Holly red, completing the set: caps, Home, lamps and orb all run
-        // red on the wrapping paper (was fairy-light gold through 0.5.3).
-        case .christmas: Color(dexHex: "#FF4D4D")
-        // Grape juice under gloss.
-        case .nouveau: Color(dexHex: "#A855F7")
-        // A polished chestnut knob on the walnut (v0.5.8, C1 — was brass).
-        // Lighter than the #5C4028 body so it still reads as a lamp.
-        case .oaked: Color(dexHex: "#B06A32")
-        // The one part that is *always* charged.
-        case .nocturne: Color(dexHex: "#7CFC9A")
-        // Ice on silver.
-        case .steel: Color(dexHex: "#E8F1FF")
-        // A pearl-pink bead — the one saturated light on the pastel shell.
-        case .blush: Color(dexHex: "#FF7FA8")
-        // The analog-stick LED: cross-button blue on the charcoal.
-        case .psvino: Color(dexHex: "#5B93D8")
-        // The power lamp, in the caps own red.
-        case .grisDeGris: Color(dexHex: "#E23E3E")
-        // Hazard yellow: the buttons are black, so the orb is the only thing
-        // on this shell allowed to look lit.
-        case .orangeWine: Color(dexHex: "#FFD22E")
-        // A wash of ink where the lamp is — the drawn device's one
-        // concession to looking powered.
-        case .petNat: Color(dexHex: "#7FA6D8")
-        // A bright bead of the same glass, lit from behind.
-        case .waldglas: Color(dexHex: "#C9E86A")
-        // The candle inside the lantern — the one lit thing on a shell
-        // whose buttons are deliberately unlit.
-        case .halloween: Color(dexHex: "#FF8A1F")
-        // The power lamp, in the fourth face colour — the one this livery
-        // has spare once green, blue and red are on the lamp trio.
-        case .w64: Color(dexHex: "#F2C93A")
-        }
-    }
+    public var orb: Color { palette.orb }
 
     /// Its halo. Deeper than `orb` in every case — the glow reads as the orb's
     /// own colour bleeding out, not as a second light behind it.
-    public var orbGlow: Color {
-        switch self {
-        case .classic: Dex.blue
-        case .midnight: Color(dexHex: "#a855f7")
-        case .original: Color(dexHex: "#f0b429")
-        case .burgundy: Color(dexHex: "#5b21b6")
-        case .riesling: Color(dexHex: "#b91c1c")
-        case .vinhoVerde: Color(dexHex: "#8BAC0F")
-        case .glouglou: Color(dexHex: "#EA580C")
-        case .smartGrape: Color(dexHex: "#C97800")
-        case .champagne: Color(dexHex: "#D4A017")
-        case .christmas: Color(dexHex: "#A61E1E")
-        case .nouveau: Color(dexHex: "#7C3AED")
-        case .oaked: Color(dexHex: "#7A4218")
-        case .nocturne: Color(dexHex: "#3EE06C")
-        case .steel: Color(dexHex: "#9FB8D8")
-        case .blush: Color(dexHex: "#E1447E")
-        case .psvino: Color(dexHex: "#2E6DB4")
-        case .grisDeGris: Color(dexHex: "#8F1414")
-        case .orangeWine: Color(dexHex: "#C99000")
-        case .petNat: Color(dexHex: "#3E6FA8")
-        case .waldglas: Color(dexHex: "#7A9A2E")
-        case .halloween: Color(dexHex: "#B34700")
-        case .w64: Color(dexHex: "#B58A0C")
-        }
-    }
+    public var orbGlow: Color { palette.orbGlow }
 
     /// Home, and anything else built to look powered.
     public var accent: ChassisAccent {
@@ -3792,105 +3537,431 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     /// Marquee phosphor. Period LED strips came in green, amber, red and blue,
     /// so this is the one part where a colour change is period-correct rather
     /// than merely decorative.
-    public var marqueeText: Color {
-        switch self {
-        case .classic: Dex.green500
-        case .midnight: Color(dexHex: "#c084fc")
-        case .original: Color(dexHex: "#fbbf24")
-        case .burgundy: Color(dexHex: "#f9a8d4")
-        case .riesling: Dex.green500
-        case .vinhoVerde: Color(dexHex: "#9BBC0F")
-        case .glouglou: Color(dexHex: "#FB923C")
-        case .smartGrape: Color(dexHex: "#FF9F0A")
-        case .champagne: Color(dexHex: "#F2C14E")
-        case .christmas: Color(dexHex: "#FF6B6B")
-        case .nouveau: Color(dexHex: "#C084FC")
-        case .oaked: Color(dexHex: "#FFB84D")
-        case .nocturne: Color(dexHex: "#86FF7E")
-        case .steel: Color(dexHex: "#9FD4FF")
-        // Pink phosphor — period LED strips never came in pink, but this is
-        // the one skin allowed to care more about the look than the period.
-        case .blush: Color(dexHex: "#FF9EC0")
-        // Boot-screen blue phosphor.
-        case .psvino: Color(dexHex: "#7DB2F0")
-        // The pea-green screen, kept as the one thing on this device that is
-        // still a display. Stepped off BOX WINE #9BBC0F so the two handheld
-        // homages do not glow the identical green.
-        case .grisDeGris: Color(dexHex: "#A6C550")
-        case .orangeWine: Color(dexHex: "#FFC93C")
-        // A highlighter stripe. The one panel on the device that is
-        // filled rather than outlined, because a marquee has to read as
-        // lit and there is no drawn equivalent of lit.
-        case .petNat: Color(dexHex: "#E8DF7A")
-        case .waldglas: Color(dexHex: "#B8D96A")
-        case .halloween: Color(dexHex: "#FFA23C")
-        // Period-correct green, and the fifth green strip in the range —
-        // stepped clear of BOX WINE's #9BBC0F and GRIS DE GRIS's #A6C550 so
-        // the three homages do not glow the identical colour, which is the
-        // note GRIS DE GRIS's own entry above records.
-        case .w64: Color(dexHex: "#7FD98A")
-        }
-    }
+    public var marqueeText: Color { palette.marqueeText }
 
     /// The faint grid behind the phosphor, and the colour its letters are cut
     /// out of. One step deeper, so the strip still reads as glass over a grid.
-    public var marqueeGrid: Color {
-        switch self {
-        case .classic: Dex.green
-        case .midnight: Color(dexHex: "#a855f7")
-        case .original: Color(dexHex: "#f59e0b")
-        case .burgundy: Color(dexHex: "#ec4899")
-        case .riesling: Color(dexHex: "#16a34a")
-        case .vinhoVerde: Color(dexHex: "#8BAC0F")
-        case .glouglou: Color(dexHex: "#F97316")
-        case .smartGrape: Color(dexHex: "#E08600")
-        case .champagne: Color(dexHex: "#D4A017")
-        case .christmas: Color(dexHex: "#E03131")
-        case .nouveau: Color(dexHex: "#A855F7")
-        case .oaked: Color(dexHex: "#E69A28")
-        case .nocturne: Color(dexHex: "#57D63E")
-        case .steel: Color(dexHex: "#5FA8E8")
-        case .blush: Color(dexHex: "#F472B6")
-        case .psvino: Color(dexHex: "#2E6DB4")
-        case .grisDeGris: Color(dexHex: "#7E9B2E")
-        case .orangeWine: Color(dexHex: "#E0A100")
-        case .petNat: Color(dexHex: "#BFB55A")
-        case .waldglas: Color(dexHex: "#8AA83E")
-        case .halloween: Color(dexHex: "#E0670A")
-        case .w64: Color(dexHex: "#3A9A44")
-        }
-    }
+    public var marqueeGrid: Color { palette.marqueeGrid }
 
     /// Hard drop shadow under each glyph on the strip — a very dark form of the
     /// phosphor, which is what makes the letters look lit rather than printed.
-    public var marqueeShadow: Color {
-        switch self {
-        case .classic: Color(dexHex: "#082010")
-        case .midnight: Color(dexHex: "#1e0b32")
-        case .original: Color(dexHex: "#301a02")
-        case .burgundy: Color(dexHex: "#3b0723")
-        case .riesling: Color(dexHex: "#082010")
-        case .vinhoVerde: Color(dexHex: "#0F380F")
-        case .glouglou: Color(dexHex: "#33130A")
-        case .smartGrape: Color(dexHex: "#331F04")
-        case .champagne: Color(dexHex: "#33240A")
-        case .christmas: Color(dexHex: "#240808")
-        case .nouveau: Color(dexHex: "#22083B")
-        case .oaked: Color(dexHex: "#33200A")
-        case .nocturne: Color(dexHex: "#0E2E0C")
-        case .steel: Color(dexHex: "#0A1A2A")
-        case .blush: Color(dexHex: "#3B0A1E")
-        case .psvino: Color(dexHex: "#08182E")
-        case .grisDeGris: Color(dexHex: "#16240A")
-        case .orangeWine: Color(dexHex: "#33220A")
-        case .petNat: Color(dexHex: "#2B3244")
-        case .waldglas: Color(dexHex: "#1A240A")
-        case .halloween: Color(dexHex: "#2B1200")
-        case .w64: Color(dexHex: "#08240E")
-        }
-    }
+    public var marqueeShadow: Color { palette.marqueeShadow }
 
     // `next` retired in 0.7.6 (A1) — see the note where `LcdMode.next` was.
+
+    /// Every value this skin owns that is a plain colour, in one place.
+    ///
+    /// **This replaced eleven parallel `switch self` statements.** They held no
+    /// logic — 1,339 lines of `ChassisSkin` contain three conditional lines and
+    /// no property reads another — so they were a constant table written in
+    /// switch syntax, transposed: each column a function, each row repeated
+    /// twenty-two times. Adding a skin meant editing eleven switches in eleven
+    /// places and hoping none was missed.
+    ///
+    /// Grouped by skin because the skin is the thing that gets added. It stays a
+    /// `switch` rather than a dictionary on purpose: the compiler then refuses a
+    /// new case until it has every value, which a `[ChassisSkin: ...]` lookup
+    /// would trade for a runtime `nil` and a force unwrap.
+    ///
+    /// Every expression here was moved verbatim from the switch it came from.
+    private var palette: ChassisSkinPalette {
+        switch self {
+        case .classic:
+            ChassisSkinPalette(
+                globeTint: Color(dexHex: "#B8FFD6"),
+                body: Dex.red,
+                footerWash: Dex.red.opacity(0.7),
+                panel: Dex.ui,
+                panelEdge: Dex.stone400,
+                grill: Dex.stone400,
+                orb: Dex.cyan300,
+                orbGlow: Dex.blue,
+                marqueeText: Dex.green500,
+                marqueeGrid: Dex.green,
+                marqueeShadow: Color(dexHex: "#082010")
+            )
+        case .midnight:
+            ChassisSkinPalette(
+                globeTint: Color(dexHex: "#D6B8FF"),
+                body: Dex.graphite,
+                footerWash: Dex.graphite.opacity(0.75),
+                panel: Dex.graphitePanel,
+                panelEdge: Dex.graphiteEdge,
+                grill: Dex.stone600,
+                // Pinot noir after dark: amethyst rather than ice.
+                orb: Color(dexHex: "#d8b4fe"),
+                orbGlow: Color(dexHex: "#a855f7"),
+                marqueeText: Color(dexHex: "#c084fc"),
+                marqueeGrid: Color(dexHex: "#a855f7"),
+                marqueeShadow: Color(dexHex: "#1e0b32")
+            )
+        case .original:
+            ChassisSkinPalette(
+                globeTint: Color(dexHex: "#FFEDBB"),
+                body: Dex.bone,
+                footerWash: Dex.bone.opacity(0.75),
+                panel: Dex.bonePanel,
+                panelEdge: Dex.boneEdge,
+                grill: Dex.stone400,
+                // A champagne bead on the pale shell — cyan vanished against bone.
+                orb: Color(dexHex: "#ffd76e"),
+                orbGlow: Color(dexHex: "#f0b429"),
+                marqueeText: Color(dexHex: "#fbbf24"),
+                marqueeGrid: Color(dexHex: "#f59e0b"),
+                marqueeShadow: Color(dexHex: "#301a02")
+            )
+        case .burgundy:
+            ChassisSkinPalette(
+                globeTint: Color(dexHex: "#E4C0FF"),
+                body: Dex.velour,
+                footerWash: Dex.velour.opacity(0.75),
+                panel: Dex.velourPanel,
+                panelEdge: Dex.velourEdge,
+                grill: Dex.velourEdge,
+                // Deep purple, matching the buttons — the whole powered set on this
+                // shell now runs one colour, like a single dye lot.
+                orb: Color(dexHex: "#7c3aed"),
+                orbGlow: Color(dexHex: "#5b21b6"),
+                marqueeText: Color(dexHex: "#f9a8d4"),
+                marqueeGrid: Color(dexHex: "#ec4899"),
+                marqueeShadow: Color(dexHex: "#3b0723")
+            )
+        case .riesling:
+            ChassisSkinPalette(
+                globeTint: Color(dexHex: "#FFF4A8"),
+                body: Dex.walkman,
+                footerWash: Dex.walkman.opacity(0.7),
+                panel: Dex.walkmanPanel,
+                panelEdge: Dex.walkmanEdge,
+                grill: Dex.walkmanEdge,
+                // A red signal lamp on the yellow shell — the one saturated colour the
+                // grey-buttoned livery leaves room for.
+                orb: Color(dexHex: "#ef4444"),
+                orbGlow: Color(dexHex: "#b91c1c"),
+                marqueeText: Dex.green500,
+                marqueeGrid: Color(dexHex: "#16a34a"),
+                marqueeShadow: Color(dexHex: "#082010")
+            )
+        case .vinhoVerde:
+            ChassisSkinPalette(
+                globeTint: Color(dexHex: "#D9FFB8"),
+                body: Color(dexHex: "#24402B"),
+                footerWash: Color(dexHex: "#24402B").opacity(0.75),
+                panel: Color(dexHex: "#2E4F36"),
+                panelEdge: Color(dexHex: "#16281B"),
+                grill: Color(dexHex: "#16281B"),
+                // The DMG's own pea-green screen, reborn as a lamp.
+                orb: Color(dexHex: "#9BBC0F"),
+                orbGlow: Color(dexHex: "#8BAC0F"),
+                marqueeText: Color(dexHex: "#9BBC0F"),
+                marqueeGrid: Color(dexHex: "#8BAC0F"),
+                marqueeShadow: Color(dexHex: "#0F380F")
+            )
+        case .glouglou:
+            ChassisSkinPalette(
+                globeTint: Color(dexHex: "#FFD9B0"),
+                // Smoke plastic — the only translucent body; see `underlay`.
+                body: Color(dexHex: "rgba(204,216,224,0.40)"),
+                footerWash: Color(dexHex: "rgba(204,216,224,0.28)"),
+                panel: Color(dexHex: "rgba(234,241,246,0.55)"),
+                panelEdge: Color(dexHex: "rgba(148,163,184,0.85)"),
+                // Opaque on purpose: the slats sit over the internals and would
+                // otherwise vanish into them.
+                grill: Color(dexHex: "#64748B"),
+                orb: Color(dexHex: "#FB923C"),
+                orbGlow: Color(dexHex: "#EA580C"),
+                marqueeText: Color(dexHex: "#FB923C"),
+                marqueeGrid: Color(dexHex: "#F97316"),
+                marqueeShadow: Color(dexHex: "#33130A")
+            )
+        case .smartGrape:
+            ChassisSkinPalette(
+                globeTint: Color(dexHex: "#FFCB79"),
+                body: Color(dexHex: "#1C1C1E"),
+                footerWash: Color(dexHex: "#1C1C1E").opacity(0.75),
+                panel: Color(dexHex: "#2C2A28"),
+                panelEdge: Color(dexHex: "#5A5148"),
+                grill: Color(dexHex: "#5A5148"),
+                // Calculator-orange, the operator key.
+                orb: Color(dexHex: "#FF9F0A"),
+                orbGlow: Color(dexHex: "#C97800"),
+                marqueeText: Color(dexHex: "#FF9F0A"),
+                marqueeGrid: Color(dexHex: "#E08600"),
+                marqueeShadow: Color(dexHex: "#331F04")
+            )
+        case .champagne:
+            ChassisSkinPalette(
+                globeTint: Color(dexHex: "#FFF0C8"),
+                body: Color(dexHex: "#E8D5A6"),
+                footerWash: Color(dexHex: "#E8D5A6").opacity(0.75),
+                panel: Color(dexHex: "#F6EEDC"),
+                panelEdge: Color(dexHex: "#B49B62"),
+                grill: Color(dexHex: "#B49B62"),
+                // A gold bead in a gold shell — one dye lot, like burgundy's purple.
+                orb: Color(dexHex: "#F5D97E"),
+                orbGlow: Color(dexHex: "#D4A017"),
+                marqueeText: Color(dexHex: "#F2C14E"),
+                marqueeGrid: Color(dexHex: "#D4A017"),
+                marqueeShadow: Color(dexHex: "#33240A")
+            )
+        case .christmas:
+            ChassisSkinPalette(
+                globeTint: Color(dexHex: "#FFC2C2"),
+                body: Color(dexHex: "#1B4332"),
+                footerWash: Color(dexHex: "#1B4332").opacity(0.75),
+                panel: Color(dexHex: "#F4F7F2"),
+                panelEdge: Color(dexHex: "#9CAF9C"),
+                grill: Color(dexHex: "#9CAF9C"),
+                // Holly red, completing the set: caps, Home, lamps and orb all run
+                // red on the wrapping paper (was fairy-light gold through 0.5.3).
+                orb: Color(dexHex: "#FF4D4D"),
+                orbGlow: Color(dexHex: "#A61E1E"),
+                marqueeText: Color(dexHex: "#FF6B6B"),
+                marqueeGrid: Color(dexHex: "#E03131"),
+                marqueeShadow: Color(dexHex: "#240808")
+            )
+        case .nouveau:
+            ChassisSkinPalette(
+                globeTint: Color(dexHex: "#DDBBFF"),
+                // Atomic-purple smoke — translucent, like GLOUGLOU; see `underlay`.
+                body: Color(dexHex: "rgba(147,51,234,0.42)"),
+                footerWash: Color(dexHex: "rgba(147,51,234,0.30)"),
+                panel: Color(dexHex: "rgba(216,180,254,0.50)"),
+                panelEdge: Color(dexHex: "rgba(233,213,255,0.90)"),
+                // Opaque over the internals, like GLOUGLOU's.
+                grill: Color(dexHex: "#7C3AED"),
+                // Grape juice under gloss.
+                orb: Color(dexHex: "#A855F7"),
+                orbGlow: Color(dexHex: "#7C3AED"),
+                marqueeText: Color(dexHex: "#C084FC"),
+                marqueeGrid: Color(dexHex: "#A855F7"),
+                marqueeShadow: Color(dexHex: "#22083B")
+            )
+        case .oaked:
+            ChassisSkinPalette(
+                globeTint: Color(dexHex: "#FFDDAF"),
+                // The walnut base the grain pattern sits over.
+                body: Color(dexHex: "#5C4028"),
+                // No wash at all (v0.5.9, A4). 0.5.8's frosted-pan fix swapped the
+                // translucent wash for a solid deeper walnut, which traded the haze
+                // for a solid bar — still a bar. The walnut grain runs uninterrupted
+                // behind the footer now; the buttons sit directly on the deck.
+                footerWash: Color.clear,
+                // The cream faceplate against the walnut deck.
+                panel: Color(dexHex: "#F2E8D5"),
+                // A hint of brass around the cream.
+                panelEdge: Color(dexHex: "#B5892E"),
+                grill: Color(dexHex: "#8A6B45"),
+                // A polished chestnut knob on the walnut (v0.5.8, C1 — was brass).
+                // Lighter than the #5C4028 body so it still reads as a lamp.
+                orb: Color(dexHex: "#B06A32"),
+                orbGlow: Color(dexHex: "#7A4218"),
+                marqueeText: Color(dexHex: "#FFB84D"),
+                marqueeGrid: Color(dexHex: "#E69A28"),
+                marqueeShadow: Color(dexHex: "#33200A")
+            )
+        case .nocturne:
+            ChassisSkinPalette(
+                globeTint: Color(dexHex: "#CCFFB8"),
+                body: Color(dexHex: "#C9F2BE"),
+                footerWash: Color(dexHex: "#C9F2BE").opacity(0.75),
+                panel: Color(dexHex: "#E9FBE0"),
+                panelEdge: Color(dexHex: "#8FCB7C"),
+                grill: Color(dexHex: "#8FCB7C"),
+                // The one part that is *always* charged.
+                orb: Color(dexHex: "#7CFC9A"),
+                orbGlow: Color(dexHex: "#3EE06C"),
+                marqueeText: Color(dexHex: "#86FF7E"),
+                marqueeGrid: Color(dexHex: "#57D63E"),
+                marqueeShadow: Color(dexHex: "#0E2E0C")
+            )
+        case .steel:
+            ChassisSkinPalette(
+                globeTint: Color(dexHex: "#CDE7FF"),
+                // The aluminium base the brush pattern sits over.
+                body: Color(dexHex: "#C7CBD1"),
+                footerWash: Color(dexHex: "#B8BCC2").opacity(0.8),
+                panel: Color(dexHex: "#DDE0E4"),
+                panelEdge: Color(dexHex: "#6B7078"),
+                grill: Color(dexHex: "#6B7078"),
+                // Ice on silver.
+                orb: Color(dexHex: "#E8F1FF"),
+                orbGlow: Color(dexHex: "#9FB8D8"),
+                marqueeText: Color(dexHex: "#9FD4FF"),
+                marqueeGrid: Color(dexHex: "#5FA8E8"),
+                marqueeShadow: Color(dexHex: "#0A1A2A")
+            )
+        case .blush:
+            ChassisSkinPalette(
+                globeTint: Color(dexHex: "#FFCCDD"),
+                // Soft rose-pink moulding.
+                body: Color(dexHex: "#EEA7B6"),
+                footerWash: Color(dexHex: "#EEA7B6").opacity(0.75),
+                // The pale blush faceplate against the rose shell.
+                panel: Color(dexHex: "#FBE9EC"),
+                panelEdge: Color(dexHex: "#D2718A"),
+                grill: Color(dexHex: "#C8879A"),
+                // A pearl-pink bead — the one saturated light on the pastel shell.
+                orb: Color(dexHex: "#FF7FA8"),
+                orbGlow: Color(dexHex: "#E1447E"),
+                // Pink phosphor — period LED strips never came in pink, but this is
+                // the one skin allowed to care more about the look than the period.
+                marqueeText: Color(dexHex: "#FF9EC0"),
+                marqueeGrid: Color(dexHex: "#F472B6"),
+                marqueeShadow: Color(dexHex: "#3B0A1E")
+            )
+        case .psvino:
+            ChassisSkinPalette(
+                // Console-boot blue — the cross button, paled for the multiply.
+                globeTint: Color(dexHex: "#BBD4F5"),
+                // DualShock matte charcoal — near-black with the plastic's warmth.
+                body: Color(dexHex: "#232427"),
+                footerWash: Color(dexHex: "#232427").opacity(0.75),
+                // Console grey — the PS2's own two-tone: charcoal shell, grey deck.
+                panel: Color(dexHex: "#3B3C41"),
+                panelEdge: Color(dexHex: "#141517"),
+                grill: Color(dexHex: "#55575E"),
+                // The analog-stick LED: cross-button blue on the charcoal.
+                orb: Color(dexHex: "#5B93D8"),
+                orbGlow: Color(dexHex: "#2E6DB4"),
+                // Boot-screen blue phosphor.
+                marqueeText: Color(dexHex: "#7DB2F0"),
+                marqueeGrid: Color(dexHex: "#2E6DB4"),
+                marqueeShadow: Color(dexHex: "#08182E")
+            )
+        case .grisDeGris:
+            ChassisSkinPalette(
+                // The DMG screen's own pea-green, paled for the multiply.
+                globeTint: Color(dexHex: "#DCE8C4"),
+                // Warm handheld grey, a shade off neutral the way ABS ages.
+                body: Color(dexHex: "#C8C4BC"),
+                footerWash: Color(dexHex: "#C8C4BC").opacity(0.75),
+                // The lighter grey faceplate the original brick set its screen into.
+                panel: Color(dexHex: "#DAD6CE"),
+                panelEdge: Color(dexHex: "#8B8880"),
+                grill: Color(dexHex: "#9A968E"),
+                // The power lamp, in the caps own red.
+                orb: Color(dexHex: "#E23E3E"),
+                orbGlow: Color(dexHex: "#8F1414"),
+                // The pea-green screen, kept as the one thing on this device that is
+                // still a display. Stepped off BOX WINE #9BBC0F so the two handheld
+                // homages do not glow the identical green.
+                marqueeText: Color(dexHex: "#A6C550"),
+                marqueeGrid: Color(dexHex: "#7E9B2E"),
+                marqueeShadow: Color(dexHex: "#16240A")
+            )
+        case .orangeWine:
+            ChassisSkinPalette(
+                globeTint: Color(dexHex: "#FFDF8A"),
+                body: Color(dexHex: "#E8720E"),
+                footerWash: Color(dexHex: "#E8720E").opacity(0.75),
+                panel: Color(dexHex: "#F6A550"),
+                panelEdge: Color(dexHex: "#8A4406"),
+                grill: Color(dexHex: "#A85708"),
+                // Hazard yellow: the buttons are black, so the orb is the only thing
+                // on this shell allowed to look lit.
+                orb: Color(dexHex: "#FFD22E"),
+                orbGlow: Color(dexHex: "#C99000"),
+                marqueeText: Color(dexHex: "#FFC93C"),
+                marqueeGrid: Color(dexHex: "#E0A100"),
+                marqueeShadow: Color(dexHex: "#33220A")
+            )
+        case .petNat:
+            ChassisSkinPalette(
+                // Pencil blue on paper — the one skin whose globe should look
+                // like a drawing of a globe.
+                globeTint: Color(dexHex: "#DCE3F0"),
+                // Cartridge paper, slightly warm — pure white reads as a blank
+                // canvas rather than as a sheet somebody drew on.
+                body: Color(dexHex: "#EFE9DC"),
+                // No wash, like OAKED: a translucent bar across a sheet of paper
+                // is a smudge. The grain runs uninterrupted under the buttons.
+                footerWash: Color.clear,
+                // A second sheet laid on the first, a shade brighter.
+                panel: Color(dexHex: "#F8F4EA"),
+                // The ink itself — the geometric rim is drawn at very low
+                // opacity under the hand line, so the two do not read as two
+                // outlines. See `DeviceChassis.screenHousing`.
+                panelEdge: Color(dexHex: "#2B3244"),
+                grill: Color(dexHex: "#4A5468"),
+                // A wash of ink where the lamp is — the drawn device's one
+                // concession to looking powered.
+                orb: Color(dexHex: "#7FA6D8"),
+                orbGlow: Color(dexHex: "#3E6FA8"),
+                // A highlighter stripe. The one panel on the device that is
+                // filled rather than outlined, because a marquee has to read as
+                // lit and there is no drawn equivalent of lit.
+                marqueeText: Color(dexHex: "#E8DF7A"),
+                marqueeGrid: Color(dexHex: "#BFB55A"),
+                marqueeShadow: Color(dexHex: "#2B3244")
+            )
+        case .waldglas:
+            ChassisSkinPalette(
+                // Seen through bottle glass.
+                globeTint: Color(dexHex: "#DCEAC0"),
+                // Olive-green smoke — translucent, like GLOUGLOU; see `underlay`.
+                // The colour iron in wood ash gives glass nobody decolourised.
+                body: Color(dexHex: "rgba(160,183,116,0.42)"),
+                footerWash: Color(dexHex: "rgba(160,183,116,0.28)"),
+                panel: Color(dexHex: "rgba(214,229,178,0.55)"),
+                panelEdge: Color(dexHex: "rgba(122,142,84,0.85)"),
+                // Opaque over the internals, like GLOUGLOU's and RETROVIN's.
+                grill: Color(dexHex: "#6C8348"),
+                // A bright bead of the same glass, lit from behind.
+                orb: Color(dexHex: "#C9E86A"),
+                orbGlow: Color(dexHex: "#7A9A2E"),
+                marqueeText: Color(dexHex: "#B8D96A"),
+                marqueeGrid: Color(dexHex: "#8AA83E"),
+                marqueeShadow: Color(dexHex: "#1A240A")
+            )
+        case .halloween:
+            ChassisSkinPalette(
+                // Jack-o'-lantern light.
+                globeTint: Color(dexHex: "#FFD6A8"),
+                // Not black: a true #000 shell has no moulding in it at all. This
+                // is near-black with a violet cast, which is what reads as night.
+                body: Color(dexHex: "#17141A"),
+                footerWash: Color(dexHex: "#17141A").opacity(0.75),
+                panel: Color(dexHex: "#241E2B"),
+                panelEdge: Color(dexHex: "#0C0A10"),
+                grill: Color(dexHex: "#4A3F55"),
+                // The candle inside the lantern — the one lit thing on a shell
+                // whose buttons are deliberately unlit.
+                orb: Color(dexHex: "#FF8A1F"),
+                orbGlow: Color(dexHex: "#B34700"),
+                marqueeText: Color(dexHex: "#FFA23C"),
+                marqueeGrid: Color(dexHex: "#E0670A"),
+                marqueeShadow: Color(dexHex: "#2B1200")
+            )
+        case .w64:
+            ChassisSkinPalette(
+                // The shell's own violet, paled for the multiply.
+                globeTint: Color(dexHex: "#DCC8F5"),
+                // Grape violet, and opaque: the reference era is remembered for
+                // translucency, and a fourth clear shell would file this under
+                // CLEARTECH beside three skins it has nothing else in common with.
+                // The colour is the quotation; the plastic is ours.
+                body: Color(dexHex: "#4A2E8C"),
+                footerWash: Color(dexHex: "#4A2E8C").opacity(0.75),
+                // A deeper violet faceplate, so the LCD is set into the shell rather
+                // than floating on it.
+                panel: Color(dexHex: "#33206B"),
+                panelEdge: Color(dexHex: "#1D1145"),
+                grill: Color(dexHex: "#8B6FD4"),
+                // The power lamp, in the fourth face colour — the one this livery
+                // has spare once green, blue and red are on the lamp trio.
+                orb: Color(dexHex: "#F2C93A"),
+                orbGlow: Color(dexHex: "#B58A0C"),
+                // Period-correct green, and the fifth green strip in the range —
+                // stepped clear of BOX WINE's #9BBC0F and GRIS DE GRIS's #A6C550 so
+                // the three homages do not glow the identical colour, which is the
+                // note GRIS DE GRIS's own entry above records.
+                marqueeText: Color(dexHex: "#7FD98A"),
+                marqueeGrid: Color(dexHex: "#3A9A44"),
+                marqueeShadow: Color(dexHex: "#08240E")
+            )
+        }
+    }
 }
 
 #endif
