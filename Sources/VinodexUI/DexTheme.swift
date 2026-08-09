@@ -1565,6 +1565,30 @@ public enum LcdModeSection: String, CaseIterable, Identifiable, Sendable {
 /// light-grey. Independent of `ChassisSkin`: the shell and the screen are
 /// separate choices, and pairing a light screen with the red shell is a
 /// perfectly good combination.
+/// The flat half of an LCD mode's look, grouped by mode (S3, phase 3).
+///
+/// One row per mode instead of one `switch` per property. See
+/// `LcdMode.palette` for what is deliberately not here.
+public struct LcdModePalette: Sendable {
+    public let section: LcdModeSection
+    public let symbol: String
+    public let monochromeTint: Color?
+    public let screen: Color
+    public let accent: Color
+    public let heroWash: Color
+    public let heroGrid: Color
+    public let buttonWell: Color
+    public let page: Color
+    public let surface: Color
+    public let surfaceEdge: Color
+    public let well: Color
+    public let disabledText: Color
+    public let onAccent: Color
+    public let gridLine: Color
+    public let controlAccent: ChassisAccent
+    public let globeTint: Color?
+}
+
 public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     case dark = "DARK"
     case light = "LIGHT"
@@ -1641,13 +1665,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// display *hardware* rather than with the machines that merely quote a
     /// colour scheme. Membership is derived from this switch, so both moves are
     /// one line each and the picker follows.
-    public var section: LcdModeSection {
-        switch self {
-        case .dark, .light: .classic
-        case .amber, .vintage, .terminal, .gruenerBoy: .retro
-        case .starTrek, .blueScreen, .wineOS: .emulator
-        }
-    }
+    public var section: LcdModeSection { palette.section }
 
     /// Whether the screen ground is pale. An explicit list, not `!= .dark`:
     /// vintage is dark ink on a pale ground and wants every light branch, but
@@ -1663,45 +1681,13 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// colour. This is what turns "black on white" into "black on grey-green"
     /// (vintage) and "white on black" into "amber on black" (amber) or
     /// terminal green (terminal).
-    public var monochromeTint: Color? {
-        switch self {
-        case .dark, .light, .wineOS, .blueScreen, .starTrek: nil
-        case .vintage: Color(dexHex: "#C6CFB2")
-        case .amber: Color(dexHex: "#FFB300")
-        case .terminal: Color(dexHex: "#4DFF4D")
-        // The DMG's lightest tone; everything darker falls out of the
-        // grayscale multiply.
-        case .gruenerBoy: Color(dexHex: "#9BBC0F")
-        }
-    }
+    public var monochromeTint: Color? { palette.monochromeTint }
 
     /// Glyph for the screen-mode picker's preview cards.
-    public var symbol: String {
-        switch self {
-        case .dark: "moon.fill"
-        case .light: "sun.max.fill"
-        case .vintage: "hourglass"
-        case .amber: "lightbulb.fill"
-        case .wineOS: "macwindow"
-        case .terminal: "terminal.fill"
-        case .blueScreen: "pc"
-        case .starTrek: "atom"
-        case .gruenerBoy: "gamecontroller.fill"
-        }
-    }
+    public var symbol: String { palette.symbol }
 
     /// LCD ground.
-    public var screen: Color {
-        switch self {
-        case .dark, .amber, .terminal: Dex.screen
-        case .light: Color(dexHex: "#E8E8E2")
-        case .vintage: Color(dexHex: "#E4E4DC")
-        case .wineOS: Color(dexHex: "#C7D3E6")
-        case .blueScreen: Color(dexHex: "#1021B4")
-        case .starTrek: Color(dexHex: "#0B0910")
-        case .gruenerBoy: Color(dexHex: "#E6EBCF")
-        }
-    }
+    public var screen: Color { palette.screen }
 
     // MARK: The font axis (0.7.3, B1)
 
@@ -1796,19 +1782,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// still reads as "the green" without disappearing. Vintage has no colour
     /// to keep — its accent is simply ink. The themed modes each pick the one
     /// colour their reference hardware used for emphasis.
-    public var accent: Color {
-        switch self {
-        case .dark, .amber, .terminal: Dex.green
-        case .light: Color(dexHex: "#1B6B3A")
-        case .vintage: Color(dexHex: "#1A1A16")
-        case .wineOS: Color(dexHex: "#1D3E9E")
-        // VFD electric cyan — one register brighter than the text glow.
-        case .blueScreen: Color(dexHex: "#7DF9FF")
-        case .starTrek: Color(dexHex: "#C983E8")
-        case .gruenerBoy: Color(dexHex: "#2F3A1C")
-        // Red pen — what anyone marking up a page reaches for.
-        }
-    }
+    public var accent: Color { palette.accent }
 
     /// Body copy inside INFO blocks — mint on black, near-black on paper.
     ///
@@ -1834,79 +1808,23 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     }
 
     /// Hero panel wash behind an entry title.
-    public var heroWash: Color {
-        switch self {
-        case .dark, .amber, .terminal: Color(dexHex: "#14532d").opacity(0.1)
-        case .light: Color(dexHex: "#1B6B3A").opacity(0.07)
-        case .vintage: Color.black.opacity(0.06)
-        case .wineOS: Color(dexHex: "#1D3E9E").opacity(0.07)
-        case .blueScreen: Color.white.opacity(0.06)
-        case .starTrek: Color(dexHex: "#C983E8").opacity(0.08)
-        case .gruenerBoy: Color.black.opacity(0.06)
-        }
-    }
+    public var heroWash: Color { palette.heroWash }
 
     /// Grid lines drawn over the hero wash. Dark mode's deep #14532d reads heavy
     /// on the light hero, so light mode lifts it toward the paper.
-    public var heroGrid: Color {
-        switch self {
-        case .dark, .amber, .terminal: Color(dexHex: "#14532d")
-        case .light: Color(dexHex: "#1B6B3A")
-        case .vintage: Color(dexHex: "#3A3A34")
-        case .wineOS: Color(dexHex: "#1D3E9E")
-        case .blueScreen: Color(dexHex: "#4A5FE0")
-        case .starTrek: Color(dexHex: "#7A4E9E")
-        case .gruenerBoy: Color(dexHex: "#3A4224")
-        }
-    }
+    public var heroGrid: Color { palette.heroGrid }
 
     /// Filled-button ground (SAVE and friends) when *not* active.
-    public var buttonWell: Color {
-        switch self {
-        case .dark, .amber, .terminal, .starTrek: .black.opacity(0.35)
-        case .light, .vintage, .wineOS, .gruenerBoy: .white
-        case .blueScreen: Color(dexHex: "#0A1690")
-        }
-    }
+    public var buttonWell: Color { palette.buttonWell }
 
     /// Ground behind entry screens, which paint their own black rather than
     /// using `DexScreenBackground`.
-    public var page: Color {
-        switch self {
-        case .dark, .amber, .terminal: .black
-        case .light: Color(dexHex: "#F2F2EC")
-        case .vintage: Color(dexHex: "#EDEDE4")
-        case .wineOS: Color(dexHex: "#D6DFEE")
-        case .blueScreen: Color(dexHex: "#0E1CA8")
-        case .starTrek: .black
-        case .gruenerBoy: Color(dexHex: "#DDE3C2")
-        }
-    }
+    public var page: Color { palette.page }
 
     /// Row and card fill.
-    public var surface: Color {
-        switch self {
-        case .dark, .amber, .terminal: Dex.stone900
-        case .light: Color(dexHex: "#FFFFFF")
-        case .vintage: Color(dexHex: "#F6F6EF")
-        case .wineOS: Color(dexHex: "#E9EEF6")
-        case .blueScreen: Color(dexHex: "#1F31CE")
-        case .starTrek: Color(dexHex: "#191022")
-        case .gruenerBoy: Color(dexHex: "#EFF2DE")
-        }
-    }
+    public var surface: Color { palette.surface }
 
-    public var surfaceEdge: Color {
-        switch self {
-        case .dark, .amber, .terminal: Dex.stone700
-        case .light: Color(dexHex: "#C9C9C1")
-        case .vintage: Color(dexHex: "#84847A")
-        case .wineOS: Color(dexHex: "#8598B8")
-        case .blueScreen: Color(dexHex: "#5D74E8")
-        case .starTrek: Color(dexHex: "#5C3E78")
-        case .gruenerBoy: Color(dexHex: "#7A8258")
-        }
-    }
+    public var surfaceEdge: Color { palette.surfaceEdge }
 
     /// Secondary text — captions, counts, placeholders.
     public var subtext: Color {
@@ -1927,14 +1845,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     }
 
     /// Fill behind search fields, which are black wells on the dark theme.
-    public var well: Color {
-        switch self {
-        case .dark, .amber, .terminal, .starTrek: .black
-        case .light, .vintage, .wineOS: Color(dexHex: "#FFFFFF")
-        case .blueScreen: Color(dexHex: "#0A1690")
-        case .gruenerBoy: Color(dexHex: "#F4F6E8")
-        }
-    }
+    public var well: Color { palette.well }
 
     /// Text on a row that exists but cannot be opened — a cross-link pointing
     /// outside the current selection, or a country with no region written yet.
@@ -1942,30 +1853,14 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// Has to read as *inactive* without disappearing, which is why light mode
     /// does not simply share the dark theme's stone600: against `surface` that
     /// grey is close enough to `text` to look like an ordinary enabled row.
-    public var disabledText: Color {
-        switch self {
-        case .dark, .amber, .terminal: Dex.stone600
-        case .light: Color(dexHex: "#A3A39B")
-        case .vintage: Color(dexHex: "#96968C")
-        case .wineOS: Color(dexHex: "#9FACC6")
-        case .blueScreen: Color(dexHex: "#6272D4")
-        case .starTrek: Color(dexHex: "#6D5A49")
-        case .gruenerBoy: Color(dexHex: "#939B78")
-        }
-    }
+    public var disabledText: Color { palette.disabledText }
 
     /// Foreground for content sitting on an `accent` fill (selected settings
     /// options, active chips). Dark mode's accent is mint (#4ADE80) — white text
     /// on it is ~1.8:1 — so it takes black; light mode's accent is deep green and
     /// takes white, as does vintage's ink-black. Blue Screen's accent is a pale
     /// cyan, so it takes the deep well blue rather than plain black.
-    public var onAccent: Color {
-        switch self {
-        case .dark, .amber, .terminal, .starTrek: .black
-        case .light, .vintage, .wineOS, .gruenerBoy: .white
-        case .blueScreen: Color(dexHex: "#0A1690")
-        }
-    }
+    public var onAccent: Color { palette.onAccent }
 
     /// The LCD's raw ground, behind every screen. The three stone-dark modes
     /// keep the near-black CRT well; every themed mode grounds in its own
@@ -1979,16 +1874,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     }
 
     /// The faint atmosphere grid drawn over `ground`.
-    public var gridLine: Color {
-        switch self {
-        case .dark, .amber, .terminal: Dex.stone700
-        case .light, .vintage: Dex.stone400
-        case .wineOS: Color(dexHex: "#8598B8")
-        case .blueScreen: Color(dexHex: "#4A5FE0")
-        case .starTrek: Color(dexHex: "#3A2C1E")
-        case .gruenerBoy: Color(dexHex: "#7A8258")
-        }
-    }
+    public var gridLine: Color { palette.gridLine }
 
     /// Ground for full-screen panels (settings and friends), which used to
     /// paint `Dex.screen` on dark and `page` on light. One token so the
@@ -2013,38 +1899,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// The on-LCD powered chrome's six-stop ramp — the search button, the
     /// settings tiles. Same vocabulary as `ChassisAccent` for the same
     /// reason: the stops are only ever used together.
-    public var controlAccent: ChassisAccent {
-        switch self {
-        // The house amber, exactly what the classic chassis always wore.
-        case .dark:
-            ChassisAccent(pale: "#fef3c7", light: "#fde68a", bright: "#fbbf24",
-                          mid: "#f59e0b", edge: "#b45309", ink: "#78350f")
-        case .light:
-            ChassisAccent(pale: "#E8F5EC", light: "#BFE3CB", bright: "#4FA76F",
-                          mid: "#1B6B3A", edge: "#0F4224", ink: "#0B2E18")
-        case .vintage:
-            ChassisAccent(pale: "#F2F2EA", light: "#D8D8CC", bright: "#8A8A7C",
-                          mid: "#4A4A40", edge: "#26261F", ink: "#111110")
-        case .amber:
-            ChassisAccent(pale: "#FFF4D6", light: "#FFE29A", bright: "#FFB300",
-                          mid: "#D18F00", edge: "#7A5200", ink: "#3A2600")
-        case .wineOS:
-            ChassisAccent(pale: "#EAF0FA", light: "#C2D2EC", bright: "#5B7FD4",
-                          mid: "#1D3E9E", edge: "#0E2258", ink: "#0A1A40")
-        case .terminal:
-            ChassisAccent(pale: "#E8FFE8", light: "#A8FFA8", bright: "#4DFF4D",
-                          mid: "#1FBF3F", edge: "#0A5A1E", ink: "#06300F")
-        case .blueScreen:
-            ChassisAccent(pale: "#E4F7FF", light: "#A6DBFF", bright: "#7DF9FF",
-                          mid: "#2FA8D8", edge: "#0A4A70", ink: "#062A40")
-        case .starTrek:
-            ChassisAccent(pale: "#FFE9C7", light: "#FFC98A", bright: "#FFA94D",
-                          mid: "#E08A20", edge: "#7A4A08", ink: "#341F04")
-        case .gruenerBoy:
-            ChassisAccent(pale: "#E6EBCF", light: "#C2CE9A", bright: "#8BAC0F",
-                          mid: "#566A18", edge: "#24300C", ink: "#0F1A0A")
-        }
-    }
+    public var controlAccent: ChassisAccent { palette.controlAccent }
 
     /// The globe screen's sphere tint per *screen mode* (0.6.4, F1 — the redo).
     ///
@@ -2059,23 +1914,7 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// texture, and a saturated dark would swallow the coastlines. The
     /// monochrome modes still pass through the chassis grayscale-and-tint, so
     /// their values only need the right luminance.
-    public var globeTint: Color? {
-        switch self {
-        case .dark: nil
-        // LIGHT inverts the texture instead (see `invertsGlobeTexture`); the
-        // tint stays neutral so the inversion reads clean.
-        case .light: Color.white
-        case .vintage: Color(dexHex: "#C6CFB2")
-        case .amber: Color(dexHex: "#FFD27A")
-        case .wineOS: Color(dexHex: "#C2D2EC")
-        case .terminal: Color(dexHex: "#A8FFA8")
-        // VINOFD: the vacuum-fluorescent light blue.
-        case .blueScreen: Color(dexHex: "#A6DBFF")
-        // L-WINES: the console's accent purple.
-        case .starTrek: Color(dexHex: "#C983E8")
-        case .gruenerBoy: Color(dexHex: "#C2CE9A")
-        }
-    }
+    public var globeTint: Color? { palette.globeTint }
 
     /// LIGHT mode's globe is the *inverted-colour* globe (0.6.4, F1): the map
     /// texture runs through a colour inversion before it reaches the sphere,
@@ -2177,6 +2016,212 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         // 0.55 rather than 0.5: white-on-mid reads worse than black-on-mid at
         // the 13pt retro face these labels use, so the tie goes to dark ink.
         return blended.luminance > 0.55 ? controlAccent.ink : .white
+    }
+
+    /// Every flat value this mode owns, in one place.
+    ///
+    /// **This replaced seventeen parallel `switch self` statements**, the same
+    /// transposition `ChassisSkin.palette` undid: each column a function, each
+    /// row repeated nine times, and adding a mode meant seventeen edits with
+    /// nothing to catch a miss. A `switch` rather than a dictionary so the
+    /// compiler refuses a new mode until it carries every value.
+    ///
+    /// Seven properties stay as their own switches because they branch rather
+    /// than tabulate: `text`, `bodyText` and `subtext` route through the font
+    /// axis, `isLight` derives, and `displayName`, `ground` and `panelGround`
+    /// carry a `default`. Forcing those into a table would mean inventing a
+    /// value for every mode that currently falls through.
+    private var palette: LcdModePalette {
+        switch self {
+        case .dark:
+            LcdModePalette(
+                section: .classic,
+                symbol: "moon.fill",
+                monochromeTint: nil,
+                screen: Dex.screen,
+                accent: Dex.green,
+                heroWash: Color(dexHex: "#14532d").opacity(0.1),
+                heroGrid: Color(dexHex: "#14532d"),
+                buttonWell: .black.opacity(0.35),
+                page: .black,
+                surface: Dex.stone900,
+                surfaceEdge: Dex.stone700,
+                well: .black,
+                disabledText: Dex.stone600,
+                onAccent: .black,
+                gridLine: Dex.stone700,
+                // The house amber, exactly what the classic chassis always wore.
+                controlAccent: ChassisAccent(pale: "#fef3c7", light: "#fde68a", bright: "#fbbf24", mid: "#f59e0b", edge: "#b45309", ink: "#78350f"),
+                globeTint: nil
+            )
+        case .light:
+            LcdModePalette(
+                section: .classic,
+                symbol: "sun.max.fill",
+                monochromeTint: nil,
+                screen: Color(dexHex: "#E8E8E2"),
+                accent: Color(dexHex: "#1B6B3A"),
+                heroWash: Color(dexHex: "#1B6B3A").opacity(0.07),
+                heroGrid: Color(dexHex: "#1B6B3A"),
+                buttonWell: .white,
+                page: Color(dexHex: "#F2F2EC"),
+                surface: Color(dexHex: "#FFFFFF"),
+                surfaceEdge: Color(dexHex: "#C9C9C1"),
+                well: Color(dexHex: "#FFFFFF"),
+                disabledText: Color(dexHex: "#A3A39B"),
+                onAccent: .white,
+                gridLine: Dex.stone400,
+                controlAccent: ChassisAccent(pale: "#E8F5EC", light: "#BFE3CB", bright: "#4FA76F", mid: "#1B6B3A", edge: "#0F4224", ink: "#0B2E18"),
+                // LIGHT inverts the texture instead (see `invertsGlobeTexture`); the
+                // tint stays neutral so the inversion reads clean.
+                globeTint: Color.white
+            )
+        case .vintage:
+            LcdModePalette(
+                section: .retro,
+                symbol: "hourglass",
+                monochromeTint: Color(dexHex: "#C6CFB2"),
+                screen: Color(dexHex: "#E4E4DC"),
+                accent: Color(dexHex: "#1A1A16"),
+                heroWash: Color.black.opacity(0.06),
+                heroGrid: Color(dexHex: "#3A3A34"),
+                buttonWell: .white,
+                page: Color(dexHex: "#EDEDE4"),
+                surface: Color(dexHex: "#F6F6EF"),
+                surfaceEdge: Color(dexHex: "#84847A"),
+                well: Color(dexHex: "#FFFFFF"),
+                disabledText: Color(dexHex: "#96968C"),
+                onAccent: .white,
+                gridLine: Dex.stone400,
+                controlAccent: ChassisAccent(pale: "#F2F2EA", light: "#D8D8CC", bright: "#8A8A7C", mid: "#4A4A40", edge: "#26261F", ink: "#111110"),
+                globeTint: Color(dexHex: "#C6CFB2")
+            )
+        case .amber:
+            LcdModePalette(
+                section: .retro,
+                symbol: "lightbulb.fill",
+                monochromeTint: Color(dexHex: "#FFB300"),
+                screen: Dex.screen,
+                accent: Dex.green,
+                heroWash: Color(dexHex: "#14532d").opacity(0.1),
+                heroGrid: Color(dexHex: "#14532d"),
+                buttonWell: .black.opacity(0.35),
+                page: .black,
+                surface: Dex.stone900,
+                surfaceEdge: Dex.stone700,
+                well: .black,
+                disabledText: Dex.stone600,
+                onAccent: .black,
+                gridLine: Dex.stone700,
+                controlAccent: ChassisAccent(pale: "#FFF4D6", light: "#FFE29A", bright: "#FFB300", mid: "#D18F00", edge: "#7A5200", ink: "#3A2600"),
+                globeTint: Color(dexHex: "#FFD27A")
+            )
+        case .wineOS:
+            LcdModePalette(
+                section: .emulator,
+                symbol: "macwindow",
+                monochromeTint: nil,
+                screen: Color(dexHex: "#C7D3E6"),
+                accent: Color(dexHex: "#1D3E9E"),
+                heroWash: Color(dexHex: "#1D3E9E").opacity(0.07),
+                heroGrid: Color(dexHex: "#1D3E9E"),
+                buttonWell: .white,
+                page: Color(dexHex: "#D6DFEE"),
+                surface: Color(dexHex: "#E9EEF6"),
+                surfaceEdge: Color(dexHex: "#8598B8"),
+                well: Color(dexHex: "#FFFFFF"),
+                disabledText: Color(dexHex: "#9FACC6"),
+                onAccent: .white,
+                gridLine: Color(dexHex: "#8598B8"),
+                controlAccent: ChassisAccent(pale: "#EAF0FA", light: "#C2D2EC", bright: "#5B7FD4", mid: "#1D3E9E", edge: "#0E2258", ink: "#0A1A40"),
+                globeTint: Color(dexHex: "#C2D2EC")
+            )
+        case .terminal:
+            LcdModePalette(
+                section: .retro,
+                symbol: "terminal.fill",
+                monochromeTint: Color(dexHex: "#4DFF4D"),
+                screen: Dex.screen,
+                accent: Dex.green,
+                heroWash: Color(dexHex: "#14532d").opacity(0.1),
+                heroGrid: Color(dexHex: "#14532d"),
+                buttonWell: .black.opacity(0.35),
+                page: .black,
+                surface: Dex.stone900,
+                surfaceEdge: Dex.stone700,
+                well: .black,
+                disabledText: Dex.stone600,
+                onAccent: .black,
+                gridLine: Dex.stone700,
+                controlAccent: ChassisAccent(pale: "#E8FFE8", light: "#A8FFA8", bright: "#4DFF4D", mid: "#1FBF3F", edge: "#0A5A1E", ink: "#06300F"),
+                globeTint: Color(dexHex: "#A8FFA8")
+            )
+        case .blueScreen:
+            LcdModePalette(
+                section: .emulator,
+                symbol: "pc",
+                monochromeTint: nil,
+                screen: Color(dexHex: "#1021B4"),
+                // VFD electric cyan — one register brighter than the text glow.
+                accent: Color(dexHex: "#7DF9FF"),
+                heroWash: Color.white.opacity(0.06),
+                heroGrid: Color(dexHex: "#4A5FE0"),
+                buttonWell: Color(dexHex: "#0A1690"),
+                page: Color(dexHex: "#0E1CA8"),
+                surface: Color(dexHex: "#1F31CE"),
+                surfaceEdge: Color(dexHex: "#5D74E8"),
+                well: Color(dexHex: "#0A1690"),
+                disabledText: Color(dexHex: "#6272D4"),
+                onAccent: Color(dexHex: "#0A1690"),
+                gridLine: Color(dexHex: "#4A5FE0"),
+                controlAccent: ChassisAccent(pale: "#E4F7FF", light: "#A6DBFF", bright: "#7DF9FF", mid: "#2FA8D8", edge: "#0A4A70", ink: "#062A40"),
+                // VINOFD: the vacuum-fluorescent light blue.
+                globeTint: Color(dexHex: "#A6DBFF")
+            )
+        case .starTrek:
+            LcdModePalette(
+                section: .emulator,
+                symbol: "atom",
+                monochromeTint: nil,
+                screen: Color(dexHex: "#0B0910"),
+                accent: Color(dexHex: "#C983E8"),
+                heroWash: Color(dexHex: "#C983E8").opacity(0.08),
+                heroGrid: Color(dexHex: "#7A4E9E"),
+                buttonWell: .black.opacity(0.35),
+                page: .black,
+                surface: Color(dexHex: "#191022"),
+                surfaceEdge: Color(dexHex: "#5C3E78"),
+                well: .black,
+                disabledText: Color(dexHex: "#6D5A49"),
+                onAccent: .black,
+                gridLine: Color(dexHex: "#3A2C1E"),
+                controlAccent: ChassisAccent(pale: "#FFE9C7", light: "#FFC98A", bright: "#FFA94D", mid: "#E08A20", edge: "#7A4A08", ink: "#341F04"),
+                // L-WINES: the console's accent purple.
+                globeTint: Color(dexHex: "#C983E8")
+            )
+        case .gruenerBoy:
+            LcdModePalette(
+                section: .retro,
+                symbol: "gamecontroller.fill",
+                // The DMG's lightest tone; everything darker falls out of the
+                // grayscale multiply.
+                monochromeTint: Color(dexHex: "#9BBC0F"),
+                screen: Color(dexHex: "#E6EBCF"),
+                accent: Color(dexHex: "#2F3A1C"),
+                heroWash: Color.black.opacity(0.06),
+                heroGrid: Color(dexHex: "#3A4224"),
+                buttonWell: .white,
+                page: Color(dexHex: "#DDE3C2"),
+                surface: Color(dexHex: "#EFF2DE"),
+                surfaceEdge: Color(dexHex: "#7A8258"),
+                well: Color(dexHex: "#F4F6E8"),
+                disabledText: Color(dexHex: "#939B78"),
+                onAccent: .white,
+                gridLine: Color(dexHex: "#7A8258"),
+                controlAccent: ChassisAccent(pale: "#E6EBCF", light: "#C2CE9A", bright: "#8BAC0F", mid: "#566A18", edge: "#24300C", ink: "#0F1A0A"),
+                globeTint: Color(dexHex: "#C2CE9A")
+            )
+        }
     }
 }
 
