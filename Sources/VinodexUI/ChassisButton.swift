@@ -133,11 +133,29 @@ public struct ChassisButton: View {
     /// edges, the orb and the cog's rim are untouched, and the re-ink takes its
     /// own `#FBF8F1` face over `#2B3244` ink, which is the flattest pair in the
     /// range and the closest any skin gets to paper and pencil.
+    /// The bottom lip's ink (0.8.93, item 6) — Home only.
+    ///
+    /// Back and User re-ink their whole body in `ChassisControl.top`, so their
+    /// lips are already the button colour and pass nil. Home's body is its
+    /// accent ramp — the lit face — which put a chassis-accent lip under it
+    /// once 0.8.92's lift gave the lip values to colour. The lip is moulded
+    /// button plastic, so it takes the control colour the neighbouring caps
+    /// are made of. This is the one deliberate read of `cap` for Home; the
+    /// "never read for Home" note on `cap` refers to the face, and the face
+    /// still never reads it.
+    private var capLipHex: String? {
+        switch kind {
+        case .back, .bookmarks: nil
+        case .home: cap.topHex
+        }
+    }
+
     private var drawnCap: UIImage? {
         ChassisCapLoader.shared.image(
             stem: capStem,
             inkHex: capInkHex,
-            glyphHex: capGlyphHex
+            glyphHex: capGlyphHex,
+            lipHex: capLipHex
         )
     }
 

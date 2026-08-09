@@ -780,7 +780,8 @@ struct ToolRosterTests {
     @Test("every tool card has a route that raises it")
     func everyToolIsReachable() {
         let toolRoutes: [DexRoute] = [
-            .scanner, .labelReader, .wsetQuiz, .dailyChallenge, .dailyGrape, .moonDial,
+            // `.profVino` in `.dailyGrape`'s slot (0.8.93, item 9).
+            .scanner, .labelReader, .wsetQuiz, .dailyChallenge, .profVino, .moonDial,
         ]
         let reached = Set(toolRoutes.compactMap { ToolRoster.intro(for: $0)?.id })
         #expect(reached == Set(ToolRoster.all.map(\.id)))
@@ -811,21 +812,26 @@ struct ToolRosterTests {
         let defaults = UserDefaults(suiteName: "toolIntroTests-\(UUID().uuidString)")!
         let store = ToolIntroStore(defaults: defaults)
         #expect(store.seen.isEmpty)
-        #expect(store.pending("whatsThat")?.id == "whatsThat")
+        // "profVino" as the fixture id since 0.8.93 (item 9) — "whatsThat"
+        // stopped being a live roster id when its tool was deleted, and this
+        // test needs one that is.
+        #expect(store.pending("profVino")?.id == "profVino")
 
-        store.markSeen("whatsThat")
-        #expect(store.hasSeen("whatsThat"))
-        #expect(store.pending("whatsThat") == nil)
+        store.markSeen("profVino")
+        #expect(store.hasSeen("profVino"))
+        #expect(store.pending("profVino") == nil)
         // A tool with no roster entry cannot be marked seen.
         store.markSeen("nosuchtool")
-        #expect(store.seen == ["whatsThat"])
+        #expect(store.seen == ["profVino"])
         #expect(store.pending("nosuchtool") == nil)
 
-        #expect(ToolIntroStore(defaults: defaults).seen == ["whatsThat"])
+        #expect(ToolIntroStore(defaults: defaults).seen == ["profVino"])
 
-        // A stored id the roster no longer knows is dropped on read.
-        defaults.set("whatsThat,retiredTool", forKey: ToolIntroStore.storageKey)
-        #expect(ToolIntroStore(defaults: defaults).seen == ["whatsThat"])
+        // A stored id the roster no longer knows is dropped on read —
+        // "whatsThat" itself is the real-world case now: any device that met
+        // the deleted game carries it, and it must not hold a slot forever.
+        defaults.set("profVino,whatsThat", forKey: ToolIntroStore.storageKey)
+        #expect(ToolIntroStore(defaults: defaults).seen == ["profVino"])
 
         store.markAllSeen()
         #expect(store.seen == Set(ToolRoster.all.map(\.id)))

@@ -218,15 +218,15 @@ public struct ChipFilterScreen: View {
     /// The running total, and the way out of a filter that has gone too far.
     private var summary: some View {
         HStack(spacing: 12) {
-            // The sliders, not the magnifier (0.8.92, item 11 — reversing
-            // 0.7.1's A2). The magnifier was argued in from the button that
-            // opens this screen; what this card actually heads is the *match
-            // list a filter is shaping*, and the sliders are the face the
-            // SETTINGS tile already taught to mean "adjust what you see".
-            // The drawn face is the settings tile's own, so the pairing is a
-            // reuse rather than a third glyph.
+            // The numbered stack (0.8.93, item 8 — revising 0.8.92's sliders,
+            // which move down onto the FILTER row where they mean "adjust").
+            // What this card actually reports is a *count of matches*, and
+            // `numberedstack` is the drawn face for exactly that — 0.8.1's J
+            // shipped it and PLAN.md has carried it as an orphan since, "no
+            // button anywhere". It has one now, and the orphan roster is one
+            // shorter.
             DexChromeGlyph(
-                "settings", symbol: "slider.horizontal.3",
+                "numberedstack", symbol: "square.stack.3d.up.fill",
                 size: 26, tint: lcd.accent
             )
 
@@ -283,12 +283,16 @@ public struct ChipFilterScreen: View {
             withAnimation(.easeOut(duration: 0.2)) { showsChips.toggle() }
         } label: {
             HStack(spacing: 10) {
-                // The drawn cog (0.8.9a, A7). The SF bars stay as the
-                // fallback rather than being deleted: `PixelArtLoader` answers
-                // nil in silence for a stem it cannot find, so the symbol is
-                // what stands between a missing asset and an empty row.
+                // The settings sliders (0.8.93, item 8 — was the painted cog
+                // from 0.8.9a's A7). The sliders face is the SETTINGS tile's
+                // own, and "adjust what you see" is this row's exact job; the
+                // cog now reads as a place, and this is a control. The SF
+                // bars stay as the fallback rather than being deleted:
+                // `PixelArtLoader` answers nil in silence for a stem it
+                // cannot find, so the symbol is what stands between a missing
+                // asset and an empty row.
                 DexChromeGlyph(
-                    UIGlyph.cog.artStem, symbol: "slider.horizontal.3",
+                    "settings", symbol: "slider.horizontal.3",
                     size: 16, tint: lcd.accent
                 )
                 // Guarded (0.7.1, A4): with a filter on, the row needed

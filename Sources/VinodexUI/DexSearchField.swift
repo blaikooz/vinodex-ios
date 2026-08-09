@@ -144,8 +144,8 @@ public struct DexSearchBarShell<Content: View>: View {
         HStack(spacing: 8) {
             // Drawn face since 0.8.1 (J3). Every search affordance in the app
             // wears this shell, so converting it here converts the list
-            // screens, the globe's button, MASTER SEARCH and WHAT'S THAT...?
-            // in one place — which is the whole reason the shell was extracted.
+            // screens, the globe's button and MASTER SEARCH in one place —
+            // which is the whole reason the shell was extracted.
             DexChromeGlyph("search", symbol: "magnifyingglass", size: 18, weight: .bold, tint: lcd.accent)
             content()
         }

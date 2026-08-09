@@ -175,7 +175,8 @@ public final class ScreenStateStore {
     /// one saved list, one questionnaire, one reveal and one globe.
     public static let bookmarks = "bookmarks"
     public static let scanner = "scanner"
-    public static let dailyGrape = "dailyGrape"
+    // `dailyGrape` retired with WHAT'S THAT…? (0.8.93, item 9). The store is
+    // session-only, so no stored key can dangle.
     public static let globe = "globe"
     public static let chipFilter = "chipFilter"
     public static let wsetQuiz = "wsetQuiz"

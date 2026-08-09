@@ -139,7 +139,27 @@ public enum PartColor: String, CaseIterable, Identifiable, Sendable {
     /// looking at, and `edge` is a little over half black so the ring reads as a
     /// moulded lip rather than as a stroke.
     public var accent: ChassisAccent {
-        ChassisAccent(
+        // **ONYX inverts (0.8.93, item 7).** The standard derivation lightens
+        // toward white for the two pale stops, which on the one colour whose
+        // whole identity is "black" produced a near-white Home disc wearing a
+        // white ink — invisible, and the opposite of the part the player
+        // picked. ORANGE WINE's authored black ramp is the precedent: every
+        // stop steps *darker* from a light grey, so `pale -> bright` renders a
+        // dark disc, and the ink is pale because the disc it sits in is dark.
+        // Scoped to `.onyx` by name rather than by a luminance test: CLARET is
+        // also dark and is asking to be deep red, not black — lightening a
+        // wine red toward white is that colour behaving normally.
+        if self == .onyx {
+            return ChassisAccent(
+                pale: lighter(0.30).hex,
+                light: lighter(0.12).hex,
+                bright: baseHex,
+                mid: darker(0.40).hex,
+                edge: darker(0.70).hex,
+                ink: "#FFFFFF"
+            )
+        }
+        return ChassisAccent(
             pale: lighter(0.80).hex,
             light: lighter(0.56).hex,
             bright: baseHex,

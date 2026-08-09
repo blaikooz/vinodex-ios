@@ -61,6 +61,25 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.8.93",
+  date: "2026-08-09",
+  headline: "PROF. VINO",
+  // The terse register 0.8.92 tested, kept by request.
+  notes: [
+    "WHAT'S THAT...? is gone; PROF. VINO takes its square -- his page, his faces, his ledger.",
+    "His quiet switch moved from SETTINGS > DEVICE onto that page.",
+    "A region's CLIMATE, SOIL and APPELLATION SYSTEM sections are buttons now, each opening its matching scan.",
+    "A region's header is two bars: KEY GRAPE, and COUNTRY in ORIGIN's shape.",
+    "Style and flavour attributes wear the grape card's round chips.",
+    "Dark button liveries finally render dark -- ONYX, CLASSIC's black set and HALLOWINE included, white glyphs and all.",
+    "The HOME cap's lip takes the button colour, not the shell's.",
+    "MASTER SEARCH heads with the numbered stack; the sliders moved down onto FILTER.",
+    "Long pack names fit their cartridge label at every size.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const PREVIOUS_0892: FirmwareRelease = {
   version: "0.8.92",
   date: "2026-08-09",
   headline: "PROFILES + POLISH",
@@ -84,6 +103,7 @@ const CURRENT: FirmwareRelease = {
 };
 
 const PREVIOUS: FirmwareRelease[] = [
+  PREVIOUS_0892,
   {
     version: "0.8.91",
     date: "2026-08-07",

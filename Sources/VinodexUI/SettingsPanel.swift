@@ -346,10 +346,8 @@ public struct SettingsSectionPanel: View {
     /// Reminders (0.7.8, D1). Observed rather than read from a stored bool —
     /// see `dailyReminderRow`.
     @State private var notifications = NotificationScheduler.shared
-    /// Professor Vino's ledger, for the silence row (0.8.9d). Observed rather
-    /// than `@AppStorage` for `notifications`' reason: the store is the writer,
-    /// and a second one bound to the same key is a second writer.
-    @State private var triggers = FirstTimeTriggerStore.shared
+    // `triggers` (Professor Vino's ledger) left with his silence row in
+    // 0.8.93 (item 9) — both live on his own screen now.
     @AppStorage(ChassisSkin.storageKey) private var skinRaw = ChassisSkin.classic.rawValue
     @AppStorage(TextScale.storageKey) private var scaleRaw = TextScale.small.rawValue
     @AppStorage(UIScale.storageKey) private var uiScaleRaw = UIScale.small.rawValue
@@ -387,9 +385,7 @@ public struct SettingsSectionPanel: View {
         self.onClosePack = onClosePack
     }
 
-    /// The switch reads the inverse of the stored preference: the row is about
-    /// him being *on*, the storage is about him being silenced.
-    private var vinoOn: Bool { !triggers.isSilenced }
+    // `vinoOn` went with the PROFESSOR VINO row (0.8.93, item 9).
 
     private var screenKey: String { ScreenStateStore.settings(section.rawValue) }
 
@@ -1798,40 +1794,19 @@ public struct SettingsSectionPanel: View {
                 }
                 .buttonStyle(DexPressStyle(scale: 0.98))
 
-                // **The hide-him switch** (0.8.9d), and the call site 0.8.9c's
-                // `FirstTimeTriggerStore` note said this batch would have to
-                // supply or leave the method unwritten. It sits beside TUTORIAL
-                // because that note named this row's neighbour as its home, and
-                // because the two are the same subject: how much the device
-                // volunteers.
-                //
-                // The detail line is careful about what it does *not* do. The
-                // tutorial's bubbles are content the player pressed a button to
-                // start, not `fireOnce` remarks, so they are unaffected — and a
-                // switch labelled as silencing him that then narrated a
-                // walkthrough would be the kind of half-true control this
-                // section is otherwise free of.
-                settingRow(
-                    symbol: "bubble.left.fill", art: VinoExpression.neutral.artStem,
-                    tint: vinoOn ? lcd.accent : lcd.subtext,
-                    title: "PROFESSOR VINO",
-                    detail: vinoOn
-                        ? "One tip, once, the first time you try something new."
-                        : "Quiet. He still guides the tutorial when you ask for it."
-                ) {
-                    DexToggle(isOn: vinoOn, tint: Dex.green) {
-                        Haptics.select()
-                        triggers.setSilenced(vinoOn)
-                    }
-                }
+                // The PROFESSOR VINO switch (0.8.9d's hide-him row) left for
+                // his own screen in 0.8.93 (item 9) — TOOLS > PROF. VINO,
+                // where everything else about him now lives. Moved, not
+                // copied: two switches over one stored key is the two-writers
+                // fault `FirstTimeTriggerStore`'s notes warn about.
 
                 // The FIRMWARE row left for the System grid in 0.8.92 (item
                 // 2) — it sits beside SHOP now, one tap up. It had been here
                 // since 0.7.3a's A3.
 
-                // **SUPPORT** (0.8.91, F1). Above CHEAT CODES: the doors
-                // above it are what the device *is* (tutorial, Vino), and
-                // "who do I tell" belongs with them. Above the cheat console
+                // **SUPPORT** (0.8.91, F1). Above CHEAT CODES: the door
+                // above it is what the device *is* (the tutorial), and
+                // "who do I tell" belongs with it. Above the cheat console
                 // because that one is a toy.
                 Button {
                     Haptics.screenTap()
@@ -2804,13 +2779,11 @@ enum SavedDataReset {
         // key loop below — every `DeviceAxis` is in it — but the saved recipes
         // are their own store and would survive a wipe otherwise.
         CustomDeviceStore.shared.reset()
-        // WHAT'S THAT…?'s record and the tool cards (0.8.8, E3/D1). Both are
-        // exactly the shape this function's other entries warn about: a wipe
-        // that left the record standing would open a fresh start claiming a
-        // hundred solves and a live run, and one that left the seen-ids set
-        // would silently swallow all six introductions on the one run where
-        // meeting the tools again is the whole point.
-        WhatsThatRecordStore.shared.reset()
+        // The tool cards (0.8.8, D1) — a wipe that left the seen-ids set
+        // standing would silently swallow all six introductions on the one
+        // run where meeting the tools again is the whole point. (WHAT'S
+        // THAT…?'s record store went with its tool in 0.8.93, item 9; its
+        // orphaned key is still wiped by the literal in the list below.)
         ToolIntroStore.shared.reset()
         // Professor Vino's ledger (0.8.9c, E1), for the reason the tool cards
         // above are here: a wipe that left the seen-ids set standing would open
@@ -2854,7 +2827,11 @@ enum SavedDataReset {
             ExamRecordStore.storageKey,
             ExamRecordStore.bestStreakKey,
             CustomDeviceStore.storageKey,
-            WhatsThatRecordStore.storageKey,
+            // The retired WHAT'S THAT…? record (0.8.93, item 9). A literal,
+            // because the store that owned it is deleted — devices that
+            // played it still carry the key, and a wipe should not leave a
+            // dead game's score behind.
+            "whatsThatRecord",
             ToolIntroStore.storageKey,
             // Belt to `FirstTimeTriggerStore.reset()`'s braces, like the two
             // above it. The seeded flag is listed too because it is the half a

@@ -272,8 +272,9 @@ struct DemoModeTests {
     @Test("every tool is on the loop")
     func everyToolAppears() {
         let tools: [DexRoute] = [
+            // `.profVino` in `.dailyGrape`'s slot (0.8.93, item 9).
             .scanner, .labelReader, .wsetQuiz, .dailyChallenge,
-            .dailyGrape, .moonDial, .chipFilter,
+            .profVino, .moonDial, .chipFilter,
         ]
         let visited = Set(DemoTour.stops.map(\.route))
         for tool in tools {

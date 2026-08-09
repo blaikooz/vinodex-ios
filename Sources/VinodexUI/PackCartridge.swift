@@ -289,13 +289,22 @@ struct PackCartridge: View {
         if let label {
             let well = Self.labelWell(for: image.size, in: container)
             if well.width > 0, well.height > 0 {
+                // Sized by the well's height *and* its width (0.8.93, item
+                // 10). Height alone plus `minimumScaleFactor` was the theory;
+                // in practice the fixed `.tracking(0.5)` does not scale with
+                // the factor, so on the shelf's ~29pt well anything past five
+                // letters — RETROFIT, CLEARTECH — truncated instead of
+                // shrinking. The width term budgets one em plus tracking per
+                // character, so the name fits by construction and the scale
+                // factor goes back to being the belt it was meant to be.
+                let count = max(CGFloat(label.count), 1)
+                let widthFit = (well.width - 0.5 * (count - 1)) / count
                 Text(label)
-                    // The cap is 16 since 0.8.92 (item 1), up from 11. It only
-                    // ever binds on the splash hero — at the shelf's 58pt the
-                    // proportional term is far below either number — and 11
-                    // was leaving a 27pt well two-thirds empty on the page
-                    // whose whole job is to print the name legibly.
-                    .font(DexFont.retro(min(16, well.height * 0.52)))
+                    // The height cap is 16 since 0.8.92 (item 1), up from 11.
+                    // It only ever binds on the splash hero, where the well is
+                    // ~27pt tall; 11 was leaving it two-thirds empty on the
+                    // page whose whole job is to print the name legibly.
+                    .font(DexFont.retro(max(2, min(16, well.height * 0.52, widthFit))))
                     .tracking(0.5)
                     .lineLimit(1)
                     .minimumScaleFactor(0.4)

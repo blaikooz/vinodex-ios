@@ -916,11 +916,9 @@ struct RootView: View {
         case .state(let name):
             StateScreen(state: name) { open($0) }
 
-        // The route case keeps its name (0.7.9, B): `DexRoute` is vocabulary,
-        // `DemoMode` names it, and what changed is the screen behind the door
-        // rather than the door. See `WhatsThatScreen`.
-        case .dailyGrape:
-            WhatsThatScreen { open($0) }
+        // WHAT'S THAT…? deleted, PROF. VINO in its place (0.8.93, item 9).
+        case .profVino:
+            ProfVinoScreen()
 
         case .settings:
             SettingsPanel(
@@ -982,7 +980,7 @@ struct RootView: View {
 
         case .minigames:
             ToolsScreen(
-                onDailyGrape: { push(.dailyGrape) },
+                onProfVino: { push(.profVino) },
                 onScanner: { push(.scanner) },
                 onMoonDial: { push(.moonDial) },
                 onQuiz: { push(.wsetQuiz) },
@@ -1117,9 +1115,8 @@ struct RootView: View {
         }
         Sounds.page()
         path.removeLast()
-        if leaving == .dailyGrape {
-            ScreenStateStore.shared.forget(ScreenStateStore.dailyGrape)
-        }
+        // The `.dailyGrape` forget that lived here left with WHAT'S THAT…?
+        // (0.8.93, item 9) — PROF. VINO keeps no screen state to forget.
     }
 
     /// Home is the reset. Searches, scroll positions and expanded sections all

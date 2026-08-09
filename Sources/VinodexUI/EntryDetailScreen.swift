@@ -742,26 +742,25 @@ public struct EntryDetailScreen: View {
                     }
                 }
 
+            // **CLIMATE leaves the header (0.8.93, item 4).** It was half of a
+            // two-tile row; the climate section further down the page is the
+            // richer answer and is tappable now (item 1), so the header stops
+            // repeating it. COUNTRY takes the full-width origin treatment the
+            // grape card taught — same bar, same flag well — which makes the
+            // region header keyGrapeBar over country bar, two bars, no tiles.
             case .region(let r):
-                // KEY GRAPE rides alone on a full-width bar (0.6.x): grape
-                // names are the longest strings in this row by far, and three
-                // abreast they wrapped to three lines. Climate and country
-                // keep the two-tile row below.
                 VStack(spacing: 10) {
                     let keyGrape = r.details.notableGrapes.first
                     let keyGrapeEntry = keyGrape.flatMap { db.entry(named: $0) }
                     keyGrapeBar(name: keyGrape, entry: keyGrapeEntry)
-                    HStack(alignment: .top, spacing: 8) {
-                        tile(label: "CLIMATE",
-                             chip: chip((r.climate?.rawValue ?? "N/A").uppercased(), .climate, key: r.climate?.rawValue ?? ""),
-                             destination: r.climate.map { .list(category: .regions, filter: .climate($0)) }) { tint in
-                            DexIcon(iconID: db.icons.climateIcon(r.climate), size: 36, color: tint)
-                        }
-                        tile(label: "COUNTRY",
-                             chip: chip(r.details.origin.uppercased(), .country, key: r.details.origin),
-                             destination: .country(name: r.details.origin)) { _ in
-                            FlagSwatch(country: r.details.origin)
-                        }
+                    attributeBar(
+                        label: "COUNTRY",
+                        chip: chip(r.details.origin.uppercased(), .country, key: r.details.origin),
+                        destination: .country(name: r.details.origin)
+                    ) {
+                        // `FlagSwatch`'s own 52 x 32 default, exactly as the
+                        // grape and style bars draw it.
+                        FlagSwatch(country: r.details.origin)
                     }
                 }
 
@@ -783,42 +782,36 @@ public struct EntryDetailScreen: View {
             // other does is *not appear* — a style whose origin is "various"
             // has no country to name, which is why the bar is inside the
             // conditional the tile was.
+            // **COLOR and CLASS wear the grape card's attribute chips
+            // (0.8.93, item 5)** — the half-width circular-well containers
+            // item 7 built one release ago, so the three scan cards stop
+            // disagreeing about what a short attribute looks like.
             case .style(let s):
                 let cls = EntryDisplay.styleClass(name: s.common.name, classification: s.details.classification)
                 let color = EntryDisplay.colorType(name: s.common.name)
                 VStack(spacing: 10) {
                     HStack(alignment: .top, spacing: 8) {
-                        // **Styles, not grapes (0.8.8, C1).** This tile pushed
-                        // `.list(category: .grapes, filter: .type(color.rawValue))`
-                        // from 0.6.2, which answered a question about wines with
-                        // a list of fruit — and answered it with *nothing* on a
-                        // rosé or an orange style, since no grape carries either
-                        // word, and with *every grape* on a dual one. Its sibling
-                        // CLASS below has always gone to `.styles`; this now does
-                        // the same, through the `.styleColor` chip the styles
-                        // listing has offered since 0.8.1's D. See
-                        // `EntryFilter.styleColor`.
-                        tile(label: "COLOR",
+                        // **Styles, not grapes (0.8.8, C1).** This chip pushes
+                        // `.styleColor`, not the grape-type filter it wore from
+                        // 0.6.2 — see `EntryFilter.styleColor`.
+                        attributeChip(label: "COLOR",
                              chip: chip(color.rawValue, .colorType, key: color.rawValue),
                              destination: .list(category: .styles, filter: .styleColor(color))) { tint in
-                            DexIcon(iconID: db.icons.colorIcon(color.rawValue), size: 36, color: tint)
+                            DexIcon(iconID: db.icons.colorIcon(color.rawValue), size: 26, color: tint)
                         }
-                        tile(label: "CLASS",
+                        attributeChip(label: "CLASS",
                              // The *inferred* class, not the raw classification
                              // field (0.6.x): filtering on the raw "STYLE" string
                              // opened a stale near-everything list, where the chip
                              // plainly names ORIGIN/TYPE/METHOD/BLEND.
                              chip: chip(cls.rawValue, .styleClass, key: cls.rawValue),
                              destination: .list(category: .styles, filter: .system(cls.rawValue))) { tint in
-                            // The class's own glyph (v0.5.8, B2) — this drew the
-                            // entry's generic glyph, which left the drawn
-                            // styleclass art with no place to render at all: in
-                            // rows the style portrait covers the glyph, so this
-                            // tile is where the class icon lives. 54 since 0.6.5
-                            // (item 5, was 40): the blend art's transparent
-                            // margins kept eating the gain, so the glyph goes as
-                            // large as the tile's icon band holds.
-                            DexIcon(iconID: db.icons.styleClassIcons[cls.rawValue] ?? db.icons.fallback, size: 54, color: tint)
+                            // The class's own glyph (v0.5.8, B2), at the well's
+                            // scale. 30 rather than item 7's 26: the blend art
+                            // carries transparent margins that eat the gain —
+                            // the same measurement that pushed the old tile to
+                            // 54 — so the class art runs to the well's edge.
+                            DexIcon(iconID: db.icons.styleClassIcons[cls.rawValue] ?? db.icons.fallback, size: 30, color: tint)
                         }
                     }
                     if s.details.origin.lowercased() != "various" {
@@ -851,20 +844,24 @@ public struct EntryDetailScreen: View {
                 // pictures. `db.icons` keys and the filter routes keep the old
                 // words: those are identifiers, and one of them is a stored
                 // search key.
+                // The grape card's attribute chips here too (0.8.93, item 5).
+                // F1's 48pt argument — the taxonomy glyphs were the smallest
+                // pictures on a screen of pictures — carries into the well:
+                // 30, the largest the 44pt circle seats with a rim of air.
                 HStack(alignment: .top, spacing: 8) {
-                    tile(label: "FLAVOR",
+                    attributeChip(label: "FLAVOR",
                          chip: chip(f.details.classification, .flavorClass, key: f.details.classification),
                          destination: .list(category: .flavors, filter: .tasting(f.details.classification))) { tint in
-                        DexIcon(iconID: db.icons.flavorClassIcon(f.details.classification), size: 48, color: tint)
+                        DexIcon(iconID: db.icons.flavorClassIcon(f.details.classification), size: 30, color: tint)
                     }
-                    tile(
+                    attributeChip(
                         label: "FAMILY",
                         chip: chip(EntryDisplay.humanize(f.details.subclass).uppercased(), .flavorSubclass, key: f.details.subclass),
                         // A cross-link like FLAVOR above it: tapping runs a
                         // filter search over the family's own flavours.
                         destination: .list(category: .flavors, filter: .flavorSubclass(f.details.subclass))
                     ) { tint in
-                        DexIcon(iconID: db.icons.flavorSubclassIcon(f.details.subclass), size: 48, color: tint)
+                        DexIcon(iconID: db.icons.flavorSubclassIcon(f.details.subclass), size: 30, color: tint)
                     }
                 }
 
@@ -1021,75 +1018,13 @@ public struct EntryDetailScreen: View {
         TileChip(label: label, key: key ?? label, table: table)
     }
 
-    /// The icon builder is handed the resolved chip's colour so the glyph and
-    /// its chip read as one unit. They were all flat `stone200`, which made the
-    /// row look inert next to the coloured chips directly beneath it.
-    /// `destination` makes the tile a cross-link. Nil leaves it inert rather
-    /// than tappable-but-dead.
-    ///
-    /// Icon and label share **one** coloured chip (0.6.4, C1): the icon used
-    /// to float bare above a text-only `ChipView`, so each tile read as two
-    /// parts — a loose glyph and a pill. The glyph keeps its position, above
-    /// the text, but the chip's fill and border now wrap the pair.
-    ///
-    /// **`compact` (0.8.0, G1)** takes one register off the whole tile — the icon
-    /// band, the value's size and the vertical padding — for the grape card's
-    /// COLOR and TYPE. It is a flag rather than three arguments because the three
-    /// numbers only ever move together: a shorter band with the same 11pt label
-    /// is a tile with less air, not a smaller tile. Nothing else passes it, so
-    /// every other card is byte-for-byte the layout that shipped.
-    ///
-    /// The *label* deliberately does not shrink. It is already at
-    /// `TypeScale.nominalFloor` (see `retro(10)`), so a smaller number here would
-    /// describe a size that never renders — the trap `StampFrame` documents.
-    private func tile<C: View>(
-        label: String,
-        chip: TileChip,
-        destination: DexRoute? = nil,
-        compact: Bool = false,
-        @ViewBuilder icon: (Color) -> C
-    ) -> some View {
-        let resolved = db.palette.resolve(chip)
-        let tint = Color(dexHex: resolved.text)
-        return VStack(spacing: 5) {
-            Text(label)
-                .font(DexFont.retro(10))
-                .foregroundStyle(lcd.accent)
-            VStack(spacing: compact ? 4 : 6) {
-                // 54 since 0.6.5 (item 5): sized to seat the enlarged class
-                // glyph; the 32pt siblings centre in the band with more air.
-                icon(tint)
-                    .frame(height: compact ? 42 : 54)
-                // Wrap rather than shrink. `minimumScaleFactor` let each tile
-                // pick its own effective size, so the three sat at three
-                // different scales — the row read as inconsistent even though
-                // every label was nominally 11pt. Chip labels carry soft
-                // hyphens (see `EntryDisplay.hyphenated`), so even a single
-                // long word has somewhere legal to break, at any screen width.
-                Text(
-                    EntryDisplay.hyphenated(
-                        chip.label.replacingOccurrences(of: "_", with: " ").uppercased()
-                    )
-                )
-                    .font(DexFont.retro(compact ? 10 : 11))
-                    .foregroundStyle(tint)
-                    .lineLimit(3)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(.horizontal, 6)
-            .padding(.vertical, compact ? 6 : 8)
-            .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 6).fill(Color(dexHex: resolved.bg))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .strokeBorder(Color(dexHex: resolved.border), lineWidth: 1)
-            )
-        }
-        .frame(maxWidth: .infinity, alignment: .top)
-        .modifier(TileLink(destination: destination, onOpen: onOpenRoute))
-    }
+    // `tile(label:chip:destination:compact:icon:)` retired in 0.8.93 (items 4
+    // and 5). It was the boxed header plate from 0.6.4's C1; 0.8.92's item 7
+    // replaced its grape callers with `attributeChip`, item 5 converted the
+    // style and flavor pairs, and item 4 dissolved the region row into a
+    // second `attributeBar` — so the last caller left and the plate went with
+    // it. Its one idea worth keeping — the icon tinted to the chip so the two
+    // read as one unit — lives on in the chip's circular well.
 
     // MARK: Category sections
 
@@ -1169,10 +1104,19 @@ public struct EntryDetailScreen: View {
     }
 
     /// A single large chip carrying the climate's display name and colours.
+    ///
+    /// **A button since 0.8.93 (item 1).** The header's CLIMATE tile carried
+    /// this destination until item 4 retired it, so this section inherits the
+    /// tap: the regions sharing the climate, as a filtered list. The chevron
+    /// is the affordance, exactly as `attributeBar` draws it, and a region
+    /// with no climate stays inert rather than tappable-but-dead.
     private func climateSection(_ r: RegionEntry) -> some View {
         let meta = r.climate.flatMap { db.palette.climates[$0.rawValue] }
         let colors = meta?.colors ?? db.palette.namedChips["CLIMATE"]
             ?? Palette.Chip(bg: "#14532d", border: "#22c55e", text: "#86efac")
+        let destination = r.climate.map {
+            DexRoute.list(category: .regions, filter: .climate($0))
+        }
 
         return section("CLIMATE", symbol: "wind") {
             HStack(spacing: 10) {
@@ -1182,6 +1126,11 @@ public struct EntryDetailScreen: View {
                     .tracking(1.5)
                     .foregroundStyle(Color(dexHex: colors.text))
                 Spacer()
+                if destination != nil {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Color(dexHex: colors.text).opacity(0.7))
+                }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 9)
@@ -1190,11 +1139,18 @@ public struct EntryDetailScreen: View {
                 RoundedRectangle(cornerRadius: 4)
                     .strokeBorder(Color(dexHex: colors.border), lineWidth: 1)
             )
+            .modifier(TileLink(destination: destination, onOpen: onOpenRoute))
         }
     }
 
     /// A grid of soil buttons. Regions without an explicit soil type fall back
     /// to a climate-keyed triplet rather than showing nothing.
+    ///
+    /// **Actual buttons since 0.8.93 (item 2).** Each tile opens GEOLOGY SCAN
+    /// — the regions grown on that soil, through `EntryFilter.soil`, which has
+    /// existed as a route since the chip era and had no door on this page. The
+    /// tiles were already drawn as pressable squares; the tap is what they
+    /// were promising.
     private func soilSection(_ r: RegionEntry) -> some View {
         let soils = db.icons.soils(soilType: r.details.soilType, climate: r.climate)
 
@@ -1232,6 +1188,10 @@ public struct EntryDetailScreen: View {
                         RoundedRectangle(cornerRadius: 8)
                             .strokeBorder(Dex.stone800, lineWidth: 2)
                     )
+                    .modifier(TileLink(
+                        destination: .list(category: .regions, filter: .soil(soil)),
+                        onOpen: onOpenRoute
+                    ))
                 }
             }
         }
@@ -1472,6 +1432,13 @@ public struct EntryDetailScreen: View {
     /// The chip used to carry the full name. That made a chip five words wide
     /// which then wrapped to three lines, and it hid the abbreviation the bottle
     /// label actually prints — which is the thing worth recognising.
+    ///
+    /// **A button since 0.8.93 (item 3): the chip-and-name pair sits in a
+    /// container** — the surface plate every settings row wears — and tapping
+    /// it opens the regions governed by the same system, the `.system` filter
+    /// the style CLASS chip already pushes for styles. The abbreviation is a
+    /// bottle-label fact; where else it applies is the natural question, and
+    /// the container is what says the question can be asked.
     private func systemSection(_ r: RegionEntry) -> some View {
         section("APPELLATION SYSTEM", symbol: "shield") {
             HStack(alignment: .top, spacing: 8) {
@@ -1497,7 +1464,22 @@ public struct EntryDetailScreen: View {
                         .font(DexFont.mono(19))
                         .foregroundStyle(lcd.subtext)
                 }
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(lcd.subtext)
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .strokeBorder(lcd.surfaceEdge, lineWidth: 1)
+            )
+            .modifier(TileLink(
+                destination: .list(category: .regions, filter: .system(r.details.classification)),
+                onOpen: onOpenRoute
+            ))
         }
     }
 

@@ -242,19 +242,21 @@ struct ScreenStateTests {
         #expect(store.number("yaw", for: ScreenStateStore.globe) == nil)
     }
 
-    /// `forget` is what ends a daily-reveal *visit* — see `RootView.goBack()`.
-    /// It has to take the values with it, or the held pick would outlive it.
+    /// `forget` ends one screen's *visit* without touching its neighbours'.
+    /// Exercised on the globe key since 0.8.93 — the daily-reveal key this
+    /// was written against left with WHAT'S THAT…? (item 9), and the
+    /// behaviour under test never belonged to that screen.
     @Test("forget drops a screen's values as well as its anchors")
     func forgetDropsValues() {
         let store = makeStore()
-        store.setNumber(7, "cursor", for: ScreenStateStore.dailyGrape)
-        store.setFlag("revealed", true, for: ScreenStateStore.dailyGrape)
+        store.setNumber(7, "cursor", for: ScreenStateStore.globe)
+        store.setFlag("revealed", true, for: ScreenStateStore.globe)
         store.setValue("reveal", "step", for: ScreenStateStore.scanner)
 
-        store.forget(ScreenStateStore.dailyGrape)
+        store.forget(ScreenStateStore.globe)
 
-        #expect(store.number("cursor", for: ScreenStateStore.dailyGrape) == nil)
-        #expect(!store.isOn("revealed", for: ScreenStateStore.dailyGrape))
+        #expect(store.number("cursor", for: ScreenStateStore.globe) == nil)
+        #expect(!store.isOn("revealed", for: ScreenStateStore.globe))
         #expect(store.value("step", for: ScreenStateStore.scanner) == "reveal")
     }
 
@@ -268,7 +270,6 @@ struct ScreenStateTests {
         #expect(ScreenStateStore.continent("CONT_europe") == "continent:CONT_europe")
         #expect(ScreenStateStore.bookmarks == "bookmarks")
         #expect(ScreenStateStore.scanner == "scanner")
-        #expect(ScreenStateStore.dailyGrape == "dailyGrape")
         #expect(ScreenStateStore.globe == "globe")
         #expect(ScreenStateStore.settings("DATA") == "settings:DATA")
     }
