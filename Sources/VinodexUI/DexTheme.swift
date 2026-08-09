@@ -2556,21 +2556,29 @@ public enum ChassisSkinSection: String, CaseIterable, Identifiable, Sendable {
 /// would move the baseline rather than add to it.
 /// Everything a chassis skin declares as a flat value, grouped by skin (S3, 1/1b).
 ///
-/// One row per skin instead of one `switch` per property — fourteen switches
-/// became one. Mostly colour, plus the three non-colour values that were the
-/// same shape: which shelf the skin sits on (`section`), what the workshop calls
-/// it (`displayName`), and its SF Symbol (`symbol`).
+/// One row per skin instead of one `switch` per property — **sixteen switches
+/// became one**. Mostly colour, plus the values that were the same shape: which
+/// shelf the skin sits on (`section`), what the workshop calls it
+/// (`displayName`), its SF Symbol (`symbol`), and the two struct ramps
+/// (`accent`, `control`).
 ///
-/// Named for what it mostly is. The eight *composite* values a skin owns —
-/// `accent`, `control`, `buttonSet`, `backPlate`, `sketch`, the two marks and
-/// `statusLights` — are still their own switches, because each builds a struct
-/// over several lines and moving them needs a stronger check than the textual
-/// diff that proved this one. See `ChassisSkin.palette` for why a `switch` and
-/// not a dictionary.
+/// Named for what it mostly is. What is deliberately *not* here:
+///
+/// - **`statusLights`** — its switch sits under a local `trio(...)` function, so
+///   moving it would mean promoting that helper too. That is a code change, not
+///   a move, and it would forfeit the check that made the rest of this safe.
+/// - **`buttonSet`, `drawnMark`, `userMark`, `backPlate`, `sketch`** — partial
+///   switches with a `default`, or no switch at all. They carry logic rather
+///   than a row per skin, and forcing them into a table would mean inventing a
+///   value for every skin that currently falls through.
+///
+/// See `ChassisSkin.palette` for why a `switch` and not a dictionary.
 public struct ChassisSkinPalette: Sendable {
     public let section: ChassisSkinSection
     public let displayName: String
     public let symbol: String
+    public let accent: ChassisAccent
+    public let control: ChassisControl
     public let globeTint: Color
     public let body: Color
     public let footerWash: Color
@@ -2942,112 +2950,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     public var orbGlow: Color { palette.orbGlow }
 
     /// Home, and anything else built to look powered.
-    public var accent: ChassisAccent {
-        switch self {
-        // Amber, exactly as before.
-        case .classic:
-            ChassisAccent(pale: "#fef3c7", light: "#fde68a", bright: "#fbbf24",
-                          mid: "#f59e0b", edge: "#b45309", ink: "#78350f")
-        case .midnight:
-            ChassisAccent(pale: "#f3e8ff", light: "#e9d5ff", bright: "#c084fc",
-                          mid: "#a855f7", edge: "#6b21a8", ink: "#3b0764")
-        // Yellow — sunlight on the bone shell, and the one warm colour the
-        // pale moulding leaves room for. (Was magenta, after the original
-        // handheld's A/B buttons, which read as an error state on white.)
-        case .original:
-            ChassisAccent(pale: "#fefce8", light: "#fef08a", bright: "#facc15",
-                          mid: "#eab308", edge: "#a16207", ink: "#713f12")
-        // Deep purple, one shade brighter than the shell so Home still reads
-        // as the powered part rather than more upholstery.
-        case .burgundy:
-            ChassisAccent(pale: "#ede9fe", light: "#ddd6fe", bright: "#8b5cf6",
-                          mid: "#6d28d9", edge: "#4c1d95", ink: "#2e1065")
-        // Greys, to match the moulded caps — on this shell the red orb is the
-        // only powered colour, which is what makes it a signal lamp.
-        case .riesling:
-            ChassisAccent(pale: "#f4f5f6", light: "#d8dadd", bright: "#b6b9be",
-                          mid: "#8b8f95", edge: "#4b4f54", ink: "#1c1e21")
-        // Dark brown — the DMG's burgundy buttons aged into leather.
-        case .vinhoVerde:
-            ChassisAccent(pale: "#E7D8C9", light: "#C8A98B", bright: "#8B5E3C",
-                          mid: "#6B4226", edge: "#3E2417", ink: "#241207")
-        case .glouglou:
-            ChassisAccent(pale: "#FFEDD5", light: "#FED7AA", bright: "#FB923C",
-                          mid: "#F97316", edge: "#C2410C", ink: "#7C2D12")
-        // The operator key: calculator orange, lit.
-        case .smartGrape:
-            ChassisAccent(pale: "#FFE8C7", light: "#FFC66E", bright: "#FF9F0A",
-                          mid: "#E08600", edge: "#8F5600", ink: "#3D2400")
-        // Gold leaf, one register deeper than the shell.
-        case .champagne:
-            ChassisAccent(pale: "#FDF6E3", light: "#F5E3AE", bright: "#E3BC5F",
-                          mid: "#C89B3C", edge: "#8A6820", ink: "#4A3510")
-        // Holly-berry red, to match the caps and the lights — the whole
-        // powered set runs red on the wrapping paper. (Was bauble gold; the
-        // orb keeps the fairy-light gold so the shell still carries both
-        // Christmas colours.)
-        case .christmas:
-            ChassisAccent(pale: "#FFE7E7", light: "#FFB3B3", bright: "#F25454",
-                          mid: "#D32F2F", edge: "#7A1010", ink: "#3D0000")
-        // Glossy grape juice — the whole powered set runs one purple.
-        case .nouveau:
-            ChassisAccent(pale: "#F3E8FF", light: "#D8B4FE", bright: "#A855F7",
-                          mid: "#7C3AED", edge: "#4C1D95", ink: "#2E1065")
-        // Polished brass on the cream faceplate.
-        case .oaked:
-            ChassisAccent(pale: "#F8EFD8", light: "#EFD9A0", bright: "#D9AE55",
-                          mid: "#B5892E", edge: "#7A5A14", ink: "#3D2B05")
-        // The charged phosphor itself, lit.
-        case .nocturne:
-            ChassisAccent(pale: "#EFFFE8", light: "#C9F9B8", bright: "#8DF06A",
-                          mid: "#57D63E", edge: "#2E8A20", ink: "#0F3D08")
-        // Cool steel-blue — powered, but restrained like the livery.
-        case .steel:
-            ChassisAccent(pale: "#F2F6FA", light: "#D7DEE6", bright: "#AEB9C6",
-                          mid: "#7E8A98", edge: "#454C56", ink: "#14181D")
-        // Hot-pink ramp on the pastel shell — the powered parts get the
-        // saturation the moulding deliberately holds back.
-        case .blush:
-            ChassisAccent(pale: "#FFF1F4", light: "#FBCFE0", bright: "#F472B6",
-                          mid: "#DB2777", edge: "#9D174D", ink: "#500724")
-        // Cross-button blue, lit — one restrained colour on the matte black,
-        // the way the console itself wore it.
-        case .psvino:
-            ChassisAccent(pale: "#E3EEFA", light: "#B9D2F0", bright: "#5B93D8",
-                          mid: "#2E6DB4", edge: "#173D6B", ink: "#0A1F38")
-        // The brick's red face buttons - the one saturated colour on the grey.
-        case .grisDeGris:
-            ChassisAccent(pale: "#FFE5E5", light: "#FFB3B3", bright: "#E23E3E",
-                          mid: "#C22626", edge: "#7A1414", ink: "#3D0505")
-        // Black, and deliberately: J2 asks for black buttons, so the *lit*
-        // button is black too. `ink` is pale rather than dark because Home's
-        // inner disc runs pale->bright, which on this ramp is a dark disc.
-        case .orangeWine:
-            ChassisAccent(pale: "#6E6E70", light: "#4A4A4C", bright: "#2A2A2C",
-                          mid: "#161617", edge: "#0A0A0B", ink: "#F2EFEA")
-        // Pencil greys with a blue-black rim. Deliberately the flattest
-        // ramp in the range: the six stops exist to make a cap look
-        // moulded, and this cap is meant to look drawn.
-        case .petNat:
-            ChassisAccent(pale: "#FBF8F1", light: "#E6E0D2", bright: "#C9C2B2",
-                          mid: "#A79F8E", edge: "#2B3244", ink: "#2B3244")
-        // The glass itself, lit — one dye lot, like BURGUNDY's purple.
-        case .waldglas:
-            ChassisAccent(pale: "#F0F7DE", light: "#D7E8AE", bright: "#A8C766",
-                          mid: "#7E9A3E", edge: "#48601E", ink: "#1F2C0A")
-        // Pumpkin orange, and it is the only colour on the shell.
-        case .halloween:
-            ChassisAccent(pale: "#FFEBD4", light: "#FFC98A", bright: "#FF8A1F",
-                          mid: "#E0670A", edge: "#8A3A00", ink: "#331500")
-        // Never read on this skin — `buttonSet` below gives Home its own green
-        // ramp, exactly as it does for the two existing console liveries.
-        // Present so the switch stays exhaustive, and so anything asking a skin
-        // for "its one accent" gets the green rather than nothing.
-        case .w64:
-            ChassisAccent(pale: "#E8F8E6", light: "#A8E3A4", bright: "#63C86B",
-                          mid: "#3A9A44", edge: "#1E5C24", ink: "#062A08")
-        }
-    }
+    public var accent: ChassisAccent { palette.accent }
 
     /// Back and the user button.
     ///
@@ -3059,84 +2962,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     /// *light* buttons. The cap is moulded from the shell now, like the rest of
     /// the plastic; Home still reads as the lit one because it is the only thing
     /// on the chassis carrying a six-stop ramp and an inner disc.
-    public var control: ChassisControl {
-        switch self {
-        // Stone, exactly as before.
-        case .classic:
-            ChassisControl(top: "#44403c", bottom: "#0c0a09", edge: "#a8a29e", glyph: "#ffffff")
-        case .midnight:
-            ChassisControl(top: "#3b3746", bottom: "#0b0a10", edge: "#8b86a3", glyph: "#ffffff")
-        // Pale grey with a dark glyph — the original handheld's own d-pad.
-        case .original:
-            ChassisControl(top: "#c2c2ba", bottom: "#83837b", edge: "#5f5f59", glyph: "#262622")
-        // Deep purple caps, matching the accent ramp and the orb.
-        case .burgundy:
-            ChassisControl(top: "#5b21b6", bottom: "#1e0a38", edge: "#a78bfa", glyph: "#ffffff")
-        // Neutral grey — the blue cast the caps used to carry fought the
-        // livery once the orb went red.
-        case .riesling:
-            ChassisControl(top: "#5a6068", bottom: "#14171c", edge: "#a7adb5", glyph: "#ffffff")
-        case .vinhoVerde:
-            ChassisControl(top: "#4B4F54", bottom: "#111316", edge: "#8A9096", glyph: "#ffffff")
-        // Clear caps: the rgba stops are what makes the buttons read as
-        // moulded from the same smoke plastic as the shell.
-        case .glouglou:
-            ChassisControl(top: "rgba(203,213,225,0.55)", bottom: "rgba(51,65,85,0.60)",
-                           edge: "rgba(226,232,240,0.90)", glyph: "#0F172A")
-        // The number key: dark grey with the brown cast of the brief.
-        case .smartGrape:
-            ChassisControl(top: "#4A4239", bottom: "#151210", edge: "#8A7B6B", glyph: "#ffffff")
-        // Pale gold caps with a dark glyph, per the Blanc de Blancs precedent.
-        case .champagne:
-            ChassisControl(top: "#D8C48E", bottom: "#7A6535", edge: "#55431F", glyph: "#2E2410")
-        // The holly-berry caps.
-        case .christmas:
-            ChassisControl(top: "#C93B3B", bottom: "#5C1010", edge: "#E88A8A", glyph: "#ffffff")
-        // Clear purple caps, moulded from the same smoke as the shell.
-        case .nouveau:
-            ChassisControl(top: "rgba(216,180,254,0.55)", bottom: "rgba(76,29,149,0.60)",
-                           edge: "rgba(233,213,255,0.90)", glyph: "#2E1065")
-        // Walnut caps with a cream glyph, like inlay.
-        case .oaked:
-            ChassisControl(top: "#7A5A3A", bottom: "#2E2014", edge: "#A8865E", glyph: "#F2E8D5")
-        // Moulded from the luminous shell, one register deeper.
-        case .nocturne:
-            ChassisControl(top: "#A9D89A", bottom: "#4E7A42", edge: "#6FA75E", glyph: "#123B0C")
-        // Machined caps with a dark glyph, per the Blanc de Blancs precedent.
-        case .steel:
-            ChassisControl(top: "#B9BEC6", bottom: "#5E646C", edge: "#3E434B", glyph: "#14181D")
-        // Pink caps one register deeper than the shell, dark glyph like the
-        // other pale skins.
-        case .blush:
-            ChassisControl(top: "#F5BBC9", bottom: "#C97F94", edge: "#8F4A5E", glyph: "#4A1220")
-        // The DualShock's own grey-black buttons.
-        case .psvino:
-            ChassisControl(top: "#3A3B40", bottom: "#101114", edge: "#6A6C72", glyph: "#ffffff")
-        // Red caps on the grey shell.
-        case .grisDeGris:
-            ChassisControl(top: "#D8484E", bottom: "#8A1F24", edge: "#F0989C", glyph: "#ffffff")
-        // Black caps on the warning orange.
-        case .orangeWine:
-            ChassisControl(top: "#3A3A3C", bottom: "#0B0B0C", edge: "#6E6E70", glyph: "#ffffff")
-        // Paper caps with an ink glyph, per the Blanc de Blancs
-        // precedent — white on paper is nothing at all.
-        case .petNat:
-            ChassisControl(top: "#FBF8F1", bottom: "#DED7C7", edge: "#2B3244", glyph: "#2B3244")
-        // Clear green caps, moulded from the same glass as the shell.
-        case .waldglas:
-            ChassisControl(top: "rgba(203,222,160,0.55)", bottom: "rgba(72,96,30,0.60)",
-                           edge: "rgba(226,238,200,0.90)", glyph: "#1F2C0A")
-        // Black caps with an orange glyph — the two colours, and only the
-        // two colours.
-        case .halloween:
-            ChassisControl(top: "#2A2530", bottom: "#0A080C", edge: "#5E5468", glyph: "#FF8A1F")
-        // Never read on this skin either — see `accent` above and `buttonSet`
-        // below. Violet moulding a register off the shell, so a caller that
-        // bypasses the set still gets a cap belonging to this device.
-        case .w64:
-            ChassisControl(top: "#6A4BB8", bottom: "#221448", edge: "#A98EE8", glyph: "#ffffff")
-        }
-    }
+    public var control: ChassisControl { palette.control }
 
     /// Per-button colours for the two console liveries (0.6.7, K2/K3).
     ///
@@ -3460,12 +3286,12 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
 
     /// Every flat value this skin owns, in one place.
     ///
-    /// **This replaced fourteen parallel `switch self` statements.** They held no
+    /// **This replaced sixteen parallel `switch self` statements.** They held no
     /// logic — 1,339 lines of `ChassisSkin` contain three conditional lines and
     /// no property reads another — so they were a constant table written in
     /// switch syntax, transposed: each column a function, each row repeated
-    /// twenty-two times. Adding a skin meant editing fourteen switches in
-    /// fourteen places and hoping none was missed.
+    /// twenty-two times. Adding a skin meant editing sixteen switches in sixteen
+    /// places and hoping none was missed.
     ///
     /// Grouped by skin because the skin is the thing that gets added. It stays a
     /// `switch` rather than a dictionary on purpose: the compiler then refuses a
@@ -3483,6 +3309,10 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
                 // was the only one still labelled by category.
                 displayName: "VINODEX CLASSIC",
                 symbol: "gamecontroller.fill",
+                // Amber, exactly as before.
+                accent: ChassisAccent(pale: "#fef3c7", light: "#fde68a", bright: "#fbbf24", mid: "#f59e0b", edge: "#b45309", ink: "#78350f"),
+                // Stone, exactly as before.
+                control: ChassisControl(top: "#44403c", bottom: "#0c0a09", edge: "#a8a29e", glyph: "#ffffff"),
                 globeTint: Color(dexHex: "#B8FFD6"),
                 body: Dex.red,
                 footerWash: Dex.red.opacity(0.7),
@@ -3500,6 +3330,8 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
                 section: .classic,
                 displayName: "CÔTE DE NUITS",
                 symbol: "moon.fill",
+                accent: ChassisAccent(pale: "#f3e8ff", light: "#e9d5ff", bright: "#c084fc", mid: "#a855f7", edge: "#6b21a8", ink: "#3b0764"),
+                control: ChassisControl(top: "#3b3746", bottom: "#0b0a10", edge: "#8b86a3", glyph: "#ffffff"),
                 globeTint: Color(dexHex: "#D6B8FF"),
                 body: Dex.graphite,
                 footerWash: Dex.graphite.opacity(0.75),
@@ -3518,6 +3350,12 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
                 section: .classic,
                 displayName: "BLANC DE BLANCS",
                 symbol: "sparkles",
+                // Yellow — sunlight on the bone shell, and the one warm colour the
+                // pale moulding leaves room for. (Was magenta, after the original
+                // handheld's A/B buttons, which read as an error state on white.)
+                accent: ChassisAccent(pale: "#fefce8", light: "#fef08a", bright: "#facc15", mid: "#eab308", edge: "#a16207", ink: "#713f12"),
+                // Pale grey with a dark glyph — the original handheld's own d-pad.
+                control: ChassisControl(top: "#c2c2ba", bottom: "#83837b", edge: "#5f5f59", glyph: "#262622"),
                 globeTint: Color(dexHex: "#FFEDBB"),
                 body: Dex.bone,
                 footerWash: Dex.bone.opacity(0.75),
@@ -3536,6 +3374,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
                 section: .wines,
                 displayName: "BURGUNDY",
                 symbol: "diamond.fill",
+                // Deep purple, one shade brighter than the shell so Home still reads
+                // as the powered part rather than more upholstery.
+                accent: ChassisAccent(pale: "#ede9fe", light: "#ddd6fe", bright: "#8b5cf6", mid: "#6d28d9", edge: "#4c1d95", ink: "#2e1065"),
+                // Deep purple caps, matching the accent ramp and the orb.
+                control: ChassisControl(top: "#5b21b6", bottom: "#1e0a38", edge: "#a78bfa", glyph: "#ffffff"),
                 globeTint: Color(dexHex: "#E4C0FF"),
                 body: Dex.velour,
                 footerWash: Dex.velour.opacity(0.75),
@@ -3557,6 +3400,12 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
                 // above; the yellow Walkman shell suits Jura's yellow wine as well.
                 displayName: "VIN JAUNE",
                 symbol: "bolt.fill",
+                // Greys, to match the moulded caps — on this shell the red orb is the
+                // only powered colour, which is what makes it a signal lamp.
+                accent: ChassisAccent(pale: "#f4f5f6", light: "#d8dadd", bright: "#b6b9be", mid: "#8b8f95", edge: "#4b4f54", ink: "#1c1e21"),
+                // Neutral grey — the blue cast the caps used to carry fought the
+                // livery once the orb went red.
+                control: ChassisControl(top: "#5a6068", bottom: "#14171c", edge: "#a7adb5", glyph: "#ffffff"),
                 globeTint: Color(dexHex: "#FFF4A8"),
                 body: Dex.walkman,
                 footerWash: Dex.walkman.opacity(0.7),
@@ -3580,6 +3429,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
                 // freed the name for the glow-green skin in 0.5.4.
                 displayName: "BOX WINE",
                 symbol: "shippingbox.fill",
+                // Dark brown — the DMG's burgundy buttons aged into leather.
+                accent: ChassisAccent(pale: "#E7D8C9", light: "#C8A98B", bright: "#8B5E3C", mid: "#6B4226", edge: "#3E2417", ink: "#241207"),
+                control: ChassisControl(top: "#4B4F54", bottom: "#111316", edge: "#8A9096", glyph: "#ffffff"),
                 globeTint: Color(dexHex: "#D9FFB8"),
                 body: Color(dexHex: "#24402B"),
                 footerWash: Color(dexHex: "#24402B").opacity(0.75),
@@ -3598,6 +3450,10 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
                 section: .clearTech,
                 displayName: "EMPTY BOTTLE",
                 symbol: "wineglass.empty",
+                accent: ChassisAccent(pale: "#FFEDD5", light: "#FED7AA", bright: "#FB923C", mid: "#F97316", edge: "#C2410C", ink: "#7C2D12"),
+                // Clear caps: the rgba stops are what makes the buttons read as
+                // moulded from the same smoke plastic as the shell.
+                control: ChassisControl(top: "rgba(203,213,225,0.55)", bottom: "rgba(51,65,85,0.60)", edge: "rgba(226,232,240,0.90)", glyph: "#0F172A"),
                 globeTint: Color(dexHex: "#FFD9B0"),
                 // Smoke plastic — the only translucent body; see `underlay`.
                 body: Color(dexHex: "rgba(204,216,224,0.40)"),
@@ -3618,6 +3474,10 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
                 section: .retrofit,
                 displayName: "SMART GRAPE",
                 symbol: "plus.forwardslash.minus",
+                // The operator key: calculator orange, lit.
+                accent: ChassisAccent(pale: "#FFE8C7", light: "#FFC66E", bright: "#FF9F0A", mid: "#E08600", edge: "#8F5600", ink: "#3D2400"),
+                // The number key: dark grey with the brown cast of the brief.
+                control: ChassisControl(top: "#4A4239", bottom: "#151210", edge: "#8A7B6B", glyph: "#ffffff"),
                 globeTint: Color(dexHex: "#FFCB79"),
                 body: Color(dexHex: "#1C1C1E"),
                 footerWash: Color(dexHex: "#1C1C1E").opacity(0.75),
@@ -3636,6 +3496,10 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
                 section: .wines,
                 displayName: "CHAMPAGNE GOLD",
                 symbol: "party.popper.fill",
+                // Gold leaf, one register deeper than the shell.
+                accent: ChassisAccent(pale: "#FDF6E3", light: "#F5E3AE", bright: "#E3BC5F", mid: "#C89B3C", edge: "#8A6820", ink: "#4A3510"),
+                // Pale gold caps with a dark glyph, per the Blanc de Blancs precedent.
+                control: ChassisControl(top: "#D8C48E", bottom: "#7A6535", edge: "#55431F", glyph: "#2E2410"),
                 globeTint: Color(dexHex: "#FFF0C8"),
                 body: Color(dexHex: "#E8D5A6"),
                 footerWash: Color(dexHex: "#E8D5A6").opacity(0.75),
@@ -3654,6 +3518,13 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
                 section: .festive,
                 displayName: "WINE XMAS",
                 symbol: "gift.fill",
+                // Holly-berry red, to match the caps and the lights — the whole
+                // powered set runs red on the wrapping paper. (Was bauble gold; the
+                // orb keeps the fairy-light gold so the shell still carries both
+                // Christmas colours.)
+                accent: ChassisAccent(pale: "#FFE7E7", light: "#FFB3B3", bright: "#F25454", mid: "#D32F2F", edge: "#7A1010", ink: "#3D0000"),
+                // The holly-berry caps.
+                control: ChassisControl(top: "#C93B3B", bottom: "#5C1010", edge: "#E88A8A", glyph: "#ffffff"),
                 globeTint: Color(dexHex: "#FFC2C2"),
                 body: Color(dexHex: "#1B4332"),
                 footerWash: Color(dexHex: "#1B4332").opacity(0.75),
@@ -3674,6 +3545,10 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
                 // Renamed from NOUVEAU (v0.5.9, A1) — label only, per the note above.
                 displayName: "RETROVIN",
                 symbol: "cpu.fill",
+                // Glossy grape juice — the whole powered set runs one purple.
+                accent: ChassisAccent(pale: "#F3E8FF", light: "#D8B4FE", bright: "#A855F7", mid: "#7C3AED", edge: "#4C1D95", ink: "#2E1065"),
+                // Clear purple caps, moulded from the same smoke as the shell.
+                control: ChassisControl(top: "rgba(216,180,254,0.55)", bottom: "rgba(76,29,149,0.60)", edge: "rgba(233,213,255,0.90)", glyph: "#2E1065"),
                 globeTint: Color(dexHex: "#DDBBFF"),
                 // Atomic-purple smoke — translucent, like GLOUGLOU; see `underlay`.
                 body: Color(dexHex: "rgba(147,51,234,0.42)"),
@@ -3694,6 +3569,10 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
                 section: .vessel,
                 displayName: "OAKED",
                 symbol: "tree.fill",
+                // Polished brass on the cream faceplate.
+                accent: ChassisAccent(pale: "#F8EFD8", light: "#EFD9A0", bright: "#D9AE55", mid: "#B5892E", edge: "#7A5A14", ink: "#3D2B05"),
+                // Walnut caps with a cream glyph, like inlay.
+                control: ChassisControl(top: "#7A5A3A", bottom: "#2E2014", edge: "#A8865E", glyph: "#F2E8D5"),
                 globeTint: Color(dexHex: "#FFDDAF"),
                 // The walnut base the grain pattern sits over.
                 body: Color(dexHex: "#5C4028"),
@@ -3720,6 +3599,10 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
                 section: .wines,
                 displayName: "VINHO VERDE",
                 symbol: "moon.zzz.fill",
+                // The charged phosphor itself, lit.
+                accent: ChassisAccent(pale: "#EFFFE8", light: "#C9F9B8", bright: "#8DF06A", mid: "#57D63E", edge: "#2E8A20", ink: "#0F3D08"),
+                // Moulded from the luminous shell, one register deeper.
+                control: ChassisControl(top: "#A9D89A", bottom: "#4E7A42", edge: "#6FA75E", glyph: "#123B0C"),
                 globeTint: Color(dexHex: "#CCFFB8"),
                 body: Color(dexHex: "#C9F2BE"),
                 footerWash: Color(dexHex: "#C9F2BE").opacity(0.75),
@@ -3738,6 +3621,10 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
                 section: .vessel,
                 displayName: "STAINLESS STEEL",
                 symbol: "gearshape.2.fill",
+                // Cool steel-blue — powered, but restrained like the livery.
+                accent: ChassisAccent(pale: "#F2F6FA", light: "#D7DEE6", bright: "#AEB9C6", mid: "#7E8A98", edge: "#454C56", ink: "#14181D"),
+                // Machined caps with a dark glyph, per the Blanc de Blancs precedent.
+                control: ChassisControl(top: "#B9BEC6", bottom: "#5E646C", edge: "#3E434B", glyph: "#14181D"),
                 globeTint: Color(dexHex: "#CDE7FF"),
                 // The aluminium base the brush pattern sits over.
                 body: Color(dexHex: "#C7CBD1"),
@@ -3757,6 +3644,12 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
                 section: .festive,
                 displayName: "BLUSH",
                 symbol: "heart.fill",
+                // Hot-pink ramp on the pastel shell — the powered parts get the
+                // saturation the moulding deliberately holds back.
+                accent: ChassisAccent(pale: "#FFF1F4", light: "#FBCFE0", bright: "#F472B6", mid: "#DB2777", edge: "#9D174D", ink: "#500724"),
+                // Pink caps one register deeper than the shell, dark glyph like the
+                // other pale skins.
+                control: ChassisControl(top: "#F5BBC9", bottom: "#C97F94", edge: "#8F4A5E", glyph: "#4A1220"),
                 globeTint: Color(dexHex: "#FFCCDD"),
                 // Soft rose-pink moulding.
                 body: Color(dexHex: "#EEA7B6"),
@@ -3781,6 +3674,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
                 // The console emblem is gone (0.6.7, K1) - see `drawnMark`. This is
                 // only the fallback for anything that still wants a plain symbol.
                 symbol: "seal.fill",
+                // Cross-button blue, lit — one restrained colour on the matte black,
+                // the way the console itself wore it.
+                accent: ChassisAccent(pale: "#E3EEFA", light: "#B9D2F0", bright: "#5B93D8", mid: "#2E6DB4", edge: "#173D6B", ink: "#0A1F38"),
+                // The DualShock's own grey-black buttons.
+                control: ChassisControl(top: "#3A3B40", bottom: "#101114", edge: "#6A6C72", glyph: "#ffffff"),
                 // Console-boot blue — the cross button, paled for the multiply.
                 globeTint: Color(dexHex: "#BBD4F5"),
                 // DualShock matte charcoal — near-black with the plastic's warmth.
@@ -3804,6 +3702,10 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
                 displayName: "GRIS DE GRIS",
                 // The brick's own control: a d-pad.
                 symbol: "dpad.fill",
+                // The brick's red face buttons - the one saturated colour on the grey.
+                accent: ChassisAccent(pale: "#FFE5E5", light: "#FFB3B3", bright: "#E23E3E", mid: "#C22626", edge: "#7A1414", ink: "#3D0505"),
+                // Red caps on the grey shell.
+                control: ChassisControl(top: "#D8484E", bottom: "#8A1F24", edge: "#F0989C", glyph: "#ffffff"),
                 // The DMG screen's own pea-green, paled for the multiply.
                 globeTint: Color(dexHex: "#DCE8C4"),
                 // Warm handheld grey, a shade off neutral the way ABS ages.
@@ -3828,6 +3730,12 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
                 section: .retrofit,
                 displayName: "ORANGE WINE",
                 symbol: "exclamationmark.triangle.fill",
+                // Black, and deliberately: J2 asks for black buttons, so the *lit*
+                // button is black too. `ink` is pale rather than dark because Home's
+                // inner disc runs pale->bright, which on this ramp is a dark disc.
+                accent: ChassisAccent(pale: "#6E6E70", light: "#4A4A4C", bright: "#2A2A2C", mid: "#161617", edge: "#0A0A0B", ink: "#F2EFEA"),
+                // Black caps on the warning orange.
+                control: ChassisControl(top: "#3A3A3C", bottom: "#0B0B0C", edge: "#6E6E70", glyph: "#ffffff"),
                 globeTint: Color(dexHex: "#FFDF8A"),
                 body: Color(dexHex: "#E8720E"),
                 footerWash: Color(dexHex: "#E8720E").opacity(0.75),
@@ -3860,6 +3768,13 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
                 displayName: "FIBERGLASS",
                 // The pen that drew the shell.
                 symbol: "pencil.and.outline",
+                // Pencil greys with a blue-black rim. Deliberately the flattest
+                // ramp in the range: the six stops exist to make a cap look
+                // moulded, and this cap is meant to look drawn.
+                accent: ChassisAccent(pale: "#FBF8F1", light: "#E6E0D2", bright: "#C9C2B2", mid: "#A79F8E", edge: "#2B3244", ink: "#2B3244"),
+                // Paper caps with an ink glyph, per the Blanc de Blancs
+                // precedent — white on paper is nothing at all.
+                control: ChassisControl(top: "#FBF8F1", bottom: "#DED7C7", edge: "#2B3244", glyph: "#2B3244"),
                 // Pencil blue on paper — the one skin whose globe should look
                 // like a drawing of a globe.
                 globeTint: Color(dexHex: "#DCE3F0"),
@@ -3893,6 +3808,10 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
                 displayName: "WALDGLAS",
                 // Forest glass, named for the woods it was blown in.
                 symbol: "leaf.circle.fill",
+                // The glass itself, lit — one dye lot, like BURGUNDY's purple.
+                accent: ChassisAccent(pale: "#F0F7DE", light: "#D7E8AE", bright: "#A8C766", mid: "#7E9A3E", edge: "#48601E", ink: "#1F2C0A"),
+                // Clear green caps, moulded from the same glass as the shell.
+                control: ChassisControl(top: "rgba(203,222,160,0.55)", bottom: "rgba(72,96,30,0.60)", edge: "rgba(226,238,200,0.90)", glyph: "#1F2C0A"),
                 // Seen through bottle glass.
                 globeTint: Color(dexHex: "#DCEAC0"),
                 // Olive-green smoke — translucent, like GLOUGLOU; see `underlay`.
@@ -3921,6 +3840,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
                 // The neutral fallback only. This skin's emblem is a drawing —
                 // SF Symbols has no pumpkin at the iOS 17 floor. See `drawnMark`.
                 symbol: "moon.haze.fill",
+                // Pumpkin orange, and it is the only colour on the shell.
+                accent: ChassisAccent(pale: "#FFEBD4", light: "#FFC98A", bright: "#FF8A1F", mid: "#E0670A", edge: "#8A3A00", ink: "#331500"),
+                // Black caps with an orange glyph — the two colours, and only the
+                // two colours.
+                control: ChassisControl(top: "#2A2530", bottom: "#0A080C", edge: "#5E5468", glyph: "#FF8A1F"),
                 // Jack-o'-lantern light.
                 globeTint: Color(dexHex: "#FFD6A8"),
                 // Not black: a true #000 shell has no moulding in it at all. This
@@ -3954,6 +3878,15 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
                 // collides with nothing — `circle.grid.2x2.fill` is a workshop axis
                 // glyph and `circle.grid.3x3.fill` is GRAPES.
                 symbol: "circle.grid.cross.fill",
+                // Never read on this skin — `buttonSet` below gives Home its own green
+                // ramp, exactly as it does for the two existing console liveries.
+                // Present so the switch stays exhaustive, and so anything asking a skin
+                // for "its one accent" gets the green rather than nothing.
+                accent: ChassisAccent(pale: "#E8F8E6", light: "#A8E3A4", bright: "#63C86B", mid: "#3A9A44", edge: "#1E5C24", ink: "#062A08"),
+                // Never read on this skin either — see `accent` above and `buttonSet`
+                // below. Violet moulding a register off the shell, so a caller that
+                // bypasses the set still gets a cap belonging to this device.
+                control: ChassisControl(top: "#6A4BB8", bottom: "#221448", edge: "#A98EE8", glyph: "#ffffff"),
                 // The shell's own violet, paled for the multiply.
                 globeTint: Color(dexHex: "#DCC8F5"),
                 // Grape violet, and opaque: the reference era is remembered for
