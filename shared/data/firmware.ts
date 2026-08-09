@@ -61,29 +61,51 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
-  version: "0.8.91",
-  date: "2026-08-07",
-  headline: "BOOT + FIRST RUN",
+  version: "0.8.92",
+  date: "2026-08-09",
+  headline: "PROFILES + POLISH",
+  // Deliberately terse (0.8.92, item 12): this release doubles as the test of
+  // H1's one-sentence rule at its shortest useful length.
   notes: [
-    "A new startup screen: the tube powers on, the checks run, and the logo settles over scanlines.",
-    "Professor Vino narrates the whole tutorial now, at a size you can see him at.",
-    "The first-run coaching bubbles land on what they point at instead of above it, past it or over it.",
-    "SAVED, WANTED and TRIED are filter chips on every search screen.",
-    "Anything you have tried wears a green border, in every list.",
-    "YOU MIGHT LIKE shows five suggestions with a SHOW ALL page behind them.",
-    "SUPPORT joins SETTINGS > DEVICE: a contact screen with a mail button.",
-    "Pack cartridges print their name in the top band, on all three shop shelves.",
-    "Drawn faces for the workshop, the label scanner and the daily reminder, and icons are larger throughout.",
-    "The HOME button keeps its bottom lip on every shell.",
-    "VINODEX CLASSIC wears four grey glyphs on four black footer buttons.",
-    "The passport's activity graph covers a week instead of a month.",
-    "The screensaver toast sits in the middle of the marquee.",
-    "This history is a sentence a change instead of a paragraph.",
+    "Save and load up to five user profiles in STORED DATA; FRESH is a factory-new device every time.",
+    "FIRMWARE is a tile beside SHOP; its settings row is gone.",
+    "DAILY REMINDER moved into its own NOTIFICATIONS section.",
+    "Shop cartridges print their shelf on the band and their name in the well, here and on the pack pages.",
+    "A grape's COLOR and TYPE wear ORIGIN's shape, two to a line.",
+    "Origin names read correctly in the light themes.",
+    "INSIGHT reads at INFO's size, on INFO's plate.",
+    "Globe markers are simply there when the globe opens.",
+    "LABEL SCAN wears its tile's face, and its two buttons wear drawn faces.",
+    "The HOME cap's bottom lip finally takes the shell colour.",
+    "MASTER SEARCH's head wears the sliders, and the chip row just says FILTER.",
+    "Backend: the chassis and theme files split apart, seventeen palette switches became one table, and 396 theme combinations now build under test.",
     "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
   ],
 };
 
 const PREVIOUS: FirmwareRelease[] = [
+  {
+    version: "0.8.91",
+    date: "2026-08-07",
+    headline: "BOOT + FIRST RUN",
+    notes: [
+      "A new startup screen: the tube powers on, the checks run, and the logo settles over scanlines.",
+      "Professor Vino narrates the whole tutorial now, at a size you can see him at.",
+      "The first-run coaching bubbles land on what they point at instead of above it, past it or over it.",
+      "SAVED, WANTED and TRIED are filter chips on every search screen.",
+      "Anything you have tried wears a green border, in every list.",
+      "YOU MIGHT LIKE shows five suggestions with a SHOW ALL page behind them.",
+      "SUPPORT joins SETTINGS > DEVICE: a contact screen with a mail button.",
+      "Pack cartridges print their name in the top band, on all three shop shelves.",
+      "Drawn faces for the workshop, the label scanner and the daily reminder, and icons are larger throughout.",
+      "The HOME button keeps its bottom lip on every shell.",
+      "VINODEX CLASSIC wears four grey glyphs on four black footer buttons.",
+      "The passport's activity graph covers a week instead of a month.",
+      "The screensaver toast sits in the middle of the marquee.",
+      "This history is a sentence a change instead of a paragraph.",
+      "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+    ],
+  },
   {
     version: "0.8.9",
     date: "2026-08-07",

@@ -596,10 +596,15 @@ public struct EntryDetailScreen: View {
         let panel = insightPanel
         if !panel.isEmpty {
             section("INSIGHT", symbol: "lightbulb.fill") {
-                VStack(alignment: .leading, spacing: 8) {
+                // INFO's own plate treatment — left accent rule over a faint
+                // accent wash — and INFO's 18pt body (0.8.92, item 9). The
+                // panel was a bare column of 16pt lines under an 18pt INFO
+                // section on the same screen; derived prose and authored prose
+                // are the same register to a reader, so they dress the same.
+                VStack(alignment: .leading, spacing: 10) {
                     if let teaser = panel.teaser {
                         Text(teaser)
-                            .font(DexFont.mono(15))
+                            .font(DexFont.mono(17))
                             .foregroundStyle(lcd.subtext)
                             .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -611,11 +616,12 @@ public struct EntryDetailScreen: View {
                             // roster, and the sentences already say which is
                             // which.
                             Text("\u{25B8}")
-                                .font(DexFont.mono(15))
+                                .font(DexFont.mono(17))
                                 .foregroundStyle(lcd.accent)
                             Text(line.text)
-                                .font(DexFont.mono(16))
+                                .font(DexFont.mono(18))
                                 .foregroundStyle(lcd.bodyText)
+                                .lineSpacing(2)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
@@ -638,7 +644,13 @@ public struct EntryDetailScreen: View {
                         )
                     }
                 }
-                .padding(.vertical, 4)
+                .padding(.leading, 14)
+                .padding(.trailing, 10)
+                .padding(.vertical, 10)
+                .background(alignment: .leading) {
+                    lcd.accent.frame(width: 4)
+                }
+                .background(lcd.accent.opacity(0.06))
             }
             .padding(.bottom, 18)
         }
@@ -692,20 +704,25 @@ public struct EntryDetailScreen: View {
             // value, a chevron when it leads somewhere. A country is exactly what
             // that treatment is for — a long string that wants a whole line and
             // an object (the flag) rather than a glyph.
+            // **COLOR and TYPE stop being boxed tiles (0.8.92, item 7).**
+            // 0.8.0's G made them `compact`; item 7 finishes the thought: they
+            // take ORIGIN's own container shape — an object on the left, the
+            // field name over its value — at half its width, two abreast. The
+            // object is the chip's colour as a round well with the icon in it,
+            // so the row keeps the palette identity the boxed plate carried
+            // without the grey slab `attributeBar`'s note argues against.
             case .grape(let g):
                 VStack(spacing: 10) {
                     HStack(alignment: .top, spacing: 8) {
-                        tile(label: "COLOR",
+                        attributeChip(label: "COLOR",
                              chip: chip(g.grapeType.rawValue.uppercased(), .colorType),
-                             destination: .list(category: .grapes, filter: .type(g.grapeType.rawValue)),
-                             compact: true) { tint in
-                            DexIcon(iconID: db.icons.colorIcon(g.grapeType.rawValue.uppercased()), size: 30, color: tint)
+                             destination: .list(category: .grapes, filter: .type(g.grapeType.rawValue))) { tint in
+                            DexIcon(iconID: db.icons.colorIcon(g.grapeType.rawValue.uppercased()), size: 26, color: tint)
                         }
-                        tile(label: "TYPE",
+                        attributeChip(label: "TYPE",
                              chip: chip(EntryDisplay.grapeBodyLabel(g), .wineType, key: g.grapeStyle),
-                             destination: .list(category: .grapes, filter: .type(g.grapeStyle)),
-                             compact: true) { tint in
-                            DexIcon(iconID: db.icons.bodyIcon(g.grapeBodyClass), size: 30, color: tint)
+                             destination: .list(category: .grapes, filter: .type(g.grapeStyle))) { tint in
+                            DexIcon(iconID: db.icons.bodyIcon(g.grapeBodyClass), size: 26, color: tint)
                         }
                     }
                     attributeBar(
@@ -918,7 +935,7 @@ public struct EntryDetailScreen: View {
                     .foregroundStyle(lcd.accent)
                 Text(chipData.label)
                     .font(DexFont.retro(13))
-                    .foregroundStyle(Color(dexHex: resolved.text))
+                    .foregroundStyle(chipValueInk(resolved))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
@@ -933,6 +950,56 @@ public struct EntryDetailScreen: View {
         .padding(.vertical, 4)
         .frame(maxWidth: .infinity, alignment: .leading)
         .modifier(TileLink(destination: destination, onOpen: onOpenRoute))
+    }
+
+    /// One *short* attribute in `attributeBar`'s shape at half its width
+    /// (0.8.92, item 7): the chip's colour as a round well holding the icon,
+    /// the field name over its value beside it. Two of these share ORIGIN's
+    /// line; the well keeps the chip's own dark ground in every mode, so the
+    /// icon's pale ink stays legible where the bare value ink would not — see
+    /// `chipValueInk` for the text's half of that bargain.
+    @ViewBuilder
+    private func attributeChip<Leading: View>(
+        label: String,
+        chip chipData: TileChip,
+        destination: DexRoute?,
+        @ViewBuilder icon: (Color) -> Leading
+    ) -> some View {
+        let resolved = db.palette.resolve(chipData)
+        HStack(spacing: 8) {
+            ZStack {
+                Circle().fill(Color(dexHex: resolved.bg))
+                Circle().strokeBorder(Color(dexHex: resolved.border), lineWidth: 1)
+                icon(Color(dexHex: resolved.text))
+            }
+            .frame(width: 44, height: 44)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(label)
+                    .font(DexFont.retro(10))
+                    .foregroundStyle(lcd.accent)
+                Text(chipData.label)
+                    .font(DexFont.retro(13))
+                    .foregroundStyle(chipValueInk(resolved))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 4)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .modifier(TileLink(destination: destination, onOpen: onOpenRoute))
+    }
+
+    /// The unboxed value's ink (0.8.92, item 8). The palette's `text` colours
+    /// are pale by design — they were drawn to sit on each chip's dark `bg` —
+    /// and `attributeBar` prints them on the bare page, which on the three
+    /// light modes (LIGHT, VINTAGE, WINE.OS) put a near-white country name on
+    /// near-white paper. On a light ground the chip's *background* colour is
+    /// the readable half of the same pair, and it keeps the per-country hue
+    /// that a flat `lcd.text` would erase.
+    private func chipValueInk(_ resolved: Palette.Chip) -> Color {
+        Color(dexHex: lcd.isLight ? resolved.bg : resolved.text)
     }
 
     @ViewBuilder

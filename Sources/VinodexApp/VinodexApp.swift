@@ -926,14 +926,16 @@ struct RootView: View {
             SettingsPanel(
                 onClose: { goBack() },
                 onSection: { push(.settingsSection($0)) },
-                onMinigames: { push(.minigames) }
+                onMinigames: { push(.minigames) },
+                // FIRMWARE is a grid tile beside SHOP now (0.8.92, item 2);
+                // the route behind it is unchanged.
+                onFirmware: { push(.firmwareHistory) }
             )
 
         case .settingsSection(let section):
             SettingsSectionPanel(
                 section: section,
                 onDev: { push(.settingsSection(.dev)) },
-                onFirmwareHistory: { push(.firmwareHistory) },
                 onCheatConsole: { push(.cheatConsole) },
                 onSupport: { push(.support) },
                 // The tour moved into SETTINGS > DEVICE in 0.7.6 (F1), so the
@@ -966,7 +968,6 @@ struct RootView: View {
                 section: .access,
                 openPack: id,
                 onDev: { push(.settingsSection(.dev)) },
-                onFirmwareHistory: { push(.firmwareHistory) },
                 onCheatConsole: { push(.cheatConsole) },
                 onSupport: { push(.support) },
                 onWalkthrough: { push(.walkthrough) },

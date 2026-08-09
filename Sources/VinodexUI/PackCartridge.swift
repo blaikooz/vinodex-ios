@@ -126,27 +126,31 @@ struct PackCartridge: View {
     /// The pack's name, printed **inside** the drawn cartridge's label well
     /// (0.8.3, C4).
     ///
-    /// Nil on the shelf, where the tile prints its own label underneath at a
-    /// legible size: the well is 11% of the cartridge's height, which at the
-    /// shelf's 58pt is six points of type. It is set on the splash hero, where
-    /// the cartridge is the page and the well is the place the name belongs.
+    /// **On the shelf too, since 0.8.92 (item 1).** C4's measurement — the
+    /// well is 11% of the cartridge's height, six points of type at the
+    /// shelf's 58pt — kept it off the shelf for five releases, and the item
+    /// overrules it knowingly: the ask is the name *on the icon*, in tiny
+    /// type, with the tile's caption underneath still carrying legibility.
+    /// On the splash hero the same fraction is a real label; see `wellLabel`'s
+    /// raised cap.
     ///
     /// Ignored when there is no art — the code-drawn cartridge below has a
     /// glyph plate where the well would be, and printing a name over it would
     /// stack two identities on one plate.
     var label: String?
-    /// The pack's name, printed in the **top band** of the drawn cartridge
-    /// (0.8.91, A1).
+    /// The **kind**, printed in the top band of the drawn cartridge — ATLAS,
+    /// DEVICE or DISPLAY (0.8.92, item 1; the band printed the pack's *name*
+    /// for one release, 0.8.91's A1, before the name moved down into the well
+    /// where the printed label belongs).
     ///
-    /// Separate from `label` rather than a placement flag on it, because the two
-    /// are different jobs and the splash wants both: the well at the bottom is
-    /// the cartridge's own printed label, and this is the shelf's answer to
-    /// "which pack is this" without reading the caption underneath.
+    /// Separate from `label` rather than a placement flag on it, because the
+    /// two are different jobs: the well is the cartridge's own printed label,
+    /// the band is the shelf it came off. Nil on the five upgrade cartridges,
+    /// which are not a `Kind` and whose gold band carries a drawn star where
+    /// the type would land.
     ///
-    /// §A1 says "the top burgundy band", which is the atlas packs' colour. It is
-    /// teal on the device packs and amber on the display ones — the item names
-    /// all three shelves in the same sentence, so the band is what it means
-    /// rather than the hue. `bandInk` is what copes with that.
+    /// The band is burgundy on the atlas packs, teal on the device packs and
+    /// amber on the display ones — `bandInk` is what copes with that.
     var title: String?
 
     init(
@@ -286,7 +290,12 @@ struct PackCartridge: View {
             let well = Self.labelWell(for: image.size, in: container)
             if well.width > 0, well.height > 0 {
                 Text(label)
-                    .font(DexFont.retro(min(11, well.height * 0.52)))
+                    // The cap is 16 since 0.8.92 (item 1), up from 11. It only
+                    // ever binds on the splash hero — at the shelf's 58pt the
+                    // proportional term is far below either number — and 11
+                    // was leaving a 27pt well two-thirds empty on the page
+                    // whose whole job is to print the name legibly.
+                    .font(DexFont.retro(min(16, well.height * 0.52)))
                     .tracking(0.5)
                     .lineLimit(1)
                     .minimumScaleFactor(0.4)
@@ -424,7 +433,10 @@ struct PackCartridge: View {
             if band.width > 0, band.height > 0 {
                 let light = Self.bandIsLight(image, stem: stem)
                 Text(title)
-                    .font(DexFont.retro(min(10, band.height * 0.62)))
+                    // 14 since 0.8.92 (item 1), up from 10, for `wellLabel`'s
+                    // reason: the cap only binds on the splash hero, where the
+                    // band is ~16pt tall and the type was floating in it.
+                    .font(DexFont.retro(min(14, band.height * 0.62)))
                     .tracking(0.5)
                     .lineLimit(1)
                     .minimumScaleFactor(0.35)

@@ -218,17 +218,15 @@ public struct ChipFilterScreen: View {
     /// The running total, and the way out of a filter that has gone too far.
     private var summary: some View {
         HStack(spacing: 12) {
-            // The magnifier (0.7.1, A2): this card is the head of MASTER
-            // SEARCH, and the screen's own hero cannot be wearing the filter
-            // bars while the button that opened it wears a magnifier. The bars
-            // stay where they mean "a filter is narrowing a list you are
-            // already looking at" — `EncyclopediaListScreen.filterBanner`.
-            // Drawn as of 0.8.9a (A7), and it is the face the round menu
-            // button that opens this screen already wears -- which is K2 rule 1
-            // ("a page's glyph is the glyph on the control that opens it")
-            // reaching the one hero on the page that had stayed a symbol.
+            // The sliders, not the magnifier (0.8.92, item 11 — reversing
+            // 0.7.1's A2). The magnifier was argued in from the button that
+            // opens this screen; what this card actually heads is the *match
+            // list a filter is shaping*, and the sliders are the face the
+            // SETTINGS tile already taught to mean "adjust what you see".
+            // The drawn face is the settings tile's own, so the pairing is a
+            // reuse rather than a third glyph.
             DexChromeGlyph(
-                "search", symbol: DexGlyph.search,
+                "settings", symbol: "slider.horizontal.3",
                 size: 26, tint: lcd.accent
             )
 
@@ -298,8 +296,9 @@ public struct ChipFilterScreen: View {
                 // the chevron — and the label wrapped to two lines the moment
                 // a chip was lit. It read correctly at rest, which is why it
                 // stood. `layoutPriority` on the badge below decides which of
-                // the two gives.
-                Text("FILTER CHIPS")
+                // the two gives. One word since 0.8.92 (item 11), which also
+                // buys the badge back most of the 23pt it was short.
+                Text("FILTER")
                     .font(DexFont.retro(12))
                     .tracking(1)
                     .lineLimit(1)

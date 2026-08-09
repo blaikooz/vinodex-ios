@@ -198,6 +198,17 @@ final class ChassisCapLoader {
     /// a rule about a drawing style. The largest connected opaque component —
     /// 0.8.6's B1, which is what removed the 159 detached specks and is still
     /// here — is the whole silhouette rule now.
+    ///
+    /// **And §D1's residual was never a clip at all (0.8.92, item 3).** With
+    /// the trim retired, the lip is kept — re-measured, rows y=204-247 sit
+    /// inside the main component — and the bottom of the button *still* read
+    /// as cut off on bright shells. The cause is paint: `home`'s lip is drawn
+    /// near-black (1,144 of its 1,526 skirt-band pixels at value <= 0.06,
+    /// where `back`/`user` skirt at a 0.32 median), so the whole band rode
+    /// `reink`'s outline clause and stayed a black slab no skin could colour.
+    /// The correction is in `import-footer-art.py` (`lift_home_lip`), where
+    /// art corrections live; nothing in this file changed for it, which is
+    /// the point — the clause is right, the drawing was wrong.
 
     /// The width, in source pixels, of the alpha ramp at the cap's edge.
     ///
