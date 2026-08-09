@@ -8,9 +8,11 @@ import VinodexCore
 /// show the same report rather than two that drift apart.
 public struct DiagnosticsReport: View {
     let db: WineDatabase
+    let exam: ExamCatalog
 
-    public init(db: WineDatabase = .shared) {
+    public init(db: WineDatabase = .shared, exam: ExamCatalog = .shared) {
         self.db = db
+        self.exam = exam
     }
 
     public var body: some View {
@@ -22,11 +24,17 @@ public struct DiagnosticsReport: View {
             row("palette chips \(db.palette.countryChips.count)", ok: !db.palette.countryChips.isEmpty)
             row("icons \(db.icons.unique.count)", ok: !db.icons.unique.isEmpty)
             row("flags \(db.icons.flags.count)", ok: !db.icons.flags.isEmpty)
+            // The exam bank is its own resource with its own decode, so a
+            // healthy catalog says nothing about it (0.7.5, D). It decodes
+            // element-wise, which means a broken question is silent by
+            // construction — this is where it stops being silent.
+            row("exam questions \(exam.questions.count)", ok: !exam.isEmpty)
 
-            if db.decodeErrors.isEmpty {
+            if db.decodeErrors.isEmpty, exam.decodeErrors.isEmpty {
                 row("decode clean", ok: true)
             } else {
                 ForEach(db.decodeErrors, id: \.self) { row($0, ok: false) }
+                ForEach(exam.decodeErrors, id: \.self) { row("exam \($0)", ok: false) }
             }
         }
     }
@@ -34,7 +42,7 @@ public struct DiagnosticsReport: View {
     private func row(_ text: String, ok: Bool) -> some View {
         HStack(spacing: 6) {
             Text(ok ? "OK" : "!!")
-                .font(DexFont.retro(9))
+                .font(DexFont.retro(10))
                 .foregroundStyle(ok ? Dex.green : Dex.red500)
             Text(text)
                 .font(DexFont.mono(18))

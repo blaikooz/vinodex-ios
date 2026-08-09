@@ -20,6 +20,15 @@ public enum Continent: String, Sendable, CaseIterable, Identifiable {
         }
     }
 
+    /// One-line name, for anywhere the marker's line break would be wrong: the
+    /// globe's continent-list fallback, VoiceOver labels, the scanner's step
+    /// title. Callers used to reach for `markerLabel` and strip the newline by
+    /// hand, which is a rule about globe geometry leaking into three unrelated
+    /// places. (AUDIT M20)
+    public var displayName: String {
+        markerLabel.replacingOccurrences(of: "\n", with: " ")
+    }
+
     /// Latitude/longitude the marker is pinned to.
     ///
     /// These are continent centroids, not wine regions. The values ported from
@@ -101,6 +110,12 @@ public struct Palette: Codable, Sendable {
     public let regionClassificationIconColors: [String: String]
     public let flavorSubclassIconColors: [String: String]
     public let continentCountries: [String: [String]]
+
+    /// Style id -> `StyleColorType` rawValue, as the shared `getColorType`
+    /// answers it. Read by `CoverageTests` and by nothing else: it exists so
+    /// that `EntryDisplay.colorType`'s port cannot drift from `entryUtils.ts`
+    /// unnoticed again (0.8.1, B).
+    public let styleColorTypes: [String: String]
 
     public func chip(country: String?) -> Chip? {
         guard let country else { return nil }
@@ -280,9 +295,33 @@ public final class WineDatabase: Sendable {
     /// rather than swallowed so a schema drift is visible instead of silent.
     public let decodeErrors: [String]
 
+    /// The pedigree graph (0.7.5, E).
+    ///
+    /// Built here for the reason `byID` and `byName` are: it is a reverse index
+    /// over the whole grape list, the screen that reads it would otherwise
+    /// rebuild it on every navigation, and this type is where "one pass at load"
+    /// already lives. One pass over 171 records; see `GrapeLineageIndex`.
+    public let lineage: GrapeLineageIndex
+
     /// id -> entry, so `entry(id:)` is a hash lookup rather than a scan of the
     /// whole entry array. Every navigation used to pay that scan.
     private let byID: [String: WineEntry]
+
+    /// The tastable half of the catalog, folded once (0.8.9b).
+    ///
+    /// Built here for the reason `byID`, `byName` and `lineage` are, and the
+    /// note on `byName` is the precedent word for word: `DiscoveryIndex` is
+    /// constructed on every evaluation of the entry screen's INSIGHT panel — and
+    /// the entry screen re-evaluates on scroll, because its anchor is state — so
+    /// the catalog side of it would otherwise fold ~180 grape names through
+    /// `TextNormalize.label` and scan the entry array twice, per scroll event.
+    /// That is precisely the "tens of thousands of diacritic foldings per
+    /// render" `byName` was extracted to stop.
+    ///
+    /// The catalog cannot change for a loaded database, so only the *shelf* side
+    /// of `DiscoveryIndex` is per-call, and that is proportional to what the
+    /// user has actually tried.
+    public let discoveryCatalog: DiscoveryCatalog
 
     /// (category, normalised name-or-synonym) -> entry.
     ///
@@ -299,6 +338,22 @@ public final class WineDatabase: Sendable {
     /// The same table with no category constraint, for `entry(named:)` calls
     /// that pass `category: nil`.
     private let byNameAnyCategory: [String: WineEntry]
+
+    /// Every entry, pre-sorted into the display order every listing uses, and
+    /// the folded search text for each — parallel arrays, built once at load
+    /// (AUDIT M5).
+    ///
+    /// `[WineEntry].apply(_:)` did both halves per call: it folded every
+    /// searched field of every entry against the query, then sorted the
+    /// survivors with `localizedCaseInsensitiveCompare`. On the list screen
+    /// that ran per keystroke; on the chip filter and the scanner it ran per
+    /// *body pass*. Sorting once and folding once is the same trick `byName`
+    /// already plays for `entry(named:)` — see the note there.
+    ///
+    /// Filtering a sorted array preserves its order, so `entries(matching:)`
+    /// needs no sort at all.
+    private let sortedEntries: [WineEntry]
+    private let searchHaystacks: [String]
 
     /// Countries, as searchable items (v0.5.6). Countries are not entries —
     /// a country page is assembled from the regions that name it — so master
@@ -359,6 +414,20 @@ public final class WineDatabase: Sendable {
         self.byID = ids
         self.byName = names
         self.byNameAnyCategory = anyName
+        self.discoveryCatalog = DiscoveryCatalog(entries: entries)
+
+        let sorted = entries.sorted {
+            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
+        self.sortedEntries = sorted
+        self.searchHaystacks = sorted.map(\.searchHaystack)
+
+        self.lineage = GrapeLineageIndex(
+            grapes: entries.compactMap {
+                if case .grape(let g) = $0 { return g }
+                return nil
+            }
+        )
     }
 
     /// Whether an entry is in the free tier.
@@ -559,13 +628,38 @@ public final class WineDatabase: Sendable {
         colorTypeChips: [:], styleClassChips: [:], flavorClassChips: [:], flavorSubclassChips: [:],
         namedChips: [:], styleTones: [:], climates: [:],
         regionClassificationIconColors: [:], flavorSubclassIconColors: [:],
-        continentCountries: [:]
+        continentCountries: [:], styleColorTypes: [:]
     )
 
     // MARK: - Queries
 
+    /// A listing, resolved against the load-time index (AUDIT M5).
+    ///
+    /// Prefer this to `entries.apply(_:)` anywhere the database is to hand:
+    /// entries are walked in display order against haystacks folded at load,
+    /// so a query costs one substring test per entry and no sort at all. The
+    /// filter, when there is one, is evaluated last — it is the only clause
+    /// that still normalises per call.
+    public func entries(matching query: EntryQuery) -> [WineEntry] {
+        let q = TextNormalize.label(query.search)
+        var out: [WineEntry] = []
+        for index in sortedEntries.indices {
+            let entry = sortedEntries[index]
+            guard query.categories.contains(entry.category) else { continue }
+            if !q.isEmpty, !searchHaystacks[index].contains(q) { continue }
+            if let filter = query.filter, !filter.matches(entry) { continue }
+            out.append(entry)
+        }
+        return out
+    }
+
+    /// Every entry in the display order every listing uses, sorted once at
+    /// load. Exposed so a listing narrowed by something that is not an
+    /// `EntryQuery` — the chip filter — also needs no sort of its own.
+    public var entriesInDisplayOrder: [WineEntry] { sortedEntries }
+
     public func entries(in category: EntryCategory) -> [WineEntry] {
-        entries.apply(.category(category))
+        entries(matching: .category(category))
     }
 
     /// The searchable countries matching a query — all of them for an empty
@@ -618,7 +712,7 @@ public final class WineDatabase: Sendable {
     }
 
     public func regions(in continent: Continent) -> [WineEntry] {
-        entries.apply(.category(.regions, filter: filter(for: continent)))
+        entries(matching: .category(.regions, filter: filter(for: continent)))
     }
 
     /// Whether at least one region in the current selection has this country
@@ -747,6 +841,15 @@ public struct DatabaseStats: Sendable, Hashable {
             186,  // the first full import
             281,  // 0.5.8
             342,  // 0.6.1
+            375,  // 0.6.2 — outgoing total, appended by 0.6.4 batch 2
+            405,  // 0.6.4–0.7.3b — outgoing total, appended by 0.7.3c when
+                  // Brazil moved the catalog off the number it had stood at
+                  // for eight releases.
+            407,  // 0.7.3c — outgoing total, appended by 0.7.4's grape
+                  // overhaul (+25 grapes, +6 regions). It stood for one
+                  // release, which is why two milestones sit this close.
+            438,  // 0.7.4–0.7.8 — outgoing total, appended by 0.7.9 (G) when
+                  // sommbot's P1/P2 batch landed +6 grapes and +2 styles.
             total,
         ]
     }

@@ -5,8 +5,15 @@ import VinodexCore
 
 /// The profile's only stored field. A named constant so CLEAR SAVED DATA can
 /// name the key without spelling the literal twice.
+///
+/// **The literal moved to `VinoName.storageKey` in 0.8.9c** and this forwards to
+/// it. Professor Vino addresses the player by the name they gave themselves
+/// here, so Core needs to read the same default this screen writes — and a key
+/// spelled in two modules is a key that can be renamed in one of them. Same
+/// value, same behaviour, one spelling. See `VinoName` for why no second name
+/// was minted.
 public enum UserProfile {
-    public static let displayNameKey = "userDisplayName"
+    public static let displayNameKey = VinoName.storageKey
 }
 
 /// The user screen: who you are, and your three shelves.
@@ -208,9 +215,9 @@ public struct BookmarksScreen: View {
                 )
             }
         }
-        .animation(.easeOut(duration: 0.15), value: confirmingClear)
-        .animation(.easeOut(duration: 0.15), value: pendingDelete?.id)
-        .animation(.easeOut(duration: 0.15), value: editingRating?.id)
+        .animation(DexMotion.overlay, value: confirmingClear)
+        .animation(DexMotion.overlay, value: pendingDelete?.id)
+        .animation(DexMotion.overlay, value: editingRating?.id)
     }
 
     /// The shelf switch, in the settings panel's equal-width segment idiom.
@@ -222,7 +229,7 @@ public struct BookmarksScreen: View {
                 let active = shelf == option
                 Button {
                     Haptics.select()
-                    withAnimation(.easeOut(duration: 0.15)) { shelfRaw = option.rawValue }
+                    withAnimation(DexMotion.overlay) { shelfRaw = option.rawValue }
                 } label: {
                     Text("\(title(of: option)) \(count(of: option))")
                         .font(DexFont.retro(11))
@@ -257,7 +264,7 @@ public struct BookmarksScreen: View {
             Spacer()
             if !items.isEmpty {
                 Button {
-                    Haptics.tap()
+                    Haptics.screenTap()
                     confirmingClear = true
                 } label: {
                     Text("CLEAR ALL")
@@ -308,10 +315,21 @@ public struct BookmarksScreen: View {
                         } label: {
                             VStack(spacing: 4) {
                                 EntryIconWell(entry: entry, size: 56, cornerRadius: 8)
+                                // Two lines and a scale floor (0.7.1, A4).
+                                // The retro face advances a full em, so a
+                                // 64pt box at one line held seven characters
+                                // at SMALL and *five* at HUGE — CABERNET
+                                // SAUVIGNON came out as CABE…, and this strip
+                                // is the one place in the app where the name
+                                // is the only thing telling two rows apart
+                                // (the wells above are frequently the same
+                                // art).
                                 Text(entry.name.uppercased())
-                                    .font(DexFont.retro(8))
+                                    .font(DexFont.retro(10))
                                     .foregroundStyle(lcd.subtext)
-                                    .lineLimit(1)
+                                    .multilineTextAlignment(.center)
+                                    .lineLimit(2)
+                                    .minimumScaleFactor(0.6)
                                     .truncationMode(.tail)
                                     .frame(width: 64)
                             }
@@ -369,7 +387,7 @@ public struct BookmarksScreen: View {
             Task {
                 if let data = try? await item.loadTransferable(type: Data.self) {
                     avatar.adopt(data)
-                    Haptics.tap()
+                    Haptics.screenTap()
                 }
                 pickedPhoto = nil
             }
@@ -444,11 +462,16 @@ public struct BookmarksScreen: View {
 
             Button {
                 Haptics.select()
-                withAnimation(.easeOut(duration: 0.15)) { editingName.toggle() }
+                withAnimation(DexMotion.overlay) { editingName.toggle() }
             } label: {
-                Image(systemName: editingName ? "checkmark" : "square.and.pencil")
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(lcd.accent)
+                // Only half the ternary has a face: `edit` is the resting
+                // state, and the tick that confirms it is not an edit button
+                // (0.8.1, J3).
+                DexChromeGlyph(
+                    editingName ? "checkmark" : "edit",
+                    symbol: editingName ? "checkmark" : "square.and.pencil",
+                    size: 17, weight: .bold, tint: lcd.accent
+                )
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(lcd.well))
                     .overlay(Circle().strokeBorder(lcd.surfaceEdge, lineWidth: 2))
@@ -459,39 +482,32 @@ public struct BookmarksScreen: View {
         .frame(minHeight: 44)
     }
 
-    /// The streak flame when one is alight, and the way into the passport.
+    /// The way into the passport, and the streak mark beneath it when one is
+    /// alight.
+    ///
+    /// **Stacked rather than side by side since 0.6.7 (D1).** The two shared a
+    /// row, and the row is not wide: the avatar takes 96pt plus its gap, so on a
+    /// compact phone two capsules were splitting ~200pt between them and the
+    /// PASSPORT label was being squeezed down its `minimumScaleFactor` — the
+    /// full name only rendered when no streak was running. Nothing on this
+    /// panel is competing for the vertical, so a column costs a row of height
+    /// and buys both labels their full size.
+    ///
+    /// Passport first, streak under it: one is the control and one is a
+    /// readout, and putting the readout on top would push the button further
+    /// from the thumb to no purpose.
     private var statRow: some View {
-        HStack(spacing: 8) {
-            if streak.current > 0 {
-                HStack(spacing: 6) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Dex.yellow)
-                    Text("\(streak.current) DAY\(streak.current == 1 ? "" : "S")")
-                        .font(DexFont.retro(11))
-                        .tracking(1)
-                        .foregroundStyle(lcd.subtext)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 9)
-                .background(Capsule().fill(lcd.well))
-                .overlay(Capsule().strokeBorder(lcd.surfaceEdge, lineWidth: 2))
-            }
-
+        VStack(alignment: .leading, spacing: 8) {
             Button {
-                Haptics.tap()
+                Haptics.screenTap()
                 onPassport()
             } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: "book.closed.fill")
-                        .font(.system(size: 13, weight: .bold))
+                    DexChromeGlyph("passport", symbol: "book.closed.fill", size: 13, weight: .bold)
                     Text("PASSPORT")
                         .font(DexFont.retro(11))
                         .tracking(1)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.7)
                 }
                 .foregroundStyle(lcd.onAccent)
                 .padding(.horizontal, 12)
@@ -499,6 +515,32 @@ public struct BookmarksScreen: View {
                 .background(Capsule().fill(lcd.accent))
             }
             .buttonStyle(DexPressStyle(scale: 0.95))
+            // The second half of the walkthrough's last step (0.8.9d, G2): the
+            // chassis user button gets you here, this gets you to the passport.
+            // One target id, two publishers, one on screen at a time.
+            .coachmarkTarget(.passportButton)
+
+            if streak.current > 0 {
+                HStack(spacing: 6) {
+                    // The Tools tile's own face (0.8.9a, A7). The streak is
+                    // the daily challenge's number, so it wears the daily
+                    // challenge's picture -- the tile has had this art since
+                    // 0.8.1 and the counter it feeds had not.
+                    DexChromeGlyph(
+                        "dailychallenge", symbol: DexGlyph.challenge,
+                        size: 13, weight: .bold, tint: Dex.yellow
+                    )
+                    Text("\(streak.current) DAY\(streak.current == 1 ? "" : "S")")
+                        .font(DexFont.retro(11))
+                        .tracking(1)
+                        .foregroundStyle(lcd.subtext)
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(Capsule().fill(lcd.well))
+                .overlay(Capsule().strokeBorder(lcd.surfaceEdge, lineWidth: 2))
+            }
         }
     }
 
@@ -515,6 +557,11 @@ public struct BookmarksScreen: View {
                     entry: entry,
                     palette: db.palette,
                     locked: access.isLocked(entry, in: db),
+                    // The TRIED shelf's own rows all wear it, which is correct
+                    // rather than redundant: the shelves share one list style,
+                    // and a border that vanished on the shelf it names would
+                    // read as the shelf being a different kind of thing.
+                    tried: bookmarks.contains(entry.id, on: .tried),
                     showsChevron: false
                 ) {
                     onSelect(entry)
@@ -543,9 +590,7 @@ public struct BookmarksScreen: View {
                             Haptics.select()
                             editingRating = entry
                         } label: {
-                            Image(systemName: "square.and.pencil")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundStyle(lcd.accent)
+                            DexChromeGlyph("edit", symbol: "square.and.pencil", size: 13, weight: .bold, tint: lcd.accent)
                                 // 44pt target around the 13pt glyph, same rule
                                 // as the remove button above it.
                                 .frame(width: 40, height: 32)

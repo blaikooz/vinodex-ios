@@ -69,9 +69,13 @@ public struct ContinentScreen: View {
         .background(lcd.page)
         .overlay {
             if let comingSoon {
+                // A deliberately generic notice (0.6.5, item 11 — reversing
+                // 0.6.4's teaser-blurb wiring): the popup is a status, not a
+                // country page, and the blurb read as one. The authored
+                // teasers stay in countries.json for the day the gates open.
                 DexAlert(
                     title: "COMING SOON",
-                    message: "\(comingSoon.uppercased()) has no regions in the database yet. It is on the list.",
+                    message: "\(comingSoon.uppercased()) is not in the database yet. Its regions are on the way — check back after an update.",
                     confirmLabel: "OK",
                     cancelLabel: nil,
                     onConfirm: { self.comingSoon = nil },
@@ -79,7 +83,7 @@ public struct ContinentScreen: View {
                 )
             }
         }
-        .animation(.easeOut(duration: 0.15), value: comingSoon)
+        .animation(DexMotion.overlay, value: comingSoon)
     }
 
     // MARK: Hero
@@ -94,12 +98,25 @@ public struct ContinentScreen: View {
         VStack(spacing: 14) {
             EntryIconWell(entry: .continent(continent), size: DexMetrics.heroWell, cornerRadius: 20)
 
-            Text(continent.common.name.uppercased())
+                // **Inset back off the bezel** (0.7.1, A4). The hero's
+                // `.padding(.horizontal, -14)` below cancels the scroll
+                // content margin so the wash goes full-bleed, which is
+                // deliberate and correct — but the title rode along with it
+                // and had *zero* horizontal inset, so its line box was the
+                // whole LCD and the hard 4pt shadow sat against the moulding.
+                // At the HUGE step the retro face fits thirteen characters
+                // across, so GEWURZTRAMINER and NIEDEROSTERREICH broke
+                // mid-glyph — Press Start 2P has no hyphenation and these
+                // titles, unlike the tile chips, were not going through
+                // `EntryDisplay.hyphenated`. Both halves are fixed: the inset
+                // comes back, and a legal break point exists.
+            Text(EntryDisplay.hyphenated(continent.common.name.uppercased()))
                 .font(DexFont.retro(21))
                 .foregroundStyle(lcd.text)
                 .shadow(color: lcd.accent.opacity(0.55), radius: 0, x: 4, y: 4)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 18)
 
             saveButton
         }
@@ -205,24 +222,34 @@ public struct ContinentScreen: View {
                 Spacer(minLength: 4)
 
                 // Three distinct states, which used to be two. A country with
-                // no regions in the data (Morocco, say) is *unwritten*, not
-                // locked and not broken — it now says so with a question mark
-                // rather than just being a dead grey row indistinguishable
-                // from something the paywall is holding back.
+                // no regions in the data is *unwritten*, not locked and not
+                // broken — it says so in words now (0.6.4, batch 2: the
+                // coming-soon gates made this a designed state rather than a
+                // gap). The 0.6.2 question mark read as "something is wrong";
+                // COMING SOON reads as a promise.
                 if hasRegions {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(Dex.stone600)
                 } else {
-                    Image(systemName: "questionmark")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(Dex.stone600)
-                        .accessibilityLabel("No entries yet")
+                    HStack(spacing: 5) {
+                        Image(systemName: "hourglass")
+                            .font(.system(size: 10, weight: .bold))
+                        Text("COMING SOON")
+                            .font(DexFont.retro(10))
+                            .tracking(1)
+                    }
+                    .foregroundStyle(lcd.disabledText)
+                    .accessibilityLabel("Coming soon — no entries yet")
                 }
             }
             .padding(7)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(lcd.surface)
+            // The text dims (`disabledText` + the COMING SOON label) but the
+            // flag stays at full strength (0.6.5, item 11 — reversing the
+            // whole-row dim): the flag is the row's identity, and washing it
+            // out read as a missing asset rather than a muted state.
             .overlay(
                 RoundedRectangle(cornerRadius: 4)
                     .strokeBorder(hasRegions ? Dex.stone700 : Dex.stone800, lineWidth: 1)

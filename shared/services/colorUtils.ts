@@ -50,9 +50,18 @@ const FLAVOR_SUBCLASS_ICON_COLORS: Record<string, string> = {
   FLORAL: '#ec4899',
   EARTH: '#78716c',
   WOOD: '#8b5a2b',
-  MARINE: '#0ea5e9',
   WAX: '#f59e0b',
   NUT: '#eab308',
+  // Six ids had no tint and fell to the '#e5e7eb' default, alongside the six
+  // missing chip colours in `chipColors.ts` (0.8.1, F3). `BRINY` inherits the
+  // sky blue that was keyed `MARINE`, an id no code path can produce.
+  BRINY: '#0ea5e9',
+  SALTY: '#38bdf8',
+  SMOKY: '#64748b',
+  BREAD: '#ca8a04',
+  GAME: '#b91c1c',
+  SAVORY: '#a16207',
+  FLAVOR: '#a8a29e',
 };
 
 export const getFlavorSubclassIconColor = (sub?: string): string => {

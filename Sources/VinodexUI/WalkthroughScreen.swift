@@ -17,8 +17,15 @@ import VinodexCore
 /// It is drawn from the same `DexMetrics` proportions as the real chassis and
 /// tinted by the same `ChassisSkin`, so it is recognisably *this* device in
 /// *your* colourway rather than generic artwork.
+///
+/// **The other half of the tutorial starts here** (0.8.9d, G2). The objections
+/// above are all about a tour that *drives* the navigation stack;
+/// `CoachmarkEngine` never drives, it follows, which is why the two can be the
+/// two halves of one tutorial rather than two tutorials. `onGuidedRun` is the
+/// last step's hand-off — see `CoachmarkWalkthrough` for the argument.
 public struct WalkthroughScreen: View {
     let onFinish: () -> Void
+    let onGuidedRun: () -> Void
 
     @State private var index = 0
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
@@ -27,8 +34,9 @@ public struct WalkthroughScreen: View {
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
     private var skin: ChassisSkin { ChassisSkin(rawValue: skinRaw) ?? .classic }
 
-    public init(onFinish: @escaping () -> Void = {}) {
+    public init(onFinish: @escaping () -> Void = {}, onGuidedRun: @escaping () -> Void = {}) {
         self.onFinish = onFinish
+        self.onGuidedRun = onGuidedRun
     }
 
     private var steps: [WalkthroughStep] { Walkthrough.steps }
@@ -39,24 +47,66 @@ public struct WalkthroughScreen: View {
         ZStack {
             DexScreenBackground()
 
-            VStack(spacing: 14) {
-                progress
+            // Diagram at the top taking every point the page can spare, then
+            // the walkthrough copy at the bottom directly above the buttons
+            // (0.6.7, E1/E2).
+            //
+            // The old order was progress / diagram / copy / **spacer** /
+            // controls, which parked the paragraph in the middle of the screen
+            // with a growing hole under it — and pinned the diagram at a fixed
+            // 230pt while that hole grew to 150 on a tall phone. Moving the
+            // spare height from the spacer into the diagram does both items at
+            // once: the device gets bigger *because* the text moved down.
+            //
+            // **The device is a fixed size now (0.8.8, D2), and the page scrolls
+            // instead.**
+            //
+            // The paragraph above is the 0.6.7 argument for the *opposite*, and
+            // it was right about the layout it was fixing and wrong about what it
+            // cost. `maxHeight: .infinity` with no floor means the diagram is
+            // whatever the copy leaves it: the shortest step's body is 84
+            // characters and the longest is 175, so the device visibly grew and
+            // shrank as you pressed NEXT — a picture that changes size between
+            // steps reads as the thing itself changing, which on a tour *about*
+            // the device is the one impression it must not give. On a small
+            // phone the longest steps squeezed it toward unreadable, and D2 adds
+            // four more steps, three of them long.
+            //
+            // `diagramHeight` is fitted rather than round: it is what the old
+            // layout gave the diagram on a mid-size phone with a two-line body,
+            // so the common case is unchanged and only the extremes stop moving.
+            // The page gains a `ScrollView` in exchange, which is what the 0.6.7
+            // note's "one of the two screens that does not scroll" was protecting
+            // — a fixed picture and a fixed paragraph cannot both be honoured on
+            // every device, and the paragraph is the part you can scroll to.
+            ScrollView {
+                VStack(spacing: 14) {
+                    progress
 
-                DeviceDiagram(highlight: step.highlight, isolated: step.isolated, skin: skin, lcd: lcd)
-                    .frame(height: 230)
+                    DeviceDiagram(
+                        highlight: step.highlight,
+                        isolated: step.isolated,
+                        skin: skin,
+                        lcd: lcd
+                    )
+                    .frame(maxWidth: .infinity)
+                    .frame(height: Self.diagramHeight)
                     // Redrawn per step so the lit part animates rather than
                     // cutting, which is what makes it read as "look here".
                     .animation(.easeInOut(duration: 0.3), value: step.highlight)
 
-                copy
+                    copy
 
-                Spacer(minLength: 0)
-
-                controls
+                    controls
+                }
+                .padding(16)
             }
-            .padding(16)
+            .scrollBounceBehavior(.basedOnSize)
         }
     }
+
+    /// The device's one size, on every step. See `body`.
+    private static let diagramHeight: CGFloat = 300
 
     private var progress: some View {
         HStack(spacing: 5) {
@@ -70,56 +120,121 @@ public struct WalkthroughScreen: View {
         .animation(.easeOut(duration: 0.2), value: index)
     }
 
-    private var copy: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(step.title)
-                .font(DexFont.retro(16))
-                .tracking(1.5)
-                .foregroundStyle(lcd.accent)
+    /// The portrait's square. Larger than `VinoBubble`'s because this page has
+    /// no list behind it competing for attention and one paragraph on it.
+    private var portraitSize: CGFloat { 68 * UIScale.current.factor }
 
-            Text(step.body)
-                .font(DexFont.mono(21))
-                .foregroundStyle(lcd.bodyText)
-                .lineSpacing(3)
-                .fixedSize(horizontal: false, vertical: true)
+    /// **He narrates the map too** (0.8.91, I2).
+    ///
+    /// This was a title in the retro face over a paragraph in a plain surface
+    /// panel — correct, anonymous, and the thing §I2 objects to. The live half
+    /// of the tutorial has had a portrait and a speech bubble since 0.8.9d, so a
+    /// new user met a character on the guided run and a form on the map that
+    /// precedes it. Same frame, same portrait treatment, same overlap and tail
+    /// as `VinoBubble` and `CoachmarkOverlay` — three surfaces, one speaker.
+    ///
+    /// The **title survives inside the bubble**, in the slot the other two use
+    /// for the chirp and the step count. A tour of twelve pages needs a heading
+    /// you can find your place by; what it did not need was a heading that was
+    /// the only thing on the page with a voice.
+    private var copy: some View {
+        HStack(alignment: .bottom, spacing: 0) {
+            DexChromeGlyph(
+                step.expression.artStem,
+                symbol: "cpu",
+                size: portraitSize,
+                weight: .semibold,
+                tint: lcd.accent
+            )
+            .padding(.trailing, -6)
+            .zIndex(1)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(step.title)
+                    .font(DexFont.retro(11))
+                    .tracking(1.5)
+                    .foregroundStyle(lcd.accent)
+
+                Text(step.body)
+                    .font(DexFont.mono(21))
+                    .foregroundStyle(lcd.bodyText)
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(VinoBubbleFrame(tailInset: portraitSize * 0.35).fill(lcd.surface))
+            .overlay(
+                VinoBubbleFrame(tailInset: portraitSize * 0.35)
+                    .stroke(lcd.accent.opacity(0.85), lineWidth: 2)
+            )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
-        .overlay(
-            RoundedRectangle(cornerRadius: 6).strokeBorder(lcd.surfaceEdge, lineWidth: 2)
-        )
+        // The tail is drawn outside the frame's own rect, so the row needs a
+        // point of slack on the left or the portrait clips against the padding.
+        .padding(.leading, 2)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Professor Vino: " + step.title + ". " + step.body)
     }
 
+    /// **The last step offers the live half** (0.8.9d, G2).
+    ///
+    /// SHOW ME takes the accent and its own full-width row; FINISH demotes to
+    /// DONE and to the secondary fill beside BACK. That ordering is the whole
+    /// design decision made visible — the guided run is what this page is now
+    /// *for*, and leaving is the alternative rather than the default.
+    ///
+    /// Three pills would not fit one row at the LARGE text scale: `pill` sets no
+    /// line limit and takes `maxWidth: .infinity`, so a third would wrap
+    /// "SHOW ME" across two lines inside a capsule. Stacking is also the honest
+    /// hierarchy.
     private var controls: some View {
-        HStack(spacing: 10) {
-            if index > 0 {
+        VStack(spacing: 10) {
+            if isLast {
                 Button {
-                    Haptics.select()
-                    withAnimation(.easeOut(duration: 0.2)) { index -= 1 }
+                    Haptics.screenTap()
+                    onGuidedRun()
                 } label: {
-                    pill("BACK", fill: lcd.surface, ink: lcd.subtext, border: lcd.surfaceEdge)
+                    pill(
+                        "SHOW ME",
+                        fill: lcd.accent,
+                        // Never white on mint — see the note in `ChipFilterScreen`.
+                        ink: lcd.isLight ? .white : .black,
+                        border: lcd.accent
+                    )
                 }
                 .buttonStyle(DexPressStyle(scale: 0.97))
             }
 
-            Button {
-                Haptics.tap()
-                if isLast {
-                    onFinish()
-                } else {
-                    withAnimation(.easeOut(duration: 0.2)) { index += 1 }
+            HStack(spacing: 10) {
+                if index > 0 {
+                    Button {
+                        Haptics.select()
+                        withAnimation(.easeOut(duration: 0.2)) { index -= 1 }
+                    } label: {
+                        pill("BACK", fill: lcd.surface, ink: lcd.subtext, border: lcd.surfaceEdge)
+                    }
+                    .buttonStyle(DexPressStyle(scale: 0.97))
                 }
-            } label: {
-                pill(
-                    isLast ? "FINISH" : "NEXT",
-                    fill: lcd.accent,
-                    // Never white on mint — see the note in `ChipFilterScreen`.
-                    ink: lcd.isLight ? .white : .black,
-                    border: lcd.accent
-                )
+
+                Button {
+                    Haptics.screenTap()
+                    if isLast {
+                        onFinish()
+                    } else {
+                        withAnimation(.easeOut(duration: 0.2)) { index += 1 }
+                    }
+                } label: {
+                    pill(
+                        isLast ? "DONE" : "NEXT",
+                        fill: isLast ? lcd.surface : lcd.accent,
+                        ink: isLast ? lcd.subtext : (lcd.isLight ? .white : .black),
+                        border: isLast ? lcd.surfaceEdge : lcd.accent
+                    )
+                }
+                .buttonStyle(DexPressStyle(scale: 0.97))
             }
-            .buttonStyle(DexPressStyle(scale: 0.97))
         }
     }
 
@@ -142,6 +257,25 @@ public struct WalkthroughScreen: View {
 /// Deliberately schematic — this is a map, not a screenshot. Everything unlit is
 /// drawn at low opacity so the highlighted part is the only thing with contrast,
 /// which is the whole job.
+/// The white ring and glow a pointed-at tile wears on the little LCD.
+///
+/// A modifier rather than the inline overlay it was, because 0.8.8's D2 needs
+/// three tiles able to wear it rather than one, and three copies of a border and
+/// a shadow is how two of them come to differ.
+private struct MiniTileGlow: ViewModifier {
+    let on: Bool
+    let control: CGFloat
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                RoundedRectangle(cornerRadius: control * 0.18)
+                    .strokeBorder(.white, lineWidth: on ? 2 : 0)
+            )
+            .shadow(color: Dex.yellow.opacity(on ? 0.9 : 0), radius: 6)
+    }
+}
+
 struct DeviceDiagram: View {
     let highlight: WalkthroughStep.Highlight
     /// See `WalkthroughStep.isolated`: the opening step hides everything
@@ -150,13 +284,25 @@ struct DeviceDiagram: View {
     let skin: ChassisSkin
     let lcd: LcdMode
 
+    /// The four caps, resolved through the skin the same way the real chassis
+    /// resolves them (0.6.7, K2/K3) — the console liveries colour each button
+    /// individually, everything else shares one moulded cap. The diagram claims
+    /// to be "this device in your colourway", so it has to follow.
+    private var backCap: ChassisControl { skin.buttonSet?.back ?? skin.control }
+    private var userCap: ChassisControl { skin.buttonSet?.bookmarks ?? skin.control }
+    private var settingsCap: ChassisControl { skin.buttonSet?.settings ?? skin.control }
+    private var homeRamp: ChassisAccent { skin.buttonSet?.home ?? skin.accent }
+
     /// Whether a part is the subject of this step. `.device` lights everything,
     /// which is how the last step says "this whole object". The tools step
     /// lights the cog too — TOOLS lives behind it, and the step's whole point
     /// is showing that path.
     private func lit(_ part: WalkthroughStep.Highlight) -> Bool {
         highlight == .device || highlight == part
-            || (part == .settings && highlight == .tools)
+            // The cog lights for anything that lives behind it — TOOLS since
+            // v0.5.4, and the passport, workshop and shop since 0.8.8's D2. The
+            // step's point in every case is the path, and the path starts here.
+            || (part == .settings && (highlight == .tools || highlight == .collection))
     }
 
     private func dim(_ part: WalkthroughStep.Highlight) -> Double {
@@ -230,25 +376,44 @@ struct DeviceDiagram: View {
         }
     }
 
-    /// The tools step's little LCD: a mock of the settings grid, with the
-    /// TOOLS tile glowing. The other three tiles are the grid's real
-    /// neighbours (TUTORIAL, CUSTOMIZE, SETTINGS), so the drawing points at
-    /// where TOOLS actually sits rather than at a made-up menu.
-    private func miniSettingsGrid(control: CGFloat, spacing: CGFloat) -> some View {
+    /// The settings grid on the little LCD, with one tile glowing.
+    ///
+    /// **Redrawn to the grid that actually exists (0.8.8, D2).** This mock drew
+    /// four tiles — TUTORIAL, TOOLS, CUSTOMIZE, SETTINGS — and its own comment
+    /// called them "the grid's real neighbours". They stopped being that in
+    /// 0.7.6's F1, which took TUTORIAL off the grid entirely (it is a row inside
+    /// SETTINGS > DEVICE now, and is where *this very tour* is launched from) and
+    /// left five tiles in three rows: two, two, and SHOP the width of the panel.
+    /// So the tour's picture of the settings panel had a tile on it that the
+    /// panel has not had for four releases — and the tile it had was the tour.
+    ///
+    /// Symbols and layout track `SettingsPanel.body`; the colours are this
+    /// diagram's own flat faces rather than that panel's ground-aware pairs,
+    /// because a 20pt square inside a mocked LCD is not the surface those were
+    /// tuned for.
+    ///
+    /// `glowing` is which tile the step is pointing at, so one drawing serves the
+    /// tools step and D2's three collection steps rather than four mocks.
+    private func miniSettingsGrid(
+        control: CGFloat,
+        spacing: CGFloat,
+        glowing: WalkthroughStep.Highlight
+    ) -> some View {
         VStack(spacing: spacing) {
             HStack(spacing: spacing) {
-                miniMenuTile("flag.checkered", "#22c55e", control: control)
                 miniMenuTile("wrench.and.screwdriver.fill", "#FACC15", control: control, ink: Dex.amber900)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: control * 0.18)
-                            .strokeBorder(.white, lineWidth: 2)
-                    )
-                    .shadow(color: Dex.yellow.opacity(0.9), radius: 6)
+                    .modifier(MiniTileGlow(on: glowing == .tools, control: control))
+                miniMenuTile("paintpalette.fill", "#ef4444", control: control)
+                    .modifier(MiniTileGlow(on: glowing == .collection, control: control))
             }
             HStack(spacing: spacing) {
-                miniMenuTile("paintpalette.fill", "#ef4444", control: control)
                 miniMenuTile("slider.horizontal.3", "#f97316", control: control)
+                miniMenuTile("chart.bar.fill", "#22c55e", control: control)
             }
+            // SHOP, the width of the panel — F1's own layout.
+            miniMenuTile("bag.fill", "#a855f7", control: control)
+                .frame(height: control * 0.7)
+                .modifier(MiniTileGlow(on: glowing == .collection, control: control))
         }
     }
 
@@ -275,12 +440,38 @@ struct DeviceDiagram: View {
                 VStack(spacing: h * 0.035) {
                     // Island strip: orb + lights on the left, cog on the right.
                     HStack(spacing: 6) {
-                        Circle()
+                        // A stadium, with the real orb (0.7.5 A2, 0.7.6 E1).
+                        // This diagram exists to point at a specific part of the
+                        // device the user is holding; it has to be the same part.
+                        //
+                        // **Width taken from this diagram's own lamp cluster
+                        // (0.7.9, A1).** The trio below is `control * 0.75`
+                        // across, and the chassis rule is that the orb spans
+                        // exactly that. It used to be `control` — wider than the
+                        // trio, which was the reading A1 exists to fix — with
+                        // the height divided out of a 2.35 aspect. At 5.3 that
+                        // arithmetic gives a hairline, so the rim is
+                        // proportional here too.
+                        let orbShape = Capsule(style: .continuous)
+                        let orbW = control * 0.75
+                        // The lamp trio below is `control * 0.26` tall, so that
+                        // is this diagram's lamp and therefore its orb's height
+                        // (0.8.0, C1) — the same one-lamp rule the chassis
+                        // follows now. It was `orbW / islandOrbAspect`, which at
+                        // 5.3 drew a bead barely half the lamps beside it.
+                        let orbH = DexMetrics.islandOrbHeight(lamp: control * 0.26)
+                        orbShape
                             .fill(skin.orb)
-                            .frame(width: control, height: control)
-                            .overlay(Circle().strokeBorder(.white.opacity(0.8), lineWidth: 1.5))
+                            .frame(width: orbW, height: orbH)
+                            .overlay(orbShape.strokeBorder(.white.opacity(0.8), lineWidth: max(orbH * 0.11, 0.75)))
                             .opacity(dim(.orb))
                             .shadow(color: skin.orbGlow.opacity(lit(.orb) ? 0.9 : 0), radius: 6)
+                            // The row is centred on the orb's old height, so a
+                            // shorter bead must not let the lamp cluster beside
+                            // it drift up: the slot stays what it was and the
+                            // part sits in the middle of it, exactly as the
+                            // chassis does with `islandSlot`.
+                            .frame(height: control)
 
                         HStack(spacing: 2.5) {
                             ForEach(0..<3, id: \.self) { i in
@@ -293,20 +484,28 @@ struct DeviceDiagram: View {
 
                         Spacer(minLength: 0)
 
-                        // The skin's caps, like the real cog (v0.5.4).
+                        // The skin's caps, like the real cog (v0.5.4). Note
+                        // the real cog moved to the button band in 0.6.5 and
+                        // under User in 0.6.7 (G2); the diagram keeps it up
+                        // here because the *step* is about reaching settings,
+                        // and a schematic that redraws itself every batch stops
+                        // being a map.
                         Circle()
                             .fill(
                                 LinearGradient(
-                                    colors: [skin.control.top, skin.control.bottom],
+                                    colors: [settingsCap.top, settingsCap.bottom],
                                     startPoint: .top, endPoint: .bottom
                                 )
                             )
                             .frame(width: control, height: control)
-                            .overlay(Circle().strokeBorder(skin.control.edge, lineWidth: 1.5))
+                            .overlay(Circle().strokeBorder(settingsCap.edge, lineWidth: 1.5))
                             .overlay(
                                 Image(systemName: "gearshape.fill")
                                     .font(.system(size: control * 0.5))
-                                    .foregroundStyle(Dex.stone200)
+                                    // The skin's glyph, not a fixed silver —
+                                    // the real cog took `control.glyph` in
+                                    // 0.6.6 (F1) and this copy did not follow.
+                                    .foregroundStyle(settingsCap.glyph)
                             )
                             .opacity(dim(.settings))
                             .shadow(color: lcd.accent.opacity(lit(.settings) ? 0.8 : 0), radius: 6)
@@ -325,12 +524,16 @@ struct DeviceDiagram: View {
                                 .padding(h * 0.022)
                         )
                         .overlay {
-                            if highlight == .tools {
-                                // The tools step swaps the little LCD to a
-                                // mock of the settings grid — see
-                                // `miniSettingsGrid`.
-                                miniSettingsGrid(control: control, spacing: h * 0.016)
-                                    .padding(h * 0.05)
+                            if highlight == .tools || highlight == .collection {
+                                // The tools step, and D2's three collection
+                                // steps, swap the little LCD to a mock of the
+                                // settings grid — see `miniSettingsGrid`.
+                                miniSettingsGrid(
+                                    control: control,
+                                    spacing: h * 0.016,
+                                    glowing: highlight
+                                )
+                                .padding(h * 0.05)
                             } else if highlight == .entry {
                                 miniEntryMock(control: control, spacing: h * 0.016)
                                     .padding(h * 0.05)
@@ -373,7 +576,8 @@ struct DeviceDiagram: View {
                         // *inside* the housing — dimming the housing would dim
                         // its own subject.
                         .opacity(
-                            highlight == .search || highlight == .tools || highlight == .entry
+                            highlight == .search || highlight == .tools
+                                || highlight == .entry || highlight == .collection
                                 ? 1 : dim(.screen)
                         )
                         .shadow(color: lcd.accent.opacity(lit(.screen) ? 0.7 : 0), radius: 8)
@@ -388,16 +592,16 @@ struct DeviceDiagram: View {
                         Circle()
                             .fill(
                                 LinearGradient(
-                                    colors: [skin.control.top, skin.control.bottom],
+                                    colors: [backCap.top, backCap.bottom],
                                     startPoint: .top, endPoint: .bottom
                                 )
                             )
                             .frame(width: control, height: control)
-                            .overlay(Circle().strokeBorder(skin.control.edge, lineWidth: 1.5))
+                            .overlay(Circle().strokeBorder(backCap.edge, lineWidth: 1.5))
                             .overlay(
                                 Image(systemName: "chevron.left")
                                     .font(.system(size: control * 0.5, weight: .bold))
-                                    .foregroundStyle(skin.control.glyph)
+                                    .foregroundStyle(backCap.glyph)
                             )
                             .opacity(dim(.back))
                             .shadow(color: lcd.accent.opacity(lit(.back) ? 0.8 : 0), radius: 6)
@@ -405,44 +609,64 @@ struct DeviceDiagram: View {
                         Circle()
                             .fill(
                                 LinearGradient(
-                                    colors: [skin.control.top, skin.control.bottom],
+                                    colors: [userCap.top, userCap.bottom],
                                     startPoint: .top, endPoint: .bottom
                                 )
                             )
                             .frame(width: control, height: control)
-                            .overlay(Circle().strokeBorder(skin.control.edge, lineWidth: 1.5))
+                            .overlay(Circle().strokeBorder(userCap.edge, lineWidth: 1.5))
                             .overlay(
                                 Image(systemName: "person.crop.circle")
                                     .font(.system(size: control * 0.5, weight: .bold))
-                                    .foregroundStyle(skin.control.glyph)
+                                    .foregroundStyle(userCap.glyph)
                             )
                             .opacity(dim(.saved))
                             .shadow(color: lcd.accent.opacity(lit(.saved) ? 0.8 : 0), radius: 6)
 
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(.black)
-                            .overlay(
+                        // The marquee column: its two lamp buttons over the
+                        // panel, which is how the real footer is stacked.
+                        //
+                        // The lamps are on the diagram since 0.7.6 (A1) because
+                        // there is now a step about them (see `Walkthrough`), and
+                        // a step that lights a part the diagram does not draw is
+                        // a step pointing at nothing. They take the shell's own
+                        // outer two lamp colours, exactly as the chassis does, so
+                        // the picture matches the device the reader is holding.
+                        VStack(spacing: 2) {
+                            HStack(spacing: 3) {
                                 Capsule()
-                                    .fill(skin.marqueeText)
-                                    .frame(height: 2.5)
-                                    .padding(.horizontal, 5)
-                            )
-                            .frame(height: control * 0.62)
-                            .opacity(dim(.marquee))
+                                    .fill(skin.statusLights[0].fill)
+                                    .frame(height: control * 0.16)
+                                Capsule()
+                                    .fill(skin.statusLights[2].fill)
+                                    .frame(height: control * 0.16)
+                            }
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(.black)
+                                .overlay(
+                                    Capsule()
+                                        .fill(skin.marqueeText)
+                                        .frame(height: 2.5)
+                                        .padding(.horizontal, 5)
+                                )
+                                .frame(height: control * 0.62)
+                        }
+                        .opacity(dim(.marquee))
+                        .shadow(color: lcd.accent.opacity(lit(.marquee) ? 0.8 : 0), radius: 6)
 
                         Circle()
                             .fill(
                                 LinearGradient(
-                                    colors: [skin.accent.light, skin.accent.mid],
+                                    colors: [homeRamp.light, homeRamp.mid],
                                     startPoint: .top, endPoint: .bottom
                                 )
                             )
                             .frame(width: control, height: control)
-                            .overlay(Circle().strokeBorder(skin.accent.edge, lineWidth: 1.5))
+                            .overlay(Circle().strokeBorder(homeRamp.edge, lineWidth: 1.5))
                             .overlay(
                                 Image(systemName: "house.fill")
                                     .font(.system(size: control * 0.45, weight: .bold))
-                                    .foregroundStyle(skin.accent.ink)
+                                    .foregroundStyle(homeRamp.ink)
                             )
                             .opacity(dim(.home))
                             .shadow(color: lcd.accent.opacity(lit(.home) ? 0.8 : 0), radius: 6)

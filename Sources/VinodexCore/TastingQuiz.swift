@@ -89,6 +89,19 @@ public struct QuizSession: Sendable, Codable, Equatable {
     public private(set) var correct: Int
     /// The option picked for the current question; nil while unanswered.
     public private(set) var chosenID: String?
+    /// Right or wrong per question answered so far, oldest first (0.7.8, C1).
+    ///
+    /// **Correctness only, and that is the whole security argument.** The share
+    /// string built from this is published to people holding the same daily
+    /// paper, so what it encodes has to be something they cannot invert. A
+    /// per-question *chosen option* would be exactly that leak — four options
+    /// and a "wrong" marker eliminates one for everybody who reads it. A bare
+    /// boolean says how you did and nothing about what the answer was. See
+    /// `DailyResult`.
+    ///
+    /// `correct` is kept rather than derived from this so `passed` reads the
+    /// same field it always has; `marksAgreeWithCount` pins the two together.
+    public private(set) var marks: [Bool]
 
     public init(
         seed: Int,
@@ -103,6 +116,25 @@ public struct QuizSession: Sendable, Codable, Equatable {
         index = 0
         correct = 0
         chosenID = nil
+        marks = []
+    }
+
+    /// Decoded by hand for one reason: `marks` did not exist before 0.7.8, and
+    /// the synthesised initialiser treats a missing key as a failure rather
+    /// than as a default. A paper half-sat across the upgrade would decode to
+    /// nil and be silently thrown away — the exact "losing a half-finished
+    /// paper" cost this type's storage note weighs. `decodeIfPresent` keeps it,
+    /// minus a grid it never recorded; `DailyResult.card` handles that case.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        seed = try container.decode(Int.self, forKey: .seed)
+        length = try container.decode(Int.self, forKey: .length)
+        passMark = try container.decode(Int.self, forKey: .passMark)
+        tier = try container.decode(QuizTier.self, forKey: .tier)
+        index = try container.decode(Int.self, forKey: .index)
+        correct = try container.decode(Int.self, forKey: .correct)
+        chosenID = try container.decodeIfPresent(String.self, forKey: .chosenID)
+        marks = try container.decodeIfPresent([Bool].self, forKey: .marks) ?? []
     }
 
     public var isComplete: Bool { index >= length }
@@ -114,7 +146,9 @@ public struct QuizSession: Sendable, Codable, Equatable {
     public mutating func choose(_ id: String, in question: QuizQuestion) {
         guard chosenID == nil, !isComplete else { return }
         chosenID = id
-        if question.isCorrect(id) { correct += 1 }
+        let right = question.isCorrect(id)
+        if right { correct += 1 }
+        marks.append(right)
     }
 
     /// Steps to the next question once the current one is answered. Stepping
@@ -145,26 +179,54 @@ public final class QuizProgress {
     public static let shared = QuizProgress()
 
     public static let storageKey = "quizTierUnlocked"
+    /// Which exams have been passed at least once (0.6.7, A4) — the star on
+    /// the exam list.
+    ///
+    /// Deliberately **not** derivable from `highestUnlocked`. The two agree for
+    /// the first two tiers and diverge at the top: passing ENTHUSIAST unlocks
+    /// SOMMELIER, so a ladder position of "sommelier unlocked" says nothing
+    /// about whether SOMMELIER itself has ever been passed, and that is exactly
+    /// the exam whose star is worth having. Stored as its own list.
+    public static let completedKey = "quizTiersCompleted"
 
     private let defaults: UserDefaults
 
     /// The highest tier the user may start. Missing or unreadable → novice.
     private(set) public var highestUnlocked: QuizTier
+    /// Every tier passed at least once, in no particular order.
+    private(set) public var completed: Set<QuizTier>
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         highestUnlocked = defaults.string(forKey: Self.storageKey)
             .flatMap(QuizTier.init(rawValue:)) ?? .novice
+        // An unreadable or partly-unknown list degrades to whatever of it still
+        // resolves, matching how the bookmark shelves treat a stale id: a
+        // renamed tier should cost its own star, not the whole set.
+        let raw = defaults.array(forKey: Self.completedKey) as? [String] ?? []
+        completed = Set(raw.compactMap(QuizTier.init(rawValue:)))
     }
 
     public func unlocked(_ tier: QuizTier) -> Bool {
         tier.rank <= highestUnlocked.rank
     }
 
+    /// Whether this exam has ever been passed — drives its completion star.
+    public func isCompleted(_ tier: QuizTier) -> Bool {
+        completed.contains(tier)
+    }
+
     /// Records a pass; returns the newly unlocked tier, or nil if the pass
     /// opened nothing new (repeat passes, or the top of the ladder).
+    ///
+    /// The completion star is recorded *before* that guard, and has to be: a
+    /// repeat pass and a pass at the top of the ladder both return nil, and
+    /// both are still passes.
     @discardableResult
     public func recordPass(tier: QuizTier) -> QuizTier? {
+        if completed.insert(tier).inserted {
+            defaults.set(completed.map(\.rawValue).sorted(), forKey: Self.completedKey)
+        }
         guard let next = tier.next, next.rank > highestUnlocked.rank else { return nil }
         highestUnlocked = next
         defaults.set(next.rawValue, forKey: Self.storageKey)
@@ -173,7 +235,9 @@ public final class QuizProgress {
 
     public func reset() {
         highestUnlocked = .novice
+        completed = []
         defaults.removeObject(forKey: Self.storageKey)
+        defaults.removeObject(forKey: Self.completedKey)
     }
 }
 

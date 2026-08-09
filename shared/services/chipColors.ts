@@ -33,6 +33,20 @@ export const getCountryChipColors = (country?: string): ChipColorStyle => {
     georgia:       { bg: '#422006', border: '#f59e0b', text: '#fef3c7' },
     uruguay:       { bg: '#312e81', border: '#8b5cf6', text: '#ede9fe' },
     croatia:       { bg: '#1e293b', border: '#3b82f6', text: '#e0f2fe' },
+    // Batch 2 (0.6.4): the four countries that had been falling through to
+    // the grey fallback despite appearing in continent rosters...
+    mexico:        { bg: '#14532d', border: '#22c55e', text: '#dcfce7' },
+    // Brazil (0.7.3c), added with the country so its rows chip in colour
+    // from the first build rather than falling through to the grey.
+    brazil:        { bg: '#083d21', border: '#facc15', text: '#fef9c3' },
+    morocco:       { bg: '#7f1d1d', border: '#16a34a', text: '#fee2e2' },
+    romania:       { bg: '#1e3a8a', border: '#facc15', text: '#fef9c3' },
+    switzerland:   { bg: '#7f1d1d', border: '#f8fafc', text: '#fee2e2' },
+    // ...and the coming-soon gates, so their rows chip in colour from day one.
+    'united kingdom': { bg: '#1e293b', border: '#dc2626', text: '#dbeafe' },
+    slovenia:      { bg: '#0f172a', border: '#0ea5e9', text: '#e0f2fe' },
+    bulgaria:      { bg: '#14532d', border: '#dc2626', text: '#dcfce7' },
+    lebanon:       { bg: '#450a0a', border: '#16a34a', text: '#fecdd3' },
   };
   const key = (country || '').toLowerCase();
   return map[key] || { bg: '#0b0f19', border: '#374151', text: '#e5e7eb' };
@@ -144,9 +158,22 @@ export const getFlavorSubclassChipColors = (sub?: string): ChipColorStyle => {
     case 'FLORAL':        return { bg: '#4a0e2a', border: '#db2777', text: '#fbcfe8' };
     case 'EARTH':         return { bg: '#1c1917', border: '#78716c', text: '#e7e5e4' };
     case 'WOOD':          return { bg: '#292524', border: '#92400e', text: '#fde68a' };
-    case 'MARINE':        return { bg: '#0c2340', border: '#0284c7', text: '#bae6fd' };
     case 'WAX':           return { bg: '#422006', border: '#b45309', text: '#fef3c7' };
     case 'NUT':           return { bg: '#3b2f00', border: '#a16207', text: '#fef9c3' };
+    // The six that had no case at all until 0.8.1 (F3). `BRINY` takes the blue
+    // that sat unreachable under `MARINE` — a rename that left the old row
+    // behind, so the colour existed and nothing could ask for it.
+    case 'BRINY':         return { bg: '#0c2340', border: '#0284c7', text: '#bae6fd' };
+    case 'SALTY':         return { bg: '#0f2a3d', border: '#38bdf8', text: '#e0f2fe' };
+    case 'SMOKY':         return { bg: '#1f2937', border: '#64748b', text: '#e2e8f0' };
+    case 'BREAD':         return { bg: '#3b2a12', border: '#ca8a04', text: '#fef3c7' };
+    case 'GAME':          return { bg: '#3f1d1d', border: '#b91c1c', text: '#fecaca' };
+    case 'SAVORY':        return { bg: '#2a1a10', border: '#a16207', text: '#fde68a' };
+    // The sentinel `categorizeFlavorSubclass` returns when a note matches no
+    // keyword. No shipped flavour carries it, which is exactly why it needs a
+    // colour: the first one that does would otherwise arrive as a grey chip, a
+    // grey glyph and no icon, and read as four separate faults.
+    case 'FLAVOR':        return { bg: '#292524', border: '#a8a29e', text: '#f5f5f4' };
     default:              return { bg: '#1c1917', border: '#57534e', text: '#e7e5e4' };
   }
 };

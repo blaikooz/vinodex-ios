@@ -1,45 +1,48 @@
 #if canImport(SwiftUI) && canImport(UIKit)
 import SwiftUI
+import UIKit
 import VinodexCore
 
-/// Which paper this screen is sitting: the practice ladder or the daily.
-public enum QuizMode: Equatable {
-    case practice
-    case daily
-}
-
-/// A WSET Level 1-style paper, in two flavours.
+/// THE DAILY CHALLENGE — one five-question paper per local day.
 ///
-/// **Practice** is the ladder: pick an unlocked tier, ten questions, 8/10 to
-/// pass, and a pass opens the next tier. **Daily** is one five-question paper
-/// per local day — everyone gets the same one, there is no retry (the retry
-/// would be the identical paper), and passing keeps the streak alive.
+/// Everyone gets the same paper, there is no retry (the retry would be the
+/// identical paper), and passing keeps the streak alive.
+///
+/// **This screen used to be both papers, and 0.7.5 (D) took one of them away.**
+/// Its `.practice` mode was the WINE EXAM, and the Wine Exam is now the authored
+/// bank — 407 questions, sixteen subjects, seven formats, an explanation on
+/// every one. See `WineExamScreen`. What went with the practice mode was the
+/// tier picker, the ladder unlock and RETRY, all of which the exam now owns; the
+/// `QuizMode` enum went with them, because a two-case enum with one case left is
+/// a parameter every call site has to pass and no call site can vary.
+///
+/// **What did *not* move, and why this is not leftover.** The daily is generated
+/// from the catalog by `TastingQuiz` and stays that way. An authored bank is
+/// finite and a daily is not: 407 questions at five a day is under three months
+/// before the repeats start, and a paper that must be the same for everyone,
+/// every day, forever is exactly the case a generator answers and a bank cannot.
+/// The generated paper also cannot contradict an entry, which matters more here
+/// than on the exam, where every claim was authored against a source.
 ///
 /// The reveal is the point. Every option is a real entry, so answering does not
 /// end at a tick or a cross — the correct entry appears as the tile it appears
 /// as everywhere else in the app, with its own page one tap away. A question you
 /// got wrong is the best possible moment to be offered the reading, and a
 /// question you got right is the moment you are most likely to take it.
-///
-/// Questions come from `TastingQuiz`, which builds them out of the shipped data
-/// rather than from an authored bank — see the reasoning there. The run itself
-/// is a `QuizSession`, so the whole thing survives the trip into an entry and
-/// LEARN MORE does not cost you the paper you are halfway through.
 public struct TastingQuizScreen: View {
-    let mode: QuizMode
     let onOpen: (WineEntry) -> Void
     let onExit: () -> Void
 
     @State private var session: QuizSession?
-    /// Set at the moment a practice pass opens a new tier, so the results
-    /// screen can say so. State rather than recomputed: `recordPass` must
-    /// fire exactly once per completion, not once per render.
-    @State private var newlyUnlocked: QuizTier?
-    /// The tier whose locked row was tapped; drives the explain alert.
-    @State private var lockedTier: QuizTier?
     @State private var screens = ScreenStateStore.shared
-    @State private var progress = QuizProgress.shared
     @State private var streak = StreakStore.shared
+    /// The result string waiting on the share sheet (0.7.8, C1).
+    @State private var sharePayload: SharePayload?
+    /// Latches once COPY is pressed. Not reset on a timer: the card is
+    /// dismissed by EXIT and rebuilt fresh next time, so there is no stale
+    /// state to clear, and a label that flips back to COPY on its own reads as
+    /// though the copy expired.
+    @State private var copied = false
 
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
@@ -47,11 +50,9 @@ public struct TastingQuizScreen: View {
     private let db = WineDatabase.shared
 
     public init(
-        mode: QuizMode = .practice,
         onOpen: @escaping (WineEntry) -> Void,
         onExit: @escaping () -> Void = {}
     ) {
-        self.mode = mode
         self.onOpen = onOpen
         self.onExit = onExit
     }
@@ -76,16 +77,22 @@ public struct TastingQuizScreen: View {
             // Centered unless the content overflows the LCD, in which case it
             // scrolls from the top like any other screen.
             GeometryReader { geo in
+                // **Larger where there is room** (0.7.0, J3), on the same
+                // measured-slack rule as the moon dial and the daily reveal —
+                // see `PageRoom`. This page is the least constrained of the
+                // three because it already scrolls when it has to, but it runs
+                // the same helper rather than a second idea of "bigger": three
+                // pages growing by three different rules is how the type scale
+                // drifted apart in the first place.
+                let grow = CGFloat(PageRoom.growth(pageHeight: Double(geo.size.height)))
                 ScrollView {
                     Group {
                         if let session, session.isComplete {
                             results(session)
                         } else if let session, let question {
-                            content(question, session: session)
-                        } else if mode == .daily {
-                            dailyDone
+                            content(question, session: session, grow: grow)
                         } else {
-                            tierPicker
+                            dailyDone
                         }
                     }
                     .padding(14)
@@ -96,6 +103,7 @@ public struct TastingQuizScreen: View {
         }
         .onAppear(perform: restore)
         .onChange(of: session) { _, _ in persist() }
+        .shareCard($sharePayload)
         // The verdict as a popup over the question (v0.5.9, D2), not a panel
         // appended below the options — inline, it landed off-screen exactly
         // when the question was long enough to scroll, and NEXT QUESTION with
@@ -107,30 +115,11 @@ public struct TastingQuizScreen: View {
             }
         }
         .animation(.easeOut(duration: 0.2), value: answered)
-        .overlay {
-            if let lockedTier, let previous = previousTier(of: lockedTier) {
-                DexAlert(
-                    title: "\(lockedTier.displayName) IS LOCKED",
-                    message: "Pass \(previous.displayName) — \(QuizSession.passMark) of \(QuizSession.length) — to unlock it.",
-                    confirmLabel: "OK",
-                    cancelLabel: nil,
-                    onConfirm: { self.lockedTier = nil },
-                    onCancel: { self.lockedTier = nil }
-                )
-            }
-        }
-        .animation(.easeOut(duration: 0.15), value: lockedTier)
-    }
-
-    private func previousTier(of tier: QuizTier) -> QuizTier? {
-        QuizTier.allCases.first { $0.next == tier }
     }
 
     // MARK: State
 
-    private var key: String {
-        mode == .daily ? ScreenStateStore.dailyChallenge : ScreenStateStore.wsetQuiz
-    }
+    private var key: String { ScreenStateStore.dailyChallenge }
 
     private func restore() {
         if let held = screens.decoded(QuizSession.self, "session", for: key) {
@@ -138,15 +127,9 @@ public struct TastingQuizScreen: View {
             return
         }
         guard session == nil else { return }
-        switch mode {
-        case .practice:
-            // No auto-start: the screen opens on the tier picker.
-            break
-        case .daily:
-            // One sitting per day — a done day shows the done card instead.
-            if !streak.isTodayDone() {
-                session = DailyChallenge.session()
-            }
+        // One sitting per day — a done day shows the done card instead.
+        if !streak.isTodayDone() {
+            session = DailyChallenge.session()
         }
     }
 
@@ -154,164 +137,75 @@ public struct TastingQuizScreen: View {
         screens.encode(session, "session", for: key)
     }
 
-    private func begin(_ tier: QuizTier) {
-        guard progress.unlocked(tier) else {
-            Haptics.select()
-            lockedTier = tier
-            return
-        }
-        Haptics.tap()
-        newlyUnlocked = nil
-        withAnimation(.easeOut(duration: 0.2)) {
-            // Seeded off the reveal cursor so two runs started back to back do
-            // not open on the same question.
-            session = QuizSession(
-                seed: RevealCursor.shared.value &+ DailyPick.dayIndex(),
-                tier: tier
-            )
-        }
-    }
-
     private func choose(_ id: String, in question: QuizQuestion) {
         guard var current = session, !current.answered else { return }
-        if question.isCorrect(id) {
-            Sounds.correct()
-            Haptics.tap()
-        } else {
-            Sounds.wrong()
-            Haptics.select()
-        }
+        // One voice per answer (0.6.9, G1). This used to pair the result sting
+        // with `screenTap()`/`select()`, both of which play Warm Ping since
+        // 0.6.8 (J1) — so every answer fired two authored sounds at once. See
+        // `Haptics.answer(correct:)`; the haptic split it carried is preserved
+        // inside it.
+        Haptics.answer(correct: question.isCorrect(id))
         current.choose(id, in: question)
         withAnimation(.easeOut(duration: 0.25)) { session = current }
     }
 
     private func next() {
         guard var current = session else { return }
-        Haptics.tap()
+        Haptics.screenTap()
         current.advance()
 
-        // The one moment a paper completes — progression records exactly here,
+        // The one moment a paper completes — the streak records exactly here,
         // never in a view body where re-renders would double-fire it.
         if current.isComplete {
-            switch mode {
-            case .practice:
-                if current.passed {
-                    newlyUnlocked = QuizProgress.shared.recordPass(tier: current.tier)
-                }
-            case .daily:
-                StreakStore.shared.record(passed: current.passed)
-            }
+            StreakStore.shared.record(passed: current.passed)
+            // Today's reminders are now wrong in both directions — the paper is
+            // no longer waiting, and the streak the warning quotes has just
+            // moved. Re-cut the plan here rather than waiting for the next
+            // foreground, which is the one moment the nag would still fire
+            // after the thing it nags about is done (0.7.8, D1).
+            Task { await NotificationScheduler.shared.syncFromStores() }
         }
         withAnimation(.easeOut(duration: 0.2)) { session = current }
     }
 
-    private func retry() {
-        Haptics.tap()
-        newlyUnlocked = nil
-        withAnimation(.easeOut(duration: 0.2)) { session = session?.retry() }
-    }
-
-    /// Practice EXIT returns to the tier picker; daily EXIT leaves the screen.
     private func exit() {
         Haptics.select()
         screens.forget(key)
-        switch mode {
-        case .practice:
-            newlyUnlocked = nil
-            withAnimation(.easeOut(duration: 0.2)) { session = nil }
-        case .daily:
-            onExit()
-        }
-    }
-
-    // MARK: Tier picker
-
-    private var tierPicker: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("CHOOSE YOUR EXAM")
-                    .font(DexFont.retro(14))
-                    .tracking(1.5)
-                    .foregroundStyle(lcd.accent)
-                Spacer(minLength: 8)
-            }
-            .padding(.bottom, 5)
-            .overlay(alignment: .bottom) { lcd.accent.opacity(0.4).frame(height: 2) }
-
-            VStack(spacing: 8) {
-                ForEach(QuizTier.allCases) { tier in
-                    tierRow(tier)
-                }
-            }
-
-            Text("Ten questions, \(QuizSession.passMark) to pass. Passing a paper unlocks the next one.")
-                .font(DexFont.mono(18))
-                .foregroundStyle(lcd.subtext)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private func tierRow(_ tier: QuizTier) -> some View {
-        let locked = !progress.unlocked(tier)
-        let flavor = switch tier {
-        case .novice: "The grapes everyone has heard of."
-        case .enthusiast: "The full cellar."
-        case .sommelier: "The back corner of the cellar."
-        }
-
-        return Button {
-            begin(tier)
-        } label: {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(tier.displayName)
-                        .font(DexFont.retro(13))
-                        .tracking(1)
-                        .foregroundStyle(locked ? lcd.disabledText : lcd.text)
-                    Text(flavor)
-                        .font(DexFont.mono(17))
-                        .foregroundStyle(lcd.subtext)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: 8)
-                if locked {
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(lcd.subtext)
-                } else {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(lcd.accent)
-                }
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
-            .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .strokeBorder(locked ? lcd.surfaceEdge.opacity(0.5) : lcd.accent.opacity(0.5), lineWidth: 2)
-            )
-        }
-        .buttonStyle(DexPressStyle(scale: 0.98))
+        onExit()
     }
 
     /// The daily's done card: today's paper is sat, come back tomorrow.
     private var dailyDone: some View {
         VStack(spacing: 18) {
-            Image(systemName: "flame.fill")
-                .font(.system(size: 56, weight: .semibold))
-                .foregroundStyle(streak.current > 0 ? Dex.yellow : lcd.subtext)
-                .shadow(color: Dex.yellow.opacity(streak.current > 0 ? 0.5 : 0), radius: 8)
+            // Same face as the tile and the streak capsule (0.8.9a, A7).
+            DexChromeGlyph(
+                "dailychallenge", symbol: DexGlyph.challenge, size: 56,
+                tint: streak.current > 0 ? Dex.yellow : lcd.subtext
+            )
+            .shadow(color: Dex.yellow.opacity(streak.current > 0 ? 0.5 : 0), radius: 8)
 
-            Text("PAPER COMPLETE")
-                .font(DexFont.retro(16))
-                .tracking(3)
+            // "PAPER COMPLETE" through 0.6.6. The code's own vocabulary is
+            // "paper" throughout — it is a WSET-shaped app — but the *user*
+            // never saw that word anywhere else: the tile says DAILY
+            // CHALLENGE, the marquee says DAILY CHALLENGE, and the completion
+            // card said something else entirely. (0.6.7, A1)
+            //
+            // **0.8.0's F finishes that argument on the other side.** A1 fixed
+            // this one card; F takes the word out of every string the player
+            // reads and leaves it in every identifier — `ExamPaper` and
+            // everything built on it keep their names, because renaming a type
+            // to describe a change nobody can see is the churn 0.7.5's D1
+            // declined. The door keeps its name; the sign on it says EXAM.
+            Text("DAILY CHALLENGE COMPLETED.")
+                .font(DexFont.retro(13))
+                .tracking(2)
                 .foregroundStyle(lcd.text)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
 
             Text(streak.current > 0
                 ? "STREAK: \(streak.current) \(streak.current == 1 ? "DAY" : "DAYS"). COME BACK TOMORROW."
-                : "TODAY'S PAPER IS DONE. A NEW ONE ARRIVES TOMORROW.")
+                : "TODAY'S EXAM IS DONE. A NEW ONE ARRIVES TOMORROW.")
                 .font(DexFont.mono(18))
                 .foregroundStyle(lcd.subtext)
                 .multilineTextAlignment(.center)
@@ -341,48 +235,46 @@ public struct TastingQuizScreen: View {
 
     // MARK: Layout
 
-    private func content(_ question: QuizQuestion, session: QuizSession) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            header(question, session: session)
-            prompt(question)
-            options(question)
+    private func content(_ question: QuizQuestion, session: QuizSession, grow: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 16 + 8 * grow) {
+            header(question, session: session, grow: grow)
+            prompt(question, grow: grow)
+            options(question, grow: grow)
         }
     }
 
     /// Topic strip, sized to match the section headers in settings — at the old
     /// 11pt these read as captions rather than as headings.
-    private func header(_ question: QuizQuestion, session: QuizSession) -> some View {
+    private func header(_ question: QuizQuestion, session: QuizSession, grow: CGFloat) -> some View {
         HStack {
-            Text(mode == .daily
-                ? "DAILY · \(question.kind.topic)"
-                : "\(session.tier.displayName) · \(question.kind.topic)")
-                .font(DexFont.retro(14))
+            Text("DAILY · \(question.kind.topic)")
+                .font(DexFont.retro(14 + 4 * grow))
                 .tracking(1.5)
                 .foregroundStyle(lcd.accent)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
             Spacer(minLength: 8)
             Text("\(min(session.index + 1, session.length))/\(session.length)")
-                .font(DexFont.mono(19))
+                .font(DexFont.mono(19 + 5 * grow))
                 .foregroundStyle(lcd.subtext)
         }
         .padding(.bottom, 5)
         .overlay(alignment: .bottom) { lcd.accent.opacity(0.4).frame(height: 2) }
     }
 
-    private func prompt(_ question: QuizQuestion) -> some View {
+    private func prompt(_ question: QuizQuestion, grow: CGFloat) -> some View {
         Text(question.prompt)
-            .font(DexFont.retro(15))
+            .font(DexFont.retro(15 + 6 * grow))
             .foregroundStyle(lcd.text)
             .lineSpacing(6)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func options(_ question: QuizQuestion) -> some View {
-        VStack(spacing: 8) {
+    private func options(_ question: QuizQuestion, grow: CGFloat) -> some View {
+        VStack(spacing: 8 + 4 * grow) {
             ForEach(question.optionIDs, id: \.self) { id in
-                optionRow(id: id, question: question)
+                optionRow(id: id, question: question, grow: grow)
             }
         }
     }
@@ -390,7 +282,7 @@ public struct TastingQuizScreen: View {
     /// Once answered, the right row goes green whether or not it was picked, and
     /// a wrong pick goes red. Showing only the user's own row would leave
     /// someone who guessed wrong without the answer.
-    private func optionRow(id: String, question: QuizQuestion) -> some View {
+    private func optionRow(id: String, question: QuizQuestion, grow: CGFloat) -> some View {
         let name = db.entry(id: id)?.name ?? id
         let isAnswer = question.isCorrect(id)
         let isChoice = chosenID == id
@@ -406,7 +298,7 @@ public struct TastingQuizScreen: View {
         } label: {
             HStack(spacing: 12) {
                 Text(name.uppercased())
-                    .font(DexFont.retro(13))
+                    .font(DexFont.retro(13 + 5 * grow))
                     .foregroundStyle(answered && !isAnswer && !isChoice ? lcd.disabledText : lcd.text)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
@@ -421,8 +313,8 @@ public struct TastingQuizScreen: View {
                         .foregroundStyle(Dex.red500)
                 }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 16)
+            .padding(.horizontal, 14 + 5 * grow)
+            .padding(.vertical, 16 + 8 * grow)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
             .overlay(
@@ -533,42 +425,21 @@ public struct TastingQuizScreen: View {
                 .tracking(3)
                 .foregroundStyle(tint)
 
-            if let newlyUnlocked {
-                Text("\(newlyUnlocked.displayName) UNLOCKED")
-                    .font(DexFont.retro(14))
-                    .tracking(2)
-                    .foregroundStyle(Dex.yellow)
-            }
+            Text(streak.current > 0
+                ? "STREAK: \(streak.current) \(streak.current == 1 ? "DAY" : "DAYS")"
+                : "STREAK RESET — TOMORROW IS A FRESH EXAM")
+                .font(DexFont.mono(18))
+                .foregroundStyle(streak.current > 0 ? lcd.bodyText : lcd.subtext)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
 
-            if mode == .daily {
-                Text(streak.current > 0
-                    ? "STREAK: \(streak.current) \(streak.current == 1 ? "DAY" : "DAYS")"
-                    : "STREAK RESET — TOMORROW IS A FRESH PAPER")
-                    .font(DexFont.mono(18))
-                    .foregroundStyle(streak.current > 0 ? lcd.bodyText : lcd.subtext)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            } else {
-                Text(session.passed
-                    ? "WSET LEVEL 1 MATERIAL. SANTÉ!"
-                    : "NOT QUITE — \(session.passMark)/\(session.length) PASSES. SWIRL AND RETRY.")
-                    .font(DexFont.mono(18))
-                    .foregroundStyle(lcd.subtext)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(3)
-                    .fixedSize(horizontal: false, vertical: true)
+            if let card = DailyResult.card(for: session, streak: streak.current) {
+                resultString(card)
             }
 
             VStack(spacing: 10) {
-                if mode == .practice {
-                    Button(action: retry) {
-                        label("RETRY", fill: Dex.yellow, ink: Dex.amber900)
-                    }
-                    .buttonStyle(DexPressStyle(scale: 0.97))
-                }
-
                 Button(action: exit) {
-                    Text(mode == .practice ? "BACK TO PAPERS" : "EXIT")
+                    Text("EXIT")
                         .font(DexFont.retro(12))
                         .tracking(1.5)
                         .foregroundStyle(lcd.subtext)
@@ -588,6 +459,67 @@ public struct TastingQuizScreen: View {
             RoundedRectangle(cornerRadius: 6).strokeBorder(tint.opacity(0.5), lineWidth: 2)
         )
         .transition(.opacity)
+    }
+
+    /// The shareable result (0.7.8, C1): the tile grid, then copy and share.
+    ///
+    /// The string is shown before it is sent. A user about to post something is
+    /// entitled to read it first, and seeing the grid is also what teaches the
+    /// format — the tiles have to be recognisable to a reader who has never
+    /// seen one.
+    ///
+    /// Both affordances, because they are not the same action: COPY is for
+    /// pasting into a thread that is already open, SHARE is for picking an app.
+    /// Wordle ships both for the same reason.
+    private func resultString(_ card: DailyResult.Card) -> some View {
+        let line = DailyResult.string(for: card)
+
+        return VStack(spacing: 10) {
+            if card.hasGrid {
+                Text(card.grid)
+                    .font(.system(size: 22))
+                    .tracking(2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+            }
+
+            HStack(spacing: 10) {
+                Button {
+                    Haptics.select()
+                    UIPasteboard.general.string = line
+                    withAnimation(.easeOut(duration: 0.2)) { copied = true }
+                } label: {
+                    resultAction(copied ? "COPIED" : "COPY", symbol: copied ? "checkmark" : "doc.on.doc")
+                }
+                .buttonStyle(DexPressStyle(scale: 0.96))
+
+                Button {
+                    Haptics.select()
+                    sharePayload = .text(line)
+                } label: {
+                    resultAction("SHARE", symbol: "square.and.arrow.up")
+                }
+                .buttonStyle(DexPressStyle(scale: 0.96))
+            }
+        }
+        .padding(.top, 2)
+    }
+
+    private func resultAction(_ title: String, symbol: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: symbol)
+                .font(.system(size: 13, weight: .bold))
+            Text(title)
+                .font(DexFont.retro(11))
+                .tracking(1.5)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .foregroundStyle(lcd.accent)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity)
+        .background(Capsule().fill(lcd.buttonWell))
+        .overlay(Capsule().strokeBorder(lcd.accent, lineWidth: 2))
     }
 
     private func label(_ text: String, fill: Color, ink: Color) -> some View {

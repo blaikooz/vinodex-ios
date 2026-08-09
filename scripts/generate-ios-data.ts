@@ -1,7 +1,7 @@
 /**
  * Generates the iOS app's bundled data from the shared data + colour tables.
  *
- * Emits six files into the VinodexCore resource directory:
+ * Emits eight files into the VinodexCore resource directory:
  *   entries.json   — the WineEntry set for the current selection
  *   tiers.json     — which entry ids the free tier unlocks
  *   palette.json   — the full colour tables, materialised by probing the
@@ -12,8 +12,12 @@
  *                    their own to carry a description
  *   schema.json    — the SCHEMA_VERSION stamp, asserted at load on the Swift
  *                    side (0.6.3, item 1 — AUDIT M3)
+ *   firmware.json  — the authored version and the per-release changelog the
+ *                    boot POST and the FIRMWARE HISTORY panel read (0.7.3, F3)
+ *   exam.json      — the authored Wine Exam question bank plus its closed
+ *                    vocabularies (0.7.5, D)
  *
- * All six are committed so a Swift build never needs Node. Scaling the starter
+ * All eight are committed so a Swift build never needs Node. Scaling the starter
  * to the full database is a matter of setting STARTER_SELECTION to `undefined`.
  *
  * Everything this reads lives under `shared/`, a sibling of `scripts/` in this
@@ -36,6 +40,18 @@ import type { WineEntry } from '../shared/types.ts';
 import { CONTINENTS } from '../shared/data/continents.ts';
 import { COUNTRIES } from '../shared/data/countries.ts';
 import { CLIMATE_CLASS_MAP } from '../shared/data/climateClasses.ts';
+import {
+  EXAM_QUESTIONS,
+  EXAM_TIERS,
+  EXAM_CATEGORIES,
+  EXAM_FORMATS,
+  EXAM_CATEGORY_LABELS,
+  EXAM_TIER_LABELS,
+  EXAM_AUTHORED_TIER_COUNTS,
+  EXAM_MIN_CELL_COUNT,
+  type ExamQuestion,
+} from '../shared/data/exam.ts';
+import { FIRMWARE_RELEASES, FIRMWARE_VERSION } from '../shared/data/firmware.ts';
 import { getFlagGradient } from '../shared/data/flagGradients.ts';
 import { GRAPE_CARDS } from '../shared/data/grapeCards.ts';
 import { REGIONS } from '../shared/data/regions.ts';
@@ -45,6 +61,7 @@ import {
   FLAVOR_SUBCLASS_KEYWORDS,
   FLAVOR_CLASS_COLORS,
   getStyleClassType,
+  getColorType,
 } from '../shared/services/entryUtils.ts';
 import {
   getRegionClassificationIconColor,
@@ -190,7 +207,22 @@ function buildPalette(full: readonly WineEntry[]) {
   const domain = collectKeyDomain(full);
 
   const rarities = ['COMMON', 'UNCOMMON', 'RARE', 'NOBLE', 'GODFORSAKEN'] as const;
-  const colorTypes = ['RED', 'WHITE', 'ROSÉ', 'ORANGE', 'DUAL'] as const;
+  // **`ROSE`, not `ROSÉ` (0.8.0, K).** This probe list is not a display
+  // vocabulary — the strings in it become the *keys* of the emitted table, and
+  // every consumer looks up with `StyleColorType`'s rawValue, which is the
+  // unaccented `ROSE` on both sides (`entryUtils.ts`'s `StyleColorType` union
+  // and `EntryDisplay.StyleColorType` agree). `getColorTypeChipColors` answers
+  // to either spelling, which is exactly what hid this: the generator asked with
+  // the accent, got the right colours, and wrote them under a key nothing in the
+  // app ever asks for. Every rosé style therefore missed the table and fell
+  // through to `Palette.resolve`'s neutral stone — the chip said ROSE and was
+  // grey, which reads as a styling choice rather than as a miss.
+  //
+  // This is the identical fault 0.6.9's I1 found on the grape colour chip (wrong
+  // table *and* wrong case, 146 grapes grey), and the identical tell. The
+  // lesson, written down this time: **a probe key is an identifier, and the only
+  // safe source for one is the rawValue the reader uses.**
+  const colorTypes = ['RED', 'WHITE', 'ROSE', 'ORANGE', 'DUAL'] as const;
   const styleClasses = ['STYLE', 'METHOD', 'ORIGIN', 'TYPE', 'BLEND'] as const;
   const flavorClasses = ['SWEET', 'SOUR', 'SALTY', 'BITTER', 'UMAMI'] as const;
   const flavorSubclasses = FLAVOR_SUBCLASS_KEYWORDS.map((k) => k.id);
@@ -233,6 +265,24 @@ function buildPalette(full: readonly WineEntry[]) {
         continent.id.replace('CONT_', ''),
         continent.details.keyRegions,
       ]),
+    ),
+    /**
+     * style id -> `StyleColorType`, as the *shared* `getColorType` answers it.
+     *
+     * **Not a lookup table — a pin (0.8.1, B).** Nothing reads this at runtime:
+     * `EntryDisplay.colorType` re-derives, because `WineEntry.tileChips` has no
+     * database in scope and the label scanner asks about names that are not in
+     * the catalog. A port is the right shape here, and a port is also what
+     * silently lost `STYLE_NAME_COLOR_OVERRIDES` for sixteen of thirty-three
+     * styles. So the two ends are written down side by side and
+     * `CoverageTests.styleColorTypesMatchShared` fails the moment they disagree
+     * — in either direction, including a new override added here that the
+     * Swift table never hears about.
+     */
+    styleColorTypes: Object.fromEntries(
+      full
+        .filter((entry) => entry.category === 'STYLES')
+        .map((entry) => [entry.id, getColorType(entry.name)]),
     ),
   };
 }
@@ -283,7 +333,7 @@ const FALLBACK_ICON = 'mdi:help-circle-outline';
 
 // Full-colour pixel-art portraits for flavours, keyed by normalised flavour
 // name. Values are PNG stems under Sources/VinodexUI/Resources/FlavorArt —
-// the art itself is imported from shared/newicons by a one-off pass (see
+// the art itself is imported from art/icons/entries/flavors by a one-off pass (see
 // v0.5.1), not rasterised here; this table only keeps the wiring stable
 // across regenerations. Names with no convincing art are deliberately absent
 // and keep their tinted glyph.
@@ -407,7 +457,8 @@ const FLAVOR_ART: Record<string, string> = {
 //
 // `art:` ids (v0.5.7, B1) name drawn pixel art rather than Iconify glyphs:
 // `art:<stem>` loads `<stem>.png` from Resources/ClassArt, imported from
-// shared/newicons/classes by scripts/import-class-art.py. The Swift side
+// art/icons/entries/{classes,subclasses,color,body,climate,soil,countries} by
+// scripts/import-class-art.py. The Swift side
 // branches on the prefix in `DexIcon`; these ids never reach the Iconify
 // rasteriser (`unique` excludes them below).
 //
@@ -533,6 +584,26 @@ const COUNTRY_SHAPE_ICONS: Record<string, string> = {
   japan: 'art:outline-japan',
   china: 'art:outline-china',
   india: 'art:outline-india',
+  // 0.7.9 (E). Both had regions and no outline since they were added — R117
+  // Serra Gaucha and R118 Campanha Gaucha for Brazil, R098 Valle de Guadalupe
+  // for Mexico — so three region pages drew nothing where the dotted map goes.
+  brazil: 'art:outline-brazil',
+  mexico: 'art:outline-mexico',
+  // 0.8.4 (F1). The hand-drawn drop covers sixteen places beyond the thirty,
+  // and these three are the ones the catalog already names: all three are
+  // `keyRegions` on their continent, and Slovenia is an entry origin outright
+  // (Blaufrankisch moved there in 0.7.9). They were the standing backlog
+  // `CoverageTests.regionsHaveOutlineArt` records as *latent* — a flag and a
+  // blurb but no shape — and they are latent no longer. Bulgaria is the fourth
+  // and stays latent: nobody has drawn it.
+  //
+  // None of the three has a region, so no coverage gate demanded them. That is
+  // the argument for adding them rather than against it: a place is reachable
+  // through its continent's key-region list long before it has a region page,
+  // and until now those three reached it and drew nothing.
+  slovenia: 'art:outline-slovenia',
+  lebanon: 'art:outline-lebanon',
+  'united kingdom': 'art:outline-united-kingdom',
 };
 
 /// Icon-well background per style classification.
@@ -598,7 +669,11 @@ const CLIMATE_SOIL_FALLBACK: Record<string, string[]> = {
 
 const DEFAULT_SOILS = ['Alluvial', 'Clay', 'Limestone'];
 
-/// Pixel flags live in `pixelflags/<Continent>/<slug>/<slug>.png`.
+/// Pixel flags live in `shared/pixelflags/<Continent>/<slug>/<slug>.png` — the
+/// cross-repo master (HGapps\shared, mirrored here by sync-shared.ps1),
+/// because the web app consumes the same set. The values below are relative to
+/// that root and are shared with the web consumer, so they do not change when
+/// the root moves.
 ///
 /// Originally just the countries that appeared as a grape/region `origin` in
 /// the starter selection. Now also covers every country the continent info
@@ -627,12 +702,22 @@ const FLAG_PATHS: Record<string, string> = {
   Georgia: 'Europe/georgia_country/georgia_country_flag.png',
   Switzerland: 'Europe/switzerland/switzerland.png',
   Romania: 'Europe/romania/romania.png',
+  // The coming-soon gates (0.6.4, batch 2): flags ship because the continent
+  // rosters list them; no COUNTRY_SHAPE_ICONS on purpose — no outline art
+  // exists and the shape map degrades gracefully without an entry.
+  'United Kingdom': 'Europe/united_kingdom/united_kingdom.png',
+  Slovenia: 'Europe/slovenia/slovenia.png',
+  Bulgaria: 'Europe/bulgaria/bulgaria.png',
+  Lebanon: 'Asia/lebanon/lebanon.png',
   'South Africa': 'Africa/south_africa/south_africa.png',
   Morocco: 'Africa/morocco/morocco.png',
   USA: 'North America/united_states/united_states.png',
   Canada: 'North America/canada/canada.png',
   Mexico: 'North America/mexico/mexico.png',
   Argentina: 'South America/argentina/argentina.png',
+  // Brazil (0.7.3c). The pixel flag has been sitting in shared/pixelflags since
+  // the flag drop; this line is all that was missing.
+  Brazil: 'South America/brazil/brazil.png',
   Chile: 'South America/chile/chile.png',
   Uruguay: 'South America/uruguay/uruguay.png',
   'New Zealand': 'Oceania/new_zealand/new_zealand.png',
@@ -644,7 +729,7 @@ const FLAG_PATHS: Record<string, string> = {
 
 // Full-colour pixel-art portraits for styles (0.5.6), keyed by normalised
 // style name. Values are PNG stems under Sources/VinodexUI/Resources/StyleArt,
-// imported from shared/newicons/2new by scripts/import-style-art.py. All 32
+// imported from art/icons/entries/styles by scripts/import-style-art.py. All 32
 // shipped styles are covered; `crubeaujolas` preserves the artist's spelling.
 // The three 0.6 styles carry portraits derived from their nearest siblings
 // (recolour passes over fullbodywhite/mediumbodyred/dessertwine) — distinct
@@ -654,18 +739,35 @@ const STYLE_ART: Record<string, string> = {
   'bordeaux blend': 'bordeauxblend',
   'botrytis wine': 'botrytiswine',
   'champagne': 'champagne',
+  // 0.7.9 (G). S033 and S034 arrived with sommbot's P1/P2 batch and
+  // `CoverageTests.styleArtWiring` requires a portrait for every style but GSM
+  // Blend. Both masters are **recolours of shipped siblings** rather than drawn
+  // art -- madeira from port.png (ruby -> amber-brown, same fortified flask),
+  // cava from prosecco.png (gold -> pale straw, same flute). Placeholders in
+  // the house style; flagged in PLAN.md for an artist pass. They keep their
+  // white backgrounds, so neither needs to join import-style-art.py's MASTERS.
+  'cava': 'cava',
+  'madeira': 'madeira',
   'cremant': 'cremant',
   'cru beaujolais': 'crubeaujolas',
   'dessert wine': 'dessertwine',
   'fortified wine': 'fortifiedwine',
-  // Renamed from Fresh Chillable Red (0.6.x); the stem keeps the old name.
-  'chillable red': 'freshchillablered',
+  // The 0.6.5 newpass masters untangled the chillable/light-body knot: each
+  // style finally owns a stem spelled like itself. Before this, 'light-body
+  // red' wore the stem `chillablered` and 'chillable red' wore
+  // `freshchillablered` — an artefact of the 0.6.x rename that made every
+  // art drop a puzzle. `freshchillablered` is orphaned and pruned.
+  'chillable red': 'chillablered',
   'full-body red': 'fullbodyred',
   'full-body white': 'fullbodywhite',
-  'gsm blend': 'gsmblend',
+  // GSM Blend deliberately has NO portrait (0.6.4, D1). The 0.6.2 swap to the
+  // BLEND class glyph landed in `byEntry` but was invisible: `EntryIconWell`
+  // draws `artName` over `iconID`, so the portrait covered the glyph
+  // everywhere. Dropping the portrait is what makes the swap actually render.
   'ice wine': 'icewine',
   'late harvest': 'lateharvest',
-  'light-body red': 'chillablered',
+  // See the chillable-red note above: its own stem since 0.6.5.
+  'light-body red': 'lightbodyred',
   'light-body white': 'lightbodywhite',
   'medium-body red': 'mediumbodyred',
   'medium-body white': 'mediumbodywhite',
@@ -720,7 +822,7 @@ function buildGrapeArt(): Record<string, string> {
   return out;
 }
 
-/// Drawn per-continent globes (v0.5.8, B1) — art/icons/continents via
+/// Drawn per-continent globes (v0.5.8, B1) — art/icons/entries/continents via
 /// import-class-art.py. Each continent finally gets its own face; the three
 /// shared Iconify globes they replaced left Africa and Europe identical.
 const CONTINENT_ICONS: Record<string, string> = {
@@ -850,6 +952,11 @@ function buildIconManifest(entries: readonly WineEntry[]) {
         ...Object.values(shapeIcons),
         ...Object.values(SOIL_ICONS).map((v) => v.icon),
         'game-icons:fluffy-cloud', // climate fallback
+        // The GODFORSAKEN rarity emblem (0.6.4, D3) — the entry screen's
+        // rarity readout wears a skull instead of the 0.6.2 flame. Referenced
+        // by id from Swift (EntryDetailScreen), listed here so the rasteriser
+        // ships it.
+        'game-icons:death-skull',
         FALLBACK_ICON,
       ].filter((id) => !id.startsWith('art:')),
     ),
@@ -1053,13 +1160,70 @@ const PALETTE_REQUIRED = [
   'countryChips', 'classificationChips', 'wineTypeChips', 'rarityChips', 'colorTypeChips',
   'styleClassChips', 'flavorClassChips', 'flavorSubclassChips', 'namedChips',
   'styleTones', 'climates', 'regionClassificationIconColors', 'flavorSubclassIconColors',
-  'continentCountries',
+  'continentCountries', 'styleColorTypes',
 ];
 const ICONS_REQUIRED = [
   'byEntry', 'unique', 'fallback', 'bodyIcons', 'climateIcons', 'colorIcons', 'styleClassIcons',
   'countryShapeIcons', 'styleClassBg', 'styleColorTypeColors', 'soilIcons', 'climateSoilFallback',
   'defaultSoils', 'flags',
 ];
+// Optional on the Swift side — an older manifest still decodes without them —
+// which is exactly why they need asserting *here*. Rename one in this file and
+// nothing fails: `IconManifest.flavorArt` and friends just decode to `nil` and
+// every affected entry silently drops back to a tinted glyph. Required at
+// generation time, optional at decode time: forward compatibility for old data,
+// no silent degradation for new. (AUDIT M3)
+const ICONS_REQUIRED_NONEMPTY = [
+  'flavorClassIcons', 'flavorSubclassIcons', 'flavorArt', 'grapeArt', 'styleArt', 'soilKeywords',
+];
+
+// The non-optional properties of each Swift `*Entry` struct, by category. A key
+// missing here is a key whose disappearance the self-check would not catch, so
+// this list is the contract — keep it in step with `Sources/VinodexCore/WineEntry.swift`.
+//
+// `string`/`number` are checked by `typeof`; `array` and `object` by shape.
+// Anything the Swift side declares optional (`String?`, `decodeIfPresent`) is
+// deliberately absent: those are allowed to go missing.
+type FieldKind = 'string' | 'number' | 'array' | 'object';
+const ENTRY_COMMON_REQUIRED: Record<string, FieldKind> = {
+  id: 'string', name: 'string', description: 'string', color: 'string', tags: 'array',
+};
+const ENTRY_REQUIRED: Record<string, Record<string, FieldKind>> = {
+  GRAPES: {
+    grapeType: 'string', grapeStyle: 'string', grapeBodyClass: 'string',
+    grapeCharacteristics: 'object', grapeCountryOfOrigin: 'string', rarity: 'string',
+    details: 'object',
+  },
+  REGIONS: { details: 'object' },
+  STYLES: { details: 'object' },
+  FLAVORS: { details: 'object' },
+  CONTINENTS: { details: 'object' },
+};
+const DETAILS_REQUIRED: Record<string, Record<string, FieldKind>> = {
+  GRAPES: { origin: 'string', synonyms: 'array', keyRegions: 'array', body: 'string' },
+  REGIONS: { origin: 'string', notableGrapes: 'array', classification: 'string' },
+  STYLES: {
+    origin: 'string', keyRegions: 'array', notableGrapes: 'array', classification: 'string',
+  },
+  FLAVORS: { classification: 'string', subclass: 'string', notableGrapes: 'array' },
+  CONTINENTS: { keyRegions: 'array' },
+};
+// `GrapeCharacteristics` — every bar is a non-optional `Double`.
+const GRAPE_CHARACTERISTICS_REQUIRED: Record<string, FieldKind> = {
+  tannin: 'number', acid: 'number', colorIntensity: 'number', aromatics: 'number', body: 'number',
+};
+// `TastingNote` — optional as a whole, but every element of a present array
+// must carry all three, or the array's decode throws and takes the entry with it.
+const TASTING_NOTE_REQUIRED: Record<string, FieldKind> = {
+  note: 'string', icon: 'string', color: 'string',
+};
+// Enum-backed fields: Swift decodes these into `RawRepresentable` enums, so an
+// unlisted value is a decode failure, not a fallback.
+const ENTRY_ENUMS: Record<string, Set<string>> = {
+  grapeType: new Set(['red', 'white']),
+  rarity: new Set(['COMMON', 'UNCOMMON', 'RARE', 'NOBLE', 'GODFORSAKEN']),
+  climate: new Set(['maritime', 'continental', 'cool', 'warm', 'mediterranean']),
+};
 
 function validateOutputs(dir: string): void {
   const problems: string[] = [];
@@ -1067,18 +1231,95 @@ function validateOutputs(dir: string): void {
   const has = (obj: unknown, key: string): boolean =>
     !!obj && typeof obj === 'object' && key in (obj as Record<string, unknown>);
 
+  // Every non-optional key of the matching Swift struct, not a spot-check of
+  // four (AUDIT M3). Anything absent from the tables above is optional on the
+  // Swift side and is allowed to go missing.
+  const checkFields = (
+    where: string,
+    rec: Record<string, unknown>,
+    required: Record<string, FieldKind>,
+  ): void => {
+    for (const [key, kind] of Object.entries(required)) {
+      const value = rec[key];
+      const ok =
+        kind === 'array'
+          ? Array.isArray(value)
+          : kind === 'object'
+            ? !!value && typeof value === 'object' && !Array.isArray(value)
+            : typeof value === kind;
+      if (!ok) problems.push(`${where}.${key} missing or not ${kind}`);
+    }
+    // Enums are checked wherever they appear, required or not: Swift decodes
+    // them into a `RawRepresentable`, so an unlisted value throws rather than
+    // falling back.
+    for (const [key, allowed] of Object.entries(ENTRY_ENUMS)) {
+      const value = rec[key];
+      if (value !== undefined && value !== null && !allowed.has(String(value))) {
+        problems.push(`${where}.${key} not a known value: ${String(value)}`);
+      }
+    }
+  };
+
   const entries = read('entries.json');
   if (!Array.isArray(entries) || entries.length === 0) {
     problems.push('entries.json is not a non-empty array');
   } else {
     entries.forEach((e, i) => {
       const rec = e as Record<string, unknown>;
-      if (typeof rec.id !== 'string') problems.push(`entries[${i}].id missing/!string`);
-      if (typeof rec.name !== 'string') problems.push(`entries[${i}].name missing/!string`);
-      if (typeof rec.category !== 'string' || !ENTRY_CATEGORIES.has(rec.category as string)) {
-        problems.push(`entries[${i}].category invalid: ${String(rec.category)}`);
+      const category = rec.category;
+      if (typeof category !== 'string' || !ENTRY_CATEGORIES.has(category)) {
+        problems.push(`entries[${i}].category invalid: ${String(category)}`);
+        return;
       }
-      if (!has(rec, 'details')) problems.push(`entries[${i}] (${String(rec.id)}) missing details`);
+      // Named by id once it is known to be a string — `entries[214]` sends the
+      // reader counting through a 375-element file.
+      const where = typeof rec.id === 'string' ? `entries[${rec.id}]` : `entries[${i}]`;
+
+      // A category with no contract is itself the defect: someone added a
+      // `WineEntry` variant and left the self-check behind, so every field of
+      // every entry in it would go unchecked. Say so rather than skip it.
+      const required = ENTRY_REQUIRED[category];
+      const detailsRequired = DETAILS_REQUIRED[category];
+      if (!required || !detailsRequired) {
+        problems.push(`${where}: no schema contract for category ${category}`);
+        return;
+      }
+
+      checkFields(where, rec, ENTRY_COMMON_REQUIRED);
+      checkFields(where, rec, required);
+
+      const details = rec.details;
+      if (details && typeof details === 'object' && !Array.isArray(details)) {
+        checkFields(`${where}.details`, details as Record<string, unknown>, detailsRequired);
+      }
+
+      const chars = rec.grapeCharacteristics;
+      if (chars && typeof chars === 'object') {
+        checkFields(
+          `${where}.grapeCharacteristics`,
+          chars as Record<string, unknown>,
+          GRAPE_CHARACTERISTICS_REQUIRED,
+        );
+      }
+
+      // Optional as a whole; strict once present. One note missing its `icon`
+      // fails the array's decode, which fails the entry.
+      const profile = rec.tastingProfile;
+      if (Array.isArray(profile)) {
+        profile.forEach((note, n) => {
+          if (!note || typeof note !== 'object') {
+            problems.push(`${where}.tastingProfile[${n}] is not an object`);
+            return;
+          }
+          checkFields(
+            `${where}.tastingProfile[${n}]`,
+            note as Record<string, unknown>,
+            TASTING_NOTE_REQUIRED,
+          );
+        });
+      } else if (profile !== undefined && profile !== null) {
+        problems.push(`${where}.tastingProfile is not an array`);
+      }
     });
   }
 
@@ -1090,6 +1331,20 @@ function validateOutputs(dir: string): void {
   const icons = read('icons.json');
   for (const key of ICONS_REQUIRED) {
     if (!has(icons, key)) problems.push(`icons.json missing required key: ${key}`);
+  }
+  // Optional at decode time, required here — see `ICONS_REQUIRED_NONEMPTY`.
+  // Emptiness is the check that matters: a renamed *source* table would leave
+  // the key present and the object empty, which decodes cleanly and drops
+  // every entry back to a tinted glyph without a word of complaint.
+  for (const key of ICONS_REQUIRED_NONEMPTY) {
+    const value = (icons as Record<string, unknown> | null)?.[key];
+    const count = Array.isArray(value)
+      ? value.length
+      : value && typeof value === 'object'
+        ? Object.keys(value).length
+        : -1;
+    if (count < 0) problems.push(`icons.json missing required table: ${key}`);
+    else if (count === 0) problems.push(`icons.json table is empty: ${key}`);
   }
 
   const tiers = read('tiers.json');
@@ -1107,10 +1362,553 @@ function validateOutputs(dir: string): void {
     problems.push(`schema.json missing/wrong schemaVersion (expected ${SCHEMA_VERSION})`);
   }
 
+  const firmware = read('firmware.json');
+  if (!has(firmware, 'version') || !has(firmware, 'releases')) {
+    problems.push('firmware.json missing version/releases');
+  }
+
+  // `ExamCatalog`'s non-optional keys. `assertExam` has already validated the
+  // bank's *contents*; this checks the envelope actually reached disk, which is
+  // the half a rename in this file would break silently.
+  const exam = read('exam.json');
+  for (const key of ['questions', 'tiers', 'categories', 'formats', 'categoryLabels', 'tierLabels', 'minCellCount']) {
+    if (!has(exam, key)) problems.push(`exam.json missing ${key}`);
+  }
+  const questions = (exam as { questions?: unknown }).questions;
+  if (!Array.isArray(questions) || questions.length === 0) {
+    problems.push('exam.json questions is not a non-empty array');
+  } else {
+    // Every key `ExamQuestion.init(from:)` decodes unconditionally. The payload
+    // keys are per-format and are checked by `assertExam`.
+    for (const q of questions as Record<string, unknown>[]) {
+      for (const key of ['id', 'tier', 'category', 'format', 'prompt', 'explanation']) {
+        if (typeof q[key] !== 'string') problems.push(`exam.json ${String(q.id)}.${key} missing or not string`);
+      }
+    }
+  }
+
   if (problems.length > 0) {
     throw new Error(
       `schema self-check failed — the Swift structs would not decode:\n  - ${problems.join('\n  - ')}`,
     );
+  }
+}
+
+/**
+ * The firmware changelog's own gate (0.7.3, F3).
+ *
+ * `firmware.json` is the only generated file whose contents nothing else in the
+ * pipeline can check: an entry with a dangling grape reference trips
+ * `find-missing-refs.mjs`, a missing palette key trips the self-check, but a
+ * changelog is prose and prose validates against nothing. So the rules it *does*
+ * have are asserted here, loudly, at generation time:
+ *
+ * - **Three dot-separated integers.** The scheme since iOS 0.4.3, and the shape
+ *   `CFBundleShortVersionString` accepts. `AppVersionTests.versionShape` pins the
+ *   same rule on the Swift side; this stops a bad number ever reaching it.
+ * - **Newest first, strictly descending, no duplicates.** `FIRMWARE_VERSION` is
+ *   `releases[0].version`, so an out-of-order list would silently ship the wrong
+ *   number as the current one — the single failure this whole file exists to
+ *   prevent.
+ * - **ASCII throughout**, and `headline` uppercase and short. The panel's
+ *   headings are Press Start 2P, which has a partial Latin-1 range; a curly
+ *   apostrophe pasted out of a spec would render as a blank box on the device's
+ *   most-read panel and nothing would say so.
+ * - **Every release has notes.** A version with an empty body is a row that
+ *   opens onto nothing.
+ * - **No note over `NOTE_MAX` characters.** The one rule 0.8.91's H1 rewrite
+ *   established and then left unenforced; see below.
+ */
+function assertFirmware(): void {
+  const problems: string[] = [];
+
+  /**
+   * The cap that makes "one sentence a note" a check rather than a discipline.
+   *
+   * 0.8.91's H1 rewrote every note to one sentence — 26,931 characters of notes
+   * down to 15,791, the longest falling from 340 to 139 — and `firmware.ts`'s
+   * own header closes by saying the rule is "a discipline rather than a check"
+   * and that "if it slips again, that is the thing to add". This is that.
+   *
+   * 160 rather than a rounder number, and measured rather than picked: across
+   * the 251 notes shipping today the longest is 139 and the 95th percentile is
+   * 97, while the note that triggered the rewrite was 340. So the cap clears
+   * every existing note with headroom and still cannot fit the three-sentence
+   * paragraphs it exists to stop.
+   *
+   * **A length cap and not a sentence count**, deliberately. Splitting prose on
+   * `. ` is wrong here on both sides: version strings like `0.8.9` are full of
+   * periods, and two of the notes shipping today are genuinely two short
+   * sentences ("Reading is on-device. No network, no account, no key.") which
+   * are exactly what the rule wants and which a sentence counter would reject.
+   * Length is the thing actually being defended, so length is what is measured.
+   */
+  const NOTE_MAX = 160;
+  const seen = new Set<string>();
+  /** -1 / 0 / +1, comparing three-integer versions component by component. */
+  const compare = (a: string, b: string): number => {
+    const x = a.split('.').map(Number);
+    const y = b.split('.').map(Number);
+    for (let k = 0; k < Math.max(x.length, y.length); k += 1) {
+      const d = (x[k] ?? 0) - (y[k] ?? 0);
+      if (d !== 0) return Math.sign(d);
+    }
+    return 0;
+  };
+
+  const isAscii = (s: string) => [...s].every((c) => c.charCodeAt(0) >= 0x20 && c.charCodeAt(0) <= 0x7e);
+
+  if (FIRMWARE_RELEASES.length === 0) problems.push('FIRMWARE_RELEASES is empty');
+
+  FIRMWARE_RELEASES.forEach((release, i) => {
+    const where = `FIRMWARE_RELEASES[${i}] (${release.version})`;
+    const parts = release.version.split('.');
+    if (parts.length !== 3 || parts.some((p) => p === '' || !/^\d+$/.test(p))) {
+      problems.push(`${where}: version is not three dot-separated integers`);
+    }
+    if (seen.has(release.version)) problems.push(`${where}: duplicate version`);
+    seen.add(release.version);
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(release.date)) {
+      problems.push(`${where}: date is not ISO YYYY-MM-DD`);
+    }
+    if (release.headline !== release.headline.toUpperCase()) {
+      problems.push(`${where}: headline must be uppercase`);
+    }
+    if (release.headline.length === 0 || release.headline.length > 24) {
+      problems.push(`${where}: headline is ${release.headline.length} chars; the panel fits 24`);
+    }
+    if (!isAscii(release.headline)) problems.push(`${where}: headline is not printable ASCII`);
+    if (release.notes.length === 0) problems.push(`${where}: no notes`);
+    release.notes.forEach((note, n) => {
+      if (note.trim().length === 0) problems.push(`${where}.notes[${n}]: empty`);
+      if (!isAscii(note)) problems.push(`${where}.notes[${n}]: not printable ASCII — ${note}`);
+      if (note.length > NOTE_MAX) {
+        problems.push(
+          `${where}.notes[${n}]: ${note.length} chars, over the ${NOTE_MAX} cap — ` +
+            `one sentence a note (0.8.91, H1). Cut the second sentence; the reasoning ` +
+            `belongs in the source doc comment. Note begins "${note.slice(0, 60)}..."`,
+        );
+      }
+    });
+
+    // Bound once rather than indexed twice. `noUncheckedIndexedAccess` types
+    // every element access as possibly-undefined, and `i > 0` does not narrow
+    // an index expression — so the two reads below were the only two type
+    // errors in this repo (0.7.5, D). Behaviour is unchanged: the guard was
+    // already `i > 0`, and `previous` cannot be undefined when it holds.
+    const previous = i > 0 ? FIRMWARE_RELEASES[i - 1] : undefined;
+    if (previous && compare(previous.version, release.version) <= 0) {
+      problems.push(
+        `${where}: the list is newest-first, but ${previous.version} does not sort above it`,
+      );
+    }
+  });
+
+  if (FIRMWARE_VERSION !== FIRMWARE_RELEASES[0]?.version) {
+    problems.push(`FIRMWARE_VERSION (${FIRMWARE_VERSION}) is not the head of the list`);
+  }
+
+  if (problems.length > 0) {
+    throw new Error(`firmware changelog failed its own rules:\n  - ${problems.join('\n  - ')}`);
+  }
+}
+
+/**
+ * Country/state outline art must exist for every place a shipped region names
+ * (0.7.5, D).
+ *
+ * **This is the gate that was missing.** `COUNTRY_SHAPE_ICONS` is a hand-kept
+ * table and nothing checked it against the catalog, so a country could be added
+ * — regions, prose, flag gradient, chip colour, pack membership — and simply
+ * have no outline. `EntryVisual.regionVisual` degrades quietly to a climate
+ * glyph, and `CountryOutlineMap` has no `else` at all: its `if let` fails and
+ * the country page draws *nothing* where the dotted map belongs. Brazil (0.7.3c)
+ * and Mexico both shipped that way, and both were found by reading rather than
+ * by any gate. It is the third silent-missing-asset bug in three batches, after
+ * `icon: "fruit"` (0.7.4) and the two logo layers (0.7.5, A5).
+ *
+ * **`OUTLINE_BACKLOG` is gone (0.7.9, E), which is what it was for.** It named
+ * Brazil and Mexico, said they were a drawing job rather than a data one, and
+ * carried the instruction "the list is meant to shrink to `[]`; when it does,
+ * delete it and the `known`/`missing` split with it". Both outlines are drawn,
+ * so the list, the split and the "known gap" concept are all deleted here: a
+ * region naming a place with no outline is now simply a build failure, with no
+ * spelling of the problem that lets it through.
+ *
+ * The two new silhouettes are rasterised from authored lon/lat rings rather
+ * than drawn by hand, which the deleted note above warned would be "visibly not
+ * of that set" — see the 0.7.9 entry in PLAN.md. They wear the set's treatment
+ * (flat fill, one-cell black cel outline, specular mark) and are worth an
+ * artist's eye, but a country page that draws nothing is the worse defect and
+ * it is the one this batch was asked to fix.
+ */
+function assertOutlineCoverage(entries: readonly WineEntry[]): string[] {
+  const label = (s: string) => s.toLowerCase().trim();
+  const missing = new Map<string, string[]>();
+
+  for (const entry of entries) {
+    if (entry.category !== 'REGIONS') continue;
+    const details = entry.details as { origin?: string; state?: string };
+    const state = details.state ? label(details.state) : undefined;
+    // State first, exactly as `EntryVisual.regionVisual` resolves it: a
+    // Willamette row reads as Oregon, not as the whole USA.
+    if (state && COUNTRY_SHAPE_ICONS[state]) continue;
+    const place = label(details.origin || entry.name);
+    if (COUNTRY_SHAPE_ICONS[place]) continue;
+    const held = missing.get(place) ?? [];
+    held.push(`${entry.id} ${entry.name}`);
+    missing.set(place, held);
+  }
+
+  const unexpected = [...missing.keys()].sort();
+  if (unexpected.length > 0) {
+    throw new CoverageError(
+      'regions name places with no outline art:\n'
+        + unexpected.map((p) => `  - ${p}: ${(missing.get(p) ?? []).join(', ')}`).join('\n')
+        + '\nDraw the outline into art/icons/entries/countries/ and wire it through '
+        + 'COUNTRY_SHAPE_ICONS and scripts/import-class-art.py.',
+    );
+  }
+
+  return unexpected;
+}
+
+/** Where the app's art actually lives. `assertAssetsExist` is its only reader. */
+const UI_RESOURCES = resolve(REPO_ROOT, 'Sources', 'VinodexUI', 'Resources');
+
+/**
+ * The drawn-art search path, in order — mirrors `PixelArtLoader.subdirectories`
+ * in Sources/VinodexUI/EntryVisual.swift. First hit wins there and here.
+ */
+const ART_DIRS = ['FlavorArt', 'GrapeArt', 'StyleArt', 'ClassArt', 'StampArt', 'StickerArt', 'ButtonArt'] as const;
+
+/**
+ * Every asset id this generator emits must resolve to a file the app can load
+ * (0.7.5, A028).
+ *
+ * **The fourth silent-missing-asset bug is why this exists, and it was already in
+ * the tree when the gate was written.** `icons.json` has named a Brazil flag
+ * since 0.7.3c and nothing ever copied `brazil.png` into `Resources/Flags`, so
+ * `FlagLoader` returned nil and every Brazilian row flew a blank swatch. Same
+ * shape as `icon: "fruit"` (0.7.4 — an Iconify id that had never been
+ * rasterised), the screensaver layers (0.7.5, A5) and the Brazil/Mexico outlines
+ * (0.7.5, D): an id that resolves in *data* and to nothing on disk.
+ *
+ * The class is invisible to everything else the project runs. `IconLoader.image`
+ * and `PixelArtLoader.image` both end in `return nil` with no diagnostic, over
+ * 207 rasterised glyphs and five art directories; `swift test` cannot see the
+ * art at all because it belongs to `VinodexUI`, which no Linux gate compiles;
+ * and the clean `xtool dev build` cannot see it either, because a missing *file*
+ * is not a compile error. On the phone it is a red `questionmark.square.dashed`
+ * at best and empty space at worst.
+ *
+ * **Why here rather than in `verify-art.py`.** `icons:verify` re-runs the
+ * importers into a temp tree with `ART_OUT` and diffs pixels: it answers "did the
+ * committed art change", and it has no catalog, so it cannot know which ids are
+ * *requested*. This function is the other half — it holds the manifest it just
+ * built and checks it against the bundle. It is also the half that runs in CI:
+ * the `data` job runs `npm run generate` on every push, while `icons:verify`
+ * needs Pillow and is run by hand.
+ *
+ * **It runs after the writes, deliberately.** `rasterize-icons.sh` reads the
+ * `unique` list out of `icons.json`, so a gate that threw before `writeFileSync`
+ * would make a new icon id unbootstrappable — generate would refuse to emit the
+ * manifest the rasteriser needs in order to produce the file generate is
+ * demanding. With the write first, adding an icon is: generate (fails, naming the
+ * id) → `npm run icons` → generate (passes).
+ *
+ * **No backlog list, on purpose.** `OUTLINE_BACKLOG` earns its existence because
+ * drawing an outline to match the other 28 is a job that can be honestly
+ * outstanding. Nothing checked here is: every id below is satisfied by `npm run
+ * icons`, one command and no drawing. An allowlist with nothing in it is rot
+ * waiting to happen. If a genuine stopgap is ever needed, copy `OUTLINE_BACKLOG`
+ * whole — including the staleness check that fails when an entry stops being
+ * missing.
+ *
+ * Returns how many ids were checked, for the summary.
+ */
+function assertAssetsExist(icons: ReturnType<typeof buildIconManifest>): number {
+  const missing: string[] = [];
+  let checked = 0;
+
+  const want = (ok: boolean, what: string, where: string) => {
+    checked += 1;
+    if (!ok) missing.push(`${what} — expected ${where}`);
+  };
+
+  // Rasterised glyphs. `IconLoader.load(slug:)` walks @3x → @2x → the bare name
+  // and takes the first that opens, so any one of the three is a working icon;
+  // requiring all three would fail the icons that shipped before the variants
+  // existed. `unique` is the complete Iconify surface by construction — every
+  // non-`art:` id in every table is folded into it in `buildIconManifest`.
+  for (const id of icons.unique) {
+    const slug = id.replace(':', '--');
+    const ok = ['@3x', '@2x', ''].some((variant) =>
+      existsSync(resolve(UI_RESOURCES, 'Icons', `${slug}${variant}.png`)),
+    );
+    want(ok, id, `Sources/VinodexUI/Resources/Icons/${slug}.png`);
+  }
+
+  // Drawn art reached by `art:` id. Collected by walking the whole manifest
+  // rather than by listing the tables that carry them: `byEntry`, `bodyIcons`,
+  // `climateIcons`, `colorIcons`, `styleClassIcons`, `flavorClassIcons`,
+  // `flavorSubclassIcons`, `countryShapeIcons` and `soilIcons` all do today, in
+  // three different value shapes, and a hand-kept list of them is precisely the
+  // thing that went stale in `COUNTRY_SHAPE_ICONS`. A walk covers the next table
+  // for free.
+  const artIDs = new Map<string, string>();
+  const walk = (node: unknown, path: string): void => {
+    if (typeof node === 'string') {
+      if (node.startsWith('art:') && !artIDs.has(node)) artIDs.set(node, path);
+    } else if (Array.isArray(node)) {
+      node.forEach((child, i) => walk(child, `${path}[${i}]`));
+    } else if (node && typeof node === 'object') {
+      for (const [key, child] of Object.entries(node)) walk(child, `${path}.${key}`);
+    }
+  };
+  walk(icons, 'icons');
+
+  const artFile = (stem: string) =>
+    ART_DIRS.some((dir) => existsSync(resolve(UI_RESOURCES, dir, `${stem}.png`)));
+
+  for (const [id, path] of [...artIDs].sort()) {
+    want(artFile(id.slice(4)), `${id} (${path})`, `${id.slice(4)}.png in one of ${ART_DIRS.join(', ')}`);
+  }
+
+  // The three portrait tables ship bare stems rather than `art:` ids — the well
+  // loads them through the same `PixelArtLoader`, so they resolve the same way,
+  // but the walk above cannot tell one from a caption. Named explicitly.
+  for (const table of ['flavorArt', 'grapeArt', 'styleArt'] as const) {
+    for (const stem of [...new Set(Object.values(icons[table]))].sort()) {
+      want(artFile(stem), `${table}: ${stem}`, `${stem}.png in one of ${ART_DIRS.join(', ')}`);
+    }
+  }
+
+  // Flags. `WineDatabase.flagSlug` lowercases and hyphenates; `rasterize-icons.sh`
+  // derives the same slug with `tr` when it copies out of shared/pixelflags. The
+  // *bundle* is what is checked, not the master — a present master that was never
+  // copied is exactly the Brazil failure.
+  for (const country of Object.keys(icons.flags).sort()) {
+    const slug = country.toLowerCase().replace(/ /g, '-');
+    want(
+      existsSync(resolve(UI_RESOURCES, 'Flags', `${slug}.png`)),
+      `flag: ${country}`,
+      `Sources/VinodexUI/Resources/Flags/${slug}.png`,
+    );
+  }
+
+  if (missing.length > 0) {
+    throw new CoverageError(
+      `${missing.length} of ${checked} emitted asset ids resolve to no file:\n`
+        + missing.map((m) => `  - ${m}`).join('\n')
+        + '\n\nicons.json has already been written, so the usual fix is:\n'
+        + '  npm run icons      # rasterises glyphs, copies flags, runs the art importers\n'
+        + '  npm run generate   # re-runs this gate\n'
+        + 'A drawn-art id additionally needs its master under art/icons/ and a row in\n'
+        + 'the importer that ships it (scripts/import-*-art.py).',
+    );
+  }
+
+  return checked;
+}
+
+/**
+ * The question bank's own gate (0.7.5, D).
+ *
+ * Written for the same reason `assertFirmware` was: `exam.json` is authored
+ * prose in a shape nothing else in the pipeline can check. `find-missing-refs`
+ * walks the *catalog* references (`entryRefs`, and the `entryIcon` image keys,
+ * which are entry ids); this walks everything the generator itself owns — the
+ * closed vocabularies, the per-format payload invariants, and the two asset
+ * tables (`FLAVOR_ART`, `COUNTRY_SHAPE_ICONS`) that only exist in this file.
+ *
+ * The split is by ownership: a table defined here is checked here, a reference
+ * into the catalog is checked against the catalog.
+ *
+ * ASCII is asserted on every *shipped* string. The question card is Press Start
+ * 2P over VT323, both of which have partial Latin-1 coverage — a curly
+ * apostrophe or an accented place name pasted from a source would render as a
+ * blank box, exactly the failure `assertFirmware` exists to prevent one panel
+ * over. The bank is already clean; this keeps it that way.
+ */
+/**
+ * The two things about flavours that nothing else can see.
+ *
+ * **Ids.** Flavours are the only category whose ids are derived rather than
+ * authored, and until 0.8.9 they were derived wrong — `FLAVOR-${idx + 1}`
+ * inside a `Map.forEach`, where the second callback argument is the key, not
+ * an index. Every id shipped as `FLAVOR-blackcurrant1` and 37 of 106 carried a
+ * space. Nothing caught it because nothing reads a flavour id except
+ * `Bookmarks`, on a user's disk, where an id it cannot resolve is *silently
+ * dropped*. The shape is asserted here so the derivation cannot rot back: ids
+ * are `FLAVOR-` plus a slug of the note, and they are unique. Uniqueness is
+ * the load-bearing half — two notes slugging to one id would silently merge
+ * two entries into one, and the count would still read 106 upstream.
+ *
+ * **`FLAVOR_ART` keys.** The table is keyed on the normalised *note name*, so
+ * renaming a note in `grapes.ts` orphans its art with no error anywhere: the
+ * entry simply falls back to a tinted glyph and looks deliberate. The exam
+ * bank's `noteKey` arm already throws on a stale key (see `assertExam`), but
+ * that only covers the 75 notes the exam happens to reference. This covers all
+ * of them, which converts the whole rename class from silent to loud — and the
+ * flavour rework's Batch C renames and retirements are exactly that class.
+ */
+function assertFlavorIds(entries: readonly WineEntry[]): void {
+  const problems: string[] = [];
+  const flavors = entries.filter((e) => e.category === 'FLAVORS');
+
+  const seen = new Map<string, string>();
+  for (const f of flavors) {
+    if (!/^FLAVOR-[A-Z0-9]+(-[A-Z0-9]+)*$/.test(f.id)) {
+      problems.push(`"${f.name}": id "${f.id}" is not FLAVOR- plus an uppercase slug`);
+    }
+    const prior = seen.get(f.id);
+    if (prior !== undefined) {
+      problems.push(`id "${f.id}" is shared by "${prior}" and "${f.name}" — two notes slug to one id`);
+    } else {
+      seen.set(f.id, f.name);
+    }
+  }
+
+  // Both directions would be wrong to assert: a note with no art is the
+  // documented default (see FLAVOR_ART's own comment — "names with no
+  // convincing art are deliberately absent"). A *key* with no note is the
+  // error, because it can only mean the note was renamed or retired out from
+  // under it.
+  const liveNotes = new Set(flavors.map((f) => f.name.trim().toLowerCase()));
+  for (const key of Object.keys(FLAVOR_ART)) {
+    if (!liveNotes.has(key)) {
+      problems.push(`FLAVOR_ART key "${key}" names no live flavour — renamed or retired, and its art is orphaned`);
+    }
+  }
+
+  if (problems.length) {
+    throw new Error(`Flavour ids/art:\n  ${problems.join('\n  ')}`);
+  }
+}
+
+function assertExam(): void {
+  const problems: string[] = [];
+  const tiers = new Set<string>(EXAM_TIERS);
+  const categories = new Set<string>(EXAM_CATEGORIES);
+  const formats = new Set<string>(EXAM_FORMATS);
+  const seen = new Set<string>();
+  const cells = new Map<string, number>();
+  const perTier = new Map<string, number>();
+
+  const isAscii = (s: string) => [...s].every((c) => c.charCodeAt(0) >= 0x20 && c.charCodeAt(0) <= 0x7e);
+  const text = (where: string, field: string, value: string): void => {
+    if (value.trim().length === 0) problems.push(`${where}: ${field} is empty`);
+    if (!isAscii(value)) problems.push(`${where}: ${field} is not printable ASCII — ${value}`);
+  };
+  const list = (where: string, field: string, values: readonly string[], min: number): void => {
+    if (values.length < min) problems.push(`${where}: ${field} has ${values.length}, needs >= ${min}`);
+    values.forEach((v, i) => text(where, `${field}[${i}]`, v));
+    if (new Set(values.map((v) => v.toLowerCase())).size !== values.length) {
+      problems.push(`${where}: ${field} repeats an entry`);
+    }
+  };
+
+  for (const q of EXAM_QUESTIONS as readonly ExamQuestion[]) {
+    const where = `EXAM_QUESTIONS ${q.id}`;
+    if (!/^EXQ-[A-Z]{3}-\d{3}$/.test(q.id)) problems.push(`${where}: id is not EXQ-XXX-nnn`);
+    if (seen.has(q.id)) problems.push(`${where}: duplicate id`);
+    seen.add(q.id);
+    if (!tiers.has(q.tier)) problems.push(`${where}: unknown tier ${q.tier}`);
+    if (!categories.has(q.category)) problems.push(`${where}: unknown category ${q.category}`);
+    if (!formats.has(q.format)) problems.push(`${where}: unknown format ${q.format}`);
+    text(where, 'prompt', q.prompt);
+    text(where, 'explanation', q.explanation);
+    if (q.source !== undefined) text(where, 'source', q.source);
+    if (q.entryRefs !== undefined && q.entryRefs.length === 0) {
+      problems.push(`${where}: entryRefs is present but empty — omit it instead`);
+    }
+
+    cells.set(`${q.tier}|${q.category}`, (cells.get(`${q.tier}|${q.category}`) ?? 0) + 1);
+    perTier.set(q.tier, (perTier.get(q.tier) ?? 0) + 1);
+
+    switch (q.format) {
+      case 'multipleChoice':
+      case 'imageIdentification':
+      case 'aromaIdentification': {
+        list(where, 'options', q.options, 2);
+        if (q.answerIndex < 0 || q.answerIndex >= q.options.length) {
+          problems.push(`${where}: answerIndex ${q.answerIndex} is outside options`);
+        }
+        if (q.format === 'aromaIdentification') {
+          if (q.noteKeys.length === 0) problems.push(`${where}: no noteKeys`);
+          for (const key of q.noteKeys) {
+            if (!(key in FLAVOR_ART)) problems.push(`${where}: noteKey "${key}" is not a flavorArt key`);
+          }
+        }
+        if (q.format === 'imageIdentification' && q.image.kind === 'countryOutline') {
+          if (!(q.image.key in COUNTRY_SHAPE_ICONS)) {
+            problems.push(`${where}: image key "${q.image.key}" is not a countryShapeIcons key`);
+          }
+        }
+        break;
+      }
+      case 'trueFalse':
+        if (typeof q.answer !== 'boolean') problems.push(`${where}: answer is not a boolean`);
+        break;
+      case 'selectAll': {
+        list(where, 'options', q.options, 3);
+        const picks = new Set(q.answerIndices);
+        if (picks.size !== q.answerIndices.length) problems.push(`${where}: answerIndices repeats`);
+        // Both degenerate cases are the same defect: a "select all that apply"
+        // with nothing or everything correct teaches the candidate nothing and
+        // is unscoreable against partial credit.
+        if (picks.size === 0) problems.push(`${where}: answerIndices is empty`);
+        if (picks.size === q.options.length) problems.push(`${where}: every option is correct`);
+        for (const i of q.answerIndices) {
+          if (i < 0 || i >= q.options.length) problems.push(`${where}: answerIndex ${i} is outside options`);
+        }
+        break;
+      }
+      case 'matching': {
+        if (q.pairs.length < 2) problems.push(`${where}: matching needs >= 2 pairs`);
+        list(where, 'pairs.left', q.pairs.map((p) => p.left), 2);
+        // The right column is what gets shuffled, so a repeat there is not a
+        // cosmetic duplicate — it makes two different lefts indistinguishably
+        // correct and the score a lie.
+        list(where, 'pairs.right', q.pairs.map((p) => p.right), 2);
+        break;
+      }
+      case 'ordering': {
+        list(where, 'items', q.items, 3);
+        text(where, 'axis.from', q.axis.from);
+        text(where, 'axis.to', q.axis.to);
+        break;
+      }
+      default:
+        problems.push(`${where}: unhandled format`);
+    }
+  }
+
+  for (const tier of EXAM_TIERS) {
+    const authored = EXAM_AUTHORED_TIER_COUNTS[tier];
+    const actual = perTier.get(tier) ?? 0;
+    if (authored !== actual) {
+      problems.push(`EXAM_AUTHORED_TIER_COUNTS.${tier} says ${authored}, the bank holds ${actual}`);
+    }
+    for (const category of EXAM_CATEGORIES) {
+      const count = cells.get(`${tier}|${category}`) ?? 0;
+      // The floor, not the total, is what bounds balanced generation (D4): an
+      // exam cannot draw more distinct questions from a category than its
+      // thinnest cell holds without repeating, and `ExamPaper` refuses to
+      // repeat.
+      if (count < EXAM_MIN_CELL_COUNT) {
+        problems.push(`cell ${tier}/${category} holds ${count}, below EXAM_MIN_CELL_COUNT (${EXAM_MIN_CELL_COUNT})`);
+      }
+    }
+  }
+
+  for (const category of EXAM_CATEGORIES) text(`EXAM_CATEGORY_LABELS.${category}`, 'label', EXAM_CATEGORY_LABELS[category]);
+  for (const tier of EXAM_TIERS) text(`EXAM_TIER_LABELS.${tier}`, 'label', EXAM_TIER_LABELS[tier]);
+
+  if (problems.length > 0) {
+    throw new Error(`the exam bank failed its own rules:\n  - ${problems.join('\n  - ')}`);
   }
 }
 
@@ -1127,6 +1925,10 @@ function main() {
 
   const summary = assertCoverage(entries, palette);
   const icons = buildIconManifest(entries);
+  assertFirmware();
+  assertFlavorIds(entries);
+  assertExam();
+  const outlineBacklog = assertOutlineCoverage(entries);
 
   mkdirSync(OUT_DIR, { recursive: true });
 
@@ -1173,9 +1975,41 @@ function main() {
   writeFileSync(resolve(OUT_DIR, 'icons.json'), serialize(icons));
   writeFileSync(resolve(OUT_DIR, 'countries.json'), serialize(countries));
   writeFileSync(resolve(OUT_DIR, 'schema.json'), serialize({ schemaVersion: SCHEMA_VERSION }));
+  // The authored version travels *with* the changelog rather than being derived
+  // again on the Swift side: `FIRMWARE_VERSION` is already the head of the list,
+  // and shipping it as its own key means `AppVersion` never has to reason about
+  // ordering to answer "what is this build".
+  writeFileSync(
+    resolve(OUT_DIR, 'firmware.json'),
+    serialize({ version: FIRMWARE_VERSION, releases: FIRMWARE_RELEASES }),
+  );
+  // The bank and its closed vocabularies travel together, for the reason the
+  // firmware version travels with its changelog: `ExamCatalog` should never
+  // have to restate a label or a tier order that `shared/` already decides.
+  // `minCellCount` is the one number `ExamPaper` reasons about — it bounds how
+  // many distinct questions a balanced paper can draw per category — so it
+  // ships as data rather than as a Swift literal that could drift from the bank.
+  writeFileSync(
+    resolve(OUT_DIR, 'exam.json'),
+    serialize({
+      questions: EXAM_QUESTIONS,
+      tiers: EXAM_TIERS,
+      categories: EXAM_CATEGORIES,
+      formats: EXAM_FORMATS,
+      categoryLabels: EXAM_CATEGORY_LABELS,
+      tierLabels: EXAM_TIER_LABELS,
+      authoredTierCounts: EXAM_AUTHORED_TIER_COUNTS,
+      minCellCount: EXAM_MIN_CELL_COUNT,
+    }),
+  );
 
   // AUDIT M3 — fail loudly here (and in CI) if the emitted JSON would not decode.
   validateOutputs(OUT_DIR);
+
+  // 0.7.5 (A028) — and after the writes, for the bootstrap reason spelled out on
+  // the function. Decodable JSON that names a file nobody shipped is still a
+  // blank space on the phone.
+  const assetsChecked = assertAssetsExist(icons);
 
   const hexes = new Set(JSON.stringify(palette).match(/#[0-9a-fA-F]{6}/g) ?? []);
 
@@ -1191,8 +2025,25 @@ function main() {
   console.log(`  free tier      ${tiers.free.length} of ${entries.length}`);
   console.log('countries.json');
   console.log(`  country blurbs ${Object.keys(countries).length}`);
+  console.log('firmware.json');
+  console.log(`  version        ${FIRMWARE_VERSION}`);
+  console.log(`  releases       ${FIRMWARE_RELEASES.length}`);
+  console.log('exam.json');
+  console.log(`  questions      ${EXAM_QUESTIONS.length}`);
+  console.log(
+    `  by tier        ${EXAM_TIERS.map((t) => `${t} ${EXAM_AUTHORED_TIER_COUNTS[t]}`).join(' · ')}`,
+  );
+  console.log(`  min cell       ${EXAM_MIN_CELL_COUNT} (bounds a balanced paper's per-category draw)`);
   console.log('icons.json');
   console.log(`  distinct icons ${icons.unique.length}`);
+  console.log(`  assets on disk ${assetsChecked} ids checked, all resolve`);
+  // Printed rather than silent, on the lesson 0.7.4's dead COUNTRY_GATE arm
+  // taught: an absence nothing mentions reads as "none". Unreachable since
+  // 0.7.9 (E) — `assertOutlineCoverage` throws instead of returning names —
+  // and kept as the one line that would say so if that ever changes back.
+  if (outlineBacklog.length > 0) {
+    console.log(`  no outline art: ${outlineBacklog.join(', ')}`);
+  }
   const missing = Object.entries(icons.byEntry)
     .filter(([, id]) => id === icons.fallback)
     .map(([entryId]) => entryId);

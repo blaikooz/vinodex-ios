@@ -74,7 +74,26 @@ public struct EntryVisual {
             well: .color(well),
             iconID: iconID,
             iconColor: tint,
-            ringColor: nil,
+            // **Ringed by rarity since 0.6.9 (I2).** Grapes were the one
+            // category with no ring at all — regions take their climate's,
+            // styles take white, flavours take their subclass's — so a grape
+            // well fell through to `EntryIconWell`'s 1pt black hairline, which
+            // is the "no ring" case rather than a colour.
+            //
+            // Rarity is the right axis for it because the sprite inside the
+            // well is *already* keyed on rarity: `GrapeSpriteLoader` re-inks
+            // the bunch's leaf to the rarity colour (0.6.2, A2). The ring makes
+            // that legible at row size, where a re-inked leaf is four pixels,
+            // and it means one grape carries one rarity signal in two registers
+            // rather than a badge bolted on beside it.
+            //
+            // The chip table's `border` stop, not `text` or `bg`: it is the
+            // saturated one of the three, and it is what the RARITY chip on the
+            // same row is already outlined in — so the ring and the chip
+            // visibly agree. Optional-chained rather than defaulted, so a
+            // rarity absent from the generated table leaves the hairline it
+            // always had instead of inventing a colour.
+            ringColor: db.palette.rarityChips[g.rarity.rawValue].map { Color(dexHex: $0.border) },
             // The bunch sprite (0.5.4): colour, depth, blend and leaf derived
             // from the grape itself — see `GrapeArt`. The tasting-note glyph
             // above stays resolved as the fallback.
@@ -199,12 +218,20 @@ public struct EntryVisual {
         // flag or the class-coloured well alike; the glyph stays the fallback.
         let artName = db.icons.styleArtStem(for: s.common.name)
 
+        // A style with no portrait wears its class glyph as the picture
+        // (GSM Blend, deliberately portrait-less since 0.6.4 D1) — and at
+        // 0.95 rather than glyph scale (0.6.5, item 5): the drawn class art
+        // carries its own margins, so at 0.62 it floated small in the well,
+        // reading as an icon where its siblings show a portrait.
+        let glyphScale: CGFloat = artName == nil ? 0.95 : 0.62
+
         if hasRealOrigin {
             return EntryVisual(
                 well: .flag(country: origin),
                 iconID: iconID,
                 iconColor: tint,
                 ringColor: .white,
+                iconScale: glyphScale,
                 artName: artName
             )
         }
@@ -214,6 +241,7 @@ public struct EntryVisual {
             iconID: iconID,
             iconColor: tint,
             ringColor: .white,
+            iconScale: glyphScale,
             artName: artName
         )
     }
@@ -296,14 +324,110 @@ public final class EntryVisualCache {
 public final class PixelArtLoader {
     public static let shared = PixelArtLoader()
 
+    /// **Bare directory names, not `Resources/...` paths** (merged from the
+    /// Aug 5 Xcode/codesign branch).
+    ///
+    /// `Package.swift` used to ship `.copy("Resources")`, which put a directory
+    /// literally named `Resources` at the root of the bundle — and a shallow
+    /// iOS bundle shaped that way makes codesign refuse it as "bundle format
+    /// unrecognized", because it can no longer tell a flat bundle from a deep
+    /// macOS-style one. The fix copies each *child* individually, so the
+    /// wrapper is gone from the bundle and every `Bundle.module` subdirectory
+    /// lookup drops the prefix to match. The source tree is untouched; the
+    /// importers still write to `Sources/VinodexUI/Resources/<Dir>`.
+    ///
+    /// **This is a silent failure if it is got wrong**, which is why it is
+    /// worth a note rather than a shrug: `DexResources.url` falls back to a
+    /// root-level lookup when the subdirectory misses, and a nested file is not
+    /// at the root, so a stale `Resources/ButtonArt` returns nil and every
+    /// drawn face degrades to the SF Symbol it replaced. Nothing throws and
+    /// nothing logs. `ArtPipelineRosterTests.bundledArtDirectoriesAreRegistered`
+    /// holds this list, `Package.swift` and the directories on disk equal so a
+    /// tenth entry cannot land in two of the three.
     private static let subdirectories = [
-        "Resources/FlavorArt",
-        "Resources/GrapeArt",
-        "Resources/StyleArt",
+        "FlavorArt",
+        "GrapeArt",
+        "StyleArt",
         // Taxonomy + outline art (v0.5.7): classes, subclasses, colour, body,
         // climate, soils, style classes and country outlines, reached through
         // `art:` icon ids — see `DexIcon`.
-        "Resources/ClassArt",
+        "ClassArt",
+        // Back-plate Passport stamp glyphs (0.6.4, F2), imported from
+        // art/icons/chrome/stamps/ — the directory ships empty-of-art until the
+        // glyphs are authored; a miss falls through to the SF stand-ins.
+        "StampArt",
+        // Per-skin back-plate sticker glyphs (0.7.8, A1), imported from
+        // art/icons/chrome/stickers/. Its own directory since the sticker stopped
+        // being a stamp — the two families are commissioned separately and a
+        // shared folder was how a decal could be filed as a badge unnoticed.
+        // Also ships empty-of-art; a miss falls through to the skin emblem.
+        //
+        // Two directories on this search path can never collide because the
+        // stems are disjoint by construction (`stamp-*` from `StampCatalog`,
+        // `sticker-*` from `ChassisSkin.stickerStem`), so "first hit wins"
+        // stays a statement about ordering rather than about precedence.
+        "StickerArt",
+        // Drawn button faces (0.8.1, J2), imported from art/icons/chrome/buttons/.
+        //
+        // **Last on purpose, and the first entry that could actually collide.**
+        // The two above are safe by construction — their stems carry `stamp-`
+        // and `sticker-` prefixes — but these are named for the control they
+        // sit on, so `search`, `home`, `edit`, `data`, `camera`, `regions`,
+        // `styles`, `grapes` and `flavors` all enter a namespace that is flat
+        // and global across every directory here. None of the 32 collides with
+        // a catalog stem today (checked against FlavorArt/GrapeArt/StyleArt/
+        // ClassArt at import). Ordering it last is the guard for tomorrow: if a
+        // future flavour or style lands on one of these words, the catalog art
+        // keeps winning and the button falls back to its stand-in, which is the
+        // recoverable direction — the reverse would silently swap a portrait
+        // for a piece of chrome.
+        "ButtonArt",
+        // Drawn footer caps (0.8.2), imported from art/icons/chrome/footer/,
+        // and drawn cartridges (0.8.2), from art/icons/chrome/cartridges/.
+        //
+        // **Both prefixed, which is what keeps the entry above the last one
+        // that had to argue about ordering.** `ButtonArt`'s note explains that
+        // its stems are bare words in a flat global namespace and that placing
+        // it last is a guard rather than a guarantee. These two do not need the
+        // guard: `footer-` and `cartridge-` make them disjoint from everything
+        // by construction, exactly as `stamp-` and `sticker-` are. It is the
+        // convention to follow for the next directory — a second bare-word set
+        // would mean two entries whose safety is a fact about today's catalog.
+        "FooterArt",
+        "CartridgeArt",
+        // The dot-matrix marquee glyphs (0.8.4, A1), from
+        // art/icons/chrome/marquee/. `marquee-` prefixed, which is the
+        // convention the entry above asks the next directory to follow — and
+        // here it is load-bearing rather than tidy: nineteen of the thirty-four
+        // stems are words `ButtonArt` already uses (`settings`, `system`,
+        // `shop`, `tools`, `user`, `data`, `dev`, `passport`, `firmware`,
+        // `customize`, `whatsthat`, `moondial`, `tutorial`, `cheatcodes`,
+        // `haptics`, `labelscanner`, `blindtasting`, `dailychallenge`,
+        // `wineexam`), because they are the same pages drawn for a different
+        // surface. Unprefixed, "first hit wins" would have decided which
+        // register every one of those controls got, by list order.
+        "MarqueeArt",
+        // The painted UI glyphs (0.8.9a, A2), from art/icons/chrome/glyphs/,
+        // and the Professor Vino expression set (A3), from
+        // art/icons/chrome/vino/.
+        //
+        // **`glyph-` is the entry `ButtonArt`'s note was written for.** That
+        // note argues that its own bare words are safe only as a fact about
+        // today's catalog, and asks the next set to carry a prefix. This is
+        // that set, and it needed the prefix on arrival rather than later:
+        // `tools`, `firmware`, `seal` and `stamp` are all words already
+        // spoken for above — by `ButtonArt`, by `MarqueeArt` and by
+        // `StampArt` — so unprefixed, three of them would have been decided
+        // by list order between two live drawings of the same subject in two
+        // different registers, which is the exact fault `marquee-` was
+        // introduced to prevent.
+        "GlyphArt",
+        // `VinoArt` ships ahead of anything that draws it: the presenter is
+        // 0.8.9's phase 2. A directory searched before its art exists is the
+        // case `unauthoredArtDirectories` was built for and this is not it —
+        // the art is here, the *caller* is not, which no gate needs to know
+        // about because a stem nobody asks for is simply never looked up.
+        "VinoArt",
     ]
 
     private var cache: [String: UIImage?] = [:]
@@ -344,7 +468,7 @@ public final class FlagLoader {
         if let hit = cache[country] { return hit }
 
         let loaded: UIImage? = WineDatabase.shared.icons.flagSlug(for: country)
-            .flatMap { DexResources.url(named: $0, ext: "png", subdirectory: "Resources/Flags") }
+            .flatMap { DexResources.url(named: $0, ext: "png", subdirectory: "Flags") }
             .flatMap { UIImage(contentsOfFile: $0.path) }
 
         cache[country] = loaded

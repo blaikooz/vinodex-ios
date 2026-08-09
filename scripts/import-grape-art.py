@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Imports the grape bunch sprites into the app bundle.
 
-Sources are the recoloured bunch set in art/icons/grapes (0.5.8, A1) — one
+Sources are the recoloured bunch set in art/icons/entries/grapes (0.5.8, A1) — one
 identical bunch per file, recoloured across colour/depth/blend with the leaf
 coloured by rarity. This pass canonicalises the artist's file names into the
 `<color>-<depth>[-<blend>]-<leaf>` stems the generator's `grapeArt` table
@@ -12,6 +12,9 @@ The generator (buildGrapeArt in generate-ios-data.ts) maps the full combo
 grid onto these stems with fallbacks — run `npm run generate` after changing
 either side, and keep SOURCE_TO_STEM in step with the table's expectations.
 
+The three `gold-*-rare` bunches are hand-recoloured masters with no generating
+pass; they are listed in MASTERS and copied verbatim rather than re-imported.
+
 Usage: python3 scripts/import-grape-art.py [source-dir]
 Requires Pillow.
 """
@@ -21,7 +24,14 @@ import sys
 
 from PIL import Image
 
-from art_common import strip_background
+from art_common import (
+    copy_master,
+    output_dir,
+    quantize_stable,
+    resolve_source_dir,
+    save_stable,
+    strip_background,
+)
 
 
 def darken_reds(img):
@@ -44,7 +54,7 @@ def darken_reds(img):
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-DST = os.path.join(ROOT, "Sources", "VinodexUI", "Resources", "GrapeArt")
+DST = output_dir(ROOT, "GrapeArt")
 
 # Artist file name -> canonical stem. `redlight.png` is a byte-duplicate of
 # `redlightrare.png` and is deliberately absent; the `greeen…` typo is the
@@ -81,20 +91,21 @@ SOURCE_TO_STEM = {
     "redpinkrare.png": "red-pink-rare",
     "redpinknoble.png": "red-pink-noble",
     "redlight.png": None,  # duplicate of red-light-rare; skipped
+    # The gold set is hand-recoloured with no generating pass — see MASTERS.
+    # Absent from this table until 0.6.4, which is why the importer produced 30
+    # stems against a bundle shipping 33 and the three golds were invisible to
+    # any clean-room rebuild while icons.json referenced them live (AUDIT H12).
+    "goldfullrare.png": "gold-full-rare",
+    "goldlightrare.png": "gold-light-rare",
+    "goldmediumrare.png": "gold-medium-rare",
 }
 
-
-def source_dir():
-    if len(sys.argv) > 1:
-        return sys.argv[1]
-    candidate = os.path.join(ROOT, "art", "icons", "grapes")
-    if os.path.isdir(candidate):
-        return candidate
-    sys.exit("no source dir found; pass it explicitly")
+# Copied through untouched, for the reason given in art_common.copy_master.
+MASTERS = {"gold-full-rare", "gold-light-rare", "gold-medium-rare"}
 
 
 def main():
-    src = source_dir()
+    src = resolve_source_dir(ROOT, "entries", "grapes")
     os.makedirs(DST, exist_ok=True)
 
     converted = 0
@@ -107,11 +118,16 @@ def main():
         if not os.path.exists(path):
             missing.append(name)
             continue
-        img = strip_background(Image.open(path))
-        if stem.startswith("red-light") or stem.startswith("red-medium"):
-            img = darken_reds(img)
         out = os.path.join(DST, stem + ".png")
-        img.quantize(colors=256).save(out, optimize=True)
+        if stem in MASTERS:
+            copy_master(path, out)
+        else:
+            img = strip_background(Image.open(path))
+            if stem.startswith("red-light") or stem.startswith("red-medium"):
+                img = darken_reds(img)
+            # See art_common (0.8.0, A0b): pinned quantise, and a run
+            # whose pixels match leaves the file and its mtime alone.
+            save_stable(quantize_stable(img), out, optimize=True)
         converted += 1
         total_out += os.path.getsize(out)
 

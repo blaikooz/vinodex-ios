@@ -11,6 +11,9 @@ public struct EncyclopediaListScreen: View {
     /// entries — their pages are assembled from regions — so master and
     /// world search list them explicitly rather than through the query.
     let showsCountries: Bool
+    /// Which chip rows this listing offers (0.6.9, I3). Empty on every listing
+    /// but the varieties scan — see `chipRows`.
+    let chipFacets: [ChipFacet]
     let onSelect: (WineEntry) -> Void
     let onSelectCountry: (String) -> Void
 
@@ -44,6 +47,8 @@ public struct EncyclopediaListScreen: View {
     /// Prefixed so it can never collide with an entry id, since both flow
     /// through the same `String?` anchor.
     static let searchBarAnchor = "__searchbar__"
+    /// Likewise for the chip dropdown (0.6.9, I3).
+    static let chipBarAnchor = "__chipbar__"
 
     /// Where the list was scrolled to, held in the same store as the query so
     /// the two are restored together and dropped together.
@@ -59,6 +64,7 @@ public struct EncyclopediaListScreen: View {
         filter: EntryFilter? = nil,
         showsSearch: Bool = true,
         showsCountries: Bool = false,
+        chipFacets: [ChipFacet] = [],
         onSelect: @escaping (WineEntry) -> Void,
         onSelectCountry: @escaping (String) -> Void = { _ in }
     ) {
@@ -66,8 +72,71 @@ public struct EncyclopediaListScreen: View {
         self.filter = filter
         self.showsSearch = showsSearch
         self.showsCountries = showsCountries
+        self.chipFacets = chipFacets
         self.onSelect = onSelect
         self.onSelectCountry = onSelectCountry
+
+        // The chip selection this listing was left with (0.6.9, I3). Keyed the
+        // same way the query and the scroll anchor are, so the three are
+        // restored and dropped together. `SearchStateStore.key` is static, so
+        // it can be called before `self` is usable.
+        let key = SearchStateStore.key(categories: categories, filter: filter)
+        var restored = ScreenStateStore.shared
+            .decoded(ChipFilter.self, "chips", for: key) ?? ChipFilter()
+
+        // **The chip you arrived on, already lit** (0.8.7, C1).
+        //
+        // A cross-linked tile pushes `.list(category:filter:)`, and where that
+        // filter is expressible as a chip the page is a filter search — see
+        // `EntryFilter.chipOption` and `queryFilter` below. Seeding it here
+        // rather than in a `task` is 0.6.9's own argument for restoring in
+        // `init`: the list must open filtered rather than open wrong and correct
+        // itself a frame later.
+        //
+        // **Only when nothing is restored.** The chip is a live control now, so
+        // a user who turns it off must be able to; the key includes the filter,
+        // so "nothing restored" means "this is the first time this door has been
+        // opened", and adjusting the row is remembered from then on.
+        //
+        // **And only if the row actually offers it.** `chipOption` is derived
+        // from the filter's value, and a value no facet lists — a `.tasting`
+        // built from a tasting note rather than a classification — would light a
+        // chip that cannot be seen or cleared and would empty the list. Checked
+        // against the same `options(for:in:)` the row draws from, so the guard
+        // and the row can never disagree.
+        if restored.isEmpty,
+           let preset = filter?.chipOption,
+           chipFacets.contains(preset.facet),
+           ChipFilter.options(
+               for: preset.facet,
+               in: categories,
+               includingCountries: showsCountries
+           ).contains(preset) {
+            restored.toggle(preset)
+        }
+        _chips = State(initialValue: restored)
+    }
+
+    /// The filter as a chip, when it is one (0.8.7, C1).
+    private var presetChip: ChipOption? { filter?.chipOption }
+
+    /// The filter the *query* applies.
+    ///
+    /// **Nil once the constraint has been handed to the chip row**, which is the
+    /// half of C1 that makes the pre-selected chip a control rather than a
+    /// decoration. Applying both would have narrowed the list twice by the same
+    /// predicate — harmless, since the two are the same set — and left the chip
+    /// unable to widen it again: turning SWEET off would have changed nothing,
+    /// because `EntryQuery`'s filter would still be there. A control that cannot
+    /// be turned off is worse than no control.
+    ///
+    /// The two are only exchanged where they are the same set, which
+    /// `EntryFilter.chipOption` establishes by measurement rather than by
+    /// assertion — and the extra `presetChip == chips`-shaped conditions in
+    /// `init` mean the exchange only happens when the chip is really lit.
+    private var queryFilter: EntryFilter? {
+        guard let presetChip, chips.isOn(presetChip) else { return filter }
+        return nil
     }
 
     /// Recomputed only when the query actually changes.
@@ -101,11 +170,75 @@ public struct EncyclopediaListScreen: View {
         }
     }
 
+    /// The query the last `task` run started from — see `awaitSearchDebounce`.
+    @State private var debouncedFrom = ""
+
+    /// The chip selection (0.6.9, I3).
+    ///
+    /// Mirrored into `ScreenStateStore` on change and restored in `init`,
+    /// rather than read back out of the store on access — the shape
+    /// `ChipFilterScreen` already uses, and for AUDIT M5's reason: the store's
+    /// accessor is a JSON round-trip, and a computed property here would decode
+    /// it in the `task(id:)`, in `recompute`, in the dropdown and once per chip
+    /// on every body pass. Restoring in `init` also seeds the first render, so
+    /// the list does not open unfiltered and correct itself a frame later.
+    @State private var chips: ChipFilter
+    /// Whether the chip rows are unfolded. Folded by default: the list is the
+    /// subject, and three rows of chips above it unasked-for would bury the
+    /// first result. Session-local, like the fold state everywhere else.
+    @State private var showsChips = false
+    @State private var screens = ScreenStateStore.shared
+    /// The three shelves, for the SAVED / WANTED / TRIED chips and for the
+    /// tried border on a row (0.8.91, B1/B2).
+    @State private var bookmarks = BookmarkStore.shared
+
+    /// The chip selection *and* whatever external state it needs to be answered
+    /// (0.8.91, B1).
+    ///
+    /// One id for the recompute rather than two `task(id:)`s: the shelf row is
+    /// the first facet whose predicate depends on something outside the filter,
+    /// so a lit TRIED chip has to re-run the pass when a bookmark changes and an
+    /// unlit one must not. Resolving to `.empty` when no shelf chip is lit makes
+    /// that a value comparison rather than a rule each call site remembers.
+    private struct ChipPass: Equatable {
+        let chips: ChipFilter
+        let shelves: ShelfMembership
+    }
+
+    private var chipPass: ChipPass {
+        ChipPass(chips: chips, shelves: chips.usesUserState ? bookmarks.membership : .empty)
+    }
+
     private func recompute() {
-        let entries = db.entries.apply(
-            EntryQuery(categories: categories, filter: filter, search: search)
-        ).map(SearchRow.entry)
-        let countries = showsCountries
+        let pass = chipPass
+        // `db.entries(matching:)`, not `db.entries.apply(_:)`: the folding and
+        // the sort are done once at load rather than per keystroke (AUDIT M5).
+        let entries = db.entries(
+            matching: EntryQuery(categories: categories, filter: queryFilter, search: search)
+        )
+            // The chip predicate rides on the survivors of the indexed pass,
+            // exactly as `ChipFilterScreen` does it — and short-circuited when
+            // nothing is lit, so the ~ten listings with no chip rows at all pay
+            // nothing for the feature existing.
+            .filter { pass.chips.isEmpty || pass.chips.matches($0, shelves: pass.shelves) }
+            .map(SearchRow.entry)
+        // Countries carry no grape facet, so a lit chip drops them — the same
+        // honest reading of an AND across facets `ChipFilter` documents.
+        //
+        // **With one exception, added for H1 (0.7.0).** A country row is not an
+        // entry; it is synthesised, and it can satisfy exactly one chip in the
+        // whole system — TYPE > COUNTRIES. The blanket rule was written when the
+        // only screen with chips was the grape listing, where no country row is
+        // drawn at all and the question never arose. On the world search,
+        // countries are a third of the results and the COUNTRIES chip is one of
+        // the three H1 asks for, so the old rule made that chip mean "hide the
+        // things I just asked for".
+        //
+        // The rule now is the honest one: countries survive when nothing is lit,
+        // or when the *only* lit facet is TYPE and COUNTRIES is among its
+        // values. Any other facet still drops them, because a country genuinely
+        // cannot carry a climate or a rarity.
+        let countries = showsCountries && chips.allowsCountryRows
             ? db.countries(matching: search).map(SearchRow.country)
             : []
         rows = (entries + countries).sorted {
@@ -119,13 +252,36 @@ public struct EncyclopediaListScreen: View {
     /// `@State` assignment invalidates whether or not the value changed.
     public var body: some View {
         content
-            .task(id: search) { recompute() }
+            .task(id: search) {
+                let previous = debouncedFrom
+                debouncedFrom = search
+                guard await awaitSearchDebounce(from: previous, to: search) else { return }
+                recompute()
+            }
+            // A chip tap is a discrete act, so it re-filters immediately;
+            // typing is a burst, so it debounces. Same split as
+            // `ChipFilterScreen` (AUDIT M5).
+            .task(id: chipPass) { recompute() }
+            // Mirrored on change rather than at each call site that toggles a
+            // chip — one of those would eventually be added without its save.
+            .onChange(of: chips) { _, value in
+                screens.encode(value.isEmpty ? nil : value, "chips", for: searchKey)
+            }
     }
 
     private var content: some View {
         VStack(spacing: 0) {
-            if let filter {
-                filterBanner(filter)
+            // The banner says what is narrowing this list — unless the chip row
+            // is already saying it (0.8.7, C1). Before C1 a cross-linked arrival
+            // showed `FILTER: SWEET` in a strip it could not act on, above a
+            // FILTER dropdown reporting nothing on; now the constraint is a lit
+            // chip in that dropdown, and a second immovable statement of it
+            // would be the redundancy the item is complaining about.
+            //
+            // `queryFilter`, not `filter`: they differ exactly when the chip has
+            // taken over, so this cannot drift from what is actually filtering.
+            if let banner = queryFilter {
+                filterBanner(banner)
             }
 
             ZStack {
@@ -149,17 +305,23 @@ public struct EncyclopediaListScreen: View {
                                 .id(Self.searchBarAnchor)
                         }
 
-                        if rows.isEmpty {
-                            // An empty list with an empty query cannot be a
-                            // no-results message — if the database also reported
-                            // load errors, say so instead of letting a broken
-                            // build read like a search that found nothing.
-                            // (0.6.3, item 1 — AUDIT M2)
-                            if !db.decodeErrors.isEmpty && search.isEmpty {
-                                dataLoadErrorState
-                            } else {
-                                emptyState
+                        if !chipFacets.isEmpty {
+                            chipDropdown.id(Self.chipBarAnchor)
+                            if showsChips {
+                                ForEach(chipFacets) { facet in
+                                    chipRow(facet).id("__chips__" + facet.rawValue)
+                                }
                             }
+                        }
+
+                        if rows.isEmpty {
+                            // The query no longer decides whether an empty list
+                            // is a fault or an answer — `db.dataState` does. The
+                            // old `&& search.isEmpty` gate suppressed the error
+                            // on exactly the path that produced the reported
+                            // symptom, because the query survives navigation.
+                            // (AUDIT M2)
+                            DexEmptyState { emptyState }
                         } else {
                             ForEach(rows) { row in
                                 switch row {
@@ -169,10 +331,21 @@ public struct EncyclopediaListScreen: View {
                                     EntryTileView(
                                         entry: entry,
                                         palette: db.palette,
-                                        locked: access.isLocked(entry, in: db)
+                                        locked: access.isLocked(entry, in: db),
+                                        // §B2. Read here rather than inside the
+                                        // tile so the store is observed once per
+                                        // listing instead of once per row.
+                                        tried: bookmarks.contains(entry.id, on: .tried)
                                     ) {
                                         onSelect(entry)
                                     }
+                                    // The walkthrough's second step (0.8.9d,
+                                    // G2) lights the top row, whichever entry
+                                    // that is. Compared by id rather than taken
+                                    // from an enumerated index, so `ForEach`
+                                    // keeps the stable identity the scroll
+                                    // restoration below depends on.
+                                    .coachmarkTarget(row.id == rows.first?.id ? .listingRow : nil)
                                 }
                             }
                         }
@@ -224,8 +397,162 @@ public struct EncyclopediaListScreen: View {
     }
 
     private var searchBar: some View {
-        DexSearchBar(text: searchBinding)
+        DexSearchBar(text: searchBinding, placeholder: searchPlaceholder)
     }
+
+    /// What this listing says it is searching (0.8.0, J).
+    ///
+    /// **Derived from `categories`, not passed in.** Every one of these screens
+    /// is the same view with a different category set, and a `placeholder:`
+    /// argument at the call site would be a second statement of something the
+    /// screen is already holding — which is how the two call sites in
+    /// `VinodexApp` would eventually disagree with the header above them.
+    ///
+    /// `rawValue` rather than `listTitle`: the grape listing's *title* is
+    /// VARIETIES, and the ask names the thing rather than the shelf ("search
+    /// grapes"). It is also the word the main-menu tile the player just pressed
+    /// is labelled with, which is the string they are most likely to be holding.
+    ///
+    /// The multi-category case is the world search — continents, regions and
+    /// country rows in one list — and it takes the globe's own wording, so the
+    /// `DexSearchBarButton` on `RetroGlobeScreen` and the live field it opens
+    /// read as the same control rather than as two.
+    private var searchPlaceholder: String {
+        guard categories.count == 1, let only = categories.first else { return "SEARCH WORLD…" }
+        return "SEARCH \(only.rawValue)…"
+    }
+
+    // MARK: Chip rows (0.6.9, I3)
+    //
+    // **Filter chips on a category listing, not just in TOOLS.** The chip
+    // filter has existed since v0.5.9, but only as its own destination under
+    // TOOLS — so narrowing the varieties list meant leaving it, opening a
+    // different screen, turning the TYPE row down to GRAPES, and rebuilding by
+    // hand the listing you were already looking at. I3 puts the rows where the
+    // list is.
+    //
+    // Deliberately **not** a second implementation. The chips are `DexHeroChip`
+    // (J1) over `ChipFilter`, so the filter grammar, the palette and the three
+    // chip states are the ones `ChipFilterScreen` uses; what is different here
+    // is only *which facets are offered* and that the result set is this
+    // listing's rather than the whole catalog's.
+    //
+    // The facets are the caller's choice rather than `ChipFacet.allCases`,
+    // because "grape-only chips" is the instruction: a varieties listing is
+    // already one category, so TYPE would be a row with one live value, and
+    // CLIMATE is regions-only and would empty the list on any tap. See
+    // `DexRoute` for what the varieties scan passes.
+
+    /// The way into the chips — the same dropdown header `ChipFilterScreen`
+    /// uses, so the control reads the same in both places. Folded by default:
+    /// the list is the subject, and three rows of chips above it unasked-for
+    /// would bury the first result.
+    private var chipDropdown: some View {
+        let active = chips.count
+
+        return Button {
+            Haptics.select()
+            withAnimation(.easeOut(duration: 0.2)) { showsChips.toggle() }
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "slider.horizontal.3")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(lcd.accent)
+                Text("FILTER")
+                    .font(DexFont.retro(12))
+                    .tracking(1)
+                    .foregroundStyle(lcd.text)
+                if active > 0 {
+                    Text("\(active) ON")
+                        .font(DexFont.retro(10))
+                        .foregroundStyle(lcd.isLight ? .white : .black)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Capsule().fill(lcd.accent))
+                }
+                Spacer(minLength: 0)
+                if active > 0 {
+                    // Reachable with the rows folded away, which is the state a
+                    // filtered list is most likely to be left in.
+                    Text("RESET")
+                        .font(DexFont.retro(10))
+                        .tracking(1)
+                        .foregroundStyle(Dex.red500)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 5)
+                                .strokeBorder(Dex.red500.opacity(0.55), lineWidth: 2)
+                        )
+                        // Its own target inside the header's, so tapping RESET
+                        // clears rather than folding.
+                        .onTapGesture {
+                            Haptics.select()
+                            chips.clear()
+                        }
+                }
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(lcd.subtext)
+                    .rotationEffect(.degrees(showsChips ? 180 : 0))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity)
+            .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6).strokeBorder(lcd.surfaceEdge, lineWidth: 2)
+            )
+        }
+        .buttonStyle(DexPressStyle(scale: 0.98))
+        .accessibilityLabel("Filter, \(active) active, \(showsChips ? "expanded" : "collapsed")")
+    }
+
+    private func chipRow(_ facet: ChipFacet) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(facet.title)
+                .font(DexFont.retro(12))
+                .tracking(1.5)
+                .foregroundStyle(lcd.accent)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Scoped to this screen's own tables (0.7.0, H1). On the world
+            // search the TYPE row must offer CONTINENTS, REGIONS and COUNTRIES
+            // and nothing else — a GRAPES chip there is a control whose only
+            // possible effect is to empty the list.
+            ChipFlow(spacing: 8) {
+                ForEach(
+                    ChipFilter.options(
+                        for: facet,
+                        in: categories,
+                        includingCountries: showsCountries
+                    )
+                ) { option in
+                    DexHeroChip(
+                        label: option.label,
+                        chip: db.palette.filterChip(option),
+                        isOn: chips.isOn(option)
+                    ) {
+                        chips.toggle(option)
+                    }
+                }
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(facet.title)
+        .accessibilityHint(facet.note)
+    }
+
+    // Chips are **not costed here**, unlike `ChipFilterScreen`.
+    //
+    // That screen prices every chip in every row against the whole catalog on
+    // every change and dims the dead ones — three dozen chips × 405 entries,
+    // paid once per tap. It is worth it there because the count *is* the
+    // screen's subject. Here the list itself is the answer, it is one category
+    // rather than five, and the same pass would run on a screen whose job is to
+    // show rows. A grape facet cannot produce a dead chip on a grapes listing
+    // anyway: every value in COLOUR, BODY and RARITY has grapes under it, so
+    // `DexHeroChip.isDead` is left at its default.
 
     /// A country result, in the entry-tile shape — same well size, spacing,
     /// chevron and minimum height as `EntryTileView`, so a country reads as
@@ -281,27 +608,6 @@ public struct EncyclopediaListScreen: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 60)
         .opacity(0.6)
-    }
-
-    /// The truth when the database itself failed to load (0.6.3, item 1 —
-    /// AUDIT M2). "NO DATA FOUND" reads as a no-results message, which sent
-    /// anyone hitting a broken build hunting for a typo in their search; the
-    /// detail lives in the DEV panel, and this points there.
-    private var dataLoadErrorState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 40))
-                .foregroundStyle(Dex.red500)
-            Text("DATA LOAD ERROR")
-                .font(DexFont.retro(11))
-                .foregroundStyle(Dex.red500)
-            Text("The wine database failed to load. See SETTINGS > DEV for details.")
-                .font(DexFont.mono(16))
-                .foregroundStyle(lcd.subtext)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 60)
     }
 }
 #endif

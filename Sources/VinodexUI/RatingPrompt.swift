@@ -123,7 +123,7 @@ public struct RatingPrompt: View {
         action: @escaping () -> Void
     ) -> some View {
         Button {
-            Haptics.tap()
+            Haptics.screenTap()
             action()
         } label: {
             Text(label)

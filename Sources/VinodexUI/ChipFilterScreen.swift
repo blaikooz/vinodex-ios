@@ -34,6 +34,9 @@ public struct ChipFilterScreen: View {
     @State private var showsChips = false
     @State private var screens = ScreenStateStore.shared
     @State private var access = AccessStore.shared
+    /// The three shelves, for the YOURS chip row and the tried border
+    /// (0.8.91, B1/B2).
+    @State private var bookmarks = BookmarkStore.shared
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
     private var lcd: LcdMode { LcdMode(rawValue: lcdRaw) ?? .dark }
 
@@ -45,20 +48,92 @@ public struct ChipFilterScreen: View {
     ) {
         self.onSelect = onSelect
         self.onSelectCountry = onSelectCountry
+
+        // Restored here rather than in `onAppear`, and the first answer seeded
+        // with it. `results` moved into `@State` (AUDIT M5), and a `task`
+        // cannot run before the first render — so without this the screen opens
+        // on "0 MATCHES / NOTHING MATCHES" and corrects itself a frame later,
+        // which on a screen whose whole subject is a live count is exactly the
+        // wrong first impression.
+        //
+        // A local `db`, not the property: `self` is not fully initialised until
+        // the `State` assignments below have all landed.
+        let db = WineDatabase.shared
+        let restored = ScreenStateStore.shared
+            .decoded(ChipFilter.self, "filter", for: ScreenStateStore.chipFilter) ?? ChipFilter()
+        _filter = State(initialValue: restored)
+        _results = State(initialValue: db.entriesInDisplayOrder.filter { restored.matches($0) })
+        _countryResults = State(
+            initialValue: restored.includesCountries ? db.searchableCountries : []
+        )
     }
 
     /// The chip-filtered set, narrowed again by the search box (v0.5.9, E1) —
     /// the summary's count reads off this, so it moves live under both.
-    private var results: [WineEntry] {
-        let base = db.entries(matching: filter)
-        let q = query.trimmingCharacters(in: .whitespaces)
-        return q.isEmpty ? base : base.apply(.masterSearch(q))
+    ///
+    /// Held in `@State` and recomputed on change rather than computed in `body`
+    /// (AUDIT M5). As computed properties these ran on every *body pass*, not
+    /// merely every keystroke — and `body` reads `results` three times (the
+    /// summary's total, the empty check, the `ForEach`), so one re-render cost
+    /// three full filter-and-sort passes over the catalog.
+    @State private var results: [WineEntry] = []
+    /// Country rows, shown only while the COUNTRIES chip is lit (0.6.2, B3).
+    @State private var countryResults: [String] = []
+    /// What each chip's badge would read if tapped, costed once per filter
+    /// change. This is the screen's real expense: `count(withChip:added:)` is a
+    /// full pass over the catalog, and the chip rows hold three dozen chips.
+    /// It depends on the chips alone, so typing does not disturb it.
+    @State private var chipCounts: [ChipOption: Int] = [:]
+    /// The query the last `task` run started from — see `awaitSearchDebounce`.
+    @State private var debouncedFrom = ""
+
+    /// Every chip on the screen, in one flat list — the set `chipCounts` costs.
+    private static let allOptions: [ChipOption] =
+        ChipFacet.allCases.flatMap { ChipFilter.options(for: $0) }
+
+    /// The shelves this pass needs, or nothing when no shelf chip is lit — see
+    /// `ChipFilter.usesUserState` (0.8.91, B1). Resolving to `.empty` is what
+    /// keeps a listing with no YOURS chip on it from re-filtering every time a
+    /// bookmark changes somewhere else in the app.
+    private var shelves: ShelfMembership {
+        filter.usesUserState ? bookmarks.membership : .empty
     }
 
-    /// Country rows, shown only while the COUNTRIES chip is lit (0.6.2, B3).
-    private var countryResults: [String] {
-        guard filter.includesCountries else { return [] }
-        return db.countries(matching: query.trimmingCharacters(in: .whitespaces))
+    /// The filter and the state it needs, as one `task(id:)` key.
+    private struct ChipPass: Equatable {
+        let filter: ChipFilter
+        let shelves: ShelfMembership
+    }
+
+    private var chipPass: ChipPass { ChipPass(filter: filter, shelves: shelves) }
+
+    private func recomputeResults() {
+        let q = query.trimmingCharacters(in: .whitespaces)
+        let shelves = self.shelves
+        // One indexed pass (AUDIT M5): `entries(matching:)` walks the
+        // pre-sorted list against haystacks folded at load, and the chip
+        // predicate rides along on the survivors. The old shape ran the chip
+        // filter and then re-folded and re-sorted the result through
+        // `apply(.masterSearch(_:))`.
+        results = db.entries(matching: .masterSearch(q))
+            .filter { filter.matches($0, shelves: shelves) }
+        countryResults = filter.includesCountries ? db.countries(matching: q) : []
+    }
+
+    private func recomputeChipCounts() {
+        // Countries are not entries, so their share is added by hand (0.6.2, B3).
+        let countryShare = db.searchableCountries.count
+        // Costed against the real shelves regardless of what is lit: the badge
+        // on an *unlit* TRIED chip is the whole reason to look at it, and
+        // `usesUserState` is false in exactly that case.
+        let shelves = bookmarks.membership
+        var costed: [ChipOption: Int] = [:]
+        costed.reserveCapacity(Self.allOptions.count)
+        for option in Self.allOptions {
+            costed[option] = db.count(withChip: option, added: filter, shelves: shelves)
+                + (filter.toggling(option).includesCountries ? countryShare : 0)
+        }
+        chipCounts = costed
     }
 
     private var anchorBinding: Binding<String?> {
@@ -93,7 +168,10 @@ public struct ChipFilterScreen: View {
                     resultsHeader.id("__results__")
 
                     if results.isEmpty && countryResults.isEmpty {
-                        emptyState
+                        // "NOTHING MATCHES" blames the chips. On a database
+                        // that failed to load, nothing matches anything, and
+                        // the chips are innocent (AUDIT M2).
+                        DexEmptyState { emptyState }
                     } else {
                         // Synthesised country rows lead (0.6.2, B3): they are
                         // the few, the entries the many.
@@ -104,7 +182,8 @@ public struct ChipFilterScreen: View {
                             EntryTileView(
                                 entry: entry,
                                 palette: db.palette,
-                                locked: access.isLocked(entry, in: db)
+                                locked: access.isLocked(entry, in: db),
+                                tried: bookmarks.contains(entry.id, on: .tried)
                             ) {
                                 onSelect(entry)
                             }
@@ -116,10 +195,18 @@ public struct ChipFilterScreen: View {
             .contentMargins(10, for: .scrollContent)
             .scrollPosition(id: anchorBinding)
         }
-        .onAppear {
-            if let saved = screens.decoded(ChipFilter.self, "filter", for: ScreenStateStore.chipFilter) {
-                filter = saved
-            }
+        // A chip tap is a discrete act, so it re-costs immediately; typing is a
+        // burst, so it is debounced — `task(id:)` cancels the pending run on the
+        // next keystroke, filtering once at the end of the burst (AUDIT M5).
+        .task(id: chipPass) {
+            recomputeChipCounts()
+            recomputeResults()
+        }
+        .task(id: query) {
+            let previous = debouncedFrom
+            debouncedFrom = query
+            guard await awaitSearchDebounce(from: previous, to: query) else { return }
+            recomputeResults()
         }
         .onChange(of: filter) { _, value in
             screens.encode(value.isEmpty ? nil : value, "filter", for: ScreenStateStore.chipFilter)
@@ -131,9 +218,19 @@ public struct ChipFilterScreen: View {
     /// The running total, and the way out of a filter that has gone too far.
     private var summary: some View {
         HStack(spacing: 12) {
-            Image(systemName: "line.3.horizontal.decrease.circle.fill")
-                .font(.system(size: 26, weight: .semibold))
-                .foregroundStyle(lcd.accent)
+            // The magnifier (0.7.1, A2): this card is the head of MASTER
+            // SEARCH, and the screen's own hero cannot be wearing the filter
+            // bars while the button that opened it wears a magnifier. The bars
+            // stay where they mean "a filter is narrowing a list you are
+            // already looking at" — `EncyclopediaListScreen.filterBanner`.
+            // Drawn as of 0.8.9a (A7), and it is the face the round menu
+            // button that opens this screen already wears -- which is K2 rule 1
+            // ("a page's glyph is the glyph on the control that opens it")
+            // reaching the one hero on the page that had stayed a symbol.
+            DexChromeGlyph(
+                "search", symbol: DexGlyph.search,
+                size: 26, tint: lcd.accent
+            )
 
             VStack(alignment: .leading, spacing: 3) {
                 let total = results.count + countryResults.count
@@ -188,12 +285,25 @@ public struct ChipFilterScreen: View {
             withAnimation(.easeOut(duration: 0.2)) { showsChips.toggle() }
         } label: {
             HStack(spacing: 10) {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(lcd.accent)
+                // The drawn cog (0.8.9a, A7). The SF bars stay as the
+                // fallback rather than being deleted: `PixelArtLoader` answers
+                // nil in silence for a stem it cannot find, so the symbol is
+                // what stands between a missing asset and an empty row.
+                DexChromeGlyph(
+                    UIGlyph.cog.artStem, symbol: "slider.horizontal.3",
+                    size: 16, tint: lcd.accent
+                )
+                // Guarded (0.7.1, A4): with a filter on, the row needed
+                // 334pt of a 311pt width — glyph, label, the "n ON" badge and
+                // the chevron — and the label wrapped to two lines the moment
+                // a chip was lit. It read correctly at rest, which is why it
+                // stood. `layoutPriority` on the badge below decides which of
+                // the two gives.
                 Text("FILTER CHIPS")
                     .font(DexFont.retro(12))
                     .tracking(1)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                     .foregroundStyle(lcd.text)
                 if filter.count > 0 {
                     Text("\(filter.count) ON")
@@ -233,58 +343,62 @@ public struct ChipFilterScreen: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .overlay(alignment: .bottom) { lcd.accent.opacity(0.4).frame(height: 2) }
 
-            Text(facet.note)
-                .font(DexFont.mono(16))
-                .foregroundStyle(lcd.subtext)
-
-            // A wrapping flow rather than a horizontal scroller: a chip you have
-            // to scroll sideways to discover is a chip nobody taps, and every
-            // row here fits in two lines at most.
+            // `facet.note` is no longer drawn (0.6.8, K2). Six explanatory
+            // lines over six rows of chips is a paragraph of instructions on a
+            // screen whose whole subject is that the chips answer for
+            // themselves — the summary at the top already says what the filter
+            // has done, and the dimmed dead chips already say which ones lead
+            // nowhere.
+            //
+            // Kept as the row's accessibility hint rather than deleted: the
+            // notes carry a real warning ("Grapes only — everything else drops
+            // out"), and the visual reader learns that from watching the count
+            // move, which is exactly the channel a screen reader does not have.
             ChipFlow(spacing: 8) {
                 ForEach(ChipFilter.options(for: facet)) { option in
                     chip(option)
                 }
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(facet.title)
+        .accessibilityHint(facet.note)
     }
 
     private func chip(_ option: ChipOption) -> some View {
         let on = filter.isOn(option)
         // What the results would become. For a lit chip that is the count after
-        // turning it *off*, which is equally the useful number. Countries are
-        // not entries, so their share is added by hand (0.6.2, B3).
-        let count = db.count(withChip: option, added: filter)
-            + (filter.toggling(option).includesCountries ? db.searchableCountries.count : 0)
+        // turning it *off*, which is equally the useful number. Costed once per
+        // filter change in `recomputeChipCounts` rather than here, which is
+        // inside a `ForEach` inside a body pass (AUDIT M5).
+        let costed = chipCounts[option]
+        let count = costed ?? 0
         // A chip that leads nowhere is still tappable — it is a fact about the
-        // data worth being able to see — but it says so.
-        let dead = !on && count == 0
+        // data worth being able to see — but it says so. Keyed off `costed`,
+        // not `count`: an uncosted chip is unknown, not dead.
+        let dead = !on && costed == 0
 
-        return Button {
-            Haptics.select()
+        // **A hero chip since 0.6.9 (J1)** — the value's own palette colours in
+        // a rounded rectangle, rather than the monochrome capsule this drew
+        // from v0.5.9. See `DexHeroChip`; the three states and their reasoning
+        // live there, so the varieties scan's own chip row (I3) cannot drift
+        // from this one.
+        //
+        // Label only (0.6.8, K1). Every chip used to carry the count it would
+        // produce if tapped, which made a row of a dozen chips a row of a dozen
+        // numbers to read past; the running total in the summary is the number
+        // that was actually being consulted. The costing itself stays — it is
+        // what `dead` is computed from, and it is still what the accessibility
+        // label reads out, which is the channel that never had the summary.
+        return DexHeroChip(
+            label: option.label,
+            chip: db.palette.filterChip(option),
+            isOn: on,
+            isDead: dead
+        ) {
             filter.toggle(option)
-        } label: {
-            HStack(spacing: 7) {
-                Text(option.label)
-                    .font(DexFont.retro(11))
-                    .tracking(0.5)
-                Text("\(count)")
-                    .font(DexFont.mono(16))
-                    .opacity(0.75)
-            }
-            .foregroundStyle(on ? chipInk : (dead ? lcd.disabledText : lcd.text))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(Capsule().fill(on ? lcd.accent : lcd.surface))
-            .overlay(
-                Capsule().strokeBorder(
-                    on ? lcd.accent : (dead ? lcd.surfaceEdge.opacity(0.5) : lcd.surfaceEdge),
-                    lineWidth: 2
-                )
-            )
         }
-        .buttonStyle(DexPressStyle(scale: 0.94))
         .accessibilityLabel("\(option.label), \(count) entries")
-        .accessibilityAddTraits(on ? [.isSelected] : [])
     }
 
     /// Text on a lit chip.

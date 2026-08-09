@@ -74,7 +74,7 @@ public struct CatalogScreen: View {
     private func label(_ text: String, ok: Bool) -> some View {
         HStack(spacing: 6) {
             Text(ok ? "OK" : "!!")
-                .font(DexFont.retro(9))
+                .font(DexFont.retro(10))
                 .foregroundStyle(ok ? Dex.green : Dex.red500)
             Text(text)
                 .font(DexFont.mono(18))
@@ -109,10 +109,10 @@ public struct CatalogScreen: View {
             chipRow("RARITY", db.palette.rarityChips)
             chipRow("CLIMATE", Dictionary(uniqueKeysWithValues: db.palette.climates.map { ($0.key, $0.value.colors) }))
             chipRow("STYLE CLASS", db.palette.styleClassChips)
-            chipRow("FLAVOR CLASS", db.palette.flavorClassChips)
+            chipRow("FLAVOR", db.palette.flavorClassChips)
             chipRow("COLOR TYPE", db.palette.colorTypeChips)
             chipRow("COUNTRY", db.palette.countryChips)
-            chipRow("SUBCLASS", db.palette.flavorSubclassChips)
+            chipRow("FAMILY", db.palette.flavorSubclassChips)
         }
     }
 
@@ -248,10 +248,17 @@ public struct StatBar: View {
 
     public var body: some View {
         HStack(spacing: 12) {
+            // The last unguarded fixed-width `DexFont` label in the app
+            // (0.7.1, A4). AROMATICS at HUGE is 92.2pt in a 96pt box — it
+            // survives only because VT323 advances 0.4 em where the retro face
+            // advances a full one, and one longer stat name would character-
+            // break it against an 8pt bar and misalign the whole block.
             Text(label)
                 .font(DexFont.mono(19))
                 .foregroundStyle(lcd.text)
                 .tracking(1.5)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
                 .frame(width: 96, alignment: .leading)
 
             HStack(spacing: 2) {
@@ -270,8 +277,20 @@ public struct StatBar: View {
 /// galleries need one.
 public struct FlowLayout: Layout {
     var spacing: CGFloat = 6
+    /// Where a short row sits in its bounds (0.8.1, C3).
+    ///
+    /// Leading by default, because that is what every chip row in the app has
+    /// always done and a centred chip row would be a change nobody asked for.
+    /// The lineage tree asks for `.center`, and needs it to be true rather than
+    /// approximately true: its connector lines are drawn to computed tile
+    /// centres, and a left-packed row of two put the tiles somewhere the
+    /// arithmetic could not name.
+    var alignment: HorizontalAlignment = .leading
 
-    public init(spacing: CGFloat = 6) { self.spacing = spacing }
+    public init(spacing: CGFloat = 6, alignment: HorizontalAlignment = .leading) {
+        self.spacing = spacing
+        self.alignment = alignment
+    }
 
     public func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let maxWidth = proposal.width ?? .infinity
@@ -290,17 +309,36 @@ public struct FlowLayout: Layout {
     }
 
     public func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var x = bounds.minX, y = bounds.minY, rowHeight: CGFloat = 0
-        for view in subviews {
+        // Rows are gathered before they are placed, because centring a row
+        // needs its total width and that is not known until the row has ended.
+        var rows: [[(index: Int, size: CGSize)]] = [[]]
+        var x: CGFloat = 0
+        for (index, view) in subviews.enumerated() {
             let size = view.sizeThatFits(.unspecified)
-            if x + size.width > bounds.maxX, x > bounds.minX {
-                x = bounds.minX
-                y += rowHeight + spacing
-                rowHeight = 0
+            if x + size.width > bounds.width, x > 0 {
+                rows.append([])
+                x = 0
             }
-            view.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+            rows[rows.count - 1].append((index, size))
             x += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
+        }
+
+        var y = bounds.minY
+        for row in rows where !row.isEmpty {
+            let width = row.reduce(0) { $0 + $1.size.width } + spacing * CGFloat(row.count - 1)
+            var cursor = alignment == .center
+                ? bounds.minX + (bounds.width - width) / 2
+                : bounds.minX
+            var rowHeight: CGFloat = 0
+            for item in row {
+                subviews[item.index].place(
+                    at: CGPoint(x: cursor, y: y),
+                    proposal: ProposedViewSize(item.size)
+                )
+                cursor += item.size.width + spacing
+                rowHeight = max(rowHeight, item.size.height)
+            }
+            y += rowHeight + spacing
         }
     }
 }

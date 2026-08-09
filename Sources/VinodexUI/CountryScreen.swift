@@ -56,6 +56,42 @@ public struct CountryScreen: View {
         )
     }
 
+    /// Everything derived from the country's regions, resolved once (AUDIT M7).
+    ///
+    /// These were computed properties, and `regions` ran a full-database
+    /// filter — `.origin` normalises the origin and every tag of every entry —
+    /// then sorted the survivors. `body` reached it about ten times per pass:
+    /// the states section, the grapes section, the appellations fallback, the
+    /// regions list, and once more per state row for its count. Resolved in
+    /// `init` instead. The page is `.id(country)`-keyed and the database is
+    /// immutable for the life of the process, so there is nothing a later pass
+    /// could see that this one cannot.
+    private let regions: [WineEntry]
+    /// States that actually carry regions, in name order. Only the USA has any
+    /// in this data, so the section simply does not render elsewhere.
+    private let states: [String]
+    /// How many regions each state holds — the trailing number on a state row.
+    private let regionCounts: [String: Int]
+    /// **Every** grape this country has (0.6.7, B1), resolved to real entries
+    /// so the section is something you can open rather than a row of chips that
+    /// look tappable and are not.
+    ///
+    /// Two sources, unioned. The regions' `notableGrapes` come first, ordered
+    /// by how many regions name them — those are the grapes that define the
+    /// country, and burying Sangiovese under an alphabetical Italian list would
+    /// be a worse page. Everything the catalog attributes to the country
+    /// follows, in name order.
+    ///
+    /// The section used to be the first list alone, headed NOTABLE GRAPES, and
+    /// it was quietly lossy: a grape the country grows but no region here calls
+    /// notable did not appear on its country's page at all, which for the
+    /// smaller catalogues is most of them.
+    private let grapeEntries: [WineEntry]
+    /// The country's appellation systems (0.6, A2): the authored canonical
+    /// list from `countries.json` when it exists, else the systems its
+    /// regions actually carry — the pre-0.6 derivation, kept as the fallback.
+    private let appellations: [String]
+
     public init(
         country: String,
         onSelectRegion: @escaping (WineEntry) -> Void,
@@ -64,32 +100,76 @@ public struct CountryScreen: View {
         self.country = country
         self.onSelectRegion = onSelectRegion
         self.onSelectState = onSelectState
-    }
 
-    private var regions: [WineEntry] {
-        db.entries.apply(EntryQuery(categories: [.regions], filter: .origin(country), search: ""))
-    }
+        // A local, not `self.db`: `self` is not fully initialised yet.
+        let db = WineDatabase.shared
+        let regions = db.entries(
+            matching: EntryQuery(categories: [.regions], filter: .origin(country), search: "")
+        )
+        self.regions = regions
 
-    /// States that actually carry regions, in name order. Only the USA has any
-    /// in this data, so the section simply does not render elsewhere.
-    private var states: [String] {
-        var seen: Set<String> = []
+        // One walk for all four derivations rather than one walk each.
+        var perState: [String: Int] = [:]
+        var grapeCounts: [String: Int] = [:]
+        var classifications: Set<String> = []
         for entry in regions {
-            guard case .region(let r) = entry, let state = r.details.state else { continue }
-            seen.insert(state)
+            for name in entry.notableGrapes { grapeCounts[name, default: 0] += 1 }
+            guard case .region(let r) = entry else { continue }
+            if let state = r.details.state { perState[state, default: 0] += 1 }
+            if !r.details.classification.isEmpty {
+                classifications.insert(r.details.classification)
+            }
         }
-        return seen.sorted()
+        self.regionCounts = perState
+        self.states = perState.keys.sorted()
+
+        // The notable ones, most-named first.
+        let ranked = grapeCounts
+            .sorted { ($0.value, $1.key) > ($1.value, $0.key) }
+            .map(\.key)
+        var grapes = ranked.compactMap { db.entry(named: $0, category: .grapes) }
+
+        // Then everything else the catalog gives this country. Deduplicated by
+        // id, not by name: the same grape can be reached by both routes and a
+        // `ForEach` over duplicate ids is a runtime warning as well as a
+        // repeated row.
+        var seen = Set(grapes.map(\.id))
+        let byOrigin = db.entries(
+            matching: EntryQuery(categories: [.grapes], filter: .origin(country), search: "")
+        )
+        for grape in byOrigin.sorted(by: { $0.name < $1.name }) where !seen.contains(grape.id) {
+            seen.insert(grape.id)
+            grapes.append(grape)
+        }
+        self.grapeEntries = grapes
+
+        if let system = db.countryInfo(country)?.appellationSystem, !system.isEmpty {
+            self.appellations = system
+        } else {
+            self.appellations = classifications.sorted()
+        }
     }
 
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
+                // **Info → Appellation System → Regions → All Grapes**
+                // (0.6.7, B2). The order used to run info, states, grapes,
+                // appellations, regions — grapes third, before the page had
+                // said anything about the place they come from. The stack now
+                // reads outside-in: what the country is, how it classifies its
+                // wine, where in it, and only then what grows there.
+                //
+                // STATES is not in B2's list and stays where it is, directly
+                // under INFO: it is a navigation aid rather than a section of
+                // the article, only the USA has any, and it does not disturb
+                // the relative order of the four the brief does name.
                 hero.id(Anchor.hero)
                 infoSection.id(Anchor.info)
                 if !states.isEmpty { statesSection.id(Anchor.states) }
-                if !notableGrapes.isEmpty { grapesSection.id(Anchor.grapes) }
                 if !appellations.isEmpty { appellationsSection.id(Anchor.appellations) }
                 regionsSection.id(Anchor.regions)
+                if !grapeEntries.isEmpty { grapesSection.id(Anchor.grapes) }
             }
             // Pairs with `scrollPosition(id:)` below — without it the scroll
             // view has no per-section geometry to report or to scroll to, and
@@ -113,12 +193,25 @@ public struct CountryScreen: View {
             FlagSwatch(country: country, width: 168, height: 106)
                 .shadow(color: .black.opacity(0.45), radius: 6, y: 3)
 
-            Text(country.uppercased())
+                // **Inset back off the bezel** (0.7.1, A4). The hero's
+                // `.padding(.horizontal, -14)` below cancels the scroll
+                // content margin so the wash goes full-bleed, which is
+                // deliberate and correct — but the title rode along with it
+                // and had *zero* horizontal inset, so its line box was the
+                // whole LCD and the hard 4pt shadow sat against the moulding.
+                // At the HUGE step the retro face fits thirteen characters
+                // across, so GEWURZTRAMINER and NIEDEROSTERREICH broke
+                // mid-glyph — Press Start 2P has no hyphenation and these
+                // titles, unlike the tile chips, were not going through
+                // `EntryDisplay.hyphenated`. Both halves are fixed: the inset
+                // comes back, and a legal break point exists.
+            Text(EntryDisplay.hyphenated(country.uppercased()))
                 .font(DexFont.retro(21))
                 .foregroundStyle(lcd.text)
                 .shadow(color: lcd.accent.opacity(0.55), radius: 0, x: 4, y: 4)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 18)
 
             saveButton
         }
@@ -192,32 +285,17 @@ public struct CountryScreen: View {
         }
     }
 
-    /// Every grape this country's regions name, deduplicated and ordered by how
-    /// often they appear — the ones defining the country come first.
-    private var notableGrapes: [String] {
-        var counts: [String: Int] = [:]
-        for entry in regions {
-            for name in entry.notableGrapes { counts[name, default: 0] += 1 }
-        }
-        return counts.sorted { ($0.value, $1.key) > ($1.value, $0.key) }.map(\.key)
-    }
-
-    /// Resolved to real entries so the section is a list you can open, not a
-    /// row of chips that look tappable and are not.
-    private var grapeEntries: [WineEntry] {
-        notableGrapes.compactMap { db.entry(named: $0, category: .grapes) }
-    }
-
     private var grapesSection: some View {
         let all = grapeEntries
         let shown = showsAllGrapes ? all : Array(all.prefix(3))
-        return section("NOTABLE GRAPES", symbol: "list.bullet") {
+        return section("ALL GRAPES", symbol: "list.bullet") {
             VStack(spacing: 8) {
                 ForEach(shown) { entry in
                     EntryTileView(
                         entry: entry,
                         palette: db.palette,
-                        locked: access.isLocked(entry, in: db)
+                        locked: access.isLocked(entry, in: db),
+                        tried: bookmarks.contains(entry.id, on: .tried)
                     ) {
                         onSelectRegion(entry)
                     }
@@ -259,22 +337,6 @@ public struct CountryScreen: View {
             .overlay(Capsule().strokeBorder(lcd.surfaceEdge, lineWidth: 2))
         }
         .buttonStyle(DexPressStyle(scale: 0.98))
-    }
-
-    /// The country's appellation systems (0.6, A2): the authored canonical
-    /// list from `countries.json` when it exists, else the systems its
-    /// regions actually carry — the pre-0.6 derivation, kept as the fallback.
-    private var appellations: [String] {
-        if let system = db.countryInfo(country)?.appellationSystem, !system.isEmpty {
-            return system
-        }
-        var seen: Set<String> = []
-        for entry in regions {
-            if case .region(let r) = entry, !r.details.classification.isEmpty {
-                seen.insert(r.details.classification)
-            }
-        }
-        return seen.sorted()
     }
 
     private var appellationsSection: some View {
@@ -326,7 +388,7 @@ public struct CountryScreen: View {
                                 .font(DexFont.retro(12))
                                 .foregroundStyle(lcd.text)
                             Spacer()
-                            Text("\(regionCount(in: state))")
+                            Text("\(regionCounts[state] ?? 0)")
                                 .font(DexFont.mono(18))
                                 .foregroundStyle(lcd.subtext)
                             Image(systemName: "chevron.right")
@@ -352,13 +414,6 @@ public struct CountryScreen: View {
         }
     }
 
-    private func regionCount(in state: String) -> Int {
-        regions.filter {
-            if case .region(let r) = $0 { return r.details.state == state }
-            return false
-        }.count
-    }
-
     private var regionsSection: some View {
         let all = regions
         let shown = showsAllRegions ? all : Array(all.prefix(3))
@@ -372,7 +427,8 @@ public struct CountryScreen: View {
                     EntryTileView(
                         entry: entry,
                         palette: db.palette,
-                        locked: access.isLocked(entry, in: db)
+                        locked: access.isLocked(entry, in: db),
+                        tried: bookmarks.contains(entry.id, on: .tried)
                     ) {
                         onSelectRegion(entry)
                     }
