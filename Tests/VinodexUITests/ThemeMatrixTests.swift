@@ -7,9 +7,9 @@ import VinodexUI
 
 /// The theme matrix, exercised end to end (S1).
 ///
-/// **Why this suite exists.** `DexTheme.swift` resolves every visual value the
-/// device draws through two enums — `ChassisSkin` (22 cases, 27 `switch`
-/// statements) and `LcdMode` (9 cases, 24 `switch` statements) — and nothing
+/// **Why this suite exists.** The theme layer resolves every visual value the
+/// device draws through two enums — `ChassisSkin` (22 cases) in
+/// `ChassisSkin.swift` and `LcdMode` (9 cases) in `LcdMode.swift` — and nothing
 /// has ever executed them. `VinodexUI` compiles to nothing on Linux and on
 /// macOS, so `swift test` cannot see a single one of those branches, and the
 /// clean `xtool dev build` type-checks them without ever evaluating one. The
@@ -23,10 +23,10 @@ import VinodexUI
 /// — none of those are type errors, and every one of them is a black screen on
 /// a device. Reading the value is what finds them.
 ///
-/// **This is also the net under S3.** Decomposing `DexTheme`'s switch matrix
-/// into a data registry means moving 633 branches' worth of values into rows,
-/// and the only way that is reviewable is if something proves every cell still
-/// resolves afterwards. Land this first; move values under it second.
+/// **This is also the net under S3.** Grouping the theme's switch matrix into
+/// per-skin and per-mode rows moved hundreds of values, and the only way that is
+/// reviewable is if something proves every cell still resolves afterwards. This
+/// landed first; the values moved under it.
 @Suite("Theme matrix")
 struct ThemeMatrixTests {
 
