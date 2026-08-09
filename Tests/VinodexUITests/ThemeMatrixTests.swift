@@ -8,7 +8,7 @@ import VinodexUI
 /// The theme matrix, exercised end to end (S1).
 ///
 /// **Why this suite exists.** `DexTheme.swift` resolves every visual value the
-/// device draws through two enums — `ChassisSkin` (21 cases, 27 `switch`
+/// device draws through two enums — `ChassisSkin` (22 cases, 27 `switch`
 /// statements) and `LcdMode` (9 cases, 24 `switch` statements) — and nothing
 /// has ever executed them. `VinodexUI` compiles to nothing on Linux and on
 /// macOS, so `swift test` cannot see a single one of those branches, and the
@@ -36,10 +36,18 @@ struct ThemeMatrixTests {
     // to be right forever but to fail loudly when the matrix grows, so that
     // growth is a decision someone made rather than one that happened. Update
     // them with a note saying which batch moved them.
-
+    //
+    // **The skin count landed wrong the first time, and the reason is the point.**
+    // It was authored as 21 from a `grep -cE '^    case [a-zA-Z]+ = "'` over the
+    // enum — a pattern that cannot match `case w64 = "W64"`, because the name has
+    // digits in it. The measurement dropped a skin silently and the pin inherited
+    // the mistake; the simulator run said 22 on its first outing. Counting an
+    // enum by regex is exactly the class of thing this suite exists to replace,
+    // and `ChassisSkin.allCases.count` is the only honest source. If a pin here
+    // ever disagrees with the code, check the pin before the code.
     @Test("the matrix is the size it was pinned at")
     func matrixSize() {
-        #expect(ChassisSkin.allCases.count == 21)
+        #expect(ChassisSkin.allCases.count == 22)
         #expect(LcdMode.allCases.count == 9)
         #expect(UIScale.allCases.count == 2)
         #expect(TextScale.allCases.count == 3)
@@ -47,7 +55,7 @@ struct ThemeMatrixTests {
 
     // MARK: - Every case resolves every value
 
-    /// Reads all 27 skin-axis properties for all 21 skins.
+    /// Reads all 27 skin-axis properties for all 22 skins.
     ///
     /// `_ =` rather than an assertion for most of them, and that is the point:
     /// these properties are non-optional, so there is no nil to catch and no
@@ -125,7 +133,7 @@ struct ThemeMatrixTests {
         }
     }
 
-    /// The full product — 21 x 9 x 2 = 378 combinations.
+    /// The full product — 22 x 9 x 2 = 396 combinations.
     ///
     /// The two axes are resolved independently in the code, so the product is
     /// not strictly more than the two loops above. It is here because the app
@@ -147,7 +155,7 @@ struct ThemeMatrixTests {
                 }
             }
         }
-        #expect(combinations == 378)
+        #expect(combinations == 396)
     }
 
     // MARK: - Legibility
