@@ -27,6 +27,13 @@ import VinodexUI
 /// `ArtPipelineRosterTests` exists because of exactly that. This suite is the
 /// runtime half of the same guard: the roster test proves the list is right, and
 /// this proves the images come back.
+/// `@MainActor` because all three loaders are. `IconLoader`, `PixelArtLoader` and
+/// `FlagLoader` each hold a mutable image cache, which Swift 6 strict
+/// concurrency only allows as main-actor state — `IconLoader`'s own comment says
+/// so. A nonisolated test cannot touch `shared`, and the simulator was the first
+/// thing able to say that: `VinodexUI` compiles to nothing on Linux and macOS,
+/// so no local gate on this machine sees an isolation error in this file.
+@MainActor
 @Suite("Icon resolution")
 struct IconResolutionTests {
     private let db = WineDatabase.shared
@@ -104,16 +111,20 @@ struct IconResolutionTests {
         }
     }
 
-    /// Flags are their own loader path (`PixelArtLoader.image(for:)`) and their
-    /// own bundled directory, so a missing `Flags` entry in `Package.swift` would
-    /// show up here and nowhere else at runtime.
+    /// Flags have their own loader and their own bundled directory, so a missing
+    /// `Flags` entry in `Package.swift` would show up here and nowhere else at
+    /// runtime.
+    ///
+    /// `FlagLoader`, not `PixelArtLoader` — they are two classes with two caches,
+    /// and only `FlagLoader` takes a country. `PixelArtLoader.image(_:)` takes a
+    /// filename stem, so the `for:` label was simply the wrong call.
     @Test("every shipped flag loads")
     func everyFlagLoads() {
         let countries = db.icons.flags.keys.sorted()
         #expect(!countries.isEmpty, "no flags — the table did not decode")
         for country in countries {
             #expect(
-                PixelArtLoader.shared.image(for: country) != nil,
+                FlagLoader.shared.image(for: country) != nil,
                 "\(country) ships a flag path but the image did not load"
             )
         }
