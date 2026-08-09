@@ -2554,11 +2554,23 @@ public enum ChassisSkinSection: String, CaseIterable, Identifiable, Sendable {
 /// `.classic` is what the whole chassis used before this existed. It is the
 /// house device and the reference the others are variations on; changing it
 /// would move the baseline rather than add to it.
-/// The plain-colour half of a chassis skin's look, grouped by skin (S3, phase 1).
+/// Everything a chassis skin declares as a flat value, grouped by skin (S3, 1/1b).
 ///
-/// One row per skin instead of one `switch` per property. See
-/// `ChassisSkin.palette` for why this shape and not a dictionary.
+/// One row per skin instead of one `switch` per property — fourteen switches
+/// became one. Mostly colour, plus the three non-colour values that were the
+/// same shape: which shelf the skin sits on (`section`), what the workshop calls
+/// it (`displayName`), and its SF Symbol (`symbol`).
+///
+/// Named for what it mostly is. The eight *composite* values a skin owns —
+/// `accent`, `control`, `buttonSet`, `backPlate`, `sketch`, the two marks and
+/// `statusLights` — are still their own switches, because each builds a struct
+/// over several lines and moving them needs a stronger check than the textual
+/// diff that proved this one. See `ChassisSkin.palette` for why a `switch` and
+/// not a dictionary.
 public struct ChassisSkinPalette: Sendable {
+    public let section: ChassisSkinSection
+    public let displayName: String
+    public let symbol: String
     public let globeTint: Color
     public let body: Color
     public let footerWash: Color
@@ -2713,16 +2725,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     /// has moved since: `.nocturne` is VINHO VERDE, `.vinhoVerde` is BOX WINE,
     /// `.riesling` is VIN JAUNE, `.nouveau` is RETROVIN, `.glouglou` is EMPTY
     /// BOTTLE. Read `displayName` before moving anything here.
-    public var section: ChassisSkinSection {
-        switch self {
-        case .classic, .midnight, .original: .classic
-        case .burgundy, .nocturne, .champagne: .wines
-        case .oaked, .steel, .petNat: .vessel
-        case .vinhoVerde, .psvino, .grisDeGris, .riesling, .smartGrape, .orangeWine, .w64: .retrofit
-        case .glouglou, .nouveau, .waldglas: .clearTech
-        case .christmas, .blush, .halloween: .festive
-        }
-    }
+    public var section: ChassisSkinSection { palette.section }
 
     /// Whether the shell is see-through — `DeviceChassis`'s cue to mount the
     /// mock internals behind it. A flag rather than sniffing alpha out of a
@@ -2776,64 +2779,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     /// the case would silently reset every device already storing "ORIGINAL"
     /// back to the default shell. The stored vocabulary stays put and only the
     /// label moves.
-    public var displayName: String {
-        switch self {
-        // The house colourway, named for the house rather than described as
-        // "classic" — every other skin here has a wine name, and the default
-        // was the only one still labelled by category.
-        case .classic: "VINODEX CLASSIC"
-        case .midnight: "CÔTE DE NUITS"
-        case .original: "BLANC DE BLANCS"
-        case .burgundy: "BURGUNDY"
-        // Renamed from ELECTRIC RIESLING (0.6.x) — label only, per the note
-        // above; the yellow Walkman shell suits Jura's yellow wine as well.
-        case .riesling: "VIN JAUNE"
-        // Renamed labels only — the raw values are the persisted vocabulary
-        // and stay put, per the note above. "VINHO VERDE" moved houses in
-        // two steps: the forest-green skin became BOX WINE in 0.5.1, which
-        // freed the name for the glow-green skin in 0.5.4.
-        case .vinhoVerde: "BOX WINE"
-        case .glouglou: "EMPTY BOTTLE"
-        case .smartGrape: "SMART GRAPE"
-        case .champagne: "CHAMPAGNE GOLD"
-        case .christmas: "WINE XMAS"
-        // Renamed from NOUVEAU (v0.5.9, A1) — label only, per the note above.
-        case .nouveau: "RETROVIN"
-        case .oaked: "OAKED"
-        case .nocturne: "VINHO VERDE"
-        case .steel: "STAINLESS STEEL"
-        case .blush: "BLUSH"
-        case .psvino: "PSVINO"
-        case .grisDeGris: "GRIS DE GRIS"
-        case .orangeWine: "ORANGE WINE"
-        // PÉT-NAT → FIBERGLASS (0.7.5, A4). Label only, per the note above,
-        // and the note is load-bearing on this case in particular: the rawValue
-        // `"PET NAT"` is the `chassisSkin` `@AppStorage` value on every install
-        // wearing this shell, the FNV-1a seed `WornSeed.of(skin.rawValue)`
-        // draws the back plate's procedural wear from, and the stem
-        // `stickerStem` derives (`sticker-pet-nat`). Moving it would reset the
-        // shell, repaint the wear on the devices that survived, and orphan the
-        // sticker — the exact three costs HALLOWINE's rename was written up to
-        // avoid. Checked rather than assumed: `"PET NAT"` appears nowhere in
-        // `shared/`, the generated JSON or the art scripts. (The `petnat`
-        // hits in `icons.json` and `art/icons/entries/styles/` are the *wine style*
-        // Pétillant Naturel and have nothing to do with this skin.)
-        case .petNat: "FIBERGLASS"
-        case .waldglas: "WALDGLAS"
-        // HALLOWEEN → HALLOWINE (0.7.1, C4). Label only — the rawValue is the
-        // `@AppStorage` key *and* the seed for the back plate's procedural wear
-        // (see `WornSeed.of`), so moving it would both reset every device
-        // wearing this shell and repaint the ones that survived.
-        case .halloween: "HALLOWINE"
-        // The one skin whose label and stored word are the same string on
-        // purpose (0.7.6, D1). This switch is exhaustive rather than defaulted,
-        // so the entry is required either way — but it is worth saying that the
-        // agreement is deliberate: every rename note in this file is about the
-        // cost of a label that has drifted from its rawValue, and picking a name
-        // that never needs to drift is the cheapest version of that.
-        case .w64: "W64"
-        }
-    }
+    public var displayName: String { palette.displayName }
 
     /// A tileable pixel-art pattern drawn over the shell colour, or nil for a
     /// plain moulding. WINE XMAS wraps the chassis in wrapping paper, OAKED
@@ -2850,44 +2796,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
 
     /// Emblem glyph — the picker tile carries it the way screen-mode tiles
     /// carry theirs, and the back plate wears it as an enamel badge.
-    public var symbol: String {
-        switch self {
-        case .classic: "gamecontroller.fill"
-        case .midnight: "moon.fill"
-        case .original: "sparkles"
-        case .burgundy: "diamond.fill"
-        case .riesling: "bolt.fill"
-        case .vinhoVerde: "shippingbox.fill"
-        case .glouglou: "wineglass.empty"
-        case .smartGrape: "plus.forwardslash.minus"
-        case .champagne: "party.popper.fill"
-        case .christmas: "gift.fill"
-        case .nouveau: "cpu.fill"
-        case .oaked: "tree.fill"
-        case .nocturne: "moon.zzz.fill"
-        case .steel: "gearshape.2.fill"
-        case .blush: "heart.fill"
-        // The console emblem is gone (0.6.7, K1) - see `drawnMark`. This is
-        // only the fallback for anything that still wants a plain symbol.
-        case .psvino: "seal.fill"
-        // The brick's own control: a d-pad.
-        case .grisDeGris: "dpad.fill"
-        case .orangeWine: "exclamationmark.triangle.fill"
-        // The pen that drew the shell.
-        case .petNat: "pencil.and.outline"
-        // Forest glass, named for the woods it was blown in.
-        case .waldglas: "leaf.circle.fill"
-        // The neutral fallback only. This skin's emblem is a drawing —
-        // SF Symbols has no pumpkin at the iOS 17 floor. See `drawnMark`.
-        case .halloween: "moon.haze.fill"
-        // Four coloured points around a centre: what this livery *is*, taken
-        // from the house's own symbol set rather than quoted from anyone's
-        // hardware. SF Symbols 2 / iOS 14, well under the floor, and it
-        // collides with nothing — `circle.grid.2x2.fill` is a workshop axis
-        // glyph and `circle.grid.3x3.fill` is GRAPES.
-        case .w64: "circle.grid.cross.fill"
-        }
-    }
+    public var symbol: String { palette.symbol }
 
     /// The three status lamps, left to right, as (fill, border, ink) triples — a
     /// unique trio per skin (v0.5.6, generalising WINE XMAS's all-red set,
@@ -3549,14 +3458,14 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
 
     // `next` retired in 0.7.6 (A1) — see the note where `LcdMode.next` was.
 
-    /// Every value this skin owns that is a plain colour, in one place.
+    /// Every flat value this skin owns, in one place.
     ///
-    /// **This replaced eleven parallel `switch self` statements.** They held no
+    /// **This replaced fourteen parallel `switch self` statements.** They held no
     /// logic — 1,339 lines of `ChassisSkin` contain three conditional lines and
     /// no property reads another — so they were a constant table written in
     /// switch syntax, transposed: each column a function, each row repeated
-    /// twenty-two times. Adding a skin meant editing eleven switches in eleven
-    /// places and hoping none was missed.
+    /// twenty-two times. Adding a skin meant editing fourteen switches in
+    /// fourteen places and hoping none was missed.
     ///
     /// Grouped by skin because the skin is the thing that gets added. It stays a
     /// `switch` rather than a dictionary on purpose: the compiler then refuses a
@@ -3568,6 +3477,12 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .classic:
             ChassisSkinPalette(
+                section: .classic,
+                // The house colourway, named for the house rather than described as
+                // "classic" — every other skin here has a wine name, and the default
+                // was the only one still labelled by category.
+                displayName: "VINODEX CLASSIC",
+                symbol: "gamecontroller.fill",
                 globeTint: Color(dexHex: "#B8FFD6"),
                 body: Dex.red,
                 footerWash: Dex.red.opacity(0.7),
@@ -3582,6 +3497,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
             )
         case .midnight:
             ChassisSkinPalette(
+                section: .classic,
+                displayName: "CÔTE DE NUITS",
+                symbol: "moon.fill",
                 globeTint: Color(dexHex: "#D6B8FF"),
                 body: Dex.graphite,
                 footerWash: Dex.graphite.opacity(0.75),
@@ -3597,6 +3515,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
             )
         case .original:
             ChassisSkinPalette(
+                section: .classic,
+                displayName: "BLANC DE BLANCS",
+                symbol: "sparkles",
                 globeTint: Color(dexHex: "#FFEDBB"),
                 body: Dex.bone,
                 footerWash: Dex.bone.opacity(0.75),
@@ -3612,6 +3533,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
             )
         case .burgundy:
             ChassisSkinPalette(
+                section: .wines,
+                displayName: "BURGUNDY",
+                symbol: "diamond.fill",
                 globeTint: Color(dexHex: "#E4C0FF"),
                 body: Dex.velour,
                 footerWash: Dex.velour.opacity(0.75),
@@ -3628,6 +3552,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
             )
         case .riesling:
             ChassisSkinPalette(
+                section: .retrofit,
+                // Renamed from ELECTRIC RIESLING (0.6.x) — label only, per the note
+                // above; the yellow Walkman shell suits Jura's yellow wine as well.
+                displayName: "VIN JAUNE",
+                symbol: "bolt.fill",
                 globeTint: Color(dexHex: "#FFF4A8"),
                 body: Dex.walkman,
                 footerWash: Dex.walkman.opacity(0.7),
@@ -3644,6 +3573,13 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
             )
         case .vinhoVerde:
             ChassisSkinPalette(
+                section: .retrofit,
+                // Renamed labels only — the raw values are the persisted vocabulary
+                // and stay put, per the note above. "VINHO VERDE" moved houses in
+                // two steps: the forest-green skin became BOX WINE in 0.5.1, which
+                // freed the name for the glow-green skin in 0.5.4.
+                displayName: "BOX WINE",
+                symbol: "shippingbox.fill",
                 globeTint: Color(dexHex: "#D9FFB8"),
                 body: Color(dexHex: "#24402B"),
                 footerWash: Color(dexHex: "#24402B").opacity(0.75),
@@ -3659,6 +3595,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
             )
         case .glouglou:
             ChassisSkinPalette(
+                section: .clearTech,
+                displayName: "EMPTY BOTTLE",
+                symbol: "wineglass.empty",
                 globeTint: Color(dexHex: "#FFD9B0"),
                 // Smoke plastic — the only translucent body; see `underlay`.
                 body: Color(dexHex: "rgba(204,216,224,0.40)"),
@@ -3676,6 +3615,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
             )
         case .smartGrape:
             ChassisSkinPalette(
+                section: .retrofit,
+                displayName: "SMART GRAPE",
+                symbol: "plus.forwardslash.minus",
                 globeTint: Color(dexHex: "#FFCB79"),
                 body: Color(dexHex: "#1C1C1E"),
                 footerWash: Color(dexHex: "#1C1C1E").opacity(0.75),
@@ -3691,6 +3633,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
             )
         case .champagne:
             ChassisSkinPalette(
+                section: .wines,
+                displayName: "CHAMPAGNE GOLD",
+                symbol: "party.popper.fill",
                 globeTint: Color(dexHex: "#FFF0C8"),
                 body: Color(dexHex: "#E8D5A6"),
                 footerWash: Color(dexHex: "#E8D5A6").opacity(0.75),
@@ -3706,6 +3651,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
             )
         case .christmas:
             ChassisSkinPalette(
+                section: .festive,
+                displayName: "WINE XMAS",
+                symbol: "gift.fill",
                 globeTint: Color(dexHex: "#FFC2C2"),
                 body: Color(dexHex: "#1B4332"),
                 footerWash: Color(dexHex: "#1B4332").opacity(0.75),
@@ -3722,6 +3670,10 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
             )
         case .nouveau:
             ChassisSkinPalette(
+                section: .clearTech,
+                // Renamed from NOUVEAU (v0.5.9, A1) — label only, per the note above.
+                displayName: "RETROVIN",
+                symbol: "cpu.fill",
                 globeTint: Color(dexHex: "#DDBBFF"),
                 // Atomic-purple smoke — translucent, like GLOUGLOU; see `underlay`.
                 body: Color(dexHex: "rgba(147,51,234,0.42)"),
@@ -3739,6 +3691,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
             )
         case .oaked:
             ChassisSkinPalette(
+                section: .vessel,
+                displayName: "OAKED",
+                symbol: "tree.fill",
                 globeTint: Color(dexHex: "#FFDDAF"),
                 // The walnut base the grain pattern sits over.
                 body: Color(dexHex: "#5C4028"),
@@ -3762,6 +3717,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
             )
         case .nocturne:
             ChassisSkinPalette(
+                section: .wines,
+                displayName: "VINHO VERDE",
+                symbol: "moon.zzz.fill",
                 globeTint: Color(dexHex: "#CCFFB8"),
                 body: Color(dexHex: "#C9F2BE"),
                 footerWash: Color(dexHex: "#C9F2BE").opacity(0.75),
@@ -3777,6 +3735,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
             )
         case .steel:
             ChassisSkinPalette(
+                section: .vessel,
+                displayName: "STAINLESS STEEL",
+                symbol: "gearshape.2.fill",
                 globeTint: Color(dexHex: "#CDE7FF"),
                 // The aluminium base the brush pattern sits over.
                 body: Color(dexHex: "#C7CBD1"),
@@ -3793,6 +3754,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
             )
         case .blush:
             ChassisSkinPalette(
+                section: .festive,
+                displayName: "BLUSH",
+                symbol: "heart.fill",
                 globeTint: Color(dexHex: "#FFCCDD"),
                 // Soft rose-pink moulding.
                 body: Color(dexHex: "#EEA7B6"),
@@ -3812,6 +3776,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
             )
         case .psvino:
             ChassisSkinPalette(
+                section: .retrofit,
+                displayName: "PSVINO",
+                // The console emblem is gone (0.6.7, K1) - see `drawnMark`. This is
+                // only the fallback for anything that still wants a plain symbol.
+                symbol: "seal.fill",
                 // Console-boot blue — the cross button, paled for the multiply.
                 globeTint: Color(dexHex: "#BBD4F5"),
                 // DualShock matte charcoal — near-black with the plastic's warmth.
@@ -3831,6 +3800,10 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
             )
         case .grisDeGris:
             ChassisSkinPalette(
+                section: .retrofit,
+                displayName: "GRIS DE GRIS",
+                // The brick's own control: a d-pad.
+                symbol: "dpad.fill",
                 // The DMG screen's own pea-green, paled for the multiply.
                 globeTint: Color(dexHex: "#DCE8C4"),
                 // Warm handheld grey, a shade off neutral the way ABS ages.
@@ -3852,6 +3825,9 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
             )
         case .orangeWine:
             ChassisSkinPalette(
+                section: .retrofit,
+                displayName: "ORANGE WINE",
+                symbol: "exclamationmark.triangle.fill",
                 globeTint: Color(dexHex: "#FFDF8A"),
                 body: Color(dexHex: "#E8720E"),
                 footerWash: Color(dexHex: "#E8720E").opacity(0.75),
@@ -3868,6 +3844,22 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
             )
         case .petNat:
             ChassisSkinPalette(
+                section: .vessel,
+                // PÉT-NAT → FIBERGLASS (0.7.5, A4). Label only, per the note above,
+                // and the note is load-bearing on this case in particular: the rawValue
+                // `"PET NAT"` is the `chassisSkin` `@AppStorage` value on every install
+                // wearing this shell, the FNV-1a seed `WornSeed.of(skin.rawValue)`
+                // draws the back plate's procedural wear from, and the stem
+                // `stickerStem` derives (`sticker-pet-nat`). Moving it would reset the
+                // shell, repaint the wear on the devices that survived, and orphan the
+                // sticker — the exact three costs HALLOWINE's rename was written up to
+                // avoid. Checked rather than assumed: `"PET NAT"` appears nowhere in
+                // `shared/`, the generated JSON or the art scripts. (The `petnat`
+                // hits in `icons.json` and `art/icons/entries/styles/` are the *wine style*
+                // Pétillant Naturel and have nothing to do with this skin.)
+                displayName: "FIBERGLASS",
+                // The pen that drew the shell.
+                symbol: "pencil.and.outline",
                 // Pencil blue on paper — the one skin whose globe should look
                 // like a drawing of a globe.
                 globeTint: Color(dexHex: "#DCE3F0"),
@@ -3897,6 +3889,10 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
             )
         case .waldglas:
             ChassisSkinPalette(
+                section: .clearTech,
+                displayName: "WALDGLAS",
+                // Forest glass, named for the woods it was blown in.
+                symbol: "leaf.circle.fill",
                 // Seen through bottle glass.
                 globeTint: Color(dexHex: "#DCEAC0"),
                 // Olive-green smoke — translucent, like GLOUGLOU; see `underlay`.
@@ -3916,6 +3912,15 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
             )
         case .halloween:
             ChassisSkinPalette(
+                section: .festive,
+                // HALLOWEEN → HALLOWINE (0.7.1, C4). Label only — the rawValue is the
+                // `@AppStorage` key *and* the seed for the back plate's procedural wear
+                // (see `WornSeed.of`), so moving it would both reset every device
+                // wearing this shell and repaint the ones that survived.
+                displayName: "HALLOWINE",
+                // The neutral fallback only. This skin's emblem is a drawing —
+                // SF Symbols has no pumpkin at the iOS 17 floor. See `drawnMark`.
+                symbol: "moon.haze.fill",
                 // Jack-o'-lantern light.
                 globeTint: Color(dexHex: "#FFD6A8"),
                 // Not black: a true #000 shell has no moulding in it at all. This
@@ -3935,6 +3940,20 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
             )
         case .w64:
             ChassisSkinPalette(
+                section: .retrofit,
+                // The one skin whose label and stored word are the same string on
+                // purpose (0.7.6, D1). This switch is exhaustive rather than defaulted,
+                // so the entry is required either way — but it is worth saying that the
+                // agreement is deliberate: every rename note in this file is about the
+                // cost of a label that has drifted from its rawValue, and picking a name
+                // that never needs to drift is the cheapest version of that.
+                displayName: "W64",
+                // Four coloured points around a centre: what this livery *is*, taken
+                // from the house's own symbol set rather than quoted from anyone's
+                // hardware. SF Symbols 2 / iOS 14, well under the floor, and it
+                // collides with nothing — `circle.grid.2x2.fill` is a workshop axis
+                // glyph and `circle.grid.3x3.fill` is GRAPES.
+                symbol: "circle.grid.cross.fill",
                 // The shell's own violet, paled for the multiply.
                 globeTint: Color(dexHex: "#DCC8F5"),
                 // Grape violet, and opaque: the reference era is remembered for
