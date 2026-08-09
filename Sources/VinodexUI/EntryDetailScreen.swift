@@ -494,8 +494,17 @@ public struct EntryDetailScreen: View {
     private var shareCapsule: some View {
         Button {
             Haptics.select()
-            if let image = ShareCardRenderer.image({ EntryShareCard(entry: entry) }) {
-                sharePayload = .image(image, title: entry.name)
+            // `sizedToContent` so the whole info block fits (0.8.94, D2).
+            if let image = ShareCardRenderer.image(sizedToContent: true, { EntryShareCard(entry: entry) }) {
+                // The prefilled line and the entry's web page ride along
+                // (0.8.94, D1) — see `VinodexWeb` for the URL's shape and why
+                // it is ids, not names.
+                sharePayload = .image(
+                    image,
+                    title: entry.name,
+                    message: VinodexWeb.shareText(entryName: entry.name),
+                    link: VinodexWeb.entryURL(id: entry.id)
+                )
             }
         } label: {
             Image(systemName: "square.and.arrow.up")

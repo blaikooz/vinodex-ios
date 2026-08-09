@@ -50,8 +50,9 @@ public enum BootSequence: Sendable {
     /// 0.7.5 the POST *was* the lines: they finished, the screen cut, and
     /// `duration` bounded the entire launch cost. The BIOS redesign makes the
     /// lines the first of two phases — they resolve, the composition settles,
-    /// and it then holds on `PRESS ANY BUTTON TO CONTINUE` until a touch or
-    /// `autoAdvance`.
+    /// and it then holds on `PRESS ANY BUTTON TO CONTINUE` until a touch
+    /// (until a touch *or a timeout* through 0.8.93 — see the retirement note
+    /// below).
     ///
     /// The number did not move and neither did the argument behind it. A fourth
     /// line "since we are here" is still what stops this being brief, and
@@ -65,30 +66,21 @@ public enum BootSequence: Sendable {
     /// than a flash before the cut.
     public static let settle: TimeInterval = 0.45
 
-    /// How long the resting composition holds before advancing itself
-    /// (0.7.7, C2).
+    /// **`autoAdvance` retired in 0.8.94 (B1), and nothing replaces it.**
     ///
-    /// **A timeout is the requirement; the length is the judgement.** C2 asks
-    /// for a prompt that any input answers *and* a timeout so the screen can
-    /// never trap someone — a device with a dead digitiser, a screen reader
-    /// user who has not found the tap target, anyone who set the thing down.
-    /// So this is a ceiling on being stuck, not a dwell someone is meant to
-    /// wait out.
+    /// 0.7.7's C2 argued a timeout was a safety net — a dead digitiser, a
+    /// screen-reader user who has not found the target, a device set down —
+    /// and shipped 3.5 seconds of it. B1 reverses the ruling with the lived
+    /// result: the net caught nobody and the screen *opened the app on its
+    /// own* before an unhurried reader finished the prompt, which makes
+    /// `PRESS ANY BUTTON TO CONTINUE` a countdown wearing an instruction's
+    /// words. The prompt now means what it says: the composition holds until
+    /// a touch, however long that takes. `longestUntouched` went with it —
+    /// there is no longer a bound to derive, which is the point.
     ///
-    /// 3.5s, from both ends: under about three the prompt is gone before it can
-    /// be read, which makes it a lie rather than an instruction, and much over
-    /// four it stops being a safety net and becomes a splash screen — the tax
-    /// on every single launch forever that 0.7.3a's note is about. The whole
-    /// point of `longestUntouched` is that this number has somewhere to be
-    /// asserted.
-    public static let autoAdvance: TimeInterval = 3.5
-
-    /// The longest a launch can sit on the BIOS with nobody touching it.
-    ///
-    /// Derived rather than declared so it cannot drift from the two constants
-    /// it bounds. A ceiling, not the measured time: the last check lands at
-    /// 1.10 and `duration` is the budget it fits inside.
-    public static var longestUntouched: TimeInterval { duration + autoAdvance }
+    /// What survives of C2's worry is the *reachability* of the answer, not a
+    /// timer: any touch anywhere advances (the window-level catcher), so
+    /// "found the tap target" is every point on the glass.
 
     /// The POST, for a given catalog size and firmware version.
     ///

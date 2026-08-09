@@ -128,9 +128,11 @@ struct ShareCardFrame<Content: View>: View {
 /// nobody can read anything off. What a person posting this wants to say is
 /// "look what I found and look what it is like".
 ///
-/// The prose pays for it, dropping from five lines to two. That is the trade
-/// and it is deliberate: the description is the one thing on the old card that
-/// the *link* also carries, and two lines still set the scene.
+/// The prose paid for it in G1, dropping from five lines to two — a trade
+/// 0.8.94's D2 reverses from the other side: the canvas grows to the prose
+/// (`ShareCardRenderer.image(sizedToContent:)`) instead of the prose
+/// shrinking to the canvas, so the card carries the readout *and* the whole
+/// description.
 ///
 /// **Everything here degrades.** A flavour has no rarity, a grape has no flag
 /// where its country has no art, a region has no stat bars — so each block is a
@@ -160,14 +162,18 @@ struct EntryShareCard: View {
                 statBars
                 flavourProfile
 
-                // Trimmed rather than scrolled: a card is a fixed rectangle and
-                // an entry's prose is not. `lineLimit` does the cut so the
-                // sentence ends where the renderer says it does.
+                // **Complete since 0.8.94 (D2), reversing 0.8.5 G1's
+                // two-line trade.** G1 cut the prose on the argument that
+                // the card is a fixed rectangle and "the link also carries
+                // it" — but the card *is* the artifact people keep, and a
+                // sentence ending mid-thought read as a rendering bug, which
+                // is D2's report. The rectangle stopped being fixed instead:
+                // `ShareCardRenderer.image(sizedToContent:)` grows the canvas
+                // to the prose, so the cut has nothing left to do.
                 Text(entry.entryDescription)
                     .font(DexFont.mono(12))
                     .foregroundStyle(lcd.bodyText)
                     .lineSpacing(1)
-                    .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Spacer(minLength: 0)

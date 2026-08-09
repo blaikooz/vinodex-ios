@@ -61,6 +61,22 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.8.94",
+  date: "2026-08-09",
+  headline: "HOME, AT THE ROOT",
+  // The terse register, kept.
+  notes: [
+    "The HOME button is fixed at the root: it was the one cap on its own colour path, and now all four resolve through one -- with a test so it cannot fork again.",
+    "The boot screen waits for your tap. It no longer opens the app by itself.",
+    "Pack names stop truncating: the label was asking for sizes the font quietly refused to render.",
+    "Sharing an entry prefills 'Check this out on Vinodex' with a link to its page on the web app.",
+    "The share card carries the entry's whole description; the canvas grows instead of the text cutting.",
+    "Flavour pages describe the flavour family itself, in a line, instead of the sip.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const PREVIOUS_0893: FirmwareRelease = {
   version: "0.8.93",
   date: "2026-08-09",
   headline: "PROF. VINO",
@@ -103,6 +119,7 @@ const PREVIOUS_0892: FirmwareRelease = {
 };
 
 const PREVIOUS: FirmwareRelease[] = [
+  PREVIOUS_0893,
   PREVIOUS_0892,
   {
     version: "0.8.91",

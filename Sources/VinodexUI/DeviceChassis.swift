@@ -671,7 +671,8 @@ public struct DeviceChassis<Content: View>: View {
     /// The cap takes the skin's per-button colour where the skin defines one
     /// (0.6.7, K2/K3) and the shared moulded cap otherwise.
     private func settingsButton(size: CGFloat) -> some View {
-        let cap = skin.buttonSet?.settings ?? skin.control
+        // Through the one path since 0.8.94 (A2) — see `ChassisLook.footerCap`.
+        let cap = skin.footerCap(.settings)
         // The fourth footer cap (0.8.2). Same rule as `ChassisButton`: the
         // sprite is the whole control, so it replaces the gradient, the rim and
         // the cog glyph together rather than sitting on top of them, and it is

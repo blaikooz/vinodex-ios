@@ -73,10 +73,10 @@ public struct ChassisButton: View {
 
     /// The face colour the drawn cap is re-inked to.
     ///
-    /// Home's comes from its accent ramp rather than from `cap`, exactly as its
-    /// gradient does — `cap` is documented as never read for Home, and reading
-    /// it here would have made the one lit button in the band the one button
-    /// that ignored its livery.
+    /// Home's comes from its ramp, exactly as its gradient does — and since
+    /// 0.8.94 (A1) that ramp's fallback *is* the cap, so on every ordinary
+    /// skin `homeAccent.lightHex == cap.topHex` and the four caps re-ink to
+    /// one material. On a livery that lights Home, the ramp is the livery's.
     private var capInkHex: String {
         switch kind {
         case .back, .bookmarks: cap.topHex
@@ -93,10 +93,10 @@ public struct ChassisButton: View {
     /// skin had already chosen this colour, and the drawn caps were the only
     /// surface ignoring it.
     ///
-    /// Home reads `ink` rather than `glyph` because Home has no `ChassisControl`
-    /// -- `cap` is documented as never read for it -- and `ChassisAccent.ink` is
-    /// that ramp's own answer to the same question, the one `moldedCap` already
-    /// gives the house glyph on its fallback path.
+    /// Home reads `ink` rather than `glyph` because its colours travel as a
+    /// ramp, and `ChassisAccent.ink` is that ramp's own answer — which, since
+    /// 0.8.94's A1, is the cap's `glyph` verbatim whenever no livery lights
+    /// Home. Same colour, one resolution path.
     private var capGlyphHex: String {
         switch kind {
         case .back, .bookmarks: cap.glyphHex
@@ -136,13 +136,11 @@ public struct ChassisButton: View {
     /// The bottom lip's ink (0.8.93, item 6) — Home only.
     ///
     /// Back and User re-ink their whole body in `ChassisControl.top`, so their
-    /// lips are already the button colour and pass nil. Home's body is its
-    /// accent ramp — the lit face — which put a chassis-accent lip under it
-    /// once 0.8.92's lift gave the lip values to colour. The lip is moulded
-    /// button plastic, so it takes the control colour the neighbouring caps
-    /// are made of. This is the one deliberate read of `cap` for Home; the
-    /// "never read for Home" note on `cap` refers to the face, and the face
-    /// still never reads it.
+    /// lips are already the button colour and pass nil. Since 0.8.94's A1 the
+    /// same is true of an *unlit* Home — its ramp derives from the cap, so
+    /// this equals the body ink and changes nothing. Where it still earns its
+    /// keep is the lit Home on a console livery: a lit face over a moulded
+    /// plastic lip, which is what a lit button physically is.
     private var capLipHex: String? {
         switch kind {
         case .back, .bookmarks: nil
@@ -277,23 +275,26 @@ public struct ChassisButton: View {
         }
     }
 
-    /// This button's cap, taking the skin's per-button colour where the skin
-    /// defines one (0.6.7, K2/K3) and the shared moulded cap otherwise. Home
-    /// resolves through `accent` instead — see below.
+    /// This button's cap, through the one resolution path (0.8.94, A2) —
+    /// `ChassisLook.footerCap` is where the per-button colour and the shared
+    /// moulded fallback now live, for all four kinds including the cog.
     private var cap: ChassisControl {
         switch kind {
-        case .back: skin.buttonSet?.back ?? skin.control
-        case .bookmarks: skin.buttonSet?.bookmarks ?? skin.control
-        // Never read for Home, which is built from a six-stop ramp; present so
-        // the switch is exhaustive rather than optional-returning.
-        case .home: skin.control
+        case .back: skin.footerCap(.back)
+        case .bookmarks: skin.footerCap(.bookmarks)
+        // Read for Home since 0.8.94 (A1): it is the material Home's ramp
+        // derives from when no livery lights it — the "never read for Home"
+        // era is exactly the fork §A diagnoses.
+        case .home: skin.footerCap(.home)
         }
     }
 
-    /// Home's ramp: the console liveries give it its own, everything else uses
-    /// the skin's single accent.
+    /// Home's ramp — `ChassisLook.homeAccent`, which is the A1 fix: the
+    /// fallback is the cap the other three wear, not the chassis accent.
+    /// One definition, shared with the workshop preview and pinned by
+    /// `FooterCapTests`, so Home cannot quietly fork again.
     private var homeAccent: ChassisAccent {
-        skin.buttonSet?.home ?? skin.accent
+        skin.homeAccent
     }
 
     private var gradient: LinearGradient {

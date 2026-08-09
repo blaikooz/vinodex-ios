@@ -170,6 +170,11 @@ public struct ChassisControl: Sendable {
     /// symbol separately from the face, so it needs both ends of the pair as
     /// hue and saturation rather than as `SwiftUI.Color`.
     public let glyphHex: String
+    /// And the last two of the four (0.8.94, A1), for a different reader:
+    /// `ChassisAccent.init(cap:)` restates this whole cap as the ramp Home
+    /// draws from, and a ramp needs every stop as a string it can mix.
+    public let bottomHex: String
+    public let edgeHex: String
 
     public init(top: String, bottom: String, edge: String, glyph: String) {
         self.top = Color(dexHex: top)
@@ -178,6 +183,44 @@ public struct ChassisControl: Sendable {
         self.glyph = Color(dexHex: glyph)
         self.topHex = top
         self.glyphHex = glyph
+        self.bottomHex = bottom
+        self.edgeHex = edge
+    }
+}
+
+public extension ChassisAccent {
+    /// The moulded cap, restated as the ramp Home draws from (0.8.94, A1).
+    ///
+    /// **This initialiser is the Home-button fix, stated as a type
+    /// conversion.** The four footer caps were two colour models: Back, User
+    /// and Settings resolve a `ChassisControl`, while Home resolves a
+    /// `ChassisAccent` whose fallback was `skin.accent` — a bright accent
+    /// unrelated to the moulded cap beside it. That fallback is why Home wore
+    /// gold on OAKED's wood and white on BURGUNDY's purple, and why three
+    /// consecutive batches of cap fixes each "missed the home button": every
+    /// fix landed on the `ChassisControl` path, and Home was never on it.
+    ///
+    /// Now the fallback *is* the cap. `light` and `bright` are the cap's own
+    /// face — so the drawn cap re-inks to exactly the material Back re-inks to,
+    /// which is the equality `FooterCapTests` pins — `mid` is the cap's
+    /// shadow, the rim and the ink come straight across, and the one derived
+    /// stop is `pale`: the inner disc's top, a 16% lift of the face, which is
+    /// the moulded highlight an unlit cap has in place of a glow.
+    ///
+    /// The console liveries never reach this: their `buttonSet.home` is an
+    /// authored ramp and still wins — see `ChassisLook.homeAccent`.
+    init(cap: ChassisControl) {
+        let pale = DexRGB(hex: cap.topHex)
+            .mixed(with: DexRGB(r: 1, g: 1, b: 1), amount: 0.16)
+            .hex
+        self.init(
+            pale: pale,
+            light: cap.topHex,
+            bright: cap.topHex,
+            mid: cap.bottomHex,
+            edge: cap.edgeHex,
+            ink: cap.glyphHex
+        )
     }
 }
 

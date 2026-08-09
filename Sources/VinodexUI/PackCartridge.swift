@@ -289,14 +289,19 @@ struct PackCartridge: View {
         if let label {
             let well = Self.labelWell(for: image.size, in: container)
             if well.width > 0, well.height > 0 {
-                // Sized by the well's height *and* its width (0.8.93, item
-                // 10). Height alone plus `minimumScaleFactor` was the theory;
-                // in practice the fixed `.tracking(0.5)` does not scale with
-                // the factor, so on the shelf's ~29pt well anything past five
-                // letters — RETROFIT, CLEARTECH — truncated instead of
-                // shrinking. The width term budgets one em plus tracking per
-                // character, so the name fits by construction and the scale
-                // factor goes back to being the belt it was meant to be.
+                // Sized by the well's height *and* its width (0.8.93), and —
+                // the half that actually ends the truncation (0.8.94, C1) —
+                // rendered through `retroFixed`. Two releases of fit
+                // arithmetic computed sizes `DexFont.retro` then silently
+                // refused to draw: `retro` floors every request at
+                // `TypeScale.nominalFloor` (10pt, times TEXT SIZE), so the
+                // well's computed ~3pt rendered at 10+, overflowed the 29pt
+                // recess, and NEW WORLD became "NEW WO…" — the exact trap
+                // `StampFrame` documents. This label is a legend printed on
+                // an object whose recess cannot grow, which is precisely the
+                // moulded-part category `retroFixed` exists for (0.8.6, D1) —
+                // and what this comment's own TEXT SIZE caveat had been
+                // describing all along.
                 let count = max(CGFloat(label.count), 1)
                 let widthFit = (well.width - 0.5 * (count - 1)) / count
                 Text(label)
@@ -304,7 +309,7 @@ struct PackCartridge: View {
                     // It only ever binds on the splash hero, where the well is
                     // ~27pt tall; 11 was leaving it two-thirds empty on the
                     // page whose whole job is to print the name legibly.
-                    .font(DexFont.retro(max(2, min(16, well.height * 0.52, widthFit))))
+                    .font(DexFont.retroFixed(max(2, min(16, well.height * 0.52, widthFit))))
                     .tracking(0.5)
                     .lineLimit(1)
                     .minimumScaleFactor(0.4)
@@ -441,11 +446,17 @@ struct PackCartridge: View {
             let band = Self.titleBand(for: image.size, in: container)
             if band.width > 0, band.height > 0 {
                 let light = Self.bandIsLight(image, stem: stem)
+                // Width-fitted and `retroFixed` with the well label (0.8.94,
+                // C1) — the band asked `retro` for ~2.3pt on the shelf and
+                // was rendered at the 10pt floor, so ATLAS survived on luck
+                // and DISPLAY was clipping. Same mechanism, same fix.
+                let count = max(CGFloat(title.count), 1)
+                let widthFit = (band.width - 0.5 * (count - 1)) / count
                 Text(title)
                     // 14 since 0.8.92 (item 1), up from 10, for `wellLabel`'s
                     // reason: the cap only binds on the splash hero, where the
                     // band is ~16pt tall and the type was floating in it.
-                    .font(DexFont.retro(min(14, band.height * 0.62)))
+                    .font(DexFont.retroFixed(max(2, min(14, band.height * 0.62, widthFit))))
                     .tracking(0.5)
                     .lineLimit(1)
                     .minimumScaleFactor(0.35)

@@ -410,6 +410,17 @@ public struct ChassisGrille: View {
 /// Everything not overridable forwards to the skin untouched — a workshop that
 /// let you recolour the shell's *pattern* or the back plate's screws is a
 /// different feature, and forwarding says so plainly.
+/// The four footer controls, as material questions (0.8.94, A2).
+///
+/// `ChassisButton.Kind` stays a three-case *behaviour* enum (Settings is
+/// still its own view in `DeviceChassis` — folding the views is the half of
+/// A2 deliberately deferred); this names the four **materials**, so
+/// `ChassisLook.footerCap(_:)` can be exhaustive over the band and a test can
+/// iterate it.
+public enum FooterCapKind: String, CaseIterable, Sendable {
+    case back, home, bookmarks, settings
+}
+
 public struct ChassisLook {
     public let skin: ChassisSkin
     private let buttonsPart: PartColor?
@@ -471,6 +482,39 @@ public struct ChassisLook {
     /// only Home — is a device whose buttons are five colours, which is not a
     /// choice anybody made.
     public var buttonSet: ChassisButtonSet? { buttonsPart?.buttonSet ?? skin.buttonSet }
+
+    // MARK: The footer caps, resolved in one place (0.8.94, A1/A2)
+
+    /// The moulded cap for one footer control — **the** path, for all four
+    /// kinds (0.8.94, A2).
+    ///
+    /// Until this batch the four caps resolved in three places: Back and User
+    /// inside `ChassisButton`, Settings inside `DeviceChassis.settingsButton`,
+    /// and Home through a `ChassisAccent` branch whose fallback was the bug —
+    /// see `homeAccent` below. One function means the next cap fix cannot
+    /// cover three buttons and skip the fourth, which is what §A's history is:
+    /// three consecutive batches of cap work that each "missed Home" because
+    /// Home was never on the path being fixed.
+    public func footerCap(_ kind: FooterCapKind) -> ChassisControl {
+        switch kind {
+        case .back: buttonSet?.back ?? control
+        case .bookmarks: buttonSet?.bookmarks ?? control
+        case .settings: buttonSet?.settings ?? control
+        // Home's moulded material: what its ramp derives from when no livery
+        // lights it, and its lip ink when one does (0.8.93, item 6).
+        case .home: control
+        }
+    }
+
+    /// Home's ramp, and the whole of the A1 fix in one line: the fallback is
+    /// **the cap the other three wear**, restated as a ramp — not
+    /// `skin.accent`, the bright chassis accent that put a gold Home on
+    /// OAKED's wood and a white one on BURGUNDY's purple. A livery that
+    /// authors `buttonSet.home` (the consoles, every workshop `PartColor`)
+    /// keeps its lit Home untouched. `FooterCapTests` holds both halves.
+    public var homeAccent: ChassisAccent {
+        buttonSet?.home ?? ChassisAccent(cap: footerCap(.home))
+    }
 
     public var orb: Color { orbPart?.orb ?? skin.orb }
     public var orbGlow: Color { orbPart?.orbGlow ?? skin.orbGlow }
