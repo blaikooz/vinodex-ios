@@ -1,7 +1,7 @@
-# Normalize line endings so the mirror's object database stays LF regardless of
-# the platform that ran the publish. Without this the assembled tree is copied
-# straight from a Windows working directory and every source file lands in the
-# repo as CRLF, showing up as a whole-repo diff on the first publish.
+# Normalize line endings so the object database stays LF regardless of the
+# platform that wrote the file. Development happens in WSL against a Windows
+# filesystem, so without this a file touched by Windows tooling lands in the
+# repo as CRLF and shows up as a spurious whole-file diff.
 * text=auto
 
 # Generated data — check out as LF on every platform, not just where the shell

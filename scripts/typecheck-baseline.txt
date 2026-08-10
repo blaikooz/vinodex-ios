@@ -1,0 +1,26 @@
+# Diagnostics this check tolerates. Everything else fails the run.
+#
+# Line and column are stripped so an edit above a line does not churn the file.
+# Regenerate with: scripts/typecheck-ios-surface.sh --update-baseline
+#
+# Nothing belongs here just because it is noisy. Each line needs a reason:
+#
+#  * DexIcon `current` — genuinely macOS-only. `UITraitCollection.current` is
+#    fine on iOS; the shim aliases it to `NSAppearance`, whose `current` is
+#    deprecated. An artifact of the stand-in, not of the app.
+#
+#  * DexSearchField (5) — SETTLED 2026-08-09, and removed. The question was
+#    whether the SDK annotates `UITextFieldDelegate` as `@MainActor`; it does,
+#    as UIKit does for its delegate protocols generally. The shim was the thing
+#    that did not, so it was inferring `Coordinator` nonisolated and inventing
+#    five cross-actor references the real SDK never raises. Marking the protocol
+#    `@MainActor` in typecheck-shim.swift removed all five at once. The app was
+#    correct the whole time — no code changed to close this.
+#
+#    Established the same way for `UIImagePickerControllerDelegate` in the same
+#    pass: an unannotated stub protocol is not a neutral placeholder, it is a
+#    claim that the type is nonisolated, and every `View` static its delegate
+#    touches then reports as an error. When adding a UIKit protocol to the shim,
+#    annotate it the way UIKit does or the harness lies in the noisy direction.
+#
+Sources/VinodexUI/Components/DexIcon.swift: warning: 'current' was deprecated in macOS 12.0: Use -performAsCurrentDrawingAppearance: to temporarily set the drawing appearance, or +currentDrawingAppearance to access the currently drawing appearance. [#DeprecatedDeclaration]

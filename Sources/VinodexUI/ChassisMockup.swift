@@ -1,5 +1,6 @@
-#if canImport(SwiftUI)
+#if canImport(SwiftUI) && canImport(UIKit)
 import SwiftUI
+import VinodexCore
 
 /// The device, drawn small enough to put in a tile (0.8.1, A2).
 ///

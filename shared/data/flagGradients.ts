@@ -1,10 +1,10 @@
-export interface FlagGradient {
+interface FlagGradient {
   key: string;
   label: string;
   gradient: string;
 }
 
-export const FLAG_GRADIENTS: FlagGradient[] = [
+const FLAG_GRADIENTS: FlagGradient[] = [
   { key: 'france', label: 'France', gradient: 'linear-gradient(90deg,#1f3f99 33%,#ffffff 33%,#ffffff 66%,#c53030 66%)' },
   { key: 'italy', label: 'Italy', gradient: 'linear-gradient(90deg,#1b9b4c 33%,#ffffff 33%,#ffffff 66%,#c53030 66%)' },
   { key: 'spain', label: 'Spain', gradient: 'linear-gradient(90deg,#c53030 0 20%,#f6ad55 20% 80%,#c53030 80% 100%)' },
@@ -42,7 +42,7 @@ export const FLAG_GRADIENTS: FlagGradient[] = [
   { key: 'various', label: 'Various', gradient: 'linear-gradient(90deg,#0f766e 0 25%,#1d4ed8 25% 50%,#7c3aed 50% 75%,#f59e0b 75% 100%)' },
 ];
 
-export const DEFAULT_FLAG_GRADIENT = 'linear-gradient(#374151,#111827)';
+const DEFAULT_FLAG_GRADIENT = 'linear-gradient(#374151,#111827)';
 
 export const getFlagGradient = (origin?: string) => {
   if (!origin) return DEFAULT_FLAG_GRADIENT;

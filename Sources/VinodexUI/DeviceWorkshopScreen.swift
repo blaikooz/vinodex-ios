@@ -15,6 +15,20 @@ import VinodexCore
 /// the two surfaces, because there is nothing to thread: there is one device and
 /// this screen is inside it.
 ///
+/// **Two of the ten axes take a second step to get there** (arch **A17**).
+/// `DeviceAxis.shell.storageKey` *is* `ChassisSkin.storageKey` and
+/// `.screen`'s *is* `LcdMode.storageKey`, and those two keys are owned by
+/// `AppSettings`, which reads them once in `init` and holds them for the life of
+/// the process. The chassis, the caps, the marquee and the back plate all read
+/// the shell and the screen through that model now, so a write here that stopped
+/// at `UserDefaults` would repaint nothing until the next launch *and* would be
+/// written back over by the next SETTINGS change — the trap **M35** recorded,
+/// reached from this side. `set(_:_:)` and `fit(_:)` below both call
+/// `AppSettings.shared.reload()` for that reason, exactly as
+/// `PendingPreset.commit` does for the same two keys from CUSTOMIZE. The other
+/// eight axes need nothing: no model caches them, and `@AppStorage` is still
+/// what makes them live.
+///
 /// The panel at the top is a *schematic*, not a preview — a labelled diagram
 /// showing all eight parts at once, including the two (the screen ground and the
 /// font ink) you cannot see while you are looking at them. It is drawn from the
@@ -124,6 +138,16 @@ public struct DeviceWorkshopScreen: View {
     /// A switch rather than ten closures at the call sites: the rows are built
     /// by `ForEach(DeviceAxis.allCases)` and each needs a way to set *its* axis,
     /// and a row wired to the wrong property is a bug no Linux test could see.
+    ///
+    /// The `@AppStorage` declarations stay the storage for all ten, including
+    /// the two `AppSettings` also owns, because this screen needs the
+    /// distinction the model cannot carry: `""` here means *unchosen*, which is
+    /// what `build.isStock`, `chosenCount` and `store.matching(build)` are
+    /// counting, while `settings.chassisSkin` resolves an absent key to
+    /// `.classic` and cannot tell a stock device from one somebody set to
+    /// CLASSIC on purpose. So the write goes to the key and the model is brought
+    /// back in step after it — see this type's note for why that second line is
+    /// not optional.
     private func set(_ axis: DeviceAxis, _ value: String) {
         switch axis {
         case .shell: shell = value
@@ -137,6 +161,31 @@ public struct DeviceWorkshopScreen: View {
         case .screen: screen = value
         case .font: font = value
         }
+        resyncSettings()
+    }
+
+    /// Make `target` the device, and bring the settings model back in step.
+    ///
+    /// FIT and REVERT both go through here rather than calling
+    /// `DeviceBuild.apply()` at the two sites: `apply` writes all ten keys,
+    /// two of which `AppSettings` caches, so the two call sites had the same
+    /// obligation and one of them would eventually forget it.
+    private func fit(_ target: DeviceBuild) {
+        target.apply()
+        resyncSettings()
+    }
+
+    /// Re-read the two keys this screen shares with `AppSettings`.
+    ///
+    /// Unconditional rather than switched on the axis: `reload()` is eight
+    /// `UserDefaults` reads and every assignment in it is guarded on `oldValue`,
+    /// so the eight settings this screen does not touch are read and discarded
+    /// and nothing is written back (see `AppSettings.isAdopting`). A version of
+    /// this that fired only for `.shell` and `.screen` would be a second place
+    /// that has to know which axes are shared, and `DeviceBuild.apply` writes
+    /// all ten anyway.
+    private func resyncSettings() {
+        AppSettings.shared.reload()
     }
 
     public var body: some View {
@@ -253,7 +302,7 @@ public struct DeviceWorkshopScreen: View {
                     // a way out drawn in the ink you just broke is no way out.
                     Button {
                         Haptics.select()
-                        (openedWith ?? .stock).apply()
+                        fit(openedWith ?? .stock)
                         notice = .reverted
                     } label: {
                         Text("REVERT")
@@ -755,7 +804,7 @@ public struct DeviceWorkshopScreen: View {
             HStack(spacing: 8) {
                 Button {
                     Haptics.select()
-                    device.build.apply()
+                    fit(device.build)
                     notice = .applied(device.name)
                 } label: {
                     rowAction("FIT", tint: lcd.accent)

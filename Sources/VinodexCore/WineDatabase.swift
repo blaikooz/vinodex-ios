@@ -181,6 +181,10 @@ public struct IconManifest: Codable, Sendable {
     /// Country name -> pixel-flag path in the web repo. Only countries present
     /// in the current selection ship.
     public let flags: [String: String]
+    /// Country name -> the filename its flag is bundled under, generated
+    /// alongside `flags` (AUDIT **L25**). Optional so an older manifest still
+    /// decodes; `flagSlug(for:)` then falls back to the rule this replaced.
+    public let flagSlugs: [String: String]?
 
     public struct SoilIcon: Codable, Sendable, Hashable {
         public let icon: String
@@ -258,8 +262,19 @@ public struct IconManifest: Codable, Sendable {
     }
 
     /// Bundled flag stem for a country, e.g. `New Zealand` -> `new-zealand`.
+    ///
+    /// Read from the generated table rather than re-derived (AUDIT **L25**).
+    /// The name is decided by `flagSlug()` in `generate-ios-data.ts`, which is
+    /// also what `rasterize-icons.sh` names the copied PNG with — one rule, so
+    /// the file the app asks for is by construction the file that was written.
+    ///
+    /// The fallback is the pre-**L25** derivation, kept only so a manifest
+    /// generated before the table existed still finds its flags. It is correct
+    /// for every current key and wrong for the first accented one, which is
+    /// the whole reason the table exists.
     public func flagSlug(for country: String?) -> String? {
         guard let country, flags[country] != nil else { return nil }
+        if let generated = flagSlugs?[country] { return generated }
         return country.lowercased().replacingOccurrences(of: " ", with: "-")
     }
 
@@ -293,8 +308,27 @@ public final class WineDatabase: Sendable {
 
     /// Entries that failed to decode, if any. Empty in a healthy build; surfaced
     /// rather than swallowed so a schema drift is visible instead of silent.
+    ///
+    /// Read this as *the app is damaged*: it raises the launch `DexAlert`, it
+    /// decides what an empty screen means (`dataState`), and it is pinned empty
+    /// by `CoverageTests`. Anything that does not cost the app data or
+    /// correctness belongs in `loadNotices` instead.
     public let decodeErrors: [String]
 
+    /// Load-time observations that are **not** faults (AUDIT **M45**).
+    ///
+    /// The distinction is the whole of M45. A *missing* schema stamp used to
+    /// append a decode error unconditionally, so every build carrying data
+    /// generated before the stamp existed raised the DATA LOAD ERROR alert on
+    /// every single launch — a false positive for anyone testing an older
+    /// snapshot. But an absent stamp is not evidence of damage: data older than
+    /// the stamp either decodes, in which case nothing is wrong, or fails
+    /// per-entry, in which case those failures are already faults in their own
+    /// right and say far more than the stamp could. So it goes in front of a
+    /// maintainer — the DEV panel, and `DecodeRobustnessTests`, which fails CI
+    /// if the *bundled* data has no stamp. That is the item's other half:
+    /// fail the build, not the launch.
+    public let loadNotices: [String]
     /// The pedigree graph (0.7.5, E).
     ///
     /// Built here for the reason `byID` and `byName` are: it is a reverse index
@@ -361,13 +395,29 @@ public final class WineDatabase: Sendable {
     /// the selection ship: a hit must open a page with something on it.
     public let searchableCountries: [String]
 
+    /// The same origins folded through `TextNormalize.label`, as a set (AUDIT
+    /// **L14**).
+    ///
+    /// `hasRegions(inCountry:)` used to answer by re-filtering the whole
+    /// catalog into a fresh array and folding every survivor's origin — once
+    /// per country row, per render, on a continent page that shows a dozen of
+    /// them. It is a membership test against a set built by the walk two lines
+    /// above, which was already visiting exactly these strings.
+    ///
+    /// Normalised rather than raw, unlike `searchableCountries`: the callers
+    /// compare through `TextNormalize.label`, and a set of raw origins would
+    /// silently miss every row whose case the authored data disagrees about —
+    /// which is the whole reason that fold is there.
+    private let regionOriginLabels: Set<String>
+
     public init(
         entries: [WineEntry],
         palette: Palette,
         icons: IconManifest,
         countries: [String: CountryInfo] = [:],
         freeIDs: Set<String> = [],
-        decodeErrors: [String] = []
+        decodeErrors: [String] = [],
+        loadNotices: [String] = []
     ) {
         self.entries = entries
         self.palette = palette
@@ -375,16 +425,21 @@ public final class WineDatabase: Sendable {
         self.countries = countries
         self.freeIDs = freeIDs
         self.decodeErrors = decodeErrors
+        self.loadNotices = loadNotices
 
         var countrySet = Set<String>()
+        var originLabels = Set<String>()
         for entry in entries {
             if case .region(let r) = entry, !r.details.origin.isEmpty {
                 countrySet.insert(r.details.origin)
+                let label = TextNormalize.label(r.details.origin)
+                if !label.isEmpty { originLabels.insert(label) }
             }
         }
         self.searchableCountries = countrySet.sorted {
             $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
         }
+        self.regionOriginLabels = originLabels
 
         var ids: [String: WineEntry] = [:]
         ids.reserveCapacity(entries.count)
@@ -515,91 +570,196 @@ public final class WineDatabase: Sendable {
         )
     }
 
-    private convenience init() {
-        do {
-            let (entries, entryFailures) = try Self.decodeEntries(from: Self.resourceData("entries"))
-            let palette: Palette = try Self.decode("palette")
-            let icons: IconManifest = try Self.decode("icons")
+    /// The three outcomes of reading one bundled table (AUDIT **M46**).
+    ///
+    /// `tiers.json` has told missing from corrupt since **M1**, and that is the
+    /// shape every optional table wants: absent is a documented fallback,
+    /// present-but-broken is a fault worth naming. Spelling it once lets the
+    /// five loads below read as one rule instead of five coincidences.
+    private enum ResourceLoad<T> {
+        case loaded(T)
+        case missing
+        case corrupt(any Error)
+    }
 
-            var loadErrors: [String] = entryFailures
+    /// Where the loader gets a table's bytes.
+    ///
+    /// Threaded rather than hardcoded because otherwise none of the failure
+    /// semantics below can be tested at all: every branch of **M45**/**M46** is
+    /// a statement about what happens when a specific file is absent or
+    /// malformed, and the bundle only ever offers the healthy case. It is also
+    /// the shortest route to the fixture database the audit keeps asking for
+    /// (**M27**, **M32**) — hand it two entries and the real decode path builds
+    /// everything else.
+    ///
+    /// Internal, not public: the app has no use for it, and VinodexCore is not
+    /// in the habit of exporting seams that exist for tests (`@testable import`
+    /// is what the suites already use).
+    struct ResourceReader: Sendable {
+        /// Must throw `CocoaError(.fileNoSuchFile)` for a resource that is not
+        /// there — the same signal `Bundle.module` gives — so "missing" means
+        /// the same thing to a fixture as it does to a build.
+        let data: @Sendable (_ resource: String) throws -> Data
 
-            // The schema stamp, generated alongside the dataset. Checked before
-            // anything is *reported* healthy: entry failures above say what
-            // broke, this says why — usually "the data and the app are from
-            // different generations; run npm run generate". A missing stamp is
-            // the same condition wearing older clothes, so it gets the same
-            // treatment rather than a silent pass.
-            do {
-                let stamp: SchemaStamp = try Self.decode("schema")
-                if stamp.schemaVersion != Self.expectedSchemaVersion {
-                    loadErrors.append(
-                        "schema.json is generation \(stamp.schemaVersion); this build expects \(Self.expectedSchemaVersion) — regenerate (npm run generate)"
-                    )
+        init(data: @escaping @Sendable (_ resource: String) throws -> Data) {
+            self.data = data
+        }
+
+        /// The app's own resources.
+        static let bundled = ResourceReader { try WineDatabase.resourceData($0) }
+
+        /// A reader over in-memory tables. Any name absent from the dictionary
+        /// reads as missing, which is what a fixture almost always wants.
+        static func fixture(_ files: [String: Data]) -> ResourceReader {
+            ResourceReader { resource in
+                guard let data = files[resource] else {
+                    throw CocoaError(.fileNoSuchFile, userInfo: [NSFilePathErrorKey: "\(resource).json"])
                 }
-            } catch {
-                loadErrors.append(
-                    "schema.json missing or unreadable — bundled data predates the schema stamp; regenerate (npm run generate)"
-                )
+                return data
             }
+        }
+    }
 
-            // Tiers: a *missing* manifest means "everything free" (a build with no
-            // paywall), which is the only safe fallback that can't lock a build out
-            // of its own data. But a *present-but-corrupt* manifest must not take
-            // that same silent unlock — record it so it reaches decodeErrors and
-            // the DEV panel instead of quietly opening the whole catalogue. (M1)
-            var freeIDs: Set<String> = []
-            do {
-                let tiers: EntryTiers = try Self.decode("tiers")
-                freeIDs = Set(tiers.free)
-            } catch let error as CocoaError where error.code == .fileNoSuchFile {
-                // No tiers file — fully unlocked, by design.
-            } catch {
-                loadErrors.append("tiers.json failed to decode; paywall left open — \(error)")
+    private static func loadResource<T: Decodable>(
+        _ resource: String,
+        from reader: ResourceReader
+    ) -> ResourceLoad<T> {
+        do {
+            return .loaded(try JSONDecoder().decode(T.self, from: reader.data(resource)))
+        } catch let error as CocoaError where error.code == .fileNoSuchFile {
+            return .missing
+        } catch {
+            return .corrupt(error)
+        }
+    }
+
+    private convenience init() {
+        self.init(reading: .bundled)
+    }
+
+    /// The real load path, over whichever tables `reader` offers.
+    convenience init(reading reader: ResourceReader) {
+        var faults: [String] = []
+        var notices: [String] = []
+
+        // Entries: the one table with no useful degraded form, and the only one
+        // whose failure may empty the database. A *per-entry* failure costs that
+        // entry and names it (H2); a file-level failure costs the catalogue,
+        // because there is nothing to fall back to. Recorded and continued
+        // rather than trapped — crashing on launch makes this undiagnosable on
+        // a device with no debugger attached.
+        var entries: [WineEntry] = []
+        do {
+            let (decoded, failures) = try Self.decodeEntries(from: reader.data("entries"))
+            entries = decoded
+            faults.append(contentsOf: failures)
+            // A well-formed empty array was the last silent blank app in the
+            // loader: nothing to report, so every screen said NO DATA FOUND and
+            // the alert never fired. An empty catalogue is a build problem
+            // whatever shape it arrives in.
+            if decoded.isEmpty, failures.isEmpty {
+                faults.append("entries.json decoded to an empty array — the app has no catalogue; regenerate (npm run generate)")
             }
-
-            // Also optional: without it a country page falls back to the
-            // derived summary sentence, which is worse but not broken.
-            let countries: [String: CountryInfo] = (try? Self.decode("countries")) ?? [:]
-            self.init(
-                entries: entries,
-                palette: palette,
-                icons: icons,
-                countries: countries,
-                freeIDs: freeIDs,
-                decodeErrors: loadErrors
+        } catch let error as CocoaError where error.code == .fileNoSuchFile {
+            faults.append(
+                "entries.json is not in the bundle — the app has no catalogue; regenerate (npm run generate) and rebuild"
             )
         } catch {
-            // A failed load is a build problem, not a runtime condition to paper
-            // over — but crashing the app on launch makes it undiagnosable on a
-            // device with no debugger attached, so record and continue empty.
-            self.init(
-                entries: [],
-                palette: Self.emptyPalette,
-                icons: IconManifest(
-                    byEntry: [:],
-                    unique: [],
-                    fallback: "mdi:help-circle-outline",
-                    bodyIcons: [:],
-                    climateIcons: [:],
-                    colorIcons: [:],
-                    styleClassIcons: [:],
-                    flavorClassIcons: nil,
-                    flavorSubclassIcons: nil,
-                    flavorArt: nil,
-                    grapeArt: nil,
-                    styleArt: nil,
-                    countryShapeIcons: [:],
-                    styleClassBg: [:],
-                    styleColorTypeColors: [:],
-                    soilIcons: [:],
-                    soilKeywords: nil,
-                    climateSoilFallback: [:],
-                    defaultSoils: [],
-                    flags: [:]
-                ),
-                decodeErrors: ["\(error)"]
-            )
+            faults.append("entries.json is not a decodable JSON array; no entries loaded — \(error)")
         }
+
+        // Palette and icons sat inside the same `try` as entries, so either one
+        // failing emptied the *whole* database: the catalogue disappeared
+        // because a colour table did, and the alert said nothing about which
+        // (M46). Each now costs only itself. A missing palette draws chips
+        // unstyled, a missing manifest draws the placeholder glyph, and the
+        // entries stay on screen either way — degraded is legible, blank is not.
+        var palette = Self.emptyPalette
+        let paletteLoad: ResourceLoad<Palette> = Self.loadResource("palette", from: reader)
+        switch paletteLoad {
+        case .loaded(let value):
+            palette = value
+        case .missing:
+            faults.append("palette.json is not in the bundle — chips and tints fall back to the unstyled palette")
+        case .corrupt(let error):
+            faults.append("palette.json failed to decode; chips and tints fall back to the unstyled palette — \(error)")
+        }
+
+        var icons = Self.emptyIcons
+        let iconLoad: ResourceLoad<IconManifest> = Self.loadResource("icons", from: reader)
+        switch iconLoad {
+        case .loaded(let value):
+            icons = value
+        case .missing:
+            faults.append("icons.json is not in the bundle — every glyph falls back to the placeholder")
+        case .corrupt(let error):
+            faults.append("icons.json failed to decode; every glyph falls back to the placeholder — \(error)")
+        }
+
+        // Countries were the last fully silent decode failure in the loader:
+        // `(try? …) ?? [:]` swallowed a malformed file with no entry in
+        // `decodeErrors` at all, and the only symptom was every country page
+        // quietly dropping to its derived summary sentence (M46). Missing stays
+        // quiet — the fallback is the documented behaviour — but broken does not.
+        var countries: [String: CountryInfo] = [:]
+        let countryLoad: ResourceLoad<[String: CountryInfo]> = Self.loadResource("countries", from: reader)
+        switch countryLoad {
+        case .loaded(let value):
+            countries = value
+        case .missing:
+            notices.append("countries.json is not bundled — country pages fall back to their derived summary")
+        case .corrupt(let error):
+            faults.append("countries.json failed to decode; country pages fall back to their derived summary — \(error)")
+        }
+
+        // Tiers: a *missing* manifest means "everything free" (a build with no
+        // paywall), which is the only safe fallback that can't lock a build out
+        // of its own data. But a *present-but-corrupt* manifest must not take
+        // that same silent unlock — record it so it reaches decodeErrors and
+        // the DEV panel instead of quietly opening the whole catalogue. (M1)
+        var freeIDs: Set<String> = []
+        let tierLoad: ResourceLoad<EntryTiers> = Self.loadResource("tiers", from: reader)
+        switch tierLoad {
+        case .loaded(let tiers):
+            freeIDs = Set(tiers.free)
+        case .missing:
+            notices.append("tiers.json is not bundled — every entry is free")
+        case .corrupt(let error):
+            faults.append("tiers.json failed to decode; paywall left open — \(error)")
+        }
+
+        // The schema stamp, generated alongside the dataset. A *wrong* stamp is
+        // a fault: the data and the app are from different generations and the
+        // decode failures above are its symptoms. A *missing* stamp is not the
+        // same condition in older clothes — it is the absence of evidence, and
+        // treating it as a fault raised the launch alert on every start of every
+        // build carrying pre-stamp data (M45). It is a notice; the test suite is
+        // what refuses to ship data without one.
+        let stampLoad: ResourceLoad<SchemaStamp> = Self.loadResource("schema", from: reader)
+        switch stampLoad {
+        case .loaded(let stamp) where stamp.schemaVersion == Self.expectedSchemaVersion:
+            break
+        case .loaded(let stamp):
+            faults.append(
+                "schema.json is generation \(stamp.schemaVersion); this build expects \(Self.expectedSchemaVersion) — regenerate (npm run generate)"
+            )
+        case .missing:
+            notices.append(
+                "schema.json is not bundled — this data predates the schema stamp; regenerate (npm run generate) to pin its generation"
+            )
+        case .corrupt(let error):
+            faults.append("schema.json is present but unreadable — \(error)")
+        }
+
+        self.init(
+            entries: entries,
+            palette: palette,
+            icons: icons,
+            countries: countries,
+            freeIDs: freeIDs,
+            decodeErrors: faults,
+            loadNotices: notices
+        )
     }
 
     /// The icon id for an entry.
@@ -619,9 +779,33 @@ public final class WineDatabase: Sendable {
         return try Data(contentsOf: url)
     }
 
-    private static func decode<T: Decodable>(_ resource: String) throws -> T {
-        try JSONDecoder().decode(T.self, from: resourceData(resource))
-    }
+    /// The manifest a build with no `icons.json` runs on: every lookup misses
+    /// and `DexIcon` draws its placeholder. Hoisted out of the old whole-load
+    /// catch block by **M46**, which needed it as a per-table fallback rather
+    /// than as part of one all-or-nothing empty database.
+    private static let emptyIcons = IconManifest(
+        byEntry: [:],
+        unique: [],
+        fallback: "mdi:help-circle-outline",
+        bodyIcons: [:],
+        climateIcons: [:],
+        colorIcons: [:],
+        styleClassIcons: [:],
+        flavorClassIcons: nil,
+        flavorSubclassIcons: nil,
+        flavorArt: nil,
+        grapeArt: nil,
+        styleArt: nil,
+        countryShapeIcons: [:],
+        styleClassBg: [:],
+        styleColorTypeColors: [:],
+        soilIcons: [:],
+        soilKeywords: nil,
+        climateSoilFallback: [:],
+        defaultSoils: [],
+        flags: [:],
+        flagSlugs: nil
+    )
 
     private static let emptyPalette = Palette(
         countryChips: [:], classificationChips: [:], wineTypeChips: [:], rarityChips: [:],
@@ -719,9 +903,11 @@ public final class WineDatabase: Sendable {
     /// as its origin — what makes a continent's country row tappable.
     /// Case-insensitive: region origins and continent country names are
     /// both authored strings and don't always agree on case.
+    ///
+    /// A set lookup rather than a catalog scan — see `regionOriginLabels`
+    /// (AUDIT **L14**).
     public func hasRegions(inCountry country: String) -> Bool {
-        let target = TextNormalize.label(country)
-        return entries(in: .regions).contains { TextNormalize.label($0.origin ?? "") == target }
+        regionOriginLabels.contains(TextNormalize.label(country))
     }
 
     /// The continent entry for a globe marker, by the `CONT_<RAWVALUE>` id
@@ -739,14 +925,9 @@ public final class WineDatabase: Sendable {
     /// here, not what is planned. Folded through `TextNormalize.label` for the
     /// same reason `hasRegions(inCountry:)` is: origins are hand-authored and
     /// do not always agree on case.
-    public var countryCount: Int {
-        Set(
-            entries(in: .regions)
-                .compactMap(\.origin)
-                .map { TextNormalize.label($0) }
-                .filter { !$0.isEmpty }
-        ).count
-    }
+    /// That is precisely the set `hasRegions(inCountry:)` answers from, so it
+    /// is counted rather than rebuilt (AUDIT **L14**).
+    public var countryCount: Int { regionOriginLabels.count }
 
     /// Per-category counts for the DATA readout.
     ///

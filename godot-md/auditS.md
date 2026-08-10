@@ -2,7 +2,14 @@
 
 **Authored by Godot.**
 
-**Written 2026-07-29 against `fb5dcf2`. Re-verified 2026-07-31 against `b48ad20`.**
+**Written 2026-07-29 against `fb5dcf2`. Re-verified 2026-07-31 against `b48ad20`,
+and again 2026-08-03 against the working tree at `da787a8`.**
+
+> **Read the working tree, not `HEAD`.** The 2026-08-03 pass verified against the
+> tree as it stands, because **every AUDIT.md fix from 2026-08-01 and 2026-08-03
+> is uncommitted** — 85 dirty paths and 26 untracked files, including
+> `EntryPalette.swift`, `SavedData*.swift`, `DatabaseFixture.swift` and the four
+> new test files. `git stash` would reopen eleven of the items below.
 
 > **Path note (added 0.6.5, batch 4 — findings below are unchanged).** Read
 > every `pixelflags/` reference in this document as **`shared/pixelflags/`**:
@@ -32,90 +39,216 @@ Format: `ID · Tag · issue · location → fix`, followed by the 2026-07-31 re-
 
 ## Status
 
-**2 resolved · 7 partial · 27 still open · 14 worse**
+**21 resolved · 8 partial · 14 still open · 7 worse** — as of 2026-08-06.
 
 | Severity | Resolved | Partial | Open | Worse | Total |
 |---|---:|---:|---:|---:|---:|
-| Critical | 0 | 0 | 1 | 0 | 1 |
-| High | 0 | 1 | 4 | 0 | 5 |
-| Medium | 2 | 4 | 8 | 4 | 18 |
-| Low | 0 | 2 | 14 | 10 | 26 |
-| **Total** | **2** | **7** | **27** | **14** | **50** |
+| Critical | 1 | 0 | 0 | 0 | 1 |
+| High | 1 | 2 | 2 | 0 | 5 |
+| Medium | 9 | 4 | 3 | 2 | 18 |
+| Low | 10 | 2 | 9 | 5 | 26 |
+| **Total** | **21** | **8** | **14** | **7** | **50** |
+
+**Movement 2026-08-04:** **H3** open → **resolved** — `PrivacyInfo.xcprivacy`
+exists, is bundled as a resource, and is guarded by CI (see the item; one
+signing-pipeline placement residual recorded). **L5**'s sniff half was hardened
+by arch **B15** the same day; the item stays open on its unpinned-fetch core
+(**M40**, deferred).
+
+**Movement 2026-08-05:** five Low items closed by a pass aimed directly at this
+file — **L8** open → **resolved** (StatBar range clamped via `Int(exactly:)`),
+**L6** partial → **resolved** (the generator now rejects an empty `free[]`),
+**L9** partial → **resolved** (python3 preflight, placed above the Pillow probe
+so the misdiagnosis cannot print first), **L17** open → **resolved** (free-id
+resolution pinned in AccessTests *and* mirrored in `validateOutputs`), **L23**
+worse → **resolved** (all three DateFormatter fixtures pin en_US_POSIX +
+Gregorian). Each closure is annotated on its item with what was verified and how.
+
+**Movement 2026-08-05, second batch — the owner answered, and the licensing row
+moved.** The maintainer resolved the five provenance questions in one sitting:
+LICENSE **all-rights-reserved** (the app will eventually charge), SFX
+**first-party**, map **first-party**, dataset **first-party** with the Sotheby's
+text to be purged upstream, and the flag pack identified as **R74n PixelFlags**
+— whose terms turn out to exist after all (R74n Content License v1.1, found via
+the site's `llms.txt`; vendored at `licenses/LICENSE-r74n.txt`). Landed the same
+day: top-level `LICENSE`, `NOTICE.md`, `licenses/`, the bundled
+`Sources/VinodexUI/Resources/Fonts/OFL.txt`, and `shared/PROVENANCE.md`.
+**M1 M2 M4 L1** open/worse → **resolved** · **H1** open → **partial** (in-app
+credits still owed) · **H2** stays open on its remaining half: R74n's license is
+credit + non-commercial, so the planned paid release needs written permission or
+first-party recreations drawn from the real flag designs, not R74n's pixels
+(their §4 claims derivatives).
+
+**Movement 2026-08-06 — H2's remedy built and shelved; no status change.** The
+recreation arm was executed but deliberately not shipped: a complete
+first-party flag set now sits at `art/flags/`
+(`scripts/generate-flag-art.py`, drawn in code from the official flag
+constructions, canvas contract matched, R74n's pixels never referenced per
+§4), while the owner keeps the credited R74n set shipping during
+non-commercial development and has emailed R74n for paid-release permission.
+**H2 stays open** on that condition alone — the swap is a one-block change in
+`rasterize-icons.sh` whenever it is needed. `Other/` stays **M5**'s.
+
+Movement since 2026-07-31 (`2 resolved · 7 partial · 27 open · 14 worse`):
+
+| Went | Count | Items |
+|---|---:|---|
+| open/worse → **resolved** | 7 | **C1** · **M11** **M12** **M17** · **L4** **L7** **L15** |
+| partial → **resolved** | 2 | **M16** · **L12** |
+| open/worse → **partial** | 5 | **M14** **M18** · **L6** **L10** **L13** |
+
+**Not one of those nine closures came from work aimed at this file.** Six were
+taken outright by an AUDIT.md item covering the same ground — M11/M12 by AUDIT
+**M33**, M17 by **M29**, L4 by **M6**, L7 by **L10**, L15 by **M47**. The two
+structural ones, **C1** and **M16**, fell together to the CI rewrite. **L12**
+closed by a doc edit. That inverts the 2026-07-31 headline, where nine feature
+commits had built *on top* of these findings rather than around them. See
+[What actually moved](#what-actually-moved).
 
 **Worse** means the described defect is intact *and* the surface it applies to
-grew — more unlicensed assets, more untested branches, more copies of a bad
-pattern. Fourteen items in that column is the headline: the nine feature commits
-were built on top of the audit's findings rather than around them, so most of
-this work order got larger rather than smaller.
+grew. Seven remain — **L23**, then **M4** and **L1**, left the column on
+2026-08-05, resolved — and the column is now compliance and test hygiene:
+**M3 M7** (trade dress, privacy policy) and **L3 L14 L18 L22 L24**.
 
-Two genuine fixes landed, both in v0.6.3's "robustness spine": **M8** (per-entry
-lossy decode — one bad entry no longer zeroes the catalog) and **M15** (CI now
-proves the committed JSON matches `shared/`).
+**Bookkeeping correction to the 2026-07-31 table.** It reported Medium as
+`partial 4 / worse 4`; the items themselves said `partial 3 / worse 5`
+(partial: M10 M13 M16 — worse: M3 M4 M7 M11 M14). Totals were right, the split
+was not. Nothing was re-litigated; the table above is counted from the items.
 
 ### What to fix first
 
-1. **C1** — one line. `swift build` and `swift test` are both broken on macOS
-   today; nothing else on this list can be verified on an Apple platform until
-   it lands. See [The testing gap](#the-testing-gap).
-2. **H1 · H2 · M1 · M2** — the app ships 198 CC BY 3.0 icons, 29 pixel-art flags,
-   two OFL fonts and a 217 KB map with no LICENSE, no NOTICE and no in-app
-   credits anywhere. These are hard license conditions, not hygiene.
+1. **C1 is resolved but uncommitted** — as is every other fix in the working
+   tree. Committing is the single highest-value action available, and CI's new
+   `ios` job now pins C1's failure class permanently. See
+   [The testing gap](#the-testing-gap).
+2. **H1 · H2 · M1 · M2** — the app ships 165 CC BY 3.0 icon PNGs, 33 pixel-art
+   flags, two OFL fonts and a 217 KB map. These are hard license conditions, not
+   hygiene. *(2026-08-05: the owner answered both deferred questions — LICENSE:
+   all-rights-reserved; SFX: first-party — and `LICENSE`, `NOTICE.md`,
+   `licenses/` and the bundled `OFL.txt` landed at once. M1, M2, M4 and L1 are
+   done. What survives on this row: the in-app credits surface (H1) and the
+   flags' commercial condition (H2) — the pack is R74n's PixelFlags under the
+   R74n Content License v1.1, credit-required and non-commercial without
+   explicit permission, so a paid release needs R74n's written permission or
+   first-party recreations drawn from the real flag designs.)* *(2026-08-06: a
+   first-party replacement set was drawn and committed at `art/flags/`, ready
+   to swap in one `rasterize-icons.sh` block; the owner keeps the credited
+   R74n set shipping while development is non-commercial and has emailed R74n
+   for paid-release permission. H2 stays open on that condition; H1's in-app
+   credits surface also remains.)*
 3. **H3 · H4 · M6** — `PrivacyInfo.xcprivacy`, a real bundle ID and an Info.plist
-   source. Each one independently blocks App Store submission.
-4. **L22 · L23 · L24** — the test suite's own defects, all now multiplied across
-   the new test files. L24 is the sharpest: the assertion the audit predicted
-   would silently stop working has now silently stopped working.
+   source. Each one independently blocks App Store submission. **M6's proposed
+   fix is now known to be non-viable** — see the item. *(2026-08-04: H3 is
+   done — the manifest exists, is bundled, and CI guards it. H4 and M6
+   remain, and both now wait on the same signing pipeline the manifest's
+   root-placement residual does.)*
+4. **L22 · L23 · L24** — the test suite's own defects, untouched while the suite
+   grew from 15 files to 22. L24 is sharper than it was: its own premise has now
+   gone stale twice in a row. *(2026-08-05: L23 is done — all three fixtures pin
+   locale and calendar. L22 and L24 remain.)*
 
 ## The testing gap
 
+*(Rewritten 2026-08-03. The 2026-07-31 version of this section proposed a
+three-gate CI table and a `VinodexUITests` target. **The table has been built.**
+What follows is what is true now.)*
+
 The main developer builds with [xtool](https://github.com/xtool-org/xtool) from
-WSL and no maintainer can install Xcode. Verified 2026-07-31:
+WSL and no maintainer can install Xcode. That has not changed, and neither have
+the four facts underneath it:
 
-- **xtool has no `test` subcommand and no simulator support.** Its documented
-  commands are `setup`, `auth`, `sdk`, `new`, `dev`, `ds`, `devices`, `install`,
-  `uninstall`, `launch` — it builds and sideloads to a physical device only. No
-  iOS-hosted test can be run by the current toolchain, which is why none exist.
-- **A type error inside `#if canImport(UIKit)` is invisible to every check the
-  project runs.** Proven by injecting an undefined symbol into
-  `Sources/VinodexUI/Haptics.swift`: `swift build` on macOS reported
-  `Build complete!`. On Linux the same code compiles to nothing. This is exactly
-  the C1 failure class, and nothing in CI can see it.
+- **xtool has no `test` subcommand and no simulator support.** It builds and
+  sideloads to a physical device only.
+- **A type error inside `#if canImport(UIKit)` is invisible to `swift build` on
+  macOS and to `swift test` on Linux.** Proven by injecting an undefined symbol
+  into `Sources/VinodexUI/Haptics.swift`: macOS reported `Build complete!`. This
+  is exactly the C1 failure class.
 - **A *syntax* error in an inactive `#if` branch *is* caught**, because inactive
-  branches are still parsed. `README.md`'s claim that "a syntax error there
-  passes `swift test`" is wrong — the real hole is narrower but far more
-  dangerous: name and type resolution.
+  branches are still parsed. `README.md`'s old claim that "a syntax error there
+  passes `swift test`" was wrong — the real hole is name and type resolution.
 - **`swift test` on macOS needs full Xcode**, not Command Line Tools. With CLT
-  only it fails on `no such module '_Testing_Foundation'` even after C1 is fixed.
+  only it fails on `no such module '_Testing_Foundation'`.
 
-The workaround is that **nobody needs to own a Mac** — this repo is public, so
-GitHub's `macos-15` runners are free:
+**What changed is everything above that.** `.github/workflows/ci.yml` now runs
+four jobs, and the trigger is `on: push: branches: ['**']` — so topic branches
+are covered, which they were not:
 
-| Gate | Runs on | Catches |
-|---|---|---|
-| `swift test` (exists) | Linux | VinodexCore logic |
-| `xcodebuild -destination 'generic/platform=iOS'` | macos-15 | **UI type errors — C1's class** |
-| `xcodebuild test -destination 'platform=iOS Simulator'` | macos-15 | iOS-hosted tests, which can now exist |
+| Gate | Runs on | Catches | Status |
+|---|---|---|---|
+| `swift test` | Linux `swift:6.0` | VinodexCore logic | was there |
+| `xcodebuild -destination 'generic/platform=iOS'` | `macos-15` | **UI type errors — C1's class** | **new** |
+| `xcodebuild test -destination 'platform=iOS Simulator'` | `macos-15` | iOS-hosted tests | **new** |
+| `npm run generate` + drift | Linux | stale committed JSON | was there |
 
-Add a `VinodexUITests` target whose files open with
-`#if canImport(SwiftUI) && canImport(UIKit)`, matching the convention all 34
-files in `Sources/VinodexUI/` already use. On Linux it compiles to an empty
-module and the Linux job stays green; on the simulator the tests actually run.
-The developer never touches a Mac — they push and read the CI result.
+Two local checks also now exist, and they are the ones a maintainer actually
+runs before pushing — neither existed when this audit was written:
+
+- **`scripts/typecheck-ios-surface.sh`** copies the tree, shims UIKit
+  (`typecheck-shim.swift`) and type-checks all of `VinodexUI`/`VinodexApp`
+  against the macOS SDK. It reproduced all six of the BookmarksScreen
+  actor-isolation errors that broke CI on 2026-07-31, at identical
+  `file:line:col`. It is the only thing on either maintainer's machine that sees
+  the UI layer at all, and it catches more than CI's `ios` job does — that job
+  stops after its first batch of files, so one error hides every file
+  alphabetically after it.
+- **`scripts/typecheck-core-tests.py`** strips the swift-testing macros and
+  type-checks all 22 test files against the built `VinodexCore`. Until it
+  existed, the test target was checked by *nothing* locally.
+
+**Still missing, and still this section's real remainder:**
+
+- **No `VinodexUITests` target.** `Package.swift` declares only
+  `VinodexCoreTests` depending on `VinodexCore`, so nothing can link against
+  `VinodexUI` — which is why **M14**, **L19** and **L20** cannot be closed where
+  they stand. The `ios-test` job is now the place such a target would run: guard
+  every file with `#if canImport(SwiftUI) && canImport(UIKit)`, exactly as all
+  files in `Sources/VinodexUI/` already are, and it compiles to an empty module
+  on Linux while running for real on the simulator.
+- **`swift test` has still never been executed by a maintainer.** Both AUDIT
+  passes say so explicitly. CI is the first thing that runs these suites, and
+  the CI runs happen on push — so the 22 test files, four of them written on
+  2026-08-03, are type-checked locally and *executed* nowhere yet.
 
 Longer term, the structural fix is the one **M17**, **M18**, **L19** and **L20**
-each ask for individually: move pure logic out of `VinodexUI` into `VinodexCore`,
-where it is testable on the Linux host the developer actually works on. Every
-line moved is a line that stops depending on a device to verify.
+each asked for individually: move pure logic out of `VinodexUI` into
+`VinodexCore`, where it is testable on the Linux host the developer works on.
+**M17 is now done** (`EntryPalette.swift`), and it is the proof the pattern
+works — a file move plus a test file, no device required. M18, L19 and L20 are
+the same shape and still undone.
 
-Also fix the CI trigger while you are there: `on:` is scoped to `branches: [main]`,
-so pushes to `audit` and to the `vN.N-batch` branches — where all the work happens
-— run nothing at all.
+## What actually moved
+
+Nine items closed between 2026-07-31 and 2026-08-03, none of them by work aimed
+at this file. Recorded here because the mapping is the useful part — an AUDIT ID
+is where the reasoning lives:
+
+| auditS | Closed by | What landed |
+|---|---|---|
+| **C1** | — | The two-condition guard, plus CI's `ios` job so it cannot recur |
+| **M11** | AUDIT **M33** | Eight filter-branch tests; found and fixed two live bugs |
+| **M12** | AUDIT **M33** | `StyleInferenceTests`; the false doc comment corrected |
+| **M16** | — | `ios` + `ios-test` jobs, `branches: ['**']` |
+| **M17** | AUDIT **M29** | `EntryPalette.swift` in Core + `EntryPaletteTests` |
+| **L4** | AUDIT **M6** | `Diagnostics.emit()` behind `#if DEBUG`, off-main |
+| **L7** | AUDIT **L10** | `dismantleUIView` + `detach(from:)` — *not* `deinit` |
+| **L12** | — | No committed file leaks a username or home path |
+| **L15** | AUDIT **M47** | `DexRouteTests` walks all 28 routes |
+
+Two of those closures contradict the fix this file proposed, and the AUDIT
+entries say why. **L7**: a `deinit` on `GlobeModel` could never have worked — the
+run loop retains the link, which retains the proxy, so the model's `deinit` never
+fires while the link is live; the teardown had to hang off `dismantleUIView`, and
+it had to be conditional or an `.id(…)` skin change would freeze the globe.
+**M11/M12**: the branch tests this file asked for turned up two shipped bugs
+neither audit predicted — `Rosé` and `Orange Wine` opened their COLOR chip onto
+an empty list, and `Prosecco` was labelled a rosé because `colorType` matched
+`"rose"` inside `"p-rose-cco"`.
 
 ---
 
 ## Critical
 
-- [ ] **C1** · Test · `swift build`/`swift test` fail on macOS — VinodexApp guarded only by `canImport(SwiftUI)` but references UIKit-gated VinodexUI symbols (`TextScale` not found; verified by building) · `Sources/VinodexApp/VinodexApp.swift:1` → change guard to `#if canImport(SwiftUI) && canImport(UIKit)`
+- [x] **C1** · Test · `swift build`/`swift test` fail on macOS — VinodexApp guarded only by `canImport(SwiftUI)` but references UIKit-gated VinodexUI symbols (`TextScale` not found; verified by building) · `Sources/VinodexApp/VinodexApp.swift:1` → change guard to `#if canImport(SwiftUI) && canImport(UIKit)`
   **@0731 STILL OPEN in committed code — fix staged in the working tree.** The guard at
   `b48ad20` is still the single-condition form, while all 34 VinodexUI files use the
   two-condition form (32 with `canImport(SwiftUI) && canImport(UIKit)`, plus
@@ -132,6 +265,18 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   Mac: it then fails on `no such module '_Testing_Foundation'`, because swift-testing
   ships with full Xcode, not with CLT. That is a separate environment constraint, not a
   repo defect — see [The testing gap](#the-testing-gap).
+  **@0803 RESOLVED.** `Sources/VinodexApp/VinodexApp.swift:1` reads
+  `#if canImport(SwiftUI) && canImport(UIKit)`, matching every file in
+  `Sources/VinodexUI/`. **Still uncommitted** — it is one of 85 dirty paths in the
+  working tree, so `HEAD` (`da787a8`) is still broken and this closure evaporates
+  under `git stash`. Ticked anyway, because the item is about the code, and the
+  regression guard the finding really wanted now exists independently of it: CI's
+  new `ios` job compiles the whole package for `generic/platform=iOS` on `macos-15`,
+  which is the only gate that can see this class of error. Its own comment names
+  this finding — *"that is exactly the class of break that shipped as auditS C1"*.
+  The tail of the item stands: `swift test` on a CLT-only Mac still fails on
+  `_Testing_Foundation`, and neither maintainer has ever run it. See
+  [The testing gap](#the-testing-gap).
 
 
 ## High
@@ -166,6 +311,44 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   provenance for the 254 art PNGs and 4 SFX files (author, commission/ownership terms)
   in the same NOTICE so the first-party claim is documented rather than implied by code
   comments.
+  **@0803 STILL OPEN, and it is now the only row on this list with nothing moving in
+  it.** No LICENSE, no NOTICE, no in-app credits; `README.md` still names only
+  game-icons. AUDIT **M36** records why, and it is not engineering: the maintainer
+  deferred the top-level LICENSE on 2026-08-03 as an ownership decision
+  (all-rights-reserved / MIT / a split keeping the drawn art proprietary), and a
+  NOTICE is blocked behind a second deferred question — `DexSound.swift` calls the
+  four SFX "the authored SFX pack", which does not distinguish *we made them* from
+  *we licensed a pack*, so a NOTICE written today would assert first-party ownership
+  of four files nobody has confirmed. **Both are one-sentence answers from the owner.**
+  **Counts in this item are wrong and are superseded** — the corpus was re-derived
+  from `icons.json` on 2026-08-03: **68 unique ids, not 92/99** — **55 game-icons
+  (CC BY 3.0)**, **12 lucide (ISC)**, **1 mdi (Apache-2.0)** — shipped as **204 PNGs**
+  (68 × three scales), of which the CC BY subset is **165**. AUDIT M36 reached the
+  same 55/12/1 split independently, and notes its own "11 lucide" was off by one.
+  **The one thing that is no longer a question:** both fonts' licences were read
+  straight out of their `name` tables (nameID 13/14) — Press Start 2P, *"Copyright
+  2012 The Press Start 2P Project Authors, with Reserved Font Name"*, SIL OFL 1.1;
+  VT323, *"Copyright 2011, The VT323 Project Authors"*, SIL OFL 1.1, no reserved
+  name. Both ship unmodified, so
+  the RFN is satisfied. That is **M1**'s entire research half, done — see M1.
+  **Now at** `README.md Credits; scripts/rasterize-icons.sh:81 (the fetch);
+  Sources/VinodexUI/Resources/Icons/ (204 PNGs, 68 ids)`.
+  **@0805 PARTIAL — the NOTICE half landed; in-app credits remain.** `NOTICE.md`
+  now credits all 68 ids by artist: the 55 game-icons were mapped to their
+  authors via the game-icons repo tree — Delapouite 31, Lorc 16, Caro Asercion
+  3, sbed (death-skull), Lorc & sbed (clover), Rihlsul (chocolate-bar),
+  Willdabeast (gold-bar), and `rock` credited to both publishers of that id —
+  with the CC BY 3.0 link, a modifications note (recolor + rasterize, no shape
+  edits), the Lucide ISC/Feather-MIT text and the Apache-2.0 text vendored under
+  `licenses/`. Lucide detail the audit line missed: `circle` and `triangle` are
+  Feather-derived, so the MIT rider in Lucide's LICENSE applies to them; the
+  vendored file carries both parts. Still owed: the in-app credits surface —
+  CC BY's reasonable-to-the-medium standard wants attribution reachable from
+  the product, not only the repo.
+  **@0806 — deferred at the owner's direction.** The credits surface is
+  scheduled behind the release work, not forgotten; H1 stays partial by
+  choice. It re-enters scope with the release checklist, alongside H2's
+  permission-or-swap gate.
 
 - [ ] **H2** · Compliance · 465 pixel-art flag PNGs redistributed (28 shipped in-app) with no license or provenance — filenames like `r_vexillology.png` indicate an unattributed community pack · `pixelflags/` → identify the pack's origin and license; document rights or replace the artwork
   **@0731 STILL OPEN** — Completely unaddressed — not one commit has touched pixelflags/
@@ -173,7 +356,7 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   origin. The shipped surface ticked up by one flag (mexico.png, 28 -> 29). Two
   aggravating details the original audit did not call out. First, the redistributed pack
   is broader than flags: pixelflags/Other/Tech-Brands holds mcdonalds.png, twitter.png,
-  tiktok.png, youtube.png, discord.png, bluesky.png and email.png — pixel renderings of
+  tiktok.png, youtube.png, discord.png and bluesky.png — pixel renderings of
   registered trademarks — and pixelflags/Other/Organizations holds nato.png,
   olympics.png, united_nations.png, world_health_organization.png, royal_air_force.png
   and order_of_malta.png, several of which are protected by statute independently of
@@ -197,8 +380,47 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   emblems in pixelflags/Other/Organizations — those are a trademark exposure that no
   upstream license would cure. Add a check to scripts/rasterize-icons.sh that refuses to
   copy from a flag source lacking a sibling LICENSE file.
+  **@0803 STILL OPEN, and the pack moved without being touched.** Commit `7c19238`
+  relocated it to **`shared/pixelflags/`** — the cross-repo master mirrored from
+  `HGapps\shared`, because the web app consumes the same set. Still **465 PNGs, 0
+  provenance files**, still **88 under `Other/`**. The relocation makes the remedy
+  *harder*, not easier: `git rm -r shared/pixelflags/Other` now has to be mirrored
+  into the master or `sync-shared.ps1` puts it straight back. The shipped surface
+  grew again, **29 → 33 flags**, with the batch-2 FR/IT/ES expansion.
+  **@0805 — origin and license identified; the item's untraceable-pack premise is
+  answered.** The pack is **PixelFlags by R74n** (r74n.com/pixelflags — "flags I
+  created in 2020 during the pandemic", 634 flags there now), and R74n *does*
+  publish terms, just not on the page: the **R74n Content License v1.1**
+  (r74n.com/license.txt, reachable via the site's `llms.txt`; vendored at
+  `licenses/LICENSE-r74n.txt`, which its own text permits). Terms: clear credit
+  required (§3 — `NOTICE.md` now provides it), **no commercial use without
+  explicit permission** (§2), removal on demand (§1), and derivatives of their
+  content are theirs to reuse freely (§4). So the redistribution half of this
+  item is cured — credited, license on file — but §2 makes the pack unusable in
+  the planned **paid** release: the owner's call (2026-08-05) is to obtain
+  written permission or recreate the 33 shipped flags first-party, and §4 means
+  a recreation must be drawn from the real flag designs, not R74n's pixels.
+  The 465-file pack (and its `Other/` trademark exposure) remains **M5**'s
+  deletion candidate, and any `git rm` still has to be mirrored into the
+  `HGapps\shared` master or `sync-shared.ps1` restores it.
+  **@0806 — the remedy is built and shelved; open only on the paid-release
+  condition.** A complete first-party replacement now exists: all 33 shipped
+  flags recreated as pixel art drawn in code from each flag's official
+  construction and published colors (`scripts/generate-flag-art.py` ->
+  `art/flags/<slug>.png`; canvas contract matched — 32x18 RGBA, hard alpha,
+  full-bleed, Switzerland square on transparency — so `icons.json` and every
+  consumer are untouched by the eventual swap). Per §4 the recreations were
+  drawn from the real flag designs, not R74n's pixels — R74n's files were
+  not opened during the work (only their PNG metadata: dimensions, alpha
+  coverage, palette sizes). The owner's call (2026-08-06): development
+  builds keep shipping the credited R74n set — non-commercial use, which the
+  license permits — and a permission request for the paid release has been
+  emailed to R74n. So the bundle still copies `shared/pixelflags/`, and
+  flipping the `rasterize-icons.sh` flag block to `art/flags/` is the whole
+  swap if permission is refused. `NOTICE.md` records the same status. The
+  465-file pack (and `Other/`) remains **M5**'s deletion candidate.
 
-- [ ] **H3** · Compliance · No PrivacyInfo.xcprivacy despite required-reason UserDefaults API use — guarantees ITMS-91053 App Store rejection · `Package.swift:29` → add PrivacyInfo.xcprivacy declaring UserDefaults category with reason CA92.1 and bundle it as a resource
+- [x] **H3** · Compliance · No PrivacyInfo.xcprivacy despite required-reason UserDefaults API use — guarantees ITMS-91053 App Store rejection · `Package.swift:29` → add PrivacyInfo.xcprivacy declaring UserDefaults category with reason CA92.1 and bundle it as a resource
   **@0731 STILL OPEN** — Not merely unfixed but materially larger: the required-reason
   UserDefaults surface grew from 3 files to 13 (a 4.3x increase) across the
   v0.5.0-v0.6.3 feature work, while the privacy manifest that must declare it still does
@@ -218,6 +440,42 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   it at the .app bundle root rather than nested inside Resources/ — Apple's scanner only
   reads the top level. Add a CI or pre-release check that fails when no *.xcprivacy is
   present, so the 3-to-13 growth pattern cannot repeat unnoticed.
+  **@0803 STILL OPEN.** No `*.xcprivacy` exists anywhere in the tree. Two things
+  changed around it, both of which enlarge the manifest rather than the fix. (1) The
+  persisted surface is now **enumerable and exactly 20 keys** — `SavedDataKey`
+  (`Sources/VinodexCore/SavedData.swift`) owns every literal and `allCases` drives
+  both the wipe and the new archive, so the required-reason declaration can be
+  written *from the enum* instead of from a grep. That is the one genuinely easier
+  thing here. (2) AUDIT **M35** added `SavedDataArchive` with BACK UP / RESTORE,
+  which writes a user-exportable JSON document — so the file-system surface is no
+  longer just `ProfileAvatar`'s `avatar.jpg`, and the `NSPrivacyAccessedAPICategory
+  FileTimestamp` (C617.1) question the item raises now has a second call site to
+  answer for. `Package.swift`'s resource blocks are still untouched.
+  **@0804 FIXED** — `Sources/VinodexApp/PrivacyInfo.xcprivacy` exists, lints
+  (`plutil -lint`), and declares exactly one accessed-API category:
+  `NSPrivacyAccessedAPICategoryUserDefaults` / `CA92.1`, with
+  `NSPrivacyTracking=false` and empty tracking-domain and collected-data
+  arrays, as specified above. It rides the **VinodexApp** target (not the
+  VinodexUI path this item proposed) via `.copy` of the single file, which
+  puts it at the *root* of `Vinodex_VinodexApp.bundle` — the nesting concern
+  this item raised about `.copy("Resources")` was real, and the app-level
+  target is the honest owner since all three modules link into one binary.
+  **The C617.1 question is answered: no.** Both call sites this item flagged —
+  `ProfileAvatar` and the `SavedDataArchive` export — go through
+  `Data(contentsOf:)`/`write(to:)`/`removeItem` only; no
+  creationDate/modificationDate/attributesOfItem/stat call exists anywhere in
+  `Sources/`, and boot-time/disk-space/keyboard APIs are likewise absent. The
+  enumeration and the re-check recipe are recorded in the manifest's own
+  comment block. The CI guard this item asked for exists: the `test` job fails
+  if the file goes missing or stops declaring the UserDefaults category, so
+  the 3-to-13-files growth pattern cannot repeat unnoticed. **One residual,
+  recorded rather than left open** (same treatment as AUDIT M35's
+  unimplementable migration hook): Apple's scanner reads the `.app` bundle
+  root, and xtool has no passthrough to place a file there — the identical gap
+  that blocks **M6**'s Info.plist source and arch **P5**'s bundle version.
+  When a signing pipeline exists, promote this file to the `.app` root
+  alongside those; until then the resource-bundle root is the closest
+  placement the build system can express.
 
 - [ ] **H4** · Compliance · Placeholder bundleID `com.example.Vinodex` on a free profile blocks App Store/TestFlight, and nothing enforces its replacement · `xtool.yml:8` → register a real reverse-DNS App ID on a paid account; add a release check failing on `com.example` prefixes
   **@0731 STILL OPEN** — Both halves of the finding are untouched. The placeholder
@@ -234,6 +492,18 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   day-to-day free-profile development on com.example is still possible. A repo-root
   Makefile/npm `preflight` target bundling this check with the H3 xcprivacy check would
   give one gate for both App Store blockers.
+  **@0803 STILL OPEN on both halves, but half the item's *consequence* is now paid
+  for.** `xtool.yml:8` is still `com.example.Vinodex` and CI gained two more jobs
+  without gaining the guard. What changed is what the ID change would have cost:
+  AUDIT **M35** established that "a data-migration step" is not implementable at all
+  — on iOS the bundle ID *is* the container identity, so a new App ID gets an empty
+  `Library/Preferences/<bundleID>.plist` and cannot read the old one — and shipped
+  `SavedDataArchive` + BACK UP / RESTORE instead, an export the user carries across.
+  The intended ID is recorded (`com.blaikooz.vinodex`, which existed at `b59cafb`
+  and was reverted at `b732221` for the quota), so no naming decision is
+  outstanding. **The enforcement half is untouched and is still the cheap one** —
+  and it is cheaper now than when this was written, because a release job has four
+  sibling jobs to sit beside instead of one.
 
 - [ ] **H5** · Test · Shipped daily-pick path `entry(for:in:)` (category rotation + empty-pool fallback) has zero tests — DailyPickTests only exercise `grape()`, which no production code calls · `Sources/VinodexCore/DailyPick.swift:42` → test `entry(for:in:)` rotation, `category(for:)` cycle, and empty-category fallback; delete or wire unused `grape()`/`isSameDay`
   **@0731 PARTIAL** — The headline gap is closed. The shipped path is now
@@ -263,11 +533,35 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   rotation cases are not silently testing an unreachable path. Consider folding the
   remaining DailyPickTests cases into MinigameTests so all DailyPick coverage lives in
   one suite.
+  **@0803 PARTIAL — residual (a) closed, (b) and (c) unchanged.** AUDIT **M32**
+  landed the fixture this needed. `Tests/VinodexCoreTests/DatabaseFixture.swift`
+  (`DBFixture`) builds a `WineDatabase` over hand-written JSON, and five new tests in
+  `DailyRevealTests` reach the branches no test could touch before: *an empty
+  database reveals nothing rather than trapping* (`MinigameTests.swift:292`), *a
+  database with no grapes, regions or styles* (`:305`), *one surviving category
+  carries every day of the rotation* (`:315`), and *the fallback walks the rotation
+  order, not the database order* (`:331`) — that last one loads the style first, so
+  a naive "take the first entry" implementation fails it. **That is the empty-pool
+  fallback and the `return nil` the audit named, both now executed.** Two more pin
+  the pre-epoch case (`:344`, `:356`).
+  The fixture takes JSON and not Swift literals for a reason worth knowing: all five
+  `WineEntry` variants declare `init(from:)` in the type body, which suppresses the
+  synthesised memberwise initialiser, so **a `WineEntry` cannot be constructed by
+  hand at all**. Going through `decodeEntries(from:)` is the app's real load path,
+  so a fixture that stops decoding is one that has drifted from the schema.
+  **Residuals (b) and (c) are verbatim.** `DailyPick.grape(for:in:)` and `isSameDay`
+  still have **zero production callers** — grepped 2026-08-03 — so the "delete or
+  wire" half was not done, `DailyPickTests.swift` is untouched since `fb5dcf2`, and
+  its suite name "Grape of the day" still names a feature that no longer works that
+  way. The `entry(for:in:calendar:)` wrinkle stands too. AUDIT L3 already calls
+  `isSameDay` "vestigial (test-only) — a candidate for dead-code removal"; nobody
+  has removed it. **Now at** `DailyPick.swift:76` (`grape`), `:94` (`isSameDay`) ·
+  `MinigameTests.swift:292–366` (the new coverage).
 
 
 ## Medium
 
-- [ ] **M1** · Compliance · OFL fonts PressStart2P and VT323 redistributed (repo + app bundle) without the required OFL license text and copyright notices · `Sources/VinodexUI/Resources/Fonts/` → add OFL.txt with each font's copyright notice beside the .ttf files and bundle it
+- [x] **M1** · Compliance · OFL fonts PressStart2P and VT323 redistributed (repo + app bundle) without the required OFL license text and copyright notices · `Sources/VinodexUI/Resources/Fonts/` → add OFL.txt with each font's copyright notice beside the .ttf files and bundle it
   **@0731 STILL OPEN** — Unchanged in substance. The two .ttf files are byte-identical
   to the audit tree, still copied into the app bundle and registered at launch, and
   there is still no OFL.txt, no copyright notice, and no in-app credits surface. A
@@ -283,8 +577,26 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   `.copy("Resources")` in Package.swift. Then surface a credits row in SettingsPanel
   that names the fonts, the license and the copyright holders — the README bullet at
   README.md:224 is not distributed with the binary.
+  **@0803 STILL OPEN — but the research half is done and the item is now purely
+  clerical.** No `OFL.txt`; the two `.ttf` files are unchanged. What no longer needs
+  investigating is the exact text OFL requires, which AUDIT **M36** read straight out
+  of the fonts' own `name` tables (nameID 13/14): **Press Start 2P** — *"Copyright
+  2012 The Press Start 2P Project Authors, with Reserved Font Name"*, SIL OFL 1.1;
+  **VT323** — *"Copyright 2011, The VT323 Project Authors"*, SIL OFL 1.1, no
+  reserved name. Both ship unmodified, so
+  the RFN is satisfied and no rename is needed. **Unlike H1 and M2, this item is not
+  waiting on the maintainer** — the two copyright lines above plus the OFL 1.1 text
+  in `Sources/VinodexUI/Resources/Fonts/OFL.txt` closes it, and it ships via the
+  existing `.copy("Resources")`. Registration is now at
+  `Sources/VinodexUI/DexTheme.swift:462` (the file was split by AUDIT M30).
+  **@0805 RESOLVED.** `Sources/VinodexUI/Resources/Fonts/OFL.txt` exists: both
+  fonts' copyright notices — re-extracted verbatim from the `.ttf` name tables
+  (nameID 0) this pass, not copied from this document — above the full OFL 1.1
+  body, shipping beside the `.ttf` files via the existing `.copy("Resources")`
+  with no target change. The repo-facing half is mirrored in `NOTICE.md`'s
+  Fonts section.
 
-- [ ] **M2** · Compliance · Publicly published repo has no LICENSE file and states no terms anywhere — defaults to all-rights-reserved while redistributing third-party content · `README.md:6` → choose and commit a top-level LICENSE, propagated by the monorepo publish script
+- [x] **M2** · Compliance · Publicly published repo has no LICENSE file and states no terms anywhere — defaults to all-rights-reserved while redistributing third-party content · `README.md:6` → choose and commit a top-level LICENSE, propagated by the monorepo publish script
   **@0731 STILL OPEN** — Still no LICENSE and still no statement of terms anywhere. The
   README gained a `## Credits` section since fb5dcf2 that names game-icons and the two
   fonts, but it grants nothing and states no terms — the repo remains implicit all-
@@ -298,6 +610,28 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   "propagated by the monorepo publish script" clause is now moot — KNOWN-
   ISSUES.md:370-384 records that `scripts/publish-swift.mjs` and the mirror were deleted
   on 2026-07-29, so this repo is the only place the file has to land.
+  **@0803 STILL OPEN, and it is the blocking item of the four.** No LICENSE. AUDIT
+  **M36** was deliberately held on 2026-08-03 at the maintainer's direction for
+  exactly this: the choice between all-rights-reserved, MIT, and a split that keeps
+  the drawn art proprietary is an ownership call, not a technical one. **H1, M1 and
+  L1 all want a NOTICE that carves out territory this file has to define first**, so
+  the ordering is M2 → NOTICE → the rest. The carve-out list has grown: it is now
+  `shared/pixelflags/` (moved), `Sources/VinodexUI/Resources/{Icons,Fonts,Maps,SFX}`
+  **plus the four drawn-art directories** — `ClassArt` (94), `FlavorArt` (96),
+  `GrapeArt` (33), `StyleArt` (30) — and `art/`, which AUDIT **H12** established is
+  the only surviving copy of every drawn source. 501 binaries under `Sources/` now,
+  up from 492.
+  **@0805 RESOLVED.** The ownership call arrived — **all-rights-reserved**, the
+  owner's explicit choice given the app will eventually charge — and the
+  top-level `LICENSE` landed with exactly the carve-out this item asked for: ARR
+  on first-party content, third-party components expressly excluded and
+  inventoried in `NOTICE.md` with texts under `licenses/` and beside the assets.
+  The ordering this item predicted (M2 → NOTICE → the rest) is how it fell:
+  H1's credits, M1's OFL.txt, L1's map record and M4's provenance doc all landed
+  in the same pass. Residual, recorded not blocking: the copyright line names
+  the git identity `mirrorfarm`; swap in the legal name or entity before store
+  submission (same decision L2's back-plate notice needs), and package.json
+  still has no `"license"` field — moot for the app, one line if wanted.
 
 - [ ] **M3** · Compliance · Chassis replicates Pokédex trade dress — #DC0A2D red, #98CB98 green LCD, blue orb lens, red/yellow/green LEDs, "-dex" naming (no Nintendo names/assets present) · `Sources/VinodexUI/DexTheme.swift:48` → differentiate chassis colorway, lens, and LED cluster; obtain legal review before release
   **@0731 WORSE** — Every element the audit named is still present in the default,
@@ -324,8 +658,20 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   matrix" comments at :913 and :486, which are an admission of intent in the source. (d)
   Delete `#98CB98` at :51 — it is unused. (e) Legal review before release still applies
   and now covers Nintendo, Paramount and Apple, not Nintendo alone.
+  **@0803 STILL WORSE — unchanged in substance, and every line anchor above is now
+  stale.** AUDIT **M30** split `DexTheme.swift` (1661 → 499 lines) into
+  `ScreenModes.swift` and `ChassisSkins.swift`, which was pure code motion: it moved
+  the exposure, it did not reduce it. Re-pinned 2026-08-03:
+  - `#DC0A2D` — `DexTheme.swift:48` (unchanged)
+  - `#98CB98` — `DexTheme.swift:51`, **still dead code**, still not deleted
+  - `case starTrek = "STAR TREK"` — `ScreenModes.swift:74`
+  - the "DMG dot-matrix" comment — `ScreenModes.swift:75-76`; `"GRÜNERBOY"` at `:94`
+  - the DMG palette commentary — `ChassisSkins.swift:100`, `:461`, `:536`, which
+    still says the buttons are *"the DMG's burgundy … aged into leather"*
+  Remedy (d) is a one-line deletion that has now survived two passes. The rest is
+  unchanged, including (e): the review still covers Nintendo, Paramount and Apple.
 
-- [ ] **M4** · Compliance · Wine dataset authorship unrecorded while the upstream monorepo commits a copyrighted 4.5 MB Sotheby's encyclopedia as a data source · `KNOWN-ISSUES.md:284` → document dataset provenance in shared/, confirming independence from the Sotheby's text
+- [x] **M4** · Compliance · Wine dataset authorship unrecorded while the upstream monorepo commits a copyrighted 4.5 MB Sotheby's encyclopedia as a data source · `KNOWN-ISSUES.md:284` → document dataset provenance in shared/, confirming independence from the Sotheby's text
   **@0731 WORSE** — Two things moved and both moved the wrong way. The undocumented
   corpus grew from 284 to 375 entries (+32%) across shared/data/grapes.ts, regions.ts,
   styles.ts and countries.ts, with authorship still recorded nowhere. And the KNOWN-
@@ -344,6 +690,27 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   delete the exposure. If any of the 375 entries' prose was in fact paraphrased from
   that text, that has to be established before release, and the +91 new entries need the
   same check.
+  **@0803 STILL WORSE — the corpus grew again and provenance is still recorded
+  nowhere.** `shared/PROVENANCE.md` does not exist. Entries are now **405**
+  (146 GRAPES · 116 REGIONS · 106 FLAVORS · 31 STYLES · 6 CONTINENTS), up from 375
+  at the last pass and **284 at the audit — +43%**, with the FR/IT/ES expansion in
+  `295bda8` adding the newest tranche. The only place the Sotheby's exposure is
+  written down anywhere in the repo is now **`godot-md/arch.md:238`**, and it
+  survives there only as a *reference to a deleted line* — "the 4.5 MB copyrighted
+  Sotheby's text noted at `KNOWN-ISSUES.md:284`", which no longer exists. So the
+  record is not merely gone, it is now a dangling citation. Restoring a short note
+  is still the first half of this fix, and it is cheaper than the checking half.
+  **@0805 RESOLVED.** `shared/PROVENANCE.md` exists with both halves the remedy
+  named: per-collection first-party authorship over all eight `shared/data/`
+  files (owner declaration, 2026-08-05; 405 entries — 146/116/106/31/6) and the
+  explicit statement that no text derives from
+  `sothebys-wine-encyclopedia-2005.raw.txt` — plus the restored standing record
+  that the file exists in `blaikooz/vinodex`, is not a source here, and is
+  scheduled for an upstream history purge, with the note written to outlive the
+  purge as its documentation. The checking half rests on the owner's recorded
+  assertion of authorship rather than a text diff; that is what the remedy's
+  "confirming independence" can mean for a 405-entry corpus, and the assertion
+  is now on the record with a date.
 
 - [ ] **M5** · Compliance · Repo redistributes pixel renderings of trademarked logos (McDonald's, TikTok, Twitter, YouTube, Discord, Olympic rings) that the app never uses · `pixelflags/Other/` → delete `pixelflags/Other`, or at minimum the brand-logo and Olympic files
   **@0731 STILL OPEN** — Byte-for-byte unchanged since the tree the audit was written
@@ -359,6 +726,14 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   and drop `Other/` entirely; a partial delete of just Tech-Brands and Organizations
   leaves `Cultural-Religious-Language/` and `Nautical/`, which is defensible but leaves
   the same unlicensed-pack question (H2) open.
+  **@0803 STILL OPEN, and the delete got a step harder.** All **88** files under
+  `Other/` are intact and still shipped by nothing. The path is now
+  **`shared/pixelflags/Other/`** (commit `7c19238`), and `shared/` is the cross-repo
+  master mirrored from `HGapps\shared` by `sync-shared.ps1` — so the remedy is
+  `git rm -r shared/pixelflags/Other` **plus the identical removal in the master**,
+  or the next sync restores it. Verify the web app does not reference `Other/` before
+  removing it from the master; nothing in this repo's `Sources/`, `scripts/` or
+  `shared/data/` does.
 
 - [ ] **M6** · Compliance · No Info.plist source — export-compliance key, display name, and app version cannot be set · `xtool.yml:9` → add an Info.plist source with `ITSAppUsesNonExemptEncryption=false`, display name, and versions
   **@0731 STILL OPEN** — No Info.plist source exists and xtool.yml is byte-identical to
@@ -383,6 +758,30 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   and UISupportedInterfaceOrientations portrait-only. Once it exists,
   AppVersion.placeholders becomes removable and the H3 PrivacyInfo.xcprivacy gains a
   home.
+  **@0803 STILL OPEN — and the fix above was investigated and is not viable.** No
+  Info.plist source exists. The `infoPath:` key this item proposes **does not exist
+  in xtool 1.17**: AUDIT **M17** checked it directly and recorded the finding in
+  `xtool.yml` itself, in a comment that now runs 15 lines. `version:` in that file is
+  the *config-schema* version, not the app's; xtool generates the Info.plist itself
+  and `xtool.yml` is not a passthrough for it. So the item's remedy would have added
+  a key that reads as a declaration while doing nothing — which is exactly what the
+  AUDIT entry says it refused to do. **Treat the missing plist as a blocker to
+  record, not a gap to work around** — the item's own escape clause ("if it does not,
+  that is a blocker to record rather than to work around") is now the operative half.
+  One of the four consequences is independently fixed, by a mechanism the plist could
+  not have beaten: **portrait lock is real**, via
+  `AppDelegate.application(_:supportedInterfaceOrientationsFor:)` returning
+  `.portrait`, wired with `@UIApplicationDelegateAdaptor`. That callback is consulted
+  per window and takes precedence over the plist regardless, so it is the stronger
+  mechanism, not a fallback.
+  **The other three stand and one grew.** `ITSAppUsesNonExemptEncryption` still
+  cannot be set, so every App Store Connect upload stalls on export compliance;
+  there is still no `CFBundleDisplayName`; and every build still reports
+  `CFBundleShortVersionString 1.0.0` with `AppVersion.placeholders` patching what
+  the back plate *prints*. The declarations with nowhere to live now include AUDIT
+  **M35**'s `SavedDataArchive` export alongside the photo picker. **What this
+  actually blocks on is H4** — a real signing pipeline, at which point both this and
+  M37's bundle-version half reopen together.
 
 - [ ] **M7** · Compliance · No privacy policy anywhere despite the app storing a user-entered display name locally · `README.md` → write a privacy policy stating local-only storage; link it from the README
   **@0731 WORSE** — Still zero privacy policy, and the thing a policy would have to
@@ -408,6 +807,24 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   all of it (accurate per SettingsPanel.swift:1226). App Store Connect also needs a
   hosted URL for this, and it must agree with the PrivacyInfo.xcprivacy that H3
   requires.
+  **@0803 STILL WORSE, and the policy now has to describe a new *capability*, not
+  just more keys.** No `PRIVACY.md`. Two changes:
+  - **The key list is now authoritative and is 20, not 19.** `SavedDataKey`
+    (`Sources/VinodexCore/SavedData.swift`) owns every persisted literal, and AUDIT
+    **M35** found the old hand-kept 17-key array had silently drifted —
+    `recentlyViewedEntryIDs`, `starterTierOnly` and `grantedEntitlements` were
+    persisted and cleared through their stores and never appeared in it. **Write the
+    policy's enumeration from `SavedDataKey.allCases` and it cannot drift again.**
+  - **BACK UP / RESTORE is a new claim to make.** `SavedDataArchive` writes the whole
+    device state to a JSON document the user exports — so "all data is on-device" is
+    now conditionally false in a way a policy must state: it is on-device *unless the
+    user exports it*, at which point it goes wherever they send it. One deliberate
+    asymmetry belongs in the policy too: `export` records `starterTierOnly` and
+    `grantedEntitlements`, and `apply` **refuses** both, because an importable
+    entitlement list is a free unlock for anyone with a text editor.
+  Deletion is still complete and still honestly promisable — `wipeAll()` now
+  iterates `allCases` rather than a hand-kept array, which is strictly better than
+  what the 2026-07-31 note credited it with.
 
 - [x] **M8** · Security · One malformed entry fails the entire `[WineEntry]` decode, shipping an app with zero entries — one bad regeneration from a bricked launch · `Sources/VinodexCore/WineDatabase.swift:249` → decode entries individually via a lossy wrapper, recording per-entry failures in `decodeErrors`
   **@0731 RESOLVED** — This is a genuine per-entry lossy decode, not a doc note: one
@@ -421,6 +838,16 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   these tests only actually execute on the Linux CI runner, because `swift test` fails
   to build on macOS at HEAD (VinodexApp.swift:1 lacks `&& canImport(UIKit)`) — that is a
   separate finding, and the VinodexCore fix itself is correct and compiled.
+  **@0803 STILL RESOLVED, and generalised past what this item asked for.** AUDIT
+  **M46** rebuilt the loader around `ResourceLoad<T>` — one `loadResource(_:from:)`
+  naming the same three outcomes for all five optional tables, so per-entry lossy
+  decode is no longer the one place robustness lives. Caveat (b) above is void: C1 is
+  fixed, so these tests build on macOS, and CI now runs them on Linux *and* on the
+  iOS Simulator. Caveat (a) is now covered by a test rather than merely intended —
+  `LoaderFallbackTests` walks every branch through `WineDatabase(reading: .fixture)`,
+  including *a well-formed but empty catalogue is still a fault*, a hole M46 found
+  that this item did not name: a valid empty array reported nothing at all, so a
+  build with no catalogue showed NO DATA FOUND everywhere and never raised the alert.
 
 - [ ] **M9** · Test · Paywall gate `open`/`openRoute` has zero test coverage and already regressed once per its own comment · `Sources/VinodexApp/VinodexApp.swift:47` → move the gate and pure route-resolution logic into VinodexCore; add host tests
   **@0731 STILL OPEN** — Neither half of the recommended fix landed: the gate was not
@@ -441,6 +868,17 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   entry → `.locked`; unlocked entry → `.push(entry.destination)`; `.detail(lockedID)` →
   `.locked` (the exact 0.5.x regression); `.detail(unknownID)` → `.push` unchanged;
   non-`.detail` route → `.push` unchanged.
+  **@0803 STILL OPEN, and it is now the cheapest of the extraction items to take.**
+  No `EntryGate`; `open(_:)` and `openRoute(_:)` are unchanged, only shifted to
+  `VinodexApp.swift:107` and `:120`. But three of the four obstacles the 2026-07-31
+  note listed are gone. `swift test` builds VinodexApp on macOS now (C1). CI's
+  `ios-test` job means a host test would actually *run*. And AUDIT **M47** built the
+  precedent: `DexRoute`'s vocabulary is now pinned by `DexRouteTests`, including
+  `WineEntry.destination`'s `.detail` fall-through — which is one of the five cases
+  this item asks for, already written. The gate itself is the remaining half.
+  **Take it with M18** — same module, same reason, and the pattern is now proven
+  three times over (**M17** → `EntryPalette`, AUDIT M47 → `DexRoute`, AUDIT M32 →
+  `DBFixture`).
 
 - [ ] **M10** · Security · No lockfile — unpinned ts-node/typescript ranges resolve fresh at install and regenerate the shipped app JSON with an unvetted toolchain · `package.json:11` → commit package-lock.json and install with `npm ci`
   **@0731 PARTIAL** — The lockfile commit removes the worst case (a fresh resolve of the
@@ -460,8 +898,22 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   package.json. Either widen the CI drift check to the whole tree (`git diff --quiet`)
   or add package-lock.json to its path list so a lockfile mutation fails the job.
   Correct the stale B3 paragraph at arch.md:743-745.
+  **@0803 STILL PARTIAL — nothing in this item moved, and the anchors need
+  re-pinning.** Verified line by line: `.github/workflows/ci.yml:162` is still
+  `npm install --no-audit --no-fund`, the setup-node step still has no `cache: npm`,
+  the drift check at `:172` is still scoped `git diff --quiet -- Sources/VinodexCore/
+  Resources`, `package.json` still has no `engines` (and no `license`, which
+  **M2** will want), and `README.md:247` and `KNOWN-ISSUES.md:369` both still say
+  `npm install`. `package-lock.json` is tracked, 8,601 bytes.
+  **The stale doc is at `arch.md:753-755`, not `:743-745`**, and it is worse than
+  recorded — three separate paragraphs are now wrong: `:230` files
+  `package-lock.json` as "neither tracked nor ignored", `:339` says "there is no
+  lockfile … Land the lockfile first", and `:896` says the pipeline "cannot use
+  `npm ci`". All three describe a repo that stopped existing on 2026-07-31.
+  **This is a five-line change and it has survived two passes.** It is also the one
+  remaining item that touches the supply chain for the shipped app JSON.
 
-- [ ] **M11** · Test · EntryFilter `.type`, `.tasting`, `.soil`, and `.system` predicate branches have zero test coverage · `Sources/VinodexCore/EntryFilter.swift:105` → add branch tests for each filter case against known entries
+- [x] **M11** · Test · EntryFilter `.type`, `.tasting`, `.soil`, and `.system` predicate branches have zero test coverage · `Sources/VinodexCore/EntryFilter.swift:105` → add branch tests for each filter case against known entries
   **@0731 WORSE** — Untested branch count is unchanged at 4 of 9 predicate cases (the
   new `.flavorSubclass` case did arrive with tests, FilterTests.swift:61-78), but the
   untested lines inside the four named branches roughly doubled — `.type` gained a
@@ -485,8 +937,34 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   EntryFilter.swift:162-168), plus a region case going through the `classification`
   path. Add a small table pinning `scanTitle`/`indicatorText` for all nine cases,
   including `.system("origin")` → "ORIGIN SCAN".
+  **@0803 RESOLVED by AUDIT M33.** All four named branches are covered, by eight new
+  tests in `FilterTests.swift`: `.type` (`:151` colour and style, `:178` the DUAL
+  early-return this item specifically called out, `:198`, `:230`, `:245`), `.tasting`
+  (`:260`, both the classification and the note haystack), `.system` (`:282` through
+  the inferred class, `:313` the raw-classification fall-through for non-styles) and
+  `.soil` (`:329`). One further test — *the indexed and unindexed paths agree on
+  every filter branch* (`:349`) — pins `entries(matching:)` against
+  `[WineEntry].apply` across all nine cases; nothing had been comparing them.
+  `.soil` was reachable only through `DBFixture`, since no shipped call site
+  constructs it, and it was kept rather than deleted: 36 shipped regions carry a
+  `details.soilType` and re-deriving the substring-vs-equality semantics when the
+  GEOLOGY chip ships costs more than the fixture test.
+  **The prediction in this item was right and cost two shipped bugs to prove it.**
+  Writing the branch tests surfaced both, and both are fixed: three COLOR chips
+  (`ROSE`, `ORANGE`) opened onto an **empty list** because `GrapeColor` has only two
+  cases — the same defect D2 fixed for DUAL and left unfixed for these — and
+  **`Prosecco` was labelled a rosé**, because `colorType` matched substrings and
+  "rose" sits inside "p-*rose*-cco". The second was live on the entry page, in the
+  chip text and in the filter behind it. `colorType` now uses `matchesWholeTerm`.
+  **One residual, and it is small.** The `scanTitle`/`indicatorText` table this item
+  asked for is partial rather than absent: AUDIT **M47** pins them for `.region`
+  (`RouteAndSearchStateTests.swift:31-32`) and `scanTitle`/`scanSymbol` for all five
+  `WineEntry` cases (`:190`, `:199`), but not for all nine filter cases. Ticked
+  because the predicate branches — the whole substance of the finding — are done;
+  fold the remaining table into `RouteAndSearchStateTests` whenever that file is next
+  open.
 
-- [ ] **M12** · Test · Hand-transcribed styleClass/colorType keyword tables with load-bearing precedence have no tests despite claiming test-driven placement · `Sources/VinodexCore/EntryDisplay.swift:43` → pin styleClass/colorType outputs and keyword precedence with table-driven tests
+- [x] **M12** · Test · Hand-transcribed styleClass/colorType keyword tables with load-bearing precedence have no tests despite claiming test-driven placement · `Sources/VinodexCore/EntryDisplay.swift:43` → pin styleClass/colorType outputs and keyword precedence with table-driven tests
   **@0731 STILL OPEN** — Still exactly as the audit described, and the consequence of a
   bad table edit is now larger than it was: since fb5dcf2 `styleClass` gained a second,
   non-cosmetic consumer — EntryFilter.swift:162-168 uses it to decide which entries a
@@ -508,6 +986,25 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   literal "STYLE" classification falls through to keywords (EntryDisplay.swift:46). Then
   fix the false comment at :41-42, or make BLEND reachable if the four fallthroughs are
   wrong.
+  **@0803 RESOLVED by AUDIT M33**, including the doc-comment half. The
+  `StyleInferenceTests` suite (`FilterTests.swift:435`) covers what the item asked
+  for: *an explicit classification overrides the keyword tables* (`:437`), *a STYLE
+  classification is not an override* (`:447` — the exact `EntryDisplay.swift:46`
+  fall-through), *keyword precedence is ORIGIN, then TYPE, then METHOD* (`:456`), and
+  *colour precedence is ORANGE, ROSE, RED, WHITE, then DUAL* (`:467`). The
+  31-style table this item requested is covered by walking rather than by
+  transcription — *every style's inferred class round-trips through its own CLASS
+  chip* (`:485`) iterates all shipped styles, which is strictly better: a per-name
+  table goes stale the next time a style is added, and the catalogue has grown twice
+  since this was written.
+  **The false comment is fixed.** `EntryDisplay.swift:62-64` now states the truth —
+  *"`classification: "STYLE"` is not an override — only ORIGIN, METHOD, TYPE and
+  BLEND are … which is why no entry in the database resolves to `.style`"* — which
+  is the second branch of this item's remedy, chosen deliberately over making BLEND
+  reachable.
+  **And the drift this item predicted was real.** The load-bearing second consumer it
+  flagged — `EntryFilter` using `styleClass` to decide chip contents — is exactly
+  where the `Prosecco`-is-a-rosé bug lived, undetected. Tables now pinned; see M11.
 
 - [ ] **M13** · Test · No synthetic-JSON tests — encode paths, unknown-category rejection, and `decodeIfPresent` defaults are all uncovered · `Sources/VinodexCore/WineEntry.swift:420` → add fixture-JSON decode tests, an encode/decode round-trip, and a bad-category failure test
   **@0731 PARTIAL** — DecodeRobustnessTests.swift was added in a8fd7bb (v0.6.3) and
@@ -533,6 +1030,23 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   `grapeNotableRegions`, `wineType` and `tastingProfile`, asserting the decoded entry
   has empty arrays and nil optionals, and a minimal-flavor fixture omitting
   `tastingProfile` asserting `[]`.
+  **@0803 STILL PARTIAL, and the third ask has half-closed by accident.** AUDIT
+  **M46** added `LoaderFallbackTests`, whose fixtures re-encode the *real* bundled
+  tables — `encoder.encode(live.palette)`, `.icons`, `.countries` and
+  `Array(live.entries.prefix(3))` at `DecodeRobustnessTests.swift:103-111` — so
+  `encode(to:)` is now executed across far more of the surface than before, and the
+  encoded output is fed straight back through a decode. **But it is still never
+  asserted equal**: no `#expect(back == original)` round-trip exists anywhere, so a
+  dropped `encodeIfPresent` would still pass. And `prefix(3)` is three GRAPES, so
+  `RegionEntry`/`StyleEntry`/`FlavorEntry`/`ContinentEntry`'s `encode(to:)`
+  implementations are still never run.
+  **The `decodeIfPresent` half is now trivially writable and was not written.**
+  `DBFixture` (AUDIT M32) exists precisely to hand-write minimal JSON — its own doc
+  comment describes *"the minimum a `GRAPES` record needs"* — so the second half of
+  this item's remedy is a fixture fragment plus four assertions, in a file that
+  already exists. Take it next time `DatabaseFixture.swift` is open.
+  **Now at** `Tests/VinodexCoreTests/DecodeRobustnessTests.swift:96-230`
+  (`LoaderFallbackTests`) · `Tests/VinodexCoreTests/DatabaseFixture.swift`.
 
 - [ ] **M14** · Test · No test asserts manifest icons and flags resolve to bundled PNGs; flagSlug logic is duplicated in shell · `Sources/VinodexCore/WineDatabase.swift:190` → add a resources test asserting every unique icon and flag has a bundled PNG
   **@0731 WORSE** — The defect is unchanged — no test asserts any manifest key resolves
@@ -559,6 +1073,28 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   resolved flag stem into icons.json alongside the source path so rasterize-icons.sh
   reads it instead of recomputing `tr '[:upper:] ' '[:lower:]-'`, leaving
   WineDatabase.flagSlug the single definition.
+  **@0803 PARTIAL — part (2) resolved verbatim, part (1) untouched.** AUDIT **L25**
+  implemented exactly the mechanism proposed here: `generate-ios-data.ts` emits a
+  **`flagSlugs`** table (33 entries, confirmed present in `icons.json`), and both
+  consumers read it — `rasterize-icons.sh:171-190` names the copied PNG from it and
+  **fails loudly on a missing entry** rather than falling back, and
+  `IconManifest.flagSlug(for:)` (`WineDatabase.swift:269`) returns the generated
+  value with the old rule kept only as a fallback for a manifest that predates it.
+  The generator's rule folds diacritics and collapses non-alphanumeric runs, so it
+  answers for the names that would have diverged, and is byte-identical to both old
+  rules on all 33 current keys. `flagSlugs` is asserted non-empty in
+  `ICONS_REQUIRED_NONEMPTY`. **The shell duplicate is dead.**
+  **Part (1) — the test — is still absent, and cannot be written where it stands.**
+  `grep -rn "Bundle.module" Tests/` returns nothing; `Package.swift` still declares
+  only `VinodexCoreTests → VinodexCore`, so no test can reach the PNGs. What exists
+  instead is a *runtime* probe: AUDIT **L26** added `DexAssetAudit`, which resolves
+  every manifest id through the bundle at all three scales and reports per surface in
+  SETTINGS ▸ DEV, and the README release checklist now names reading it as step 3.
+  **That is a checklist item, not a gate** — it fires only when a human opens the DEV
+  panel, which is the difference this finding is about. Re-counted 2026-08-03,
+  nothing missing: **68/68** icon ids · **204** Icons PNGs (68×3) · 94 `art:` ·
+  96 FlavorArt · 33 GrapeArt · 30 StyleArt · **33/33** flags. The unguarded surface
+  is now six directories and 501 bundled binaries.
 
 - [x] **M15** · Test · Nothing verifies committed `Resources/*.json` match the shared/ sources — a stale regeneration ships silently · `scripts/generate-ios-data.ts:626` → add a check regenerating to a temp directory and diffing against committed JSON
   **@0731 RESOLVED** — Added in commit 0a446d3 ('own this repo — end the mirror, restore
@@ -574,8 +1110,15 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   but the finding scoped itself to `Resources/*.json`. Note the workflow only triggers
   on main-targeted push/PR, so the check does not run on the current `audit` branch
   until a PR is opened.
+  **@0803 STILL RESOLVED, and the trigger caveat is void.** `on:` is now
+  `push: branches: ['**']` plus an unscoped `pull_request:`, so the `data` job runs
+  on every branch — see **M16**. The check itself is unchanged at `ci.yml:160-176`.
+  Both residuals stand: `git diff` still cannot see a *new untracked* output file,
+  and icons are still deliberately not regenerated (network + `rsvg-convert`). The
+  first of those is the one that matters for **M10**, whose fix is to widen this same
+  path list.
 
-- [ ] **M16** · Test · No CI — `swift test` never runs automatically, which is how the macOS build breakage (C1) went unnoticed · `Package.swift` → add a CI workflow running `swift test` on Linux and macOS
+- [x] **M16** · Test · No CI — `swift test` never runs automatically, which is how the macOS build breakage (C1) went unnoticed · `Package.swift` → add a CI workflow running `swift test` on Linux and macOS
   **@0731 PARTIAL** — CI now exists (commits 0a446d3, fbc51a0), so half the finding is
   met: `swift test` runs automatically on Linux. The macOS half is entirely absent —
   there is no `runs-on: macos-*` job anywhere. This is not a theoretical gap: at HEAD
@@ -595,8 +1138,31 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   on-error: false` deliberately so the red is visible rather than tolerated. Separately,
   broaden the triggers so topic-branch work is covered: `on: push: branches: ['**']` (or
   at minimum add `audit`), keeping `pull_request: branches: [main]`.
+  **@0803 RESOLVED, and past what the item asked for.** Both gaps are closed and the
+  workflow now runs **four** jobs. The trigger is `on: push: branches: ['**']` with an
+  unscoped `pull_request:`, so topic branches are covered — the second gap, verbatim.
+  The first gap was closed **better than proposed**: a `macos-*` job running
+  `swift build` would *not* have worked, and the workflow's own comment records why —
+  *"UIKit is unavailable there too, so VinodexUI compiles to nothing on macOS just as
+  it does on Linux."* A macOS Swift build would have gone green on the same blind
+  spot. What landed instead:
+  - **`ios`** — `xcodebuild build -scheme Vinodex -destination
+    'generic/platform=iOS'` on `macos-15`, `CODE_SIGNING_ALLOWED=NO`. This is the
+    only gate that can see a type error inside `#if canImport(UIKit)`, which is C1's
+    failure class, and its comment names this finding directly.
+  - **`ios-test`** — `xcodebuild test` on an iPhone 16 Simulator, which is what makes
+    a `VinodexUITests` target writable at all.
+  - `test` (Linux) gained `--enable-code-coverage`, a `.build` cache keyed on the
+    repository name (a rename once poisoned it), `concurrency` cancel-in-progress,
+    and a **type-floor grep** holding AUDIT H11's sub-10pt line, which the unit tests
+    cannot see.
+  **The remaining gap is no longer CI's** — it is that no `VinodexUITests` target
+  exists for `ios-test` to run, and that `swift test` has still never been executed
+  by a maintainer. See [The testing gap](#the-testing-gap).
+  **Now at** `.github/workflows/ci.yml:16-19` (trigger), `:47` (Linux test), `:99`
+  (`ios`), `:130` (`ios-test`), `:145` (`data`).
 
-- [ ] **M17** · Test · `grapeWellColor`/`styleTone` keyword-to-color logic is pure but sits in the untestable UI module · `Sources/VinodexUI/EntryVisual.swift:72` → move the keyword-to-tone mapping into VinodexCore returning hex strings; test there
+- [x] **M17** · Test · `grapeWellColor`/`styleTone` keyword-to-color logic is pure but sits in the untestable UI module · `Sources/VinodexUI/EntryVisual.swift:72` → move the keyword-to-tone mapping into VinodexCore returning hex strings; test there
   **@0731 STILL OPEN** — Nothing moved. The keyword-to-tone matching is still in the UI
   module returning `Color`, behind the SwiftUI/UIKit guard, and Package.swift:40-43
   still declares only `VinodexCoreTests` depending on `VinodexCore` — so no test can
@@ -617,6 +1183,27 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   spelling variants ('full-body red' and 'full bodied red'), each `grapeWellColor`
   fallback branch (red/white x light/full/default, rose, sweet) returns its distinct
   hex, and the empty-style case returns '#78716c'.
+  **@0803 RESOLVED by AUDIT M29**, along the exact line this item drew.
+  `Sources/VinodexCore/EntryPalette.swift` now holds `styleToneKey(for:)` (`:34`) and
+  `grapeWellFallbackHex(style:body:)` (`:79`), recombined by
+  `Palette.grapeWellHex(style:body:)` (`:133`); `Palette.resolve` (`:106`) moved with
+  them. Hex strings, not `Color` — which is this item's central point, and the
+  precedent it follows is `GrapeArt.leafHex(rarity:)`. `EntryVisual.swift` keeps the
+  shim. Covered by `Tests/VinodexCoreTests/EntryPaletteTests.swift`.
+  **One trap, which is why the "file move" framing understates it.** The ladder's
+  literals were uppercase and every value in `palette.json` is lowercase — and
+  `bright red`'s tone is `#dc143c`, the *same colour* the ladder returned as
+  `#DC143C`. `Color(dexHex:)` parses case-insensitively so nothing ever rendered
+  differently, but the first consumer to compare the two strings would have reported
+  identical answers as disagreeing. Every hex leaving Core is lowercase now, and a
+  test says so.
+  **Two tests buy more than this item asked for:** `styleTones` is *generated* while
+  the twelve-branch ladder is hand-written, and nothing could have noticed them
+  parting company. Now every key the ladder emits is asserted to exist in the
+  generated table, and every authored `grapeStyle` in the shipped data is asserted to
+  resolve or be the one known exception (`Sparkling Red`, which is what the fallback
+  exists for). **This is the proof the extraction pattern works without a device** —
+  M18, L19 and L20 are the same shape.
 
 - [ ] **M18** · Test · Country page derivations (grape frequency sort, states, appellations, region counts) are untested pure logic · `Sources/VinodexUI/CountryScreen.swift:154` → extract a CountryPage model into VinodexCore and test its derivations
   **@0731 STILL OPEN** — No `CountryPage` model was extracted; the derivations sit
@@ -646,11 +1233,28 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   'USA' is non-empty and sorted while a non-USA country yields []; regionCount(in:) sums
   to regions.count over all states; appellations prefers the authored `countryInfo` list
   and falls back to the derived set when it is absent or empty.
+  **@0803 PARTIAL — the derivations were hoisted but not moved, so the perf half is
+  done and the testability half is not.** AUDIT **M7** rewrote `CountryScreen` so
+  `regions`, `states`, `regionCounts`, `notableGrapes`, `grapeEntries` and
+  `appellations` are stored `let`s resolved once in `init` from a single query and a
+  single walk (`CountryScreen.swift:80-137`, `init` at `:86`). `regionCount(in:)` —
+  the `regions.filter` inside a `ForEach` — is gone, replaced by the `regionCounts`
+  dictionary. **That is a straight improvement and it moves this item's anchors, but
+  it does not move its status**: they are still `private let`s on a SwiftUI `View`
+  behind the UIKit guard, and `Package.swift` still declares only `VinodexCoreTests →
+  VinodexCore`, so no test can reach any of them. No `CountryPage.swift` exists.
+  **What is now cheaper.** The bodies this item asked to move verbatim are already
+  gathered into one `init` instead of scattered across four computed properties, so
+  the extraction is closer to a cut-and-paste than it was. And the pattern is proven:
+  **M17** did exactly this and closed. The two untested things this item singles out
+  are unchanged — the compound sort key (`($0.value, $1.key) > ($1.value, $0.key)`,
+  count-descending with a name-ascending tiebreak, at `:128-131`) and the authored-vs-
+  derived `appellations` fork (`:134-138`).
 
 
 ## Low
 
-- [ ] **L1** · Compliance · Bundled 217 KB world-map image has no recorded source, author, or license · `Sources/VinodexUI/Resources/Maps/updatedglobemap.jpg` → record the map's origin and license, or regenerate it from documented data
+- [x] **L1** · Compliance · Bundled 217 KB world-map image has no recorded source, author, or license · `Sources/VinodexUI/Resources/Maps/updatedglobemap.jpg` → record the map's origin and license, or regenerate it from documented data
   **@0731 WORSE** — The map itself is unchanged and still carries no recorded source,
   author, or license — the original defect is fully intact. It is WORSE rather than OPEN
   because the bundled-asset surface with no provenance grew from 350 to 492 binary files
@@ -665,6 +1269,22 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   Resources/SFX/*.mp3 files, the Resources/Fonts, the Resources/Flags pixel flags, and
   the Iconify-derived Resources/Icons PNGs. Regenerate the map from documented public-
   domain data (e.g. Natural Earth) if its origin cannot be established.
+  **@0803 STILL WORSE.** `updatedglobemap.jpg` is byte-identical (216,812 B) with no
+  recorded source, and the unprovenanced bundle grew again: **501 binaries** under
+  `Sources/`, up from 492 and from 350 at the audit. The map's consumer moved to
+  `RetroGlobeScreen.swift` (the file was rewritten by AUDIT M11/M18/M20; search
+  `updatedglobemap` rather than trusting the old `:288`). **This is downstream of
+  M2** — the NOTICE this item wants cannot be written until the LICENSE question it
+  carves out of is answered. AUDIT **H12** did settle provenance for one neighbouring
+  class: the 254 drawn PNGs regenerate from `art/`, verified 244/254 pixel-identical
+  by `npm run icons:verify`, so their *derivation* is now reproducible even though
+  their *rights* are still undocumented.
+  **@0805 RESOLVED.** Owner statement, 2026-08-05: the map was created
+  first-party. Recorded in `NOTICE.md`'s first-party inventory alongside the
+  SFX (same declaration) and the drawn art, all under the new top-level
+  `LICENSE` — which is the M2 answer this item was explicitly downstream of.
+  The whole-bundle coverage this item's remedy grew to ask for is exactly what
+  `NOTICE.md` now is: fonts, icons, flags, map, SFX, drawn art, dataset.
 
 - [ ] **L2** · Compliance · Back plate displays a fictitious "© HORIZON / ALL RIGHTS RESERVED" copyright notice · `Sources/VinodexUI/DeviceBackPlate.swift:160` → replace the HORIZON flavor text with the real rights holder or drop the notice
   **@0731 STILL OPEN** — The fictitious notice is still rendered, and the change since
@@ -677,6 +1297,13 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   and :262-263` → Replace `DeviceBackPlate.creator` (line 17) with the actual rights
   holder, or delete the `Text("© ...")` and `Text("ALL RIGHTS RESERVED")` rows at lines
   262-263 and keep only the `SN:` line as chassis flavor text.
+  **@0803 STILL OPEN, unchanged in substance.** `DeviceBackPlate.creator` is still
+  `"HORIZON/GODOT"` at `:17` and the two rows still render. Lines moved again, 262-263
+  → **`:304-305`**. Worth noting the notice is now *doubly* wrong rather than merely
+  fictitious: the repo has **no LICENSE at all** (**M2**), so "ALL RIGHTS RESERVED" is
+  the app asserting terms the project has explicitly declined to state — and if M2
+  resolves to MIT or a split, the back plate will be contradicting the repo. **Take
+  L2 with M2**, in that order.
 
 - [ ] **L3** · Compliance · All-alcohol content requires a 17+ age rating at submission; the constraint is documented nowhere · `Sources/VinodexCore/Resources/entries.json:2210` → document the required alcohol-references age rating in the README or a release checklist
   **@0731 WORSE** — The constraint remains documented nowhere, and the exposure grew
@@ -693,8 +1320,19 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   frequent alcohol references (17+ under the legacy scale / 18+ under the current one),
   and note it alongside the already-tracked A2 privacy-manifest and M35 bundle-ID gates
   so the three land together.
+  **@0803 STILL WORSE — but it finally has somewhere to land.** Grepped: no mention
+  of an age rating in `README.md`, `KNOWN-ISSUES.md` or `CHANGELOG.md`. The exposure
+  grew again with the catalogue — alcohol-domain entries (GRAPES + REGIONS + STYLES)
+  are now **293**, from 263 at the last pass and **169 at the audit**.
+  **What changed is the destination.** AUDIT **L22** added a real **Release
+  checklist** to `README.md:176-201`, with four numbered gates (toolchain, data
+  currency, asset probe, test gates) whose first two lines go into the tag
+  annotation. This item is now a fifth entry in an existing list rather than a
+  document somebody has to invent — and the two items it asked to be filed beside,
+  the privacy manifest (**H3**) and the bundle ID (**H4**), both belong in the same
+  list for the same reason. **One paragraph, one file, already-open section.**
 
-- [ ] **L4** · Compliance · `Diagnostics.emit()` logs app state to syslog on every launch with no DEBUG guard · `Sources/VinodexApp/VinodexApp.swift:216` → wrap in `#if DEBUG` or use os.Logger at debug level
+- [x] **L4** · Compliance · `Diagnostics.emit()` logs app state to syslog on every launch with no DEBUG guard · `Sources/VinodexApp/VinodexApp.swift:216` → wrap in `#if DEBUG` or use os.Logger at debug level
   **@0731 STILL OPEN** — The file was heavily rewritten (165 insertions) but Diagnostics
   is untouched: still called unconditionally from the App's `init()`, still writing
   entry counts, decodeErrors and every continent's full region list to syslog via NSLog
@@ -706,6 +1344,16 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   VinodexApp.swift:9 in `#if DEBUG` / `#endif`, or convert the loop at :363-366 to
   `os.Logger(subsystem:category:).debug(...)` with `%{private}@` interpolation so
   release builds redact the payload.
+  **@0803 RESOLVED by AUDIT M6**, taking the first branch of the remedy. The call is
+  now `#if DEBUG` / `Diagnostics.emit()` / `#endif` at `VinodexApp.swift:52-54`, so a
+  release build writes nothing to syslog. **The fix went further than this item
+  needed, for a different reason.** M6 was a *performance* finding — the same `init`
+  was running six full filter+sort passes over the catalogue synchronously on the
+  first-frame path — so the whole block moved into a detached `.userInitiated` task,
+  which also serves as the off-main database warm-up. So the diagnostics are now
+  DEBUG-only *and* off the launch path; the item asked for the first and got both.
+  **Now at** `VinodexApp.swift:38-54` (the task and the guard), `:476`
+  (`enum Diagnostics`).
 
 - [ ] **L5** · Security · Shipped icon PNGs come from unpinned api.iconify.design downloads validated only by an `<svg` sniff — no version pin or checksum · `scripts/rasterize-icons.sh:56` → vendor the SVG sources, or pin icon-set versions and verify checksums
   **@0731 STILL OPEN** — Mechanism is completely unchanged: unversioned
@@ -721,8 +1369,42 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   committed scripts/icons-src/ tree, or add a checksums file (slug -> sha256) consulted
   after the curl at line 59 and before rasterizing, plus an explicit Iconify icon-set
   version in the URL so a silently-updated upstream glyph cannot land in the bundle.
+  **@0803 STILL OPEN — mechanism unchanged, and there is now a completed plan sitting
+  behind an unauthorised fetch.** `rasterize-icons.sh:81` still builds
+  `https://api.iconify.design/${prefix}/${name}.svg?color=white` with no version and
+  no checksum, validated only by the `<svg` sniff. Corpus is flat at 68 unique / 204
+  PNGs. AUDIT **M40** was **deferred on 2026-08-03 at the maintainer's direction**:
+  the fix vendors the 68 SVGs (~150–250 KB) into `art/iconify/`, and that network
+  fetch was not authorised in the pass. Three things it established that are worth
+  keeping, because they change how this should be done:
+  - **`@iconify-json` pinning loses**, even though `package-lock.json` is now tracked
+    and would genuinely pin it: one glyph (`mdi:help-circle-outline`) drags in a
+    ~7,500-icon package, the rasteriser is bash/curl/python3 and touches Node
+    nowhere, and consuming IconifyJSON means reimplementing `iconToSVG` in bash.
+    **Vendor the SVGs.**
+  - **`?color=white` is load-bearing and its loss is invisible.** Drop it and
+    `rsvg-convert` resolves `currentColor` to black — identical alpha, inverted RGB,
+    **all 204 files byte-different, and no visual symptom**, because `DexIcon` renders
+    them as templates and UIKit discards the RGB.
+  - **Do not vendor from `game-icons.net` directly** — that yields 55 solid black
+    squares, because Iconify strips a full-bleed background rect the upstream SVGs
+    carry.
+  A fingerprint was taken so "not a single pixel changed" is checkable afterwards
+  without a renderer: `python3 scripts/recompress-png.py --check
+  Sources/VinodexUI/Resources/Icons` reports **204 files, 729,772 B, 204
+  recompressible, 78,661 B (10.8%)** — four numbers that move if any PNG does.
+  **@0804 STILL OPEN, but the sniff half is hardened** (= arch **B15**, fixed).
+  The validation is no longer *only* a `<svg` match: the body must clear a
+  100-byte floor (measured live: the API's "Not found" body is 9 bytes, a
+  small real glyph 371), must not open as `<!DOCTYPE html`/`<html` — an HTML
+  error page embedding an inline `<svg>` logo defeated the old sniff and is
+  the exact body the new check names — and must still contain `<svg` in the
+  first 200 bytes. All three FAIL arms plus the pass arm were exercised
+  against stub curl/rsvg-convert. What keeps this item open is its core: the
+  fetch is still unpinned and checksum-free, which is **M40**, still deferred
+  at the maintainer's direction with the vendoring plan recorded above.
 
-- [ ] **L6** · Security · Missing or malformed tiers.json silently unlocks all paid entries and never surfaces in `decodeErrors`; the generator never asserts tiers output · `Sources/VinodexCore/WineDatabase.swift:253` → record the decode failure in `decodeErrors` (keeping fail-open) and assert `tiers.free` non-empty in the generator
+- [x] **L6** · Security · Missing or malformed tiers.json silently unlocks all paid entries and never surfaces in `decodeErrors`; the generator never asserts tiers output · `Sources/VinodexCore/WineDatabase.swift:253` → record the decode failure in `decodeErrors` (keeping fail-open) and assert `tiers.free` non-empty in the generator
   **@0731 PARTIAL** — v0.6.3's robustness spine genuinely closed the corrupt-manifest
   half — a malformed tiers.json now lands in decodeErrors and raises the launch alert
   seeded at VinodexApp.swift:28. Two gaps remain. (1) The generator assertion the audit
@@ -740,8 +1422,34 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   `loadErrors` in the `.fileNoSuchFile` branch at WineDatabase.swift:485 so the fail-
   open is visible in the DEV panel rather than indistinguishable from a healthy free
   build.
+  **@0803 PARTIAL — gap (2) closed, gap (1) untouched.** AUDIT **M46** rebuilt the
+  loader around `ResourceLoad<T>`, and tiers now runs through the same three-outcome
+  switch as everything else (`WineDatabase.swift:684-692`): `.missing` appends
+  **`"tiers.json is not bundled — every entry is free"`** to `loadNotices`, `.corrupt`
+  appends a fault to `decodeErrors`. So **the wholly-missing case is no longer
+  silent** — it is a maintainer-visible notice in the DEV panel, which is exactly the
+  optional half this item proposed, and the fail-open behaviour is preserved. The
+  notice/fault split is AUDIT M45's: a *fault* means the app lost data and a user can
+  see it, a *notice* means a documented fallback took effect. `LoaderFallbackTests`
+  pins it — *"tiers keep M1's missing-versus-corrupt split"*.
+  **Gap (1) is verbatim.** `scripts/generate-ios-data.ts:1305-1307` still reads
+  `if (!has(tiers,'free') || !Array.isArray(tiers.free)) problems.push('tiers.json
+  missing free[]')` — presence and Array-ness only. An emitted `{"free":[]}` still
+  passes the self-check, decodes cleanly, produces **zero** decodeErrors and **zero**
+  notices, and silently unlocks all **405** entries through the `freeIDs.isEmpty`
+  short-circuit at `WineDatabase.swift:459`. This is a one-line change and it is the
+  same line **L17** wants to extend. Note the free set is now 180 ids, all resolving
+  — verified 2026-08-03.
+  **@0805 RESOLVED — gap (1) closed, with L17's mirror in the same block.**
+  `scripts/generate-ios-data.ts:1317-1319` now binds `free` once and rejects
+  `!Array.isArray(free) || free.length === 0` with **`'tiers.json missing or empty
+  free[]'`** — an emitted `{"free":[]}` fails the self-check against the temps, so
+  the rename never happens and the previous consistent set stays on disk.
+  Fault-injected to prove it fires: a build forced to emit `free: []` died with
+  exactly that message, exit 1; the real 180-of-405 set passes clean. With the
+  runtime half already in (@0803), both clauses of the remedy now hold.
 
-- [ ] **L7** · Security · GlobeModel's display link is invalidated only via `onDisappear` with no deinit fallback, leaking ticks · `Sources/VinodexUI/RetroGlobeScreen.swift:344` → invalidate the display link from GlobeModel `deinit` as a fallback
+- [x] **L7** · Security · GlobeModel's display link is invalidated only via `onDisappear` with no deinit fallback, leaking ticks · `Sources/VinodexUI/RetroGlobeScreen.swift:344` → invalidate the display link from GlobeModel `deinit` as a fallback
   **@0731 STILL OPEN** — Unchanged. The run loop retains the CADisplayLink, which
   retains DisplayLinkProxy; GlobeModel is reachable only weakly from the tick closure,
   so the model can deallocate while the link keeps firing at display refresh rate
@@ -754,8 +1462,25 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   captured by the proxy, or `deinit { displayLink?.invalidate() }` with `displayLink`
   made `nonisolated(unsafe)` — so teardown does not depend on onDisappear firing. Keep
   `stop()` as the normal path since it also calls saveHeading().
+  **@0803 RESOLVED by AUDIT L10 — and the fix proposed above could not have worked.**
+  A `deinit` on `GlobeModel` is unreachable while the link is live: the run loop
+  retains the `CADisplayLink`, which retains `DisplayLinkProxy`, so the model never
+  deallocates at the moment teardown is needed. `RetroGlobeScreen.swift:945-948` now
+  records this in the source — *"`deinit` on the model could never have done it"*.
+  What landed instead: `GlobeSceneView.makeCoordinator()` returns the model so the
+  **static** `dismantleUIView` can reach it (`:413-415`), calling `detach(from:)`
+  (`:728`), which invalidates **only if the view being dismantled is still the one
+  the model holds**. `DisplayLinkProxy` also takes the link off the run loop when its
+  target has gone, which is the `deinit` half by another route. `stop()` stays the
+  normal path and still calls `saveHeading()`.
+  **The conditional is the whole fix, not a detail.** SwiftUI may build the
+  replacement before dismantling the original on an `.id(…)` change — and
+  `GlobeSceneView` is `.id("\(lcd)|\(skin)")`-keyed — so an unconditional `stop()`
+  there would have killed the *new* link and frozen the globe on the first skin
+  change. The restart guard in `start()` (`displayLink == nil`) landed in the same
+  edit for that reason.
 
-- [ ] **L8** · Security · StatBar traps on negative or non-finite maximum via `ForEach(0..<Int(maximum))` — unreachable today but one data edit away · `Sources/VinodexUI/CatalogScreen.swift:258` → clamp the range with `max(0, Int(maximum.rounded()))`
+- [x] **L8** · Security · StatBar traps on negative or non-finite maximum via `ForEach(0..<Int(maximum))` — unreachable today but one data edit away · `Sources/VinodexUI/CatalogScreen.swift:258` → clamp the range with `max(0, Int(maximum.rounded()))`
   **@0731 STILL OPEN** — Completely unchanged, same line number as audited (258).
   `Int(maximum)` traps on NaN/infinity and `0..<n` with n<0 traps with 'Range requires
   lowerBound <= upperBound'. Still latent because no caller overrides `maximum`, but
@@ -766,8 +1491,23 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   At CatalogScreen.swift:258 replace `ForEach(0..<Int(maximum), id: \.self)` with a
   clamped, finite-safe bound, e.g. compute `private var segments: Int { maximum.isFinite
   ? max(0, Int(maximum.rounded())) : 0 }` and use `ForEach(0..<segments, id: \.self)`.
+  **@0803 STILL OPEN**, unchanged, now at **`CatalogScreen.swift:296`**. `maximum` is
+  still `public var maximum: Double = 5` with a `public init` (`:239`, `:242`), so the
+  trap is still one call site away. AUDIT **M49** worked on this exact type — it
+  derived `StatBar.labelWidth` from the type scale to stop AROMATICS overflowing the
+  96pt well — and **left the `ForEach` alone**, which is worth knowing: someone was in
+  this view, doing arithmetic on it, and this line survived. Still the cheapest fix in
+  the file.
+  **@0805 RESOLVED.** Now at `Sources/VinodexUI/Screens/CatalogScreen.swift:305-306`
+  (the file moved under `Screens/`): the bar computes
+  `let segments = max(0, Int(exactly: maximum.rounded()) ?? 0)` and iterates
+  `ForEach(0..<segments, id: \.self)`. One notch safer than the proposed `isFinite`
+  guard: `Int(exactly:)` also returns nil for a rounded value past `Int.max`, which
+  `Int(maximum.rounded())` would still trap on. Negative, NaN, infinite and
+  out-of-range maxima all degrade to an empty bar. The iOS-surface shim reports no
+  new diagnostics against its baseline.
 
-- [ ] **L9** · Compliance · GNU-only `mktemp --suffix` kills the script immediately on macOS, and python3 is never preflighted · `scripts/rasterize-icons.sh:54` → use the portable mktemp template syntax and preflight python3 like rsvg-convert
+- [x] **L9** · Compliance · GNU-only `mktemp --suffix` kills the script immediately on macOS, and python3 is never preflighted · `scripts/rasterize-icons.sh:54` → use the portable mktemp template syntax and preflight python3 like rsvg-convert
   **@0731 PARTIAL** — Half resolved. The GNU-only `mktemp --suffix` is gone and the
   replacement is verified working under BSD mktemp, so the script no longer dies on line
   55 on macOS. The preflight half is untouched: python3 is invoked at lines 38, 108, 152
@@ -786,6 +1526,27 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   2>/dev/null || { echo "Pillow not found (apt install python3-pil / pip install
   Pillow); set SKIP_ART=1 to skip the art importers"; exit 1; }` before the loop at
   :178.
+  **@0803 PARTIAL — the Pillow half landed, the python3 half did not, and the two
+  now interact badly.** AUDIT **H12** added a Pillow preflight at
+  `rasterize-icons.sh:45` (`python3 -c 'import PIL'`), deliberately non-fatal: a
+  machine without Pillow still regenerates every Iconify glyph and copies the flags,
+  and `SKIP_ART=1` now announces itself the way `SKIP_FLAGS=1` always did. That is
+  this item's second clause, done.
+  **But `command -v python3` is still missing** — only `rsvg-convert` is checked, at
+  `:59` — and python3 is used unguarded at `:64`, `:132` and `:193`. The interaction
+  is new and makes the diagnosis worse than it was: on a machine with **no python3 at
+  all**, line 45's probe fails with `2>/dev/null` swallowing the reason and prints
+  **"Pillow not found"**, which is the wrong cause; the run then continues past the
+  rsvg check and dies at `:64` with a bare `python3: command not found` under
+  `set -euo pipefail`. Two lines beside the `rsvg-convert` check fix both.
+  **@0805 RESOLVED.** `command -v python3` is now a fatal preflight at
+  `rasterize-icons.sh:37-40` — placed *above* the Pillow probe rather than beside
+  the rsvg-convert check, deliberately: any later and a machine with no python3
+  still prints the "Pillow not found" misdiagnosis before dying. Verified by
+  running the script with python3 stripped from PATH: it exits 1 immediately with
+  `python3 not found (Linux: apt install python3 • macOS: brew install python)`,
+  and no probe runs. The mktemp half was already done (@0731, AUDIT M43), so the
+  item closes.
 
 - [ ] **L10** · Security · Manifest icon slugs and flag relpaths are interpolated into URLs, filenames, and `cp` paths without sanitization · `scripts/rasterize-icons.sh:112` → validate slugs, countries, and relpaths against a strict allowlist pattern
   **@0731 STILL OPEN** — Commit 26a2a3e ("harden rasterize-icons.sh") landed in this
@@ -800,6 +1561,20 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   leading `/` (relpath). Add the same assertion to `validateOutputs` in
   scripts/generate-ios-data.ts:1064 so a bad manifest fails generation rather than the
   rasteriser.
+  **@0803 PARTIAL — one interpolation is now generator-controlled, the rest are not.**
+  AUDIT **L25** removed the `tr '[:upper:] ' '[:lower:]-'` recomputation this item
+  named: the destination filename comes from the generator's **`flagSlugs`** table
+  (`rasterize-icons.sh:171-190`), and a missing entry now fails loudly rather than
+  falling back. That is the output side. **The input side is unchanged** — `src` is
+  still `"$PIXELFLAGS/$relpath"` at `:173` with `relpath` read straight from the
+  manifest, so a crafted `../../x` still escapes the flag directory, and `prefix`/
+  `name` are still interpolated into the Iconify URL at `:81` unvalidated.
+  **The threat model is unchanged and still narrow** — the manifest is generated from
+  `shared/` by a script in this repo, so this is defence against a bad generator
+  edit, not against a remote attacker. But `validateOutputs` is exactly where the
+  assertion belongs, and AUDIT **M3** rebuilt that function around declared contract
+  tables (`generate-ios-data.ts:1182`), so there is now a structured place to add it
+  that did not exist when this was written.
 
 - [ ] **L11** · Security · .gitignore has no patterns for signing certificates, provisioning profiles, keys, or .env files · `.gitignore` → add `*.p12`, `*.mobileprovision`, `*.pem`, `*.p8`, and `.env` patterns
   **@0731 STILL OPEN** — Untouched since the audit. Still relevant: xtool.yml carries a
@@ -811,15 +1586,31 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   to .gitignore: `*.p12`, `*.mobileprovision`, `*.provisionprofile`, `*.cer`,
   `*.certSigningRequest`, `*.pem`, `*.p8`, `*.key`, `.env`, `.env.*`. Optionally add a
   pre-commit hook or CI grep so the patterns are enforced rather than advisory.
+  **@0803 STILL OPEN — untouched across two passes.** `.gitignore` is 15 lines and
+  carries none of the ten patterns; it grew only by `scripts/__pycache__/`. `arch.md`
+  still flags it as *"the single most likely route by which a credential enters this
+  repo"* and still ends with *"Append those seven patterns"*, unappended.
+  **The exposure is larger than it was**, and by the working tree's own doing: the
+  tree currently holds **85 dirty paths and 26 untracked files**, which is exactly the
+  state where someone reaches for `git add -A`. This is a ten-line append with no
+  code impact and it is the last item in this file that costs nothing to take.
 
-- [ ] **L12** · Compliance · Committed doc embeds the developer's personal Windows username and home path in an rsync example · `KNOWN-ISSUES.md:145` → replace the personal path with a neutral placeholder like `/mnt/c/<repo-root>/ios/`
+- [x] **L12** · Compliance · Committed doc embeds the developer's personal Windows username and home path in an rsync example · `KNOWN-ISSUES.md:145` → replace the personal path with a neutral placeholder like `/mnt/c/<repo-root>/ios/`
   **@0731 PARTIAL** — The suspicion that d5383b5 re-introduced the
   personal path is half right: d5383b5 did keep
   `/mnt/c/Users/StreetPC/Desktop/HGapps/...`, but the later commit 4b75fae replaced it
   with a drive path carrying no username and no home directory. No committed file at
-  HEAD leaks a Windows username, a home path, or an email address. A machine-specific
+  HEAD leaks a Windows username or a home path. A machine-specific
   absolute path (`/mnt/h/vscode-projects/HGapps/`) remains, but it identifies no person
   and is not what the finding described.
+  **@0803 RESOLVED.** Re-grepped the whole tree for `StreetPC`, `/mnt/c/Users` and
+  home-directory patterns: **no committed file leaks a username or a home path.**
+  `KNOWN-ISSUES.md:198` now reads
+  `wsl.exe -d xtool-ubuntu -- bash /mnt/c/Users/.../script.sh`, elided exactly as the
+  remedy proposed. The machine-specific `/mnt/h/vscode-projects/HGapps/` at `:257`
+  stays, and stays out of scope: it identifies a drive, not a person. Ticked rather
+  than left partial — the finding as written is answered, and the residual was already
+  recorded as not-the-finding at the last pass.
 
 - [ ] **L13** · Test · All logic tests couple to the bundled dataset; empty and single-entry database behavior is untested · `Sources/VinodexCore/WineDatabase.swift:221` → add fixture-database tests covering empty and single-entry pools
   **@0731 WORSE** — WORSE by growth, not by regression: the coupling is unchanged but
@@ -837,6 +1628,23 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   DailyPick.grape/entry/entry(cursor:), Passport totals, ChipFilter counts, TastingQuiz
   session building and WineDatabase.entry(named:) — asserting nil/empty rather than a
   crash or a modulo-by-zero.
+  **@0803 PARTIAL — the fixture helper this item asked for exists, and two of its
+  seven consumers use it.** `Tests/VinodexCoreTests/DatabaseFixture.swift`
+  (`DBFixture.database(_:)`, AUDIT **M32**) is the helper, built from JSON fragments
+  rather than Swift literals because all five `WineEntry` variants declare
+  `init(from:)` in the type body and therefore cannot be constructed by hand at all.
+  Two suites drive it: `DailyRevealTests` reaches every empty-pool branch this item
+  named (`DailyPick.swift:60`'s `continue`, `:64`'s `return nil`, and the cursor
+  overload) and `FilterTests` reaches `.soil`, which no shipped call site constructs.
+  A second seam landed beside it — `WineDatabase(reading: .fixture(...))` from AUDIT
+  **M46** — which covers the whole-database-empty case from the loader side, including
+  *a well-formed but empty catalogue is still a fault*.
+  **Still uncovered, and now a small job rather than a blocked one:** Passport totals,
+  ChipFilter counts, `TastingQuiz` session building and `WineDatabase.entry(named:)`
+  against zero- and one-entry pools. Every one of those is a `DBFixture.database(…)`
+  call plus an assertion. The catch-all empty-DB init (`WineDatabase.swift:506`) is
+  still never constructed directly, though `.fixture([:])` now exercises the same
+  fallback path.
 
 - [ ] **L14** · Test · DailyPick is tested only with a UTC calendar — local-midnight turnover and DST behavior are unverified · `Sources/VinodexCore/DailyPick.swift:12` → add tests with non-UTC/DST calendars and midnight-boundary dates
   **@0731 WORSE** — WORSE by spread. At fb5dcf2 `calendar: Calendar = .current` appeared
@@ -856,8 +1664,20 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   must yield different dayIndex values, and the 23-hour and 25-hour DST days must each
   advance dayIndex by exactly 1. Cover StreakStore chaining and MoonCalendar.quote with
   the same matrix.
+  **@0803 STILL WORSE — untouched, and the six new date tests inherited the
+  convention.** Grepped the whole test target for `America/`, `TimeZone(identifier:`
+  and `DST`: **one hit**, `DailyChallengeTests.swift:11`, and it is `"GMT"`. Every
+  other date suite still runs UTC-only. AUDIT **M32** added six date tests to
+  `DailyRevealTests` on 2026-08-03 — including the pre-epoch and negative-index cases
+  at `MinigameTests.swift:344` and `:356`, which are precisely boundary tests — and
+  every one of them uses the same fixed-offset calendar. So the audit's point stands
+  sharper than before: **the convention is now being copied by tests written to
+  examine boundaries.** Local-midnight turnover and DST remain unverified across
+  `DailyPick`, `MoonCalendar` and `DailyChallenge` alike. Parameterising the existing
+  suites over three calendars is still the fix, and doing it now costs less than
+  doing it after the next date feature.
 
-- [ ] **L15** · Test · `DexRoute.title`, `WineEntry.scanTitle`, and the `.detail` destination branch have no tests · `Sources/VinodexCore/DexRoute.swift:37` → add a table-driven test over title, scanTitle, and destination
+- [x] **L15** · Test · `DexRoute.title`, `WineEntry.scanTitle`, and the `.detail` destination branch have no tests · `Sources/VinodexCore/DexRoute.swift:37` → add a table-driven test over title, scanTitle, and destination
   **@0731 WORSE** — All three items named in the finding remain untested. The single new
   test covers a fourth thing (the `.continent` destination branch added in v0.5.7),
   which does not touch any of them. Meanwhile the untested surface in this file roughly
@@ -869,6 +1689,19 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   WineEntry cases; and iterate a constructed list of all 25 DexRoute cases asserting
   `title` and `marqueeSymbol` are non-empty and mutually distinct where intended (a
   CaseIterable-style fixture array keeps new cases from silently escaping).
+  **@0803 RESOLVED by AUDIT M47**, in
+  `Tests/VinodexCoreTests/RouteAndSearchStateTests.swift`. `DexRouteTests` (5 tests)
+  covers all three named items and takes the CaseIterable-style approach this item
+  recommended: `everyRouteIsLabelled` walks all **28** constructible routes asserting
+  `title` and `marqueeSymbol`. Both properties are exhaustive switches, so a new case
+  cannot compile without an answer — but an *empty* answer compiles fine and renders
+  as a blank marquee, which only the walk catches, which is the argument this item
+  made. `scanTitle`/`scanSymbol` are pinned for all five `WineEntry` cases (`:190`,
+  `:199`) and the `.detail` destination fall-through is covered.
+  **One correction to the item, from M47:** `ContinentTests.swift` already covered one
+  branch of `WineEntry.destination` — the `.continent` early return — so "the `.detail`
+  destination branch has no tests" was true of `.detail` specifically, not of
+  `destination`. The rest was accurate.
 
 - [ ] **L16** · Test · TextNormalize `label`/`key`/`term`/`matchesWholeTerm` underpin all search but have no direct unit tests · `Sources/VinodexCore/EntryFilter.swift:9` → add direct unit tests for the four functions with edge-case inputs
   **@0731 STILL OPEN** — Unchanged gap, but a much wider blast radius: TextNormalize
@@ -884,8 +1717,20 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   returns true on exact and whole-word-inside matches but false on prefix/substring
   matches ("Chile" must not match "Chilean-style" via a bare contains) and false when
   either side normalises to empty.
+  **@0803 STILL OPEN, and it just became load-bearing in a new place.** No
+  `TextNormalizeTests`; `TextNormalize` is still only ever exercised incidentally,
+  through assertions about something else, across seven test files. The blast radius
+  is unchanged from the last count (96 call sites, 11 files).
+  **What is new: `matchesWholeTerm` gained a second consumer, and it was a bug fix.**
+  AUDIT **M33** found `EntryDisplay.colorType` matching colour words as substrings —
+  which labelled **`Prosecco` a rosé**, because "rose" sits inside "p-*rose*-cco" —
+  and fixed it by routing through `matchesWholeTerm`, the same whole-term test
+  `.origin` has always used. So the function this item wants pinned is now the thing
+  standing between the catalogue and a repeat of that bug, and it still has no direct
+  test. **L26** wants the same function tested from the other end. Write one suite
+  and both items shrink.
 
-- [ ] **L17** · Test · No test verifies every tiers.json free id resolves to an existing entry · `Sources/VinodexCore/WineDatabase.swift:243` → assert every `freeIDs` member resolves via `db.entry(id:)`
+- [x] **L17** · Test · No test verifies every tiers.json free id resolves to an existing entry · `Sources/VinodexCore/WineDatabase.swift:243` → assert every `freeIDs` member resolves via `db.entry(id:)`
   **@0731 STILL OPEN** — No test added in this range. The surface to drift grew:
   tiers.json free[] went 132 -> 153 ids and entries.json 284 -> 375, and both files are
   regenerated together by commits like 869c3b7, which is exactly the situation where a
@@ -897,6 +1742,24 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   companion assertion that the free set is non-empty. Mirror it in `validateOutputs`
   (scripts/generate-ios-data.ts:1064) so generation fails before the drift is committed
   and the CI generated-data drift check catches it.
+  **@0803 STILL OPEN, and the surface grew again.** No test references `db.freeIDs`.
+  `tiers.json` free[] is now **180 ids** (132 at the audit, 153 at the last pass) and
+  `entries.json` is **405** — both regenerated together by the batch-2 expansion
+  (`295bda8`), which is exactly the situation this item is about. **Verified by hand
+  2026-08-03: all 180 free ids resolve to an entry, so there is no live drift** — this
+  is purely an unguarded invariant, as it was. The `validateOutputs` half is the same
+  line **L6** wants strengthened, and AUDIT **M3** rebuilt that function around
+  declared contract tables, so both assertions now have an obvious shape to follow.
+  **@0805 RESOLVED, both halves.** `AccessTests.swift:87-97` adds `freeIDsResolve`:
+  `db.freeIDs` must be non-empty and every member must resolve via `db.entry(id:)`,
+  the failure message naming the stale id. And `validateOutputs` got the proposed
+  mirror at `generate-ios-data.ts:1320-1326`: every emitted free id must appear in
+  the emitted entries' id set, so the drift dies at generation time, before it can
+  be committed. Fault-injected to prove it fires: a fabricated `GRAPE_NOT_REAL`
+  appended to free[] failed the self-check with `tiers.json free id has no entry:
+  GRAPE_NOT_REAL`, exit 1. The real 180-id set passes at both ends. Landed
+  alongside **L6**'s emptiness guard — the two directions of the same invariant,
+  closed together.
 
 - [ ] **L18** · Test · `BookmarkStore.remove(_:)`, used by swipe-delete in BookmarksScreen, has zero test coverage · `Sources/VinodexCore/Bookmarks.swift:48` → add remove() present/absent tests and displayName assertions
   **@0731 WORSE** — WORSE: the untested method itself grew. At fb5dcf2 remove was 4
@@ -914,6 +1777,21 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   TriedRating while leaving other ratings intact; removing from .saved or .wantToTry
   leaves ratings untouched; and the un-suffixed remove(_:) hits the saved shelf only.
   Either cover or delete the now-unused facade at Bookmarks.swift:103.
+  **@0803 STILL WORSE — unchanged, and a neighbouring fix walked right past it.**
+  `grep '\.remove(' Tests/VinodexCoreTests/BookmarkTests.swift` returns **nothing**:
+  none of the 15 tests in that suite touches either `remove` overload. The
+  data-destroying side effect is intact — `remove(_:on:)` calls `clearRating(for:)`
+  on the `.tried` shelf, wiping the user's rating *and* their written note — while
+  `removeAll(on: .tried)`'s equivalent cleanup is still tested at
+  `BookmarkTests.swift:205`. The un-suffixed facade at `Bookmarks.swift:123` is still
+  unreferenced in `Sources/`; the only production caller is
+  `BookmarksScreen.swift:204`, which uses the shelf form.
+  **AUDIT L37 was in this exact code and did not add the test.** It examined the ✕
+  confirm dialog, concluded the *comment* was wrong rather than the code — precisely
+  because "cheap to redo" does not hold on the TRIED shelf, *"where `remove(_:on:)`
+  takes the rating and the written note with the row"* — and rewrote the dialog copy
+  to say so. So the destructive behaviour this item wants pinned is now **documented
+  in two places and asserted in none**. Lines: facade `:123`, implementation `:198`.
 
 - [ ] **L19** · Test · Diagnostics OK/fail string-matching against `DexFont.statusReport` wording sits inline in a View, untestable · `Sources/VinodexUI/DiagnosticsReport.swift:19` → extract report lines into a pure `(text, ok)` model and test it
   **@0731 STILL OPEN** — Unchanged since fb5dcf2 and still untestable: the OK/fail
@@ -933,6 +1811,23 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   2). DiagnosticsReport.body then becomes `ForEach(lines) { row($0.text, ok: $0.ok) }`,
   and add a VinodexCoreTests case covering the all-failed, one-fallback and all-OK
   inputs.
+  **@0803 STILL OPEN, and the mis-report is confirmed live.** The predicate is
+  unchanged at `DiagnosticsReport.swift:19` —
+  `row(line, ok: !line.contains("FALLBACK") && !line.hasPrefix("FAILED"))` — an inline
+  expression in a `body`, coupled to three literal spellings produced twenty lines
+  apart in `DexFont.statusReport` (`DexTheme.swift:470-476`). Re-read both sides on
+  2026-08-03 and the defect holds exactly as described: `statusReport`'s first line is
+  `"registered \(registration.registered.count)/2"`, which contains neither
+  `"FALLBACK"` nor a `"FAILED"` prefix — **so a build where both faces failed to
+  register renders `registered 0/2` with a green OK badge.**
+  **The file grew around it without the predicate changing.** AUDIT **M45** added
+  `loadNotices` rows and AUDIT **L26** replaced the count-only asset rows with
+  `DexAssetAudit`, which resolves every manifest id through the bundle and returns its
+  own `(line, ok)` pairs — `row(surface.line, ok: surface.ok)` at `:31`. **That is
+  this item's remedy, implemented for the asset rows and not for the font rows**: a
+  value type carrying `ok` as a boolean instead of re-derived from prose. The pattern
+  to copy now lives four lines below the bug. `VinodexUI` still has no test target,
+  so the assertion half depends on the same gap as **M14** and **L20**.
 
 - [ ] **L20** · Test · The uppercase-with-caret-preservation transform is welded to UITextField and has no test · `Sources/VinodexUI/DexSearchField.swift:69` → extract the transform as a pure function and test it
   **@0731 STILL OPEN** — The file grew by +130/-13 since fb5dcf2 (clear button,
@@ -950,6 +1845,19 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   cases for lowercase paste, mixed case, empty string, and a string whose uppercasing
   changes length (e.g. "ß" → "SS", the case where preserving the raw UITextPosition is
   actually wrong).
+  **@0803 STILL OPEN — byte-identical, moved again, `:100` → `:148`.** No
+  `SearchInput` in Core; the uppercase-plus-caret-restore block is still welded to
+  `UITextField` inside the Coordinator, and `Package.swift` still ships no
+  `VinodexUI` test target.
+  **AUDIT M50 rewrote the sizing of this exact file and left the transform alone**,
+  which is worth recording because it narrows the remaining work: `uiFont` now builds
+  through `DexFont.resolvedSize(_:)` and three hand-pinned frames derive from one
+  `DexSearchField.height(nominal:atLeast:)`, with the arithmetic pushed into
+  `TypeScale` in **Core** and asserted in `TypeScaleTests`. So the file's *other*
+  pure part has already made the trip this item proposes, by the route this item
+  proposes. The transform is the last piece left in it, and the `"ß" → "SS"` case —
+  where preserving the raw `UITextPosition` is actually wrong — is still the case
+  nothing can catch.
 
 - [ ] **L21** · Test · `freeTierIsClosed` title promises only-free grapes but asserts at-least-one; its AccessStore setup is dead code · `Tests/VinodexCoreTests/AccessTests.swift:55` → align the assertion or title with intent; delete the unused setup
   **@0731 STILL OPEN** — Both halves of the finding survive verbatim at HEAD (the block
@@ -967,6 +1875,12 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   \\(stranded)")`. If an all-free requirement is genuinely too strict for the current
   data, rename the test to "free regions and styles reference at least one free grape"
   so the name stops overselling the check.
+  **@0803 STILL OPEN, verbatim.** Re-read at `AccessTests.swift:42-60`. The title is
+  still *"free regions and styles only reference free grapes"* while the assertion is
+  still `linked.contains(where:)` — an at-least-one check — and the two setup lines
+  `let store = makeStore(); store.starterOnly = true` are still inert, influencing no
+  assertion in the test. The blind spot widened with the data: **405 entries and 180
+  free ids**, up from 375/153.
 
 - [ ] **L22** · Test · Test UserDefaults suites are never removed after tests, leaking UUID-named plists on every run · `Tests/VinodexCoreTests/BookmarkTests.swift:9` → remove persistent domains in teardown and deduplicate the makeStore helper
   **@0731 WORSE** — All six new/expanded suite-backed test files repeat the leaking
@@ -989,8 +1903,25 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   `makeStore()`/`makeDefaults()` helpers plus the 9 inline sites to it. Note that a
   helper returning a store cannot clean up on its own — the tests need the closure form
   (or a `Suite` with a `deinit` that tears down the names it handed out).
+  **@0803 STILL WORSE — the pattern spread into three more files, including two
+  written the day of this re-verification.** No `withTempDefaults`, no teardown
+  anywhere; every site is still the same shape, with
+  `removePersistentDomain(forName:)` called at the **top** of the helper on a
+  freshly-minted UUID that has never existed — a no-op by construction, exactly as
+  recorded. Leaking files went **6 → 9**: the three new ones are
+  `TypeScaleTests.swift:15` (AUDIT M49/M50), `SavedDataArchiveTests.swift:15` (AUDIT
+  M35) and `RouteAndSearchStateTests.swift` via `ScreenStateStore`. The full site
+  list is now `AccessTests:11,74,207,227` · `BookmarkTests:9,40,149,187` ·
+  `RecentlyViewedTests:9,55,84` · `DailyChallengeTests:62` · `ToolsTests:499` ·
+  `MinigameTests:275` · `TypeScaleTests:15` · `SavedDataArchiveTests:15`.
+  **`SavedDataArchiveTests` is the one to look at when writing the helper.** It is the
+  heaviest defaults user in the suite — AUDIT M35's `reloadPicksUpAnImport` drives six
+  stores through real `UserDefaults` suites, 67 assertions in that pass alone — so it
+  leaks the most and would benefit most from the closure form. The note in the remedy
+  stands and is the reason this has not been done casually: a helper that *returns* a
+  store cannot clean up after itself.
 
-- [ ] **L23** · Test · The `date` fixture's DateFormatter omits en_US_POSIX locale and Gregorian calendar despite a fixed format · `Tests/VinodexCoreTests/DailyPickTests.swift:16` → set the formatter's locale to en_US_POSIX and calendar to Gregorian
+- [x] **L23** · Test · The `date` fixture's DateFormatter omits en_US_POSIX locale and Gregorian calendar despite a fixed format · `Tests/VinodexCoreTests/DailyPickTests.swift:16` → set the formatter's locale to en_US_POSIX and calendar to Gregorian
   **@0731 WORSE** — The original defect is untouched, and the new-since-audit
   MinigameTests copied it verbatim twice: a fixed `dateFormat` on a `DateFormatter` that
   inherits the process locale and calendar. On a machine whose region uses a non-
@@ -1009,6 +1940,31 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   `formatOptions = [.withFullDate]` and `timeZone = TimeZone(secondsFromGMT: 0)!`) and
   hoist it into a single shared test helper file so the next suite copies a correct
   fixture instead of this one.
+  **@0803 STILL WORSE — unchanged at all three sites, and now feeding six more
+  tests.** `DailyPickTests.swift:16`, `MinigameTests.swift:8` and
+  `MinigameTests.swift:197` all still build a `DateFormatter` with a fixed
+  `dateFormat` and a `timeZone`, and **no `locale` and no `calendar`** — inheriting
+  the process's. On a machine whose region uses a non-Gregorian calendar (Buddhist,
+  Japanese-era, ROC) or non-Latin digits, `f.date(from:)` returns nil and the `!`
+  force-unwrap **crashes the test process** rather than failing an expectation.
+  The inconsistency this item flagged is intact: in both files the neighbouring `utc`
+  property three lines away does it correctly, with
+  `Calendar(identifier: .gregorian)`. And `MinigameTests.swift:197`'s fixture now
+  feeds the six date tests AUDIT M32 added on 2026-08-03 — so the count of tests
+  resting on a locale-dependent force-unwrap went up while the fixture stayed wrong.
+  **@0805 RESOLVED at all three sites.** `DailyPickTests.swift:20-21`,
+  `MinigameTests.swift:12-13` and `:206-207` now set
+  `f.locale = Locale(identifier: "en_US_POSIX")` and
+  `f.calendar = Calendar(identifier: .gregorian)` ahead of the fixed `dateFormat` —
+  consistent at last with the `utc` property three lines away. The stronger remedy
+  (one shared ISO8601 fixture hoisted into a helper file) was not taken: three
+  corrected copies remain, so a fourth suite could still copy rather than share.
+  The core-tests shim typechecks all 22 files clean.
+  `DailyChallengeTests.swift:16` still shows the correct pattern
+  (`ISO8601DateFormatter`), which is what should be hoisted.
+  **This is also the cheapest of the three test-hygiene items** — two lines in three
+  places, or one shared helper — and it is the only one that can take a *runner*
+  down rather than a test.
 
 - [ ] **L24** · Test · `crossLinksResolve` doc claims the test flags a filled gap, but the `<= 24` upper bound passes silently when gaps close · `Tests/VinodexCoreTests/FilterTests.swift:148` → pin the exact unresolved-name set instead of an upper-bound count
   **@0731 WORSE** — This is the exact scenario the audit predicted, now realized. The
@@ -1029,6 +1985,30 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   at FilterTests.swift:196-200 mixes units — `let resolved = total - unresolved.count`
   subtracts a count of unique names from a count of link instances — so fix it to count
   unresolved instances if that guard is meant to mean anything.
+  **@0803 STILL WORSE — and this item's own 2026-07-31 correction has now gone stale
+  in turn, which is the finding.** The bound is untouched at `unresolved.count <= 24`
+  (`FilterTests.swift:410-413`) and so is the doc comment above it.
+  **Recomputed against the shipped `entries.json` on 2026-08-03: 354 cross-links,
+  6 unresolved** — `Alvarinho`, `Garnacha`, `Pinot Grigio`, `Shiraz`, `Tinta Roriz`,
+  `Various`. Not 24 (the audit's figure), and **not 1** (the last pass's figure, which
+  said the only survivor was the literal `"Various"` on Pétillant Naturel). The
+  batch-2 FR/IT/ES expansion (`295bda8`) reopened five of them, and five of the six
+  are **synonyms of grapes that are in the table** — Alvarinho/Albariño,
+  Garnacha/Grenache, Pinot Grigio/Pinot Gris, Shiraz/Syrah, Tinta Roriz/Tempranillo —
+  which is a different content gap from the one the doc comment describes, and
+  arguably a resolver gap rather than a data one, since `details.synonyms` already
+  carries these names for search.
+  **The assertion passed silently through both moves.** It has now been 24× loose,
+  then 4× loose, and every named example in its doc comment (Rioja → Graciano, Douro →
+  Tinta Roriz, Jura → Poulsard/Savagnin/Trousseau) is wrong except one. That is two
+  content changes the test was written to report and did not.
+  **Revised fix.** Pin the exact set, not a bound:
+  `#expect(unresolved == ["Alvarinho", "Garnacha", "Pinot Grigio", "Shiraz",
+  "Tinta Roriz", "Various"], "cross-link gap changed: \\(unresolved.sorted())")`, and
+  rewrite the comment to say what the six are — one placeholder plus five synonyms.
+  Then decide the real question this exposed: whether `entry(named:)` should consult
+  `details.synonyms`, which would resolve five of the six and is the fix a user would
+  notice. The unit-mixing nit at `:416` is unchanged.
 
 - [ ] **L25** · Test · `searchFields` title promises tags matching but no assertion exercises a tags-only match · `Tests/VinodexCoreTests/FilterTests.swift:10` → add an assertion matching via tags only, or rename the test
   **@0731 STILL OPEN** — Still three assertions for four advertised fields, and the
@@ -1046,6 +2026,21 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   `details.synonyms` entry appearing in no other field). Then change the `"japan"`
   line's comment to say it covers origin-or-tags, or replace it with a region whose
   origin term appears in no tag.
+  **@0803 STILL OPEN, verbatim at `FilterTests.swift:10-19`.** Three assertions for
+  four advertised fields; no assertion targets a tags-only match, so
+  `haystacks.append(contentsOf: tags)` could still be deleted and this suite would
+  stay green. The mislabelled `// synonym` comment on the `"napa"` line is unchanged.
+  **One thing changed underneath it, and it makes the gap slightly worse.** AUDIT
+  **M5** replaced the per-field scan with a pre-folded `searchHaystack` —
+  `WineEntry.searchFields` is now the single definition of what search scans, folded
+  once at load and joined with a newline, and `WineDatabase` serves queries from
+  `sortedEntries`/`searchHaystacks` built in `init`. So there are now **two**
+  implementations that must agree about which fields are searchable (the indexed one
+  and `[WineEntry].apply`, kept as the documented unindexed path), and this test
+  pins neither of them field by field. AUDIT M33 did add *the indexed and unindexed
+  paths agree on every filter branch* (`:349`) — but that compares the two paths to
+  each other, so a field dropped from `searchFields` would leave both agreeing and
+  both wrong.
 
 - [ ] **L26** · Test · `originFilter` claims whole-term-only matching but never asserts a partial term is rejected · `Tests/VinodexCoreTests/FilterTests.swift:59` → assert a partial term such as "Fran" matches no region
   **@0731 STILL OPEN** — Unchanged since the audit. The whole-term guarantee — the
@@ -1067,4 +2062,79 @@ so pushes to `audit` and to the `vN.N-batch` branches — where all the work hap
   candidate and empty term. Optionally assert the tags path explicitly so the
   `allSatisfy { $0.origin == "France" }` line is not silently relying on a data
   coincidence.
+  **@0803 STILL OPEN, verbatim at `FilterTests.swift:80-85`** — two assertions, both
+  positive, no partial-term rejection. Swapping `matchesWholeTerm` for a plain
+  `contains` would still leave both passing.
+  **And the failure mode this item is guarding against actually shipped, elsewhere.**
+  AUDIT **M33** found `EntryDisplay.colorType` doing exactly the substring match this
+  test exists to forbid — `"rose"` inside `"p-rose-cco"` — which labelled **Prosecco a
+  rosé** on its detail page, in its chip text and in the filter behind it. The fix
+  routed `colorType` through `matchesWholeTerm`. So the whole-term guarantee is no
+  longer a property of one filter case: it is shared by `.origin` and by colour
+  inference, it has a demonstrated failure history, and it still has **no direct
+  test** — see **L16**, which wants the same function pinned from the other end.
+  The second assertion's incidental over-strictness (`.origin` also matches via
+  `entry.tags`, so `allSatisfy { $0.origin == "France" }` holds only because no
+  non-French region carries a "France" tag) is unchanged, and the catalogue grew by
+  30 entries since it was last true by coincidence.
 
+
+---
+
+## Update log
+
+**2026-08-03 — re-verified against the working tree.** All 50 items re-read
+against current source; every one carries a `@0803` note whether or not it moved.
+**11 resolved · 9 partial · 20 open · 10 worse**, from
+`2 · 7 · 27 · 14` at the last pass.
+
+- **The tree, not `HEAD`.** Every fix from AUDIT.md's 2026-08-01 and 2026-08-03
+  passes is uncommitted — 85 dirty paths, 26 untracked files. Nine of the eleven
+  closures below live only in that working tree, **C1 among them**, so `HEAD`
+  (`da787a8`) still has a macOS build that does not compile. Committing is the
+  highest-value action available and it is not an audit item.
+- **Nine items closed, none by work aimed at this file.** Six were taken by an
+  AUDIT item covering the same ground — **M11**/**M12** by AUDIT M33, **M17** by
+  M29, **L4** by M6, **L7** by L10, **L15** by M47 — and **C1** and **M16** were
+  closed together by the CI rewrite. **L12** closed by a doc edit. That inverts
+  the 2026-07-31 headline, where nine feature commits had built *on top* of these
+  findings rather than around them. Mapping table under
+  [What actually moved](#what-actually-moved).
+- **Two closures contradict the fix this file proposed, and the reasons are
+  worth keeping.** **L7**'s `deinit` could never have fired — the run loop
+  retains the link, which retains the proxy, so the model does not deallocate
+  while the link is live; teardown had to hang off `dismantleUIView`, and it had
+  to be *conditional* or an `.id(…)` skin change would freeze the globe.
+  **M16**'s proposed `macos-*` Swift job would have gone green on the same blind
+  spot it was meant to close, because UIKit is absent on macOS too — the gate had
+  to be `xcodebuild -destination 'generic/platform=iOS'`.
+- **The branch tests this file asked for found two shipped bugs.** Writing
+  **M11**/**M12**'s coverage surfaced them: `Rosé` and `Orange Wine` opened their
+  COLOR chip onto an **empty list**, and **`Prosecco` was labelled a rosé**
+  because `colorType` matched `"rose"` inside `"p-rose-cco"`. Both fixed. That is
+  the argument for **L16** and **L26**, which want the whole-term matcher pinned
+  directly and still have no test.
+- **Three items' own premises had gone stale and are corrected in place.**
+  **L24** is the sharpest: its 2026-07-31 note said 23 of 24 cross-link gaps had
+  been filled and only the literal `"Various"` remained — recomputed, it is **6**,
+  five of them synonyms of grapes that *are* in the table (Alvarinho, Garnacha,
+  Pinot Grigio, Shiraz, Tinta Roriz). The `<= 24` bound passed silently through
+  both moves. **H1**'s icon census was wrong in both directions and is now
+  **68 unique ids — 55 game-icons CC BY 3.0, 12 lucide ISC, 1 mdi Apache-2.0 —
+  shipped as 204 PNGs**, matching AUDIT M36's independent count. **M7**'s key
+  count is **20**, not 19, and is now enumerable from `SavedDataKey.allCases`.
+- **M6's remedy is not implementable and the item now says so.** `xtool.yml` has
+  no `infoPath:` key in xtool 1.17 and is not a passthrough for the generated
+  Info.plist — AUDIT M17 checked directly and left a comment in the file saying
+  so. Portrait lock landed by `AppDelegate` instead, which is the stronger
+  mechanism; the other three consequences stand and reopen with H4's signing
+  pipeline.
+- **Bookkeeping.** The 2026-07-31 status table said Medium `partial 4 / worse 4`
+  while the items said `partial 3 / worse 5`. Totals were right; the table above
+  is now counted from the items.
+- **Verification.** Everything above was read against source or computed from the
+  shipped JSON — entry counts, the free-tier resolution check (180/180), the
+  cross-link recount, the icon-prefix census, the asset directory counts. **No
+  build and no test run was attempted**, per the standing constraint: `swift
+  test` has still never been executed by a maintainer, and CI is the first thing
+  that runs these suites.

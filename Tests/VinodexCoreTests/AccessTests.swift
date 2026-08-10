@@ -85,6 +85,17 @@ struct AccessTests {
         #expect(!db.isFree("NOT_A_REAL_ID"))
     }
 
+    /// The inverse guard: a free id that names no entry is silent drift — a
+    /// regeneration renamed or dropped the entry, and `isFree` just returns
+    /// false for an id nobody ever looks up.
+    @Test("every free id in the manifest resolves to an entry")
+    func freeIDsResolve() {
+        #expect(!db.freeIDs.isEmpty, "bundled tiers.json lists no free ids")
+        for id in db.freeIDs {
+            #expect(db.entry(id: id) != nil, "tiers.json free id \(id) has no entry")
+        }
+    }
+
     /// The one safety valve: a build whose tiers manifest failed to load must
     /// unlock everything rather than lock the user out of the whole dataset.
     @Test("a database with no tier manifest is fully unlocked")

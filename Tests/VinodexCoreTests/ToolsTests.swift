@@ -11,7 +11,7 @@ struct ChipFilterTests {
     /// trap and take every remaining suite down with it.
     private func option(_ facet: ChipFacet, _ value: String) throws -> ChipOption {
         try #require(
-            ChipFilter.options(for: facet).first { $0.value == value },
+            db.chipOptions(for: facet).first { $0.value == value },
             "\(facet) has no option \(value)"
         )
     }
@@ -26,7 +26,7 @@ struct ChipFilterTests {
     @Test("every facet offers at least two chips")
     func facetsArePopulated() {
         for facet in ChipFacet.allCases {
-            let options = ChipFilter.options(for: facet)
+            let options = db.chipOptions(for: facet)
             #expect(options.count >= 2, "\(facet.rawValue) has \(options.count) options")
             #expect(!facet.title.isEmpty)
             #expect(!facet.note.isEmpty)
@@ -35,7 +35,7 @@ struct ChipFilterTests {
 
     @Test("chip ids are unique across every facet")
     func optionIDsAreUnique() {
-        let all = ChipFacet.allCases.flatMap { ChipFilter.options(for: $0) }
+        let all = db.allChipOptions
         #expect(Set(all.map(\.id)).count == all.count)
     }
 
@@ -116,7 +116,7 @@ struct ChipFilterTests {
         filter.toggle(try option(.category, "GRAPES"))
 
         for facet in ChipFacet.allCases {
-            for chip in ChipFilter.options(for: facet) {
+            for chip in db.chipOptions(for: facet) {
                 let predicted = db.count(withChip: chip, added: filter)
                 let actual = db.entries(matching: filter.toggling(chip)).count
                 #expect(predicted == actual, "\(chip.id) predicted \(predicted), got \(actual)")
@@ -719,6 +719,33 @@ struct WalkthroughTests {
         }
     }
 
+    /// AUDIT **M48**: the diagram is the tour's whole instructional payload and
+    /// it is conveyed by opacity alone. Every highlight it can draw needs a
+    /// spoken equivalent, and no two may share one — a copy-pasted label is the
+    /// failure mode that looks fixed from the outside.
+    @Test("every highlight the diagram can draw has a distinct description")
+    func diagramDescriptions() {
+        let all = WalkthroughStep.Highlight.allCases
+        for highlight in all {
+            let described = highlight.diagramDescription(isolated: false)
+            #expect(described.count > 40, "\(highlight.rawValue): \(described)")
+            #expect(described.hasPrefix("Diagram of"), "\(highlight.rawValue) does not say it is describing a picture")
+            #expect(highlight.diagramDescription(isolated: true).hasSuffix("Nothing else is drawn."))
+        }
+        let distinct = Set(all.map { $0.diagramDescription(isolated: false) })
+        #expect(distinct.count == all.count, "two highlights share a description")
+    }
+
+    /// The description describes the *drawing*; the body is the prose beside it.
+    /// If they were ever the same string the label would have stopped adding
+    /// anything, which is the state M48 found the screen in.
+    @Test("a step's diagram description is not its body")
+    func descriptionIsNotBody() {
+        for step in Walkthrough.steps {
+            #expect(step.diagramDescription != step.body, "\(step.id)")
+            #expect(!step.diagramDescription.isEmpty)
+        }
+    }
     /// **The tour names the tools the shelf actually holds** (0.8.8, D2).
     ///
     /// This is the assertion that would have caught the bug D2 found: the step

@@ -10,7 +10,10 @@ import PackageDescription
 // so they compile to nothing on Linux — without that, `swift test` on the host
 // would fail to build the package at all.
 //
-// xtool expects exactly one library product, which is the app.
+// xtool builds the product it is told to — `Vinodex`, the app — so the extra
+// products below don't disturb it. Core and UI are exported so a future CLI
+// validator, snapshot harness, or macOS target can depend on them directly
+// (arch A5).
 let package = Package(
     name: "Vinodex",
     platforms: [
@@ -21,6 +24,14 @@ let package = Package(
         .library(
             name: "Vinodex",
             targets: ["VinodexApp"]
+        ),
+        .library(
+            name: "VinodexCore",
+            targets: ["VinodexCore"]
+        ),
+        .library(
+            name: "VinodexUI",
+            targets: ["VinodexUI"]
         ),
     ],
     targets: [
@@ -103,7 +114,14 @@ let package = Package(
         ),
         .target(
             name: "VinodexApp",
-            dependencies: ["VinodexUI"]
+            dependencies: ["VinodexUI"],
+            // The privacy manifest describes the whole app (all three modules
+            // link into one binary), so it rides the app-level target. `.copy`
+            // of the single file puts it at the *root* of this target's
+            // resource bundle, where App Store tooling looks — nested under a
+            // Resources/ directory it would be invisible (arch A2 / auditS H3;
+            // placement caveat documented in the file itself).
+            resources: [.copy("PrivacyInfo.xcprivacy")]
         ),
         .testTarget(
             name: "VinodexCoreTests",

@@ -264,10 +264,16 @@ struct ArtPipelineRosterTests {
     private static var packageResourceDirectories: Set<String> {
         get throws {
             let text = try read("Package.swift")
+            // The products also say `name: "VinodexUI"` since arch A5 exported
+            // the libraries, and the first match is the product's — from there
+            // the next `resources: [` belongs to VinodexCore, which is how this
+            // gate once reported all nineteen art directories missing at once
+            // (2026-08-10). Narrow to the targets section first.
+            guard let targets = text.range(of: ".target(") else { return [] }
             // Everything from the target's name onward — no closing character,
             // because the first `)` after it belongs to a `.copy(...)` call
             // inside the very list being looked for.
-            guard let name = text.range(of: "name: \"VinodexUI\"") else { return [] }
+            guard let name = text.range(of: "name: \"VinodexUI\"", range: targets.upperBound..<text.endIndex) else { return [] }
             let target = String(text[name.upperBound...])
             guard let list = slice(target, from: "resources: [", to: "]") else { return [] }
             return Set(
@@ -278,27 +284,31 @@ struct ArtPipelineRosterTests {
         }
     }
 
-    /// `PixelArtLoader.subdirectories`, as written in `EntryVisual.swift`.
+    /// `PixelArtLoader.directories`, as written in `EntryVisual.swift` — a
+    /// list of `DexAsset` case names since A22 moved the paths there, so this
+    /// roster follows the loader's own indirection: case names first, then the
+    /// raw directory each one carries in `DexAsset.swift`.
     ///
     /// Parsed off disk for the reason every roster above is: the loader lives in
     /// `VinodexUI`, which no Linux gate can compile, and this suite's own header
     /// records that gap as real and uncovered. It is a text file either way.
     private static var loaderSearchPath: [String] {
         get throws {
-            let text = try read("Sources", "VinodexUI", "EntryVisual.swift")
-            guard let list = slice(text, from: "private static let subdirectories = [", to: "]") else { return [] }
-            // **Keep only what can be a directory name.** `quoted` has no idea
-            // what a comment is, and this is the most heavily annotated list in
-            // the package — a paragraph per entry explaining why the order is
-            // what it is. Prose about strings tends to quote them, and one of
-            // those notes reads `so "first hit wins" stays a statement about
-            // ordering`, which parses as a tenth search path. A directory name
-            // here is a single bare word, so requiring that is enough to tell
-            // the entries from the prose, and it fails loudly rather than
-            // silently if a real entry ever stops looking like one.
-            return quoted(list).filter { name in
-                !name.isEmpty && name.allSatisfy { $0.isLetter || $0.isNumber }
-            }
+            let text = try read("Sources", "VinodexUI", "Components", "EntryVisual.swift")
+            guard let list = slice(text, from: "static let directories: [DexAsset] = [", to: "]") else { return [] }
+            // The slice is `.flavorArt`-style case names, one bare identifier
+            // each; everything else in it is punctuation. A name that fails to
+            // translate through `DexAsset.swift` is dropped, and the count
+            // assertion at the call site is what says so — the dead-gate rule
+            // every parser in this suite follows.
+            let dexAsset = try read("Sources", "VinodexUI", "Platform", "DexAsset.swift")
+            return list
+                .split(whereSeparator: { !($0.isLetter || $0.isNumber) })
+                .map(String.init)
+                .filter { $0.first?.isLowercase == true }
+                .compactMap { name in
+                    slice(dexAsset, from: "case \(name) = \"", to: "\"")
+                }
         }
     }
 
@@ -362,7 +372,7 @@ struct ArtPipelineRosterTests {
     func loaderSearchPathIsBundled() throws {
         let search = try Self.loaderSearchPath
         let declared = try Self.packageResourceDirectories
-        #expect(search.count >= 8, "could not parse PixelArtLoader.subdirectories")
+        #expect(search.count >= 5, "could not parse PixelArtLoader.directories")
 
         for entry in search {
             // The prefix is the bug this whole merge was about: under the new
@@ -861,19 +871,25 @@ struct ArtPipelineRosterTests {
     /// CLEARTECH, …) with no sign that anything had gone wrong. The count
     /// assertion at the call site is the second guard, and it is the one that
     /// caught it.
-    /// The single file under `Sources/VinodexUI` containing `marker`.
+    /// The single file under `Sources/VinodexCore` or `Sources/VinodexUI`
+    /// containing `marker` — both roots, because arch A6 moved `ChassisSkin`
+    /// from UI to Core and a one-directory scan came up empty (2026-08-10),
+    /// which is precisely the dead-gate shape the count assertion exists for.
     ///
     /// Two matches or none is a failure rather than a fallback: both mean the
     /// caller's assumption about where a declaration lives has stopped holding,
     /// and returning something plausible is how a dead gate stays green.
     private static func sourceDeclaring(_ marker: String) throws -> String {
-        let dir = repoRoot.appendingPathComponent("Sources/VinodexUI")
-        let names = try FileManager.default.contentsOfDirectory(atPath: dir.path)
-            .filter { $0.hasSuffix(".swift") }
-            .sorted()
-        let hits = try names.compactMap { name -> (String, String)? in
-            let text = try String(contentsOf: dir.appendingPathComponent(name), encoding: .utf8)
-            return text.contains(marker) ? (name, text) : nil
+        let dirs = ["Sources/VinodexCore", "Sources/VinodexUI"]
+            .map(repoRoot.appendingPathComponent)
+        let hits = try dirs.flatMap { dir -> [(String, String)] in
+            let names = try FileManager.default.contentsOfDirectory(atPath: dir.path)
+                .filter { $0.hasSuffix(".swift") }
+                .sorted()
+            return try names.compactMap { name -> (String, String)? in
+                let text = try String(contentsOf: dir.appendingPathComponent(name), encoding: .utf8)
+                return text.contains(marker) ? (name, text) : nil
+            }
         }
         #expect(hits.count == 1, "\(marker) found in \(hits.map(\.0)) — expected exactly one file")
         guard let only = hits.first else { return "" }

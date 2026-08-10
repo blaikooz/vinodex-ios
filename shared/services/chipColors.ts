@@ -201,6 +201,3 @@ export const APPELLATION_CHIP_COLORS: ChipColorStyle[] = [
   CLIMATE_CHIP_COLOR,
   BLUE_CHIP_COLOR,
 ];
-
-export const extractTagAbbrev = (tag: string): string =>
-  (tag.split(/[\s(]/)[0] ?? '').toUpperCase();

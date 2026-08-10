@@ -1,5 +1,6 @@
-#if canImport(SwiftUI)
+#if canImport(SwiftUI) && canImport(UIKit)
 import SwiftUI
+import VinodexCore
 
 /// One screen mode, drawn as a screen (0.8.2, coordinator 4; finished 0.8.3, F).
 ///

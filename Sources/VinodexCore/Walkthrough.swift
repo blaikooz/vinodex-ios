@@ -13,7 +13,11 @@ import Foundation
 /// who sees it asked for it, and it can be replayed as often as you like.
 public struct WalkthroughStep: Sendable, Hashable, Identifiable {
     /// Which part of the device the diagram lights up for this step.
-    public enum Highlight: String, Sendable, Hashable {
+    ///
+    /// `CaseIterable` so a test can prove every case has a spoken equivalent —
+    /// see `diagramDescription(isolated:)`. A highlight the diagram can draw and
+    /// nothing can describe is the defect **M48** names.
+    public enum Highlight: String, Sendable, Hashable, CaseIterable {
         /// No single part — the whole device.
         case device
         case screen
@@ -33,6 +37,61 @@ public struct WalkthroughStep: Sendable, Hashable, Identifiable {
         case saved
         case home
         case marquee
+
+        /// What `DeviceDiagram` actually draws for this case, in words (AUDIT
+        /// **M48**).
+        ///
+        /// The tour's whole instructional payload is a picture with one part
+        /// glowing and the rest at 38% opacity — "this part lights up", conveyed
+        /// by opacity alone. Anyone who cannot see it gets eight paragraphs
+        /// pointing at nothing.
+        ///
+        /// Here rather than in the view for the same reason the prose is: it is
+        /// the part a test can reach, and a label that disagrees with the
+        /// picture is worse than no label. Each string is written against the
+        /// *drawing*, not against the step's body — the settings step's body
+        /// mentions the person button, and the diagram does not light it, so
+        /// this does not claim it does.
+        ///
+        /// A `switch` with no `default`, so a thirteenth highlight cannot be
+        /// drawn without someone deciding what it sounds like.
+        public func diagramDescription(isolated: Bool) -> String {
+            let base: String
+            switch self {
+            case .device:
+                base = "Diagram of the handheld with every part lit: the screen showing the main menu, the cog above it, and the Back, Saved and Home buttons below."
+            case .screen:
+                base = "Diagram of the handheld with its screen lit. The screen shows the main menu: four category tiles around a round search button."
+            case .search:
+                base = "Diagram of the main menu with the round search button at its centre lit."
+            case .orb:
+                base = "Diagram of the handheld with the round indicator light at the top left lit."
+            case .lights:
+                base = "Diagram of the handheld with the three small status lights at the top left lit."
+            case .settings:
+                base = "Diagram of the handheld with the cog at the top right lit."
+            // Added on integration: upstream's `.collection` arrived with the
+            // shop, workshop and passport steps, which light the same settings
+            // grid as `.tools` without being the tools step. Without an arm
+            // here the switch stops being exhaustive and M48's whole point —
+            // that every drawn state has words — would go with it.
+            case .collection:
+                base = "Diagram of the handheld with the cog at the top right lit, and the screen showing the settings grid of four tiles."
+            case .tools:
+                base = "Diagram of the handheld with the cog at the top right lit, and the screen showing the settings grid of four tiles, the wrench tile outlined and lit."
+            case .entry:
+                base = "Diagram of the screen showing one entry: a picture and a name at the top, a row of three linked tiles below it, then a section of rows, each with an arrow."
+            case .back:
+                base = "Diagram of the handheld with the Back button, the left arrow at the bottom left, lit."
+            case .saved:
+                base = "Diagram of the handheld with the Saved button, the person at the bottom, lit."
+            case .home:
+                base = "Diagram of the handheld with the Home button, the house at the bottom right, lit."
+            case .marquee:
+                base = "Diagram of the handheld with the scrolling banner along the bottom lit."
+            }
+            return isolated ? base + " Nothing else is drawn." : base
+        }
         /// The shop, the workshop and the passport all live behind the cog and
         /// all want the settings grid lit — but they are not "the settings
         /// step", so they get their own name rather than three steps claiming
@@ -59,10 +118,23 @@ public struct WalkthroughStep: Sendable, Hashable, Identifiable {
     /// character. `WalkthroughVoiceTests` holds every face in use, the same
     /// assertion `CoachmarkWalkthrough.problems()` makes.
     public let expression: VinoExpression
-    /// When set, the diagram *hides* everything that is not the subject
-    /// rather than dimming it — the opening step shows one button and
-    /// nothing else, so there is exactly one thing to look at.
+
+    /// When set, the diagram *hides* everything that is not the subject rather
+    /// than dimming it, so there is exactly one thing to look at.
+    ///
+    /// **No shipped step sets it.** The comment here used to say "the opening
+    /// step shows one button and nothing else", and that has not been true
+    /// since the tour was rewritten in v0.5.4 — every step below dims. Kept
+    /// because the diagram still implements it (`WalkthroughScreen.dim(_:)`)
+    /// and it is one argument away from being used again; corrected because
+    /// **M48** needed a text equivalent per step, and a description written
+    /// from a stale comment would have told a VoiceOver user the screen was
+    /// blank.
     public let isolated: Bool
+
+    /// The diagram's text equivalent for this step (AUDIT **M48**), so a test
+    /// can walk `Walkthrough.steps` directly rather than reassembling it.
+    public var diagramDescription: String { highlight.diagramDescription(isolated: isolated) }
 
     public init(
         id: String,

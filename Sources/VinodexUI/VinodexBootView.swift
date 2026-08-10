@@ -595,7 +595,7 @@ struct BootMark: View {
 @MainActor
 enum BootBadgeArt {
     static let badge: UIImage? = {
-        guard let url = DexResources.url(named: "vinodex-logo", ext: "png", subdirectory: "Logo"),
+        guard let url = DexResources.url(named: "vinodex-logo", ext: "png", in: .logo),
               let image = UIImage(contentsOfFile: url.path)
         else { return nil }
         return image

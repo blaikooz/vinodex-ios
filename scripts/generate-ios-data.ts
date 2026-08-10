@@ -31,7 +31,7 @@ import {
   resolveFlavorClassIcon,
   resolveFlavorSubclassIcon,
 } from '../shared/services/flavorIcon.ts';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync, rmSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -675,6 +675,13 @@ const DEFAULT_SOILS = ['Alluvial', 'Clay', 'Limestone'];
 /// that root and are shared with the web consumer, so they do not change when
 /// the root moves.
 ///
+/// R74n's pack is non-commercial without permission (auditS H2), so a
+/// first-party standby set exists at `art/flags/<slug>.png` (drawn by
+/// `scripts/generate-flag-art.py`, named by the `flagSlug()` values below).
+/// Development builds still ship the R74n pack — permission for the paid
+/// release has been requested from R74n (2026-08-06); if it is refused,
+/// `rasterize-icons.sh` flips its flag source to the standby set.
+///
 /// Originally just the countries that appeared as a grape/region `origin` in
 /// the starter selection. Now also covers every country the continent info
 /// screen lists (`data/continents.ts`' `keyRegions`), even where no grape or
@@ -929,6 +936,19 @@ function buildIconManifest(entries: readonly WineEntry[]) {
     Object.entries(FLAG_PATHS).filter(([country]) => origins.has(country)),
   );
 
+  // The bundled filename each flag lands under, decided here and only here
+  // (AUDIT **L25**). The rule used to be written twice and shared by nobody:
+  // `tr '[:upper:] ' '[:lower:]-'` in rasterize-icons.sh, which names the file
+  // it copies, and `country.lowercased().replacingOccurrences(of: " ", …)` in
+  // `IconManifest.flagSlug(for:)`, which names the file the app asks for. They
+  // agree on all 29 current keys — every one is ASCII differing only by spaces
+  // — and would part company on the first accented or punctuated country name,
+  // producing a flag that is copied in and then never found. Both sides read
+  // this table now, so there is nothing left to diverge.
+  const flagSlugs = Object.fromEntries(
+    Object.keys(flags).map((country) => [country, flagSlug(country)]),
+  );
+
   // Only ship country shapes for countries actually present.
   const shapeIcons = Object.fromEntries(
     Object.entries(COUNTRY_SHAPE_ICONS).filter(([country]) =>
@@ -983,7 +1003,25 @@ function buildIconManifest(entries: readonly WineEntry[]) {
     climateSoilFallback: CLIMATE_SOIL_FALLBACK,
     defaultSoils: DEFAULT_SOILS,
     flags,
+    flagSlugs,
   };
+}
+
+/// The one country -> bundled-flag-filename rule (AUDIT **L25**).
+///
+/// Deliberately wider than the two implementations it replaces: they lowercased
+/// and turned spaces into hyphens, which is all the current keys need, and
+/// nothing at all for `Côte d'Ivoire` or `Bosnia & Herzegovina`. Diacritics are
+/// folded and every other run of non-alphanumerics collapses to one hyphen, so
+/// the answer is always a safe filename. On today's 29 keys the output is
+/// byte-identical to what both old rules produced — no flag is renamed by this.
+function flagSlug(country: string): string {
+  return country
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 // ---------------------------------------------------------------------------
@@ -1049,18 +1087,27 @@ function assertCoverage(entries: readonly WineEntry[], palette: ReturnType<typeo
     check(`continent ${continent} has no region`, hit, `countries: ${(countries as string[]).join(', ')}`);
   }
 
-  // Flavours must be derived from the selected grapes, not filtered afterwards.
-  // 25 grapes x up to 3 notes = 75 instances collapsing to ~45-65 once shared
-  // notes (e.g. "cherry") merge across grapes. A count near the full
-  // database's total would mean the selection was applied after
-  // buildFlavorEntries instead of before.
-  if (STARTER_SELECTION) {
-    check(
-      `flavor count ${flavors.length} outside expected 40-75`,
-      flavors.length >= 40 && flavors.length <= 75,
-      'selection may have been applied after flavour derivation',
-    );
-  }
+  // Flavours must be derived from the grapes that ship, not selected or
+  // filtered independently of them. `buildFlavorEntries` emits exactly one
+  // FLAVORS entry per distinct tasting note (trimmed, lowercased) across its
+  // input grapes, so the two counts must agree: shipped flavours above the
+  // note count mean flavour derivation ran over grapes that were then
+  // deselected; below it, that flavours were filtered on their own. Holds
+  // under any selection — the 40-75 band it replaces was gated on a curated
+  // STARTER_SELECTION and died with it (audit B10).
+  const grapeNotes = new Set(
+    grapes.flatMap((g) =>
+      ((g as { tastingProfile?: { note: string }[] }).tastingProfile ?? []).map((f) =>
+        f.note.trim().toLowerCase(),
+      ),
+    ),
+  );
+  grapeNotes.delete('');
+  check(
+    `flavor count ${flavors.length} != ${grapeNotes.size} distinct grape tasting notes`,
+    flavors.length === grapeNotes.size,
+    'flavours must derive from the shipped grape set, nothing more or less',
+  );
 
   // Every flavour class and subclass must own a glyph, and no two may share
   // one: the scan's CLASS and SUBCLASS tiles sit side by side, so a duplicate
@@ -1175,6 +1222,11 @@ const ICONS_REQUIRED = [
 // no silent degradation for new. (AUDIT M3)
 const ICONS_REQUIRED_NONEMPTY = [
   'flavorClassIcons', 'flavorSubclassIcons', 'flavorArt', 'grapeArt', 'styleArt', 'soilKeywords',
+  // AUDIT **L25**. Both the rasteriser and the app now take the flag filename
+  // from here rather than deriving it, so an empty or missing table is not a
+  // degraded build — it is no flags at all on one side and wrong names on the
+  // other.
+  'flagSlugs',
 ];
 
 // The non-optional properties of each Swift `*Entry` struct, by category. A key
@@ -1225,9 +1277,9 @@ const ENTRY_ENUMS: Record<string, Set<string>> = {
   climate: new Set(['maritime', 'continental', 'cool', 'warm', 'mediterranean']),
 };
 
-function validateOutputs(dir: string): void {
+function validateOutputs(dir: string, suffix = ''): void {
   const problems: string[] = [];
-  const read = (name: string): unknown => JSON.parse(readFileSync(resolve(dir, name), 'utf8'));
+  const read = (name: string): unknown => JSON.parse(readFileSync(resolve(dir, name + suffix), 'utf8'));
   const has = (obj: unknown, key: string): boolean =>
     !!obj && typeof obj === 'object' && key in (obj as Record<string, unknown>);
 
@@ -1348,8 +1400,19 @@ function validateOutputs(dir: string): void {
   }
 
   const tiers = read('tiers.json');
-  if (!has(tiers, 'free') || !Array.isArray((tiers as { free?: unknown }).free)) {
-    problems.push('tiers.json missing free[]');
+  // Emptiness matters as much as presence: `{"free":[]}` decodes cleanly on
+  // device and unlocks every entry through the fail-open `freeIDs.isEmpty`
+  // short-circuit in WineDatabase (auditS L6).
+  const free = (tiers as { free?: unknown } | null)?.free;
+  if (!Array.isArray(free) || free.length === 0) {
+    problems.push('tiers.json missing or empty free[]');
+  } else if (Array.isArray(entries)) {
+    // A free id that names no entry is silent drift — `isFree` returns false
+    // for an id nobody looks up, quietly shrinking the free tier (auditS L17).
+    const ids = new Set(entries.map((e) => (e as { id?: unknown }).id));
+    for (const id of free) {
+      if (!ids.has(id)) problems.push(`tiers.json free id has no entry: ${String(id)}`);
+    }
   }
 
   const countries = read('countries.json');
@@ -1919,7 +1982,12 @@ function main() {
   // no case for it and `EntryCategory` cannot decode it — so shipping them
   // failed the *entire* entries.json decode on one bad category, taking the
   // whole database down with it. Excluded until that screen exists.
-  const entries = buildWineEntries(STARTER_SELECTION)
+  //
+  // With no selection active, `full` is reused rather than rebuilt — this used
+  // to be the second of three identical 405-entry builds per run (audit B11;
+  // the third was `WINE_ENTRIES` evaluating at import of shared/constants,
+  // now removed).
+  const entries = (STARTER_SELECTION ? buildWineEntries(STARTER_SELECTION) : full)
     .filter((entry) => entry.category !== 'COUNTRY_GATE');
   const palette = buildPalette(full);
 
@@ -1969,29 +2037,37 @@ function main() {
   const leanEntries = omitKeys(entries, STRIP_ENTRY_FIELDS);
   const leanPalette = omitKeys(palette, STRIP_PALETTE_FIELDS);
 
-  writeFileSync(resolve(OUT_DIR, 'entries.json'), serialize(leanEntries));
-  writeFileSync(resolve(OUT_DIR, 'tiers.json'), serialize(tiers));
-  writeFileSync(resolve(OUT_DIR, 'palette.json'), serialize(leanPalette));
-  writeFileSync(resolve(OUT_DIR, 'icons.json'), serialize(icons));
-  writeFileSync(resolve(OUT_DIR, 'countries.json'), serialize(countries));
-  writeFileSync(resolve(OUT_DIR, 'schema.json'), serialize({ schemaVersion: SCHEMA_VERSION }));
-  // The authored version travels *with* the changelog rather than being derived
-  // again on the Swift side: `FIRMWARE_VERSION` is already the head of the list,
-  // and shipping it as its own key means `AppVersion` never has to reason about
-  // ordering to answer "what is this build".
-  writeFileSync(
-    resolve(OUT_DIR, 'firmware.json'),
-    serialize({ version: FIRMWARE_VERSION, releases: FIRMWARE_RELEASES }),
-  );
-  // The bank and its closed vocabularies travel together, for the reason the
-  // firmware version travels with its changelog: `ExamCatalog` should never
-  // have to restate a label or a tier order that `shared/` already decides.
-  // `minCellCount` is the one number `ExamPaper` reasons about — it bounds how
-  // many distinct questions a balanced paper can draw per category — so it
-  // ships as data rather than as a Swift literal that could drift from the bank.
-  writeFileSync(
-    resolve(OUT_DIR, 'exam.json'),
-    serialize({
+  // Write temps, self-check them, then rename into place (audit B9). Every
+  // temp is written and validated before the first rename, so a crash or a
+  // failed self-check anywhere in the sequence leaves the previous consistent
+  // set on disk rather than a mixed one that decodes fine and renders wrong.
+  // schema.json still lands last — the signal M45's loadNotices check keys on
+  // for an interrupted first-ever generation — by design now rather than by
+  // write order.
+  const outputs: Array<[string, string]> = [
+    ['entries.json', serialize(leanEntries)],
+    ['tiers.json', serialize(tiers)],
+    ['palette.json', serialize(leanPalette)],
+    ['icons.json', serialize(icons)],
+    ['countries.json', serialize(countries)],
+    ['schema.json', serialize({ schemaVersion: SCHEMA_VERSION })],
+    // The authored version travels *with* the changelog rather than being
+    // derived again on the Swift side: `FIRMWARE_VERSION` is already the head
+    // of the list, and shipping it as its own key means `AppVersion` never has
+    // to reason about ordering to answer "what is this build".
+    ['firmware.json', serialize({ version: FIRMWARE_VERSION, releases: FIRMWARE_RELEASES })],
+    // The bank and its closed vocabularies travel together, for the reason the
+    // firmware version travels with its changelog: `ExamCatalog` should never
+    // have to restate a label or a tier order that `shared/` already decides.
+    // `minCellCount` is the one number `ExamPaper` reasons about — it bounds
+    // how many distinct questions a balanced paper can draw per category — so
+    // it ships as data rather than as a Swift literal that could drift.
+    //
+    // Both of these arrived on the upstream side writing straight to disk;
+    // folded into the temp-then-rename set on integration so the two newest
+    // resources get the same all-or-nothing guarantee as the other six (audit
+    // B9). `validateOutputs` already checks both envelopes.
+    ['exam.json', serialize({
       questions: EXAM_QUESTIONS,
       tiers: EXAM_TIERS,
       categories: EXAM_CATEGORIES,
@@ -2000,11 +2076,20 @@ function main() {
       tierLabels: EXAM_TIER_LABELS,
       authoredTierCounts: EXAM_AUTHORED_TIER_COUNTS,
       minCellCount: EXAM_MIN_CELL_COUNT,
-    }),
-  );
-
-  // AUDIT M3 — fail loudly here (and in CI) if the emitted JSON would not decode.
-  validateOutputs(OUT_DIR);
+    })],
+  ];
+  const tempOf = (name: string) => resolve(OUT_DIR, `${name}.tmp`);
+  try {
+    for (const [name, payload] of outputs) writeFileSync(tempOf(name), payload);
+    // AUDIT M3 — fail loudly here (and in CI) if the emitted JSON would not
+    // decode. Runs against the temps, so a failure keeps the previous set.
+    validateOutputs(OUT_DIR, '.tmp');
+    for (const [name] of outputs) renameSync(tempOf(name), resolve(OUT_DIR, name));
+  } finally {
+    // Resources/ ships into the bundle via `.copy`, so a failed run must not
+    // leave stray *.json.tmp behind to ride along.
+    for (const [name] of outputs) rmSync(tempOf(name), { force: true });
+  }
 
   // 0.7.5 (A028) — and after the writes, for the bootstrap reason spelled out on
   // the function. Decodable JSON that names a file nobody shipped is still a

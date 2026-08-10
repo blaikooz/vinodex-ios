@@ -145,7 +145,7 @@ public enum DailyPick {
 public final class RevealCursor {
     public static let shared = RevealCursor()
 
-    public static let storageKey = "revealCursor"
+    public static let storageKey = SavedDataKey.revealCursor.rawValue
 
     private let defaults: UserDefaults
 

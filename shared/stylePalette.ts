@@ -41,27 +41,3 @@ export const STYLE_TONE_PALETTE: Record<StyleColorKey, StyleColorPair> = Object.
     { primary: val.secondary, secondary: val.primary },
   ])
 ) as Record<StyleColorKey, StyleColorPair>;
-
-const normalizeStyleKey = (style?: string): StyleColorKey | undefined => {
-  if (!style) return undefined;
-  const t = style.toLowerCase();
-  if (t.includes('full-body red') || t.includes('full body red') || t.includes('full-bodied red') || t.includes('full bodied red')) return 'full-bodied red';
-  if (t.includes('bright red')) return 'bright red';
-  if (t.includes('light-body red') || t.includes('light body red') || t.includes('light-bodied red') || t.includes('light bodied red')) return 'light-bodied red';
-  if (t.includes('dark red')) return 'dark red';
-  if (t.includes('medium-body red') || t.includes('medium body red') || t.includes('medium-bodied red') || t.includes('medium bodied red')) return 'medium-bodied red';
-  if (t.includes('pink') || t.includes('rosé') || t.includes('rose')) return 'rosé';
-  if (t.includes('light-body white') || t.includes('light body white') || t.includes('light-bodied white') || t.includes('light bodied white')) return 'light-bodied white';
-  if (t.includes('aromatic white')) return 'aromatic white';
-  if (t.includes('high-acid white') || t.includes('high acid white')) return 'high-acid white';
-  if (t.includes('full-body white') || t.includes('full body white') || t.includes('full-bodied white') || t.includes('full bodied white')) return 'full-bodied white';
-  if (t.includes('sweet white')) return 'sweet white';
-  if (t.includes('medium-body white') || t.includes('medium body white') || t.includes('medium-bodied white') || t.includes('medium bodied white')) return 'medium-bodied white';
-  return undefined;
-};
-
-export const getStylePalette = (style?: string): StyleColorPair | undefined => {
-  const key = normalizeStyleKey(style);
-  if (!key) return undefined;
-  return STYLE_TONE_PALETTE[key];
-};

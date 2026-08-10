@@ -48,9 +48,9 @@ public enum DailyChallenge {
 public final class StreakStore {
     public static let shared = StreakStore()
 
-    public static let streakKey = "dailyStreak"
-    public static let lastDayKey = "dailyLastDay"
-    public static let bestKey = "dailyBestStreak"
+    public static let streakKey = SavedDataKey.dailyStreak.rawValue
+    public static let lastDayKey = SavedDataKey.dailyLastDay.rawValue
+    public static let bestKey = SavedDataKey.dailyBestStreak.rawValue
 
     private let defaults: UserDefaults
 
@@ -66,6 +66,17 @@ public final class StreakStore {
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        current = 0
+        best = 0
+        lastDay = nil
+        reload()
+    }
+
+    /// Re-reads from `defaults` after a restore wrote the keys behind this
+    /// store's back — see `BookmarkStore.reload()` for the full reasoning.
+    /// `lastDay` comes back through `object(forKey:)` for the same reason it
+    /// is written that way.
+    public func reload() {
         current = defaults.integer(forKey: Self.streakKey)
         best = defaults.integer(forKey: Self.bestKey)
         lastDay = defaults.object(forKey: Self.lastDayKey) as? Int

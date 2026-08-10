@@ -84,6 +84,22 @@ public final class AccessStore {
         self.granted = self.store.owned
     }
 
+    /// Re-reads from `defaults` — see `BookmarkStore.reload()`.
+    ///
+    /// `SavedDataArchiver.apply` deliberately never writes either of this
+    /// store's keys, so a *restore* has nothing here to pick up. It exists for
+    /// symmetry with the other five and for the day something else writes
+    /// entitlements out of band; note that assigning `starterOnly` goes
+    /// through `didSet`, which writes the same value straight back, so the
+    /// guard on `oldValue` is what keeps that from being a spurious write.
+    public func reload() {
+        starterOnly = defaults.bool(forKey: Self.storageKey)
+        granted = Set(
+            (defaults.stringArray(forKey: Self.entitlementsKey) ?? [])
+                .compactMap(Entitlement.init(id:))
+        )
+    }
+
     // MARK: Grants
 
     public func grant(_ entitlement: Entitlement) {

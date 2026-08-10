@@ -1,5 +1,6 @@
-#if canImport(SwiftUI)
+#if canImport(SwiftUI) && canImport(UIKit)
 import SwiftUI
+import VinodexCore
 
 /// A chrome glyph: the drawn button face if there is one, the SF Symbol if
 /// there is not (0.8.1, J3).

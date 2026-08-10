@@ -109,6 +109,24 @@ jobs:
           fi
           echo "no DexFont call site below the floor"
 
+      # The app touches UserDefaults — a "required reason" API — at all 20
+      # SavedDataKey keys, so shipping without a privacy manifest declaring it
+      # is a guaranteed ITMS-91053 App Store rejection. The manifest went
+      # unwritten for the project's whole life because nothing owned it; this
+      # step exists so it cannot quietly vanish the same way. (arch A2 /
+      # auditS H3)
+      - name: Privacy manifest present (arch A2 / auditS H3)
+        run: |
+          f=Sources/VinodexApp/PrivacyInfo.xcprivacy
+          if [ ! -s "$f" ]; then
+            echo "::error title=Privacy manifest::$f is missing — UserDefaults is a required-reason API, so this is an ITMS-91053 rejection (arch A2 / auditS H3)"
+            exit 1
+          fi
+          if ! grep -q "NSPrivacyAccessedAPICategoryUserDefaults" "$f"; then
+            echo "::error title=Privacy manifest::$f no longer declares the UserDefaults required-reason category (CA92.1)"
+            exit 1
+          fi
+          echo "privacy manifest present; UserDefaults/CA92.1 declared"
       - name: Test
         run: swift test --enable-code-coverage
 
@@ -201,8 +219,14 @@ jobs:
       - name: Test on iOS Simulator
         run: |
           set -o pipefail
+          # `Vinodex-Package`, not `Vinodex`: since arch A5 exported Core and UI
+          # as products, plain `Vinodex` names the app product's build-only
+          # scheme — no test action (every run since 2026-08-08). The aggregate
+          # scheme is the one carrying the test targets; `-list` is logged so
+          # the day Xcode renames it, the log already says what to.
+          xcodebuild -list
           xcodebuild test \
-            -scheme Vinodex \
+            -scheme Vinodex-Package \
             -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
             -derivedDataPath "$RUNNER_TEMP/dd" \
             CODE_SIGNING_ALLOWED=NO
@@ -215,12 +239,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Node version lives in .nvmrc so a maintainer's clone and this job can't
+      # drift apart; npm ci installs exactly what package-lock.json records,
+      # where npm install may resolve newer. (arch B3)
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: '.nvmrc'
 
       - name: Install tooling
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
+
+      # tsconfig.json is strict over shared/ and scripts/, but until this step
+      # only a human remembering to run tsc ever enforced it. (arch B5)
+      - name: Typecheck
+        run: npm run typecheck
 
       - name: Regenerate
         run: npm run generate

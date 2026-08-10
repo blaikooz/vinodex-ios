@@ -77,7 +77,7 @@ struct RootView: View {
     /// dismissing it sticks: the errors themselves are immutable for the life
     /// of the process, and re-raising a permanent condition on every render
     /// would make the alert un-dismissable. Detail stays in the DEV panel.
-    @State private var showingDataAlert = !WineDatabase.shared.decodeErrors.isEmpty
+    @State private var showingDataAlert: Bool
     @State private var access = AccessStore.shared
     /// Which tool cards have been shown (0.8.8, D1). See `toolIntro`.
     @State private var toolIntros = ToolIntroStore.shared
@@ -109,18 +109,41 @@ struct RootView: View {
     /// has already moved once. Comparing against the value captured at start is
     /// exact, where a grace period would be a guess.
     @State private var demoStartedAtTick = 0
-    /// DexFont and DexMetrics read their scales from defaults, which SwiftUI
-    /// cannot observe. Keying the chassis on both forces a rebuild so a
-    /// change takes effect immediately rather than on the next navigation.
-    @AppStorage(TextScale.storageKey) private var scaleRaw = TextScale.small.rawValue
-    @AppStorage(UIScale.storageKey) private var uiScaleRaw = UIScale.small.rawValue
+    /// The eight stored settings, as one model (arch **A17**) — and this is
+    /// the composition root for them, exactly as it is for `db` below.
+    ///
+    /// `DexFont` and `DexMetrics` read their scales from `TextScale.current` /
+    /// `UIScale.current`, which are nonisolated statics SwiftUI cannot observe
+    /// — see the note on `AppSettings` for why they stay that way. Keying the
+    /// chassis on both raw values (`.id`, below) forces the rebuild that makes
+    /// a change take effect immediately rather than on the next navigation.
+    /// That is **H3**'s residual, and A17 narrows rather than closes it: the
+    /// key now comes from the one settings model instead of from the parallel
+    /// pair of `@AppStorage` declarations that used to stand here.
+    var settings: AppSettings = .shared
     /// The system text size, read *above* the pin below so it is the real
     /// setting rather than the capped one. Used once, to seed TEXT SIZE for
     /// someone who had already enlarged their system text — see
     /// `TextScale.seedIfUnset`. (0.6.4, AUDIT H11)
     @Environment(\.dynamicTypeSize) private var systemType
 
-    private let db = WineDatabase.shared
+    /// **The composition root.** This is the one place in the app where the
+    /// singleton is named, and it stays defaulted rather than injected because
+    /// everything below it now takes a `db:` parameter — which is what M27
+    /// asked for. The two remaining `.shared` reads in this file are the M6
+    /// warm-up (whose entire purpose is to force `swift_once` off the main
+    /// thread) and `Diagnostics.emit`, and both are deliberate.
+    private let db: WineDatabase
+
+    init(db: WineDatabase = .shared, settings: AppSettings = .shared) {
+        self.db = db
+        self.settings = settings
+        // Seeded from the injected database, not from `.shared` — otherwise a
+        // fixture with a clean load would still raise the alert. Seeded here
+        // rather than checked in `body` so dismissing it sticks: the errors are
+        // immutable for the life of the process.
+        _showingDataAlert = State(initialValue: !db.decodeErrors.isEmpty)
+    }
 
     /// Single gate for every navigation into an entry, wherever it came from —
     /// a list row, a cross-link, a search result or a bookmark. Putting it here
@@ -153,6 +176,10 @@ struct RootView: View {
     var body: some View {
         DeviceChassis(
             title: currentTitle,
+            // Stated, not inferred from the title string (AUDIT **L2**) — the
+            // empty path *is* the definition of the root screen, and it is
+            // known here and nowhere else.
+            isRoot: path.isEmpty,
             marqueeSymbol: currentMarqueeSymbol,
             marqueeArt: currentMarqueeArt,
             showsBack: !path.isEmpty,
@@ -180,9 +207,13 @@ struct RootView: View {
             // overlay on the chassis itself would dim the bezel, island and
             // footer too, which reads as the device losing power.
             ZStack {
+                // Content swaps instantly; no push transition. The suppression
+                // lives on the three `path` writes below rather than here,
+                // because a `.transaction` modifier applies to *every* change
+                // under it, not only the ones that swap the screen — this used
+                // to null seventeen in-screen `withAnimation` calls, the daily
+                // reveal and the entry expander among them. (AUDIT **M24**)
                 screen
-                    // Content swaps instantly; no push transition.
-                    .transaction { $0.animation = nil }
 
                 if let entry = lockedAttempt {
                     // Offers the bundle the entry actually belongs to rather than
@@ -451,7 +482,9 @@ struct RootView: View {
             .ignoresSafeArea()
         }
         .animation(DexMotion.overlay, value: booting)
-        .id(scaleRaw + "|" + uiScaleRaw)
+        // H3's residual, keyed off the one settings model (arch **A17**) —
+        // see the note on `settings`.
+        .id(settings.textScale.rawValue + "|" + settings.uiScale.rawValue)
         // The app's declared position on Dynamic Type (0.6.4, AUDIT H11):
         // Vinodex sizes its own text and does not follow the system control.
         // `DexFont` already builds every font at a fixed size, so this pin is a
@@ -466,7 +499,12 @@ struct RootView: View {
         .onAppear {
             // Before anything reads TEXT SIZE. A no-op on every launch after the
             // first, and on any device where the user has set it themselves.
-            TextScale.seedIfUnset(
+            //
+            // Through `settings`, not `TextScale.seedIfUnset` directly: this
+            // view is constructed before `onAppear`, so the model has already
+            // snapshotted the unseeded value and a bare defaults write would
+            // never reach it. See the note on `seedTextScaleIfUnset`.
+            settings.seedTextScaleIfUnset(
                 systemOrdinal: DynamicTypeSize.allCases.firstIndex(of: systemType) ?? 3
             )
             // **The first-run trap, answered** (0.8.9c, E1) — and the third
@@ -610,6 +648,12 @@ struct RootView: View {
         let failures = db.decodeErrors.count
         if db.entries.isEmpty {
             return "The wine database failed to load. See SETTINGS > DEV for details."
+        }
+        // Since M46 a support table can fail without costing a single entry, so
+        // "some entries may be missing" is no longer a safe thing to say — it
+        // sends someone looking for a gap in the catalog that is not there.
+        if !db.decodeErrors.contains(where: { $0.hasPrefix("entries.json") }) {
+            return "\(failures) problem\(failures == 1 ? "" : "s") loading the wine database — entries are complete, but some colours, icons or map data are missing. See SETTINGS > DEV for details."
         }
         return "\(failures) problem\(failures == 1 ? "" : "s") loading the wine database — some entries may be missing. See SETTINGS > DEV for details."
     }
@@ -760,9 +804,12 @@ struct RootView: View {
     /// - FLAVORS: TASTE and FAMILY, the flavour taxonomy's two levels — the same
     ///   two a flavour's own detail page puts in its header tiles. Neither
     ///   existed as a facet before H3; see `ChipFacet`.
-    /// - REGIONS and CONTINENTS: none. The regions listing has no search bar
-    ///   (see `showsSearch` below) and the world search is where place
-    ///   filtering lives — H1 put the chips there rather than here.
+    /// - REGIONS and CONTINENTS: none as first written. H1 put place filtering
+    ///   on the world search rather than here, on the grounds that the regions
+    ///   listing was neither chipped nor searched. Neither half of that has
+    ///   survived: 0.8.7's C1 gives it a CLIMATE row (see the case below), and
+    ///   AUDIT **L39** gave it back its search bar (see `.list` in `screen`).
+    ///   CONTINENTS is still none.
     ///
     /// **YOURS is the exception to the rule above, and it is on every row**
     /// (0.8.91, B1). The rule is that a facet earns its place by having more
@@ -825,13 +872,29 @@ struct RootView: View {
             EncyclopediaListScreen(
                 categories: [category],
                 filter: filter,
-                showsSearch: category != .regions,
+                // No `showsSearch:` — regions used to be the one category with
+                // its bar suppressed, and `showsSearch: category != .regions`
+                // is exactly the expression that stood here (AUDIT **L39**).
+                // The single route that reaches here with `.regions` is the
+                // climate-filtered list from an entry page, and it can run to
+                // dozens of rows: a list long enough to need scrolling is a
+                // list long enough to need searching. 0.8.7's C1 is the same
+                // finding arriving from the other end — it gave that listing a
+                // CLIMATE chip row, which is a statement that this is a list
+                // you narrow rather than one you glance at.
                 chipFacets: Self.chipFacets(for: category)
             ) { open($0) }
 
         // `.masterSearch` retired in 0.7.1 (A1) — see `DexRoute`. It was this
         // one `EncyclopediaListScreen` configuration and no screen of its own;
         // `.chipFilter` is MASTER SEARCH now and runs the same query.
+        //
+        // **AUDIT L35's call site went with it.** L35 raised the keyboard on
+        // arrival for the one route whose whole purpose is typing, and that
+        // route was reached by the main menu's magnifier — which opens
+        // `.chipFilter` now. The rule itself is not lost: it lives on
+        // `DexSearchBar.focusesOnAppear`, which still carries the ID. What is
+        // missing is a way to ask for it from here; see `.chipFilter` below.
         case .detail(let id):
             if let entry = db.entry(id: id) {
                 EntryDetailScreen(
@@ -988,8 +1051,18 @@ struct RootView: View {
                 onLabelReader: { push(.labelReader) }
             )
 
+        // MASTER SEARCH (0.7.1, A1) — and the heir to the retired
+        // `.masterSearch` arm above, including its **L35** obligation.
+        //
+        // This is what the main menu's magnifier opens and typing is what it is
+        // for, so the field is raised on arrival exactly as it was on the route
+        // this replaced. The guard lives in `ChipFilterScreen` and is stricter
+        // than `EncyclopediaListScreen`'s: the chips survive a trip into an
+        // entry and back, so a restored filter suppresses the keyboard the same
+        // way a restored query does.
         case .chipFilter:
             ChipFilterScreen(
+                focusesSearchOnAppear: true,
                 onSelect: { open($0) },
                 onSelectCountry: { push(.country(name: $0)) }
             )
@@ -1085,11 +1158,18 @@ struct RootView: View {
         }
     }
 
+    /// Every route change goes through `withTransaction(.instant)` — see the
+    /// note in `body`. It has to be explicit rather than merely default,
+    /// because a caller inside `withAnimation` would otherwise donate its
+    /// animation to the screen swap.
+    ///
+    /// No `Sounds.page()` any more: it was an empty function body, called on
+    /// every push and pop for nothing. A screen change already rides the click
+    /// of the button that caused it. (AUDIT **L43**)
     private func push(_ route: DexRoute) {
-        Sounds.page()
         var next = path
         next.append(route)
-        path = next
+        withTransaction(.instant) { path = next }
     }
 
     /// Back pops one route — and, for the daily reveal, ends the visit.
@@ -1110,11 +1190,11 @@ struct RootView: View {
         // what "back" means there; the route only pops once the scanner says
         // there is nothing left to unwind.
         if leaving == .scanner, ScannerBackRouter.shared.handleBack() {
-            Sounds.page()
             return
         }
-        Sounds.page()
-        path.removeLast()
+        // `_ =` because `removeLast()` hands back the popped route, which
+        // would otherwise become `withTransaction`'s discarded return value.
+        withTransaction(.instant) { _ = path.removeLast() }
         // The `.dailyGrape` forget that lived here left with WHAT'S THAT…?
         // (0.8.93, item 9) — PROF. VINO keeps no screen state to forget.
     }
@@ -1125,11 +1205,17 @@ struct RootView: View {
     /// list from the main menu would silently open it pre-filtered by something
     /// you typed several screens ago, and a country would open halfway down.
     private func goHome() {
-        Sounds.page()
-        path.removeAll()
+        withTransaction(.instant) { path.removeAll() }
         SearchStateStore.shared.clear()
         ScreenStateStore.shared.clear()
     }
+}
+
+extension Transaction {
+    /// A transaction that carries no animation, for the navigation writes.
+    /// Named because `Transaction(animation: nil)` at three call sites reads
+    /// like three unrelated defaults rather than one deliberate rule.
+    static var instant: Transaction { Transaction(animation: nil) }
 }
 
 /// Writes startup state to syslog. `idevicescreenshot` needs Developer Mode and
@@ -1147,6 +1233,7 @@ enum Diagnostics {
         lines.append(contentsOf: DexFont.statusReport.map { "font: " + $0 })
         lines.append("entries: \(db.entries.count)")
         lines.append("decodeErrors: \(db.decodeErrors.isEmpty ? "none" : db.decodeErrors.joined(separator: " | "))")
+        lines.append("loadNotices: \(db.loadNotices.isEmpty ? "none" : db.loadNotices.joined(separator: " | "))")
 
         for continent in Continent.allCases {
             let names = db.regions(in: continent).map(\.name)

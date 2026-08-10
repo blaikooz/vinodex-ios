@@ -347,9 +347,3 @@ export function buildWineEntries(selection?: EntrySelection): WineEntry[] {
     ...(selection?.includeCountries === false ? [] : COUNTRIES),
   ].map((entry) => applyCategoryCallbacks(canonicalizeEntry(entry)));
 }
-
-// Combined wine entries for the app
-export const WINE_ENTRIES: WineEntry[] = buildWineEntries();
-
-// Re-export shared helpers so existing consumers keep importing from `./constants`.
-export { FLAVOR_CLASS_COLORS, categorizeFlavor, categorizeFlavorSubclass };
