@@ -230,19 +230,13 @@ def strip_key_shadow(img):
 LIP_BAND_TOP = 0.78
 
 
-def _opaque_centroid(img):
-    """Centre of mass of the opaque pixels — the same anchor the runtime's
-    `fitCap` computes, so the graft and the re-ink agree on where the cap is."""
-    px = img.load()
-    w, h = img.size
-    sx = sy = n = 0
-    for y in range(h):
-        for x in range(w):
-            if px[x, y][3] > 0:
-                sx += x
-                sy += y
-                n += 1
-    return sx / max(n, 1), sy / max(n, 1)
+# The seam: how many rows at the band's top blend home's own paint into the
+# donors' rather than switching in one row. Measured need: home's lit face
+# runs ~0.9 in value where the donors' skirt top runs ~0.6, and a one-row
+# switch printed that difference as a hard line straight across the cap —
+# loudest on the dark liveries, whose `litFloor` compression stretches value
+# differences. Ten rows turns the step into a moulding gradient.
+LIP_SEAM_ROWS = 10
 
 
 def graft_home_skirt(img, donors):
@@ -274,39 +268,49 @@ def graft_home_skirt(img, donors):
     The house glyph never reaches the band — it bottoms out at ~0.72h against
     the band's 0.78h — so nothing of home's own drawing is lost but the
     too-thin wall this replaces.
+
+    **No registration shift.** The four caps are drawn on one canvas at one
+    position — silhouettes agree within a pixel — so donors are sampled at
+    the same (x, y). A first cut aligned by opaque centroid instead; the
+    glyphs' differing mass makes the centroids honestly different anchors,
+    and the rounded shift resampled the donors a few rows deep, which pulled
+    their skirt up the cap and printed the seam it was meant to hide.
     """
     px = img.load()
     w, h = img.size
 
-    hx, hy = _opaque_centroid(img)
-    donor_data = []
-    for d in donors:
-        dx, dy = _opaque_centroid(d)
-        donor_data.append((d.load(), d.size, dx - hx, dy - hy))
+    donor_data = [(d.load(), d.size) for d in donors]
 
     y0 = int(h * LIP_BAND_TOP)
     grafted = 0
     for y in range(y0, h):
+        # The seam blend: home's own paint fades into the donors' over the
+        # band's first rows, so the transition is moulding, not a line.
+        t = min((y - y0) / LIP_SEAM_ROWS, 1.0)
         for x in range(w):
             samples = []
             alpha = 0
-            for p, (dw, dh), sx, sy in donor_data:
-                nx, ny = int(round(x + sx)), int(round(y + sy))
-                if 0 <= nx < dw and 0 <= ny < dh:
-                    r, g, b, a = p[nx, ny]
+            for p, (dw, dh) in donor_data:
+                if x < dw and y < dh:
+                    r, g, b, a = p[x, y]
                     if a > 0:
                         samples.append(max(r, g, b))
                         alpha = max(alpha, a)
+            hr, hg, hb, ha = px[x, y]
             if not samples:
-                if px[x, y][3] != 0:
+                if ha != 0 and t >= 1.0:
                     px[x, y] = (0, 0, 0, 0)
                     grafted += 1
                 continue
             samples.sort()
             v = samples[len(samples) // 2]
-            if px[x, y] != (v, v, v, alpha):
+            if ha > 0 and t < 1.0:
+                v = int(round(max(hr, hg, hb) * (1 - t) + v * t))
+                alpha = max(alpha, ha)
+            out = (v, v, v, alpha)
+            if px[x, y] != out:
                 grafted += 1
-            px[x, y] = (v, v, v, alpha)
+            px[x, y] = out
     return img, grafted
 
 

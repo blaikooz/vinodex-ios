@@ -61,11 +61,23 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.8.97",
+  date: "2026-08-10",
+  headline: "AND THEN THE SEAM",
+  // The terse register, kept. 0.8.96's graft printed its own join as a line
+  // across the cap; the band now blends in over ten rows, aligned row-for-row.
+  notes: [
+    "The skirt graft lost its seam: HOME's band fades into its siblings' shading instead of switching in one line, and the rows align exactly.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const PREVIOUS_0896: FirmwareRelease = {
   version: "0.8.96",
   date: "2026-08-10",
   headline: "ONE MOULDED SKIRT",
-  // The terse register, kept. The HOME saga's last chapter was never colour:
-  // the drawing's bottom wall was 21 pixels where its siblings carry 120.
+  // The HOME saga's last chapter was never colour: the drawing's bottom wall
+  // was 21 pixels where its siblings carry 120.
   notes: [
     "HOME's bottom bezel was thin in the drawing itself; it is grafted from its siblings now -- one moulded skirt on all four caps, on every shell.",
     "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
@@ -145,6 +157,7 @@ const PREVIOUS_0892: FirmwareRelease = {
 };
 
 const PREVIOUS: FirmwareRelease[] = [
+  PREVIOUS_0896,
   PREVIOUS_0895,
   PREVIOUS_0894,
   PREVIOUS_0893,
