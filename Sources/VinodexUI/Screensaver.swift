@@ -40,7 +40,7 @@ enum ScreensaverMarkArt {
     }
 
     private static func load(_ name: String) -> UIImage? {
-        guard let url = DexResources.url(named: name, ext: "png", subdirectory: "Logo"),
+        guard let url = DexResources.url(named: name, ext: "png", in: .logo),
               let image = UIImage(contentsOfFile: url.path)
         else { return nil }
         return image.withRenderingMode(.alwaysTemplate)

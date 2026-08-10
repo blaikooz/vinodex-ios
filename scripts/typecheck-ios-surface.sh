@@ -99,9 +99,17 @@ while read -r f; do
     perl -i -pe 's{^import (VinodexCore|VinodexUI)\b}{// import $1};
                  s{^import UIKit\b}{import Foundation};
                  s{\.statusBarHidden\(\)}{/* statusBarHidden */};
+                 # `fullScreenCover` is iOS-only SwiftUI with no macOS spelling.
+                 # `sheet` takes the identical (isPresented:onDismiss:content:)
+                 # signature, so the body still type-checks against the same
+                 # closure — which is all this harness is asking.
+                 s{\.fullScreenCover\(}{.sheet(}g;
                  s{\bmakeUIView\b}{makeNSView}g;
                  s{\bupdateUIView\b}{updateNSView}g;
                  s{\bdismantleUIView\b}{dismantleNSView}g;
+                 s{\bmakeUIViewController\b}{makeNSViewController}g;
+                 s{\bupdateUIViewController\b}{updateNSViewController}g;
+                 s{\bdismantleUIViewController\b}{dismantleNSViewController}g;
                  s{\bCADisplayLink\b}{ShimDisplayLink}g;
                  s{^(\s*)try\? AVAudioSession.*$}{$1// AVAudioSession: iOS-only};
                  s{\.cgImage\b}{.shimCGImage}g' "$f"

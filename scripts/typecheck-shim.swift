@@ -25,11 +25,55 @@ public typealias UIScreen = NSScreen
 public typealias UIWindow = NSWindow
 public typealias UITraitCollection = NSAppearance
 public typealias UIViewRepresentable = NSViewRepresentable
+public typealias UIViewControllerRepresentable = NSViewControllerRepresentable
 
 // MARK: - Types with no AppKit counterpart
 
 public protocol UITextFieldDelegate: AnyObject {}
 public protocol UIApplicationDelegate: AnyObject {}
+
+// MARK: - View controllers
+//
+// `NSViewControllerRepresentable` constrains its `NSViewControllerType` to
+// `NSViewController`, so these have to be real subclasses rather than empty
+// stubs — the same reason `UITextField` is a genuine `NSView` subclass above
+// and not an `NSTextField` alias. Only the members the app actually touches
+// are declared; anything else is a spelling this harness has never needed.
+
+public protocol UIImagePickerControllerDelegate: AnyObject {}
+public protocol UINavigationControllerDelegate: AnyObject {}
+public protocol UIActivityItemSource: AnyObject {}
+
+public final class UIImagePickerController: NSViewController {
+    public enum SourceType { case camera, photoLibrary, savedPhotosAlbum }
+    public struct InfoKey: Hashable, Sendable {
+        public static let originalImage = InfoKey(raw: "originalImage")
+        public static let editedImage = InfoKey(raw: "editedImage")
+        let raw: String
+    }
+    public var sourceType: SourceType = .photoLibrary
+    public var allowsEditing = false
+    public var mediaTypes: [String] = []
+    public weak var delegate: (UIImagePickerControllerDelegate & UINavigationControllerDelegate)?
+    public static func isSourceTypeAvailable(_ type: SourceType) -> Bool { true }
+}
+
+public enum UIActivity {
+    public struct ActivityType: Hashable {
+        public let rawValue: String
+        public init(rawValue: String) { self.rawValue = rawValue }
+    }
+}
+
+public final class UIActivityViewController: NSViewController {
+    public var completionWithItemsHandler: ((UIActivity.ActivityType?, Bool, [Any]?, Error?) -> Void)?
+    public var excludedActivityTypes: [UIActivity.ActivityType]?
+    public init(activityItems: [Any], applicationActivities: [Any]?) {
+        super.init(nibName: nil, bundle: nil)
+    }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("unused") }
+}
 
 public final class UIApplication: @unchecked Sendable {
     public static let shared = UIApplication()
