@@ -214,11 +214,12 @@ if (-not $SkipSync) {
 
 if ($Clean) { Step 5 'Build + install (clean)' } else { Step 5 'Build + install' }
 
-# Measured, so nobody has to sit and watch it. Clean build: 210-230s. Warm
-# build: under 10s. Install after the build: well under a minute. Check back
-# near the end of that window rather than polling the whole way through.
+# Measured, so nobody has to sit and watch it. Clean build: ~300s at v0.9.0
+# size (was 210-230s pre-reorg). Warm build: under 10s. Install after the
+# build: well under a minute. Check back near the end of that window rather
+# than polling the whole way through.
 if ($Clean) {
-    Note 'Clean build: expect 210-230s, then install. Check back at ~3.5 min.'
+    Note 'Clean build: expect ~300s, then install. Check back at ~5.5 min.'
 } else {
     Note 'Warm build: under 10s, then install. Expect this within a minute.'
 }

@@ -8,6 +8,11 @@ version: 1
 bundleID: com.example.Vinodex
 iconPath: AppIcon.png
 
+# Required since v0.9.0: Package.swift exports three library products
+# (Vinodex, VinodexCore, VinodexUI -- arch A5), and xtool 1.17.0 refuses to
+# guess which one is the app. Vinodex is the product wrapping VinodexApp.
+product: Vinodex
+
 # Partial Info.plist, merged over xtool's generated one (0.7.2, LR1). Added for
 # LABEL SCAN's NSCameraUsageDescription / NSPhotoLibraryUsageDescription -- see
 # Info.plist itself, which documents the merge rules.

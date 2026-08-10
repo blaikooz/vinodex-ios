@@ -317,6 +317,42 @@ Two things that make this recur rather than being a one-off:
   is normal and not worth chasing; only the row for the App ID in `xtool.yml`
   matters.
 
+### `Multiple library products were found` at Planning — xtool.yml needs `product`
+
+Seen 2026-08-10 deploying v0.9.0. `xtool dev build` exits 1 immediately after
+`Planning...` with:
+
+```
+Error: Multiple library products were found (["Vinodex", "VinodexCore", "VinodexUI"]).
+```
+
+The v0.9.0 reorg (PR #13) deliberately exports `VinodexCore` and `VinodexUI` as
+library products alongside `Vinodex` (arch A5 — so a future CLI validator or
+macOS target can depend on them), and xtool 1.17.0 refuses to guess which of
+the three is the app. The fix is one line in `xtool.yml`:
+
+```yaml
+product: Vinodex
+```
+
+`Vinodex` is the product wrapping the `VinodexApp` target — see the `products:`
+block at the top of `Package.swift`. Do **not** "fix" it by deleting the extra
+products from `Package.swift`; they are exported on purpose.
+
+Two observations from the same session:
+
+- The `Error:` line goes to stderr and is easy to lose — a transcript that just
+  shows `Planning...` then exit 1 is this (or a sibling planning error). Re-run
+  inside WSL with `2>&1` in the bash command to see the text.
+- The first `xtool dev run` after the fix died silently right after
+  `Build complete!` (again, stderr lost) and the immediate warm re-run went
+  through Provisioning -> Install -> Verify cleanly — consistent with the
+  transient 409 above. Re-run before diagnosing.
+
+Timing note: at v0.9.0 size (~159 Swift files) a clean `xtool dev build` is
+**~300s**, not the 210-230s measured earlier — budget ~5.5 min for clean
+build + install before concluding anything is stuck.
+
 ### Pre-flight checklist
 
 **There is a script for the whole thing now: `scripts/deploy-iphone.ps1`**
