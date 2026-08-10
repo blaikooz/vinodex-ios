@@ -865,6 +865,36 @@ extension ChassisSkin {
     /// recolour — the brief is explicit that this is not a subset.
     public var buttonSet: ChassisButtonSet? {
         switch self {
+        // **Four grey glyphs on four black caps** (0.8.91, D2).
+        //
+        // CLASSIC is the only skin here that is not a colour scheme. The other
+        // three sets exist because their liveries paint each cap a different
+        // colour; this one exists because CLASSIC's caps disagreed with each
+        // other. Back, User and the cog resolved through `control` to near-black
+        // stone with a **white** glyph, while Home resolved through `accent` to
+        // an **amber** cap with dark amber ink — so one of the four buttons was
+        // a different colour and a different ink from its three neighbours, on
+        // the skin the device ships wearing.
+        //
+        // The type's header used to say "Vinodex Classic is deliberately
+        // untouched", which was true of a default and not of a decision. §D2
+        // makes it a decision and it goes here rather than in `control` and
+        // `accent` separately, because this is the one hook that reaches all
+        // four — including the `moldedCap` fallback, which resolves the same
+        // pair of hexes.
+        //
+        // Home keeps a *ramp* rather than a flat black, because `ChassisAccent`
+        // is what draws the moulded highlight and six identical stops would
+        // render a disc. It is a black ramp: near-black through charcoal, with
+        // the same grey ink the other three wear.
+        case .classic:
+            ChassisButtonSet(
+                home: ChassisAccent(pale: "#57534e", light: "#3f3c39", bright: "#292524",
+                                    mid: "#1c1917", edge: "#0c0a09", ink: "#a8a29e"),
+                back: ChassisControl(top: "#292524", bottom: "#0c0a09", edge: "#57534e", glyph: "#a8a29e"),
+                bookmarks: ChassisControl(top: "#292524", bottom: "#0c0a09", edge: "#57534e", glyph: "#a8a29e"),
+                settings: ChassisControl(top: "#292524", bottom: "#0c0a09", edge: "#57534e", glyph: "#a8a29e")
+            )
         // Green / red / blue / magenta-pink.
         case .psvino:
             ChassisButtonSet(
