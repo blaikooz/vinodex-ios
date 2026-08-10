@@ -1,12 +1,28 @@
+import type { DataCategory, EntryCategory, WineEntry } from '../types';
+
 // === Normalization ===
 
 const DIACRITIC_RANGE = /[̀-ͯ]/g;
 
-const normalizeLabel = (value: string) =>
+export const normalizeKey = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(DIACRITIC_RANGE, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+export const normalizeEntryKey = normalizeKey;
+export const normalizeFlavorKey = normalizeKey;
+
+export const normalizeLabel = (value: string) =>
   value
     .toLowerCase()
     .normalize('NFD')
     .replace(DIACRITIC_RANGE, '');
+
+export const isVariousOrigin = (origin?: string) =>
+  (origin || '').trim().toLowerCase() === 'various';
 
 // === Flavor categorization ===
 

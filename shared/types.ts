@@ -1,6 +1,8 @@
 
 export type EntryCategory = 'GRAPES' | 'REGIONS' | 'STYLES' | 'FLAVORS' | 'MASTER_SEARCH' | 'WORLD_SEARCH' | 'COUNTRY_GATE' | 'CONTINENTS' | 'RETRO_GLOBE';
 
+export type DataCategory = 'GRAPES' | 'REGIONS' | 'STYLES' | 'FLAVORS' | 'CONTINENTS' | 'COUNTRY_GATE';
+
 export type RarityTier = 'common' | 'uncommon' | 'rare' | 'epic' | 'noble' | 'godforsaken';
 
 export type RarityLabel = 'COMMON' | 'UNCOMMON' | 'RARE' | 'NOBLE' | 'GODFORSAKEN';
@@ -40,6 +42,16 @@ export interface GrapeCard {
   info: string;
   // cross-links
   styleId?: string;
+}
+
+export interface WineStyle {
+  id: string;
+  name: string;
+  type: 'red' | 'white';
+  description: string;
+  tastingProfile?: TastingNote[];
+  notableGrapes?: string[];
+  keyRegions?: string[];
 }
 
 export type TastingNoteIcon =
@@ -352,4 +364,16 @@ export interface FirmwareRelease {
   headline: string;
   /** One line each, in the order they should be read. ASCII, sentence case. */
   notes: string[];
+}
+
+export interface Pairing {
+  code: string;
+  name: string;
+  category: string;
+  compatibility: string;
+  intensity: string;
+  reasoning: string;
+  color: string;
+  servingTemp: string;
+  examples: string[];
 }

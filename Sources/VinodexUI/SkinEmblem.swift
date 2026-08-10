@@ -1,5 +1,6 @@
 #if canImport(SwiftUI) && canImport(UIKit)
 import SwiftUI
+import VinodexCore
 
 /// A skin's badge, wherever one is drawn — the picker tile and the back plate's
 /// per-skin stamp.

@@ -219,8 +219,14 @@ jobs:
       - name: Test on iOS Simulator
         run: |
           set -o pipefail
+          # `Vinodex-Package`, not `Vinodex`: since arch A5 exported Core and UI
+          # as products, plain `Vinodex` names the app product's build-only
+          # scheme — no test action (every run since 2026-08-08). The aggregate
+          # scheme is the one carrying the test targets; `-list` is logged so
+          # the day Xcode renames it, the log already says what to.
+          xcodebuild -list
           xcodebuild test \
-            -scheme Vinodex \
+            -scheme Vinodex-Package \
             -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
             -derivedDataPath "$RUNNER_TEMP/dd" \
             CODE_SIGNING_ALLOWED=NO

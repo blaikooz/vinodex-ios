@@ -149,7 +149,7 @@ public struct ProfVinoScreen: View {
                             tint: lcd.subtext
                         )
                         Text(expression.rawValue.uppercased())
-                            .font(DexFont.retro(9))
+                            .font(DexFont.retro(10))
                             .tracking(0.5)
                             .foregroundStyle(lcd.subtext)
                             .lineLimit(1)
@@ -215,7 +215,7 @@ public struct ProfVinoScreen: View {
                             .foregroundStyle(fired ? lcd.text : lcd.subtext)
                         Spacer(minLength: 0)
                         Text(fired ? "SAID" : "WAITING")
-                            .font(DexFont.retro(9))
+                            .font(DexFont.retro(10))
                             .tracking(1)
                             .foregroundStyle(fired ? Dex.green : lcd.subtext)
                     }
