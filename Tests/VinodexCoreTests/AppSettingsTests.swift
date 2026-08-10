@@ -43,8 +43,7 @@ struct AppSettingsTests {
     // MARK: - The persisted vocabulary (A6)
 
     /// One assertion per roster pins count, order and spelling at once. Order
-    /// is not decoration: the pickers present `allCases` as-is, and
-    /// `ChassisSkin.next` — the back-plate cycler — walks it.
+    /// is not decoration: the pickers present `allCases` as-is.
     @Test("the twenty-seven raw values are pinned, in order")
     func vocabularyIsStable() {
         #expect(UIScale.allCases.map(\.rawValue) == ["SMALL", "LARGE"])
@@ -189,15 +188,10 @@ struct AppSettingsTests {
         }
     }
 
-    /// The back-plate cycler visits every skin and wraps — a skipped or
-    /// repeated skin here is a skin some users can never reach.
-    @Test("next walks the full roster and wraps")
-    func nextCyclesTheRoster() {
-        let all = ChassisSkin.allCases
-        for (i, skin) in all.enumerated() {
-            #expect(skin.next == all[(i + 1) % all.count])
-        }
-    }
+    // A `nextCyclesTheRoster` test stood here against `ChassisSkin.next` — a
+    // member Core retired in 0.7.6 (A1) with the back-plate cycler it served;
+    // the test was written from the stale API and never compiled. The roster
+    // pin above is the half of it that was real.
 
     // MARK: - What an absent key means
 

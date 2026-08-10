@@ -22,6 +22,10 @@ struct EntryDetailSections: View {
     let db: WineDatabase
     let lcd: LcdMode
     let onSelectRelated: (WineEntry) -> Void
+    /// Route pushes for the two tappable plates below — CLIMATE and the soil
+    /// tiles — which open filtered *lists*, not entries, and so cannot go
+    /// through `onSelectRelated`.
+    let onOpenRoute: (DexRoute) -> Void
 
     /// Which `linkedSection` titles are expanded (0.6.2, C2). Keyed by title
     /// rather than by index so reordering the sections cannot silently expand
@@ -107,10 +111,15 @@ struct EntryDetailSections: View {
     }
 
     /// A single large chip carrying the climate's display name and colours.
+    /// The plate cross-links to the climate-filtered regions list (0.8.7, C1)
+    /// — the pre-seeded chip `chipFacets`' REGIONS row exists to receive.
     private func climateSection(_ r: RegionEntry) -> some View {
         let meta = r.climate.flatMap { db.palette.climates[$0.rawValue] }
         let colors = meta?.colors ?? db.palette.namedChips["CLIMATE"]
             ?? Palette.Chip(bg: "#14532d", border: "#22c55e", text: "#86efac")
+        let destination = r.climate.map {
+            DexRoute.list(category: .regions, filter: .climate($0))
+        }
 
         return DexSection("CLIMATE", symbol: "wind") {
             HStack(spacing: 10) {
@@ -120,6 +129,11 @@ struct EntryDetailSections: View {
                     .tracking(1.5)
                     .foregroundStyle(Color(dexHex: colors.text))
                 Spacer()
+                if destination != nil {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Color(dexHex: colors.text).opacity(0.7))
+                }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 9)
@@ -128,11 +142,18 @@ struct EntryDetailSections: View {
                 RoundedRectangle(cornerRadius: 4)
                     .strokeBorder(Color(dexHex: colors.border), lineWidth: 1)
             )
+            .modifier(TileLink(destination: destination, onOpen: onOpenRoute))
         }
     }
 
     /// A grid of soil buttons. Regions without an explicit soil type fall back
     /// to a climate-keyed triplet rather than showing nothing.
+    ///
+    /// **Actual buttons since 0.8.93 (item 2).** Each tile opens GEOLOGY SCAN
+    /// — the regions grown on that soil, through `EntryFilter.soil`, which has
+    /// existed as a route since the chip era and had no door on this page. The
+    /// tiles were already drawn as pressable squares; the tap is what they
+    /// were promising.
     private func soilSection(_ r: RegionEntry) -> some View {
         let soils = db.icons.soils(soilType: r.details.soilType, climate: r.climate)
 
@@ -170,6 +191,10 @@ struct EntryDetailSections: View {
                         RoundedRectangle(cornerRadius: 8)
                             .strokeBorder(Dex.stone800, lineWidth: 2)
                     )
+                    .modifier(TileLink(
+                        destination: .list(category: .regions, filter: .soil(soil)),
+                        onOpen: onOpenRoute
+                    ))
                 }
             }
         }

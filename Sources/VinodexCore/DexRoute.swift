@@ -256,17 +256,18 @@ public enum DexRoute: Hashable, Sendable {
     case country(name: String)
     /// The regions of one state within a country.
     case state(name: String)
-    /// The guessing game — see `WhatsThat`. Named "WHAT'S THAT…?" rather than
-    /// "grape of the day" since the answer is a region as often as a grape.
+    /// Professor Vino's own screen (0.8.93, item 9): who he is, his six faces,
+    /// the silence switch, and — for now — the dev-facing ledger of what he
+    /// has and has not said. The interaction surface comes later; this is the
+    /// room it will happen in.
     ///
-    /// **The case keeps its old spelling (0.7.9, B).** The screen behind it went
-    /// from a silhouette-and-reveal (`DailyGrapeScreen`) to a clue-by-clue round
-    /// (`WhatsThatScreen`), and the route did not move — a `DexRoute` case is
-    /// vocabulary, named by `DemoMode`, `ChromeTests` and the back-handler in
-    /// `VinodexApp`, and renaming it would be churn in four files to describe a
-    /// change none of them care about. The same convention `scanner` follows,
-    /// which has been BLIND TASTING on screen since 0.7.1.
-    case dailyGrape
+    /// **This slot held `dailyGrape` — WHAT'S THAT…? — from 0.7.9 to 0.8.93.**
+    /// Item 9 deletes that tool outright, screen, engine, record and all, and
+    /// the convention that kept the case's old spelling through two screen
+    /// rewrites does not apply to a case whose feature no longer exists: a
+    /// fresh case is honest vocabulary, and `DexRoute` is not persisted, so
+    /// nothing stored can dangle.
+    case profVino
     /// The guided grape identifier — colour, body, origin and flavours, then a
     /// deduction. See `GrapeScanCriteria`.
     case scanner
@@ -366,6 +367,26 @@ public enum DexRoute: Hashable, Sendable {
     /// resolves to nothing renders the closed shelf rather than a blank screen —
     /// the same rule `.detail` follows for an entry that is not in this build.
     case pack(id: String)
+    /// **Every recommendation, not the first five** (0.8.91, B3).
+    ///
+    /// The passport's YOU MIGHT LIKE strip is capped, and §B3 asks for a SHOW
+    /// ALL behind it. A route rather than an in-place expander — which is the
+    /// idiom `CountryScreen` uses for its long lists — because the full ranking
+    /// is a page's worth of rows arriving under a heading that is already the
+    /// bottom of a long scroll, and 0.8.4's C1 settled the general question: a
+    /// thing that fills the LCD and has its own way back is a stack frame.
+    ///
+    /// Carries nothing. The ranking is a pure function of the tried shelf and
+    /// the catalog (`PalateProfile.recommendations`), so an id here would be a
+    /// second copy of state that already has one place to live.
+    case recommendations
+    /// **The contact screen** (0.8.91, F1) — one paragraph and a mail button.
+    ///
+    /// A frame rather than a `DexAlert`, for the reason `.pack` is: it fills the
+    /// LCD and the chassis Back button is how you leave it. An alert would also
+    /// have put a scrim over SYSTEM, which is the screen you came from and the
+    /// one this is a row on.
+    case support
 
     public var title: String {
         switch self {
@@ -395,8 +416,8 @@ public enum DexRoute: Hashable, Sendable {
             "COUNTRY SCAN"
         case .state(let name):
             name.uppercased()
-        case .dailyGrape:
-            "WHAT'S THAT…?"
+        case .profVino:
+            "PROF. VINO"
         case .scanner:
             // SCANNER → IDENTIFY (0.7.0, I3) → BLIND TASTING (0.7.1, E3), the
             // label only each time, per the same convention `wsetQuiz` and
@@ -479,6 +500,13 @@ public enum DexRoute: Hashable, Sendable {
         // one screen up.
         case .pack:
             "PACKS"
+        // Not "YOU MIGHT LIKE", which is the section heading on the passport
+        // and is a sentence. The marquee names the kind of page, and this one is
+        // the ranked list behind that heading.
+        case .recommendations:
+            "SUGGESTIONS"
+        case .support:
+            "SUPPORT"
         }
     }
 
@@ -543,9 +571,10 @@ public enum DexRoute: Hashable, Sendable {
             "flag.fill"
         case .state:
             "mappin.and.ellipse"
-        // Matches the TOOLS tile that opens it (K2, rule 1).
-        case .dailyGrape:
-            "sparkles"
+        // Matches the TOOLS tile that opens it (K2, rule 1). A mortarboard:
+        // the professor's page, and no other route wears one.
+        case .profVino:
+            "graduationcap.fill"
         // Matches its TOOLS tile, and frees `viewfinder` to be only the
         // unresolved-entry fallback above. `sparkle.magnifyingglass` until
         // 0.7.1: A2 reserves every magnifier for search, and once the tool was
@@ -630,6 +659,20 @@ public enum DexRoute: Hashable, Sendable {
         // exists to catch. SF Symbols 1 / iOS 13, well under the iOS 17 floor.
         case .pack:
             "shippingbox.fill"
+        // A thumbs-up: the page is a list of things the device thinks you would
+        // like. `hand.thumbsup.fill` is SF Symbols 1 / iOS 13, well under the
+        // floor, and is used nowhere else in this table.
+        case .recommendations:
+            "hand.thumbsup.fill"
+        // **Not the seal.** `checkmark.seal.fill` is what the SUPPORT *row* in
+        // SYSTEM wears, and matching it here would have been K2 rule 1 — a
+        // page's glyph is the glyph on the control that opens it — except that
+        // WINE EXAM has worn that symbol since 0.7.5, and `glyphsAreDistinct`
+        // caught the collision on the first run. The envelope is the other true
+        // thing about this page and is used nowhere else in this table. SF
+        // Symbols 1 / iOS 13, well under the floor.
+        case .support:
+            "envelope.fill"
         }
     }
 
@@ -695,7 +738,10 @@ public enum DexRoute: Hashable, Sendable {
         case .labelReader: "marquee-labelscanner"
         case .wsetQuiz: "marquee-wineexam"
         case .dailyChallenge: "marquee-dailychallenge"
-        case .dailyGrape: "marquee-whatsthat"
+        // No drawn face yet (0.8.93, item 9) — the mortarboard symbol stands
+        // in, per the 0.8.91 B3/F1 precedent below. `marquee-whatsthat` went
+        // to the attic with its tool.
+        case .profVino: nil
         case .moonDial: "marquee-moondial"
         // The shelf itself, from the SETTINGS grid's TOOLS door.
         case .minigames: "marquee-tools"
@@ -727,6 +773,12 @@ public enum DexRoute: Hashable, Sendable {
         // C asks for a route distinct from SHOP wearing the same glyph, and art
         // is the half of the pair that is allowed to repeat.
         case .pack: "marquee-shop"
+        // No drawn face for either (0.8.91, B3/F1). `marqueeArt` is allowed to
+        // be nil — the SF Symbol above is the fallback and `ChromeTests`
+        // only checks the stems that *are* given. A new PNG is a pipeline
+        // change (`assertAssetsExist`, `ArtPipelineRosterTests`,
+        // `verify-art.py`), and neither page has earned one yet.
+        case .recommendations, .support: nil
         }
     }
 }

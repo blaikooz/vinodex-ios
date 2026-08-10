@@ -127,18 +127,20 @@ public enum ToolRoster {
             symbol: DexGlyph.challenge,
             faceHex: "#ef4444"
         ),
+        // WHAT'S THAT…? deleted, PROF. VINO in its slot (0.8.93, item 9). The
+        // old id stays in any `toolIntrosSeen` list on disk and is dropped on
+        // read, per the store's own unknown-ids rule below.
         ToolIntro(
-            id: "whatsThat",
-            title: "WHAT'S THAT…?",
-            tagline: "Name the grape or region from its clues.",
+            id: "profVino",
+            title: "PROF. VINO",
+            tagline: "The resident professor, and his page.",
             body: """
-                You start with one free clue and a hundred points. Buy any of the \
-                others whenever you like — each one is priced by how much it gives \
-                away, and naming the wrong wine turns over the cheapest clue left. \
-                Run out of clues and the round is lost. Solving keeps a run going.
+                Who Professor Vino is and everything he does — his faces, the \
+                switch that quiets him, and his ledger of what he has already \
+                told you. Talking to him directly lands here in a later firmware.
                 """,
-            art: "whatsthat",
-            symbol: "sparkles",
+            art: VinoExpression.neutral.artStem,
+            symbol: "graduationcap.fill",
             faceHex: "#EAB308"
         ),
         ToolIntro(
@@ -177,7 +179,7 @@ public enum ToolRoster {
         case .labelReader: id = "labelScan"
         case .wsetQuiz: id = "wineExam"
         case .dailyChallenge: id = "dailyChallenge"
-        case .dailyGrape: id = "whatsThat"
+        case .profVino: id = "profVino"
         case .moonDial: id = "moonDial"
         default: id = nil
         }

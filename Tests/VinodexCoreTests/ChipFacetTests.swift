@@ -27,9 +27,14 @@ struct ChipFacetTests {
         }
     }
 
+    /// **Skips the user-state row** (0.8.91, B1). `.shelf` asks about the player,
+    /// not about the catalog, so on a fresh test suite every one of its chips
+    /// correctly matches nothing. See `ChipFacet.isUserState`; the shelf row has
+    /// its own coverage in `ShelfFilterTests` below, where a membership exists to
+    /// match against.
     @Test("every facet's options match something in the catalog")
     func facetsAreLive() {
-        for facet in ChipFacet.allCases {
+        for facet in ChipFacet.allCases where !facet.isUserState {
             let hits = ChipFilter.options(for: facet).filter { option in
                 var f = ChipFilter()
                 f.toggle(option)
@@ -192,5 +197,100 @@ struct ChipFacetTests {
         var redAndBody = justRed
         redAndBody.toggle(ChipFilter.options(for: .body)[0])
         #expect(db.entries(matching: redAndBody).count <= db.entries(matching: justRed).count)
+    }
+}
+
+/// **The shelf facet** (0.8.91, B1) — the one row that filters on the player.
+///
+/// It cannot be covered by `ChipFacetTests` because every assertion there is of
+/// the form "some entry in the shipped catalog satisfies this chip", and no
+/// entry satisfies a shelf chip until somebody puts it on a shelf. So the
+/// membership is built here, by hand, and the questions are the ones that could
+/// actually be wrong: does a lit shelf chip select exactly its shelf, do two lit
+/// chips widen rather than narrow, and does the empty default mean "nothing
+/// marked" rather than "everything matches".
+@Suite("Shelf chips")
+struct ShelfFilterTests {
+    let db = WineDatabase.shared
+
+    private func chip(_ shelf: Shelf) -> ChipOption {
+        ChipOption(facet: .shelf, value: shelf.rawValue, label: shelf.chipLabel)
+    }
+
+    @Test("all three shelves are offered, always")
+    func everyShelfHasAChip() {
+        let options = ChipFilter.options(for: .shelf)
+        #expect(options.count == Shelf.allCases.count)
+        #expect(Set(options.map(\.value)) == Set(Shelf.allCases.map(\.rawValue)))
+        // The labels are the wording, not the storage. `wantToTry` is a key.
+        #expect(options.map(\.label) == ["SAVED", "WANTED", "TRIED"])
+    }
+
+    @Test("a lit shelf chip selects exactly that shelf")
+    func shelfChipSelectsItsShelf() {
+        let sample = Array(db.entriesInDisplayOrder.prefix(6))
+        #expect(sample.count == 6)
+        let membership = ShelfMembership(ids: [
+            .saved: Set(sample.prefix(2).map(\.id)),
+            .tried: Set(sample.dropFirst(3).prefix(2).map(\.id)),
+        ])
+
+        var tried = ChipFilter()
+        tried.toggle(chip(.tried))
+        let hits = db.entries(matching: tried, shelves: membership)
+        #expect(Set(hits.map(\.id)) == Set(sample.dropFirst(3).prefix(2).map(\.id)))
+    }
+
+    @Test("two shelf chips widen, and a second facet narrows")
+    func shelfChipsOrWithinAndAndAcross() {
+        let sample = Array(db.entriesInDisplayOrder.prefix(6))
+        let membership = ShelfMembership(ids: [
+            .saved: Set(sample.prefix(2).map(\.id)),
+            .tried: Set(sample.dropFirst(3).prefix(2).map(\.id)),
+        ])
+
+        var saved = ChipFilter()
+        saved.toggle(chip(.saved))
+        var both = saved
+        both.toggle(chip(.tried))
+        #expect(
+            db.entries(matching: both, shelves: membership).count
+                > db.entries(matching: saved, shelves: membership).count
+        )
+
+        // AND across facets, like every other row.
+        var savedGrapes = saved
+        savedGrapes.toggle(
+            ChipOption(facet: .category, value: EntryCategory.grapes.rawValue, label: "GRAPES")
+        )
+        #expect(
+            db.entries(matching: savedGrapes, shelves: membership).count
+                <= db.entries(matching: saved, shelves: membership).count
+        )
+    }
+
+    /// The default is a claim, not a shortcut: a caller with no store is saying
+    /// "nothing is on any shelf", and the filter must agree rather than fall
+    /// open. A shelf chip that matched everything when the membership was
+    /// omitted is the silent-wrong-answer shape this repo has three gates for.
+    @Test("an empty membership matches nothing, not everything")
+    func emptyMembershipSelectsNothing() {
+        for shelf in Shelf.allCases {
+            var filter = ChipFilter()
+            filter.toggle(chip(shelf))
+            #expect(db.entries(matching: filter).isEmpty, "\(shelf.rawValue) fell open")
+            #expect(db.entries(matching: filter, shelves: .empty).isEmpty)
+        }
+        #expect(ShelfMembership.empty.isEmpty)
+        #expect(ShelfMembership.empty.shelves(for: "anything").isEmpty)
+    }
+
+    /// An unlit row is not a constraint — the same rule the type documents for
+    /// every other facet, restated here because this is the facet whose
+    /// predicate needs external state and therefore the one where "no chip lit"
+    /// could most easily have been made to mean something.
+    @Test("an unlit shelf row constrains nothing")
+    func unlitShelfRowIsNotAConstraint() {
+        #expect(db.entries(matching: ChipFilter()).count == db.entriesInDisplayOrder.count)
     }
 }

@@ -2,6 +2,7 @@
 import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
+import UserNotifications
 import VinodexCore
 
 // Wipe, back up and restore: the three things that act on the whole of
@@ -50,13 +51,11 @@ enum SavedDataReset {
         // key loop below — every `DeviceAxis` is in it — but the saved recipes
         // are their own store and would survive a wipe otherwise.
         CustomDeviceStore.shared.reset()
-        // WHAT'S THAT…?'s record and the tool cards (0.8.8, E3/D1). Both are
-        // exactly the shape this function's other entries warn about: a wipe
-        // that left the record standing would open a fresh start claiming a
-        // hundred solves and a live run, and one that left the seen-ids set
-        // would silently swallow all six introductions on the one run where
-        // meeting the tools again is the whole point.
-        WhatsThatRecordStore.shared.reset()
+        // The tool cards (0.8.8, D1) — exactly the shape this function's other
+        // entries warn about: a wipe that left the seen-ids set standing would
+        // silently swallow all six introductions on the one run where meeting
+        // the tools again is the whole point. WHAT'S THAT…?'s record stood
+        // beside it until 0.8.93 (item 9) retired the tool, store and all.
         ToolIntroStore.shared.reset()
         // Professor Vino's ledger (0.8.9c, E1), for the reason the tool cards
         // above are here: a wipe that left the seen-ids set standing would open
@@ -123,7 +122,6 @@ enum SavedDataReset {
             ExamRecordStore.storageKey,
             ExamRecordStore.bestStreakKey,
             CustomDeviceStore.storageKey,
-            WhatsThatRecordStore.storageKey,
             ToolIntroStore.storageKey,
             // Belt to `FirstTimeTriggerStore.reset()`'s braces, like the two
             // above it. The seeded flag is listed too because it is the half a
@@ -219,6 +217,61 @@ enum SavedDataRestore {
             .appendingPathComponent(archive.suggestedFilename)
         try archive.encoded().write(to: url, options: .atomic)
         return url
+    }
+}
+
+// MARK: - Switching profiles
+
+/// The destructive half of user profiles (0.8.92, item 5): replace the app's
+/// entire defaults domain and relaunch into it.
+///
+/// **Why a restart and not a live reload.** `SavedDataReset.wipeAll` can work
+/// live because "everything to its default" is a state every store knows how
+/// to reach — each exposes a `reset()`. "Everything to *these forty arbitrary
+/// values*" is not: the stores read their keys once at init and cache, and no
+/// reload API exists or should be grown across ~40 singletons for a test
+/// harness. Writing the domain and exiting makes the next launch read the
+/// snapshot exactly the way it reads any other cold start — which for the
+/// FRESH profile is also precisely the point: the item asks for the *first
+/// -run experience*, and that includes the boot, the intro and the
+/// walkthrough offer, none of which replay without a launch.
+///
+/// `exit(0)` is against App Store guidelines and deliberately acceptable
+/// here: this is a sideloaded, free-provisioned build and the feature is a
+/// test harness. The alert the UI raises says the app will close, so the
+/// close is a kept promise rather than a crash.
+@MainActor
+enum ProfileSwitcher {
+    /// The app's defaults domain as it stands — the thing SAVE snapshots.
+    static func currentDomain() -> [String: Any] {
+        guard let bundleID = Bundle.main.bundleIdentifier else { return [:] }
+        return UserDefaults.standard.persistentDomain(forName: bundleID) ?? [:]
+    }
+
+    /// Replace the domain with `snapshot` (nil = fresh install) and exit.
+    static func apply(_ snapshot: [String: Any]?) {
+        // The outgoing profile's pending reminders must not fire into the
+        // incoming one — the same argument `wipeAll` makes, made before the
+        // domain moves so the scheduler is still the outgoing user's.
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+
+        let defaults = UserDefaults.standard
+        for key in currentDomain().keys where UserProfileStore.isAppStateKey(key) {
+            defaults.removeObject(forKey: key)
+        }
+        if let snapshot {
+            for (key, value) in UserProfileStore.snapshot(of: snapshot) {
+                defaults.set(value, forKey: key)
+            }
+        }
+
+        // A beat between the writes and the exit: the defaults are with
+        // cfprefsd synchronously, but the notification-centre call above is
+        // XPC and deserves the grace period. The UI is behind the DexAlert's
+        // scrim for the whole of it.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            exit(0)
+        }
     }
 }
 #endif

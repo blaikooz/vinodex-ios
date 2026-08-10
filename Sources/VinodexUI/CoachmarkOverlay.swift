@@ -10,11 +10,19 @@ import VinodexCore
 /// last time, and an anchor is simply absent in the cases a stored rectangle
 /// would be stale in.
 ///
-/// The dictionary allows one publisher per target on screen at a time; a later
-/// one wins, which matters for `passportButton` — the chassis user button
-/// publishes it on every screen and the USER screen's PASSPORT row publishes it
-/// too, and the row is the one the player should be looking at once they are
-/// there.
+/// The dictionary allows one publisher per target on screen at a time, and
+/// **the first one in the view tree wins** — corrected in 0.8.91 (I1).
+///
+/// It used to be the last, with the note here claiming that this is what made
+/// the USER screen's PASSPORT row beat the chassis user button. It did the
+/// opposite. Both publish `passportButton`, and both are on screen together on
+/// exactly that screen, because the chassis furniture is mounted everywhere; the
+/// footer is the *last* child of `frontFace`'s stack and the LCD content is the
+/// middle one, so "later wins" handed the spotlight to the plastic on the one
+/// screen the comment was written about. Keeping the first is the same sentence
+/// with the tree order it actually has: the LCD is earlier, so the row takes
+/// over once the player is through the door, and everywhere else the chassis is
+/// the only publisher and wins by being alone.
 public struct CoachmarkTargetKey: PreferenceKey {
     // Computed rather than stored: a stored `static var` is mutable global
     // state, which Swift 6's language mode rejects outright.
@@ -24,9 +32,10 @@ public struct CoachmarkTargetKey: PreferenceKey {
         value: inout [CoachmarkTarget: Anchor<CGRect>],
         nextValue: () -> [CoachmarkTarget: Anchor<CGRect>]
     ) {
-        value.merge(nextValue()) { _, later in later }
+        value.merge(nextValue()) { earlier, _ in earlier }
     }
 }
+
 
 public extension View {
     /// Offer this view to the coachmark spotlight under `target`.
@@ -84,6 +93,12 @@ public extension View {
 /// brightness with a lit ring round it — the opposite of a screen going dark.
 public struct CoachmarkOverlay: View {
     let step: CoachmarkStep
+    /// The window this overlay covers, **supplied rather than read** (0.8.91,
+    /// I1). The caller resolves the anchors against its own reader; taking the
+    /// size from the same reader is what makes the rects below and the drawing
+    /// below share one coordinate space by construction. See the call site in
+    /// `RootView` for the bug this replaces.
+    let canvas: CGSize
     /// The target's rectangle in this overlay's space, or nil when the step
     /// points at nothing (the closing line) or its target is not on screen.
     let spotlight: CGRect?
@@ -94,6 +109,7 @@ public struct CoachmarkOverlay: View {
 
     public init(
         step: CoachmarkStep,
+        canvas: CGSize,
         spotlight: CGRect?,
         position: Int,
         total: Int,
@@ -101,6 +117,7 @@ public struct CoachmarkOverlay: View {
         onSkip: @escaping () -> Void
     ) {
         self.step = step
+        self.canvas = canvas
         self.spotlight = spotlight
         self.position = position
         self.total = total
@@ -114,39 +131,139 @@ public struct CoachmarkOverlay: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var landed = false
+    /// Measured, not assumed — see `placement(hole:)`.
+    ///
+    /// **Seeded rather than started at zero**, and the reason is the barrier. A
+    /// zero here would have to be excluded from the opacity, and an
+    /// `opacity(0)` view in SwiftUI still hit-tests — so a measurement that
+    /// never arrived would leave an invisible wall over the whole window with an
+    /// invisible SKIP on it, which is the one failure this overlay's own note
+    /// says it must not have. 128 is roughly what the block measures at the
+    /// default text size, so the first frame is approximately right and every
+    /// frame after it is exact.
+    @State private var bubbleHeight: CGFloat = 128
 
     /// How far the lit ring stands off the control it is lighting.
     private static let halo: CGFloat = 8
     /// The gap between the bubble and the thing it points at.
     private static let standoff: CGFloat = 14
+    /// How close to the window edge the bubble may sit.
+    private static let margin: CGFloat = 12
+    /// The caret's height. Written down rather than measured because the caret
+    /// is drawn to this number two screens down (`caret(x:pointingUp:)`), and
+    /// the placement has to reserve its slot before it exists.
+    private static let caretHeight: CGFloat = 9
+    /// The smallest visible sliver of a target that still counts as a target.
+    ///
+    /// **A clamped rect can be empty and still be `.some`** — that is the whole
+    /// reason this constant exists (0.8.91, I1). Two of the six steps point at
+    /// something that lives in a `ScrollView`: `.listingRow` is inside a
+    /// `LazyVStack`, so scrolling it out of realization drops the anchor
+    /// entirely, and `.insightPanel` sits below the fold on an entry page, so
+    /// before you scroll to it the clamp yields a degenerate rectangle pinned to
+    /// an edge. The old code drew a zero-size glowing ring at that edge and a
+    /// caret pointing into it. Under this floor both cases resolve to "no
+    /// target", which is a state the bubble already knows how to be in.
+    private static let minimumTarget: CGFloat = 16
 
-    private var portraitSize: CGFloat { 46 * UIScale.current.factor }
+    /// The portrait's square.
+    ///
+    /// **44 to 58** (0.8.91, G1/I2). §G1 asks for a larger Vino and §I2 asks for
+    /// the tutorial to read as *him* talking rather than as chrome with a
+    /// decoration on it; at 46 against a full-width panel he was the smaller
+    /// half of his own bubble. `VinoBubble` moves with him — the two portraits
+    /// are the same character and drifting them apart is how one of them starts
+    /// looking like a different asset.
+    private var portraitSize: CGFloat { 58 * UIScale.current.factor }
 
     public var body: some View {
-        GeometryReader { proxy in
-            let size = proxy.size
-            let hole = spotlight.map { clamp($0.insetBy(dx: -Self.halo, dy: -Self.halo), in: size) }
-            // Below the target when the target is in the top half, above it when
-            // it is in the bottom half. Two positions rather than a solver: the
-            // bubble is a fixed-width block and the only thing it must never do
-            // is cover its own subject.
-            let below = (hole?.midY ?? size.height) < size.height / 2
+        let hole = resolvedHole()
+        let place = placement(hole: hole)
 
-            ZStack(alignment: .topLeading) {
-                dim(size: size, hole: hole)
-                if let hole { ring(hole) }
-                barrier(size: size, hole: hole)
-                bubbleLayer(size: size, hole: hole, below: below)
-            }
-            .frame(width: size.width, height: size.height)
+        return ZStack(alignment: .topLeading) {
+            dim(size: canvas, hole: hole)
+            if let hole { ring(hole) }
+            barrier(size: canvas, hole: hole)
+            bubbleLayer(hole: hole, place: place)
         }
-        .ignoresSafeArea()
+        .frame(width: canvas.width, height: canvas.height)
         .opacity(landed ? 1 : 0)
         .onAppear {
             guard !reduceMotion else { landed = true; return }
             withAnimation(DexMotion.overlay) { landed = true }
         }
         .accessibilityElement(children: .contain)
+    }
+
+    // MARK: Geometry
+
+    /// The lit hole, or nil when there is nothing worth lighting.
+    ///
+    /// One place where "is there a target" is decided, so the ring, the barrier,
+    /// the caret and the placement cannot disagree about it — which they could
+    /// when each tested `hole != nil` against a rectangle that had survived the
+    /// clamp as an empty sliver.
+    private func resolvedHole() -> CGRect? {
+        guard let spotlight else { return nil }
+        let lit = clamp(spotlight.insetBy(dx: -Self.halo, dy: -Self.halo), in: canvas)
+        guard lit.width >= Self.minimumTarget, lit.height >= Self.minimumTarget else { return nil }
+        return lit
+    }
+
+    /// Where the bubble goes, and whether it has earned its arrow.
+    struct Placement {
+        /// The top of the caret-plus-bubble group, in canvas space.
+        var top: CGFloat
+        /// True when the bubble sits under its target, so the caret points up.
+        var below: Bool
+        /// False when the bubble is not actually adjacent to anything — no
+        /// target, or a window too short to hold both. An arrow into empty grey
+        /// is worse than none.
+        var showsCaret: Bool
+    }
+
+    /// **A fit test, not a half-screen guess** (0.8.91, I1).
+    ///
+    /// The old rule was "below when the target is in the top half", with the
+    /// bubble pinned by a spacer capped at 62% of the window. That is two
+    /// separate ways to be wrong: a target just above the midpoint with a tall
+    /// bubble under it runs off the bottom, and once the cap bit, the bubble
+    /// detached from its subject while the caret went on tracking it — an arrow
+    /// some distance from the thing it points at, which is exactly the
+    /// "off-target" §I1 reports.
+    ///
+    /// This measures the bubble (see `block`) and asks whether it
+    /// fits, preferring below because reading order puts the explanation after
+    /// its subject. When neither side fits it takes the roomier one, clamps into
+    /// the window and drops the caret: overlapping the target is the failure
+    /// §I1 names, so the clamp is the last resort and it says so by losing the
+    /// arrow rather than by lying with it.
+    func placement(hole: CGRect?) -> Placement {
+        let group = bubbleHeight + Self.caretHeight
+        let lo = Self.margin
+        let hi = max(Self.margin, canvas.height - group - Self.margin)
+
+        guard let hole else {
+            // The closing step points at nothing. Bottom of the window, where
+            // `VinoBubble` lives — the same character in the same place.
+            return Placement(top: hi, below: false, showsCaret: false)
+        }
+
+        let need = group + Self.standoff
+        let roomBelow = canvas.height - hole.maxY - Self.margin
+        let roomAbove = hole.minY - Self.margin
+        let fitsBelow = roomBelow >= need
+        let fitsAbove = roomAbove >= need
+        let below = fitsBelow || (!fitsAbove && roomBelow >= roomAbove)
+
+        let ideal = below
+            ? hole.maxY + Self.standoff
+            : hole.minY - Self.standoff - group
+        return Placement(
+            top: min(max(ideal, lo), hi),
+            below: below,
+            showsCaret: below ? fitsBelow : fitsAbove
+        )
     }
 
     // MARK: The grey
@@ -210,46 +327,61 @@ public struct CoachmarkOverlay: View {
 
     // MARK: The bubble
 
-    private func bubbleLayer(size: CGSize, hole: CGRect?, below: Bool) -> some View {
-        // The caret's x, clamped so it stays on the bubble's own edge when the
-        // target is hard against a screen edge.
-        let caretX = min(max((hole?.midX ?? size.width / 2) - 14, 26), size.width - 54)
+    /// The caret and the bubble as one group, offset to the solved position.
+    ///
+    /// An `offset` on a fixed-height group rather than a pair of `Spacer`s: the
+    /// spacers were what let the layout disagree with the arithmetic, since the
+    /// second one had to restate the first one's sum to keep the block where the
+    /// first had put it. One number, applied once.
+    ///
+    /// The caret's slot is reserved whether or not it is drawn, so `bubbleHeight
+    /// + caretHeight` is the group's height in every branch and the placement
+    /// does not have to know which one it is in.
+    private func bubbleLayer(hole: CGRect?, place: Placement) -> some View {
+        // The caret's x, clamped to the bubble's own edges — the block is inset
+        // by `margin` on both sides, and an arrow hanging off the corner radius
+        // reads as a rendering fault rather than as a pointer.
+        let caretW: CGFloat = 20
+        let lo = Self.margin + 14
+        let hi = max(lo, canvas.width - Self.margin - caretW - 14)
+        let caretX = min(max((hole?.midX ?? canvas.width / 2) - caretW / 2, lo), hi)
 
         return VStack(spacing: 0) {
-            if below {
-                Spacer(minLength: 0)
-                    .frame(height: min((hole?.maxY ?? 0) + Self.standoff, size.height * 0.62))
-                caret(x: caretX, pointingUp: true, visible: hole != nil)
+            if place.below {
+                caret(x: caretX, pointingUp: true, visible: place.showsCaret)
                 block
-                Spacer(minLength: 0)
             } else {
-                Spacer(minLength: 0)
                 block
-                caret(x: caretX, pointingUp: false, visible: hole != nil)
-                Spacer(minLength: 0)
-                    .frame(height: max(size.height - (hole?.minY ?? size.height) + Self.standoff, 0))
+                caret(x: caretX, pointingUp: false, visible: place.showsCaret)
             }
         }
-        .frame(width: size.width, height: size.height, alignment: .top)
+        .frame(width: canvas.width, alignment: .top)
+        .offset(y: place.top)
+        // The bubble follows its subject rather than cutting to it, which is
+        // what makes a step that moves the spotlight read as one narrator
+        // turning to point at something else.
+        .animation(reduceMotion ? nil : DexMotion.overlay, value: place.top)
+        .animation(reduceMotion ? nil : DexMotion.overlay, value: place.below)
     }
 
     /// The little arrow on the bubble's near edge, horizontally over the target.
     ///
     /// §G1 asks for a bubble "pointing at it", and the frame's own tail already
     /// points left at the portrait, so this is the second pointer and it points
-    /// at the subject. Hidden when there is no target, because an arrow into
-    /// empty grey is worse than none.
-    @ViewBuilder
+    /// at the subject. Hidden — but not removed — when there is nothing to point
+    /// at: the slot still occupies its 9 points, because a group that changed
+    /// height depending on whether the arrow was drawn would make the placement
+    /// arithmetic wrong in exactly the case it is compensating for.
     private func caret(x: CGFloat, pointingUp: Bool, visible: Bool) -> some View {
-        if visible {
-            HStack(spacing: 0) {
-                Spacer(minLength: 0).frame(width: x)
-                CoachmarkCaret(pointingUp: pointingUp)
-                    .fill(lcd.accent)
-                    .frame(width: 20, height: 9)
-                Spacer(minLength: 0)
-            }
+        HStack(spacing: 0) {
+            Spacer(minLength: 0).frame(width: x)
+            CoachmarkCaret(pointingUp: pointingUp)
+                .fill(lcd.accent)
+                .frame(width: 20, height: Self.caretHeight)
+                .opacity(visible ? 1 : 0)
+            Spacer(minLength: 0)
         }
+        .frame(height: Self.caretHeight)
     }
 
     private var block: some View {
@@ -269,13 +401,21 @@ public struct CoachmarkOverlay: View {
                 .zIndex(1)
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("STEP \(position) OF \(total)")
-                        .font(DexFont.retro(9))
+                    // **He signs it** (0.8.91, I2). This line was `STEP n OF m`
+                    // — a progress readout, which is what a wizard says, not
+                    // what a person does. `VinoBubble` puts his chirp in this
+                    // slot and in this face, so borrowing the slot is what makes
+                    // the two bubbles read as one character rather than as a
+                    // remark and a tutorial that happen to share a portrait.
+                    // The count stays: it is the one thing a walkthrough owes
+                    // you that a remark does not.
+                    Text("PROF. VINO \u{00B7} \(position)/\(total)")
+                        .font(DexFont.retro(10))
                         .tracking(1)
                         .foregroundStyle(lcd.accent)
 
                     Text(step.rendered(name: displayName))
-                        .font(DexFont.mono(16))
+                        .font(DexFont.mono(18))
                         .foregroundStyle(lcd.text)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -293,7 +433,25 @@ public struct CoachmarkOverlay: View {
                 )
             }
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, Self.margin)
+        // What the placement solves against.
+        //
+        // `onChange` as well as `onAppear`, because the height moves with TEXT
+        // SIZE, with the line, and with whether CONTINUE is drawn — a
+        // measurement taken once would be stale for two of those three. Both
+        // run after layout, so neither writes state during a view update.
+        //
+        // A reader in the background rather than a `PreferenceKey`, which is
+        // the other way to do this: `onPreferenceChange`'s action is `@Sendable`
+        // in the Swift 6 SDK, and this closure has to write a `@State` on a
+        // non-`Sendable` view.
+        .background(
+            GeometryReader { proxy in
+                Color.clear
+                    .onAppear { bubbleHeight = proxy.size.height }
+                    .onChange(of: proxy.size.height) { _, height in bubbleHeight = height }
+            }
+        )
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Professor Vino, step \(position) of \(total)")
     }
@@ -327,7 +485,7 @@ public struct CoachmarkOverlay: View {
 
     private func pill(_ text: String, fill: Color, ink: Color) -> some View {
         Text(text)
-            .font(DexFont.retro(9))
+            .font(DexFont.retro(10))
             .tracking(1.5)
             .foregroundStyle(ink)
             .padding(.vertical, 9)

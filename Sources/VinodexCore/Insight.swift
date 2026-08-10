@@ -141,9 +141,12 @@ public struct PalateProfile: Sendable, Equatable {
             // Mean absolute distance across the four authored bars, over the
             // 0...5 range they are authored on. COLOR INTENSITY is left out:
             // it is a description of the liquid, not of a preference.
-            // One `abs` per line, each annotated: four of them summed and then
-            // divided by an integer literal is the shape the type checker gives
-            // up on, and it did. The arithmetic is unchanged.
+            //
+            // Split into typed locals rather than one expression: four generic
+            // `abs` calls and an untyped literal divisor in a single tree put
+            // this past the type-checker's budget on Swift 6.0/6.1, which
+            // failed all three compile jobs while the local 6.3 toolchain
+            // accepted it. Same operands, same left-to-right sum, same value.
             let bodyGap: Double = abs(c.body - meanBody)
             let acidGap: Double = abs(c.acid - meanAcid)
             let tanninGap: Double = abs(c.tannin - meanTannin)
@@ -179,6 +182,14 @@ public struct PalateProfile: Sendable, Equatable {
     /// wearing a number.
     public static let recommendationFloor = 55
 
+    /// How many the passport's strip shows before SHOW ALL (0.8.91, B3).
+    ///
+    /// Five, per the spec, down from the six the strip used to draw. Here rather
+    /// than as a literal in the view because the whole point of a capped strip
+    /// is that a *different* screen shows the rest, and two numbers in two files
+    /// is how a "show all" comes to show the same list.
+    public static let recommendationStrip = 5
+
     /// Untried grapes and styles that score well against the profile, best
     /// first, ties broken by name.
     ///
@@ -200,6 +211,16 @@ public struct PalateProfile: Sendable, Equatable {
             }
             .prefix(limit)
             .map(\.entry)
+    }
+
+    /// Everything above the floor, uncapped (0.8.91, B3) — what SHOW ALL opens.
+    ///
+    /// The same ranking with the cap taken off rather than a second query, so
+    /// the strip is provably the head of this list: `recommendationsAreTheHead`
+    /// asserts exactly that, which is the one thing a SHOW ALL can be wrong
+    /// about in a way nobody notices.
+    public func allRecommendations(index: DiscoveryIndex) -> [WineEntry] {
+        recommendations(index: index, limit: .max)
     }
 }
 

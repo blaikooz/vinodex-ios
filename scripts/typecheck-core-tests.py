@@ -58,10 +58,24 @@ struct __Comment: ExpressibleByStringLiteral, ExpressibleByStringInterpolation {
 SHIM_TYPECHECK = COMMENT + '''
 func __expect(_ cond: @autoclosure () throws -> Bool, _ msg: @autoclosure () -> __Comment? = nil,
               sourceLocation: Int = 0) rethrows { _ = try cond(); _ = msg() }
+// `#expect(await …)` — the real macro absorbs the effect; an autoclosure
+// cannot. A separate name, not an async overload of the above, because the
+// bare-autoclosure rule two comments up applies to effects too: the rewrite
+// hands this one a plain Bool the caller already awaited.
+func __expectAsync(_ cond: Bool, _ msg: @autoclosure () -> __Comment? = nil,
+                   sourceLocation: Int = 0) { _ = msg() }
 @discardableResult
 func __expect<E: Error, R>(throws _: E.Type, _ msg: @autoclosure () -> __Comment? = nil,
                            sourceLocation: Int = 0,
                            performing body: () throws -> R) -> E? { _ = msg(); return nil }
+// The value form — `#expect(throws: SomeError.case) { … }` — beside the type
+// form above, exactly as the real API pairs them.
+@discardableResult
+func __expect<E: Error & Equatable, R>(throws expected: E, _ msg: @autoclosure () -> __Comment? = nil,
+                                       sourceLocation: Int = 0,
+                                       performing body: () throws -> R) -> E? {
+    _ = expected; _ = msg(); return nil
+}
 struct __Unwrap: Error {}
 func __require<T>(_ v: @autoclosure () throws -> T?, _ msg: @autoclosure () -> __Comment? = nil) throws -> T {
     guard let v = try v() else { throw __Unwrap() }
@@ -91,6 +105,24 @@ let __rec = __Recorder()
 func __expect(_ cond: @autoclosure () throws -> Bool, _ msg: @autoclosure () -> __Comment? = nil,
               file: StaticString = #file, line: UInt = #line) rethrows {
     if try cond() { __rec.pass() } else { __rec.fail("expectation failed", file, line, msg()) }
+}
+func __expectAsync(_ cond: Bool, _ msg: @autoclosure () -> __Comment? = nil,
+                   file: StaticString = #file, line: UInt = #line) {
+    __expect(cond, msg(), file: file, line: line)
+}
+@discardableResult
+func __expect<E: Error & Equatable, R>(throws expected: E, _ msg: @autoclosure () -> __Comment? = nil,
+                                       file: StaticString = #file, line: UInt = #line,
+                                       performing body: () throws -> R) -> E? {
+    do {
+        _ = try body()
+        __rec.fail("expected \\(expected) to be thrown, nothing was", file, line, msg())
+    } catch let error as E where error == expected {
+        __rec.pass(); return error
+    } catch {
+        __rec.fail("expected \\(expected), got \\(error)", file, line, msg())
+    }
+    return nil
 }
 @discardableResult
 func __expect<E: Error, R>(throws _: E.Type, _ msg: @autoclosure () -> __Comment? = nil,
@@ -232,6 +264,14 @@ def split_args(text):
 def rewrite(src, selftest=False):
     src = strip_attr(strip_attr(src, "Test"), "Suite")
     src = src.replace("import Testing", "")
+    # `#expect(try …)` needs no outer `try` under the real macro, which absorbs
+    # the effect; as the plain `rethrows` call it becomes here, it does. The
+    # outer `try` is added in the rewrite rather than in the test source —
+    # the test is CI-legal as written and CI is the contract.
+    src = re.sub(r"#expect\(try ", "try __expect(try ", src)
+    # Same story for `await`: evaluate the condition at the call site, where
+    # the effect is legal, and hand `__expectAsync` the settled Bool.
+    src = re.sub(r"#expect\((try await|await) ", r"__expectAsync(\1 ", src)
     src = re.sub(r"#expect\(", "__expect(", src)
     src = re.sub(r"#require\(", "__require(", src)
     if selftest:

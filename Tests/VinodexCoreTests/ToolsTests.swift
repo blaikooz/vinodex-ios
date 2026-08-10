@@ -6,8 +6,14 @@ import Foundation
 struct ChipFilterTests {
     private let db = WineDatabase.shared
 
-    private func option(_ facet: ChipFacet, _ value: String) -> ChipOption {
-        db.chipOptions(for: facet).first { $0.value == value }!
+    /// `try #require` rather than `!`: a facet losing an option is a data
+    /// change, and a data change should name the option it lost rather than
+    /// trap and take every remaining suite down with it.
+    private func option(_ facet: ChipFacet, _ value: String) throws -> ChipOption {
+        try #require(
+            db.chipOptions(for: facet).first { $0.value == value },
+            "\(facet) has no option \(value)"
+        )
     }
 
     @Test("an empty filter excludes nothing")
@@ -34,9 +40,9 @@ struct ChipFilterTests {
     }
 
     @Test("toggling a chip on and off returns to empty")
-    func toggleRoundTrip() {
+    func toggleRoundTrip() throws {
         var filter = ChipFilter()
-        let red = option(.color, "red")
+        let red = try option(.color, "red")
 
         filter.toggle(red)
         #expect(filter.isOn(red))
@@ -51,14 +57,14 @@ struct ChipFilterTests {
     /// narrow. Getting this backwards produces a filter that behaves the
     /// opposite way to every chip UI anyone has used.
     @Test("within a facet chips OR, across facets they AND")
-    func orWithinAndAcross() {
+    func orWithinAndAcross() throws {
         var reds = ChipFilter()
-        reds.toggle(option(.color, "red"))
+        reds.toggle(try option(.color, "red"))
         var whites = ChipFilter()
-        whites.toggle(option(.color, "white"))
+        whites.toggle(try option(.color, "white"))
         var both = ChipFilter()
-        both.toggle(option(.color, "red"))
-        both.toggle(option(.color, "white"))
+        both.toggle(try option(.color, "red"))
+        both.toggle(try option(.color, "white"))
 
         let redCount = db.entries(matching: reds).count
         let whiteCount = db.entries(matching: whites).count
@@ -66,27 +72,27 @@ struct ChipFilterTests {
 
         // Across facets: adding a rarity can only shrink the red set.
         var redNoble = reds
-        redNoble.toggle(option(.rarity, "NOBLE"))
+        redNoble.toggle(try option(.rarity, "NOBLE"))
         #expect(db.entries(matching: redNoble).count <= redCount)
     }
 
     /// A grape-only facet has to exclude everything that cannot carry it, or
     /// "RED" would quietly return flavours too.
     @Test("a grape-only facet excludes other categories")
-    func grapeOnlyFacetsExclude() {
+    func grapeOnlyFacetsExclude() throws {
         var filter = ChipFilter()
-        filter.toggle(option(.color, "red"))
+        filter.toggle(try option(.color, "red"))
         #expect(db.entries(matching: filter).allSatisfy { $0.category == .grapes })
 
         var climate = ChipFilter()
-        climate.toggle(option(.climate, "maritime"))
+        climate.toggle(try option(.climate, "maritime"))
         #expect(db.entries(matching: climate).allSatisfy { $0.category == .regions })
     }
 
     @Test("a category chip returns only that category")
-    func categoryChip() {
+    func categoryChip() throws {
         var filter = ChipFilter()
-        filter.toggle(option(.category, "GRAPES"))
+        filter.toggle(try option(.category, "GRAPES"))
         let results = db.entries(matching: filter)
         #expect(!results.isEmpty)
         #expect(results.allSatisfy { $0.category == .grapes })
@@ -95,19 +101,19 @@ struct ChipFilterTests {
     /// Contradictory chips are allowed and simply return nothing — the screen
     /// says so rather than the model refusing the tap.
     @Test("incompatible facets yield nothing rather than throwing")
-    func contradictionIsEmpty() {
+    func contradictionIsEmpty() throws {
         var filter = ChipFilter()
-        filter.toggle(option(.category, "REGIONS"))
-        filter.toggle(option(.color, "red"))
+        filter.toggle(try option(.category, "REGIONS"))
+        filter.toggle(try option(.color, "red"))
         #expect(db.entries(matching: filter).isEmpty)
     }
 
     /// The number printed on each chip has to be the number you get after
     /// tapping it, or the tool lies.
     @Test("the count shown on a chip is the count it produces")
-    func chipCountsAreHonest() {
+    func chipCountsAreHonest() throws {
         var filter = ChipFilter()
-        filter.toggle(option(.category, "GRAPES"))
+        filter.toggle(try option(.category, "GRAPES"))
 
         for facet in ChipFacet.allCases {
             for chip in db.chipOptions(for: facet) {
@@ -121,8 +127,8 @@ struct ChipFilterTests {
     @Test("a filter round-trips through JSON for the screen state store")
     func codableRoundTrip() throws {
         var filter = ChipFilter()
-        filter.toggle(option(.color, "white"))
-        filter.toggle(option(.rarity, "NOBLE"))
+        filter.toggle(try option(.color, "white"))
+        filter.toggle(try option(.rarity, "NOBLE"))
 
         let data = try JSONEncoder().encode(filter)
         let back = try JSONDecoder().decode(ChipFilter.self, from: data)
@@ -358,8 +364,20 @@ struct TastingQuizTests {
 struct QuizSessionTests {
     private let db = WineDatabase.shared
 
-    private func someQuestion(for session: QuizSession) -> QuizQuestion {
-        TastingQuiz.question(number: session.index, sessionSeed: session.seed, in: db)!
+    /// `try #require` rather than `!`, and the difference is what the run looks
+    /// like when the quiz stops generating: a force unwrap traps, which kills
+    /// the whole test process on SIGILL and takes every suite that had not run
+    /// yet with it — the reason a stale CI cache surfaced as a crash and a
+    /// hundred lines of backtrace instead of a named failing test.
+    ///
+    /// It stays an assertion. Returning an optional and letting callers skip a
+    /// nil question would turn "the quiz is broken" into a silently shorter
+    /// test, which is the one outcome worse than a crash.
+    private func someQuestion(for session: QuizSession) throws -> QuizQuestion {
+        try #require(
+            TastingQuiz.question(number: session.index, sessionSeed: session.seed, in: db),
+            "seed \(session.seed) question \(session.index) produced nothing"
+        )
     }
 
     @Test("a fresh session starts clean")
@@ -374,11 +392,11 @@ struct QuizSessionTests {
     }
 
     @Test("choosing scores rights and not wrongs, and the first tap is final")
-    func choosingScores() {
+    func choosingScores() throws {
         var session = QuizSession(seed: 5)
-        let q = someQuestion(for: session)
+        let q = try someQuestion(for: session)
 
-        let wrong = q.optionIDs.first { $0 != q.answerID }!
+        let wrong = try #require(q.optionIDs.first { $0 != q.answerID })
         session.choose(wrong, in: q)
         #expect(session.correct == 0)
         #expect(session.chosenID == wrong)
@@ -389,13 +407,13 @@ struct QuizSessionTests {
         #expect(session.chosenID == wrong)
 
         session.advance()
-        let q2 = someQuestion(for: session)
+        let q2 = try someQuestion(for: session)
         session.choose(q2.answerID, in: q2)
         #expect(session.correct == 1)
     }
 
     @Test("advance requires an answer, clears it, and completes at ten")
-    func advanceWalksTheRun() {
+    func advanceWalksTheRun() throws {
         var session = QuizSession(seed: 9)
 
         // Advancing an unanswered question is a no-op.
@@ -404,7 +422,7 @@ struct QuizSessionTests {
 
         for number in 0..<QuizSession.length {
             #expect(session.index == number)
-            let q = someQuestion(for: session)
+            let q = try someQuestion(for: session)
             session.choose(q.answerID, in: q)
             #expect(session.answered)
             session.advance()
@@ -422,12 +440,13 @@ struct QuizSessionTests {
 
     /// The 80% boundary: eight right passes, seven fails.
     @Test("the pass mark sits at eight of ten")
-    func passBoundary() {
+    func passBoundary() throws {
         for target in [QuizSession.passMark - 1, QuizSession.passMark] {
             var session = QuizSession(seed: 12)
             for number in 0..<QuizSession.length {
-                let q = someQuestion(for: session)
-                let id = number < target ? q.answerID : q.optionIDs.first { $0 != q.answerID }!
+                let q = try someQuestion(for: session)
+                let wrong = try #require(q.optionIDs.first { $0 != q.answerID })
+                let id = number < target ? q.answerID : wrong
                 session.choose(id, in: q)
                 session.advance()
             }
@@ -437,9 +456,9 @@ struct QuizSessionTests {
     }
 
     @Test("retry starts a different paper from scratch")
-    func retryIsFresh() {
+    func retryIsFresh() throws {
         var session = QuizSession(seed: 21)
-        let q = someQuestion(for: session)
+        let q = try someQuestion(for: session)
         session.choose(q.answerID, in: q)
         session.advance()
 
@@ -455,7 +474,7 @@ struct QuizSessionTests {
     @Test("a session round-trips through JSON")
     func codableRoundTrip() throws {
         var session = QuizSession(seed: 33, tier: .sommelier)
-        let q = someQuestion(for: session)
+        let q = try someQuestion(for: session)
         session.choose(q.answerID, in: q)
 
         let data = try JSONEncoder().encode(session)
@@ -466,13 +485,17 @@ struct QuizSessionTests {
 
     /// The daily challenge's paper: a shorter session with its own pass mark.
     @Test("a custom-length session completes and grades on its own shape")
-    func customLengthSession() {
+    func customLengthSession() throws {
         for target in [3, 4] {
             var session = QuizSession(seed: 17, length: 5, passMark: 4)
             for number in 0..<5 {
                 #expect(!session.isComplete, "complete early at q\(number)")
-                let q = TastingQuiz.question(number: session.index, sessionSeed: session.seed, in: db)!
-                let id = number < target ? q.answerID : q.optionIDs.first { $0 != q.answerID }!
+                let q = try #require(
+                    TastingQuiz.question(number: session.index, sessionSeed: session.seed, in: db),
+                    "seed \(session.seed) question \(session.index) produced nothing"
+                )
+                let wrong = try #require(q.optionIDs.first { $0 != q.answerID })
+                let id = number < target ? q.answerID : wrong
                 session.choose(id, in: q)
                 session.advance()
             }
@@ -784,7 +807,8 @@ struct ToolRosterTests {
     @Test("every tool card has a route that raises it")
     func everyToolIsReachable() {
         let toolRoutes: [DexRoute] = [
-            .scanner, .labelReader, .wsetQuiz, .dailyChallenge, .dailyGrape, .moonDial,
+            // `.profVino` in `.dailyGrape`'s slot (0.8.93, item 9).
+            .scanner, .labelReader, .wsetQuiz, .dailyChallenge, .profVino, .moonDial,
         ]
         let reached = Set(toolRoutes.compactMap { ToolRoster.intro(for: $0)?.id })
         #expect(reached == Set(ToolRoster.all.map(\.id)))
@@ -815,21 +839,26 @@ struct ToolRosterTests {
         let defaults = UserDefaults(suiteName: "toolIntroTests-\(UUID().uuidString)")!
         let store = ToolIntroStore(defaults: defaults)
         #expect(store.seen.isEmpty)
-        #expect(store.pending("whatsThat")?.id == "whatsThat")
+        // "profVino" as the fixture id since 0.8.93 (item 9) — "whatsThat"
+        // stopped being a live roster id when its tool was deleted, and this
+        // test needs one that is.
+        #expect(store.pending("profVino")?.id == "profVino")
 
-        store.markSeen("whatsThat")
-        #expect(store.hasSeen("whatsThat"))
-        #expect(store.pending("whatsThat") == nil)
+        store.markSeen("profVino")
+        #expect(store.hasSeen("profVino"))
+        #expect(store.pending("profVino") == nil)
         // A tool with no roster entry cannot be marked seen.
         store.markSeen("nosuchtool")
-        #expect(store.seen == ["whatsThat"])
+        #expect(store.seen == ["profVino"])
         #expect(store.pending("nosuchtool") == nil)
 
-        #expect(ToolIntroStore(defaults: defaults).seen == ["whatsThat"])
+        #expect(ToolIntroStore(defaults: defaults).seen == ["profVino"])
 
-        // A stored id the roster no longer knows is dropped on read.
-        defaults.set("whatsThat,retiredTool", forKey: ToolIntroStore.storageKey)
-        #expect(ToolIntroStore(defaults: defaults).seen == ["whatsThat"])
+        // A stored id the roster no longer knows is dropped on read —
+        // "whatsThat" itself is the real-world case now: any device that met
+        // the deleted game carries it, and it must not hold a slot forever.
+        defaults.set("profVino,whatsThat", forKey: ToolIntroStore.storageKey)
+        #expect(ToolIntroStore(defaults: defaults).seen == ["profVino"])
 
         store.markAllSeen()
         #expect(store.seen == Set(ToolRoster.all.map(\.id)))

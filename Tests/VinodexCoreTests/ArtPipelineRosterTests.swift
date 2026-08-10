@@ -838,13 +838,21 @@ struct ArtPipelineRosterTests {
         )
     }
 
-    /// Every `ChassisSkin` raw value, read out of `DexTheme.swift`.
+    /// Every `ChassisSkin` raw value, read out of whichever file declares it.
     ///
     /// Textual because `ChassisSkin` lives in `VinodexUI`, which Linux cannot
     /// compile — the same reason and the same technique `loaderSearchPath` uses
     /// on `PixelArtLoader.subdirectories`. The enum's cases are the only
     /// `case <name> = "<VALUE>"` lines between its declaration and its first
     /// computed property, which is what the slice below takes.
+    ///
+    /// **Found by search rather than by path, because the path already moved
+    /// once.** This read `DexTheme.swift` by name until that file was split and
+    /// `ChassisSkin` went to `ChassisSkin.swift`; the parser then returned an
+    /// empty set and only the count assertion at the call site said so. A
+    /// hard-coded filename is one more hand-kept roster of exactly the kind this
+    /// suite exists to replace, so the directory is scanned for the declaration
+    /// instead — and finding it in two files, or none, is itself a failure.
     ///
     /// **The colon in the marker is load-bearing.** `ChassisSkinSection` is
     /// declared thirty-six lines above `ChassisSkin` in the same file, and
@@ -853,9 +861,28 @@ struct ArtPipelineRosterTests {
     /// CLEARTECH, …) with no sign that anything had gone wrong. The count
     /// assertion at the call site is the second guard, and it is the one that
     /// caught it.
+    /// The single file under `Sources/VinodexUI` containing `marker`.
+    ///
+    /// Two matches or none is a failure rather than a fallback: both mean the
+    /// caller's assumption about where a declaration lives has stopped holding,
+    /// and returning something plausible is how a dead gate stays green.
+    private static func sourceDeclaring(_ marker: String) throws -> String {
+        let dir = repoRoot.appendingPathComponent("Sources/VinodexUI")
+        let names = try FileManager.default.contentsOfDirectory(atPath: dir.path)
+            .filter { $0.hasSuffix(".swift") }
+            .sorted()
+        let hits = try names.compactMap { name -> (String, String)? in
+            let text = try String(contentsOf: dir.appendingPathComponent(name), encoding: .utf8)
+            return text.contains(marker) ? (name, text) : nil
+        }
+        #expect(hits.count == 1, "\(marker) found in \(hits.map(\.0)) — expected exactly one file")
+        guard let only = hits.first else { return "" }
+        return only.1
+    }
+
     private static var chassisSkinRawValues: Set<String> {
         get throws {
-            let text = try read("Sources", "VinodexUI", "DexTheme.swift")
+            let text = try sourceDeclaring("public enum ChassisSkin:")
             guard let declaration = text.range(of: "public enum ChassisSkin:") else { return [] }
             let body = text[declaration.upperBound...]
             // The cases run to the first member that is not one.

@@ -220,6 +220,104 @@ def strip_key_shadow(img):
     return img, cleared
 
 
+# --- The home cap's bottom lip (0.8.92, item 3) -----------------------------
+#
+# Where the lip's near-black band starts, as a fraction of the sprite height.
+# Chosen off the measurement below, not eyeballed: the incised house glyph
+# bottoms out around 0.72h, and the lip's slab runs 0.80h-0.97h, so 0.78
+# clears the glyph on one side and takes the whole slab on the other.
+LIP_BAND_TOP = 0.78
+# A pixel at or under this peak channel value is "painted black" for the
+# purposes of the lift. The slab measures 9/255; the moulded mid-tones the
+# siblings use start at ~0.06 * 255. 25 takes the slab and its ragged edge
+# and nothing of the shading above it.
+LIP_BLACK_CEILING = 25
+# How much of the black stays black: pixels within this many px of the
+# silhouette edge are the cel outline, which is structure — the same rule
+# `ChassisCapLoader`'s re-ink applies at runtime — and the outline is exactly
+# what must survive the lift or the cap loses its drawn edge. 2 rather than 3,
+# measured: the lip's side walls run 3-8px thick with transparency on both
+# sides, so a 3px keep from each side swallowed the wall whole and lifted
+# only 573 of the slab's ~1,500 pixels.
+LIP_OUTLINE_KEEP = 2
+# The lift target, as a value ramp top-to-bottom of the band. The measured
+# siblings (`back`, `user`) carry skirts running 0.06-0.60 with a median of
+# ~0.32; a flat fill at the median would be honest but dead, so the band gets
+# a gentle moulding ramp bracketing it instead.
+LIP_VALUE_TOP = 0.42
+LIP_VALUE_BOTTOM = 0.24
+
+
+def lift_home_lip(img):
+    """Repaint `home`'s bottom lip from near-black to the moulded mid-tone its
+    three siblings drew theirs in (0.8.92, item 3).
+
+    **The measurement, so the next reader does not re-litigate the clip.**
+    0.8.91's D1 retired the geodesic trim and the largest-component rule does
+    keep the lip — re-measured on the shipped sprites, rows y=204-247 of
+    `home` sit inside the main component minus ~150px of detached speckle. What
+    differs is *paint*: in the skirt band (y >= 0.85h) `home` carries 1,144 of
+    1,526 pixels at value <= 0.06 where `back` and `user` carry mid-values
+    (median 0.32) with only their cel lines black. `ChassisCapLoader`'s re-ink
+    keeps near-black at its own colour on purpose — the cel outline is
+    structure — so the whole lip rode that clause and stayed a black slab:
+    invisible on the dark shells, and on a bright one indistinguishable from
+    the bottom of the button being cut off. Which is §D1's complaint, still
+    alive after three clip rewrites, because it was never the clip.
+
+    So the correction is to the drawing, at import, where corrections live:
+    within the bottom band, black pixels deeper than `LIP_OUTLINE_KEEP` from
+    the silhouette lift to a value ramp bracketing the siblings' median. Hue
+    and saturation are irrelevant — the slab is neutral, and the runtime
+    re-ink replaces both — so only the value moves, which is precisely the
+    channel the re-ink preserves.
+    """
+    px = img.load()
+    w, h = img.size
+
+    # Distance from the transparent outside, 4-connected BFS — the same
+    # arithmetic the runtime coverage pass uses, so "outline" means the same
+    # pixels in both places.
+    INF = 1 << 30
+    dist = [INF] * (w * h)
+    queue = deque()
+    for y in range(h):
+        for x in range(w):
+            if px[x, y][3] == 0:
+                continue
+            edge = (
+                x == 0 or x == w - 1 or y == 0 or y == h - 1
+                or px[x - 1, y][3] == 0 or px[x + 1, y][3] == 0
+                or px[x, y - 1][3] == 0 or px[x, y + 1][3] == 0
+            )
+            if edge:
+                dist[y * w + x] = 1
+                queue.append((x, y))
+    while queue:
+        x, y = queue.popleft()
+        nxt = dist[y * w + x] + 1
+        for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+            if 0 <= nx < w and 0 <= ny < h and px[nx, ny][3] > 0 \
+                    and dist[ny * w + nx] > nxt:
+                dist[ny * w + nx] = nxt
+                queue.append((nx, ny))
+
+    y0 = int(h * LIP_BAND_TOP)
+    lifted = 0
+    for y in range(y0, h):
+        t = (y - y0) / max(h - 1 - y0, 1)
+        value = int(255 * (LIP_VALUE_TOP + (LIP_VALUE_BOTTOM - LIP_VALUE_TOP) * t))
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a == 0 or max(r, g, b) > LIP_BLACK_CEILING:
+                continue
+            if dist[y * w + x] <= LIP_OUTLINE_KEEP:
+                continue
+            px[x, y] = (value, value, value, a)
+            lifted += 1
+    return img, lifted
+
+
 def main():
     src = source_dir()
     if not os.path.isdir(src):
@@ -238,18 +336,28 @@ def main():
     os.makedirs(DST, exist_ok=True)
     total_out = 0
     total_shadow = 0
+    total_lifted = 0
     for stem in stems:
         img = strip_background(Image.open(os.path.join(src, stem + ".png")))
         img = img.convert("RGBA")
         img, cleared = strip_key_shadow(img)
         total_shadow += cleared
+        # `home` alone: its lip is painted near-black where the siblings'
+        # are moulded mid-tones — see `lift_home_lip`. Keyed on the stem
+        # rather than measured per file, because the defect is a fact about
+        # one drawing, and a fifth cap in either style should arrive
+        # untouched until somebody measures it.
+        if stem == "home":
+            img, lifted = lift_home_lip(img)
+            total_lifted += lifted
         out = os.path.join(DST, PREFIX + stem + ".png")
         save_stable(quantize_stable(img), out, optimize=True)
         total_out += os.path.getsize(out)
 
     print(
         f"converted {len(stems)} footer caps -> {DST} ({total_out // 1024}KB), "
-        f"{total_shadow} cast-shadow pixels cleared"
+        f"{total_shadow} cast-shadow pixels cleared, "
+        f"{total_lifted} lip pixels lifted on home"
     )
 
 

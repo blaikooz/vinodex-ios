@@ -59,7 +59,15 @@ public struct VinoBubble: View {
     /// TEXT SIZE on its own, which is the other half of D1's "honors the UI
     /// text-size setting", and `RootView` keys the whole chassis on both scales
     /// so a change takes effect without a relaunch.
-    private var portraitSize: CGFloat { 52 * UIScale.current.factor }
+    ///
+    /// **52 to 64** (0.8.91, G1). The spec asks for the whole presenter larger —
+    /// bubble and portrait — and the portrait is the half that was carrying the
+    /// character: at 52 against a bubble spanning most of the LCD he read as an
+    /// icon beside a panel rather than as somebody talking. The bubble grows with
+    /// him below (`DexFont.mono(15)` to `(18)`, and its padding with it), because
+    /// enlarging one and not the other is how a speech bubble stops looking
+    /// attached to its speaker.
+    private var portraitSize: CGFloat { 64 * UIScale.current.factor }
 
     public var body: some View {
         VStack(spacing: 0) {
@@ -126,20 +134,20 @@ public struct VinoBubble: View {
                 // Its own run, in the retro face - which is the reason `chirp`
                 // is a separate field. See `VinoChirp`.
                 Text(chirp.text)
-                    .font(DexFont.retro(9))
+                    .font(DexFont.retro(10))
                     .tracking(1)
                     .foregroundStyle(lcd.accent)
             }
 
             Text(line.rendered(name: displayName))
-                .font(DexFont.mono(15))
+                .font(DexFont.mono(18))
                 .foregroundStyle(lcd.text)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
         .background(
             VinoBubbleFrame(tailInset: portraitSize * 0.35)
                 .fill(lcd.surface)

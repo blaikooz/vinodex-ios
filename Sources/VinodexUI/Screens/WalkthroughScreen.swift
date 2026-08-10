@@ -133,25 +133,60 @@ public struct WalkthroughScreen: View {
         .accessibilityValue("Step \(index + 1) of \(steps.count)")
     }
 
-    private var copy: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(step.title)
-                .font(DexFont.retro(16))
-                .tracking(1.5)
-                .foregroundStyle(lcd.accent)
+    /// The portrait's square. Larger than `VinoBubble`'s because this page has
+    /// no list behind it competing for attention and one paragraph on it.
+    private var portraitSize: CGFloat { 68 * UIScale.current.factor }
 
-            Text(step.body)
-                .font(DexFont.mono(21))
-                .foregroundStyle(lcd.bodyText)
-                .lineSpacing(3)
-                .fixedSize(horizontal: false, vertical: true)
+    /// **He narrates the map too** (0.8.91, I2).
+    ///
+    /// This was a title in the retro face over a paragraph in a plain surface
+    /// panel — correct, anonymous, and the thing §I2 objects to. The live half
+    /// of the tutorial has had a portrait and a speech bubble since 0.8.9d, so a
+    /// new user met a character on the guided run and a form on the map that
+    /// precedes it. Same frame, same portrait treatment, same overlap and tail
+    /// as `VinoBubble` and `CoachmarkOverlay` — three surfaces, one speaker.
+    ///
+    /// The **title survives inside the bubble**, in the slot the other two use
+    /// for the chirp and the step count. A tour of twelve pages needs a heading
+    /// you can find your place by; what it did not need was a heading that was
+    /// the only thing on the page with a voice.
+    private var copy: some View {
+        HStack(alignment: .bottom, spacing: 0) {
+            DexChromeGlyph(
+                step.expression.artStem,
+                symbol: "cpu",
+                size: portraitSize,
+                weight: .semibold,
+                tint: lcd.accent
+            )
+            .padding(.trailing, -6)
+            .zIndex(1)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(step.title)
+                    .font(DexFont.retro(11))
+                    .tracking(1.5)
+                    .foregroundStyle(lcd.accent)
+
+                Text(step.body)
+                    .font(DexFont.mono(21))
+                    .foregroundStyle(lcd.bodyText)
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(VinoBubbleFrame(tailInset: portraitSize * 0.35).fill(lcd.surface))
+            .overlay(
+                VinoBubbleFrame(tailInset: portraitSize * 0.35)
+                    .stroke(lcd.accent.opacity(0.85), lineWidth: 2)
+            )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
-        .overlay(
-            RoundedRectangle(cornerRadius: 6).strokeBorder(lcd.surfaceEdge, lineWidth: 2)
-        )
+        // The tail is drawn outside the frame's own rect, so the row needs a
+        // point of slack on the left or the portrait clips against the padding.
+        .padding(.leading, 2)
         // The ordinal has to be *here* to be heard at all. VoiceOver focus
         // stays on NEXT across a step change, and a value change on an
         // unfocused element is silent — so the progress bar's value above is
@@ -159,7 +194,7 @@ public struct WalkthroughScreen: View {
         // the ordinal is the deterministic fix; an announcement notification
         // would race the one SwiftUI already posts for the swapped subtree.
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Step \(index + 1) of \(steps.count). \(step.title). \(step.body)")
+        .accessibilityLabel("Step \(index + 1) of \(steps.count). Professor Vino: \(step.title). \(step.body)")
         .accessibilityFocused($copyFocused)
     }
 

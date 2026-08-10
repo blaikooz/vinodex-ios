@@ -25,7 +25,9 @@ import VinodexCore
 /// extrusion, not outlines — so every grid of big square buttons in the app
 /// reads as the same furniture.
 public struct ToolsScreen: View {
-    let onDailyGrape: () -> Void
+    /// PROF. VINO's door (0.8.93, item 9), in the slot `onDailyGrape` held
+    /// while WHAT'S THAT…? existed.
+    let onProfVino: () -> Void
     let onScanner: () -> Void
     let onMoonDial: () -> Void
     let onQuiz: () -> Void
@@ -48,14 +50,14 @@ public struct ToolsScreen: View {
     private var lcd: LcdMode { settings.lcdMode }
 
     public init(
-        onDailyGrape: @escaping () -> Void,
+        onProfVino: @escaping () -> Void,
         onScanner: @escaping () -> Void = {},
         onMoonDial: @escaping () -> Void = {},
         onQuiz: @escaping () -> Void = {},
         onDailyChallenge: @escaping () -> Void = {},
         onLabelReader: @escaping () -> Void = {}
     ) {
-        self.onDailyGrape = onDailyGrape
+        self.onProfVino = onProfVino
         self.onScanner = onScanner
         self.onMoonDial = onMoonDial
         self.onQuiz = onQuiz
@@ -105,8 +107,9 @@ public struct ToolsScreen: View {
                     // already using.** The other five are green, purple, red,
                     // amber and cyan, and the six squares are meant to be told
                     // apart at a glance from the far side of a table; an amber
-                    // here (tried first) sat a few points from WHAT'S THAT…?'s
-                    // `#EAB308` and turned the grid into two pairs. White ink
+                    // here (tried first) sat a few points from the amber tile's
+                    // `#EAB308` (WHAT'S THAT…? then, PROF. VINO since 0.8.93)
+                    // and turned the grid into two pairs. White ink
                     // clears `#3B82F6` comfortably, so this needs none of the
                     // dark-ink handling the yellow and cyan faces once did.
                     tile(
@@ -136,28 +139,22 @@ public struct ToolsScreen: View {
                     )
                 }
                 HStack(spacing: 10) {
-                    // Named for the question it asks rather than for its pick:
-                    // the answer is a region as often as a grape, so "grape of
-                    // the day" was wrong half the time.
-                    //
-                    // **The tile is unchanged in 0.7.9 (B) and the screen is
-                    // not.** What used to be a silhouette and a REVEAL button is
-                    // a clue-by-clue guessing round now (`WhatsThatScreen`); the
-                    // title was already the question the game asks, which is why
-                    // replacing the feature cost this shelf nothing.
+                    // **PROF. VINO in WHAT'S THAT…?'s slot (0.8.93, item 9).**
+                    // The guessing game is deleted outright — screen, engine
+                    // and record — and the professor's own page takes the
+                    // square and its amber face. His drawn portrait is the
+                    // tile art, which is the K2 rule-1 pairing the screen's
+                    // hero repeats at full size.
                     //
                     // Both run white ink now (0.6.4, E1), matching the other
                     // four tiles — the dark inks made this row read as a
-                    // different kind of button. Their faces deepen a step each
-                    // (yellow → amber, pale cyan → cyan) so white still
-                    // clears them; the old pale faces were the whole reason
-                    // for the dark ink.
+                    // different kind of button.
                     tile(
-                        title: "WHAT'S\nTHAT…?",
-                        art: "whatsthat",
-                        symbol: "sparkles",
+                        title: "PROF.\nVINO",
+                        art: VinoExpression.neutral.artStem,
+                        symbol: "graduationcap.fill",
                         face: "#EAB308", shadow: "#a16207",
-                        action: onDailyGrape
+                        action: onProfVino
                     )
                     tile(
                         title: "MOON DIAL",
@@ -216,7 +213,7 @@ public struct ToolsScreen: View {
                 // Drawn faces since 0.8.1 (J3), in a square box for the
                 // reason the menu tiles keep theirs: six bitmaps at six
                 // aspects would otherwise be six tile heights.
-                DexChromeGlyph(art, symbol: symbol, size: 44, tint: label)
+                DexChromeGlyph(art, symbol: symbol, size: DexMetrics.tileGlyph, tint: label)
                     .shadow(color: .black.opacity(0.3), radius: 0, x: 1, y: 2)
                 Text(title)
                     .font(DexFont.retro(13))

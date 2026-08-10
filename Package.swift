@@ -127,5 +127,26 @@ let package = Package(
             name: "VinodexCoreTests",
             dependencies: ["VinodexCore"]
         ),
+        // The first tests that can see the UI layer (S1).
+        //
+        // `VinodexUI` compiles to nothing on Linux and on macOS — UIKit is
+        // absent on both — so for the app's whole life the only thing that ever
+        // checked a theme value was someone looking at a phone. The CI
+        // `ios-test` job runs `xcodebuild test` on a simulator, and this target
+        // is what it was added to host: every file here carries the same
+        // `#if canImport(SwiftUI) && canImport(UIKit)` guard as all of
+        // `Sources/VinodexUI/`, so it builds to an empty module under
+        // `swift test` and runs for real on the simulator.
+        //
+        // **Appended after `VinodexCoreTests` on purpose.**
+        // `ArtPipelineRosterTests` parses this file as text, slicing from
+        // `name: "VinodexUI"` to the first `resources: [` that follows. A target
+        // carrying a `resources:` list inserted *above* `VinodexUI` would
+        // silently repoint that parser at the wrong list — and an empty parse is
+        // what a silently-passing gate looks like. Append; do not insert.
+        .testTarget(
+            name: "VinodexUITests",
+            dependencies: ["VinodexUI", "VinodexCore"]
+        ),
     ]
 )

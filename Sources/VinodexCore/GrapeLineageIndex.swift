@@ -414,14 +414,18 @@ public struct GrapeLineageIndex: Sendable {
         // more overload combinations than the type checker will finish, and it
         // said so. Same order, same result.
         var notes: [String] = []
-        var noteNodes: [LineageNode] = parents
-        if let mutationOf { noteNodes.append(mutationOf) }
-        noteNodes += offspring
-        noteNodes += mutations
-        noteNodes += siblings
-        noteNodes += related
-        var noteSources: [String?] = [lineage?.note]
-        noteSources += noteNodes.map(\.note)
+        // Accumulated into a typed local rather than one expression: the six-way
+        // array `+` chain, the `compactMap` closure and the `\.note` key path in
+        // a single tree put this past the type-checker's budget on Swift
+        // 6.0/6.1, which failed all three compile jobs while the local 6.3
+        // toolchain accepted it. Same six blocks, same order, same result.
+        var edgeNodes: [LineageNode] = parents
+        if let mutationOf { edgeNodes.append(mutationOf) }
+        edgeNodes += offspring
+        edgeNodes += mutations
+        edgeNodes += siblings
+        edgeNodes += related
+        let noteSources: [String?] = [lineage?.note] + edgeNodes.map(\.note)
         for note in noteSources.compactMap({ $0 }) where !note.isEmpty {
             if !notes.contains(note) { notes.append(note) }
         }

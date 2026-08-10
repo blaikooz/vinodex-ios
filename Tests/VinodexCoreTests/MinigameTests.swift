@@ -188,7 +188,10 @@ struct GrapeScanTests {
     }
 }
 
-@Suite("What's that reveal")
+// "What's that reveal" until 0.8.93 (item 9) — the suite name outlived the
+// tool. What it actually tests is `DailyPick` and `RevealCursor`, which the
+// daily challenge still runs on, so the suite stays and the name stops lying.
+@Suite("Daily reveal")
 struct DailyRevealTests {
     let db = WineDatabase.shared
 

@@ -193,7 +193,7 @@ struct MarqueeLampChooser: View {
                     // The other lamp, named by the side it is on rather than by
                     // a number nobody has been shown.
                     Text(slot == 0 ? "R" : "L")
-                        .font(DexFont.retro(8))
+                        .font(DexFont.retro(10))
                         .foregroundStyle(lcd.accent)
                         .padding(4)
                 }

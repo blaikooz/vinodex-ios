@@ -3,6 +3,11 @@ import SwiftUI
 import UIKit
 import VinodexCore
 
+// MARK: - DeviceChassis
+
+// The retro handheld chassis: the shell, the bezel, the footer, the vents,
+// and the private parts only it uses.
+
 /// The retro handheld chassis that wraps every screen.
 ///
 /// Re-proportions to fill the display rather than preserving the desktop

@@ -14,10 +14,12 @@ is what the liquid crystal blocks. They are a different register of the same
 subject -- `grapescan` here is a bunch of grapes rendered in eleven dots, and
 `grapes` under buttons/ is a painted bunch with shading -- and eleven of the
 stems collide outright (`settings`, `system`, `shop`, `tools`, `data`, `dev`,
-`user`, `customize`, `passport`, `firmware`, `haptics`, `whatsthat`,
+`user`, `customize`, `passport`, `firmware`, `haptics`,
 `moondial`, `tutorial`, `cheatcodes`, `labelscanner`, `blindtasting`,
-`dailychallenge`, `wineexam`). Merging the directories would have overwritten
-seventeen button faces with dot-matrix versions of themselves.
+`dailychallenge`, `wineexam`; `whatsthat` was on this list until its tool was
+deleted in 0.8.93 and both drawings went to the attic). Merging the
+directories would have overwritten the colliding button faces with dot-matrix
+versions of themselves.
 
 **Stems carry a `marquee-` prefix**, following `footer-`, `cartridge-`,
 `stamp-` and `sticker-` rather than adding a second bare-word directory to

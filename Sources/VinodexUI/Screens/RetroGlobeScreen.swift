@@ -367,10 +367,23 @@ public struct RetroGlobeScreen: View {
                 // line break. (AUDIT M20)
                 .accessibilityHidden(!marker.visible)
                 .accessibilityLabel(marker.continent.displayName)
-                .animation(.easeOut(duration: 0.3), value: marker.visible)
+                // No fade on the pass that introduces the plates (0.8.92,
+                // item 10): they are simply present when the globe arrives.
+                // Every later flip — a plate carried past the limb by the
+                // spin — keeps the ease it always had.
+                .animation(
+                    model.markersSettled ? .easeOut(duration: 0.3) : nil,
+                    value: marker.visible
+                )
             }
-            .onAppear { model.viewportSize = geo.size }
-            .onChange(of: geo.size) { _, size in model.viewportSize = size }
+            .onAppear {
+                model.viewportSize = geo.size
+                model.projectNow()
+            }
+            .onChange(of: geo.size) { _, size in
+                model.viewportSize = size
+                model.projectNow()
+            }
         }
     }
 
@@ -584,6 +597,18 @@ final class GlobeModel {
 
     var viewportSize: CGSize = .zero
 
+    /// False until the first projection pass has settled on screen (0.8.92,
+    /// item 10). The marker layer reads it to decide whether visibility
+    /// changes animate: the pass that *introduces* the plates must not — the
+    /// markers should simply be on the globe when the screen arrives — while
+    /// every later flip (rotation carrying a plate past the limb) keeps its
+    /// fade. Flipped by the *second* pass rather than the first, because the
+    /// flag and the visibilities land in the same SwiftUI transaction: a flag
+    /// set true in the introducing pass would animate exactly the change it
+    /// exists to suppress.
+    private(set) var markersSettled = false
+    private var hasProjectedOnce = false
+
     /// Whether the globe drifts on its own. Off under Reduce Motion and under
     /// VoiceOver — see `RetroGlobeScreen.freezesGlobe`. (AUDIT M18, M20)
     var autoSpins = true
@@ -743,6 +768,10 @@ final class GlobeModel {
         restoreHeading()
         applyOrientation()
         start()
+        // The scene exists and points where it will point; if the viewport is
+        // already known this is the moment the markers can be placed, before
+        // the first frame rather than a quarter-second after it (0.8.92, item 10).
+        projectNow()
     }
 
     /// Where the globe was pointing, kept across navigation.
@@ -872,8 +901,22 @@ final class GlobeModel {
         SCNTransaction.commit()
     }
 
+    /// Projects immediately instead of waiting out the 15Hz clock (0.8.92,
+    /// item 10). Called when the viewport is first known and when the scene
+    /// attaches — whichever lands second does the real work; the guards make
+    /// the earlier call a no-op. Without this the markers were absent for up
+    /// to `markerInterval` and then faded in, which read as a fly-in nobody
+    /// designed.
+    func projectNow() {
+        markerClock = 0
+        updateMarkers()
+    }
+
     private func updateMarkers() {
         guard let view = sceneView, viewportSize.width > 0 else { return }
+        defer {
+            if hasProjectedOnce { markersSettled = true } else { hasProjectedOnce = true }
+        }
 
         // Half-extents of a marker plate, used for the edge-of-viewport test.
         // Grown with the 0.6.5 (item 10) size bump — an undersized box here

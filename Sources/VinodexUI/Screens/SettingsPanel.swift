@@ -27,6 +27,11 @@ public struct SettingsPanel: View {
     let onClose: () -> Void
     let onSection: (SettingsSection) -> Void
     let onMinigames: () -> Void
+    /// The firmware history, promoted to a tile of its own (0.8.92, item 2).
+    /// It was a row inside SETTINGS > DEVICE from 0.7.3a; item 2 moves it up
+    /// to the grid, beside SHOP. A route push like every other tile, so the
+    /// chassis Back returns here.
+    let onFirmware: () -> Void
     // `onWalkthrough` retired here in 0.7.6 (F1) — the tour moved into
     // SETTINGS > DEVICE, so `SettingsSectionPanel` takes the callback now. See
     // the note on the grid below for what that costs and why it is paid.
@@ -38,13 +43,19 @@ public struct SettingsPanel: View {
     public init(
         onClose: @escaping () -> Void,
         onSection: @escaping (SettingsSection) -> Void = { _ in },
-        onMinigames: @escaping () -> Void = {}
+        onMinigames: @escaping () -> Void = {},
+        onFirmware: @escaping () -> Void = {}
     ) {
         self.onClose = onClose
         self.onSection = onSection
         self.onMinigames = onMinigames
+        self.onFirmware = onFirmware
     }
 
+    /// **Six tiles since 0.8.92 (item 2): three rows of two.** FIRMWARE takes
+    /// the slot beside SHOP — see `onFirmware`. The history below records the
+    /// five-tile years:
+    ///
     /// **Five tiles since 0.7.6 (F1), in three rows: two, two, and one wide.**
     ///
     /// F1 moves the tutorial into SETTINGS > DEVICE, which takes a tile out of a
@@ -108,16 +119,32 @@ public struct SettingsPanel: View {
                     onSection(.data)
                 }
             }
-            // The shop, the width of the panel. `displayName`, not `rawValue`:
-            // this tile is the one place on the grid where the two differ, and
-            // 0.7.5's B2 renamed the label rather than the stored word.
-            featureTile(
-                title: SettingsSection.access.displayName,
-                symbol: SettingsSection.access.symbol,
-                art: SettingsSection.access.artStem,
-                livery: .violet
-            ) {
-                onSection(.access)
+            // **The last row is a pair again (0.8.92, item 2).** SHOP had the
+            // full width from 0.7.6's F1, when five tiles left an orphan; the
+            // sixth tile is FIRMWARE, moved up out of SETTINGS > DEVICE, and
+            // it sits to SHOP's right — so the grid is back to the fixed
+            // three-by-two it was sized as. `displayName`, not `rawValue`, on
+            // SHOP: the one tile where the two differ (0.7.5, B2).
+            HStack(spacing: 10) {
+                featureTile(
+                    title: SettingsSection.access.displayName,
+                    symbol: SettingsSection.access.symbol,
+                    art: SettingsSection.access.artStem,
+                    livery: .violet
+                ) {
+                    onSection(.access)
+                }
+                // The green TUTORIAL freed in 0.7.6 (F1), reassigned at last
+                // (0.8.92, item 2): FIRMWARE is a new tile, so this repaints
+                // nothing.
+                featureTile(
+                    title: "FIRMWARE",
+                    symbol: "memorychip.fill",
+                    art: "firmware",
+                    livery: .green
+                ) {
+                    onFirmware()
+                }
             }
         }
         .padding(12)
@@ -170,7 +197,7 @@ public struct SettingsPanel: View {
             VStack(spacing: 12) {
                 // Squared at 44 (0.8.1, J3) — the same box the tools shelf
                 // uses, so the two grids of tiles stay one instrument.
-                DexChromeGlyph(art ?? symbol, symbol: symbol, size: 44, tint: ink)
+                DexChromeGlyph(art ?? symbol, symbol: symbol, size: DexMetrics.tileGlyph, tint: ink)
                     .shadow(color: .black.opacity(0.3), radius: 0, x: 1, y: 2)
                 Text(title)
                     .font(DexFont.retro(13))
@@ -219,13 +246,17 @@ public struct SettingsSectionPanel: View {
     /// developer plumbing, not a setting — and lives behind a button at the
     /// bottom of SETTINGS instead. A route push, so Back still works.
     let onDev: () -> Void
-    /// The DEVICE section's three doors (0.7.3, A2–A4).
+    /// The DEVICE section's doors (0.7.3, A2–A4; `onFirmwareHistory` left with
+    /// its row for the System grid in 0.8.92, item 2 — see
+    /// `SettingsPanel.onFirmware`).
     ///
     /// Route pushes rather than local state, for the same reason `onDev` is: the
     /// chassis Back button has to return to the System panel rather than drop
     /// the user out of settings entirely.
-    let onFirmwareHistory: () -> Void
     let onCheatConsole: () -> Void
+    /// The contact screen (0.8.91, F1). A route push like its neighbours, so
+    /// Back returns to SYSTEM rather than dropping out of settings.
+    let onSupport: () -> Void
     /// The guided tour (0.7.6, F1). A fourth door in the DEVICE section, and a
     /// route push like the two above so Back returns to SETTINGS rather than
     /// dropping the user out of the panel entirely.
@@ -290,6 +321,19 @@ public struct SettingsSectionPanel: View {
     /// CLEAR SAVED DATA asks first — it is the one control here that cannot be
     /// undone by tapping it again.
     @State private var confirmingWipe = false
+    /// The profile shelf (0.8.92, item 5). Observed so a save made through
+    /// one picker is on the list when the other opens.
+    @State private var profiles = UserProfileStore.shared
+    /// Which profile picker is unfolded under the SAVE/LOAD pair, or nil for
+    /// neither. In-place like the chip dropdown rather than an overlay: the
+    /// slots are five short rows, and a modal would bury the explanatory text
+    /// they sit beside.
+    @State private var profileMode: ProfileMode?
+    /// A profile action awaiting its DexAlert confirm. Everything here is
+    /// destructive one way or the other — an overwrite loses a snapshot, a
+    /// load loses the current unsaved state *and closes the app* — so nothing
+    /// commits on the first tap.
+    @State private var pendingProfile: PendingProfileAction?
     /// Set when TUTORIAL is tapped (0.7.6, F1). The tour is a few minutes of
     /// someone's time, so it asks before it takes them — and asking is also what
     /// makes it findable without being imposed: the row says what it is, the
@@ -314,10 +358,9 @@ public struct SettingsSectionPanel: View {
     /// Reminders (0.7.8, D1). Observed rather than read from a stored bool —
     /// see `dailyReminderRow`.
     @State private var notifications = NotificationScheduler.shared
-    /// Professor Vino's ledger, for the silence row (0.8.9d). Observed rather
-    /// than `@AppStorage` for `notifications`' reason: the store is the writer,
-    /// and a second one bound to the same key is a second writer.
-    @State private var triggers = FirstTimeTriggerStore.shared
+    // `triggers` (Professor Vino's ledger) left with his silence row in
+    // 0.8.93 (item 9) — both live on his own screen now.
+    //
     /// **This panel is the only writer in the app** (arch **A17**). Seven of
     /// the eight keys are turned here and nowhere else; the eighth is the
     /// display name, on the profile row. Every other reader of `AppSettings`
@@ -352,8 +395,8 @@ public struct SettingsSectionPanel: View {
         section: SettingsSection,
         openPack: String? = nil,
         onDev: @escaping () -> Void = {},
-        onFirmwareHistory: @escaping () -> Void = {},
         onCheatConsole: @escaping () -> Void = {},
+        onSupport: @escaping () -> Void = {},
         onWalkthrough: @escaping () -> Void = {},
         onDemoMode: @escaping () -> Void = {},
         onDeviceWorkshop: @escaping () -> Void = {},
@@ -364,8 +407,8 @@ public struct SettingsSectionPanel: View {
         self.section = section
         self.openPack = openPack
         self.onDev = onDev
-        self.onFirmwareHistory = onFirmwareHistory
         self.onCheatConsole = onCheatConsole
+        self.onSupport = onSupport
         self.onWalkthrough = onWalkthrough
         self.onDemoMode = onDemoMode
         self.onDeviceWorkshop = onDeviceWorkshop
@@ -373,9 +416,7 @@ public struct SettingsSectionPanel: View {
         self.onClosePack = onClosePack
     }
 
-    /// The switch reads the inverse of the stored preference: the row is about
-    /// him being *on*, the storage is about him being silenced.
-    private var vinoOn: Bool { !triggers.isSilenced }
+    // `vinoOn` went with the PROFESSOR VINO row (0.8.93, item 9).
 
     private var screenKey: String { ScreenStateStore.settings(section.rawValue) }
 
@@ -448,6 +489,17 @@ public struct SettingsSectionPanel: View {
                     },
                     onCancel: { confirmingWipe = false }
                 )
+            } else if let pending = pendingProfile {
+                DexAlert(
+                    title: pending.alertTitle,
+                    message: pending.alertMessage,
+                    confirmLabel: pending.confirmLabel,
+                    onConfirm: {
+                        pendingProfile = nil
+                        pending.commit(profiles)
+                    },
+                    onCancel: { pendingProfile = nil }
+                )
             } else if let pending = pendingPreset {
                 DexAlert(
                     title: "FIT \(pending.label)?",
@@ -506,6 +558,7 @@ public struct SettingsSectionPanel: View {
         .animation(DexMotion.overlay, value: openShopItem)
         .animation(DexMotion.overlay, value: offeringTour)
         .animation(DexMotion.overlay, value: confirmingWipe)
+        .animation(DexMotion.overlay, value: pendingProfile)
         .animation(DexMotion.overlay, value: pendingPreset)
         .animation(DexMotion.overlay, value: pendingImport)
         .animation(DexMotion.overlay, value: transferNotice)
@@ -903,11 +956,14 @@ public struct SettingsSectionPanel: View {
 
     /// DAILY REMINDER (0.7.8, D1).
     ///
-    /// In DEVICE rather than a new section: the device is where the things that
-    /// change how the hardware behaves live — the tutorial, the firmware, the
-    /// cheat console — and a reminder the device sends is one of those. A
-    /// NOTIFICATIONS section holding exactly one switch would be a heading for
-    /// its own sake.
+    /// **In NOTIFICATIONS since 0.8.92 (item 4), reversing D1's placement.**
+    /// D1 argued a NOTIFICATIONS section holding exactly one switch would be a
+    /// heading for its own sake, and filed the row under DEVICE. Two releases
+    /// of DEVICE growth later the section held seven rows and the one switch
+    /// people look for under the word "notifications" was sixth in a list of
+    /// device curiosities — the heading earns itself by being where the eye
+    /// goes, and it is the natural home for whatever notification controls
+    /// come next.
     ///
     /// **The switch renders `isOn`, not the stored preference.** Permission can
     /// be denied at the prompt or withdrawn later in iOS Settings without this
@@ -937,6 +993,12 @@ public struct SettingsSectionPanel: View {
         } label: {
             settingRow(
                 symbol: notifications.isOn ? "bell.fill" : "bell.slash.fill",
+                // **The drawn bell** (0.8.91, C3). One face for both states,
+                // unlike SOUNDS' pair below: the row already says which way it
+                // is set twice over — the tint goes green and the toggle is
+                // right there — and a second bell with a stroke through it
+                // would have meant drawing a second master to repeat it.
+                art: UIGlyph.bell.artStem,
                 tint: notifications.isOn ? Dex.green : lcd.subtext,
                 title: "DAILY REMINDER",
                 detail: reminderDetail
@@ -976,6 +1038,193 @@ public struct SettingsSectionPanel: View {
         return "Get told when today's challenge is live, and before your streak runs out."
     }
 
+    // MARK: User profiles (0.8.92, item 5)
+
+    /// Which of the two pickers is unfolded.
+    private enum ProfileMode { case save, load }
+
+    /// A profile action waiting on its confirm. Every case is destructive:
+    /// an overwrite discards a snapshot, and both loads discard the current
+    /// unsaved state and close the app — `ProfileSwitcher` says why the
+    /// restart is the mechanism rather than a side effect.
+    private enum PendingProfileAction: Equatable {
+        case overwrite(slot: Int, name: String)
+        case load(slot: Int, name: String)
+        case loadFresh
+
+        var alertTitle: String {
+            switch self {
+            case .overwrite(_, let name): "OVERWRITE \(name)?"
+            case .load(_, let name): "LOAD \(name)?"
+            case .loadFresh: "LOAD FRESH?"
+            }
+        }
+
+        var alertMessage: String {
+            switch self {
+            case .overwrite(_, let name):
+                "The snapshot saved in \(name) is replaced with everything currently on this device. The old snapshot cannot be recovered."
+            case .load(_, let name):
+                "Everything currently on this device is replaced with \(name)'s snapshot, and the app closes. Reopen it to continue as \(name). Anything not saved to a profile is lost."
+            case .loadFresh:
+                "The device goes back to a brand-new install and the app closes. Reopen it for the first-run experience. Anything not saved to a profile is lost."
+            }
+        }
+
+        var confirmLabel: String {
+            switch self {
+            case .overwrite: "OVERWRITE"
+            case .load, .loadFresh: "LOAD"
+            }
+        }
+
+        @MainActor
+        func commit(_ store: UserProfileStore) {
+            switch self {
+            case .overwrite(let slot, _):
+                try? store.save(ProfileSwitcher.currentDomain(), intoSlot: slot)
+            case .load(let slot, _):
+                ProfileSwitcher.apply(store.snapshot(ofSlot: slot))
+            case .loadFresh:
+                ProfileSwitcher.apply(nil)
+            }
+        }
+    }
+
+    /// SAVE or LOAD — the pair above the slot list. Tapping the open one
+    /// folds it away, like the chip dropdown it borrows its manner from.
+    private func profileActionButton(_ label: String, mode: ProfileMode) -> some View {
+        let isOpen = profileMode == mode
+        return Button {
+            Haptics.screenTap()
+            withAnimation(.easeOut(duration: 0.2)) {
+                profileMode = isOpen ? nil : mode
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: mode == .save
+                    ? "square.and.arrow.down"
+                    : "person.crop.circle.badge.checkmark")
+                    .font(.system(size: 14, weight: .bold))
+                Text(label)
+                    .font(DexFont.retro(11))
+                    .tracking(1)
+            }
+            .foregroundStyle(isOpen ? lcd.onAccent : lcd.accent)
+            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(isOpen ? lcd.accent : lcd.surface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .strokeBorder(lcd.accent.opacity(0.6), lineWidth: 2)
+            )
+        }
+        .buttonStyle(DexPressStyle(scale: 0.98))
+    }
+
+    /// The five slots (SAVE) or the loadable profiles plus FRESH (LOAD).
+    @ViewBuilder
+    private func profileSlotList(_ mode: ProfileMode) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            switch mode {
+            case .save:
+                ForEach(profiles.allSlots, id: \.self) { slot in
+                    let existing = profiles.profile(inSlot: slot)
+                    profileSlotRow(
+                        name: existing?.name ?? "EMPTY SLOT \(slot)",
+                        detail: existing.map(slotDetail) ?? "Tap to save here.",
+                        occupied: existing != nil
+                    ) {
+                        // Overwriting a real snapshot asks first; a first save
+                        // — into an empty slot or a seeded-but-never-saved
+                        // HORIZON — destroys nothing and just lands.
+                        if let existing, existing.savedAt != nil {
+                            pendingProfile = .overwrite(slot: slot, name: existing.name)
+                        } else {
+                            try? profiles.save(
+                                ProfileSwitcher.currentDomain(),
+                                intoSlot: slot
+                            )
+                        }
+                    }
+                }
+            case .load:
+                // FRESH first: the virtual blank profile, for walking the
+                // first-run experience. Loading it is a factory reset plus
+                // relaunch, and it can never be saved over.
+                profileSlotRow(
+                    name: UserProfileStore.freshProfileName,
+                    detail: "A brand-new device, every time.",
+                    occupied: true
+                ) {
+                    pendingProfile = .loadFresh
+                }
+                ForEach(profiles.profiles) { profile in
+                    profileSlotRow(
+                        name: profile.name,
+                        detail: slotDetail(profile),
+                        occupied: true
+                    ) {
+                        pendingProfile = .load(slot: profile.slot, name: profile.name)
+                    }
+                }
+            }
+        }
+    }
+
+    private func slotDetail(_ profile: UserProfileStore.Profile) -> String {
+        guard let savedAt = profile.savedAt else {
+            return "Fresh until its first save."
+        }
+        let stamp = DateFormatter.localizedString(
+            from: savedAt, dateStyle: .short, timeStyle: .short
+        )
+        return "Saved \(stamp)."
+    }
+
+    private func profileSlotRow(
+        name: String,
+        detail: String,
+        occupied: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            Haptics.select()
+            action()
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: occupied ? "person.crop.circle.fill" : "circle.dashed")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(occupied ? lcd.accent : lcd.subtext)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(name)
+                        .font(DexFont.retro(11))
+                        .tracking(1)
+                        .foregroundStyle(lcd.text)
+                    Text(detail)
+                        .font(DexFont.mono(15))
+                        .foregroundStyle(lcd.subtext)
+                }
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(lcd.subtext)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .strokeBorder(lcd.surfaceEdge, lineWidth: 1)
+            )
+        }
+        .buttonStyle(DexPressStyle(scale: 0.98))
+    }
+
     /// The shared shape of a settings row: glyph, title, one line of
     /// explanation, and a control on the right.
     private func settingRow<C: View>(
@@ -994,8 +1243,16 @@ public struct SettingsSectionPanel: View {
             // J3's problem — a fixed width every row's glyph is fitted into.
             // `DexChromeGlyph` squares it so the drawn faces cannot make the
             // rows different heights either.
-            DexChromeGlyph(art ?? symbol, symbol: symbol, size: 22, weight: .bold, tint: tint)
-                .frame(width: 30)
+            // §C4: the panel's one row-glyph size, now a metric rather than a
+            // literal. See `DexMetrics.rowGlyph`.
+            DexChromeGlyph(
+                art ?? symbol,
+                symbol: symbol,
+                size: DexMetrics.rowGlyph,
+                weight: .bold,
+                tint: tint
+            )
+            .frame(width: DexMetrics.rowGlyphGutter)
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(DexFont.retro(13))
@@ -1150,7 +1407,24 @@ public struct SettingsSectionPanel: View {
                     // The drawn cartridge on the shelf (0.8.2). Nil for the
                     // flavour wheel and the country packs, which keep A2's
                     // drawing — see `CartridgeArt`.
-                    art: CartridgeArt.stem(for: item.entitlement)
+                    art: CartridgeArt.stem(for: item.entitlement),
+                    // **The name in the bottom well, on every cartridge**
+                    // (0.8.92, item 1 — overruling 0.8.3 C4's six-points-of-type
+                    // measurement knowingly; the item asks for tiny type on the
+                    // icon, and the tile's caption underneath keeps legibility).
+                    label: item.title,
+                    // **The kind in the top band** (0.8.92, item 1): ATLAS,
+                    // DEVICE or DISPLAY — the shelf the cartridge came off,
+                    // where 0.8.91's A1 printed the pack's name for one
+                    // release. The name lives in the well now, so the band says
+                    // the thing the caption cannot.
+                    //
+                    // **Packs only.** The five upgrade cartridges are not a
+                    // `Kind`, and their gold band has a drawn star in the middle
+                    // of it — a centred title would land on top of it. `pack`
+                    // is nil for exactly those five, so they carry the well
+                    // label alone.
+                    title: item.pack.map { $0.kind.rawValue }
                 )
             }
         )
@@ -1364,7 +1638,7 @@ public struct SettingsSectionPanel: View {
                         // database, so its wells must read the same one.
                         EntryIconWell(db: db, entry: entry, size: 40)
                         Text(entry.name)
-                            .font(DexFont.retro(8))
+                            .font(DexFont.retro(10))
                             .tracking(0.5)
                             .foregroundStyle(lcd.subtext)
                             .multilineTextAlignment(.center)
@@ -1390,7 +1664,7 @@ public struct SettingsSectionPanel: View {
             ChassisMockup(skin: skin, height: 40)
                 .frame(width: 62)
             Text(skin.displayName)
-                .font(DexFont.retro(8))
+                .font(DexFont.retro(10))
                 .tracking(0.5)
                 .foregroundStyle(lcd.subtext)
                 .multilineTextAlignment(.center)
@@ -1431,7 +1705,7 @@ public struct SettingsSectionPanel: View {
             ScreenMockup(mode: mode, height: 40)
                 .frame(width: 62)
             Text(mode.displayName)
-                .font(DexFont.retro(8))
+                .font(DexFont.retro(10))
                 .tracking(0.5)
                 .foregroundStyle(lcd.subtext)
                 .multilineTextAlignment(.center)
@@ -1494,7 +1768,13 @@ public struct SettingsSectionPanel: View {
                 // splash's hero can be this size without the shelf's tile size
                 // deciding it — see `import-cartridge-art.py`.
                 art: CartridgeArt.stem(for: item.entitlement),
-                label: item.title
+                label: item.title,
+                // The same two texts as the shelf tile, at hero size (0.8.92,
+                // item 1): the pack's name in the well, its shelf — ATLAS,
+                // DEVICE, DISPLAY — in the band. `PackCartridge`'s raised font
+                // caps are what make "larger on the pack page" true without a
+                // second layout. Packs only, per the shelf tile above.
+                title: item.pack.map { $0.kind.rawValue }
             )
             .frame(width: side, height: side)
             .frame(width: geo.size.width, height: geo.size.height)
@@ -1582,7 +1862,15 @@ public struct SettingsSectionPanel: View {
                         // Matches the marquee glyph the route wears (K2, rule 1)
                         // — see `DexRoute.deviceWorkshop`.
                         symbol: owned ? "hammer.fill" : "lock.fill",
-                        art: owned ? "workshop" : nil,
+                        // **`glyph-hammer`, not `workshop`** (0.8.91, C1). The
+                        // row wore `ButtonArt/workshop.png` — the drawn bench
+                        // scene — which is a picture of the room rather than of
+                        // the door. `UIGlyph`'s note parked the hammer on the
+                        // grounds that swapping a live control's drawing is a
+                        // look decision and not a wiring one; C1 makes the look
+                        // decision, and the hammer is also what the route's own
+                        // marquee symbol has always been (K2, rule 1).
+                        art: owned ? UIGlyph.hammer.artStem : nil,
                         tint: owned ? lcd.accent : Dex.yellow,
                         title: owned ? "OPEN" : "UNLOCK",
                         detail: owned
@@ -1707,10 +1995,17 @@ public struct SettingsSectionPanel: View {
         // leading this section pays for it. It also fits the heading's own
         // argument: none of these is a *setting*, they are things the device can
         // tell you or do, and a guided tour of the device is squarely that.
-        settingsSection("DEVICE") {
+        // DAILY REMINDER's own heading (0.8.92, item 4) — see the reversal
+        // note on `dailyReminderRow`. Above DEVICE, because a switch people
+        // actively look for outranks a shelf of device curiosities.
+        settingsSection("NOTIFICATIONS") {
             VStack(alignment: .leading, spacing: 10) {
                 dailyReminderRow
+            }
+        }
 
+        settingsSection("DEVICE") {
+            VStack(alignment: .leading, spacing: 10) {
                 Button {
                     Haptics.screenTap()
                     offeringTour = true
@@ -1734,46 +2029,30 @@ public struct SettingsSectionPanel: View {
                 }
                 .buttonStyle(DexPressStyle(scale: 0.98))
 
-                // **The hide-him switch** (0.8.9d), and the call site 0.8.9c's
-                // `FirstTimeTriggerStore` note said this batch would have to
-                // supply or leave the method unwritten. It sits beside TUTORIAL
-                // because that note named this row's neighbour as its home, and
-                // because the two are the same subject: how much the device
-                // volunteers.
-                //
-                // The detail line is careful about what it does *not* do. The
-                // tutorial's bubbles are content the player pressed a button to
-                // start, not `fireOnce` remarks, so they are unaffected — and a
-                // switch labelled as silencing him that then narrated a
-                // walkthrough would be the kind of half-true control this
-                // section is otherwise free of.
-                settingRow(
-                    symbol: "bubble.left.fill", art: VinoExpression.neutral.artStem,
-                    tint: vinoOn ? lcd.accent : lcd.subtext,
-                    title: "PROFESSOR VINO",
-                    detail: vinoOn
-                        ? "One tip, once, the first time you try something new."
-                        : "Quiet. He still guides the tutorial when you ask for it."
-                ) {
-                    DexToggle(isOn: vinoOn, tint: Dex.green) {
-                        Haptics.select()
-                        triggers.setSilenced(vinoOn)
-                    }
-                }
+                // The PROFESSOR VINO switch (0.8.9d's hide-him row) left for
+                // his own screen in 0.8.93 (item 9) — TOOLS > PROF. VINO,
+                // where everything else about him now lives. Moved, not
+                // copied: two switches over one stored key is the two-writers
+                // fault `FirstTimeTriggerStore`'s notes warn about.
 
+                // The FIRMWARE row left for the System grid in 0.8.92 (item
+                // 2) — it sits beside SHOP now, one tap up. It had been here
+                // since 0.7.3a's A3.
+
+                // **SUPPORT** (0.8.91, F1). Above CHEAT CODES: the door
+                // above it is what the device *is* (the tutorial), and
+                // "who do I tell" belongs with it. Above the cheat console
+                // because that one is a toy.
                 Button {
                     Haptics.screenTap()
-                    onFirmwareHistory()
+                    onSupport()
                 } label: {
                     settingRow(
-                        symbol: "memorychip.fill", art: "firmware",
+                        symbol: "checkmark.seal.fill",
+                        art: UIGlyph.seal.artStem,
                         tint: lcd.accent,
-                        title: "FIRMWARE",
-                        // States the installed version on the row itself. The
-                        // panel behind it is the history; the number is the
-                        // thing most people opening this want, and making them
-                        // tap through for it would be a step for nothing.
-                        detail: "\(AppVersion.display) — what changed, release by release."
+                        title: "SUPPORT",
+                        detail: "Something wrong, or an idea? Send a message."
                     ) {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 14, weight: .bold))
@@ -1823,12 +2102,33 @@ public struct SettingsSectionPanel: View {
 
         settingsSection("STORED DATA") {
             VStack(alignment: .leading, spacing: 10) {
+                // **User profiles (0.8.92, item 5).** SAVE captures everything
+                // this section's blurb lists into one of five named slots;
+                // LOAD swaps the whole device to a slot's snapshot. The slot
+                // lists unfold in place, like the chip dropdown — five short
+                // rows do not earn a modal.
+                HStack(spacing: 10) {
+                    profileActionButton("SAVE", mode: .save)
+                    profileActionButton("LOAD", mode: .load)
+                }
+
+                if let mode = profileMode {
+                    profileSlotList(mode)
+                }
+
+                Text("Profiles snapshot everything listed below into one of \(UserProfileStore.maxProfiles) slots. Loading one replaces the current data and restarts the device.")
+                    .font(DexFont.mono(17))
+                    .foregroundStyle(lcd.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+
                 // Backup sits immediately above the button that destroys what
                 // it backs up. A bundle-ID change orphans this device's
                 // container outright — there is no migration to write, so a
                 // file the user keeps is the only thing that survives one
                 // (AUDIT **M35**; KNOWN-ISSUES, "Changing the bundle ID is a
-                // one-way door").
+                // one-way door"). Profiles do not cover that door: the slots
+                // live in the same container the change orphans, so the file
+                // export stays alongside them.
                 //
                 // `ShareLink` is a system sheet, and the second documented
                 // exception to the in-LCD dialog rule for the same reason

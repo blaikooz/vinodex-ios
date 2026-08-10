@@ -261,9 +261,16 @@ struct RootView: View {
                     )
                 }
 
-                // The BIOS (0.7.7, B1) — **inside the LCD, framed by the
-                // chassis** (0.7.8, A4), which puts back where 0.7.3a had it and
-                // reverses 0.7.7's move to a full-viewport overlay.
+                // The BIOS (0.7.7, B1; recomposed 0.8.91, G3) — **inside the
+                // LCD, framed by the chassis** (0.7.8, A4), which puts back
+                // where 0.7.3a had it and reverses 0.7.7's move to a
+                // full-viewport overlay.
+                //
+                // **One boot path** (0.8.91, G3). `BootScreen` is gone with its
+                // file; `VinodexBootView` is the whole of it now. What did not
+                // change is everything below the composition: `BootSequence`
+                // still owns the lines and the clock and `BiosChrome` still owns
+                // the strings, so the screen is new and what it claims is not.
                 //
                 // 0.7.7's argument was that its composition carried its own
                 // terminal border, side rails and corner brackets, and nesting
@@ -273,7 +280,7 @@ struct RootView: View {
                 // screen. The 0.7.3a objection it was answering — a translucent
                 // overlay dimming the chassis reads as power *loss* — does not
                 // apply either, because this is opaque and it is not an overlay.
-                // See `BootScreen` for the long version.
+                // See `VinodexBootView` for the long version.
                 //
                 // **The tool's own introduction, once each** (0.8.8, D1).
                 //
@@ -328,7 +335,7 @@ struct RootView: View {
                 // Last in this stack, so it covers the two prompts above rather
                 // than booting underneath them.
                 if booting {
-                    BootScreen(
+                    VinodexBootView(
                         entries: db.entries.count,
                         // The MAINFRAME cheat (A4). Reads the entitlement store
                         // like every other unlock (F1).
@@ -436,12 +443,34 @@ struct RootView: View {
         // player behind a modal the walkthrough is covering. The step does not
         // advance meanwhile, so nothing is lost — it simply waits, exactly as
         // his bubbles do.
+        //
+        // **One reader, one space** (0.8.91, I1) — and this is where the
+        // bubbles' "all over the place" came from.
+        //
+        // `DeviceChassis`'s own `GeometryReader` is laid out *inside* the safe
+        // area (it reads `safeAreaInsets.top` deliberately, to use the island
+        // band rather than waste it) and only escapes the inset within its own
+        // content. So this reader was resolving every anchor in inset space,
+        // while `CoachmarkOverlay` carried its own second `GeometryReader` with
+        // `.ignoresSafeArea()` and drew in full-screen space. Two spaces one
+        // top inset apart, and a `size.height` about ninety points taller than
+        // the one the rects were measured against: every hole, ring and bubble
+        // landed high by the inset, the above/below test compared an inset midY
+        // against a full-screen half-height, and near-bottom targets pushed
+        // their bubble off the edge. All three symptoms §I1 lists, one cause.
+        //
+        // The fix is not to match the two spaces — it is to have one. This
+        // reader ignores the safe area, so anchors resolve in the same
+        // full-screen space the overlay covers, and the overlay takes that size
+        // as a parameter rather than reading a second one. There is no longer a
+        // pair that could drift.
         .overlayPreferenceValue(CoachmarkTargetKey.self) { anchors in
             GeometryReader { proxy in
                 if let step = coachmarks.current,
                    !vino.isSuspended(otherThan: Self.coachmarkHold) {
                     CoachmarkOverlay(
                         step: step,
+                        canvas: proxy.size,
                         spotlight: step.target.flatMap { anchors[$0] }.map { proxy[$0] },
                         position: coachmarks.position ?? 1,
                         total: CoachmarkWalkthrough.count,
@@ -450,6 +479,7 @@ struct RootView: View {
                     )
                 }
             }
+            .ignoresSafeArea()
         }
         .animation(DexMotion.overlay, value: booting)
         // H3's residual, keyed off the one settings model (arch **A17**) —
@@ -780,6 +810,19 @@ struct RootView: View {
     ///   survived: 0.8.7's C1 gives it a CLIMATE row (see the case below), and
     ///   AUDIT **L39** gave it back its search bar (see `.list` in `screen`).
     ///   CONTINENTS is still none.
+    ///
+    /// **YOURS is the exception to the rule above, and it is on every row**
+    /// (0.8.91, B1). The rule is that a facet earns its place by having more
+    /// than one live value in *this* category, which is a statement about the
+    /// catalog; the shelf row is a statement about the player and is equally
+    /// live in all five tables — you can save a region, want a style and try a
+    /// grape. §B1 asks for it on "all search screens where appropriate", and the
+    /// one place it is not appropriate is CONTINENTS, which has no chip rows at
+    /// all because it has four rows of content.
+    ///
+    /// It goes last everywhere, for the reason STYLE goes last on GRAPES: the
+    /// catalog facets are what the screen has taught since 0.6.9, and a row
+    /// about you belongs after the rows about the wine.
     private static func chipFacets(for category: EntryCategory) -> [ChipFacet] {
         switch category {
         // **GRAPES gains STYLE (0.8.8, C1)**, for 0.8.7's reason on REGIONS: the
@@ -793,14 +836,14 @@ struct RootView: View {
         // that empties the list, which STYLE passes on ten. But it is the longest
         // row of the four and the only one that wraps, and COLOUR/BODY/RARITY are
         // the three this screen has taught since 0.6.9.
-        case .grapes: [.color, .body, .rarity, .grapeStyle]
+        case .grapes: [.color, .body, .rarity, .grapeStyle, .shelf]
         // COLOUR and COUNTRY join STYLE CLASS (0.8.1, D). Both tables already
         // shipped — `colorTypeChips` and `countryChips` are probed by the
         // generator and drawn on every style tile — so this is a screen being
         // offered data it was already displaying. STYLE CLASS stays first: it
         // is the narrowest of the three and the one this screen has taught.
-        case .styles: [.styleClass, .styleColor, .country]
-        case .flavors: [.flavorClass, .flavorSubclass]
+        case .styles: [.styleClass, .styleColor, .country, .shelf]
+        case .flavors: [.flavorClass, .flavorSubclass, .shelf]
         // **REGIONS gains CLIMATE (0.8.7, C1).** The note above says place
         // filtering lives on the world search and this screen has none, which
         // was true of *place* — country and region are search-bar territory by
@@ -811,7 +854,10 @@ struct RootView: View {
         // chip nobody could see or clear. The guard in
         // `EncyclopediaListScreen.init` checks exactly that and would have
         // declined to seed rather than break, which is how this was caught.
-        case .regions: [.climate]
+        case .regions: [.climate, .shelf]
+        // Still none. The continents listing has four rows and no search bar;
+        // a filter row over four items is furniture, not a control — and that
+        // is as true of YOURS as it was of everything else.
         case .continents: []
         }
     }
@@ -884,11 +930,25 @@ struct RootView: View {
             // on `lockedBundle`), and a recommendation must not be a way past it.
             PassportScreen(
                 onStampCollection: { push(.stampCollection) },
-                onSelectEntry: { open($0) }
+                onSelectEntry: { open($0) },
+                // §B3's SHOW ALL. A frame rather than an expander — see
+                // `DexRoute.recommendations`.
+                onShowAllRecommendations: { push(.recommendations) }
             )
 
         case .stampCollection:
             StampCollectionScreen()
+
+        // §B3 (0.8.91). `open(_:)` for the same reason the strip uses it: the
+        // paywall gate is one door, and a recommendation must not be a way past
+        // it.
+        case .recommendations:
+            RecommendationsScreen(onSelect: { open($0) })
+
+        // §F1 (0.8.91). No arguments — the address and the copy are
+        // `SupportContact`'s, in Core, so a test can hold them.
+        case .support:
+            SupportScreen()
 
         case .globeSearch:
             // Continents and regions between them carry country and state
@@ -904,7 +964,7 @@ struct RootView: View {
                 // pseudo-value. CLIMATE and COUNTRY were both candidates and
                 // both declined: H1 names three things, and a facet nobody asked
                 // for is a row every user of this screen has to read past.
-                chipFacets: [.category],
+                chipFacets: [.category, .shelf],
                 onSelect: { open($0) },
                 onSelectCountry: { push(.country(name: $0)) }
             )
@@ -919,25 +979,26 @@ struct RootView: View {
         case .state(let name):
             StateScreen(state: name) { open($0) }
 
-        // The route case keeps its name (0.7.9, B): `DexRoute` is vocabulary,
-        // `DemoMode` names it, and what changed is the screen behind the door
-        // rather than the door. See `WhatsThatScreen`.
-        case .dailyGrape:
-            WhatsThatScreen { open($0) }
+        // WHAT'S THAT…? deleted, PROF. VINO in its place (0.8.93, item 9).
+        case .profVino:
+            ProfVinoScreen()
 
         case .settings:
             SettingsPanel(
                 onClose: { goBack() },
                 onSection: { push(.settingsSection($0)) },
-                onMinigames: { push(.minigames) }
+                onMinigames: { push(.minigames) },
+                // FIRMWARE is a grid tile beside SHOP now (0.8.92, item 2);
+                // the route behind it is unchanged.
+                onFirmware: { push(.firmwareHistory) }
             )
 
         case .settingsSection(let section):
             SettingsSectionPanel(
                 section: section,
                 onDev: { push(.settingsSection(.dev)) },
-                onFirmwareHistory: { push(.firmwareHistory) },
                 onCheatConsole: { push(.cheatConsole) },
+                onSupport: { push(.support) },
                 // The tour moved into SETTINGS > DEVICE in 0.7.6 (F1), so the
                 // callback moved with it — the grid no longer has a TUTORIAL
                 // tile to raise it from.
@@ -968,8 +1029,8 @@ struct RootView: View {
                 section: .access,
                 openPack: id,
                 onDev: { push(.settingsSection(.dev)) },
-                onFirmwareHistory: { push(.firmwareHistory) },
                 onCheatConsole: { push(.cheatConsole) },
+                onSupport: { push(.support) },
                 onWalkthrough: { push(.walkthrough) },
                 onDemoMode: { startDemo() },
                 onDeviceWorkshop: { push(.deviceWorkshop) },
@@ -982,7 +1043,7 @@ struct RootView: View {
 
         case .minigames:
             ToolsScreen(
-                onDailyGrape: { push(.dailyGrape) },
+                onProfVino: { push(.profVino) },
                 onScanner: { push(.scanner) },
                 onMoonDial: { push(.moonDial) },
                 onQuiz: { push(.wsetQuiz) },
@@ -1134,9 +1195,8 @@ struct RootView: View {
         // `_ =` because `removeLast()` hands back the popped route, which
         // would otherwise become `withTransaction`'s discarded return value.
         withTransaction(.instant) { _ = path.removeLast() }
-        if leaving == .dailyGrape {
-            ScreenStateStore.shared.forget(ScreenStateStore.dailyGrape)
-        }
+        // The `.dailyGrape` forget that lived here left with WHAT'S THAT…?
+        // (0.8.93, item 9) — PROF. VINO keeps no screen state to forget.
     }
 
     /// Home is the reset. Searches, scroll positions and expanded sections all

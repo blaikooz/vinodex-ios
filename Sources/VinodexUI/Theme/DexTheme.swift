@@ -1351,6 +1351,35 @@ public enum DexMetrics {
     public static var iconWell: CGFloat { 48 * CGFloat(UIScale.current.factor) }
     public static var heroWell: CGFloat { 148 * CGFloat(UIScale.current.factor) }
 
+    /// **The standard glyph sizes** (0.8.91, C4).
+    ///
+    /// §C4 asks for icons to be "generally bigger" and for a bump to "the
+    /// standard icon size". There was no such thing: `DexIcon`'s init carried a
+    /// default of 30 and every other glyph in the app was a literal at its call
+    /// site — 22 on a settings row, 44 on a tools tile, 26/32/48/54 scattered
+    /// through the entry page. So the first half of the item is inventing the
+    /// constant the second half asks to move, which is why these are here and
+    /// not three more literals a batch further on.
+    ///
+    /// Two sizes, because the app draws glyphs in exactly two registers: beside
+    /// a line of text in a row, and as the picture on a tile. `iconWell` and
+    /// `heroWell` above already cover the third and fourth (the entry list's
+    /// well and the detail hero), and they were already scaled.
+    ///
+    /// `UIScale`, like the wells and unlike the literals they replace. A glyph
+    /// that stayed put while the text beside it grew is the drift these
+    /// constants exist to stop; `RootView` keys the whole chassis on the scale,
+    /// so the change lands without a relaunch.
+    ///
+    /// 22 to 28 and 44 to 52 — a quarter and a fifth. Enough to read as bigger
+    /// at arm's length, not enough to reflow a row whose height is set by two
+    /// lines of type.
+    public static var rowGlyph: CGFloat { 28 * CGFloat(UIScale.current.factor) }
+    /// The gutter a `rowGlyph` sits in. Wider than the glyph so a tall drawing
+    /// and a wide one both centre in the same column.
+    public static var rowGlyphGutter: CGFloat { 36 * CGFloat(UIScale.current.factor) }
+    public static var tileGlyph: CGFloat { 52 * CGFloat(UIScale.current.factor) }
+
     /// How long the device takes to turn over.
     ///
     /// Lives here rather than on `DeviceChassis` because that type is generic

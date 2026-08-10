@@ -64,7 +64,7 @@ struct VinoDialogueTests {
     }
 
     @Test("a skipped, blank or oversized name all resolve sensibly")
-    func nameResolution() {
+    func nameResolution() throws {
         #expect(VinoName.resolved(nil) == VinoName.fallback)
         #expect(VinoName.resolved("") == VinoName.fallback)
         // Whitespace-only must land on the fallback rather than render
@@ -76,7 +76,7 @@ struct VinoDialogueTests {
         let long = String(repeating: "A", count: 40)
         #expect(VinoName.resolved(long).count == VinoName.maxLength)
 
-        let line = VinoDialogue.line(for: .firstWineExam)!
+        let line = try #require(VinoDialogue.line(for: .firstWineExam))
         #expect(line.rendered(name: "Kim") == "Exam time, Kim. I ask, you answer. Fair warning: I grade like a French appellation board.")
         #expect(line.rendered(name: nil).hasPrefix("Exam time, explorer."))
     }
@@ -416,13 +416,13 @@ struct VinoPresenterTests {
     }
 
     @Test("a line never queues twice, even if a site double-fires")
-    func dedupe() {
+    func dedupe() throws {
         let (vino, store) = pair()
         vino.fireOnce(.firstShop, in: store)
         vino.fireOnce(.firstShop, in: store)
         #expect(vino.queue.count == 1)
         // And directly, bypassing the store's own once-ness.
-        let line = VinoDialogue.line(for: .firstShop)!
+        let line = try #require(VinoDialogue.line(for: .firstShop))
         vino.present(line)
         #expect(vino.queue.count == 1)
     }

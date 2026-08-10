@@ -18,12 +18,26 @@
 /// key, a wear seed and an art stem.
 public enum UIGlyph: String, CaseIterable, Sendable {
     case battery
+    /// **Drawn for this batch** (0.8.91, C3). The DAILY REMINDER row was the
+    /// only door in SETTINGS > DEVICE still wearing a bare SF Symbol beside
+    /// five neighbours with drawn faces, and the directory had no bell. The
+    /// master is `art/icons/chrome/glyphs/bell.png` — pixel-drawn rather than
+    /// painted, which is a different hand in the same register; see the script
+    /// that made it for why that trade was taken at 22pt.
+    case bell
     case bookmark
     case cog
     case firmware
     case gaming
     case hammer
     case heart
+    /// **Drawn for this batch** (0.8.91, C2). The LABEL SCAN screen's own hero
+    /// was a 74pt `camera.viewfinder`, the last full-size SF Symbol standing in
+    /// for a picture on a tool screen. The subject is the one
+    /// `chrome/buttons/labelscanner.png` already draws — a bottle inside
+    /// viewfinder brackets — because the tile and the screen behind it are the
+    /// same control at two sizes.
+    case labelscanner
     case level1
     case level2
     case level3
@@ -54,7 +68,7 @@ public enum UIGlyph: String, CaseIterable, Sendable {
     ///
     /// - **A sprite cannot serve.** `battery` — `BiosBatteryGlyph` makes its
     ///   fill a function of `UIDevice.batteryLevel`, so a static PNG would have
-    ///   to be eleven PNGs. `BootScreen`'s own note already says so; this drop
+    ///   to be eleven PNGs. `VinodexBootView`'s own note already says so; this drop
     ///   does not change the argument.
     /// - **The subject is already drawn, in the register that ships.** `tools`
     ///   (`chrome/buttons/tools.png`, on the SETTINGS grid's TOOLS door),
@@ -82,9 +96,37 @@ public enum UIGlyph: String, CaseIterable, Sendable {
     /// palate readout is none of those. Adopting one to avoid drawing a new
     /// picture would put the wrong picture on a shipping screen, which is worse
     /// than the list staying long.
+    /// **Three came out in 0.8.91**, which is the move this set exists to make
+    /// legible — a glyph leaves by acquiring a call site, not by being deleted
+    /// from a list.
+    ///
+    /// - `hammer` (C1): DEVICE WORKSHOP's row wore `ButtonArt/workshop.png`,
+    ///   the drawn workshop scene. The item asks for the hammer, and the
+    ///   objection above — "adopting a second drawing of a live control is a
+    ///   look decision, not a wiring one" — is answered by the spec making the
+    ///   look decision.
+    /// - `seal` and `mail` (F1): "the screen does not exist" was the reason
+    ///   both were parked. SUPPORT is that screen, and it uses both — the seal
+    ///   in its heading and the envelope on its one button.
+    ///
+    /// `bell` never entered the list: it was drawn for a row that was already
+    /// waiting for it.
+    ///
+    /// **`labelscanner` came back in 0.8.92 (item 6)** — the first glyph to
+    /// make the return trip. 0.8.91's C2 wired it as the LABEL SCAN hero;
+    /// item 6 asks that screen to wear `ButtonArt/labelscanner.png` instead,
+    /// the same face as the TOOLS tile that opens it. So the painted glyph has
+    /// no call site again, and the honest state of the roster says so — parked
+    /// under the second reason above: the subject is already drawn, in the
+    /// register that ships.
+    ///
+    /// **`cog` followed in 0.8.93 (item 8), for the same reason.** Its one
+    /// call site was MASTER SEARCH's filter dropdown; the item puts the
+    /// SETTINGS tile's sliders face there — a cog means a place, sliders mean
+    /// a control — and the painted cog has nowhere left to be.
     public static let unwired: Set<UIGlyph> = [
-        .battery, .bookmark, .gaming, .hammer, .heart,
-        .mail, .seal, .star, .tools, .trophy,
+        .battery, .bookmark, .cog, .gaming, .heart,
+        .labelscanner, .star, .tools, .trophy,
     ]
 }
 

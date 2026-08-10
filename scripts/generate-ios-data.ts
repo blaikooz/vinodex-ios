@@ -1479,9 +1479,34 @@ function validateOutputs(dir: string, suffix = ''): void {
  *   most-read panel and nothing would say so.
  * - **Every release has notes.** A version with an empty body is a row that
  *   opens onto nothing.
+ * - **No note over `NOTE_MAX` characters.** The one rule 0.8.91's H1 rewrite
+ *   established and then left unenforced; see below.
  */
 function assertFirmware(): void {
   const problems: string[] = [];
+
+  /**
+   * The cap that makes "one sentence a note" a check rather than a discipline.
+   *
+   * 0.8.91's H1 rewrote every note to one sentence — 26,931 characters of notes
+   * down to 15,791, the longest falling from 340 to 139 — and `firmware.ts`'s
+   * own header closes by saying the rule is "a discipline rather than a check"
+   * and that "if it slips again, that is the thing to add". This is that.
+   *
+   * 160 rather than a rounder number, and measured rather than picked: across
+   * the 251 notes shipping today the longest is 139 and the 95th percentile is
+   * 97, while the note that triggered the rewrite was 340. So the cap clears
+   * every existing note with headroom and still cannot fit the three-sentence
+   * paragraphs it exists to stop.
+   *
+   * **A length cap and not a sentence count**, deliberately. Splitting prose on
+   * `. ` is wrong here on both sides: version strings like `0.8.9` are full of
+   * periods, and two of the notes shipping today are genuinely two short
+   * sentences ("Reading is on-device. No network, no account, no key.") which
+   * are exactly what the rule wants and which a sentence counter would reject.
+   * Length is the thing actually being defended, so length is what is measured.
+   */
+  const NOTE_MAX = 160;
   const seen = new Set<string>();
   /** -1 / 0 / +1, comparing three-integer versions component by component. */
   const compare = (a: string, b: string): number => {
@@ -1521,6 +1546,13 @@ function assertFirmware(): void {
     release.notes.forEach((note, n) => {
       if (note.trim().length === 0) problems.push(`${where}.notes[${n}]: empty`);
       if (!isAscii(note)) problems.push(`${where}.notes[${n}]: not printable ASCII — ${note}`);
+      if (note.length > NOTE_MAX) {
+        problems.push(
+          `${where}.notes[${n}]: ${note.length} chars, over the ${NOTE_MAX} cap — ` +
+            `one sentence a note (0.8.91, H1). Cut the second sentence; the reasoning ` +
+            `belongs in the source doc comment. Note begins "${note.slice(0, 60)}..."`,
+        );
+      }
     });
 
     // Bound once rather than indexed twice. `noUncheckedIndexedAccess` types

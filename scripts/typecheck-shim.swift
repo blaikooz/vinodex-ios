@@ -72,6 +72,40 @@ public enum UIActivity {
     }
 }
 
+// MARK: - MessageUI
+
+/// The in-app mail composer, for `SupportScreen`. Only the members the app
+/// touches. `canSendMail()` answers false — the harness checks call sites,
+/// it never presents one.
+public enum MFMailComposeResult: Int { case cancelled, saved, sent, failed }
+
+/// **Deliberately not `@MainActor`, unlike the delegate protocols above.**
+/// MessageUI predates the isolation annotations, so the real requirement is
+/// nonisolated — and `SupportScreen`'s whole `@preconcurrency` conformance
+/// exists to bridge exactly that. Annotating it here would make the app's
+/// bridge look unnecessary and report an error CI does not raise.
+public protocol MFMailComposeViewControllerDelegate: AnyObject {
+    func mailComposeController(
+        _ controller: MFMailComposeViewController,
+        didFinishWith result: MFMailComposeResult,
+        error: (any Error)?
+    )
+}
+
+public final class MFMailComposeViewController: NSViewController {
+    public static func canSendMail() -> Bool { false }
+    public weak var mailComposeDelegate: (any MFMailComposeViewControllerDelegate)?
+    public func setToRecipients(_ recipients: [String]?) {}
+    public func setSubject(_ subject: String) {}
+}
+
+public extension NSViewController {
+    /// `UIViewController.dismiss(animated:completion:)`. The pickers all
+    /// dismiss through SwiftUI bindings; the mail composer's delegate is the
+    /// one caller of the UIKit spelling.
+    func dismiss(animated: Bool, completion: (() -> Void)? = nil) {}
+}
+
 public final class UIActivityViewController: NSViewController {
     public var completionWithItemsHandler: ((UIActivity.ActivityType?, Bool, [Any]?, Error?) -> Void)?
     public var excludedActivityTypes: [UIActivity.ActivityType]?
@@ -89,6 +123,8 @@ public final class UIApplication: @unchecked Sendable {
     /// fixed outside the app.
     public static let openSettingsURLString = "app-settings:"
     @discardableResult public func open(_ url: URL) -> Bool { true }
+    /// `SupportScreen`'s mailto: fallback probes this before offering the row.
+    public func canOpenURL(_ url: URL) -> Bool { false }
     public var connectedScenes: Set<UIScene> { [] }
 }
 

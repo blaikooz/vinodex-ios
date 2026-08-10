@@ -48,6 +48,9 @@ public struct ChipFilterScreen: View {
     @State private var showsChips = false
     @State private var screens = ScreenStateStore.shared
     @State private var access = AccessStore.shared
+    /// The three shelves, for the YOURS chip row and the tried border
+    /// (0.8.91, B1/B2).
+    @State private var bookmarks = BookmarkStore.shared
     /// The eight stored settings, as one model (arch **A17**).
     var settings: AppSettings = .shared
     private var lcd: LcdMode { settings.lcdMode }
@@ -111,24 +114,46 @@ public struct ChipFilterScreen: View {
     /// per recompute, which already costs a full catalog pass per chip.
     private var allOptions: [ChipOption] { db.allChipOptions }
 
+    /// The shelves this pass needs, or nothing when no shelf chip is lit — see
+    /// `ChipFilter.usesUserState` (0.8.91, B1). Resolving to `.empty` is what
+    /// keeps a listing with no YOURS chip on it from re-filtering every time a
+    /// bookmark changes somewhere else in the app.
+    private var shelves: ShelfMembership {
+        filter.usesUserState ? bookmarks.membership : .empty
+    }
+
+    /// The filter and the state it needs, as one `task(id:)` key.
+    private struct ChipPass: Equatable {
+        let filter: ChipFilter
+        let shelves: ShelfMembership
+    }
+
+    private var chipPass: ChipPass { ChipPass(filter: filter, shelves: shelves) }
+
     private func recomputeResults() {
         let q = query.trimmingCharacters(in: .whitespaces)
+        let shelves = self.shelves
         // One indexed pass (AUDIT M5): `entries(matching:)` walks the
         // pre-sorted list against haystacks folded at load, and the chip
         // predicate rides along on the survivors. The old shape ran the chip
         // filter and then re-folded and re-sorted the result through
         // `apply(.masterSearch(_:))`.
-        results = db.entries(matching: .masterSearch(q)).filter { filter.matches($0) }
+        results = db.entries(matching: .masterSearch(q))
+            .filter { filter.matches($0, shelves: shelves) }
         countryResults = filter.includesCountries ? db.countries(matching: q) : []
     }
 
     private func recomputeChipCounts() {
         // Countries are not entries, so their share is added by hand (0.6.2, B3).
         let countryShare = db.searchableCountries.count
+        // Costed against the real shelves regardless of what is lit: the badge
+        // on an *unlit* TRIED chip is the whole reason to look at it, and
+        // `usesUserState` is false in exactly that case.
+        let shelves = bookmarks.membership
         var costed: [ChipOption: Int] = [:]
         costed.reserveCapacity(allOptions.count)
         for option in allOptions {
-            costed[option] = db.count(withChip: option, added: filter)
+            costed[option] = db.count(withChip: option, added: filter, shelves: shelves)
                 + (filter.toggling(option).includesCountries ? countryShare : 0)
         }
         chipCounts = costed
@@ -193,7 +218,8 @@ public struct ChipFilterScreen: View {
                             EntryTileView(
                                 entry: entry,
                                 palette: db.palette,
-                                locked: access.isLocked(entry, in: db)
+                                locked: access.isLocked(entry, in: db),
+                                tried: bookmarks.contains(entry.id, on: .tried)
                             ) {
                                 onSelect(entry)
                             }
@@ -208,7 +234,7 @@ public struct ChipFilterScreen: View {
         // A chip tap is a discrete act, so it re-costs immediately; typing is a
         // burst, so it is debounced — `task(id:)` cancels the pending run on the
         // next keystroke, filtering once at the end of the burst (AUDIT M5).
-        .task(id: filter) {
+        .task(id: chipPass) {
             recomputeChipCounts()
             recomputeResults()
         }
@@ -228,17 +254,15 @@ public struct ChipFilterScreen: View {
     /// The running total, and the way out of a filter that has gone too far.
     private var summary: some View {
         HStack(spacing: 12) {
-            // The magnifier (0.7.1, A2): this card is the head of MASTER
-            // SEARCH, and the screen's own hero cannot be wearing the filter
-            // bars while the button that opened it wears a magnifier. The bars
-            // stay where they mean "a filter is narrowing a list you are
-            // already looking at" — `EncyclopediaListScreen.filterBanner`.
-            // Drawn as of 0.8.9a (A7), and it is the face the round menu
-            // button that opens this screen already wears -- which is K2 rule 1
-            // ("a page's glyph is the glyph on the control that opens it")
-            // reaching the one hero on the page that had stayed a symbol.
+            // The numbered stack (0.8.93, item 8 — revising 0.8.92's sliders,
+            // which move down onto the FILTER row where they mean "adjust").
+            // What this card actually reports is a *count of matches*, and
+            // `numberedstack` is the drawn face for exactly that — 0.8.1's J
+            // shipped it and PLAN.md has carried it as an orphan since, "no
+            // button anywhere". It has one now, and the orphan roster is one
+            // shorter.
             DexChromeGlyph(
-                "search", symbol: DexGlyph.search,
+                "numberedstack", symbol: "square.stack.3d.up.fill",
                 size: 26, tint: lcd.accent
             )
 
@@ -295,12 +319,16 @@ public struct ChipFilterScreen: View {
             withAnimation(.easeOut(duration: 0.2)) { showsChips.toggle() }
         } label: {
             HStack(spacing: 10) {
-                // The drawn cog (0.8.9a, A7). The SF bars stay as the
-                // fallback rather than being deleted: `PixelArtLoader` answers
-                // nil in silence for a stem it cannot find, so the symbol is
-                // what stands between a missing asset and an empty row.
+                // The settings sliders (0.8.93, item 8 — was the painted cog
+                // from 0.8.9a's A7). The sliders face is the SETTINGS tile's
+                // own, and "adjust what you see" is this row's exact job; the
+                // cog now reads as a place, and this is a control. The SF
+                // bars stay as the fallback rather than being deleted:
+                // `PixelArtLoader` answers nil in silence for a stem it
+                // cannot find, so the symbol is what stands between a missing
+                // asset and an empty row.
                 DexChromeGlyph(
-                    UIGlyph.cog.artStem, symbol: "slider.horizontal.3",
+                    "settings", symbol: "slider.horizontal.3",
                     size: 16, tint: lcd.accent
                 )
                 // Guarded (0.7.1, A4): with a filter on, the row needed
@@ -308,8 +336,9 @@ public struct ChipFilterScreen: View {
                 // the chevron — and the label wrapped to two lines the moment
                 // a chip was lit. It read correctly at rest, which is why it
                 // stood. `layoutPriority` on the badge below decides which of
-                // the two gives.
-                Text("FILTER CHIPS")
+                // the two gives. One word since 0.8.92 (item 11), which also
+                // buys the badge back most of the 23pt it was short.
+                Text("FILTER")
                     .font(DexFont.retro(12))
                     .tracking(1)
                     .lineLimit(1)

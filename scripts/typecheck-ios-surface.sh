@@ -98,6 +98,8 @@ while read -r f; do
     # Haptics.swift imports no Foundation of its own and needs UserDefaults.
     perl -i -pe 's{^import (VinodexCore|VinodexUI)\b}{// import $1};
                  s{^import UIKit\b}{import Foundation};
+                 # MessageUI is iOS-only; the shim declares the composer types.
+                 s{^import MessageUI\b}{// import MessageUI};
                  s{\.statusBarHidden\(\)}{/* statusBarHidden */};
                  # `fullScreenCover` is iOS-only SwiftUI with no macOS spelling.
                  # `sheet` takes the identical (isPresented:onDismiss:content:)

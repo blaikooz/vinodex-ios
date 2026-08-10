@@ -198,8 +198,29 @@ public struct EncyclopediaListScreen: View {
     /// first result. Session-local, like the fold state everywhere else.
     @State private var showsChips = false
     @State private var screens = ScreenStateStore.shared
+    /// The three shelves, for the SAVED / WANTED / TRIED chips and for the
+    /// tried border on a row (0.8.91, B1/B2).
+    @State private var bookmarks = BookmarkStore.shared
+
+    /// The chip selection *and* whatever external state it needs to be answered
+    /// (0.8.91, B1).
+    ///
+    /// One id for the recompute rather than two `task(id:)`s: the shelf row is
+    /// the first facet whose predicate depends on something outside the filter,
+    /// so a lit TRIED chip has to re-run the pass when a bookmark changes and an
+    /// unlit one must not. Resolving to `.empty` when no shelf chip is lit makes
+    /// that a value comparison rather than a rule each call site remembers.
+    private struct ChipPass: Equatable {
+        let chips: ChipFilter
+        let shelves: ShelfMembership
+    }
+
+    private var chipPass: ChipPass {
+        ChipPass(chips: chips, shelves: chips.usesUserState ? bookmarks.membership : .empty)
+    }
 
     private func recompute() {
+        let pass = chipPass
         // `db.entries(matching:)`, not `db.entries.apply(_:)`: the folding and
         // the sort are done once at load rather than per keystroke (AUDIT M5).
         let entries = db.entries(
@@ -209,7 +230,7 @@ public struct EncyclopediaListScreen: View {
             // exactly as `ChipFilterScreen` does it — and short-circuited when
             // nothing is lit, so the ~ten listings with no chip rows at all pay
             // nothing for the feature existing.
-            .filter { chips.isEmpty || chips.matches($0) }
+            .filter { pass.chips.isEmpty || pass.chips.matches($0, shelves: pass.shelves) }
             .map(SearchRow.entry)
         // Countries carry no grape facet, so a lit chip drops them — the same
         // honest reading of an AND across facets `ChipFilter` documents.
@@ -250,7 +271,7 @@ public struct EncyclopediaListScreen: View {
             // A chip tap is a discrete act, so it re-filters immediately;
             // typing is a burst, so it debounces. Same split as
             // `ChipFilterScreen` (AUDIT M5).
-            .task(id: chips) { recompute() }
+            .task(id: chipPass) { recompute() }
             // Mirrored on change rather than at each call site that toggles a
             // chip — one of those would eventually be added without its save.
             .onChange(of: chips) { _, value in
@@ -320,7 +341,11 @@ public struct EncyclopediaListScreen: View {
                                     EntryTileView(
                                         entry: entry,
                                         palette: db.palette,
-                                        locked: access.isLocked(entry, in: db)
+                                        locked: access.isLocked(entry, in: db),
+                                        // §B2. Read here rather than inside the
+                                        // tile so the store is observed once per
+                                        // listing instead of once per row.
+                                        tried: bookmarks.contains(entry.id, on: .tried)
                                     ) {
                                         onSelect(entry)
                                     }
