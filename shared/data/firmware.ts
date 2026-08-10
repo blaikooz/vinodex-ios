@@ -61,6 +61,20 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.9.0",
+  date: "2026-08-10",
+  headline: "THE AUDIT CLOSES",
+  // PR13: the mirror line's audit closures land -- backup, the bigger type
+  // scale, and the licence record, merged over the 0.8.9x button saga.
+  notes: [
+    "STORED DATA backs the whole device up now -- every shelf, rating, streak and setting to one file you keep, and restores from it.",
+    "HUGE text got huger: 1.30x, and nothing draws smaller than 11pt on the default step.",
+    "Rose and Orange Wine's COLOR chip opens onto the grapes they are made from, and Prosecco is a white again.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const PREVIOUS_0899: FirmwareRelease = {
   version: "0.8.99",
   date: "2026-08-10",
   headline: "ONE DRAWING",
@@ -182,6 +196,7 @@ const PREVIOUS_0892: FirmwareRelease = {
 };
 
 const PREVIOUS: FirmwareRelease[] = [
+  PREVIOUS_0899,
   PREVIOUS_0898,
   PREVIOUS_0897,
   PREVIOUS_0896,

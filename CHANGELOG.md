@@ -22,7 +22,7 @@ commit bodies and were reconstructed from the commit subject, the diffstat and
 the version-annotated doc comments throughout `Sources/`. Nothing in them is
 invented — where the record is thin the entry is short.
 
-## [Unreleased]
+## [0.9.0] — 2026-08-10
 
 ### Added
 - **Back up and restore** (AUDIT **M35**) — SETTINGS ▸ STORED DATA writes a
