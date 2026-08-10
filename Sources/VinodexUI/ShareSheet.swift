@@ -171,6 +171,12 @@ enum SharePayload: Identifiable {
         }
     }
 
+    /// `@MainActor` because `ShareCardItemSource` is — it conforms to
+    /// `UIActivityItemSource`, which UIKit isolates to the main actor, so
+    /// constructing one off it is an error in Swift 6 mode. No cost: the only
+    /// caller is `.shareCard(_:)`'s sheet builder, and a payload headed for
+    /// `UIActivityViewController` was never going to be assembled anywhere else.
+    @MainActor
     var items: [Any] {
         switch self {
         // The item source rather than the bare image — see

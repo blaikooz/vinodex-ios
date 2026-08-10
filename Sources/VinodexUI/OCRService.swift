@@ -227,6 +227,12 @@ struct CameraCapture: UIViewControllerRepresentable {
 /// the screen offers the library instead rather than presenting a picker that
 /// comes up black.
 enum CameraAvailability {
+    /// `@MainActor` because `UIImagePickerController` is: in Swift 6 mode a
+    /// nonisolated static reaching a MainActor class method is an error, not a
+    /// warning, and CI compiles in Swift 6 mode. Costs nothing — the only
+    /// caller, `LabelReaderViewModel.requestCamera()`, is already on the main
+    /// actor, as anything about to present a picker has to be.
+    @MainActor
     static var hasCamera: Bool {
         UIImagePickerController.isSourceTypeAvailable(.camera)
     }

@@ -112,7 +112,12 @@ while read -r f; do
                  s{\bdismantleUIViewController\b}{dismantleNSViewController}g;
                  s{\bCADisplayLink\b}{ShimDisplayLink}g;
                  s{^(\s*)try\? AVAudioSession.*$}{$1// AVAudioSession: iOS-only};
-                 s{\.cgImage\b}{.shimCGImage}g' "$f"
+                 s{\.cgImage\b}{.shimCGImage}g;
+                 s{\.getRed\(}{.shimGetRed(}g;
+                 # `ImageRenderer` spells its output `uiImage` on iOS and
+                 # `nsImage` here. A property access only — `Image(uiImage:)`
+                 # is an argument label and keeps its spelling.
+                 s{\.uiImage\b}{.nsImage}g' "$f"
 done < files.txt
 
 # Warnings, not only errors. Under `swiftc -swift-version 6` the actor-isolation

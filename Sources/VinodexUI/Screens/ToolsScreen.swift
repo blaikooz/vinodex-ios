@@ -32,13 +32,20 @@ public struct ToolsScreen: View {
     let onDailyChallenge: () -> Void
     let onLabelReader: () -> Void
 
-    // No `settings` here, unlike every other screen (arch **A17**). This one
-    // held an `@AppStorage(LcdMode.storageKey)` and an `lcd` derived from it,
-    // and *nothing in the body read either* — the six tiles carry authored hex
-    // faces and `DexScreenBackground` reads the mode for itself. The
-    // declaration was buying a rebuild that produced identical output, so it
-    // went with the migration rather than being carried across as a property
-    // nothing observes.
+    /// The eight stored settings, as one model (arch **A17**).
+    ///
+    /// **Removed by A17 and restored by the merge**, which is worth recording
+    /// because both moves were right. A17 dropped this screen's
+    /// `@AppStorage(LcdMode.storageKey)` and its derived `lcd` on the grounds
+    /// that *nothing in the body read either* — the six tiles carried authored
+    /// hex faces and `DexScreenBackground` read the mode for itself, so the
+    /// declaration bought a rebuild that produced identical output. True when
+    /// it was written. 0.7.1's C5 then made the tiles theme their faces through
+    /// `LcdMode.chrome(face:shadow:)`, and the premise stopped holding: the
+    /// body reads the mode now, so the screen has to observe it again or the
+    /// tiles keep EMULATOR's colours after you leave the mode.
+    var settings: AppSettings = .shared
+    private var lcd: LcdMode { settings.lcdMode }
 
     public init(
         onDailyGrape: @escaping () -> Void,
