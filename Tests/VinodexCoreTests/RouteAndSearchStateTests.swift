@@ -131,18 +131,22 @@ struct DexRouteTests {
     func listTitles() {
         #expect(DexRoute.list(category: .grapes, filter: nil).title == "VARIETIES")
         #expect(DexRoute.list(category: .flavors, filter: nil).title == "FLAVORS")
-        #expect(DexRoute.list(category: .grapes, filter: .type("red")).title == "STYLE SCAN")
-        #expect(DexRoute.list(category: .regions, filter: .climate(.warm)).title == "CLIMATE SCAN")
-        // 0.6.2 D1: a class filter opened from the ORIGIN chip must read
-        // "ORIGIN SCAN", not "SYSTEM SCAN".
-        #expect(DexRoute.list(category: .styles, filter: .system("ORIGIN")).title == "ORIGIN SCAN")
+        // The widened chip vocabulary (0.8.9x) answers all three of these, and
+        // a chip-answerable filter titles its listing FILTER SEARCH — the SCAN
+        // titles survive only for filters no chip row offers. See
+        // `EntryFilter.scanTitle`.
+        #expect(DexRoute.list(category: .grapes, filter: .type("red")).title == "FILTER SEARCH")
+        #expect(DexRoute.list(category: .regions, filter: .climate(.warm)).title == "FILTER SEARCH")
+        #expect(DexRoute.list(category: .styles, filter: .system("ORIGIN")).title == "FILTER SEARCH")
         #expect(DexRoute.state(name: "California").title == "CALIFORNIA")
     }
 
     @Test("a settings section route carries the section's own copy and glyph")
     func settingsSectionRoutes() {
         for section in SettingsSection.allCases {
-            #expect(DexRoute.settingsSection(section).title == section.rawValue)
+            // The route wears the on-screen name — ACCESS displays as SHOP
+            // (0.7.5, B2) — while `id` stays pinned to the stored spelling.
+            #expect(DexRoute.settingsSection(section).title == section.displayName)
             #expect(DexRoute.settingsSection(section).marqueeSymbol == section.symbol)
             #expect(section.id == section.rawValue)
             #expect(!section.symbol.isEmpty)

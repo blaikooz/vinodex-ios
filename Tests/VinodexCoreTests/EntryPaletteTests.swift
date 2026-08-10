@@ -42,15 +42,16 @@ struct EntryPaletteTests {
 
     /// The other direction: a generator that starts emitting a new style
     /// spelling would silently drop every grape wearing it onto the keyword
-    /// fallback. `Sparkling Red` is the one authored style that legitimately
-    /// falls through today — it is the reason the fallback exists.
+    /// fallback. `Sparkling Red` and `Madeira` (0.8.9x) are the authored styles
+    /// that legitimately fall through today — they are the reason it exists.
     @Test("every authored grape style resolves, or is the known exception")
     func authoredStylesResolve() {
         for entry in db.entries {
             guard case .grape(let g) = entry else { continue }
             let style = g.grapeStyle.isEmpty ? (g.wineType ?? "") : g.grapeStyle
             #expect(
-                EntryPalette.styleToneKey(for: style) != nil || style == "Sparkling Red",
+                EntryPalette.styleToneKey(for: style) != nil
+                    || ["Sparkling Red", "Madeira"].contains(style),
                 "\(g.common.name): style \"\(style)\" matches no tone key"
             )
         }
@@ -137,7 +138,7 @@ struct EntryPaletteTests {
         for key in ["countryChips", "classificationChips", "wineTypeChips", "rarityChips",
                     "colorTypeChips", "styleClassChips", "flavorClassChips", "flavorSubclassChips",
                     "namedChips", "styleTones", "climates", "regionClassificationIconColors",
-                    "flavorSubclassIconColors", "continentCountries"] {
+                    "flavorSubclassIconColors", "continentCountries", "styleColorTypes"] {
             tables[key] = [String: String]()
         }
         tables["namedChips"] = namedChips.mapValues { ["bg": $0.bg, "border": $0.border, "text": $0.text] }

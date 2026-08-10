@@ -3,7 +3,9 @@ import Testing
 import SwiftUI
 import UIKit
 import VinodexCore
-import VinodexUI
+// `@testable`: the three loaders this suite drives — `IconLoader`,
+// `PixelArtLoader`, `FlagLoader` — are internal to the module on purpose.
+@testable import VinodexUI
 
 /// Every icon an entry can ask for actually loads, from the shipped bundle (S1).
 ///

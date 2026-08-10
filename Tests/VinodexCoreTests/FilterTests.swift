@@ -177,31 +177,31 @@ struct FilterTests {
         #expect(db.entries.apply(.category(.styles, filter: .type("red"))).isEmpty)
     }
 
-    /// 0.6.2 D2. A style whose name names no colour infers `DUAL`, and its
-    /// COLOR tile emits `.type("DUAL")` over the grapes
-    /// (`EntryDetailScreen.swift:378`). No single grape carries DUAL, so before
-    /// D2 that chip opened an empty list; dual-purpose means both colours qualify.
-    @Test("the DUAL colour type matches every grape")
+    /// 0.6.2 D2 made `.type("DUAL")` match every grape, because a dual style's
+    /// COLOR tile routed here and an empty list was judged worse than all of
+    /// them. 0.8.8 C1 retired that: the tile pushes `.styleColor` now (see
+    /// `everyColorChipLeadsSomewhere`), and the grape-type filter went back to
+    /// knowing exactly the two colours a grape can be.
+    @Test("the grape-type filter knows red and white, and DUAL is nobody")
     func typeFilterDual() {
-        let all = db.entries(in: .grapes).count
-        #expect(db.entries.apply(.category(.grapes, filter: .type("DUAL"))).count == all)
-        #expect(db.entries.apply(.category(.grapes, filter: .type("dual"))).count == all)
-        // The tile that emits it really is reachable.
-        #expect(EntryDisplay.colorType(name: "Bordeaux Blend") == .dual)
-        // DUAL is a grape-side answer; the `guard case .grape` still holds.
+        #expect(db.entries.apply(.category(.grapes, filter: .type("DUAL"))).isEmpty)
+        #expect(db.entries.apply(.category(.grapes, filter: .type("dual"))).isEmpty)
+        // The name that used to prove the DUAL tile reachable is catalogued
+        // now — the data answers RED where inference once shrugged.
+        #expect(EntryDisplay.colorType(name: "Bordeaux Blend") == .red)
+        // Grape-side only; a style never matches the grape-type filter.
         #expect(db.entries.apply(.category(.styles, filter: .type("DUAL"))).isEmpty)
     }
 
-    /// The two colour types no grape carries, and what they resolve to.
+    /// The two colour types no grape carries, and where they live after C1.
     ///
-    /// `GrapeColor` has exactly two cases, so `Rosé` and `Orange Wine` opened
-    /// their COLOR chip onto an empty list from 0.6.2 until this — the same
-    /// defect D2 fixed for DUAL and left unfixed for these two. Both name a
-    /// *process*, and the shipped descriptions say which grape it is applied
-    /// to: rosé is "made from red grapes with minimal skin contact", orange is
-    /// "white grapes vinified like red wine". So the mapping is read out of the
-    /// catalogue rather than chosen.
-    @Test("ROSE leads to red grapes and ORANGE to white")
+    /// From 0.6.2 D2 a ROSE or ORANGE chip re-coloured the grape listing —
+    /// rosé is "made from red grapes with minimal skin contact", orange is
+    /// "white grapes vinified like red wine", so the chip opened the matching
+    /// grape set. 0.8.8 C1 moved the tile to `.styleColor`, which makes the
+    /// process→grape mapping pure data (`grapeColor`) and takes both names
+    /// back out of the grape-type filter's vocabulary.
+    @Test("ROSE and ORANGE keep their grape mapping, but left the type filter")
     func typeFilterRoseAndOrange() {
         #expect(EntryDisplay.colorType(name: "Rosé") == .rose)
         #expect(EntryDisplay.colorType(name: "Orange Wine") == .orange)
@@ -209,21 +209,13 @@ struct FilterTests {
         #expect(StyleColorType.orange.grapeColor == .white)
         #expect(StyleColorType.dual.grapeColor == nil)
 
-        let rose = db.entries.apply(.category(.grapes, filter: .type("ROSE")))
-        let orange = db.entries.apply(.category(.grapes, filter: .type("ORANGE")))
-        #expect(!rose.isEmpty)
-        #expect(!orange.isEmpty)
-        #expect(rose.allSatisfy { entry in
-            guard case .grape(let g) = entry else { return false }
-            return g.grapeType == .red
-        })
-        #expect(orange.allSatisfy { entry in
-            guard case .grape(let g) = entry else { return false }
-            return g.grapeType == .white
-        })
-        // They are the red and white sets exactly, not a subset of them.
-        #expect(rose.map(\.id) == db.entries.apply(.category(.grapes, filter: .type("red"))).map(\.id))
-        #expect(orange.map(\.id) == db.entries.apply(.category(.grapes, filter: .type("white"))).map(\.id))
+        // C1: the grape-type filter answers for red and white only.
+        #expect(db.entries.apply(.category(.grapes, filter: .type("ROSE"))).isEmpty)
+        #expect(db.entries.apply(.category(.grapes, filter: .type("ORANGE"))).isEmpty)
+        // And red/white still partition the grape table exactly.
+        let red = db.entries.apply(.category(.grapes, filter: .type("red")))
+        let white = db.entries.apply(.category(.grapes, filter: .type("white")))
+        #expect(red.count + white.count == db.entries(in: .grapes).count)
         // Still grape-side only — a style never matches a colour filter.
         #expect(db.entries.apply(.category(.styles, filter: .type("ROSE"))).isEmpty)
     }
@@ -232,13 +224,15 @@ struct FilterTests {
     /// substring "rose" sits inside "p-rose-cco". Italy's best-known sparkling
     /// *white* wine carried a ROSE chip on its own detail page, and the filter
     /// behind it found nothing. The whole-term test is the same one `.origin`
-    /// has always used.
+    /// has always used. Since the 0.8.9x catalogue classifies styles directly,
+    /// Prosecco resolves WHITE by data before inference runs at all; the
+    /// made-up names below still exercise the word-boundary rule itself.
     @Test("a colour word inside another word is not a colour")
     func colorTypeMatchesWholeWords() {
-        #expect(EntryDisplay.colorType(name: "Prosecco") == .dual)
+        #expect(EntryDisplay.colorType(name: "Prosecco") == .white)
         // The catalogue's own Prosecco, not just the string.
         if let prosecco = db.entry(named: "Prosecco", category: .styles) {
-            #expect(EntryDisplay.colorType(name: prosecco.name) == .dual)
+            #expect(EntryDisplay.colorType(name: prosecco.name) == .white)
         }
         // Hyphens still collapse, so the body styles keep resolving.
         #expect(EntryDisplay.colorType(name: "Full-Body Red") == .red)
@@ -246,14 +240,17 @@ struct FilterTests {
     }
 
     /// The invariant the whole item is really about: **no style's COLOR chip
-    /// may open onto an empty list.** Three did. A per-name test would have
-    /// missed the next one; this walks the catalogue.
-    @Test("every style's COLOR chip finds at least one grape")
+    /// may open onto an empty list.** Three did once. The chip's destination
+    /// moved in 0.8.8 (C1) — `.styleColor` over the styles table, not a grape
+    /// recolouring — so the walk takes the route the tile actually pushes
+    /// (`EntryDetailScreen`'s COLOR chip). A per-name test would have missed
+    /// the next one; this walks the catalogue.
+    @Test("every style's COLOR chip finds at least one style")
     func everyColorChipLeadsSomewhere() {
         for entry in db.entries(in: .styles) {
             guard case .style(let s) = entry else { continue }
             let color = EntryDisplay.colorType(name: s.common.name)
-            let hits = db.entries.apply(.category(.grapes, filter: .type(color.rawValue)))
+            let hits = db.entries.apply(.category(.styles, filter: .styleColor(color)))
             #expect(!hits.isEmpty,
                     "\(s.common.name)'s COLOR chip says \(color.rawValue) and opens onto nothing")
         }
@@ -476,7 +473,8 @@ struct StyleInferenceTests {
         #expect(EntryDisplay.colorType(name: "Rose Red White") == .rose)
         #expect(EntryDisplay.colorType(name: "Red White") == .red)
         #expect(EntryDisplay.colorType(name: "White") == .white)
-        #expect(EntryDisplay.colorType(name: "Bordeaux Blend") == .dual)
+        // Catalogued RED since the 0.8.9x data — see `typeFilterDual`.
+        #expect(EntryDisplay.colorType(name: "Bordeaux Blend") == .red)
         // Diacritic-folded, so the catalogue's "Rosé" resolves.
         #expect(EntryDisplay.colorType(name: "Rosé") == .rose)
         // Whole words only — see `colorTypeMatchesWholeWords`. "Redcurrant" is

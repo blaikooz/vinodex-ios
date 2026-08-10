@@ -44,7 +44,7 @@ struct AppSettingsTests {
 
     /// One assertion per roster pins count, order and spelling at once. Order
     /// is not decoration: the pickers present `allCases` as-is.
-    @Test("the twenty-seven raw values are pinned, in order")
+    @Test("the thirty-three raw values are pinned, in order")
     func vocabularyIsStable() {
         #expect(UIScale.allCases.map(\.rawValue) == ["SMALL", "LARGE"])
         #expect(LcdMode.allCases.map(\.rawValue) == [
@@ -55,6 +55,8 @@ struct AppSettingsTests {
             "CLASSIC", "MIDNIGHT", "ORIGINAL", "BURGUNDY", "RIESLING",
             "VINHO VERDE", "GLOUGLOU", "SMART GRAPE", "CHAMPAGNE", "CHRISTMAS",
             "NOUVEAU", "OAKED", "NOCTURNE", "STEEL", "BLUSH", "PSVINO",
+            "GRIS DE GRIS", "ORANGE WINE", "PET NAT", "WALDGLAS", "HALLOWEEN",
+            "W64",
         ])
         // GRUNER BOY's raw value is ASCII on purpose — it persists, and the
         // umlaut lives in `displayName`. Hold the whole roster to that rule:
@@ -179,9 +181,9 @@ struct AppSettingsTests {
 
     /// The cue `DeviceChassis` mounts the mock internals on. A skin added to
     /// this set without art behind it shows an empty cavity.
-    @Test("the translucent shells are exactly the two clear ones")
+    @Test("the translucent shells are exactly the three clear ones")
     func translucentSetIsExact() {
-        let clear: Set<ChassisSkin> = [.glouglou, .nouveau]
+        let clear: Set<ChassisSkin> = [.glouglou, .nouveau, .waldglas]
         for skin in ChassisSkin.allCases {
             #expect(skin.isTranslucent == clear.contains(skin),
                     "\(skin.rawValue) on the wrong side of the clear set")
