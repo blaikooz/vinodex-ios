@@ -61,6 +61,19 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.9.1",
+  date: "2026-08-10",
+  headline: "TWELVE SHELVES",
+  // 0.9.0's port carried five of the pixel-art loader's twelve directories;
+  // the art shipped, unreachable. One list restored, one test made two-way.
+  notes: [
+    "The drawn chrome is back -- footer caps, marquee glyphs, button faces, cartridges, stickers and the Professor all draw again.",
+    "The art roster test now reads both ways, so a shelf the loader forgets fails a gate instead of a device check.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const PREVIOUS_0900: FirmwareRelease = {
   version: "0.9.0",
   date: "2026-08-10",
   headline: "THE AUDIT CLOSES",
@@ -196,6 +209,7 @@ const PREVIOUS_0892: FirmwareRelease = {
 };
 
 const PREVIOUS: FirmwareRelease[] = [
+  PREVIOUS_0900,
   PREVIOUS_0899,
   PREVIOUS_0898,
   PREVIOUS_0897,

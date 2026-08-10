@@ -273,16 +273,39 @@ final class EntryVisualCache {
 final class PixelArtLoader {
     static let shared = PixelArtLoader()
 
-    /// Not private: `DexAssetAudit` walks the same five directories, and two
-    /// copies of this list is exactly the drift **L26** exists to catch. Each
-    /// entry's path comes from `DexAsset`, which is where the rest of the
-    /// drift **A22** named used to live — the cases carry the notes.
+    /// Not private: `DexAssetAudit` walks this same list, and two copies of it
+    /// is exactly the drift **L26** exists to catch. Each entry's path comes
+    /// from `DexAsset`, which is where the rest of the drift **A22** named
+    /// used to live — the cases carry the notes.
+    ///
+    /// **The order is load-bearing, not alphabetical.** The stems share one
+    /// flat namespace and the first hit wins, so catalog art must come before
+    /// `ButtonArt`'s bare control words (`home`, `search`, `data`…), and every
+    /// set after it carries its own prefix (`footer-`, `cartridge-`,
+    /// `marquee-`, `glyph-`, `vino-`, `sticker-`, `stamp-`) precisely so it
+    /// never has to argue about ordering. The full case for each entry is in
+    /// the 0.8.x list this one ports (`git log -L` on this declaration).
+    ///
+    /// **0.9.0 shipped only the first five**, and every drawn footer cap,
+    /// marquee glyph, button face, cartridge, sticker and Vino expression
+    /// silently degraded to its SF stand-in — the bundle carried all twelve
+    /// directories, the loader searched five, and nothing throws or logs on a
+    /// miss. `ArtPipelineRosterTests.loaderSearchPathIsBundled` now holds this
+    /// list equal to the bundled art directories, so a dropped entry fails a
+    /// gate instead of a device check.
     static let directories: [DexAsset] = [
         .flavorArt,
         .grapeArt,
         .styleArt,
         .classArt,
         .stampArt,
+        .stickerArt,
+        .buttonArt,
+        .footerArt,
+        .cartridgeArt,
+        .marqueeArt,
+        .glyphArt,
+        .vinoArt,
     ]
 
     private var cache: [String: UIImage?] = [:]

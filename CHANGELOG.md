@@ -22,6 +22,22 @@ commit bodies and were reconstructed from the commit subject, the diffstat and
 the version-annotated doc comments throughout `Sources/`. Nothing in them is
 invented — where the record is thin the entry is short.
 
+## [0.9.1] — 2026-08-10
+
+### Fixed
+- **All the drawn chrome vanished in 0.9.0** — footer caps, marquee glyphs,
+  button faces, cartridges, stickers and the Professor Vino expression set all
+  degraded to their SF Symbol stand-ins on device. The integration ported
+  `PixelArtLoader` with five of its twelve search directories; the art shipped
+  in the bundle where no lookup could reach it, and nothing throws or logs on
+  a miss. The seven directories are restored in v0.8.99's order, which is
+  load-bearing (`ButtonArt`'s bare control words must lose to catalog art).
+- `ArtPipelineRosterTests.loaderSearchPathIsBundled` now asserts the search
+  path *equals* the bundled art directories (minus a named exemption list for
+  directories other loaders own), where it previously checked only that
+  searched directories ship — the one-way check is how five-of-twelve passed
+  every gate.
+
 ## [0.9.0] — 2026-08-10
 
 ### Added

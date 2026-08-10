@@ -331,6 +331,24 @@ struct ArtPipelineRosterTests {
     /// trusts.
     private static let unauthoredArtDirectories: Set<String> = []
 
+    /// Bundled directories that are *correctly* absent from `PixelArtLoader`'s
+    /// search path, because another loader owns them: the rasterised icons and
+    /// flags (`IconLoader`/`FlagLoader`), the chassis plates, the fonts, the
+    /// logo, the globe maps and the sounds.
+    ///
+    /// A named exemption for the same reason `unauthoredArtDirectories` is
+    /// one: the equality in `loaderSearchPathIsBundled` subtracts exactly this
+    /// set and nothing else, so a new bundled directory must either join the
+    /// search path or be claimed here by name — it cannot go unsearched in
+    /// silence. That silence is not hypothetical: the 0.9.0 integration
+    /// dropped seven directories from the search path, every drawn footer
+    /// cap, marquee glyph, button face, cartridge, sticker and Vino
+    /// expression fell back to its SF stand-in, and every gate stayed green
+    /// because this file only checked the *other* direction.
+    private static let ownedByOtherLoaders: Set<String> = [
+        "Icons", "Flags", "Chassis", "Fonts", "Logo", "Maps", "SFX",
+    ]
+
     /// **Every bundled directory is declared, and nothing is declared twice over.**
     ///
     /// `Package.swift` used to say `.copy("Resources")` and pick up a new
@@ -362,17 +380,41 @@ struct ArtPipelineRosterTests {
         )
     }
 
-    /// **The loader searches only directories that will be in the bundle.**
+    /// **The loader's search path and the bundled art directories are the same
+    /// set.** A stem is looked up by walking this list, so a directory that
+    /// ships but is never searched is art nobody can reach, and a directory
+    /// that is searched but never ships is a lookup that always misses. Both
+    /// are invisible at runtime.
     ///
-    /// The other half of the same fault. A stem is looked up by walking this list,
-    /// so a directory that ships but is never searched is art nobody can reach,
-    /// and a directory that is searched but never ships is a lookup that always
-    /// misses. Both are invisible at runtime.
-    @Test("PixelArtLoader searches only directories that ship")
+    /// This held only the second direction until 0.9.1. The 0.9.0 integration
+    /// ported the loader with five of its twelve directories, the subset check
+    /// passed at five, and the seven dropped sets shipped in the bundle where
+    /// no lookup could reach them.
+    @Test("PixelArtLoader's search path equals the bundled art directories")
     func loaderSearchPathIsBundled() throws {
         let search = try Self.loaderSearchPath
         let declared = try Self.packageResourceDirectories
         #expect(search.count >= 5, "could not parse PixelArtLoader.directories")
+
+        // The reverse direction: nothing bundled goes unsearched unless a
+        // loader of its own claims it by name above.
+        let unsearched = declared
+            .subtracting(search)
+            .subtracting(Self.ownedByOtherLoaders)
+        #expect(
+            unsearched.isEmpty,
+            "bundled art directories PixelArtLoader never searches — art nobody can reach: \(unsearched.sorted())"
+        )
+        let claimedTwice = Self.ownedByOtherLoaders.intersection(search)
+        #expect(
+            claimedTwice.isEmpty,
+            "named in ownedByOtherLoaders but also on the search path: \(claimedTwice.sorted())"
+        )
+        let claimedStale = Self.ownedByOtherLoaders.subtracting(declared)
+        #expect(
+            claimedStale.isEmpty,
+            "ownedByOtherLoaders names directories Package.swift no longer bundles: \(claimedStale.sorted())"
+        )
 
         for entry in search {
             // The prefix is the bug this whole merge was about: under the new
