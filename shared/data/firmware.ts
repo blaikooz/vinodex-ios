@@ -61,11 +61,23 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.8.96",
+  date: "2026-08-10",
+  headline: "ONE MOULDED SKIRT",
+  // The terse register, kept. The HOME saga's last chapter was never colour:
+  // the drawing's bottom wall was 21 pixels where its siblings carry 120.
+  notes: [
+    "HOME's bottom bezel was thin in the drawing itself; it is grafted from its siblings now -- one moulded skirt on all four caps, on every shell.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const PREVIOUS_0895: FirmwareRelease = {
   version: "0.8.95",
   date: "2026-08-09",
   headline: "PREVIEWS TELL TRUTH",
-  // The terse register, kept. A patch on 0.8.94's A: the device was fixed,
-  // the pickers were still drawing the old button.
+  // A patch on 0.8.94's A: the device was fixed, the pickers were still
+  // drawing the old button.
   notes: [
     "CUSTOMIZE's skin tiles and the workshop schematic draw HOME in the material it actually wears.",
     "The lit-Home roster is pinned in test: exactly the four console liveries, so the fallback can never go unexercised again.",
@@ -133,6 +145,7 @@ const PREVIOUS_0892: FirmwareRelease = {
 };
 
 const PREVIOUS: FirmwareRelease[] = [
+  PREVIOUS_0895,
   PREVIOUS_0894,
   PREVIOUS_0893,
   PREVIOUS_0892,

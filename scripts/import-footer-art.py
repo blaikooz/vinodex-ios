@@ -220,102 +220,94 @@ def strip_key_shadow(img):
     return img, cleared
 
 
-# --- The home cap's bottom lip (0.8.92, item 3) -----------------------------
+# --- The home cap's bottom lip (0.8.92 item 3; regrafted 0.8.96) -------------
 #
-# Where the lip's near-black band starts, as a fraction of the sprite height.
-# Chosen off the measurement below, not eyeballed: the incised house glyph
-# bottoms out around 0.72h, and the lip's slab runs 0.80h-0.97h, so 0.78
-# clears the glyph on one side and takes the whole slab on the other.
+# Where the skirt band starts, as a fraction of the sprite height. Chosen off
+# the measurement in 0.8.92: the incised house glyph bottoms out around 0.72h
+# and the lip runs 0.80h-0.97h, so 0.78 clears the glyph on one side and takes
+# the whole band on the other. `ChassisCapLoader.lipBandTop` is the same number
+# in Swift; the two are one measurement in two languages.
 LIP_BAND_TOP = 0.78
-# A pixel at or under this peak channel value is "painted black" for the
-# purposes of the lift. The slab measures 9/255; the moulded mid-tones the
-# siblings use start at ~0.06 * 255. 25 takes the slab and its ragged edge
-# and nothing of the shading above it.
-LIP_BLACK_CEILING = 25
-# How much of the black stays black: pixels within this many px of the
-# silhouette edge are the cel outline, which is structure — the same rule
-# `ChassisCapLoader`'s re-ink applies at runtime — and the outline is exactly
-# what must survive the lift or the cap loses its drawn edge. 2 rather than 3,
-# measured: the lip's side walls run 3-8px thick with transparency on both
-# sides, so a 3px keep from each side swallowed the wall whole and lifted
-# only 573 of the slab's ~1,500 pixels.
-LIP_OUTLINE_KEEP = 2
-# The lift target, as a value ramp top-to-bottom of the band. The measured
-# siblings (`back`, `user`) carry skirts running 0.06-0.60 with a median of
-# ~0.32; a flat fill at the median would be honest but dead, so the band gets
-# a gentle moulding ramp bracketing it instead.
-LIP_VALUE_TOP = 0.42
-LIP_VALUE_BOTTOM = 0.24
 
 
-def lift_home_lip(img):
-    """Repaint `home`'s bottom lip from near-black to the moulded mid-tone its
-    three siblings drew theirs in (0.8.92, item 3).
+def _opaque_centroid(img):
+    """Centre of mass of the opaque pixels — the same anchor the runtime's
+    `fitCap` computes, so the graft and the re-ink agree on where the cap is."""
+    px = img.load()
+    w, h = img.size
+    sx = sy = n = 0
+    for y in range(h):
+        for x in range(w):
+            if px[x, y][3] > 0:
+                sx += x
+                sy += y
+                n += 1
+    return sx / max(n, 1), sy / max(n, 1)
 
-    **The measurement, so the next reader does not re-litigate the clip.**
-    0.8.91's D1 retired the geodesic trim and the largest-component rule does
-    keep the lip — re-measured on the shipped sprites, rows y=204-247 of
-    `home` sit inside the main component minus ~150px of detached speckle. What
-    differs is *paint*: in the skirt band (y >= 0.85h) `home` carries 1,144 of
-    1,526 pixels at value <= 0.06 where `back` and `user` carry mid-values
-    (median 0.32) with only their cel lines black. `ChassisCapLoader`'s re-ink
-    keeps near-black at its own colour on purpose — the cel outline is
-    structure — so the whole lip rode that clause and stayed a black slab:
-    invisible on the dark shells, and on a bright one indistinguishable from
-    the bottom of the button being cut off. Which is §D1's complaint, still
-    alive after three clip rewrites, because it was never the clip.
 
-    So the correction is to the drawing, at import, where corrections live:
-    within the bottom band, black pixels deeper than `LIP_OUTLINE_KEEP` from
-    the silhouette lift to a value ramp bracketing the siblings' median. Hue
-    and saturation are irrelevant — the slab is neutral, and the runtime
-    re-ink replaces both — so only the value moves, which is precisely the
-    channel the re-ink preserves.
+def graft_home_skirt(img, donors):
+    """Rebuild `home`'s skirt band as its siblings' — silhouette and shading
+    both (0.8.96, replacing 0.8.92's `lift_home_lip`).
+
+    **Why the lift had to go, and why a value-only graft after it was still
+    not enough.** 0.8.92 lifted near-black pixels to a synthetic ramp;
+    measured on what it shipped, the band still read wrong, and re-measuring
+    found the reason is *material*, not colour: below y~0.87h the home
+    drawing's skirt is a thin wall — 21 opaque pixels across a row where
+    `back` and `user` carry ~120 — so however those pixels are painted, the
+    cap's bottom bezel is mostly missing and the button reads as cut off
+    against its neighbours on every colored shell. Three releases of
+    colour-side fixes were correct and could not touch this, because absent
+    pixels take no ink.
+
+    So the band is adopted from the sibling drawings wholesale: for every
+    band pixel, alpha comes from `back`'s silhouette (centroid-aligned) and
+    value comes from the median of the donors' pixels at the same position —
+    which carries their moulded mid-tones *and* their proper cel outline
+    down and around the bottom edge. Written as neutral grey: hue and
+    saturation are replaced by the runtime re-ink anyway, value is the
+    channel it preserves. After this the four caps share one bottom bezel by
+    construction, and the seam at the band top is invisible because the
+    donors' values at that height already match home's (measured medians
+    0.60 vs 0.60 at y=199).
+
+    The house glyph never reaches the band — it bottoms out at ~0.72h against
+    the band's 0.78h — so nothing of home's own drawing is lost but the
+    too-thin wall this replaces.
     """
     px = img.load()
     w, h = img.size
 
-    # Distance from the transparent outside, 4-connected BFS — the same
-    # arithmetic the runtime coverage pass uses, so "outline" means the same
-    # pixels in both places.
-    INF = 1 << 30
-    dist = [INF] * (w * h)
-    queue = deque()
-    for y in range(h):
-        for x in range(w):
-            if px[x, y][3] == 0:
-                continue
-            edge = (
-                x == 0 or x == w - 1 or y == 0 or y == h - 1
-                or px[x - 1, y][3] == 0 or px[x + 1, y][3] == 0
-                or px[x, y - 1][3] == 0 or px[x, y + 1][3] == 0
-            )
-            if edge:
-                dist[y * w + x] = 1
-                queue.append((x, y))
-    while queue:
-        x, y = queue.popleft()
-        nxt = dist[y * w + x] + 1
-        for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
-            if 0 <= nx < w and 0 <= ny < h and px[nx, ny][3] > 0 \
-                    and dist[ny * w + nx] > nxt:
-                dist[ny * w + nx] = nxt
-                queue.append((nx, ny))
+    hx, hy = _opaque_centroid(img)
+    donor_data = []
+    for d in donors:
+        dx, dy = _opaque_centroid(d)
+        donor_data.append((d.load(), d.size, dx - hx, dy - hy))
 
     y0 = int(h * LIP_BAND_TOP)
-    lifted = 0
+    grafted = 0
     for y in range(y0, h):
-        t = (y - y0) / max(h - 1 - y0, 1)
-        value = int(255 * (LIP_VALUE_TOP + (LIP_VALUE_BOTTOM - LIP_VALUE_TOP) * t))
         for x in range(w):
-            r, g, b, a = px[x, y]
-            if a == 0 or max(r, g, b) > LIP_BLACK_CEILING:
+            samples = []
+            alpha = 0
+            for p, (dw, dh), sx, sy in donor_data:
+                nx, ny = int(round(x + sx)), int(round(y + sy))
+                if 0 <= nx < dw and 0 <= ny < dh:
+                    r, g, b, a = p[nx, ny]
+                    if a > 0:
+                        samples.append(max(r, g, b))
+                        alpha = max(alpha, a)
+            if not samples:
+                if px[x, y][3] != 0:
+                    px[x, y] = (0, 0, 0, 0)
+                    grafted += 1
                 continue
-            if dist[y * w + x] <= LIP_OUTLINE_KEEP:
-                continue
-            px[x, y] = (value, value, value, a)
-            lifted += 1
-    return img, lifted
+            samples.sort()
+            v = samples[len(samples) // 2]
+            if px[x, y] != (v, v, v, alpha):
+                grafted += 1
+            px[x, y] = (v, v, v, alpha)
+    return img, grafted
 
 
 def main():
@@ -336,28 +328,39 @@ def main():
     os.makedirs(DST, exist_ok=True)
     total_out = 0
     total_shadow = 0
-    total_lifted = 0
+    total_grafted = 0
+
+    # Two passes rather than one: `home`'s skirt takes its values *from*
+    # `back` and `user`, so every cap is background-stripped first and the
+    # graft runs over the processed set.
+    processed = {}
     for stem in stems:
         img = strip_background(Image.open(os.path.join(src, stem + ".png")))
         img = img.convert("RGBA")
         img, cleared = strip_key_shadow(img)
         total_shadow += cleared
-        # `home` alone: its lip is painted near-black where the siblings'
-        # are moulded mid-tones — see `lift_home_lip`. Keyed on the stem
-        # rather than measured per file, because the defect is a fact about
-        # one drawing, and a fifth cap in either style should arrive
-        # untouched until somebody measures it.
-        if stem == "home":
-            img, lifted = lift_home_lip(img)
-            total_lifted += lifted
+        processed[stem] = img
+
+    # `home` alone: its skirt is painted black-under-bright where the
+    # siblings' is a moulded mid-tone — see `graft_home_skirt`. Keyed on the
+    # stem rather than measured per file, because the defect is a fact about
+    # one drawing, and a fifth cap in either style should arrive untouched
+    # until somebody measures it.
+    donors = [processed[s] for s in ("back", "user") if s in processed]
+    if "home" in processed and donors:
+        processed["home"], total_grafted = graft_home_skirt(
+            processed["home"], donors
+        )
+
+    for stem in stems:
         out = os.path.join(DST, PREFIX + stem + ".png")
-        save_stable(quantize_stable(img), out, optimize=True)
+        save_stable(quantize_stable(processed[stem]), out, optimize=True)
         total_out += os.path.getsize(out)
 
     print(
         f"converted {len(stems)} footer caps -> {DST} ({total_out // 1024}KB), "
         f"{total_shadow} cast-shadow pixels cleared, "
-        f"{total_lifted} lip pixels lifted on home"
+        f"{total_grafted} skirt pixels grafted on home"
     )
 
 
