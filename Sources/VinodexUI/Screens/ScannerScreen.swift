@@ -47,6 +47,16 @@ public struct ScannerScreen: View {
     @State private var matchedQuery: String?
     /// The query the last `task` run started from — see `awaitSearchDebounce`.
     @State private var debouncedFrom = ""
+    /// Whether the reveal's runner-up list is expanded past the shortlist
+    /// (0.6.8, L5). Session-local, like `flavorQuery`: it describes how you are
+    /// looking at one result, not what you answered, so it resets with the next
+    /// scan rather than persisting into it.
+    @State private var showsAllMatches = false
+
+    /// How many runners-up the reveal lists before SHOW ALL takes over
+    /// (0.6.8, L5). Four, so the card reads as "the best one, and these four" —
+    /// five grapes total, which is the count L5 names as the threshold.
+    private static let revealShortlist = 4
 
     /// The eight stored settings, as one model (arch **A17**).
     var settings: AppSettings = .shared
@@ -263,12 +273,33 @@ public struct ScannerScreen: View {
     /// steps the questionnaire via `ScannerBackRouter` (0.6.4, B2), so the
     /// header arrow was a second control doing the same thing — and the
     /// device's own buttons are the ones that should do device things.
+    ///
+    /// **The step counter has left this row (0.6.9, H2).** It sat here, hard
+    /// against the leading edge, with RESET at the trailing one — chrome in the
+    /// top corner of a screen whose content is centred in the middle of the
+    /// LCD, so the number and the question it counted were the two things
+    /// furthest apart on the page. H2 puts it directly above the question and
+    /// centred on it; see `question(_:_:content:)`. RESET keeps the row, and
+    /// the reveal keeps its RESULT label here because a result is not a
+    /// question and does not go through that helper.
     private var header: some View {
         HStack(spacing: 10) {
-            Text(step == .reveal ? "RESULT" : "STEP \(questionNumber) OF 5")
-                .font(DexFont.retro(12))
-                .tracking(1)
-                .foregroundStyle(lcd.subtext)
+            if step == .reveal {
+                Text("RESULT")
+                    .font(DexFont.retro(12))
+                    .tracking(1)
+                    .foregroundStyle(lcd.subtext)
+            } else if step == .globe {
+                // The one question step that does not go through
+                // `question(_:_:content:)` — the globe is mounted full-bleed,
+                // because it needs the height and a scroll view around a
+                // drag-to-spin surface fights the gesture. Its counter has
+                // nowhere else to be, so it stays in the row.
+                Text("STEP \(questionNumber) OF 5")
+                    .font(DexFont.retro(12))
+                    .tracking(1)
+                    .foregroundStyle(lcd.subtext)
+            }
 
             Spacer(minLength: 0)
 
@@ -281,6 +312,7 @@ public struct ScannerScreen: View {
                     Haptics.select()
                     withAnimation(.easeOut(duration: 0.2)) {
                         criteria = GrapeScanCriteria()
+                        showsAllMatches = false
                         step = .color
                     }
                 } label: {
@@ -366,14 +398,18 @@ public struct ScannerScreen: View {
         }
     }
 
-    /// Body has no palette table of its own, so it borrows the wine-type chips'
-    /// vocabulary: the same three weights, graded light to full.
+    /// Body has no generated palette table of its own, so it borrows the
+    /// wine-type chips' vocabulary: the same three weights, graded light to
+    /// full.
+    ///
+    /// The table itself moved to `Palette.bodyChips` in 0.6.9 (J1). It was
+    /// private here, and the filter screen's new BODY hero chips need the same
+    /// three colours — two copies of a hand-authored triple is exactly the
+    /// arrangement that ends with a scanner answer and a filter chip for the
+    /// same body class in two different greens.
     private func bodyChip(_ body: GrapeBody) -> Palette.Chip {
-        switch body {
-        case .light: Palette.Chip(bg: "#1a2e05", border: "#65a30d", text: "#d9f99d")
-        case .medium: Palette.Chip(bg: "#451a03", border: "#d97706", text: "#fde68a")
-        case .full: Palette.Chip(bg: "#3b0f0f", border: "#8b0000", text: "#fecdd3")
-        }
+        Palette.bodyChips[body.rawValue]
+            ?? Palette.Chip(bg: "#1c1917", border: "#57534e", text: "#e7e5e4")
     }
 
     // MARK: 3 — origin
@@ -414,7 +450,11 @@ public struct ScannerScreen: View {
                     advance(to: .globe)
                 }
 
-                bigButton("I DON'T KNOW", symbol: "questionmark", tint: lcd.subtext) {
+                // "NOT SURE", not "I DON'T KNOW" (0.6.8, L3) — the same words
+                // the colour and body steps skip with, so one answer has one
+                // name across the whole questionnaire. **Glyphless since 0.6.9
+                // (H1)** — see `bigButton`.
+                bigButton("NOT SURE", tint: lcd.subtext) {
                     criteria.country = nil
                     advance(to: .flavors)
                 }
@@ -500,24 +540,38 @@ public struct ScannerScreen: View {
             VStack(alignment: .leading, spacing: 14) {
                 basketView
 
+                // **Directly under the basket** (0.6.8, L1). SCAN used to close
+                // the step, below the class and subclass grids — which put the
+                // one control that ends the questionnaire at the bottom of a
+                // scroll two or three screens long, so finishing meant scrolling
+                // past every tile you had just decided against. The basket is
+                // where the answer *is*; the button that acts on it belongs
+                // against it.
+                bigButton(
+                    // L4: the empty-basket label. "CONTINUE WITHOUT FLAVORS"
+                    // described the mechanism; "NOT SURE, SCAN" is the same
+                    // answer in the vocabulary the rest of the questionnaire
+                    // now uses (see `skip`, and L3 on step 3).
+                    basket.isEmpty ? "NOT SURE, SCAN" : "SCAN",
+                    symbol: "eye.slash.fill",
+                    tint: Dex.yellow
+                ) {
+                    advance(to: .reveal)
+                }
+
                 // Name a flavour directly rather than walking the taxonomy —
                 // someone who can already say "graphite" should not have to
                 // know which subclass files it.
                 DexSearchBar(text: $flavorQuery, placeholder: "SEARCH FLAVORS…")
 
                 if flavorQuery.trimmingCharacters(in: .whitespaces).isEmpty {
-                    group("CLASSES", values: db.flavorClasses, kind: .classification)
-                    group("SUBCLASSES", values: db.flavorSubclasses, kind: .subclass)
+                    // FLAVORS / FAMILIES since 0.8.1 (F2). `kind`'s cases keep
+                    // their names — `.classification` and `.subclass` are the
+                    // route and the stored screen state, not copy.
+                    group("FLAVORS", values: db.flavorClasses, kind: .classification)
+                    group("FAMILIES", values: db.flavorSubclasses, kind: .subclass)
                 } else {
                     flavorSearchResults
-                }
-
-                bigButton(
-                    basket.isEmpty ? "CONTINUE WITHOUT FLAVORS" : "SCAN",
-                    symbol: "sparkle.magnifyingglass",
-                    tint: Dex.yellow
-                ) {
-                    advance(to: .reveal)
                 }
             }
         }
@@ -586,7 +640,8 @@ public struct ScannerScreen: View {
             advance(to: .flavorList(kind: kind, value: value))
         } label: {
             VStack(spacing: 6) {
-                DexIcon(iconID: iconID, size: 44, color: Color(dexHex: resolved.text))
+                // 52 since 0.8.1 (F1), matching the detail screen's step up.
+                DexIcon(iconID: iconID, size: 52, color: Color(dexHex: resolved.text))
                 Text(EntryDisplay.hyphenated(value.replacingOccurrences(of: "_", with: " ").uppercased()))
                     .font(DexFont.retro(10))
                     .multilineTextAlignment(.center)
@@ -687,6 +742,13 @@ public struct ScannerScreen: View {
             VStack(alignment: .leading, spacing: 12) {
                 basketView
 
+                // Under the basket, for the same reason SCAN is (0.6.8, L1):
+                // a subclass can run to thirty tiles, and DONE at the foot of
+                // them meant scrolling the whole list again to leave it.
+                bigButton("DONE", symbol: "checkmark", tint: Dex.green) {
+                    advance(to: .flavors)
+                }
+
                 if matches.isEmpty {
                     emptyNote("Nothing filed under this one.")
                 } else {
@@ -705,10 +767,6 @@ public struct ScannerScreen: View {
                             flavorTile(flavor)
                         }
                     }
-                }
-
-                bigButton("DONE", symbol: "checkmark", tint: Dex.green) {
-                    advance(to: .flavors)
                 }
             }
         }
@@ -769,7 +827,14 @@ public struct ScannerScreen: View {
             criteriaSummary
 
             if let best = matches.first {
-                reveal(best, others: Array(matches.dropFirst().prefix(6)), total: matches.count)
+                // **Best match, then four, then the rest behind SHOW ALL**
+                // (0.6.8, L5). It used to be best plus a flat six, with the
+                // remainder simply not listed and a count in the heading
+                // standing in for them — so a scan that fitted twenty grapes
+                // showed seven of them and there was no way to reach the other
+                // thirteen. Four runners-up is a glance; the expander is where
+                // the long tail goes.
+                reveal(best, others: Array(matches.dropFirst()), total: matches.count)
             } else {
                 notFound
             }
@@ -841,7 +906,7 @@ public struct ScannerScreen: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             Button {
-                Haptics.tap()
+                Haptics.screenTap()
                 onOpen(grape)
             } label: {
                 Text("OPEN ENTRY")
@@ -855,6 +920,11 @@ public struct ScannerScreen: View {
             .buttonStyle(DexPressStyle(scale: 0.96))
 
             if !others.isEmpty {
+                // The next four, and the rest only if asked for (0.6.8, L5).
+                let shortlist = Array(others.prefix(Self.revealShortlist))
+                let hidden = others.count - shortlist.count
+                let shown = showsAllMatches ? others : shortlist
+
                 VStack(alignment: .leading, spacing: 8) {
                     Text("ALSO FITS (\(total - 1) MORE)")
                         .font(DexFont.retro(12))
@@ -862,7 +932,7 @@ public struct ScannerScreen: View {
                         .foregroundStyle(lcd.accent)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                    ForEach(others) { other in
+                    ForEach(shown) { other in
                         Button {
                             Haptics.select()
                             onOpen(other)
@@ -888,6 +958,39 @@ public struct ScannerScreen: View {
                             )
                         }
                         .buttonStyle(DexPressStyle(scale: 0.98))
+                    }
+
+                    if hidden > 0 {
+                        Button {
+                            Haptics.select()
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                showsAllMatches.toggle()
+                            }
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: showsAllMatches ? "chevron.up" : "chevron.down")
+                                    .font(.system(size: 12, weight: .bold))
+                                Text(showsAllMatches ? "SHOW FEWER" : "SHOW ALL \(total)")
+                                    .font(DexFont.retro(12))
+                                    .tracking(1)
+                            }
+                            .foregroundStyle(lcd.accent)
+                            .padding(.vertical, 12)
+                            .frame(maxWidth: .infinity)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6).fill(lcd.surface)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .strokeBorder(lcd.accent.opacity(0.6), lineWidth: 2)
+                            )
+                        }
+                        .buttonStyle(DexPressStyle(scale: 0.97))
+                        .accessibilityLabel(
+                            showsAllMatches
+                                ? "Show fewer matches"
+                                : "Show all \(total) matches"
+                        )
                     }
                 }
             }
@@ -940,18 +1043,34 @@ public struct ScannerScreen: View {
     /// the scanner is one question at a time on an otherwise empty screen, not
     /// a list, and a lone left-aligned question in the top corner looked like
     /// the screen had failed to finish loading.
+    ///
+    /// **Leads with the step counter since 0.6.9 (H2)**, centred over the
+    /// question rather than parked in the header's leading corner. Rendered
+    /// here rather than in `header` so it travels with the prompt it counts:
+    /// every question step goes through this helper, so one line covers all
+    /// six of them and no step can be added without one.
     private func question<C: View>(
         _ title: String,
         _ subtitle: String,
         @ViewBuilder content: () -> C
     ) -> some View {
         VStack(spacing: 18) {
-            Text(title)
-                .font(DexFont.retro(20))
-                .tracking(1)
-                .foregroundStyle(lcd.text)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
+            // Tight to the title rather than at the stack's own 18pt: the
+            // counter is a label *on* the question, not a section above it.
+            VStack(spacing: 8) {
+                Text("STEP \(questionNumber) OF 5")
+                    .font(DexFont.retro(12))
+                    .tracking(1)
+                    .foregroundStyle(lcd.subtext)
+
+                Text(title)
+                    .font(DexFont.retro(20))
+                    .tracking(1)
+                    .foregroundStyle(lcd.text)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity)
 
             Text(subtitle)
                 .font(DexFont.mono(22))
@@ -1022,19 +1141,30 @@ public struct ScannerScreen: View {
         .buttonStyle(DexPressStyle(scale: 0.96))
     }
 
+    /// A full-width labelled action.
+    ///
+    /// `symbol` is optional since 0.6.9 (H1). Step 3's NOT SURE carried
+    /// `questionmark`, which is the one glyph on the questionnaire that says
+    /// nothing the label does not: the other three symbols here name an
+    /// *action* (open the globe, run the scan, move on), while a question mark
+    /// beside the words NOT SURE is the words again, in a picture. Nil is a
+    /// real state rather than a blank slot — the label centres in the button on
+    /// its own.
     private func bigButton(
         _ label: String,
-        symbol: String,
+        symbol: String? = nil,
         tint: Color,
         action: @escaping () -> Void
     ) -> some View {
         Button {
-            Haptics.tap()
+            Haptics.screenTap()
             action()
         } label: {
             HStack(spacing: 12) {
-                Image(systemName: symbol)
-                    .font(.system(size: 21, weight: .bold))
+                if let symbol {
+                    Image(systemName: symbol)
+                        .font(.system(size: 21, weight: .bold))
+                }
                 Text(label)
                     .font(DexFont.retro(14))
                     .tracking(1)
@@ -1054,6 +1184,13 @@ public struct ScannerScreen: View {
 
     /// Skipping is a real answer, so it gets a real control rather than being
     /// something you discover by pressing Next with nothing chosen.
+    ///
+    /// **A rounded-square button since 0.6.8 (L2).** It was bare tracked text
+    /// on the LCD ground — which is what "a real control" was *meant* to mean
+    /// in 0.6.4, but bare text sitting under two filled answer chips reads as a
+    /// caption about them, not as a third thing you can press. The surface and
+    /// rim are the choice chips' own (`lcd.surface` in a 6pt rounded rect),
+    /// left unfilled and in `subtext` so it still reads as the quieter answer.
     private func skip(_ label: String, action: @escaping () -> Void) -> some View {
         Button {
             Haptics.select()
@@ -1063,8 +1200,15 @@ public struct ScannerScreen: View {
                 .font(DexFont.retro(13))
                 .tracking(1)
                 .foregroundStyle(lcd.subtext)
-                .padding(.vertical, 14)
+                .padding(.vertical, 16)
                 .frame(maxWidth: .infinity)
+                .background(
+                    RoundedRectangle(cornerRadius: 6).fill(lcd.surface.opacity(0.75))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .strokeBorder(lcd.surfaceEdge, lineWidth: 2)
+                )
         }
         .buttonStyle(DexPressStyle(scale: 0.97))
     }

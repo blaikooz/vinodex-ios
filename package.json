@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "Node tooling for regenerating the bundled data. Not needed to build or run the app — Sources/VinodexCore/Resources/*.json is committed.",
+  "description": "Node tooling for regenerating the bundled data. Not needed to build or run the app \u2014 Sources/VinodexCore/Resources/*.json is committed.",
   "scripts": {
     "generate": "node scripts/generate-ios-data.ts",
     "generate:tsnode": "ts-node --esm scripts/generate-ios-data.ts",
@@ -13,6 +13,17 @@
     "grape-art": "python3 scripts/import-grape-art.py",
     "style-art": "python3 scripts/import-style-art.py",
     "class-art": "python3 scripts/import-class-art.py",
+    "stamp-art": "python3 scripts/import-stamp-art.py",
+    "sticker-art": "python3 scripts/import-sticker-art.py",
+    "logo-art": "python3 scripts/import-logo-art.py",
+    "button-art": "python3 scripts/import-button-art.py",
+    "footer-art": "python3 scripts/import-footer-art.py",
+    "cartridge-art": "python3 scripts/import-cartridge-art.py",
+    "marquee-art": "python3 scripts/import-marquee-art.py",
+    "glyph-art": "python3 scripts/import-glyph-art.py",
+    "vino-art": "python3 scripts/import-vino-art.py",
+    "outlines": "python3 scripts/make-country-outlines.py --draw --out art/icons/entries/countries-from-rings",
+    "outlines:check": "python3 scripts/make-country-outlines.py --check",
     "icons:verify": "python3 scripts/verify-art.py"
   },
   "devDependencies": {

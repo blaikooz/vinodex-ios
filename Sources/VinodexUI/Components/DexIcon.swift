@@ -102,10 +102,34 @@ struct DexIcon: View {
     var body: some View {
         let art = artStem.flatMap { PixelArtLoader.shared.image($0) }
         Group {
-            // `.interpolation(.none)` on both real branches (0.6.3, item 2 —
-            // AUDIT L28): FlagImage and LogoMark already set it, and these were
-            // the only pixel surfaces left sampling linearly — which read as
-            // blur, not smoothing, at LCD sizes.
+            // **Two icon classes, two sampling rules — and the split is the
+            // whole of 0.6.8's H1.**
+            //
+            // 0.6.3 (item 2, AUDIT L28) put `.interpolation(.none)` on both
+            // branches together, on the argument that linear sampling "read as
+            // blur, not smoothing". That is exactly right for the branch below
+            // this one and exactly wrong for the one under it, because they are
+            // not the same kind of image:
+            //
+            // - `art:` ids are **hand-drawn pixel art** — every pixel is an
+            //   authored decision, and any filter at all smears the grid it is
+            //   drawn on. `.none` stays, and it stays on `FlagImage`,
+            //   `LogoMark`, `ChassisShell` and `EntryIconWell`'s portraits too.
+            // - Iconify glyphs are **vector art rasterised** by
+            //   `rasterize-icons.sh` at 64/128/192px. Their edges are curves
+            //   that were antialiased on the way to PNG, and they are then
+            //   drawn at whatever point size the well asks for — almost never
+            //   an integer fraction of the source. `.none` resolves that by
+            //   dropping and doubling source pixels, which is what makes a
+            //   smooth curve arrive with a staircase on it.
+            //
+            // So the raster branch samples `.medium`. This does not undo 0.6.3:
+            // the other half of that pass — loading the density-matched
+            // `@2x`/`@3x` variant instead of upscaling the 64px one (AUDIT H6)
+            // — is what actually made the glyphs sharp, and it is untouched.
+            // Those variants mean the common case is a *downscale*, which is
+            // the case `.medium` handles well and `.none` handles worst.
+            // `.medium` rather than `.high`, deliberately: H1 asks for slight.
             if let art {
                 Image(uiImage: art)
                     .interpolation(.none)
@@ -113,7 +137,7 @@ struct DexIcon: View {
                     .aspectRatio(contentMode: .fit)
             } else if artStem == nil, let image = IconLoader.shared.image(iconID) {
                 Image(uiImage: image)
-                    .interpolation(.none)
+                    .interpolation(.medium)
                     .renderingMode(.template)
                     .resizable()
                     .aspectRatio(contentMode: .fit)

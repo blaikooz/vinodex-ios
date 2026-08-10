@@ -6,7 +6,11 @@ import VinodexCore
 // The LCD's surface effects, split out of DeviceChassis.swift (AUDIT
 // **M30**). This is the cluster the audit named as the cheapest seam:
 // four types that draw *onto* the screen and know nothing about the
-// chassis around it. Nothing here changed in the move.
+// chassis around it. Nothing changed in the move itself; what has
+// changed since is upstream's own work on these four — 0.7.0's C1
+// returning to one backdrop for every mode, and the button band's pills
+// joining `PulseGlow`'s count — carried across to here rather than left
+// behind in the file they were split out of.
 
 // MARK: - Effects
 
@@ -47,6 +51,17 @@ public struct DexScreenBackground: View {
     public var body: some View {
         ZStack {
             mode.ground
+            // **Back to one backdrop for every mode** (0.7.0, C1).
+            //
+            // 0.6.9's M1 branched here on `LcdMode.isSketchPaper` to mount
+            // `RuledPaper` for NOTEBOOK. C1 removes that mode, so the branch has
+            // nothing left to select and the grid is unconditional again. The
+            // *shell* half of M1 is untouched — `ChassisSkin.sketch` still draws
+            // PÉT-NAT by hand — which is the documented design: the shell and
+            // the screen are independent choices.
+            //
+            // See the retirement note on `LcdMode` for what happens to
+            // `RuledPaper`, which is kept and unmounted rather than deleted.
             DexGridBackground(
                 spacing: 10,
                 color: mode.gridLine,
@@ -96,10 +111,12 @@ struct DexGridBackground: View {
 /// What animates is the **opacity of a circle blurred once**, not the radius of
 /// a shadow (AUDIT **L11**). Those look identical and cost differently: a
 /// shadow whose radius is a function of the animation has to be re-rasterised
-/// on every frame, at every one of the four instances, for as long as the app
-/// is open — and these four are the only `repeatForever` animations in the
-/// codebase, so that was the whole of its perpetual-motion bill. A blur of a
-/// fixed radius is drawn once and then only faded.
+/// on every frame, at every one of its instances, for as long as the app is
+/// open — and these are the only `repeatForever` animations in the codebase, so
+/// that was the whole of its perpetual-motion bill. A blur of a fixed radius is
+/// drawn once and then only faded. The saving grows with the instance count,
+/// which is why it is worth having made here: 0.6.5's button band added two
+/// more lamps without touching this file.
 struct PulseGlow: ViewModifier {
     let color: Color
     let period: Double
@@ -107,14 +124,27 @@ struct PulseGlow: ViewModifier {
     let maxRadius: CGFloat
     /// Suspends the pulse while the chassis is showing its underside (AUDIT
     /// **L11**). The front face is merely `opacity(0)` behind the back plate —
-    /// it is still mounted and still animating, four lamps' worth, with
-    /// nothing on screen to show for it.
+    /// it is still mounted and still animating, every lamp on it, with nothing
+    /// on screen to show for it.
+    ///
+    /// Defaulted so a call site that has no back face to hide behind — or has
+    /// not been threaded yet — is unchanged.
     var paused: Bool = false
 
     @State private var on = false
-    /// Frozen lit rather than frozen dark: the orb and the three status lamps
-    /// are meant to read as powered, and a dead-looking indicator lamp is a
-    /// different message, not a calmer one. (AUDIT M18)
+    /// Frozen lit rather than frozen dark: the orb, the three status lamps and
+    /// the button band's two indicator pills are meant to read as powered, and
+    /// a dead-looking indicator lamp is a different message, not a calmer one.
+    /// (AUDIT M18; overlaps L11)
+    ///
+    /// The audit counted four of these; 0.6.5's button band added the two pills
+    /// (`indicatorPill`), which inherit the behaviour by construction — the
+    /// check lives in the modifier, not at its call sites, which is the reason
+    /// to keep it here, and the same reason `paused` is resolved into `isStill`
+    /// below rather than branched on by each caller. Everything else that
+    /// animates in the chassis is a response to a touch (the orb's press,
+    /// `DexPressStyle`'s spring) and stays: Reduce Motion asks for no
+    /// *unprompted* movement.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// One term for the two reasons to stop, so the branch swap — and the

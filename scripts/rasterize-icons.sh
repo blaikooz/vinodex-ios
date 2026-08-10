@@ -273,6 +273,14 @@ fi
 
 # Merged (testing): PR #10's preflight/skip arms (H12) around the 0.6.4
 # importer roster, which includes import-stamp-art.py.
+#
+# `import-logo-art.py` joined the roster in 0.7.5 (A026). It shipped in A5 wired
+# into nothing at all — not here, not in package.json, not in verify-art.py — so
+# `npm run icons` never regenerated the screensaver wordmark and the only way to
+# reproduce it from art/icons/chrome/logo/ was to know the script existed and run it by
+# hand. This roster and `verify-art.py`'s `IMPORTERS` are asserted equal by
+# ArtPipelineRosterTests, so the next importer cannot land in one and not the
+# other.
 if [ "${SKIP_ART:-0}" = "1" ]; then
   # SKIP_FLAGS echoes its acknowledgement; this arm used to be missing entirely,
   # so an inherited SKIP_ART produced a log indistinguishable from a full run.
@@ -280,7 +288,7 @@ if [ "${SKIP_ART:-0}" = "1" ]; then
 elif [ "$art_ready" -eq 0 ]; then
   echo "  skipping drawn-art importers — see the preflight message above"
 else
-  for importer in import-flavor-art.py import-grape-art.py import-style-art.py import-class-art.py import-stamp-art.py; do
+  for importer in import-flavor-art.py import-grape-art.py import-style-art.py import-class-art.py import-stamp-art.py import-sticker-art.py import-logo-art.py import-button-art.py import-footer-art.py import-cartridge-art.py import-marquee-art.py import-glyph-art.py import-vino-art.py; do
     if ! python3 "$HERE/$importer"; then
       echo "  FAIL $importer"
       failed=$((failed + 1))

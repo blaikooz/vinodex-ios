@@ -19,18 +19,45 @@ tables.
 Usage: python3 scripts/import-class-art.py [source-dir]
 Requires Pillow.
 """
+import importlib.util
 import json
 import os
 import sys
 
 from PIL import Image
 
-from art_common import output_dir, resolve_source_dir, strip_background
+from art_common import (
+    output_dir,
+    quantize_stable,
+    resolve_source_dir,
+    save_stable,
+    strip_background,
+)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 MANIFEST = os.path.join(ROOT, "Sources", "VinodexCore", "Resources", "icons.json")
 DST = output_dir(ROOT, "ClassArt")
+
+# The one prefix whose sources are resolved by rule rather than by table, and
+# the one whose art is re-inked here rather than shipped as drawn (0.8.4, F1).
+OUTLINE_PREFIX = "outline-"
+OUTLINE_DIR = "countries"
+
+# `country-outline-fills.py` is not importable by name -- the hyphens are not a
+# Python identifier -- so it is loaded the way `make-country-outlines.py` loads
+# the rings module, for the same reason: the tables are data files that happen
+# to be Python, and renaming them to snake_case would break the two Swift tests
+# that parse them off disk by name.
+_spec = importlib.util.spec_from_file_location(
+    "country_outline_fills", os.path.join(HERE, "country-outline-fills.py")
+)
+_fills = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_fills)
+
+FILL = _fills.FILL
+RING = _fills.RING
+RING_WIDTH = _fills.RING_WIDTH
 
 # Stem -> source path relative to art/icons. The stems are namespaced by
 # table (class-, subclass-, color-, body-, climate-, soil-, styleclass-,
@@ -105,34 +132,15 @@ SOURCE_FOR = {
     "soil-loess": "soil/loess.png",
     "soil-laterite": "soil/laterite.png",
     "soil-default": "soil/default soil.png",
-    "outline-france": "countries/france.png",
-    "outline-germany": "countries/germany.png",
-    "outline-italy": "countries/italy.png",
-    "outline-greece": "countries/greece.png",
-    "outline-portugal": "countries/portugal.png",
-    "outline-spain": "countries/spain.png",
-    "outline-hungary": "countries/hungary.png",
-    "outline-austria": "countries/austria.png",
-    "outline-croatia": "countries/croatia.png",
-    "outline-california": "countries/california.png",
-    "outline-oregon": "countries/oregon.png",
-    "outline-washington": "countries/washingtonstate.png",
-    "outline-new-york": "countries/newyorkstate.png",
-    "outline-georgia": "countries/georgiacountry.png",
-    "outline-switzerland": "countries/switzerland.png",
-    "outline-romania": "countries/romania.png",
-    "outline-south-africa": "countries/southafrica.png",
-    "outline-morocco": "countries/morocco.png",
-    "outline-usa": "countries/usa.png",
-    "outline-canada": "countries/canada.png",
-    "outline-argentina": "countries/argentina.png",
-    "outline-chile": "countries/chile.png",
-    "outline-uruguay": "countries/uruguay.png",
-    "outline-new-zealand": "countries/new zealand.png",
-    "outline-australia": "countries/australia.png",
-    "outline-japan": "countries/japan.png",
-    "outline-china": "countries/china.png",
-    "outline-india": "countries/india.png",
+    # **No `outline-*` rows since 0.8.4 (F1).** The 30 that were here mapped a
+    # stem to a master whose filename was a third spelling of the same place --
+    # `outline-washington` -> `washingtonstate.png`, `outline-new-zealand` ->
+    # `new zealand.png` (a space), `outline-georgia` -> `georgiacountry.png` --
+    # and keeping the two in step by hand was a standing invitation to a silent
+    # miss. The hand-drawn drop re-authored the whole directory, so the
+    # opportunity to make the master's stem *be* the icon stem was free, and
+    # `outline_source` below is now the rule rather than a table. See
+    # `OUTLINE_DIR`.
     "globe-africa": "continents/africa.png",
     "globe-asia": "continents/asia.png",
     "globe-europe": "continents/europe.png",
@@ -141,6 +149,81 @@ SOURCE_FOR = {
     "globe-south-america": "continents/southamerica.png",
 }
 
+
+
+def _hex_rgba(value):
+    value = value.lstrip("#")
+    return (int(value[0:2], 16), int(value[2:4], 16), int(value[4:6], 16), 255)
+
+
+def ink_outline(img, stem):
+    """Flat fill + cel ring, over a hand-drawn silhouette (0.8.4, F1).
+
+    The masters are one colour: a cream shape on a magenta key, which
+    `strip_background` reduces to "opaque where the country is". That is the
+    whole of the information in them, and it is deliberately *more* than the
+    0.8.0 rasterisations carried -- those were 106-cell approximations of a
+    30-vertex ring, and these are drawn coastlines.
+
+    What they do not carry is which country they are, and the app has always
+    said that in colour: `FILL` is 0.8.0's own table, kept rather than
+    re-chosen. So the silhouette is painted flat and ringed in one dark cel
+    line, which is exactly the three-colour result the rasteriser produced --
+    same visual language, better geography.
+
+    **Painted here rather than in the art** for the house reason `strip_key_shadow`
+    states from the other side: a correction that lives outside the importer is
+    a correction the next re-import silently undoes. It also keeps every master
+    a *silhouette*, so a country's colour is a one-line data edit and not a
+    redraw.
+
+    Three colours out means `quantize_stable` returns before any quantiser sees
+    the image, which is what keeps `icons:verify`'s zero-pixel budget for these
+    files honest on a machine that is not this one.
+    """
+    fill = _hex_rgba(FILL[stem])
+    ring = _hex_rgba(RING)
+    px = img.load()
+    w, h = img.size
+
+    # Pass 1: what is land. Read once, so pass 2 cannot see its own writes.
+    land = bytearray(w * h)
+    for y in range(h):
+        row = y * w
+        for x in range(w):
+            if px[x, y][3] > 127:
+                land[row + x] = 1
+
+    # Pass 2: a land cell within `RING_WIDTH` of the sea is the cel line.
+    r = RING_WIDTH
+    edge = 0
+    for y in range(h):
+        row = y * w
+        for x in range(w):
+            if not land[row + x]:
+                px[x, y] = (0, 0, 0, 0)
+                continue
+            border = False
+            for dy in range(-r, r + 1):
+                ny = y + dy
+                for dx in range(-r, r + 1):
+                    nx = x + dx
+                    if nx < 0 or ny < 0 or nx >= w or ny >= h:
+                        border = True
+                    elif not land[ny * w + nx]:
+                        border = True
+                    if border:
+                        break
+                if border:
+                    break
+            px[x, y] = ring if border else fill
+            edge += 1 if border else 0
+    return img, edge
+
+
+def outline_source(stem):
+    """`outline-france` -> `countries/france.png`. The rule that replaced a table."""
+    return os.path.join(OUTLINE_DIR, stem[len(OUTLINE_PREFIX):] + ".png")
 
 
 def art_stems(manifest):
@@ -161,7 +244,7 @@ def art_stems(manifest):
 
 
 def main():
-    src = resolve_source_dir(ROOT)
+    src = resolve_source_dir(ROOT, "entries")
     with open(MANIFEST, encoding="utf-8") as fh:
         stems = art_stems(json.load(fh))
     if not stems:
@@ -171,14 +254,23 @@ def main():
     missing = []
     total_out = 0
     for stem in stems:
-        name = SOURCE_FOR.get(stem)
+        outline = stem.startswith(OUTLINE_PREFIX)
+        name = outline_source(stem) if outline else SOURCE_FOR.get(stem)
         path = os.path.join(src, name) if name else None
         if path is None or not os.path.exists(path):
             missing.append(stem)
             continue
         img = strip_background(Image.open(path))
+        if outline:
+            if stem[len(OUTLINE_PREFIX):] not in FILL:
+                missing.append(stem + " (no fill colour)")
+                continue
+            img, _ = ink_outline(img.convert("RGBA"), stem[len(OUTLINE_PREFIX):])
         out = os.path.join(DST, stem + ".png")
-        img.quantize(colors=256).save(out, optimize=True)
+        # `quantize_stable` + `save_stable` since 0.8.0 (A0b): no library
+        # default decides the palette, and a run whose pixels match writes
+        # nothing. See art_common for both arguments.
+        save_stable(quantize_stable(img), out, optimize=True)
         total_out += os.path.getsize(out)
 
     print(f"converted {len(stems) - len(missing)} icons -> {DST} ({total_out // 1024}KB)")

@@ -8,9 +8,11 @@ import VinodexCore
 /// show the same report rather than two that drift apart.
 struct DiagnosticsReport: View {
     let db: WineDatabase
+    let exam: ExamCatalog
 
-    init(db: WineDatabase = .shared) {
+    init(db: WineDatabase = .shared, exam: ExamCatalog = .shared) {
         self.db = db
+        self.exam = exam
     }
 
     var body: some View {
@@ -30,11 +32,17 @@ struct DiagnosticsReport: View {
             ForEach(DexAssetAudit.run(db)) { surface in
                 row(surface.line, ok: surface.ok)
             }
+            // The exam bank is its own resource with its own decode, so a
+            // healthy catalog says nothing about it (0.7.5, D). It decodes
+            // element-wise, which means a broken question is silent by
+            // construction — this is where it stops being silent.
+            row("exam questions \(exam.questions.count)", ok: !exam.isEmpty)
 
-            if db.decodeErrors.isEmpty {
+            if db.decodeErrors.isEmpty, exam.decodeErrors.isEmpty {
                 row("decode clean", ok: true)
             } else {
                 ForEach(db.decodeErrors, id: \.self) { row($0, ok: false) }
+                ForEach(exam.decodeErrors, id: \.self) { row("exam \($0)", ok: false) }
             }
 
             // Notices, not faults (AUDIT **M45**). A missing schema stamp, an

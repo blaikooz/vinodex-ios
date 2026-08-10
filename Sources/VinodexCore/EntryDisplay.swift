@@ -76,24 +76,91 @@ public enum EntryDisplay {
         return .style
     }
 
-    /// ORANGE, ROSE, RED, WHITE, then DUAL — first match wins, and the order
-    /// matters for a name carrying two of them.
+    /// `STYLE_NAME_COLOR_OVERRIDES`, transcribed from `entryUtils.ts`.
     ///
-    /// **Whole words, not substrings.** A bare `contains` reads "p-*rose*-cco"
-    /// out of `Prosecco` and labelled Italy's best-known sparkling *white* wine
-    /// as a rosé — on the tile, in the chip, and in the filter it opened.
-    /// `matchesWholeTerm` is the same whole-term test `.origin` has always used,
-    /// and it also collapses hyphens, so `Full-Body Red` still resolves.
+    /// **This table was missing entirely until 0.8.1, item B.** `getColorType`
+    /// consults it *before* the keyword chain; the Swift port went straight to
+    /// the keywords, so all sixteen overrides — every one of which names a real
+    /// style exactly — stopped at the shared/device boundary. Sixteen of the
+    /// thirty-three styles therefore reported a different colour on the phone
+    /// than the data says, and fifteen of them landed on `.dual`, which is a
+    /// plausible-looking answer for a name with no colour word in it. That is
+    /// why it survived: DUAL is what an un-overridden Champagne *should* look
+    /// like if you did not know the table existed.
     ///
-    /// Prosecco now falls through to `.dual`, which is the documented meaning of
-    /// "the name names no colour" rather than a claim about the wine. Inferring
-    /// it properly would mean reading the style's `notableGrapes` — Glera, a
-    /// white grape — and that is a larger change than fixing the false positive.
+    /// Keys are `TextNormalize.label` output (lowercased, diacritics folded,
+    /// punctuation intact) and are looked up trimmed, exactly as the TS does.
+    static let colorOverrides: [String: StyleColorType] = [
+        "prosecco": .white,
+        "champagne": .white,
+        "cremant": .white,
+        "cava": .white,
+        "sparkling wine": .white,
+        "sherry": .white,
+        // **Madeira joined the table in 0.8.2**, on sommbot's ruling and on the
+        // same basis as Sherry directly above: an override states the colour of
+        // the wine, and both of these are white wines that happen to arrive in
+        // the glass brown. Oxidative ageing is what darkens them, not red fruit,
+        // and Sherry has been in this table since 0.8.1 for exactly that reason.
+        //
+        // Madeira is the harder call of the two and worth the sentence: Tinta
+        // Negra is a black grape and makes most of the wine, so DUAL was not an
+        // absurd guess — it is what the keyword chain returned, and what the
+        // device shipped, for as long as the row was missing. The four noble
+        // varieties that name the styles are all white, and the finished wine is
+        // classed white whichever grape filled the cask.
+        "madeira": .white,
+        "port": .red,
+        "gsm blend": .red,
+        "bordeaux blend": .red,
+        "super tuscan": .red,
+        "cru beaujolais": .red,
+        "dessert wine": .white,
+        "late harvest": .white,
+        "ice wine": .white,
+        "botrytis wine": .white,
+        "qvevri amber": .orange,
+    ]
+
+    /// `\b` semantics: a hit only counts when neither edge abuts a word
+    /// character. The TS keyword chain is four `\b`-anchored regexes and the
+    /// port used bare `contains`, which is the second half of item B and the
+    /// half that did visible damage.
+    ///
+    /// **`"prosecco"` contains `"rose"`** — p·*rose*·cco. With the override
+    /// table absent and the boundary absent, Prosecco did not merely fall
+    /// through to DUAL like its fifteen neighbours; it matched the rosé branch
+    /// and shipped a confident wrong answer. One missing table and one missing
+    /// boundary, and only their intersection was loud enough to get reported.
+    static func containsWord(_ haystack: String, _ word: String) -> Bool {
+        let isWordChar: (Character) -> Bool = { $0.isLetter || $0.isNumber || $0 == "_" }
+        var search = haystack[...]
+        while let found = search.range(of: word) {
+            let beforeOK = found.lowerBound == haystack.startIndex
+                || !isWordChar(haystack[haystack.index(before: found.lowerBound)])
+            let afterOK = found.upperBound == haystack.endIndex
+                || !isWordChar(haystack[found.upperBound])
+            if beforeOK && afterOK { return true }
+            search = haystack[found.lowerBound...].dropFirst()
+        }
+        return false
+    }
+
+    /// `getColorType` — the override table first, then `\b`-anchored keywords.
+    ///
+    /// Kept as a derivation rather than a lookup of a generated field because
+    /// `WineEntry.tileChips` is a property on the entry with no database in
+    /// scope, and because the label scanner asks this question about names that
+    /// are not in the catalog at all. The generated `Palette.styleColorTypes`
+    /// is not a second answer, it is the pin: `CoverageTests` asserts this
+    /// function reproduces the shared one for every style that ships.
     public static func colorType(name: String) -> StyleColorType {
-        if TextNormalize.matchesWholeTerm(name, "orange") { return .orange }
-        if TextNormalize.matchesWholeTerm(name, "rose") { return .rose }
-        if TextNormalize.matchesWholeTerm(name, "red") { return .red }
-        if TextNormalize.matchesWholeTerm(name, "white") { return .white }
+        let n = TextNormalize.label(name)
+        if let override = colorOverrides[n.trimmingCharacters(in: .whitespaces)] { return override }
+        if containsWord(n, "orange") { return .orange }
+        if containsWord(n, "rose") { return .rose }
+        if containsWord(n, "red") { return .red }
+        if containsWord(n, "white") { return .white }
         return .dual
     }
 
@@ -192,6 +259,10 @@ public enum EntryDisplay {
         case ("DOCA", _):  return "Denominación de Origen Calificada"
         // Priorat's Catalan form of DOCa (0.6, A2).
         case ("DOQ", _):   return "Denominació d'Origen Qualificada"
+        // Portuguese, not Spanish — the same trap `DOC` below is split three
+        // ways for. Brazil's country chips carry `DO` and would otherwise have
+        // been spelled out in the wrong language on its own page.
+        case ("DO", "brazil"): return "Denominação de Origem"
         case ("DO", _):    return "Denominación de Origen"
         // The 0.6 catalog boost's new systems: Canada, Croatia, Morocco, and
         // the Spanish-American IG countries (Argentina, Uruguay).
@@ -199,6 +270,10 @@ public enum EntryDisplay {
         case ("ZOI", _):   return "Zaštićena Oznaka Izvornosti"
         case ("AOG", _):   return "Appellation d'Origine Garantie"
         case ("IG", _):    return "Indicación Geográfica"
+        // Brazil (0.7.3c). `IP` is the tier most of the Serra's delimited areas
+        // hold; `DO` is the one above it, which only Vale dos Vinhedos and a
+        // handful of others have reached.
+        case ("IP", _):    return "Indicação de Procedência"
 
         // The genuinely ambiguous one: same abbreviation, three languages.
         case ("DOC", "italy"):    return "Denominazione di Origine Controllata"
@@ -217,7 +292,29 @@ public extension WineEntry {
         switch self {
         case .grape(let g):
             return [
-                TileChip(label: EntryDisplay.grapeColorLabel(g), key: g.grapeType.rawValue, table: .wineType),
+                // **The colour chip reads `colorTypeChips`, uppercased**
+                // (0.6.9, I1). It asked `wineTypeChips` for `"red"` / `"white"`
+                // — the wrong table *and* the wrong case. `wineTypeChips` is
+                // keyed by style ("Full-Body Red", "Aromatic White"), every
+                // generated palette table is keyed uppercase, and the lookup
+                // therefore missed on all 146 grapes and fell through to
+                // `Palette.resolve`'s neutral stone fallback. That is what
+                // "the red and white chips show the wrong colors" was: not a
+                // bad palette, a chip that never reached one. `colorTypeChips`
+                // has carried the right pair the whole time — RED is #3b0f0f
+                // on #8b0000 and WHITE is #3b2f00 on #b8860b, which is the dark
+                // red and the yellow the brief asks for.
+                //
+                // The label was already correct (`grapeColorLabel` uppercases),
+                // which is exactly why this survived: the chip said RED and was
+                // grey, so it read as a styling choice rather than a miss.
+                TileChip(
+                    label: EntryDisplay.grapeColorLabel(g),
+                    key: g.grapeType.rawValue.uppercased(),
+                    table: .colorType
+                ),
+                // The *style* chip does belong to `wineTypeChips`, and its key
+                // matches that table's vocabulary as authored.
                 TileChip(label: EntryDisplay.grapeBodyLabel(g), key: g.grapeStyle, table: .wineType),
                 TileChip(label: g.details.origin.uppercased(), key: g.details.origin, table: .country),
             ]

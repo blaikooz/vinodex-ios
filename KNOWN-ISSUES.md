@@ -47,6 +47,24 @@ dead — is this bug.
 
 **Fix, in this order.** Order is the whole point.
 
+> **There is a script now: `scripts/fix-27015.ps1`** (added 0.7.1). Right-click
+> → Run as administrator, or `Start-Process powershell -Verb RunAs -ArgumentList
+> '-ExecutionPolicy','Bypass','-File','H:\vscode-projects\HGapps\vinodex-ios\scripts\fix-27015.ps1'`.
+> It does all three steps in one elevated pass, dispatches step 2 through
+> `explorer.exe` so the Store app still launches unelevated, waits up to 20s for
+> Apple to take `127.0.0.1:27015`, and **refuses to re-add the proxy if Apple
+> did not get it** — which is the failure the manual sequence below can walk
+> straight past. The steps are kept here because the script is a transcription
+> of them and the reasoning is what matters.
+>
+> **A note on `AMPDevicesAgent`.** The healthy listener is sometimes this
+> rather than `AppleMobileDeviceProcess`; both are Apple's side and either is
+> fine. What is *not* fine is seeing it listening on some five-digit port
+> (`127.0.0.1:55095` and friends) — that is the ephemeral fallback, and it
+> means the proxy won the race. Do not point `USBMUXD_SOCKET_ADDRESS` at it:
+> it is the launcher's own IPC, not usbmuxd, so you connect fine and speak the
+> wrong protocol.
+
 ```powershell
 # 1. ELEVATED — free the port and stop Apple's processes
 netsh interface portproxy delete v4tov4 listenport=27015 listenaddress=0.0.0.0
@@ -87,6 +105,107 @@ race. Do discover → `netsh` → verify inside **one** elevated script.
 Also: chasing the ephemeral port is a dead end regardless. The port
 `AppleMobileDeviceLauncher` opens is its own IPC, not usbmuxd — you connect
 successfully and get the wrong protocol. Free 27015 instead.
+
+### The ephemeral listener is a *sometimes* tell, not a required confirmation
+
+Observed 2026-08-03: the port in the broken state with **no Apple process running
+at all** — `0.0.0.0:27015 <- svchost` alone, nothing on any `127.0.0.1` port, and
+`Get-Process | ? ProcessName -match 'Apple|AMPDevices'` returning empty.
+
+This matters because the section above teaches the ephemeral five-digit port as
+*the* confirmation, and it is easy to go looking for it, not find it, and start
+doubting the 27015 diagnosis — then go hunting for a second, non-existent cause.
+There are two distinct broken sub-states and only the first has an ephemeral port:
+
+1. **Apple running, proxy holds 27015.** Launcher fell back to ephemeral IPC and
+   respawns on a new port every 30–60 s. Noisy; the ephemeral tell is present.
+2. **Apple not running at all, proxy holds 27015.** The app was closed (or its
+   processes exited) and the portproxy reclaimed the port unopposed. Nothing to
+   see on `127.0.0.1` because nothing is there to see.
+
+Both need the same fix, and `fix-27015.ps1` handles both — in state 2 its
+kill step is a no-op and it goes straight to relaunch. **State 2 is the better
+one to run the fix from:** with no launcher alive there is no ephemeral respawn
+churn racing the `netsh` delete, so the single elevated pass is uncontested.
+
+Diagnosis rule: `0.0.0.0 <- svchost` present **and** no `127.0.0.1 <- Apple*` is
+sufficient on its own. Absence of Apple processes corroborates it, it does not
+contradict it.
+
+### When the session cannot elevate
+
+The elevated step is genuinely irreducible: freeing the port is
+`netsh interface portproxy delete`, which returns `requires elevation`
+unelevated, and there is no unelevated substitute — the wildcard `0.0.0.0` bind
+is what blocks Apple's `127.0.0.1` bind, stopping `iphlpsvc` also needs admin,
+the ephemeral port speaks the wrong protocol, and `usbipd` is forbidden for
+separate reasons (below). An agent or session that cannot prompt for UAC should
+**do every unelevated gate first** — mirror sync, build artifact, gateway,
+pairing record — so that when the user does elevate, the fix plus a `-SkipSync`
+re-run is all that remains, rather than discovering a second problem afterwards.
+
+**Do not launch the Apple Devices app as a consolation move.** Added 2026-08-03.
+It is unelevated, so it is available, and it looks like partial progress toward
+the fix — it is the opposite. In state 2 (proxy alone, no Apple process) the
+`netsh` delete is uncontested; launching the app first only moves the system
+into state 1, where the launcher respawns on a new ephemeral port every 30-60 s
+and actively races the fix. `fix-27015.ps1` relaunches the app itself, in the
+right order, inside the elevated pass. Leave it closed and hand over.
+
+### State 3: Apple holds 27015 but the portproxy is gone
+
+Seen 2026-08-04, and it is the **inverse** of everything above — which makes the
+section you just read actively misleading if you reach for it here. Symptoms:
+
+```
+netsh interface portproxy show all   -> empty table
+127.0.0.1 <- AppleMobileDeviceProcess   (present)
+0.0.0.0   <- svchost                    (ABSENT)
+```
+
+Preflight passes steps 0-2 and fails **step 3** with `No device`; from the
+distro, `idevice_id -l` returns empty with exit 0 and `xtool devices` says
+`Operation now in progress` — note that is *not* `Operation not permitted`,
+which is the classic race. Apple's side is healthy and holding the port
+correctly; there is simply nothing on `0.0.0.0`, so WSL's connection goes
+nowhere.
+
+How it happens: `fix-27015.ps1` ran and won the hard half (freeing the port so
+Apple binds `127.0.0.1:27015`) but the proxy was not re-added, or was dropped
+afterwards. The script's own step 1 names this case - *"Apple holds the port
+but the portproxy is missing; WSL cannot reach it"* - but it is easy to see
+"step 3 failed" and re-run the whole script.
+
+**Do not re-run `fix-27015.ps1`.** Its first act is to kill Apple's processes,
+which throws away the state you just won and makes you re-run the race for
+nothing. The missing half is one elevated line:
+
+```powershell
+netsh interface portproxy add v4tov4 listenport=27015 listenaddress=0.0.0.0 `
+  connectport=27015 connectaddress=127.0.0.1
+```
+
+**And then check the process list, not just the ports.** In this instance the
+proxy came back and step 3 *still* failed, because only
+`AppleMobileDeviceLauncher` and `AppleMobileDeviceProcess` were running -
+`AppleDevices` and `AMPDevicesAgent` were not. The app itself is the usbmuxd
+provider, so the bridge was intact and had nothing behind it.
+
+Here - unlike the "consolation move" warning above - **launching the Apple
+Devices app is exactly right**, because Apple already owns `127.0.0.1:27015`
+and there is no race left to lose. The warning applies only while the *proxy*
+holds the port. Launch it unelevated:
+
+```powershell
+explorer.exe 'shell:AppsFolder\AppleInc.AppleDevices_nzyj5cx40ttqa!App'
+```
+
+Roughly twelve seconds later the process list gained `AMPDevicesAgent`,
+`AppleDevices` and `AppleMobileDeviceHelper`, `idevice_id -l` returned the
+UDID, and the deploy ran clean. Healthy is **five** Apple processes, not two.
+
+Diagnosis rule: both listeners present but no device means look at the process
+list before touching the port again.
 
 ### Free-profile App ID cap is 3
 
@@ -142,16 +261,94 @@ Preconditions, in this order:
 available, so the archive is the whole of the answer. It is a real one — it
 also survives a reinstall and moves a shelf between phones — but it depends on
 the user having taken it.
+### Provisioning fails with a 409 `ENTITY_ERROR` about device IDs
+
+Seen 2026-08-03. The deploy clears all three preflight gates, gets through
+`Unpacking` and `Preparing device`, and dies in **Provisioning**:
+
+```
+Error: Unexpected response, expected status code: created, response: conflict(
+  ... status: "409", code: "ENTITY_ERROR",
+  detail: "There are no current IOS devices on this team matching the provided
+  device IDs.")
+```
+
+**This is not the 27015 race** — the port was healthy and the device was visible.
+It is Apple Developer Services being eventually consistent with itself, and it
+resolves on its own. Diagnose it before touching anything:
+
+```bash
+wsl -d xtool-ubuntu -- bash -lc "xtool auth status"        # which Apple ID / team
+wsl -d xtool-ubuntu -- bash -lc "xtool ds teams list"      # free vs paid, and how many
+wsl -d xtool-ubuntu -- bash -lc "xtool ds devices list"    # is the UDID registered?
+wsl -d xtool-ubuntu -- bash -lc "xtool ds profiles list"   # did a profile get made?
+```
+
+None of those need the phone, the port, or elevation — they are pure web API
+calls, so **this whole diagnosis is available while the bridge is down.**
+
+What the timestamps showed here: the device record was created at 13:26 and the
+`com.example.Vinodex` profile at 14:01, both on the day of the failure. So
+xtool *had* registered the device — the failing run registered it itself — and
+then the profile-creation call in the same run raced ahead of the registration
+propagating to the profile service. The device was `ENABLED` and the profile
+`ACTIVE` by the time anyone looked.
+
+**The rule: on a 409 here, re-run. Do not "fix" it.** Specifically do not change
+the bundle ID (the App ID quota is 3 and burning one is unrecoverable — see
+above), do not `xtool auth logout`, and do not go to the Developer portal to add
+the device by hand. Every one of those is a plausible-looking response to the
+error text and all three make things worse. If `xtool ds devices list` shows the
+UDID present and `ENABLED`, the account side is *already correct* and the only
+missing ingredient is time.
+
+Escalate to the user only if the device genuinely is **absent** from
+`xtool ds devices list` after a re-run, since `xtool ds devices` has `list` as
+its only subcommand — there is no CLI path to register one.
+
+Two things that make this recur rather than being a one-off:
+
+- **Free-provisioning device registrations lapse.** Profiles from 27-28 July
+  referenced this same UDID, yet the device record was re-created on 3 August.
+  The registration had expired and xtool silently re-made it — which is what
+  opened the propagation window in the first place.
+- **Free-team profiles expire after 7 days**, same clock as the signed build.
+  `xtool ds profiles list` showing `profile state: INVALID` for old bundle IDs
+  is normal and not worth chasing; only the row for the App ID in `xtool.yml`
+  matters.
 
 ### Pre-flight checklist
+
+**There is a script for the whole thing now: `scripts/deploy-iphone.ps1`**
+(added 0.7.1). Unelevated, from PowerShell:
+
+```powershell
+.\scripts\deploy-iphone.ps1              # preflight -> sync -> build -> install
+.\scripts\deploy-iphone.ps1 -CheckOnly   # is the phone reachable? changes nothing
+.\scripts\deploy-iphone.ps1 -Clean       # rm -rf .build first, after Swift changes
+.\scripts\deploy-iphone.ps1 -SkipSync    # re-run after fixing the port mid-deploy
+```
+
+It gates in the order that matters — port, gateway, device, sync, build — so a
+broken bridge costs seconds instead of a ten-minute build, and it passes
+`USBMUXD_SOCKET_ADDRESS` inline with a `timeout` around the device probe so the
+classic silent hang becomes a real failure. It never elevates: on an unhealthy
+port it prints the `fix-27015.ps1` command and stops. Exit codes: `2` port,
+`3` no route, `4` no device, `5` sync, else xtool's own.
+
+The steps it automates, for when you are doing it by hand:
 
 1. Phone plugged in, unlocked, trusted. Pairing record:
    `C:\ProgramData\Apple\Lockdown\<UDID>.plist`
 2. `127.0.0.1:27015` held by `AppleMobileDeviceProcess` (see above)
 3. rsync the WSL mirror — see [WSL mirror goes stale](#the-wsl-mirror-goes-stale)
-4. `wsl -d xtool-ubuntu -- bash -lc "cd /root/projects/vinodex-native && xtool dev run"`
+4. `wsl -d xtool-ubuntu -- bash -lc "cd /root/projects/vinodex-ios && USBMUXD_SOCKET_ADDRESS=172.20.80.1:27015 xtool dev run"`
 
 Signed with a free profile, so **builds expire after 7 days.**
+
+> Both `scripts/*.ps1` here are **ASCII only** on purpose. Windows PowerShell
+> 5.1 reads script files as ANSI, so a UTF-8 em-dash inside a string is a
+> parser error — and the cascade it produces points at unrelated lines.
 
 ---
 
@@ -279,6 +476,46 @@ own tests. Pure data queries belong in `VinodexCore/WineDatabase.swift`.
 `VinodexUI` and `VinodexApp` have **zero** test coverage; UI work is verified
 visually only.
 
+### `.contentShape` outside `.offset` moves the hit region back
+
+Cost three batches (0.7.0 → 0.7.2). Stamps on the back plate were completely
+undraggable *and* untappable, and two attempts to fix it tuned the long-press
+duration instead.
+
+```swift
+.frame(width: w, height: h)
+.offset(x: at.x, y: at.y)
+.contentShape(Rectangle())   // WRONG — hit region stays at the layout frame
+.gesture(…)                  // never receives a touch
+```
+
+**`.offset` is a render-time translation; it does not change layout.** In a
+`ZStack(alignment: .topLeading)` every child's layout frame is the same box in
+the corner, and only the drawing moves. `.contentShape` applied *outside* the
+offset therefore defines its rectangle in the un-offset space — and it does not
+merely describe a hit region, it **replaces** the subtree's. Six stamps ended up
+sharing one touch target stacked in the plate's top-left corner while every
+stamp on screen was inert.
+
+Put `.contentShape` immediately after `.frame`, inside the offset, so the offset
+carries the hit region along with the pixels.
+
+**The diagnostic lesson is the more general one: a threshold change that alters
+nothing is evidence the event never arrived.** 0.7.1 shortened the hold from
+0.35s to 0.25s and reported no improvement, which should have been read as "no
+touch is reaching this recogniser" rather than "0.25 is still too long". A dead
+gesture and a mistuned one look identical from the outside; the cheap
+discriminator is to check whether a *different* gesture on the same view still
+works. Taps on those stamps had been dead the whole time and nobody had tried.
+
+Second, latent trap in the same chain: **`.gesture(_:)` attaches with *lower*
+precedence than gestures already declared on the view.** A `.gesture(longPress
+→ drag)` sitting below an `.onTapGesture` is the losing side of an exclusive
+pair, and SwiftUI's `TapGesture` has no maximum duration, so a deliberate
+press-and-hold-and-release reads as a tap. Use `.highPriorityGesture` when a
+hold must get first refusal, or `.simultaneousGesture` when both should survive
+(`MarqueeDrawer`'s hold-to-pin).
+
 ### A renamed repo poisons the Actions `.build` cache
 
 Symptom, on every file in the module, for a branch that tests green locally:
@@ -333,15 +570,32 @@ let allNumeric = part.allSatisfy(\.isNumber)   // not inside #expect
 ### xtool stamps a fake version into every bundle
 
 xtool 1.17 writes `CFBundleShortVersionString = 1.0.0` and `CFBundleVersion = 1`
-into the built `.app` unconditionally, and **there is no `xtool.yml` key to
-override either** (`version:` in that file is the config-schema version, not the
-app's). So anything reading the bundle for a version gets `1.0.0`.
+into the built `.app` unconditionally. So anything reading the bundle for a
+version gets `1.0.0` unless the build says otherwise.
 
 `AppVersion` therefore keeps a `placeholders` denylist and prefers its own
 constant over those values — without it the back plate reported `v1.0.0` on
 every build ever made, which it silently did until 2026-07-29. **The day this app
 genuinely ships 1.0.0, that denylist has to change or the release under-reports
 itself.** `AppVersionTests` pins the behaviour.
+
+> **Corrected 0.7.2.** This section used to assert that "there is no `xtool.yml`
+> key to override either". That is false of the installed xtool 1.17.0, whose
+> schema is `version, orgID, bundleID, product, infoPath, entitlementsPath,
+> iconPath, resources, extensions[]`. **`infoPath:` is a real Info.plist
+> passthrough**: xtool builds its default dictionary, then shallow-merges the
+> referenced file's top-level keys over it with the file winning. Only four keys
+> are stamped *after* the merge and are therefore genuinely unsettable —
+> `UIRequiredDeviceCapabilities`, `LSRequiresIPhoneOS`,
+> `CFBundleSupportedPlatforms` and `CFBundleIconFile`. `CFBundleShortVersionString`
+> is **not** among them.
+>
+> The repo now has an `Info.plist` (added for LABEL SCAN's camera and photo
+> usage strings, 0.7.2, LR1) wired up through `infoPath:`. The denylist above
+> stays regardless: it is the belt against a build that declares nothing, and
+> stamping the version from two places — this constant and a plist — would be
+> two things to keep in agreement. Verify a merge landed with
+> `plutil -p /root/projects/vinodex-ios/xtool/Vinodex.app/Info.plist` in WSL.
 
 This is also why releases are marked with **annotated git tags** (`v` +
 `AppVersion.fallback`) rather than by a bundle version: git is the only place the

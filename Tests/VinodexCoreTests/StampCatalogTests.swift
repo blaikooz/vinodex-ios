@@ -39,7 +39,7 @@ struct StampCatalogTests {
             )
 
             // Pipeline stems are kebab-case under the stamp- prefix, so the
-            // authored art can drop straight into art/icons/stamps/.
+            // authored art can drop straight into art/icons/chrome/stamps/.
             #expect(
                 stamp.artStem.hasPrefix("stamp-"),
                 "\(stamp.id) art stem '\(stamp.artStem)' misses the stamp- prefix"

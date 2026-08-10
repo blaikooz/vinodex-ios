@@ -88,7 +88,7 @@ public struct ContinentScreen: View {
                 )
             }
         }
-        .animation(.easeOut(duration: 0.15), value: comingSoon)
+        .animation(DexMotion.overlay, value: comingSoon)
     }
 
     // MARK: Hero

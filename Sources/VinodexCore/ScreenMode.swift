@@ -17,6 +17,13 @@ import Foundation
 // declared in `Sources/VinodexUI/Theme/ScreenModes.swift`, now as an
 // extension. That is the split A6 proposed and H11 proved out: the arithmetic and the
 // vocabulary come to Core, the colours stay where `Color` exists.
+//
+// `LcdModeSection` (0.7.0, B1) lands on the same side of that line and for the
+// same reason: a picker heading is a raw string and a *rule* about
+// `LcdMode.allCases`, with no `Color` in it anywhere. So is `section`, so is
+// `themesChrome`. What reads them — the grouped picker, the cartridge join in
+// `Sources/VinodexUI/ExpansionPackMembers.swift`, `chrome(face:shadow:)` — is
+// still UI, which is exactly the arrangement A6 asks for.
 
 /// Chrome scale (v0.5.8, F1) — a second axis, independent of `TextScale`.
 ///
@@ -64,6 +71,49 @@ public enum UIScale: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+/// A heading in the screen-mode picker (0.7.0, B1).
+///
+/// Nine modes in one undifferentiated three-column grid was a wall of tiles
+/// with no argument in it — the picker showed the range without saying what the
+/// range *was*. These three headings are the three things a mode can be: the
+/// app's own themes, a period display technology, and an homage to a specific
+/// machine.
+///
+/// `allCases` order is picker order. Membership is *not* declared here — see
+/// `LcdMode.section` for why the arrow points that way.
+///
+/// Declared in Core, not beside the picker: nothing on it resolves to a
+/// `Color`, and `modes` is a partition rule over `LcdMode.allCases` — the exact
+/// kind of claim arch **A6** moved this file for so that it can be asserted from
+/// `swift test`. The cartridge each section is sold as is a separate join and
+/// stays in `Sources/VinodexUI/ExpansionPackMembers.swift`.
+public enum LcdModeSection: String, CaseIterable, Identifiable, Sendable {
+    /// The house themes: no conceit beyond light and dark.
+    case classic = "CLASSIC"
+    /// Period display hardware — phosphor and reflective LCD, monochrome by
+    /// construction rather than by palette.
+    ///
+    /// **VINTAGE → RETRO (0.7.1, C1.)** The heading and the mode `LcdMode.vintage`
+    /// both read "VINTAGE", so the picker printed a group called VINTAGE with a
+    /// tile called VINTAGE inside it and two other tiles that were not — the
+    /// heading looked like a mislabelled tile. RETRO names the same idea without
+    /// colliding with any mode, and the case is renamed with it because *no
+    /// section is persisted anywhere*: the mode rawValues are the storage, and
+    /// they do not move.
+    case retro = "RETRO"
+    /// Modes that quote one specific machine's screen.
+    case emulator = "EMULATOR"
+
+    public var id: String { rawValue }
+
+    /// The modes under this heading, in `LcdMode.allCases` order.
+    ///
+    /// Derived rather than declared, so every mode appears exactly once across
+    /// the whole picker by construction: this is a partition of `allCases`, not
+    /// three hand-kept lists that have to agree with it.
+    public var modes: [LcdMode] { LcdMode.allCases.filter { $0.section == self } }
+}
+
 /// Whether the LCD renders dark-on-black or the original handheld's dark-on-
 /// light-grey. Independent of `ChassisSkin`: the shell and the screen are
 /// separate choices, and pairing a light screen with the red shell is a
@@ -102,6 +152,19 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// purpose (it persists); the umlaut lives in `displayName`.
     case gruenerBoy = "GRUNER BOY"
 
+    /// Derived, not restated — the literal is `"lcdMode"` and it is written
+    /// down once, in `SavedDataKey` (AUDIT **M35**), because that registry is
+    /// what `SavedDataArchiver` switches over to build an export.
+    ///
+    /// 0.7.3's B1 makes the same argument from the other end and points at
+    /// `DeviceAxis.screen.storageKey`: the shell and the screen hold real
+    /// choices on real installs, so a tidier spelling anywhere would reset every
+    /// device in the field back to a black CLASSIC. Both registries need the key
+    /// for their own reason — M35 to *enumerate* it, `DeviceBuild` to read and
+    /// write it beside nine others — and `AppSettingsTests` and
+    /// `DeviceWorkshopTests` each pin their side to the same string, so the two
+    /// cannot drift apart in silence. `ChassisSkin.storageKey` resolves the same
+    /// way for the same pair of reasons.
     public static let storageKey = SavedDataKey.lcdMode.rawValue
 
     public var id: String { rawValue }
@@ -120,6 +183,34 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
         case .wineOS: "WINE.OS"
         case .starTrek: "L-WINES"
         default: rawValue
+        }
+    }
+
+    /// Which heading this mode sits under in the picker (0.7.0, B1).
+    ///
+    /// An exhaustive switch rather than a table on `LcdModeSection`, and that is
+    /// the whole safety argument: a section list written as
+    /// `[.dark, .light, .wineOS]` somewhere can silently *omit* a mode, and the
+    /// omitted one simply stops appearing in the picker with nothing failing.
+    /// Written this way round the compiler will not build a mode that has no
+    /// home, and `LcdModeSection.modes` derives from `allCases`, so a mode
+    /// cannot be listed twice either.
+    ///
+    /// **Two modes swapped groups in 0.7.1 (C2, C3).** WINE.OS was filed under
+    /// CLASSIC because it is a *light* mode and the light modes lived together;
+    /// but it is an homage to one specific desktop, which is the whole
+    /// definition of EMULATOR, and it left CLASSIC as what that heading always
+    /// meant — light and dark, and nothing else. GRÜNERBOY went the other way:
+    /// it is a reflective dot-matrix LCD running the same grayscale-and-tint
+    /// pass as VINTAGE, AMBER and TERMINAL, so it belongs with the period
+    /// display *hardware* rather than with the machines that merely quote a
+    /// colour scheme. Membership is derived from this switch, so both moves are
+    /// one line each and the picker follows.
+    public var section: LcdModeSection {
+        switch self {
+        case .dark, .light: .classic
+        case .amber, .vintage, .terminal, .gruenerBoy: .retro
+        case .starTrek, .blueScreen, .wineOS: .emulator
         }
     }
 
@@ -153,6 +244,53 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// glowing. Only LIGHT — the other pale modes keep the normal texture
     /// under their own tints.
     public var invertsGlobeTexture: Bool { self == .light }
+
+    // `isSketchPaper` retired with the NOTEBOOK mode itself (0.7.0, C1).
+    //
+    // 0.6.9's M1 shipped the hand-drawn look as two independent halves — a
+    // shell (`ChassisSkin.sketch`, still here, still PÉT-NAT's) and a screen
+    // (this flag, plus `SketchRender.RuledPaper`). C1 removes the screen
+    // mode and B2 keeps the shell, which is the two halves being independent
+    // working exactly as designed: PÉT-NAT is now a drawn shell around an
+    // ordinary gridded LCD, the same way it was always allowed to be a drawn
+    // shell around AMBER.
+    //
+    // `RuledPaper` is deliberately left in `SketchRender.swift` rather than
+    // deleted with its only call site: it is a finished drawing with no
+    // owner, and the decision it is waiting on (whether the paper should
+    // follow the *skin* instead of a mode) is the user's, not this batch's.
+    // Re-mounting it is one `if` in `DexScreenBackground`.
+
+    // `next` retired in 0.7.6 (A1), with `ChassisSkin.next` and
+    // `ChassisLook.next` beside it. All three existed for one caller: the
+    // marquee drawer's NEXT SCREEN and NEXT SKIN tiles (0.7.1, B5), which cycled
+    // the two axes without leaving the screen you were on. The Decision retires
+    // the drawer, and a cycle-to-the-next helper that nothing cycles is exactly
+    // the code-nothing-reaches `MarqueeBanner`'s own D1 note argues against
+    // keeping. Both pickers still choose either axis directly.
+
+    // MARK: Themed chrome (0.7.1, C5)
+
+    /// Whether this mode repaints the LCD's coloured controls in its own
+    /// palette.
+    ///
+    /// True for the EMULATOR group only, and the group is the argument. CLASSIC
+    /// is the app being itself — DARK and LIGHT are supposed to show the house
+    /// colours, and a green BLIND TASTING tile beside a purple WINE EXAM tile is
+    /// the design, not a leak. RETRO already has a stronger mechanism: those
+    /// four modes run the chassis's grayscale-and-tint pass over the entire LCD
+    /// (`DeviceChassis`), so their tiles are *already* one palette and tinting
+    /// the source colours first would only change which greys came out.
+    ///
+    /// That leaves EMULATOR, where every mode quotes a specific machine in full
+    /// colour and nothing was making the chrome agree with it. L-WINES is a
+    /// black-glass console with amber readouts that had six saturated Tailwind
+    /// tiles bolted to it.
+    ///
+    /// The blend itself is `chrome(face:shadow:)` in
+    /// `Sources/VinodexUI/Theme/ScreenModes.swift` — it returns `Color`, so it
+    /// cannot live here. This is the *rule* it consults, which can.
+    public var themesChrome: Bool { section == .emulator }
 
     /// Via `SettingsCache` — see the note there (AUDIT **L16**).
     public static var current: LcdMode {

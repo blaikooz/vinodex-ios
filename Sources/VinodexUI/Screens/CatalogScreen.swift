@@ -111,10 +111,10 @@ struct CatalogScreen: View {
             chipRow("RARITY", db.palette.rarityChips)
             chipRow("CLIMATE", Dictionary(uniqueKeysWithValues: db.palette.climates.map { ($0.key, $0.value.colors) }))
             chipRow("STYLE CLASS", db.palette.styleClassChips)
-            chipRow("FLAVOR CLASS", db.palette.flavorClassChips)
+            chipRow("FLAVOR", db.palette.flavorClassChips)
             chipRow("COLOR TYPE", db.palette.colorTypeChips)
             chipRow("COUNTRY", db.palette.countryChips)
-            chipRow("SUBCLASS", db.palette.flavorSubclassChips)
+            chipRow("FAMILY", db.palette.flavorSubclassChips)
         }
     }
 
@@ -284,14 +284,21 @@ struct StatBar: View {
 
     var body: some View {
         HStack(spacing: 12) {
+            // The last unguarded fixed-width `DexFont` label in the app
+            // (0.7.1, A4): AROMATICS sat at 92.2pt inside a hard 96pt box at
+            // the old 1.15 ceiling, and survived only because VT323 advances
+            // 0.4 em where the retro face advances a full one — one longer
+            // stat name would character-break it against an 8pt bar and
+            // misalign the whole block. The well is derived from the type now
+            // rather than pinned beside it (AUDIT **M49**), so HUGE widens it
+            // to 102.4pt instead of clipping, and `lineLimit` +
+            // `minimumScaleFactor` are the backstop for a label longer than
+            // any shipped today — without them an over-long stat name is
+            // silently truncated by the frame rather than shrunk.
             Text(label)
                 .font(DexFont.mono(CGFloat(Self.labelSize)))
                 .foregroundStyle(lcd.text)
                 .tracking(1.5)
-                // Derived from the type, not pinned beside it. `lineLimit` and
-                // `minimumScaleFactor` are the backstop for a label longer than
-                // any shipped today — without them an over-long stat name is
-                // silently truncated by the frame rather than shrunk.
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
                 .frame(width: Self.labelWidth, alignment: .leading)
@@ -318,8 +325,20 @@ struct StatBar: View {
 /// galleries need one.
 struct FlowLayout: Layout {
     var spacing: CGFloat = 6
+    /// Where a short row sits in its bounds (0.8.1, C3).
+    ///
+    /// Leading by default, because that is what every chip row in the app has
+    /// always done and a centred chip row would be a change nobody asked for.
+    /// The lineage tree asks for `.center`, and needs it to be true rather than
+    /// approximately true: its connector lines are drawn to computed tile
+    /// centres, and a left-packed row of two put the tiles somewhere the
+    /// arithmetic could not name.
+    var alignment: HorizontalAlignment = .leading
 
-    init(spacing: CGFloat = 6) { self.spacing = spacing }
+    init(spacing: CGFloat = 6, alignment: HorizontalAlignment = .leading) {
+        self.spacing = spacing
+        self.alignment = alignment
+    }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let maxWidth = proposal.width ?? .infinity
@@ -342,14 +361,12 @@ struct FlowLayout: Layout {
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var x = bounds.minX, y = bounds.minY, rowHeight: CGFloat = 0
-        for view in subviews {
+        // Rows are gathered before they are placed, because centring a row
+        // needs its total width and that is not known until the row has ended.
+        var rows: [[(index: Int, size: CGSize)]] = [[]]
+        var x: CGFloat = 0
+        for (index, view) in subviews.enumerated() {
             var size = view.sizeThatFits(.unspecified)
-            if x + size.width > bounds.maxX, x > bounds.minX {
-                x = bounds.minX
-                y += rowHeight + spacing
-                rowHeight = 0
-            }
             // A chip wider than the whole container cannot be broken onto a
             // row of its own — it *is* the row — so it was placed at its
             // natural width and ran off the edge, where `DeviceChassis`'s
@@ -357,11 +374,35 @@ struct FlowLayout: Layout {
             // **M49**). Proposing the container width instead makes the chip
             // shrink or wrap in the only direction there is room to. This is
             // reachable today at a large text step: chip labels are unbounded
-            // strings from the data.
+            // strings from the data. Clamping during the gathering pass is
+            // what carries it through both later readings of the size — the
+            // row width the centring arithmetic sums, and the proposal each
+            // subview is finally placed with.
             size.width = min(size.width, bounds.width)
-            view.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+            if x + size.width > bounds.width, x > 0 {
+                rows.append([])
+                x = 0
+            }
+            rows[rows.count - 1].append((index, size))
             x += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
+        }
+
+        var y = bounds.minY
+        for row in rows where !row.isEmpty {
+            let width = row.reduce(0) { $0 + $1.size.width } + spacing * CGFloat(row.count - 1)
+            var cursor = alignment == .center
+                ? bounds.minX + (bounds.width - width) / 2
+                : bounds.minX
+            var rowHeight: CGFloat = 0
+            for item in row {
+                subviews[item.index].place(
+                    at: CGPoint(x: cursor, y: y),
+                    proposal: ProposedViewSize(item.size)
+                )
+                cursor += item.size.width + spacing
+                rowHeight = max(rowHeight, item.size.height)
+            }
+            y += rowHeight + spacing
         }
     }
 }

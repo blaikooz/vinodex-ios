@@ -100,6 +100,7 @@ public extension EntryFilter {
         case .rarity(let value): "rarity:" + value.rawValue
         case .system(let value): "system:" + value
         case .climate(let value): "climate:" + value.rawValue
+        case .styleColor(let value): "styleColor:" + value.rawValue
         }
     }
 }

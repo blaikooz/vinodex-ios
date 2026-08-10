@@ -166,10 +166,19 @@ struct DexRouteTests {
         EntryCategory.allCases.map { .list(category: $0, filter: nil) }
         + SettingsSection.allCases.map { .settingsSection($0) }
         + [
-            .masterSearch, .detail(entryID: "G001"), .globe, .globeSearch, .bookmarks,
+            .detail(entryID: "G001"), .globe, .globeSearch, .bookmarks,
             .country(name: "France"), .state(name: "California"), .dailyGrape, .scanner,
             .moonDial, .settings, .minigames, .chipFilter, .wsetQuiz, .dailyChallenge,
             .passport, .walkthrough, .continent(entryID: "CONT_EUROPE"),
+            // `.masterSearch` left the enum with 0.7.1 (A1); `.chipFilter`
+            // above is the heir and carries the title it used to.
+            //
+            // The seven below arrived with the same range of releases and had
+            // never been walked — which is the one failure this list exists to
+            // catch, since an exhaustive switch is satisfied by an empty
+            // string. Every route the enum declares belongs here.
+            .labelReader, .stampCollection, .firmwareHistory, .cheatConsole,
+            .deviceWorkshop, .lineage(entryID: "G001"), .pack(id: "starter"),
         ]
 
     @Test("every category has its own marquee glyph")

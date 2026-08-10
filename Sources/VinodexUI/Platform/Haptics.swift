@@ -26,12 +26,20 @@ public enum Haptics {
         SettingsCache.bool(forKey: storageKey) ?? SettingsDefault.hapticsEnabled
     }
 
+    /// **The chassis's own buttons, and nothing else** (0.6.8, J2).
+    ///
     /// Call slightly before the visual response so the tap feels causal.
     ///
     /// The sound rides along here — before this system's own guard, because
     /// the two toggles are independent and muting the buzz must not mute the
-    /// click. This is also what gives every one of the ~55 call sites a
-    /// voice without any of them changing.
+    /// click.
+    ///
+    /// J2 makes the *scope* the point: Button Tap is the noise a moulded cap
+    /// makes, so it belongs to the four caps in the footer, the orb, and the
+    /// engraved arrow on the back plate — the parts you would hear if the
+    /// device were real. Roughly twenty on-LCD call sites were using it too,
+    /// which meant a tile on a glass screen clicked like a physical switch;
+    /// those are `screenTap()` now.
     public static func tap() {
         Sounds.tap()
         guard enabled else { return }
@@ -39,6 +47,57 @@ public enum Haptics {
         impact.impactOccurred()
     }
 
+    /// A firm press on the **LCD** (0.6.8, J1): the warm ping's voice with the
+    /// rigid impact `tap()` gives.
+    ///
+    /// Two systems, not one. J1 is about sound — everything the finger does to
+    /// the display gets Warm Ping — and the ~20 sites this replaces were on
+    /// `tap()` because they wanted the *feel* of a decisive press (a menu tile,
+    /// a primary action, a quiz answer) rather than the softer selection tick.
+    /// Collapsing them into `select()` would have satisfied J1 by quietly
+    /// throwing that distinction away, so the haptic stays and only the voice
+    /// changes.
+    public static func screenTap() {
+        Sounds.select()
+        guard enabled else { return }
+        impact.prepare()
+        impact.impactOccurred()
+    }
+
+    /// **An exam answer** (0.6.9, G1): the result sting, and nothing else.
+    ///
+    /// G1 is a conflict 0.6.8 created. J1 moved ~21 on-LCD sites onto Warm
+    /// Ping, and the quiz's answer taps were among them — so from 0.6.8
+    /// answering played Warm Ping *and* Correct Answer (or Warm Ping and
+    /// Incorrect Answer), two authored stings a few milliseconds apart on the
+    /// one moment in the app that most needs a single unambiguous voice.
+    ///
+    /// The fix is a third entry point rather than a `silent:` flag on the two
+    /// existing ones, because the rule this states is not "sometimes skip the
+    /// ping" — it is that an answer *has* its own sound, so the generic
+    /// touch sound does not apply. J1's rule is unchanged everywhere else: the
+    /// rest of the quiz screen (BEGIN, NEXT, RETRY) still pings, because those
+    /// are ordinary presses on the LCD.
+    ///
+    /// **The buzz is the outcome too, since AUDIT L38.** G1 split the haptic a
+    /// rigid impact for right and a selection tick for wrong, which keeps the
+    /// two answers apart but says the wrong thing about both: the impact is the
+    /// same tap ~78 other call sites fire, so it reads as "you pressed
+    /// something" on the one moment in the app where the *outcome* is the
+    /// message. `UINotificationFeedbackGenerator` is the pattern a hand already
+    /// reads without being taught, and every caller of this method — a quiz
+    /// answer, an exam answer, a stamp coming loose — is an outcome. G1's rule
+    /// is untouched: one authored sound per answer, still exactly two voices.
+    ///
+    /// Muting sounds must not mute the buzz, so the sting is played ahead of
+    /// this system's own guard, exactly as `tap()` does.
+    public static func answer(correct: Bool) {
+        if correct { Sounds.correct() } else { Sounds.wrong() }
+        guard enabled else { return }
+        if correct { success() } else { warning() }
+    }
+
+    /// The lighter on-LCD touch: selection tick, warm ping.
     public static func select() {
         Sounds.select()
         guard enabled else { return }

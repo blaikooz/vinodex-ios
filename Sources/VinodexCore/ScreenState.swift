@@ -167,6 +167,10 @@ public final class ScreenStateStore {
     public static func state(_ name: String) -> String { "state:" + name }
     public static func detail(_ entryID: String) -> String { "detail:" + entryID }
     public static func continent(_ entryID: String) -> String { "continent:" + entryID }
+    /// One grape's pedigree tree (0.7.5, E1). Its own prefix rather than
+    /// `detail`'s: walking up a tree and coming back must land you where you
+    /// were on *the tree*, not where you were on the scan behind it.
+    public static func lineage(_ entryID: String) -> String { "lineage:" + entryID }
     /// One instance each — unlike the countries and entries, there is only ever
     /// one saved list, one questionnaire, one reveal and one globe.
     public static let bookmarks = "bookmarks"
@@ -176,6 +180,17 @@ public final class ScreenStateStore {
     public static let chipFilter = "chipFilter"
     public static let wsetQuiz = "wsetQuiz"
     public static let dailyChallenge = "dailyChallenge"
+    /// The label reader's last result (0.7.2, LR1). The reading is a structure,
+    /// so it round-trips through `encode(_:_:for:)` like the scanner's criteria
+    /// do — and for the same reason: opening a suggested grape from the results
+    /// tears this screen down, and coming back to the camera instead of to the
+    /// result you were reading would make the Back button feel broken.
+    public static let labelReader = "labelReader"
+    /// The device workshop (0.7.3, B1). Nine sections deep, and every part
+    /// choice raises an overlay or repaints the schematic at the top — without
+    /// an anchor, fitting a grille pattern from the sixth section would bounce
+    /// the page back to the preview.
+    public static let deviceWorkshop = "deviceWorkshop"
     /// The settings panels are one screen per section, so they key like the
     /// countries do rather than sharing a scroll position between DATA and DEV.
     public static func settings(_ section: String) -> String { "settings:" + section }

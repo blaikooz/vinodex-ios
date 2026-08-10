@@ -14,6 +14,15 @@ import VinodexCore
 // This is the same split **H11** made for `TextScale`: the arithmetic went to
 // Core and `DexFont` kept the `Font`. The file itself was split out of
 // DexTheme.swift by AUDIT **M30**; nothing in either move changed a value.
+//
+// **Where the line falls for the two rules that are not colours.**
+// `themesChrome` (0.7.1, C5) is a claim about `section` with no `Color` in it,
+// so it is in Core with the rest of the vocabulary. `honorsFontInk` (0.7.3, B1)
+// reads as though it belongs beside it — it is a `Bool` — but it is *derived
+// from* `monochromeTint`, which is a `Color?`, and that derivation is the whole
+// point of it (see the note there). Deriving it in Core would mean restating
+// the four monochrome modes as a list, which is exactly what upstream wrote it
+// this way round to avoid. So it stays here, and `accepts(_:)` with it.
 
 // Internal, not `public`: `controlAccent` returns `ChassisAccent`, which is a
 // UI-only type, and the enum itself was internal before A6 moved it — nothing
@@ -50,9 +59,89 @@ extension LcdMode {
         }
     }
 
+    // MARK: The font axis (0.7.3, B1)
+
+    /// Whether a chosen font colour survives this mode.
+    ///
+    /// **It cannot on the four monochrome modes.** VINTAGE, AMBER, TERMINAL and
+    /// GRÜNERBOY are not colour schemes — they are a `grayscale(1)` and a
+    /// `colorMultiply(tint)` over the whole LCD (see `DeviceChassis.innerBezel`),
+    /// which is exactly what collapses their tokens to one phosphor. A chosen ink
+    /// pushed through that pass arrives as a *lightness* change of the mode's own
+    /// tint: pick COBALT on AMBER and you get slightly darker amber. Rather than
+    /// ship a control that silently does almost nothing, the axis declares itself
+    /// inapplicable and the workshop's FONT row says so on its face.
+    ///
+    /// Derived from `monochromeTint` rather than listed, so a tenth mode arriving
+    /// with a tint is covered by having a tint, not by being remembered here.
+    /// That derivation is also why this `Bool` did not follow `themesChrome` to
+    /// Core — see the note at the top of the file.
+    var honorsFontInk: Bool { monochromeTint == nil }
+
+    /// Whether this mode will actually draw in a chosen ink.
+    ///
+    /// Two reasons it will not, and they are different in kind: the mode may
+    /// collapse every hue to one phosphor (`honorsFontInk`), or the ink may be
+    /// the wrong side of this mode's ground to read as text at all
+    /// (`PartColor.readsAsInk(onLightGround:)`). Both answer here, because a
+    /// caller only ever wants the one question — *will this show up* — and the
+    /// second reason has a property the first does not: it can become true after
+    /// the fact, when somebody picks an ink on a dark screen and then changes to
+    /// a pale one. A filter in the picker could not have caught that; refusing at
+    /// the point of use can, and does.
+    func accepts(_ ink: PartColor) -> Bool {
+        honorsFontInk && ink.readsAsInk(onLightGround: isLight)
+    }
+
+    /// The player's chosen text ink, or nil to use this mode's own.
+    ///
+    /// Read from defaults rather than through `@AppStorage`, because this is
+    /// consulted from a computed property on an enum that thirty screens hold as
+    /// a value — there is nowhere to put a property wrapper. That has one
+    /// consequence worth stating: a change here does not invalidate any SwiftUI
+    /// view on its own, which is why `RootView` keys the whole chassis on this
+    /// axis. See the note there.
+    ///
+    /// Through `SettingsCache` rather than `UserDefaults.standard` directly
+    /// (AUDIT **L16**), which is the same call `LcdMode.current` makes and for a
+    /// sharper version of the same reason: `text`, `bodyText` and `subtext` are
+    /// the three most-read tokens in the app — roughly three hundred call sites
+    /// between them, every one of them per render — so a raw `string(forKey:)`
+    /// here is a defaults hit on the hottest path there is. The cache invalidates
+    /// on `UserDefaults.didChangeNotification`, so the workshop's write still
+    /// lands; the fast path is a dictionary miss returning nil, which is what
+    /// every device that has not opened the workshop takes.
+    private var fontInk: Color? {
+        guard
+            let raw = SettingsCache.string(forKey: DeviceAxis.font.storageKey),
+            let part = PartColor(rawValue: raw),
+            accepts(part)
+        else { return nil }
+        return part.color
+    }
+
     /// Primary text on that ground. VINOFD's is deliberately *not* white:
     /// the light-blue glow is what says vacuum-fluorescent rather than BSOD.
+    ///
+    /// **Three tokens, one choice** (0.7.3, B1). A mode declares a primary ink, a
+    /// body ink and a muted one; a chosen font colour replaces all three, as the
+    /// same colour at three weights. Overriding only `text` would leave every
+    /// INFO block and every caption in the previous mode's colour, which reads as
+    /// a half-applied theme rather than as a font choice — and letting the player
+    /// choose three inks separately is three axes, not the one the spec asks for.
     var text: Color {
+        fontInk ?? modeText
+    }
+
+    /// This mode's own ink, with any chosen font colour ignored (0.7.3, B1).
+    ///
+    /// The workshop's FOLLOW swatch has to show what *unsetting* the font axis
+    /// would give, and `text` cannot answer that because `text` is the axis —
+    /// asking it while a colour is chosen returns the chosen colour, so the
+    /// "leave this to the screen" chip would preview the thing it undoes.
+    var ownInk: Color { modeText }
+
+    private var modeText: Color {
         switch self {
         case .dark, .amber, .terminal: .white
         case .light: Color(dexHex: "#1F1F1C")
@@ -83,7 +172,17 @@ extension LcdMode {
     }
 
     /// Body copy inside INFO blocks — mint on black, near-black on paper.
+    ///
+    /// 0.86 of the chosen ink when the font axis is set: body copy sits one
+    /// register below a heading in every mode's own table (`#bbf7d0` under white
+    /// on DARK), and an opacity step is the only way to reproduce that from a
+    /// single colour without a second authored value per palette entry.
     var bodyText: Color {
+        if let fontInk { return fontInk.opacity(0.86) }
+        return modeBodyText
+    }
+
+    private var modeBodyText: Color {
         switch self {
         case .dark, .amber, .terminal: Color(dexHex: "#bbf7d0")
         case .light: Color(dexHex: "#23342A")
@@ -171,7 +270,16 @@ extension LcdMode {
     }
 
     /// Secondary text — captions, counts, placeholders.
+    ///
+    /// 0.62 of the chosen ink when the font axis is set, one register below
+    /// `bodyText`'s 0.86 — see the note there for why an opacity step rather
+    /// than a second authored value.
     var subtext: Color {
+        if let fontInk { return fontInk.opacity(0.62) }
+        return modeSubtext
+    }
+
+    private var modeSubtext: Color {
         switch self {
         case .dark, .amber, .terminal: Dex.stone400
         case .light: Color(dexHex: "#5A5A54")
@@ -332,6 +440,61 @@ extension LcdMode {
         case .starTrek: Color(dexHex: "#C983E8")
         case .gruenerBoy: Color(dexHex: "#C2CE9A")
         }
+    }
+
+    // MARK: Themed chrome (0.7.1, C5)
+    //
+    // The *rule* — `themesChrome`, "does this mode repaint the LCD's coloured
+    // controls in its own palette" — is in Core with `section`, which it is
+    // one line of. These two are the blend it authorises, and they return
+    // `Color`, so they are here.
+
+    /// A coloured control's face and shadow under this screen mode (0.7.1, C5).
+    ///
+    /// Call sites keep passing the hand-picked hex pair they always passed;
+    /// under an Emulator mode this folds it toward that mode's own ramp and
+    /// hands back the result. **The blend, not a replacement**, and that is the
+    /// legibility half of C5: replacing the literals would make all six tools
+    /// tiles the same colour and destroy the only thing telling them apart at a
+    /// glance, so the original hue survives at 40% and the mode's `bright`
+    /// supplies the other 60%. Six distinguishable tiles that are recognisably
+    /// one machine's palette, rather than six identical ones or six that ignore
+    /// the machine.
+    ///
+    /// Contrast is not left to the blend. The ink a caller draws on top is
+    /// `chromeInk(over:)`, which picks black or white by the *blended* face's
+    /// luminance rather than by the literal that went in — the two can land on
+    /// opposite sides of the line, which is exactly how a themed control ends up
+    /// with unreadable text.
+    ///
+    /// Non-Emulator modes get `Color(dexHex:)` on the untouched strings, so this
+    /// is a no-op everywhere it should be one.
+    func chrome(face: String, shadow: String) -> (face: Color, shadow: Color) {
+        guard themesChrome else {
+            return (Color(dexHex: face), Color(dexHex: shadow))
+        }
+        let ramp = controlAccent
+        return (
+            DexRGB(hex: face).mixed(with: ramp.brightRGB, amount: 0.6).color,
+            DexRGB(hex: shadow).mixed(with: ramp.edgeRGB, amount: 0.6).color
+        )
+    }
+
+    /// The ink to draw over a face this mode produced.
+    ///
+    /// Callers pass the *literal* they would have used, and the face string they
+    /// gave `chrome(face:shadow:)`; on a non-Emulator mode the preference is
+    /// honoured untouched, because the existing tiles were hand-checked (the
+    /// tools shelf's note on why the yellow and cyan faces deepened a step to
+    /// keep white on them is exactly that work, and it should not be redone by a
+    /// formula). On an Emulator mode the face has moved, so the preference is
+    /// re-derived from where it moved to.
+    func chromeInk(over face: String, preferring preferred: Color) -> Color {
+        guard themesChrome else { return preferred }
+        let blended = DexRGB(hex: face).mixed(with: controlAccent.brightRGB, amount: 0.6)
+        // 0.55 rather than 0.5: white-on-mid reads worse than black-on-mid at
+        // the 13pt retro face these labels use, so the tie goes to dark ink.
+        return blended.luminance > 0.55 ? controlAccent.ink : .white
     }
 }
 #endif

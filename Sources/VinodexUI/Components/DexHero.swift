@@ -42,12 +42,30 @@ struct DexHero<Portrait: View, Actions: View>: View {
         VStack(spacing: 14) {
             portrait
 
-            Text(title.uppercased())
+            // **Inset back off the bezel** (0.7.1, A4 — ported into `DexHero`
+            // on integration, where the inline copies of this used to live).
+            // The `.padding(.horizontal, -14)` below cancels the scroll
+            // content margin so the wash goes full-bleed, which is deliberate
+            // and correct — but the title rode along with it and had *zero*
+            // horizontal inset, so its line box was the whole LCD and the hard
+            // 4pt shadow sat against the moulding. At the HUGE step the retro
+            // face fits thirteen characters across, so GEWURZTRAMINER and
+            // NIEDEROSTERREICH broke mid-glyph — Press Start 2P has no
+            // hyphenation and these titles, unlike the tile chips, were not
+            // going through `EntryDisplay.hyphenated`. Both halves are fixed:
+            // the inset comes back, and a legal break point exists.
+            //
+            // Fixing it here rather than at each call site is the point of the
+            // component — the screens that used to hand-roll this hero each
+            // carried their own copy, and one of them was always going to miss
+            // the next fix.
+            Text(EntryDisplay.hyphenated(title.uppercased()))
                 .font(DexFont.retro(21))
                 .foregroundStyle(lcd.text)
                 .shadow(color: lcd.accent.opacity(0.55), radius: 0, x: 4, y: 4)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 18)
 
             actions
         }

@@ -129,6 +129,11 @@ struct AccessTests {
 
     /// The edge case the single boolean could never express: one bundle owned,
     /// everything else still shut.
+    ///
+    /// **Still asserted after 0.8.3 (D) retired this bundle**, and that is the
+    /// point of the test now: `.flavors` is off the shop and must go on opening
+    /// exactly what it always opened for everybody who bought it. See
+    /// `Entitlement.isRetired`.
     @Test("the flavors bundle opens flavors and nothing else")
     func flavorsBundleIsNarrow() {
         let store = makeStore()
@@ -150,7 +155,8 @@ struct AccessTests {
     }
 
     /// A country bundle covers grapes, regions and styles from that country,
-    /// and must not leak into its neighbours.
+    /// and must not leak into its neighbours. Retired in 0.8.3 (D) and still
+    /// covering, for the reason above.
     @Test("a country bundle opens only that country")
     func countryBundleIsNarrow() {
         let store = makeStore()
@@ -256,32 +262,135 @@ struct AccessTests {
     }
 
     /// The ids are the persisted vocabulary, so they have to round-trip exactly.
+    ///
+    /// Extended in 0.7.3 (F1) with the three cases the later sub-batches read:
+    /// an expansion pack, the workshop, and an easter egg. All three are stored
+    /// in the same set as a purchase, which is the point — see `Entitlement`.
+    /// `.lineage` joined them in 0.7.5 (E1).
     @Test("every entitlement round-trips through its id")
     func entitlementIDsRoundTrip() {
-        let all: [Entitlement] = [.pro, .flavors, .skins, .lightMode, .country("New Zealand")]
+        let all: [Entitlement] = [
+            .pro, .flavors, .skins, .lightMode, .country("New Zealand"),
+            .expansion("champagne"), .workshop, .lineage, .easterEgg("verboseBoot"),
+        ]
         for entitlement in all {
             #expect(Entitlement(id: entitlement.id) == entitlement, "\(entitlement.id) did not round-trip")
         }
         #expect(Entitlement(id: "nonsense") == nil)
+        // Every namespaced form rejects an empty name rather than minting an
+        // entitlement nobody can name.
         #expect(Entitlement(id: "country:") == nil)
+        #expect(Entitlement(id: "pack:") == nil)
+        #expect(Entitlement(id: "egg:") == nil)
     }
 
-    /// The prompt should offer the bundle that actually covers what you tapped,
-    /// not Pro for everything.
-    @Test("the offer for a locked entry covers it")
-    func offerCoversTheEntry() throws {
+    /// The id namespaces have to stay disjoint, or one kind of unlock decodes as
+    /// another and grants the wrong thing.
+    @Test("the id namespaces do not collide")
+    func namespacesAreDisjoint() {
+        let ids: [Entitlement] = [
+            .country("Chablis"), .expansion("Chablis"), .easterEgg("Chablis"),
+        ]
+        #expect(Set(ids.map(\.id)).count == ids.count)
+        for entitlement in ids {
+            #expect(Entitlement(id: entitlement.id) == entitlement)
+        }
+    }
+
+    /// **The anti-orphan gate (0.8.3, D).**
+    ///
+    /// This used to read "the prompt should offer the bundle that actually
+    /// covers what you tapped, not Pro for everything", and checked only the
+    /// covering half. D removes four things from the shop, and the failure it
+    /// is written against is the one a coverage-only check cannot see: an entry
+    /// gated behind a bundle that still covers it perfectly well and that
+    /// nothing sells any more. That entry is unreachable, and every assertion
+    /// in the old version of this test would have passed.
+    ///
+    /// So both halves are asserted, over **every** entry rather than only the
+    /// locked ones — an entry that is free today can stop being free when a
+    /// data batch moves its rarity, and the offer for it has to be sound before
+    /// that happens rather than after. This is what makes retiring a bundle a
+    /// checkable act: take `.pro` off the shelf without a replacement and this
+    /// fails 446 times.
+    @Test("every entry's offer both covers it and can be bought")
+    func everyEntryHasABuyableOffer() throws {
         let store = makeStore()
         store.starterOnly = true
 
-        let locked = db.entries.filter { store.isLocked($0, in: db) }
-        #expect(!locked.isEmpty)
+        // The precondition the old test asserted, kept: a run where nothing is
+        // locked would pass the loop below vacuously.
+        #expect(!db.entries.filter { store.isLocked($0, in: db) }.isEmpty)
 
-        for entry in locked {
+        for entry in db.entries {
             let offer = Entitlement.offer(for: entry)
             #expect(
                 offer.covers(entry, in: db),
                 "\(entry.name) would be offered \(offer.id), which does not cover it"
             )
+            #expect(
+                !offer.isRetired && store.isPurchasable(offer),
+                "\(entry.name) would be offered \(offer.id), which is not for sale"
+            )
+        }
+    }
+
+    // MARK: Retired bundles (0.8.3, D)
+
+    /// **The migration guarantee.** `country:France` and `flavors` are strings
+    /// in `grantedEntitlements` on shipped devices. D takes both off the shop,
+    /// and the one thing that must not follow is the grant becoming
+    /// unreadable — `LocalEntitlementStore` decodes through
+    /// `Entitlement.init(id:)` and `compactMap`s, so a case that stopped
+    /// parsing would drop a purchase in silence rather than crash, which is
+    /// worse.
+    ///
+    /// Written against the raw stored strings rather than against the enum, so
+    /// it is testing the storage format an old install actually holds.
+    @Test("a grant persisted before 0.8.3 still decodes and still opens its content")
+    func retiredGrantsSurvive() {
+        let name = UUID().uuidString
+        let defaults = UserDefaults(suiteName: name)!
+        defaults.removePersistentDomain(forName: name)
+        defaults.set(
+            ["country:France", "flavors"],
+            forKey: LocalEntitlementStore.storageKey
+        )
+
+        let store = AccessStore(defaults: defaults)
+        #expect(store.granted == [.country("France"), .flavors])
+
+        store.starterOnly = true
+        let french = db.entries.filter { TextNormalize.label($0.origin ?? "") == "france" }
+        #expect(!french.isEmpty)
+        for entry in french {
+            #expect(!store.isLocked(entry, in: db), "\(entry.name) locked despite a stored France grant")
+        }
+        for entry in db.entries(in: .flavors) {
+            #expect(!store.isLocked(entry, in: db), "\(entry.name) locked despite a stored flavors grant")
+        }
+    }
+
+    /// Retired means unsellable, and unsellable has to be true of the *store*
+    /// rather than of the one view that draws a shelf — a second surface listing
+    /// products is how a retired row comes back.
+    @Test("retired bundles cannot be bought, and nothing else is retired")
+    func retiredBundlesAreNotForSale() async {
+        let store = makeStore()
+
+        for retired: Entitlement in [.flavors, .country("France"), .country("Italy"), .country("Spain")] {
+            #expect(retired.isRetired)
+            #expect(!store.isPurchasable(retired))
+            let outcome = await store.purchase(retired)
+            #expect(outcome == .unavailable, "\(retired.id) was sold after being retired")
+        }
+        #expect(store.granted.isEmpty)
+
+        // The other side of the same fence: retiring a family must not have
+        // caught anything that is still on the shelf.
+        for live: Entitlement in [.pro, .skins, .lightMode, .workshop, .lineage, .expansion("old-world")] {
+            #expect(!live.isRetired, "\(live.id) was retired by accident")
+            #expect(store.isPurchasable(live))
         }
     }
 }

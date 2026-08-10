@@ -21,6 +21,17 @@ import {
   type FlavorClass,
 } from './services/entryUtils.ts';
 
+// Re-export individual collections
+export { GRAPES as GRAPES_LEGACY } from './data/grapes.ts';
+export { REGIONS } from './data/regions.ts';
+export { STYLES } from './data/styles.ts';
+export { GRAPE_CARDS } from './data/grapeCards.ts';
+export { CONTINENTS } from './data/continents.ts';
+export { COUNTRIES } from './data/countries.ts';
+// Not a wine collection, but the same rule applies: anything the apps read as
+// data is reachable from here (iOS 0.7.3, F3).
+export { FIRMWARE_RELEASES, FIRMWARE_VERSION } from './data/firmware.ts';
+
 const canonicalizeGrapeName = (value: string) =>
   /^syrah\s*\/\s*shiraz$/i.test(value.trim()) ? 'Syrah' : value;
 
@@ -61,7 +72,17 @@ const legacyColorMap: Record<string, LegacyGrapeMeta> =
 
 const GRAPE_ENTRIES: GrapeEntry[] = GRAPE_CARDS.map((card) => {
   const legacy = legacyColorMap[card.id];
-  const bodyClass = getGrapeBodyClass(legacy?.wineType, card.style, LEGACY_GRAPES.find((grape) => grape.id === card.id)?.details.body);
+  // The whole legacy record, hoisted (0.7.5, E). `bodyClass` below already did
+  // this find inline and `lineage` needs the same record, so the second reader
+  // is the one that makes it worth naming rather than scanning 171 records
+  // twice per card.
+  const record = LEGACY_GRAPES.find((grape) => grape.id === card.id);
+  // The authored pedigree (0.7.5, E). `GRAPE_CARDS` does not carry it -- a card
+  // is the stat-bar projection -- so it comes off the legacy record. Passed
+  // through by name because this object is built field by field; see
+  // `GrapeEntry.lineage` for why it is top level rather than in `details`.
+  const lineage = record?.lineage;
+  const bodyClass = getGrapeBodyClass(legacy?.wineType, card.style, record?.details.body);
   const rarityMap: Record<string, RarityLabel> = {
     common: 'COMMON',
     uncommon: 'UNCOMMON',
@@ -90,6 +111,11 @@ const GRAPE_ENTRIES: GrapeEntry[] = GRAPE_CARDS.map((card) => {
     tastingProfile: legacy?.tastingProfile,
     grapeCard: card,
     rarity: rarityMap[card.rarityTier] || 'UNCOMMON',
+    // Omitted entirely when absent rather than written as `undefined`: the
+    // generator's JSON pass would drop it either way, but `vinodex-web`
+    // typechecks this under `exactOptionalPropertyTypes`-adjacent strictness and
+    // an explicit `undefined` reads as "authored blank" rather than "no data".
+    ...(lineage ? { lineage } : {}),
     details: {
       origin: card.countryOfOrigin,
       synonyms: card.alternateNames.map(canonicalizeGrapeName),
@@ -177,6 +203,28 @@ const buildFlavorDescription = (
   return closer ? `${body} — ${closer}.` : `${body}.`;
 };
 
+/**
+ * A flavour's id, derived from its own name rather than from its position.
+ *
+ * This is the fix for a defect that shipped from the beginning until 0.8.9.
+ * The id read `FLAVOR-${idx + 1}` inside a `Map.forEach`, whose callback is
+ * `(value, key, map)` — so `idx` was never an index. It was the lowercased
+ * note, and every id went out as the note with a stray `1` welded on:
+ * `FLAVOR-blackcurrant1`, 37 of the 106 carrying a space.
+ *
+ * The obvious repair — `FLAVOR-1` … `FLAVOR-106` — is the wrong one, and it
+ * is worth writing down why. The other four categories *author* their ids
+ * (`G001`, `R001`, `S001`) in their data files, so those ids never move.
+ * Flavours have no data file: the set is derived from the union of every
+ * grape's tasting notes, in grape-file order. A positional id over a derived
+ * set renumbers whenever a note is added to an early grape or retired from
+ * the set — so it would break saved entries on ordinary catalog growth, which
+ * is a worse failure than the one being fixed. A slug moves only when the
+ * note is renamed, which is a deliberate act.
+ */
+const flavorSlug = (note: string): string =>
+  note.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
 const buildFlavorEntries = (grapeEntries: GrapeEntry[]): FlavorEntry[] => {
   const flavorMap = new Map<string, { note: string; icon: string; color?: string; grapes: string[]; cls: FlavorClass; subclass: string }>();
 
@@ -196,7 +244,9 @@ const buildFlavorEntries = (grapeEntries: GrapeEntry[]): FlavorEntry[] => {
   const flavorEntries: FlavorEntry[] = [];
   const flavorValues = Array.from(flavorMap.values());
 
-  flavorMap.forEach((flavor, idx) => {
+  // Second argument named for what it is. It was called `idx` and read as one,
+  // which is the whole of the id defect above.
+  flavorMap.forEach((flavor, _noteKey) => {
     const clsColors = FLAVOR_CLASS_COLORS[flavor.cls];
     const subclass = flavor.subclass || categorizeFlavorSubclass(flavor.note);
     const subclassLabel = formatSubclassLabel(subclass);
@@ -210,7 +260,7 @@ const buildFlavorEntries = (grapeEntries: GrapeEntry[]): FlavorEntry[] => {
       }));
 
     flavorEntries.push({
-      id: `FLAVOR-${idx + 1}`,
+      id: `FLAVOR-${flavorSlug(flavor.note)}`,
       name: flavor.note,
       description: buildFlavorDescription(flavor.note, flavor.cls, subclassLabel),
       category: 'FLAVORS',

@@ -33,10 +33,24 @@ struct CoverageTests {
         // 0.6 catalog boost (A1): +21 grapes, +38 regions, +3 styles — every
         // cross-reference now resolves; see scripts/find-missing-refs.mjs.
         // 0.6.4 batch 2: +18 grapes, +12 regions (the FR/IT/ES expansion).
-        #expect(db.entries(in: .grapes).count == 146)
-        #expect(db.entries(in: .regions).count == 116)
+        // 0.7.3c: +2 regions, both Brazilian (Serra Gaúcha, Campanha) — added
+        // because the New World expansion pack names Brazil and the catalog had
+        // no such country. No new grapes: all six notable grapes across the two
+        // regions were already here, which is the house rule for a new country.
+        // 0.7.4 grape overhaul: +25 grapes and +6 regions (Ribeiro, Mallorca,
+        // Azores, South West France, San Benito, Itata Valley) — the regions
+        // exist so the new varieties point at a real home rather than the
+        // nearest famous neighbour. Flavours held at 106: all 75 new tasting
+        // notes were drawn from the existing vocabulary on purpose.
+        // 0.7.9 (G): sommbot's P1/P2 data batch. +6 grapes (G173 Sercial, G174
+        // Boal, G175 Malvasia de São Jorge, G176 Gouais Blanc, G177 Plavac
+        // Mali, G178 Manto Negro) and +2 styles (S033 Madeira, S034 Cava).
+        // Regions unchanged at 124 — every new grape had a home already.
+        #expect(db.entries(in: .grapes).count == 177)
+        #expect(db.entries(in: .regions).count == 124)
         // 31 since 0.6.x: Medium-Full Red removed, its grapes now Full-Body.
-        #expect(db.entries(in: .styles).count == 31)
+        // 33 since 0.7.9 (G): Madeira and Cava.
+        #expect(db.entries(in: .styles).count == 33)
         #expect(db.entries(in: .continents).count == 6)
     }
 
@@ -68,10 +82,24 @@ struct CoverageTests {
         // 375 since 0.6.2: the rare-grape push (+27 grapes, +6 regions);
         // 405 since 0.6.4 batch 2: the FR/IT/ES expansion (+18 grapes,
         // +12 regions), flavours again unchanged at 106 by note reuse.
-        #expect(stats.total == 405)
-        // Still 25: every new region originates in France, Italy or Spain, and
-        // the coming-soon gates deliberately have no regions to count.
-        #expect(stats.countries == 25)
+        // 407 since 0.7.3c: Brazil, +2 regions. The first data change since
+        // 0.6.4 batch 2 — 405 stood for eight releases, and is now the last
+        // fixed entry in `waveMilestones`.
+        // 438 since 0.7.4: the grape overhaul (+25 grapes, +6 regions), with
+        // flavours unchanged at 106 for the fourth data batch running.
+        // 446 since 0.7.9 (G): sommbot's P1/P2 batch, +6 grapes and +2 styles.
+        // Flavours unchanged at 106 for the fifth data batch running.
+        #expect(stats.total == 446)
+        // 26 since 0.7.3c: Brazil is the first *new* origin since Mexico. The
+        // count is distinct region origins, so the coming-soon gates still do
+        // not count and adding a country without a region would not move it.
+        //
+        // **Still 26 after 0.7.9's data batch**, and that is the rule working
+        // rather than a coincidence: Blaufränkisch's origin moved to Slovenia
+        // (see `ExpansionPacks.oldWorld`) and Gouais Blanc's is Croatia, but
+        // neither is a *region* origin — Slovenia has no region entry at all,
+        // and Croatia already had one.
+        #expect(stats.countries == 26)
         #expect(stats.categoryLines.count == 6)
     }
 
@@ -153,6 +181,41 @@ struct CoverageTests {
         #expect(!db.palette.styleTones.isEmpty)
     }
 
+    /// **Every chip key an enum can produce must resolve** (0.8.0, K).
+    ///
+    /// A count is not enough and the rosé chip is why. `colorTypeChips` has held
+    /// five rows since it shipped, so `count == 5` was green throughout — but the
+    /// generator probed it with `ROSÉ` while every reader looks up
+    /// `StyleColorType.rose.rawValue`, which is `ROSE`. The table was full, the
+    /// colours were right, and one of the five was unreachable.
+    ///
+    /// So this pins the *join* rather than the size: the vocabulary the app asks
+    /// with, resolved against the table the generator emits. It fails the moment
+    /// a probe list and a rawValue disagree in either direction, which is the
+    /// only shape this fault has ever taken — 0.6.9's I1 was the same join
+    /// broken on the grape colour chip.
+    @Test("every colour-type and style-class rawValue reaches its chip")
+    func chipKeysResolve() {
+        for color in StyleColorType.allCases {
+            #expect(
+                db.palette.colorTypeChips[color.rawValue] != nil,
+                "colorTypeChips has no row for \(color.rawValue) — the chip falls through to neutral stone"
+            )
+        }
+        for cls in StyleClassType.allCases {
+            #expect(
+                db.palette.styleClassChips[cls.rawValue] != nil,
+                "styleClassChips has no row for \(cls.rawValue)"
+            )
+        }
+        for rarity in RarityLabel.allCases {
+            #expect(
+                db.palette.rarityChips[rarity.rawValue] != nil,
+                "rarityChips has no row for \(rarity.rawValue)"
+            )
+        }
+    }
+
     /// Grape stat bars must carry the authored values from `grapeCards.ts`, not
     /// values re-derived from descriptive text. The Rork skeleton invented these
     /// (`aromatics = tastingProfile.count + 2`); this pins the real ones.
@@ -169,6 +232,47 @@ struct CoverageTests {
         #expect(g.grapeCharacteristics.body == 5)
         #expect(g.rarity == .noble)
         #expect(g.grapeBodyClass == "Full")
+    }
+
+    /// **The body bar distinguishes medium-full from full (0.7.5, E).**
+    ///
+    /// `bodyFromText` tested `full` before `medium-full`, and every test in it is
+    /// a substring test — so `'Medium-Full'.includes('full')` was true and the
+    /// 16 grapes authored `"Medium-Full"` drew the same 5/5 bar as the 34
+    /// authored `"Full"`. The identical defect in `levelFromText` cost the
+    /// tannin bar in 0.7.4.
+    ///
+    /// Cabernet Sauvignon above is the only grape whose characteristics were
+    /// pinned anywhere, and it is genuinely `"Full"` — so nothing caught this.
+    /// The distribution is pinned here instead of one more grape, because what
+    /// broke was a *branch*, and a branch is only observable across the set.
+    @Test("the body bar separates Medium-Full from Full")
+    func bodyBarsAreDistinct() throws {
+        var counts: [Int: Int] = [:]
+        for entry in db.entries(in: .grapes) {
+            guard case .grape(let grape) = entry else { continue }
+            counts[Int(grape.grapeCharacteristics.body), default: 0] += 1
+        }
+        // 41 Light, 80 Medium (58 authored `"Medium"` plus 22 `"Light-Medium"`,
+        // which rounds to the same bar), 16 Medium-Full, 34 Full. Moves with a
+        // data batch; say which one when it does. Before the fix the 4 bucket
+        // was empty and the 5 held 50.
+        //
+        // 0.7.9 (G): +1 Light (Gouais Blanc), +1 Medium (Manto Negro), +1
+        // Medium-Full (Boal) and +3 Full (Sercial, Malvasia de São Jorge,
+        // Plavac Mali) from sommbot's P1/P2 batch. **Not in the 0.7.9 spec's
+        // pin list** — it moves with every grape batch by construction, which
+        // is exactly what it is for.
+        #expect(counts == [2: 42, 3: 81, 4: 17, 5: 37])
+
+        // Chardonnay is authored `body: "Medium-Full"` and drew a full bar.
+        // (`grapeBodyClass` still reads "Full" for it — that is a *different*
+        // derivation, `getGrapeBodyClass`, which consults the grape's style
+        // label "Full-Body White" before its authored body. Out of scope here
+        // and parked in PLAN.md.)
+        let chardonnay = try #require(db.entry(named: "Chardonnay"))
+        guard case .grape(let c) = chardonnay else { return }
+        #expect(c.grapeCharacteristics.body == 4, "Medium-Full must not render as Full")
     }
 
     /// Napa is the only region exercising `state` and `synonyms`; if it is ever
@@ -338,6 +442,126 @@ struct CoverageTests {
         }
     }
 
+    /// **Every flavour chip must be a colour somebody chose (0.8.1, F3).**
+    ///
+    /// The FAMILY row had six grey chips — GAME, SAVORY, BREAD, SMOKY, SALTY,
+    /// BRINY — and this was *not* the rosé-chip shape the spec expected. The
+    /// keys matched perfectly at both ends. `getFlavorSubclassChipColors`
+    /// simply had no `case` for those six, and its `default` returns the exact
+    /// triple `Palette.resolve` falls back to, so the generator wrote the
+    /// fallback into the table under a valid key. A lookup that succeeds and a
+    /// lookup that fails were byte-identical on screen and in the JSON.
+    ///
+    /// So the pin is not "does the key resolve" — it did — but "is the answer
+    /// distinguishable from no answer". `MARINE` was the tell: a coloured row
+    /// for an id nothing can produce, sitting beside `BRINY` with none, which
+    /// is what a half-finished rename looks like a year later.
+    @Test("no flavour chip resolves to the neutral fallback")
+    func flavorChipsAreColoured() {
+        let neutral = Palette.Chip(bg: "#1c1917", border: "#57534e", text: "#e7e5e4")
+        let isNeutral: (Palette.Chip) -> Bool = {
+            $0.bg == neutral.bg && $0.border == neutral.border && $0.text == neutral.text
+        }
+        for subclass in db.flavorSubclasses {
+            let chip = db.palette.flavorSubclassChips[subclass]
+            #expect(chip != nil, "flavorSubclassChips has no row for \(subclass)")
+            if let chip {
+                #expect(!isNeutral(chip), "\(subclass) is the neutral fallback wearing a valid key")
+            }
+            let tint = db.palette.flavorSubclassIconColors[subclass]
+            #expect(tint != nil, "no icon tint for \(subclass)")
+            #expect(tint != "#e5e7eb", "\(subclass)'s glyph is the default grey")
+        }
+        for cls in db.flavorClasses {
+            let chip = db.palette.flavorClassChips[cls]
+            #expect(chip != nil, "flavorClassChips has no row for \(cls)")
+            if let chip {
+                #expect(!isNeutral(chip), "\(cls) is the neutral fallback wearing a valid key")
+            }
+        }
+        // Nothing may be emitted for an id the catalog cannot produce: an
+        // unreachable coloured row is how `BRINY` went six releases without one.
+        let known = Set(db.flavorSubclasses)
+        for key in db.palette.flavorSubclassChips.keys {
+            #expect(known.contains(key), "flavorSubclassChips has a row for '\(key)', which no flavour carries")
+        }
+    }
+
+    /// **The colour a style reports on the device must be the colour the shared
+    /// data says (0.8.1, B).**
+    ///
+    /// `EntryDisplay.colorType` is a port of `entryUtils.ts`'s `getColorType`,
+    /// and it had lost the whole `STYLE_NAME_COLOR_OVERRIDES` table — sixteen
+    /// of thirty-three styles answered differently on the phone than in the
+    /// data. Fifteen went to DUAL, which looks like an opinion rather than a
+    /// miss; the sixteenth is why it got reported, because `"prosecco"` has
+    /// `"rose"` inside it and the port matched substrings rather than words.
+    ///
+    /// `palette.styleColorTypes` is the generator writing down the *shared*
+    /// answer for every style so the two ends can be compared. This fails in
+    /// both directions on purpose: a keyword or override added to
+    /// `entryUtils.ts` and not to `EntryDisplay`, or the reverse.
+    @Test("every style's colour type matches the shared derivation")
+    func styleColorTypesMatchShared() {
+        let shared = db.palette.styleColorTypes
+        #expect(!shared.isEmpty, "the generator stopped emitting styleColorTypes")
+        #expect(
+            shared.count == db.entries(in: .styles).count,
+            "styleColorTypes covers \(shared.count) of \(db.entries(in: .styles).count) styles"
+        )
+        for entry in db.entries(in: .styles) {
+            let expected = shared[entry.id]
+            #expect(expected != nil, "no shared colour type emitted for \(entry.name) (\(entry.id))")
+            guard let expected else { continue }
+            let derived = EntryDisplay.colorType(name: entry.name).rawValue
+            #expect(
+                derived == expected,
+                "\(entry.name): shared data says \(expected), the device derives \(derived)"
+            )
+        }
+    }
+
+    /// The symptom that named item B, pinned on its own so a regression reads
+    /// as itself rather than as one line of a thirty-three-row diff.
+    @Test("Prosecco is a white wine, not a rosé")
+    func proseccoIsWhite() throws {
+        #expect(EntryDisplay.colorType(name: "Prosecco") == .white)
+        // The substring that caused it, still present, still not a match.
+        #expect(TextNormalize.label("Prosecco").contains("rose"))
+        #expect(!EntryDisplay.containsWord(TextNormalize.label("Prosecco"), "rose"))
+    }
+
+    /// Every override must be *reachable*: keyed as the normaliser spells the
+    /// name, and consulted before the keyword chain rather than shadowed by it.
+    /// The 0.8.1 port would have passed a table-contents check while returning
+    /// the wrong answer for every row, so this asserts on the function, not on
+    /// the table.
+    ///
+    /// **Seventeen since 0.8.2**, when Madeira joined on sommbot's ruling —
+    /// counted in the title because the number is the only thing here that says
+    /// a row was added rather than edited, and a silent seventeenth row is how
+    /// the sixteenth would have arrived unnoticed.
+    @Test("all seventeen colour overrides resolve, and each names a real style")
+    func colorOverridesResolve() {
+        let styleNames = Set(db.entries(in: .styles).map {
+            TextNormalize.label($0.name).trimmingCharacters(in: .whitespaces)
+        })
+        // The title states a number, so something has to hold it to it. It said
+        // "sixteen" through the whole of 0.8.2's authoring while the table had
+        // seventeen rows, because nothing here ever read the count.
+        #expect(EntryDisplay.colorOverrides.count == 17)
+        for (key, expected) in EntryDisplay.colorOverrides {
+            #expect(
+                EntryDisplay.colorType(name: key) == expected,
+                "override '\(key)' does not survive colorType — expected \(expected.rawValue)"
+            )
+            #expect(
+                styleNames.contains(key),
+                "override '\(key)' names no style in the catalog"
+            )
+        }
+    }
+
     /// Every soil the region screen can show must match a keyword. Falling
     /// through to the default mountain renders, but reads as a bug — six terms
     /// were silently doing exactly that.
@@ -385,5 +609,57 @@ struct CoverageTests {
             == "Denominación de Origen Controlada")
         // Unknown systems pass through rather than rendering empty.
         #expect(EntryDisplay.appellationName(classification: "XYZ", country: "Nowhere") == "XYZ")
+    }
+
+    /// **The gate that was missing (0.7.5, D).**
+    ///
+    /// `icons.countryShapeIcons` is a hand-kept table in the generator, and
+    /// nothing checked it against the catalog. Both consumers resolve region art
+    /// through it by `details.origin`: `EntryVisual.regionVisual` degrades
+    /// quietly to a climate glyph, and `CountryOutlineMap` has no `else` at all
+    /// — its `if let` fails and the country page draws **nothing** where the
+    /// dotted map belongs. Brazil (added in 0.7.3c) and Mexico both shipped that
+    /// way and were found by reading, which is the third silent-missing-asset
+    /// bug in three batches after `icon: "fruit"` (0.7.4) and the two logo
+    /// layers (0.7.5, A5).
+    ///
+    /// It is pinned as an **exact set**, not a `<=`, so it fails in both
+    /// directions and both failures are the right ones:
+    ///
+    /// - a *new* place with regions and no outline fails immediately, at the
+    ///   batch that adds it, rather than four batches later;
+    /// - a place whose outline gets drawn also fails, which is the pleasant
+    ///   failure — it says "delete this from the list and from the generator's
+    ///   `OUTLINE_BACKLOG`".
+    ///
+    /// **The list is empty as of 0.7.9 (E)**, which is the pleasant failure the
+    /// paragraph above predicted: Brazil and Mexico are drawn, the generator's
+    /// `OUTLINE_BACKLOG` is deleted, and this pin becomes "every region's place
+    /// has outline art" with no exceptions at all. The two new silhouettes are
+    /// script-rasterised from authored coordinates rather than hand-drawn — the
+    /// deleted note said that would be visibly not of the set, and that trade is
+    /// recorded in PLAN.md rather than hidden here.
+    ///
+    /// Four countries (UK, Slovenia, Bulgaria, Lebanon) have flag gradients and
+    /// no outline but no regions either, so they are latent rather than live and
+    /// this gate correctly says nothing about them. Slovenia became an *entry
+    /// origin* in 0.7.9 (F) without becoming a region origin, which is exactly
+    /// the distinction this test draws.
+    @Test("every region's place has outline art")
+    func regionsHaveOutlineArt() {
+        var missing = Set<String>()
+        for entry in db.entries(in: .regions) {
+            guard case .region(let r) = entry else { continue }
+            // State first, exactly as `EntryVisual.regionVisual` resolves it.
+            if let state = r.details.state,
+               db.icons.countryShapeIcons[TextNormalize.label(state)] != nil { continue }
+            let origin = r.details.origin.isEmpty ? r.common.name : r.details.origin
+            if db.icons.countryShapeIcons[TextNormalize.label(origin)] != nil { continue }
+            missing.insert(origin)
+        }
+        #expect(
+            missing.isEmpty,
+            "these places have regions but no outline art: \(missing.sorted())"
+        )
     }
 }

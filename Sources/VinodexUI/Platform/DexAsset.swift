@@ -20,30 +20,59 @@ import Foundation
 /// Ordered as the pipeline produces them: rasterised glyphs and flags first
 /// (`scripts/rasterize-icons.sh`), then the drawn art (`art/`, **H12**), then
 /// the four unmanaged trees that no script produces (**R7**).
+/// **Bare directory names, not `Resources/…` paths.** Changed on integration
+/// with `upstream/testing`, and the reason is a device-only failure that no
+/// simulator build shows.
+///
+/// `Package.swift` used to ship `.copy("Resources")`, which put a directory
+/// literally named `Resources` at the root of the bundle. A shallow iOS bundle
+/// shaped that way makes codesign refuse it — *"bundle format unrecognized,
+/// invalid, or unsuitable"* — because it can no longer tell a flat bundle from
+/// a deep macOS-style one. The manifest now copies each *child*, so the wrapper
+/// is gone from the bundle and every `Bundle.module` subdirectory lookup drops
+/// the prefix to match. The source tree is untouched: the importers still write
+/// to `Sources/VinodexUI/Resources/<Dir>`.
+///
+/// **Getting this wrong is silent**, which is why it is worth the note. A stale
+/// `Resources/Icons` simply returns `nil`, and every drawn face degrades to the
+/// SF Symbol it replaced. Nothing throws and nothing logs — the failure looks
+/// like a design choice.
 enum DexAsset: String, CaseIterable, Sendable {
     // Rasterised — scripts/rasterize-icons.sh
-    case icons = "Resources/Icons"
-    case flags = "Resources/Flags"
+    case icons = "Icons"
+    case flags = "Flags"
 
     // Drawn art — art/ importers, verified by `npm run icons:verify`
-    case flavorArt = "Resources/FlavorArt"
-    case grapeArt = "Resources/GrapeArt"
-    case styleArt = "Resources/StyleArt"
+    case flavorArt = "FlavorArt"
+    case grapeArt = "GrapeArt"
+    case styleArt = "StyleArt"
     /// Taxonomy + outline art (v0.5.7): classes, subclasses, colour, body,
     /// climate, soils, style classes and country outlines, reached through
     /// `art:` icon ids — see `DexIcon`.
-    case classArt = "Resources/ClassArt"
+    case classArt = "ClassArt"
     /// Back-plate stamp and sticker glyphs (0.6.4, F2/F3), imported from
     /// `art/icons/stamps/` — the directory ships empty-of-art until the glyphs
     /// are authored; a miss falls through to the SF stand-ins.
-    case stampArt = "Resources/StampArt"
+    case stampArt = "StampArt"
+
+    // Drawn art that arrived with upstream/testing (0.8.1–0.8.9). Registered
+    // here rather than looked up by string literal for the reason the enum
+    // exists at all: `DexAssetAudit` takes its paths from these cases, so a
+    // directory that is not a case is a directory nothing checks.
+    case buttonArt = "ButtonArt"
+    case cartridgeArt = "CartridgeArt"
+    case footerArt = "FooterArt"
+    case glyphArt = "GlyphArt"
+    case marqueeArt = "MarqueeArt"
+    case stickerArt = "StickerArt"
+    case vinoArt = "VinoArt"
 
     // Unmanaged binaries — produced by no script, traced to no source
-    case fonts = "Resources/Fonts"
-    case maps = "Resources/Maps"
-    case sfx = "Resources/SFX"
-    case chassis = "Resources/Chassis"
-    case logo = "Resources/Logo"
+    case fonts = "Fonts"
+    case maps = "Maps"
+    case sfx = "SFX"
+    case chassis = "Chassis"
+    case logo = "Logo"
 }
 
 /// Bundle lookup without an asset catalog.
@@ -61,12 +90,17 @@ enum DexAsset: String, CaseIterable, Sendable {
 /// return Bundle.module.url(forResource: name, withExtension: ext)
 /// ```
 ///
-/// Under `.copy("Resources")` SwiftPM preserves the directory structure
-/// verbatim, so nothing is ever at the bundle root and that line could not
+/// SwiftPM preserves each copied directory verbatim, so every asset lives in a
+/// named subdirectory and nothing is at the bundle root — that line could not
 /// succeed for any of the call sites. It returned `nil` one line later than the
 /// lookup above it did, while reading as though a miss had been handled — and
 /// it sat inside the project's only asset guard rail, since `DexAssetAudit`
 /// resolves every manifest id through this exact function.
+///
+/// Still true after the bundle lost its `Resources/` wrapper on integration
+/// (see `DexAsset`): the directories moved up one level, they did not go away.
+/// A flat fallback would now be *more* dangerous, not less — it would find some
+/// files and mask exactly the misspelling the enum exists to prevent.
 enum DexResources {
     static func url(named name: String, ext: String, in directory: DexAsset) -> URL? {
         Bundle.module.url(

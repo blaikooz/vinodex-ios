@@ -111,6 +111,12 @@ public struct Palette: Codable, Sendable {
     public let flavorSubclassIconColors: [String: String]
     public let continentCountries: [String: [String]]
 
+    /// Style id -> `StyleColorType` rawValue, as the shared `getColorType`
+    /// answers it. Read by `CoverageTests` and by nothing else: it exists so
+    /// that `EntryDisplay.colorType`'s port cannot drift from `entryUtils.ts`
+    /// unnoticed again (0.8.1, B).
+    public let styleColorTypes: [String: String]
+
     public func chip(country: String?) -> Chip? {
         guard let country else { return nil }
         return countryChips[country]
@@ -323,10 +329,33 @@ public final class WineDatabase: Sendable {
     /// if the *bundled* data has no stamp. That is the item's other half:
     /// fail the build, not the launch.
     public let loadNotices: [String]
+    /// The pedigree graph (0.7.5, E).
+    ///
+    /// Built here for the reason `byID` and `byName` are: it is a reverse index
+    /// over the whole grape list, the screen that reads it would otherwise
+    /// rebuild it on every navigation, and this type is where "one pass at load"
+    /// already lives. One pass over 171 records; see `GrapeLineageIndex`.
+    public let lineage: GrapeLineageIndex
 
     /// id -> entry, so `entry(id:)` is a hash lookup rather than a scan of the
     /// whole entry array. Every navigation used to pay that scan.
     private let byID: [String: WineEntry]
+
+    /// The tastable half of the catalog, folded once (0.8.9b).
+    ///
+    /// Built here for the reason `byID`, `byName` and `lineage` are, and the
+    /// note on `byName` is the precedent word for word: `DiscoveryIndex` is
+    /// constructed on every evaluation of the entry screen's INSIGHT panel — and
+    /// the entry screen re-evaluates on scroll, because its anchor is state — so
+    /// the catalog side of it would otherwise fold ~180 grape names through
+    /// `TextNormalize.label` and scan the entry array twice, per scroll event.
+    /// That is precisely the "tens of thousands of diacritic foldings per
+    /// render" `byName` was extracted to stop.
+    ///
+    /// The catalog cannot change for a loaded database, so only the *shelf* side
+    /// of `DiscoveryIndex` is per-call, and that is proportional to what the
+    /// user has actually tried.
+    public let discoveryCatalog: DiscoveryCatalog
 
     /// (category, normalised name-or-synonym) -> entry.
     ///
@@ -440,12 +469,20 @@ public final class WineDatabase: Sendable {
         self.byID = ids
         self.byName = names
         self.byNameAnyCategory = anyName
+        self.discoveryCatalog = DiscoveryCatalog(entries: entries)
 
         let sorted = entries.sorted {
             $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
         }
         self.sortedEntries = sorted
         self.searchHaystacks = sorted.map(\.searchHaystack)
+
+        self.lineage = GrapeLineageIndex(
+            grapes: entries.compactMap {
+                if case .grape(let g) = $0 { return g }
+                return nil
+            }
+        )
     }
 
     /// Whether an entry is in the free tier.
@@ -775,7 +812,7 @@ public final class WineDatabase: Sendable {
         colorTypeChips: [:], styleClassChips: [:], flavorClassChips: [:], flavorSubclassChips: [:],
         namedChips: [:], styleTones: [:], climates: [:],
         regionClassificationIconColors: [:], flavorSubclassIconColors: [:],
-        continentCountries: [:]
+        continentCountries: [:], styleColorTypes: [:]
     )
 
     // MARK: - Queries
@@ -986,6 +1023,14 @@ public struct DatabaseStats: Sendable, Hashable {
             281,  // 0.5.8
             342,  // 0.6.1
             375,  // 0.6.2 — outgoing total, appended by 0.6.4 batch 2
+            405,  // 0.6.4–0.7.3b — outgoing total, appended by 0.7.3c when
+                  // Brazil moved the catalog off the number it had stood at
+                  // for eight releases.
+            407,  // 0.7.3c — outgoing total, appended by 0.7.4's grape
+                  // overhaul (+25 grapes, +6 regions). It stood for one
+                  // release, which is why two milestones sit this close.
+            438,  // 0.7.4–0.7.8 — outgoing total, appended by 0.7.9 (G) when
+                  // sommbot's P1/P2 batch landed +6 grapes and +2 styles.
             total,
         ]
     }

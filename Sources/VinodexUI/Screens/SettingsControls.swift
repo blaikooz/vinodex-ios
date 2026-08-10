@@ -7,7 +7,8 @@ import VinodexCore
 // The two bespoke controls the settings panels draw with. Split out of
 // SettingsPanel.swift (AUDIT **M30**) — neither is settings-specific in
 // anything but its current call sites, and both are pure presentation.
-// Nothing here changed in the move.
+// Nothing changed in the move itself; the two deltas below — `DexMotion.settle`
+// on the throw and 0.6.7's dropped height floor on the wave — landed after it.
 
 /// A hardware-looking switch: a recessed track with a raised, bevelled throw
 /// that slides between two detents.
@@ -90,7 +91,11 @@ struct DexToggle: View {
                     .padding(4)
             }
             .frame(width: width, height: height)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isOn)
+            // `DexMotion.settle` rather than a spring spelled out here: the
+            // throw sliding to its detent is furniture coming to rest, and the
+            // "0.25/0.7 toggle spring" `DexMotion` names as one of the three it
+            // replaced was this very line.
+            .animation(DexMotion.settle, value: isOn)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(isOn ? "On" : "Off")
@@ -226,9 +231,20 @@ struct DataWave: View {
             )
         }
         // Flexible since 0.6.4 (C2): the DATA page is fixed-height now and
-        // the wave is what soaks up the LCD's leftover space. The floor is
-        // the old fixed height, so the curve can never collapse.
-        .frame(minHeight: 96, maxHeight: .infinity)
+        // the wave is what soaks up the LCD's leftover space.
+        //
+        // **The 96pt floor is gone (0.6.7, I1).** It was the old fixed height,
+        // kept "so the curve can never collapse", and it was half of why this
+        // page changed the size of the LCD when you opened it: a hard minimum
+        // on the one screen in the app that does not scroll is a demand the
+        // page makes of the housing, and on a shorter device (or at a larger
+        // text step) the sum of the two count blocks plus 96 exceeded the
+        // display. The housing is clamped at the other end now — see
+        // `DeviceChassis.innerBezel` — but a page that only fits because it is
+        // being clipped is not fitting. The `Canvas` has no intrinsic size, so
+        // without a floor the graph simply takes what is left, down to
+        // nothing, and the readout above it always fits.
+        .frame(maxHeight: .infinity)
     }
 
     /// Milestone values under the curve, pinned to the ends so the first and
@@ -275,6 +291,4 @@ private func dataWaveValue(at f: Double, in points: [Int]) -> Double {
     let b = Double(points[index + 1])
     return a + (b - a) * eased
 }
-
-// MARK: - Clear saved data
 #endif

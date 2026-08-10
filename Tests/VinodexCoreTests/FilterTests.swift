@@ -109,11 +109,17 @@ struct FilterTests {
         )
     }
 
+    /// Two results since 0.7.4, and the second one is the point rather than a
+    /// regression: `searchFields` includes the description, and R122 South West
+    /// France is described as "the arc of country between Bordeaux and the
+    /// Pyrenees". It is French-origin and it does match "bordeaux", so both
+    /// halves of the query still did their job — the filter is what keeps this
+    /// to two regions instead of every entry mentioning Bordeaux.
     @Test("filters compose with search")
     func filterPlusSearch() {
         let query = EntryQuery(categories: [.regions], filter: .origin("France"), search: "bordeaux")
         let result = db.entries.apply(query)
-        #expect(result.map(\.name) == ["Bordeaux"])
+        #expect(result.map(\.name) == ["Bordeaux", "South West France"])
     }
 
     @Test("no filter matches everything in the category")

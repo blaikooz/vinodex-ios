@@ -22,6 +22,20 @@ public struct ChipFilterScreen: View {
     /// synthesised here (0.6.2, B3), since countries are not entries.
     let onSelectCountry: (String) -> Void
 
+    /// Raise the keyboard on arrival (AUDIT **L35**).
+    ///
+    /// L35's rule is that the one route whose whole purpose is typing should
+    /// not make you tap the field first. That route used to be `.masterSearch`,
+    /// which 0.7.1 (A1) retired into this screen — MASTER SEARCH is what the
+    /// main menu's magnifier opens now, and it runs the identical query. The
+    /// rule survived the retirement; only the way to ask for it was missing.
+    ///
+    /// A parameter rather than something this screen decides for itself,
+    /// because it is also TOOLS' chip-filter tool, reached by people who came
+    /// to tap chips rather than to type. `EncyclopediaListScreen` takes the
+    /// same flag for the same reason.
+    var focusesSearchOnAppear = false
+
     /// Survives the trip into an entry and back — see `ScreenStateStore`. A
     /// filter you spent six taps building is exactly the thing that must not be
     /// thrown away because you opened one of its results.
@@ -45,10 +59,12 @@ public struct ChipFilterScreen: View {
 
     public init(
         db: WineDatabase = .shared,
+        focusesSearchOnAppear: Bool = false,
         onSelect: @escaping (WineEntry) -> Void,
         onSelectCountry: @escaping (String) -> Void = { _ in }
     ) {
         self.db = db
+        self.focusesSearchOnAppear = focusesSearchOnAppear
         self.onSelect = onSelect
         self.onSelectCountry = onSelectCountry
 
@@ -133,8 +149,21 @@ public struct ChipFilterScreen: View {
                 LazyVStack(alignment: .leading, spacing: 14) {
                     summary.id("__summary__")
 
-                    DexSearchBar(text: $query, placeholder: "SEARCH MATCHES…")
-                        .id("__search__")
+                    // Guarded on the *chips*, not just the text, which is the
+                    // one way this differs from `EncyclopediaListScreen`'s
+                    // `search.isEmpty`. `query` is session-local and so is
+                    // almost always empty on arrival, but `filter` is restored
+                    // from `ScreenStateStore` — and a keyboard thrown up over a
+                    // filter you spent six taps building, on the way back from
+                    // one of its own results, is the opposite of what L35 asked
+                    // for. Both are checked: either one being non-empty means
+                    // you came back to read something rather than to type.
+                    DexSearchBar(
+                        text: $query,
+                        placeholder: "SEARCH MATCHES…",
+                        focusesOnAppear: focusesSearchOnAppear && filter.isEmpty && query.isEmpty
+                    )
+                    .id("__search__")
 
                     chipDropdown.id("__filters__")
 
@@ -199,9 +228,19 @@ public struct ChipFilterScreen: View {
     /// The running total, and the way out of a filter that has gone too far.
     private var summary: some View {
         HStack(spacing: 12) {
-            Image(systemName: "line.3.horizontal.decrease.circle.fill")
-                .font(.system(size: 26, weight: .semibold))
-                .foregroundStyle(lcd.accent)
+            // The magnifier (0.7.1, A2): this card is the head of MASTER
+            // SEARCH, and the screen's own hero cannot be wearing the filter
+            // bars while the button that opened it wears a magnifier. The bars
+            // stay where they mean "a filter is narrowing a list you are
+            // already looking at" — `EncyclopediaListScreen.filterBanner`.
+            // Drawn as of 0.8.9a (A7), and it is the face the round menu
+            // button that opens this screen already wears -- which is K2 rule 1
+            // ("a page's glyph is the glyph on the control that opens it")
+            // reaching the one hero on the page that had stayed a symbol.
+            DexChromeGlyph(
+                "search", symbol: DexGlyph.search,
+                size: 26, tint: lcd.accent
+            )
 
             VStack(alignment: .leading, spacing: 3) {
                 let total = results.count + countryResults.count
@@ -256,12 +295,25 @@ public struct ChipFilterScreen: View {
             withAnimation(.easeOut(duration: 0.2)) { showsChips.toggle() }
         } label: {
             HStack(spacing: 10) {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(lcd.accent)
+                // The drawn cog (0.8.9a, A7). The SF bars stay as the
+                // fallback rather than being deleted: `PixelArtLoader` answers
+                // nil in silence for a stem it cannot find, so the symbol is
+                // what stands between a missing asset and an empty row.
+                DexChromeGlyph(
+                    UIGlyph.cog.artStem, symbol: "slider.horizontal.3",
+                    size: 16, tint: lcd.accent
+                )
+                // Guarded (0.7.1, A4): with a filter on, the row needed
+                // 334pt of a 311pt width — glyph, label, the "n ON" badge and
+                // the chevron — and the label wrapped to two lines the moment
+                // a chip was lit. It read correctly at rest, which is why it
+                // stood. `layoutPriority` on the badge below decides which of
+                // the two gives.
                 Text("FILTER CHIPS")
                     .font(DexFont.retro(12))
                     .tracking(1)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                     .foregroundStyle(lcd.text)
                 if filter.count > 0 {
                     Text("\(filter.count) ON")
@@ -301,19 +353,26 @@ public struct ChipFilterScreen: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .overlay(alignment: .bottom) { lcd.accent.opacity(0.4).frame(height: 2) }
 
-            Text(facet.note)
-                .font(DexFont.mono(16))
-                .foregroundStyle(lcd.subtext)
-
-            // A wrapping flow rather than a horizontal scroller: a chip you have
-            // to scroll sideways to discover is a chip nobody taps, and every
-            // row here fits in two lines at most.
+            // `facet.note` is no longer drawn (0.6.8, K2). Six explanatory
+            // lines over six rows of chips is a paragraph of instructions on a
+            // screen whose whole subject is that the chips answer for
+            // themselves — the summary at the top already says what the filter
+            // has done, and the dimmed dead chips already say which ones lead
+            // nowhere.
+            //
+            // Kept as the row's accessibility hint rather than deleted: the
+            // notes carry a real warning ("Grapes only — everything else drops
+            // out"), and the visual reader learns that from watching the count
+            // move, which is exactly the channel a screen reader does not have.
             ChipFlow(spacing: 8) {
                 ForEach(db.chipOptions(for: facet)) { option in
                     chip(option)
                 }
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(facet.title)
+        .accessibilityHint(facet.note)
     }
 
     private func chip(_ option: ChipOption) -> some View {
@@ -329,32 +388,27 @@ public struct ChipFilterScreen: View {
         // not `count`: an uncosted chip is unknown, not dead.
         let dead = !on && costed == 0
 
-        return Button {
-            Haptics.select()
+        // **A hero chip since 0.6.9 (J1)** — the value's own palette colours in
+        // a rounded rectangle, rather than the monochrome capsule this drew
+        // from v0.5.9. See `DexHeroChip`; the three states and their reasoning
+        // live there, so the varieties scan's own chip row (I3) cannot drift
+        // from this one.
+        //
+        // Label only (0.6.8, K1). Every chip used to carry the count it would
+        // produce if tapped, which made a row of a dozen chips a row of a dozen
+        // numbers to read past; the running total in the summary is the number
+        // that was actually being consulted. The costing itself stays — it is
+        // what `dead` is computed from, and it is still what the accessibility
+        // label reads out, which is the channel that never had the summary.
+        return DexHeroChip(
+            label: option.label,
+            chip: db.palette.filterChip(option),
+            isOn: on,
+            isDead: dead
+        ) {
             filter.toggle(option)
-        } label: {
-            HStack(spacing: 7) {
-                Text(option.label)
-                    .font(DexFont.retro(11))
-                    .tracking(0.5)
-                Text("\(count)")
-                    .font(DexFont.mono(16))
-                    .opacity(0.75)
-            }
-            .foregroundStyle(on ? chipInk : (dead ? lcd.disabledText : lcd.text))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(Capsule().fill(on ? lcd.accent : lcd.surface))
-            .overlay(
-                Capsule().strokeBorder(
-                    on ? lcd.accent : (dead ? lcd.surfaceEdge.opacity(0.5) : lcd.surfaceEdge),
-                    lineWidth: 2
-                )
-            )
         }
-        .buttonStyle(DexPressStyle(scale: 0.94))
         .accessibilityLabel("\(option.label), \(count) entries")
-        .accessibilityAddTraits(on ? [.isSelected] : [])
     }
 
     /// Text on a lit chip.

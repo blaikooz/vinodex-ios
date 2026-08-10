@@ -144,8 +144,12 @@ public struct DexAlert: View {
 /// developer switch, but it meant the button labelled UNLOCK was the one control
 /// in the app that did not do what it said. It now grants the bundle it names.
 ///
-/// There is still no payment step. When there is one, it goes between the tap
-/// and `onUnlock` — the rest of this does not move.
+/// There is still no payment step, and 0.7.5 (B2) changed where the one will go.
+/// The note here used to say "between the tap and `onUnlock`"; it is *inside*
+/// `onUnlock`, at `AccessStore.purchase(_:)`, which all three call sites now
+/// call in place of `grant(_:)`. This view is unchanged and stays unchanged: it
+/// names a thing and reports a confirm, and a storefront sheet appearing over it
+/// is the provider's business, not the prompt's.
 public struct UpgradePrompt: View {
     let entitlement: Entitlement
     let onUnlock: () -> Void

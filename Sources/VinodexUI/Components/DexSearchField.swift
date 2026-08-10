@@ -216,9 +216,11 @@ struct DexSearchBarShell<Content: View>: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 18, weight: .bold))
-                .foregroundStyle(lcd.accent)
+            // Drawn face since 0.8.1 (J3). Every search affordance in the app
+            // wears this shell, so converting it here converts the list
+            // screens, the globe's button, MASTER SEARCH and WHAT'S THAT...?
+            // in one place — which is the whole reason the shell was extracted.
+            DexChromeGlyph("search", symbol: "magnifyingglass", size: 18, weight: .bold, tint: lcd.accent)
             content()
         }
         .padding(.horizontal, 14)
@@ -287,7 +289,7 @@ struct DexSearchBarButton: View {
 
     var body: some View {
         Button {
-            Haptics.tap()
+            Haptics.screenTap()
             action()
         } label: {
             DexSearchBarShell {

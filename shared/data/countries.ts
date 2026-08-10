@@ -972,8 +972,8 @@ export const COUNTRIES: CountryGateEntry[] = [
     details: {
       origin: 'Chile',
       classification: 'COUNTRY',
-      keyRegions: ['Maipo Valley'],
-      notableGrapes: ['Cabernet Sauvignon', 'Carmenere', 'Merlot']
+      keyRegions: ['Maipo Valley', 'Itata Valley'],
+      notableGrapes: ['Cabernet Sauvignon', 'Carmenere', 'País']
     }
   },
   {
@@ -1108,7 +1108,7 @@ export const COUNTRIES: CountryGateEntry[] = [
       origin: 'Croatia',
       classification: 'COUNTRY',
       keyRegions: ['Dalmatia'],
-      notableGrapes: ['Zinfandel', 'Grenache', 'Syrah']
+      notableGrapes: ['Zinfandel', 'Babić']
     }
   },
   {
@@ -1130,6 +1130,25 @@ export const COUNTRIES: CountryGateEntry[] = [
   // `keyRegions` stays empty until real region entries land, which is what
   // the continent screen's COMING SOON treatment keys off. Teaser blurbs
   // only; notableGrapes name grapes that already exist in data.
+  // Added 0.7.3c, so the New World expansion pack has a Brazil to name.
+  // Sits after Mexico with the other countries that actually have regions;
+  // the id continues the sequence rather than the position (C025-C028 are
+  // the region-less coming-soon gates below).
+  {
+    id: 'C029',
+    name: 'Brazil',
+    description: 'Brazil is South America’s third wine country after Argentina and Chile, though only about a sixth of its vineyard is Vitis vinifera — Isabel and Bordô still fill half the rows in Rio Grande do Sul. The Serra Gaúcha, settled by Veneto immigrants from 1875, is the fine-wine heartland, and its answer to year-round rain is bubbles: sparkling now outsells still fine wine at home. Vale dos Vinhedos became the country’s first Denominação de Origem in 2012.',
+    category: 'COUNTRY_GATE',
+    color: '#047857',
+    icon: 'flag',
+    tags: ['IP', 'DO', 'COUNTRY'],
+    details: {
+      origin: 'Brazil',
+      classification: 'COUNTRY',
+      keyRegions: ['Serra Gaúcha', 'Campanha Gaúcha'],
+      notableGrapes: ['Merlot', 'Chardonnay', 'Pinot Noir']
+    }
+  },
   {
     id: 'C025',
     name: 'United Kingdom',

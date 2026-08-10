@@ -92,6 +92,22 @@ export interface GrapeEntry extends BaseEntry {
   grapeCard: GrapeCard;
   rarity: RarityLabel;
   details: GrapeDetails;
+  /**
+   * Authored genetics, carried through from `LegacyGrapeRecord` (0.7.5, E).
+   *
+   * **Top level, not inside `details`, and that is the whole reason this line
+   * exists.** The iOS generator's `STRIP_ENTRY_FIELDS` drops `grapeCard` on the
+   * way out, so anything reached only through the card never lands in
+   * `entries.json`; `details` is built field by field in `constants.ts` rather
+   * than spread, so a field nobody names there is dropped just as silently.
+   * This sits beside the other `grape*` projections, which is the shape that
+   * already travels.
+   *
+   * Optional because 40% of the catalog has a relationship and 60% does not —
+   * see `GrapeLineage`, and `GrapeLineageIndex` on the Swift side for what the
+   * missing 60% is shown instead of an empty tree.
+   */
+  lineage?: GrapeLineage;
 }
 
 export interface RegionDetails {
@@ -177,6 +193,107 @@ export type WineEntry =
   | ContinentEntry
   | CountryGateEntry;
 
+// === Type guards ===
+
+export const isGrapeEntry = (e: WineEntry): e is GrapeEntry => e.category === 'GRAPES';
+export const isRegionEntry = (e: WineEntry): e is RegionEntry => e.category === 'REGIONS';
+export const isStyleEntry = (e: WineEntry): e is StyleEntry => e.category === 'STYLES';
+export const isFlavorEntry = (e: WineEntry): e is FlavorEntry => e.category === 'FLAVORS';
+export const isContinentEntry = (e: WineEntry): e is ContinentEntry => e.category === 'CONTINENTS';
+export const isCountryGateEntry = (e: WineEntry): e is CountryGateEntry => e.category === 'COUNTRY_GATE';
+
+/**
+ * One end of a lineage edge (0.7.5 E, sommbot).
+ *
+ * `id` when the other variety is a catalog entry, `name` when it is not —
+ * exactly one of the two, never both.
+ *
+ * **In-catalog links are by id, not by name, and that is deliberate.** Every
+ * other cross-reference in this file resolves through the app's name normaliser,
+ * and the grape-name index is precisely where that breaks: "Espadeiro" answers
+ * to five VIVC prime names, "Nerello" to seven, "Colorino" to three. A pedigree
+ * graph resolved by name would quietly wire a Galician vine to a Portuguese one.
+ * Ids are also stable by house rule — renames touch `name` only.
+ *
+ * Off-catalog ancestors are *named* rather than dropped. Gouais Blanc is the
+ * mother of a third of France's varieties and will never be a collectible
+ * entry; refusing to name it would throw away most of the tree. A renderer
+ * draws these as flat, untappable nodes; `data-review/CANDIDATES.md` is where
+ * one goes if it earns a slot of its own.
+ */
+export interface LineageRef {
+  /** Catalog grape id, e.g. `"G008"`. Mutually exclusive with `name`. */
+  id?: string;
+  /** Display name of a variety the catalog does not carry. */
+  name?: string;
+  /** Seed vs pollen parent, set only where the cross direction is established. */
+  role?: 'mother' | 'father';
+  /** The relationship is real, but its direction or the identity is disputed. */
+  contested?: boolean;
+}
+
+/**
+ * A grape's marker-confirmed relatives (0.7.5 E, sommbot).
+ *
+ * **Only the child-facing direction is stored.** `offspring`, `mutations` and
+ * `siblings` are all derived by one reverse pass over the grape list — offspring
+ * of X is every grape whose `parents` contains X; half-siblings are the grapes
+ * that share a parent key (`id ?? normalised name`, which is why off-catalog
+ * ancestors must be spelled the same way everywhere). Storing both directions
+ * would mean two places to be wrong and a list that silently rots every time a
+ * grape is added; deriving costs one pass over 171 records at load.
+ *
+ * Nothing goes in here that is not marker-confirmed. Where markers establish the
+ * relationship but not its *direction*, the ref carries `contested` and `note`
+ * explains it, rather than the entry asserting or omitting it.
+ */
+export interface GrapeLineage {
+  /** At most two. An unidentified second parent is absent, never a placeholder. */
+  parents?: LineageRef[];
+  /** A somatic mutation of that variety — same genotype, different skin. */
+  mutationOf?: LineageRef;
+  /**
+   * A first-degree relative whose direction is unresolved, or a confirmed
+   * half-sibling whose shared parent the catalog cannot name.
+   */
+  related?: LineageRef[];
+  /** One sentence for the tree's footnote wherever the above is contested. */
+  note?: string;
+  /**
+   * Research was done and no parent pair is established (0.8.2, sommbot).
+   *
+   * **This is an authored claim, not the absence of one.** The overwhelming
+   * majority of the catalog carries no `lineage` at all, and that silence means
+   * only "nobody has written this one down yet". `parentageUnknown` means
+   * something stronger and rarer: the question was *asked* of a source that
+   * would know — a VIVC passport whose pedigree field is empty, or a study that
+   * looked for the parents and reported none — and the answer is that the
+   * parentage is genuinely unestablished. Assyrtiko is not Nebbiolo-with-a-gap;
+   * it is a variety whose parents nobody has found.
+   *
+   * The two states render differently and must never be collapsed:
+   * `GrapeLineageIndex` turns this flag into `LineageNode.Target.unrecorded`,
+   * a drawn tile reading "Parentage unrecorded", where an unauthored grape gets
+   * no tree at all. `GrapeLineageTests.unknownParentageIsDistinctFromUnauthored`
+   * exists to keep them apart, so do not set this as a way of saying "I could
+   * not find it" — that verdict is spelled by leaving `lineage` off entirely.
+   *
+   * Legal beside `parents`: a grape can have one established parent and a
+   * second that is genuinely unrecorded, which is what draws a named tile and
+   * an unrecorded one side by side (`GrapeLineageScreen` adds the tile when
+   * `parentageUnknown` and fewer than two ancestors are authored).
+   *
+   * Not counted as an edge: `GrapeLineage.isEmpty` and `GrapeRelatives.isEmpty`
+   * both ignore it, because an annotation about absent knowledge is not a
+   * relationship. That is what routes the two cases to different UI — a grape
+   * with no edges draws the flat PARENTAGE UNRECORDED statement on the entry
+   * screen, while a grape that has edges (even only derived ones, like an
+   * offspring list) still opens the tree and carries the unrecorded tile
+   * inside it.
+   */
+  parentageUnknown?: boolean;
+}
+
 // Raw legacy grape source — not part of the WineEntry union.
 // Consumed by grapeCards.ts and constants.ts to derive the canonical GrapeEntry shape.
 export interface LegacyGrapeRecord {
@@ -199,4 +316,40 @@ export interface LegacyGrapeRecord {
     synonyms?: string[];
     classification?: string;
   };
+  /**
+   * Authored genetics. Absent on most entries — a sparse correct tree beats a
+   * dense speculative one, and 0.7.5 E ships only what markers confirm.
+   *
+   * Not yet carried onto `GrapeEntry`: `constants.ts` builds that shape field by
+   * field rather than spreading, so a pass-through there (and a `lineage` on
+   * `GrapeEntry`, and `WineEntry.swift`) is what makes this reach the app.
+   * `STRIP_ENTRY_FIELDS` in the iOS generator is a blacklist, so nothing needs
+   * to change there.
+   */
+  lineage?: GrapeLineage;
+}
+
+/**
+ * One shipped release, as the device itself describes it (iOS 0.7.3, F3).
+ *
+ * This is the *user-facing* changelog — what the FIRMWARE HISTORY panel prints
+ * and what the boot POST reads its version number off. It is deliberately not
+ * the engineering record: `AppVersion.swift` still carries the long "why does
+ * this build have this number" notes, because those answer a question no player
+ * asks. Anything here is written to be read on a 320pt LCD in a fixed-width
+ * font.
+ *
+ * ASCII only, and `headline` uppercase and short: the panel's headings are set
+ * in Press Start 2P, which has a partial Latin-1 range, and a missing glyph is
+ * a worse outcome than a missing accent. The generator gates all of that.
+ */
+export interface FirmwareRelease {
+  /** Three dot-separated integers — the scheme since iOS 0.4.3. */
+  version: string;
+  /** ISO `YYYY-MM-DD`, the day the batch landed. */
+  date: string;
+  /** ASCII, uppercase, <= 24 characters. The panel's per-release heading. */
+  headline: string;
+  /** One line each, in the order they should be read. ASCII, sentence case. */
+  notes: string[];
 }

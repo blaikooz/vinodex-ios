@@ -46,93 +46,6 @@ struct PerforatedStampShape: Shape {
     }
 }
 
-// MARK: - Worn treatment
-
-/// The shared "aged object" pass (0.6.4, F2/F3), applied over stamps and
-/// stickers alike so both read as the same handled material: a seeded
-/// paper-grain speckle, a faint tea-stain tint, and the uneven press the
-/// 0.6.2 ink stamps already used — heavier at one corner, lighter at the
-/// other. Ageing in code means no asset is hand-aged and every future glyph
-/// arrives pre-weathered.
-struct WornOverlay: ViewModifier {
-    /// Seeds the grain so each object wears differently — but identically
-    /// from launch to launch; the plate must not re-weather itself.
-    let seed: UInt64
-
-    /// FNV-1a over the id, NOT `hashValue`: Swift's hashing is per-process
-    /// seeded, and a seed that changes each launch would regrain every
-    /// object every time the app opens.
-    static func seed(_ id: String) -> UInt64 {
-        var hash: UInt64 = 0xcbf29ce484222325
-        for byte in id.utf8 {
-            hash ^= UInt64(byte)
-            hash = hash &* 0x100000001b3
-        }
-        return hash
-    }
-
-    func body(content: Content) -> some View {
-        content
-            .overlay(
-                GrainSpeckle(seed: seed)
-                    .blendMode(.multiply)
-                    .allowsHitTesting(false)
-            )
-            .overlay(
-                // Tea-stain: warm, faint, heavier toward one edge.
-                LinearGradient(
-                    colors: [
-                        Color(dexHex: "#8A6B3F").opacity(0.16),
-                        Color(dexHex: "#8A6B3F").opacity(0.05),
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .blendMode(.multiply)
-                .allowsHitTesting(false)
-            )
-            .compositingGroup()
-            // The angled press, verbatim from the 0.6.2 stamps: opacity
-            // carried in a gradient mask so the fade is directional.
-            .opacity(0.92)
-            .mask(
-                LinearGradient(
-                    colors: [.black, .black.opacity(0.78)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-    }
-}
-
-/// Deterministic paper-grain: a couple hundred dark speckles from a seeded
-/// linear congruential generator. A `Canvas`, not an image asset — it scales
-/// with its object and ships no bytes.
-private struct GrainSpeckle: View {
-    let seed: UInt64
-
-    var body: some View {
-        Canvas { context, size in
-            var state = seed == 0 ? 0x9E3779B9 : seed
-            func next() -> CGFloat {
-                // Numerical Recipes LCG — quality is irrelevant, stability is not.
-                state = state &* 6364136223846793005 &+ 1442695040888963407
-                return CGFloat(state >> 33) / CGFloat(UInt32.max)
-            }
-            let count = Int(size.width * size.height / 38)
-            for _ in 0..<count {
-                let x = next() * size.width
-                let y = next() * size.height
-                let edge = 0.6 + next() * 0.9
-                context.fill(
-                    Path(CGRect(x: x, y: y, width: edge, height: edge)),
-                    with: .color(.black.opacity(0.05 + Double(next()) * 0.07))
-                )
-            }
-        }
-    }
-}
-
 // MARK: - The stamp
 
 /// One back-plate postage stamp (0.6.4, F2): code-drawn perforated paper in
@@ -140,31 +53,115 @@ private struct GrainSpeckle: View {
 /// pass over the lot. Rendered "realistically like the barcode sticker" —
 /// opaque label stock, faded inks, a real drop shadow — decoration that has
 /// *happened to* the plate, not UI chrome.
+/// **The drawn stamp is the stamp (0.8.6, C1/C4).** Everything above describes
+/// an object this view draws around an illustration: perforated stock, an inner
+/// keyline, a title, a denomination corner. The drop that landed in 0.8.5 draws
+/// all of it — six complete franked objects, with their own perforation or
+/// die-cut, their own wavy cancellation marks and their own aged paper. Framing
+/// one put a code-drawn stamp around a drawn stamp, which is the nesting A1
+/// removes from the artifact eight lines of plate away.
+///
+/// So the two paths separate, exactly as `SkinStickerView`'s do. **Art**: the
+/// file, at its own aspect, with the worn pass and the contact shadow over it.
+/// **No art**: the frame above at 0.7.0's own 88x104, scaled into whatever box
+/// the caller asked for — which is the one piece of arithmetic here worth
+/// explaining. E1 sized that frame to hold a two-line pixel-face title at its
+/// accessibility floor; re-laying it out inside a 72x66 box would crush the
+/// title back to the ~7pt E1 spent an item fixing. Scaling the finished drawing
+/// instead keeps every proportion E1 measured and simply makes it smaller,
+/// which is what a *stand-in* should do. Two stamps reach that path today: the
+/// completions C6 adds, whose art nobody has drawn.
 struct BackPlateStampView: View {
     let stamp: BackPlateStamp
-    var width: CGFloat = 76
-    var height: CGFloat = 90
+    /// 72x66 since 0.8.6 (C1), down from the 88x104 that 0.7.0's E1 sized for a
+    /// two-line title. See the type's note, and `DeviceBackPlate.stampSize`,
+    /// which mirrors this because the slot origins and the drag clamp need it.
+    var width: CGFloat = 72
+    var height: CGFloat = 66
+
+    /// The code-drawn frame's own geometry, kept at E1's numbers.
+    private static let drawnSize = CGSize(width: 88, height: 104)
 
     private var ink: Color { Color(dexHex: stamp.colorHex) }
 
     var body: some View {
+        Group {
+            if let art = PixelArtLoader.shared.image(stamp.artStem) {
+                Image(uiImage: art)
+                    // Smooth since 0.8.5 (F1) — see `SkinStickerView.drawn`,
+                    // which makes the identical argument about the identical
+                    // situation. The drawings are painted at ~300px.
+                    .interpolation(.high)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: width, height: height)
+            } else {
+                codeDrawn
+                    .frame(width: Self.drawnSize.width, height: Self.drawnSize.height)
+                    .scaleEffect(min(width / Self.drawnSize.width, height / Self.drawnSize.height))
+                    .frame(width: width, height: height)
+            }
+        }
+        // `.worn` rather than `.modifier(WornOverlay(…))` since 0.8.7 (A3): the
+        // aged pass now clips itself to whatever it is applied to, which is what
+        // stops the tea-stain painting the letterbox around a fitted drawing.
+        // See `WornOverlay`.
+        .worn(id: stamp.id)
+        .shadow(color: .black.opacity(0.25), radius: 1, y: 1)
+    }
+
+    /// The perforated frame, the stand-in for a stamp nobody has drawn.
+    private var codeDrawn: some View {
         let paper = Color(dexHex: "#E9E6DA")   // the barcode sticker's stock
 
-        ZStack {
+        return ZStack {
             PerforatedStampShape()
                 .fill(paper, style: FillStyle(eoFill: true))
 
             VStack(spacing: 4) {
                 glyph
                     .frame(maxHeight: .infinity)
+                // **The title fits inside the stamp** (0.7.0, E1).
+                //
+                // It did not, and the reason is worth writing down because the
+                // number in the call below is a lie about what renders.
+                // `DexFont.retro` routes through `TypeScale.resolve`, which
+                // applies `nominalFloor` **before** the scale step — so
+                // `retro(6)` has never rendered at 6pt. It renders at
+                // `max(10, 6) × factor`, i.e. 8.5pt at SMALL and 11.5pt at
+                // HUGE. The floor is right (it is an accessibility guarantee and
+                // there is no arguing with it), but it silently promoted this
+                // one label by 67% at some point in 0.6.x, and nothing on this
+                // surface was re-measured afterwards.
+                //
+                // At 11.5pt in the Press Start face — a full em per character —
+                // COMPLETE alone is ~96pt of advance, against the 56pt the old
+                // `.padding(10)` left it on a 76pt stamp. One line and a
+                // `minimumScaleFactor(0.6)` was the whole budget, so the title
+                // was being crushed to ~7pt of a pixel face that has no legible
+                // pixels there. REGION COMPLETE was the worst; STREAK WEEK and
+                // TEN BOTTLES were the same failure a notch milder.
+                //
+                // Fixed by giving it room rather than by shrinking it further:
+                // the stamp itself is wider (see `BackPlateStampView.width`),
+                // the title wraps to the two lines every multi-word title in
+                // `StampCatalog` naturally wants, it takes back the block's
+                // horizontal padding so it can use the full width inside the
+                // keyline, and the scale floor comes *up* to 0.75. Worst case is
+                // now COMPLETE at HUGE, which needs ~0.77 — inside the floor,
+                // with the glyph above absorbing whatever the second line costs.
                 Text(stamp.title)
                     .font(DexFont.retro(10))
                     .tracking(0.5)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .minimumScaleFactor(0.75)
                     .foregroundStyle(ink.opacity(0.9))
+                    .padding(.horizontal, -4)
             }
-            .padding(10)
+            .padding(.horizontal, 10)
+            .padding(.top, 10)
+            .padding(.bottom, 8)
 
             // Thin inner keyline — the printed frame inside the perforation.
             Rectangle()
@@ -178,101 +175,33 @@ struct BackPlateStampView: View {
                 .padding(.top, 8)
                 .padding(.trailing, 9)
         }
-        .frame(width: width, height: height)
-        .modifier(WornOverlay(seed: WornOverlay.seed(stamp.id)))
-        .shadow(color: .black.opacity(0.25), radius: 1, y: 1)
     }
 
-    /// The illustration: the authored pixel-art glyph when
-    /// `art/icons/stamps/` has shipped one, the SF Symbol stand-in until
-    /// then. The art path renders as drawn — the pipeline's portraits carry
-    /// their own colours — while the stand-in prints in the stamp's ink,
-    /// which is what a one-colour engraving would do.
-    @ViewBuilder
+    /// The stand-in illustration, printed in the stamp's ink — which is what a
+    /// one-colour engraving would do.
+    ///
+    /// **The art branch left this property in 0.8.6 (C4)** and became the whole
+    /// view; see the type's note. What is here is only ever reached by a stamp
+    /// with no file.
     private var glyph: some View {
-        if let art = PixelArtLoader.shared.image(stamp.artStem) {
-            Image(uiImage: art)
-                .interpolation(.none)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-        } else {
-            Image(systemName: stamp.fallbackSymbol)
-                .font(.system(size: 26, weight: .semibold))
-                .foregroundStyle(ink)
-        }
+        Image(systemName: stamp.fallbackSymbol)
+            .font(.system(size: 26, weight: .semibold))
+            .foregroundStyle(ink)
     }
 }
 
-// MARK: - The skin stamp
-
-/// The per-skin back-plate artifact, as a postage stamp (0.6.5, item 8 —
-/// replacing 0.6.4's die-cut sticker outright). The Passport stamps set the
-/// plate's visual dialect and the skin piece now speaks it: the same
-/// perforated fringe, the same paper stock and keyline, the same worn pass —
-/// square where the badge stamps are portrait, so it still reads as its own
-/// issue. Per-skin identity survives in the glyph and the ink.
-///
-/// Each skin brings its own art: `sticker-<skin>` through the stamps art
-/// pipeline once authored (Santa hat for WINE XMAS, the cat for BLUSH, a
-/// detailed take on the skin's emblem elsewhere), with the skin's emblem
-/// symbol standing in until then.
-struct SkinStickerView: View {
-    let skin: ChassisSkin
-    var size: CGFloat = 70
-
-    var body: some View {
-        let paper = Color(dexHex: "#E9E6DA")
-        let ink = skin.accent.mid
-
-        ZStack {
-            PerforatedStampShape()
-                .fill(paper, style: FillStyle(eoFill: true))
-
-            glyph
-                .frame(width: size * 0.52, height: size * 0.52)
-
-            // Thin inner keyline — the printed frame inside the perforation,
-            // exactly as the badge stamps wear it.
-            Rectangle()
-                .strokeBorder(ink.opacity(0.7), lineWidth: 1)
-                .padding(6)
-        }
-        .frame(width: size, height: size)
-        .modifier(WornOverlay(seed: WornOverlay.seed(skin.rawValue)))
-        .shadow(color: .black.opacity(0.25), radius: 1, y: 1)
-    }
-
-    @ViewBuilder
-    private var glyph: some View {
-        if let art = PixelArtLoader.shared.image(skin.stickerStem) {
-            Image(uiImage: art)
-                .interpolation(.none)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-        } else {
-            Image(systemName: skin.stickerSymbol)
-                .font(.system(size: size * 0.36, weight: .semibold))
-                .foregroundStyle(skin.accent.mid)
-        }
-    }
-}
-
-extension ChassisSkin {
-    /// The authored sticker art's stem under `Resources/StampArt` — e.g.
-    /// `sticker-wine-xmas` for the Christmas skin. Derived from the persisted
-    /// raw value, so renamed display labels never orphan an asset.
-    var stickerStem: String {
-        "sticker-" + rawValue.lowercased().replacingOccurrences(of: " ", with: "-")
-    }
-
-    /// The SF Symbol standing in until the sticker art lands. WINE XMAS's
-    /// Santa hat has no SF Symbol, so its gift emblem holds the slot; BLUSH
-    /// gets the little cat the brief names (SF Symbols 5, clears iOS 17).
-    var stickerSymbol: String {
-        switch self {
-        case .blush: "cat.fill"
-        default: symbol
-        }
-    }
-}
+// The per-skin back-plate artifact used to live here, as a postage stamp on
+// the frame above (0.6.5, item 8). **It moved out in 0.7.8 (A1)** and stopped
+// being a stamp at all: it is the shell's own aged decal now, drawn in
+// `SkinSticker.swift` on a die-cut silhouette with nothing in common with this
+// file. This note is left because a reader looking for `SkinStickerView` in
+// the stamps' file is a reader who remembers the two being one thing.
+//
+// What went with it: `ChassisSkin.stickerStem` / `.stickerSymbol`, and the art
+// namespace — `sticker-*` now imports from `art/icons/stickers/` into
+// `Resources/StickerArt`, leaving `art/icons/chrome/stamps/` -> `Resources/StampArt`
+// to the six Passport badges alone. `WornOverlay` was declared here and used
+// by both; it is a material rather than either object's identity, so it is now
+// in `AgedMaterial.swift` and this file imports it on the same terms the
+// sticker does.
 #endif

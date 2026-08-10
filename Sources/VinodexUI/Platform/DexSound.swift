@@ -6,24 +6,24 @@ import VinodexCore
 /// The device's voice — the authored SFX pack (v0.5.6).
 ///
 /// The 0.5.3 single synthesized ping grew back into a small pack, but from
-/// *files* this time: the sounds are authored in `art/sfx`, labeled by their
-/// intended use, and bundled under `Resources/SFX`.
-///
-/// It holds four sounds and exposes four entry points. It used to expose six:
-/// `page()` and `wrong()` were empty bodies kept "so call sites do not churn",
-/// which meant every push and pop called a function that did nothing, and the
-/// quiz's wrong-answer branch read as though it made a noise and did not
-/// (AUDIT **L43**). Both are gone. A screen change already rides the click of
-/// the button that caused it, so `page()` had nothing to add even in
-/// principle; the wrong answer is carried by `Haptics.warning()` (**L38**)
-/// until a file for it is authored. When one is, it arrives as a `Kind` case
-/// and a one-line accessor — which is the whole cost the stubs were there to
-/// avoid.
+/// *files* this time: the sounds are authored in `art/sfx`,
+/// labeled by their intended use, and bundled under `Resources/SFX`. Events
+/// without an authored sound (page sweeps, boot) stay deliberately silent until
+/// a labeled file arrives — their entry points remain so call sites do not
+/// churn. The wrong-answer buzz was one of those; its file arrived in 0.6.8
+/// (J3) and `wrong()` plays it.
 ///
 /// Gated at the choke point like `Haptics`, and for the same reason: a call
 /// site that checked the setting itself would be the one that forgets to.
-/// Button clicks arrive by piggybacking on `Haptics.tap()`/`select()` — the
-/// two systems share call sites but not a toggle.
+/// Button clicks arrive by piggybacking on `Haptics.tap()`, `screenTap()` and
+/// `select()` — the two systems share call sites but not a toggle.
+///
+/// **Which sound goes where is `Haptics`' business, not this file's** (0.6.8,
+/// J1/J2). `Sounds.tap()` is Button Tap and `Sounds.select()` is Warm Ping;
+/// the rule that the first belongs to the chassis's own buttons and the second
+/// to everything the finger does to the LCD is expressed by which `Haptics`
+/// entry point a call site uses, because that is where the ~75 call sites
+/// already are.
 @MainActor
 public enum Sounds {
     /// Missing key = **off**: sounds are opt-in (since 0.5.1). The mute
@@ -51,6 +51,18 @@ public enum Sounds {
     public static func select() { play(.select) }
     /// The quiz's right-answer sting.
     public static func correct() { play(.correct) }
+    /// The quiz's wrong-answer sting (0.6.8, J3).
+    ///
+    /// Silent since 0.5.6 on the argument that silence read better than reusing
+    /// a cheerful sound — which was true, and was always a placeholder for the
+    /// authored file. It exists now, so the exam's two outcomes have two
+    /// voices; a wrong answer that sounded like nothing was the only moment in
+    /// the app where a deliberate press produced no feedback at all.
+    ///
+    /// The call site did not change: `TastingQuizScreen.choose(_:in:)` has
+    /// called this on the wrong branch since 0.5.6, which is exactly what
+    /// keeping the silent entry point was for.
+    public static func wrong() { play(.wrong) }
     /// The orb pressing in — the flip gesture's own voice.
     public static func orb() { play(.orb) }
 
@@ -76,6 +88,7 @@ private final class SoundEngine {
         case tap = "button-tap"
         case select = "warm-ping"
         case correct = "correct-answer"
+        case wrong = "incorrect-answer"
         case orb = "orb-depress"
     }
 
@@ -115,7 +128,7 @@ private final class SoundEngine {
         try? AVAudioSession.sharedInstance().setActive(true)
 
         for kind in Kind.allCases {
-            guard let url = DexResources.url(named: kind.rawValue, ext: "mp3", in: .sfx),
+            guard let url = DexResources.url(named: kind.rawValue, ext: "mp3", subdirectory: "SFX"),
                   let file = try? AVAudioFile(forReading: url),
                   let buffer = AVAudioPCMBuffer(
                     pcmFormat: file.processingFormat,
@@ -126,9 +139,11 @@ private final class SoundEngine {
             buffers[kind] = buffer
         }
 
-        // All four files come off one production pipeline, so one format
-        // serves every connection; a missing set leaves the engine unstarted
-        // and the app silent rather than wrong.
+        // The files come off one production pipeline, so one format serves
+        // every connection; a missing set leaves the engine unstarted and the
+        // app silent rather than wrong. A single missing file is skipped by the
+        // loop above and simply never plays — which is why adding
+        // `incorrect-answer` in 0.6.8 needed no other change here.
         guard let format = buffers.values.first?.format else {
             broken = true
             return
