@@ -61,6 +61,20 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.8.95",
+  date: "2026-08-09",
+  headline: "PREVIEWS TELL TRUTH",
+  // The terse register, kept. A patch on 0.8.94's A: the device was fixed,
+  // the pickers were still drawing the old button.
+  notes: [
+    "CUSTOMIZE's skin tiles and the workshop schematic draw HOME in the material it actually wears.",
+    "The lit-Home roster is pinned in test: exactly the four console liveries, so the fallback can never go unexercised again.",
+    "If HOME still looks lit on an ordinary shell, check this page's number -- builds before 0.8.94 drew the old button.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const PREVIOUS_0894: FirmwareRelease = {
   version: "0.8.94",
   date: "2026-08-09",
   headline: "HOME, AT THE ROOT",
@@ -119,6 +133,7 @@ const PREVIOUS_0892: FirmwareRelease = {
 };
 
 const PREVIOUS: FirmwareRelease[] = [
+  PREVIOUS_0894,
   PREVIOUS_0893,
   PREVIOUS_0892,
   {

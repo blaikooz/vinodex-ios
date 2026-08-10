@@ -95,5 +95,44 @@ struct FooterCapTests {
         #expect(ramp.lightHex == "#44403C")
         #expect(ramp.inkHex == "#F5F5F4")
     }
+
+    /// **The lit roster is pinned** (0.8.95, closing the hole the screenshot
+    /// report exposed). `homeNeverForks` above asserts the fallback's
+    /// behaviour — but if every skin quietly acquired a `buttonSet`, every
+    /// skin would take the lit branch and the test would pass without one
+    /// shipped skin ever exercising the fallback. Pinning which skins are lit
+    /// makes that unreachable: a fifth entrant here is a decision somebody
+    /// records, not a data change that vacuously greens the suite.
+    @Test("exactly the four console liveries light their Home")
+    func litRosterIsPinned() {
+        let lit = ChassisSkin.allCases
+            .filter { $0.buttonSet != nil }
+            .map(\.rawValue)
+            .sorted()
+        #expect(
+            lit == ["CLASSIC", "PSVINO", "VINHO VERDE", "W64"],
+            "the lit-Home roster moved: \(lit) — update this pin with the batch that moved it"
+        )
+    }
+
+    /// **The previews resolve what the device resolves** (0.8.95). This is
+    /// the failure mode the user's screenshots actually caught: A1 fixed
+    /// `ChassisButton` while `ChassisMockup` and the workshop schematic kept
+    /// reading the bare accent, so the pickers showed a Home the chassis no
+    /// longer draws. Both now read a `homeAccent`; this holds the two
+    /// spellings of the rule — `ChassisSkin`'s for bare-skin previews,
+    /// `ChassisLook`'s for the live device — equal on every skin, so a
+    /// preview cannot drift from the part again without a red test.
+    @Test("the bare-skin rule and the device rule agree on every skin")
+    func previewsAgreeWithTheDevice() {
+        for skin in ChassisSkin.allCases {
+            let bare = skin.homeAccent
+            let device = ChassisLook(skinRaw: skin.rawValue).homeAccent
+            #expect(
+                bare.lightHex == device.lightHex && bare.inkHex == device.inkHex,
+                "\(skin.rawValue): the preview's Home is not the device's"
+            )
+        }
+    }
 }
 #endif

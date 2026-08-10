@@ -929,6 +929,22 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// Home's ramp for a bare skin (0.8.94/0.8.95) — the same rule
+    /// `ChassisLook.homeAccent` applies after part overrides: the authored
+    /// lit ramp where a livery has one, the cap's own material everywhere
+    /// else.
+    ///
+    /// On the type as well as on the look because the *previews* take bare
+    /// skins: `ChassisMockup` and the workshop schematic drew their home
+    /// stand-ins straight from `accent`, which meant the pickers went on
+    /// showing an accent-lit Home after A1 took it off the device — the last
+    /// two accent-reads §A's diagnosis was about, found by the user's
+    /// screenshots rather than by the invariant, which is why
+    /// `FooterCapTests` now pins the two rules equal.
+    public var homeAccent: ChassisAccent {
+        buttonSet?.home ?? ChassisAccent(cap: control)
+    }
+
     /// An original drawn mark, for the skins whose reference hardware's emblem
     /// is somebody's trademark (0.6.7, K1).
     ///

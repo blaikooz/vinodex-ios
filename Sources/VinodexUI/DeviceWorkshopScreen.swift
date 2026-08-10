@@ -408,14 +408,18 @@ public struct DeviceWorkshopScreen: View {
                                 .strokeBorder(look.marqueeShadow, lineWidth: 1.5)
                         )
                 }
+                // Home, in the ramp the device resolves (0.8.95) — not the
+                // bare accent, which stopped being Home's colour in 0.8.94's
+                // A1 and left this schematic previewing a button the build
+                // no longer draws.
                 Circle()
                     .fill(LinearGradient(
-                        colors: [look.accent.light, look.accent.mid],
+                        colors: [look.homeAccent.light, look.homeAccent.mid],
                         startPoint: .top,
                         endPoint: .bottom
                     ))
                     .frame(width: 11, height: 11)
-                    .overlay(Circle().strokeBorder(look.accent.edge, lineWidth: 1))
+                    .overlay(Circle().strokeBorder(look.homeAccent.edge, lineWidth: 1))
             }
         }
         .padding(7)
