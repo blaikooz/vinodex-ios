@@ -89,38 +89,20 @@ struct ChassisButton: View {
         }
     }
 
-    /// The face colour the drawn cap is re-inked to.
+    /// The face colour the drawn cap is re-inked to — `cap.top`, for every
+    /// kind (0.8.98).
     ///
-    /// Home's comes from its accent ramp rather than from `cap`, exactly as its
-    /// gradient does — `cap` is documented as never read for Home, and reading
-    /// it here would have made the one lit button in the band the one button
-    /// that ignored its livery.
-    private var capInkHex: String {
-        switch kind {
-        case .back, .bookmarks: cap.topHex
-        case .home: homeAccent.lightHex
-        }
-    }
+    /// Through 0.8.97 Home read its ramp here. The ramp resolved to the cap
+    /// on ordinary skins, but "resolves to the same string" is a weaker
+    /// property than "is the same read", and §A's whole history is the gap
+    /// between those two. There is no Home branch to be wrong any more: the
+    /// lit console liveries author their Home as a *cap* now, through
+    /// `ChassisLook.footerCap`, and this view cannot tell the buttons apart.
+    private var capInkHex: String { cap.topHex }
 
-    /// The colour the incised symbol is re-inked to (0.8.4, E1).
-    ///
-    /// Resolved from the same two places as `capInkHex`, so a cap cannot take
-    /// its face from one livery and its glyph from another. `ChassisControl.glyph`
-    /// is the colour the no-art fallback has always tinted its SF Symbol with,
-    /// which is what makes this a *correction* rather than a new decision: every
-    /// skin had already chosen this colour, and the drawn caps were the only
-    /// surface ignoring it.
-    ///
-    /// Home reads `ink` rather than `glyph` because Home has no `ChassisControl`
-    /// -- `cap` is documented as never read for it -- and `ChassisAccent.ink` is
-    /// that ramp's own answer to the same question, the one `moldedCap` already
-    /// gives the house glyph on its fallback path.
-    private var capGlyphHex: String {
-        switch kind {
-        case .back, .bookmarks: cap.glyphHex
-        case .home: homeAccent.inkHex
-        }
-    }
+    /// The colour the incised symbol is re-inked to (0.8.4, E1) —
+    /// `cap.glyph`, for every kind (0.8.98). See `capInkHex`.
+    private var capGlyphHex: String { cap.glyphHex }
 
     /// The drawn cap, re-inked, when there is one and the shell wants it.
     ///
@@ -147,6 +129,9 @@ struct ChassisButton: View {
     /// own `#FBF8F1` face over `#2B3244` ink, which is the flattest pair in the
     /// range and the closest any skin gets to paper and pencil.
     private var drawnCap: UIImage? {
+        // No third ink for any kind (0.8.98, retiring 0.8.93 item 6's lip):
+        // the whole body re-inks in `cap.top`, so the lip is already the
+        // button colour — on Home exactly as on Back, which is the point.
         ChassisCapLoader.shared.image(
             stem: capStem,
             inkHex: capInkHex,
@@ -272,39 +257,29 @@ struct ChassisButton: View {
         }
     }
 
-    /// This button's cap, taking the skin's per-button colour where the skin
-    /// defines one (0.6.7, K2/K3) and the shared moulded cap otherwise. Home
-    /// resolves through `accent` instead — see below.
+    /// This button's cap, through the one resolution path (0.8.94, A2) —
+    /// `ChassisLook.footerCap` is where the per-button colour and the shared
+    /// moulded fallback now live, for all four kinds including the cog.
     private var cap: ChassisControl {
         switch kind {
-        case .back: skin.buttonSet?.back ?? skin.control
-        case .bookmarks: skin.buttonSet?.bookmarks ?? skin.control
-        // Never read for Home, which is built from a six-stop ramp; present so
-        // the switch is exhaustive rather than optional-returning.
-        case .home: skin.control
+        case .back: skin.footerCap(.back)
+        case .bookmarks: skin.footerCap(.bookmarks)
+        // Read for Home since 0.8.94 (A1): it is the material Home's ramp
+        // derives from when no livery lights it — the "never read for Home"
+        // era is exactly the fork §A diagnoses.
+        case .home: skin.footerCap(.home)
         }
     }
 
-    /// Home's ramp: the console liveries give it its own, everything else uses
-    /// the skin's single accent.
-    private var homeAccent: ChassisAccent {
-        skin.buttonSet?.home ?? skin.accent
-    }
-
+    // One gradient and one rim for all three kinds (0.8.98): the no-art
+    // fallback is the same moulded cap the drawn sprite is, and Home's old
+    // ramp-lit disc was the last place the buttons were drawn by two rules.
     private var gradient: LinearGradient {
-        switch kind {
-        case .back, .bookmarks:
-            LinearGradient(colors: [cap.top, cap.bottom], startPoint: .top, endPoint: .bottom)
-        case .home:
-            LinearGradient(colors: [homeAccent.light, homeAccent.mid], startPoint: .top, endPoint: .bottom)
-        }
+        LinearGradient(colors: [cap.top, cap.bottom], startPoint: .top, endPoint: .bottom)
     }
 
     private var borderColor: Color {
-        switch kind {
-        case .back, .bookmarks: cap.edge
-        case .home: homeAccent.edge
-        }
+        cap.edge
     }
 
     // Glyphs scale with the button's own diameter rather than carrying fixed
@@ -334,17 +309,15 @@ struct ChassisButton: View {
                 size: size * 0.44,
                 tint: cap.glyph
             )
+        // Home's inner lit disc retired with its ramp (0.8.98): a glyph on
+        // the moulded cap, exactly as Back draws its chevron. The "lit"
+        // identity of a console Home is its cap *colour* now, not a second
+        // drawing rule.
         case .home:
-            Circle()
-                .fill(LinearGradient(colors: [homeAccent.pale, homeAccent.bright], startPoint: .top, endPoint: .bottom))
-                .overlay(Circle().strokeBorder(homeAccent.mid, lineWidth: 1))
-                .padding(2)
-                .overlay {
-                    DexChromeGlyph(
-                        "home", symbol: "house.fill",
-                        size: size * 0.41, weight: .bold, tint: homeAccent.ink
-                    )
-                }
+            DexChromeGlyph(
+                "home", symbol: "house.fill",
+                size: size * 0.41, weight: .bold, tint: cap.glyph
+            )
         }
     }
 }

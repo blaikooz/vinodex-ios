@@ -57,10 +57,18 @@ public struct ChassisAccent: Sendable {
     /// its own pair or it would be the single button in the band that kept the
     /// 0.8.3 single-tone treatment.
     public let inkHex: String
+    /// The last two stops as strings (0.8.98), for `ChassisControl(litRamp:)`
+    /// — the adapter that restates an authored lit-Home ramp as the moulded
+    /// cap the one button pass draws. Same trade as `lightHex`, same reader
+    /// count: the caller has the string at init and nowhere afterwards.
+    public let midHex: String
+    public let edgeHex: String
 
     public init(pale: String, light: String, bright: String, mid: String, edge: String, ink: String) {
         self.lightHex = light
         self.inkHex = ink
+        self.midHex = mid
+        self.edgeHex = edge
         self.pale = Color(dexHex: pale)
         self.light = Color(dexHex: light)
         self.bright = Color(dexHex: bright)
@@ -107,6 +115,11 @@ public struct ChassisControl: Sendable {
     /// symbol separately from the face, so it needs both ends of the pair as
     /// hue and saturation rather than as `SwiftUI.Color`.
     public let glyphHex: String
+    /// And the last two of the four (0.8.94, A1), for a different reader:
+    /// `ChassisAccent.init(cap:)` restates this whole cap as the ramp Home
+    /// draws from, and a ramp needs every stop as a string it can mix.
+    public let bottomHex: String
+    public let edgeHex: String
 
     public init(top: String, bottom: String, edge: String, glyph: String) {
         self.top = Color(dexHex: top)
@@ -115,6 +128,72 @@ public struct ChassisControl: Sendable {
         self.glyph = Color(dexHex: glyph)
         self.topHex = top
         self.glyphHex = glyph
+        self.bottomHex = bottom
+        self.edgeHex = edge
+    }
+}
+
+public extension ChassisAccent {
+    /// The moulded cap, restated as the ramp Home draws from (0.8.94, A1).
+    ///
+    /// **This initialiser is the Home-button fix, stated as a type
+    /// conversion.** The four footer caps were two colour models: Back, User
+    /// and Settings resolve a `ChassisControl`, while Home resolves a
+    /// `ChassisAccent` whose fallback was `skin.accent` — a bright accent
+    /// unrelated to the moulded cap beside it. That fallback is why Home wore
+    /// gold on OAKED's wood and white on BURGUNDY's purple, and why three
+    /// consecutive batches of cap fixes each "missed the home button": every
+    /// fix landed on the `ChassisControl` path, and Home was never on it.
+    ///
+    /// Now the fallback *is* the cap. `light` and `bright` are the cap's own
+    /// face — so the drawn cap re-inks to exactly the material Back re-inks to,
+    /// which is the equality `FooterCapTests` pins — `mid` is the cap's
+    /// shadow, the rim and the ink come straight across, and the one derived
+    /// stop is `pale`: the inner disc's top, a 16% lift of the face, which is
+    /// the moulded highlight an unlit cap has in place of a glow.
+    ///
+    /// The console liveries never reach this: their `buttonSet.home` is an
+    /// authored ramp and still wins — see `ChassisLook.homeAccent`.
+    init(cap: ChassisControl) {
+        let pale = DexRGB(hex: cap.topHex)
+            .mixed(with: DexRGB(r: 1, g: 1, b: 1), amount: 0.16)
+            .hex
+        self.init(
+            pale: pale,
+            light: cap.topHex,
+            bright: cap.topHex,
+            mid: cap.bottomHex,
+            edge: cap.edgeHex,
+            ink: cap.glyphHex
+        )
+    }
+}
+
+public extension ChassisControl {
+    /// An authored lit-Home ramp, restated as the moulded cap it colours
+    /// (0.8.98) — the adapter that runs the other way from
+    /// `ChassisAccent(cap:)`.
+    ///
+    /// **This is how "lit" stopped being a code path.** Through 0.8.97 a
+    /// console livery's Home travelled as a `ChassisAccent` all the way into
+    /// `ChassisButton`, which kept a `.home` branch alive at every read the
+    /// ramp reached — and §A's history is that every such branch eventually
+    /// disagrees with its neighbours. Restating the ramp as a `ChassisControl`
+    /// at the *resolution* step means the buttons' view code has exactly one
+    /// colour model and cannot tell Home apart: a lit Home is a cap that
+    /// happens to be bright.
+    ///
+    /// `top` takes the ramp's `light` — the face `ChassisButton` has re-inked
+    /// the drawn cap with since 0.8.2 — so a console Home's drawn face is
+    /// byte-identical to what it was; `bottom` its `mid`, `edge` its `edge`,
+    /// `glyph` its `ink`, each the stop the old branch read for that surface.
+    init(litRamp ramp: ChassisAccent) {
+        self.init(
+            top: ramp.lightHex,
+            bottom: ramp.midHex,
+            edge: ramp.edgeHex,
+            glyph: ramp.inkHex
+        )
     }
 }
 
@@ -828,6 +907,22 @@ extension ChassisSkin {
             )
         default: nil
         }
+    }
+
+    /// Home's ramp for a bare skin (0.8.94/0.8.95) — the same rule
+    /// `ChassisLook.homeAccent` applies after part overrides: the authored
+    /// lit ramp where a livery has one, the cap's own material everywhere
+    /// else.
+    ///
+    /// On the type as well as on the look because the *previews* take bare
+    /// skins: `ChassisMockup` and the workshop schematic drew their home
+    /// stand-ins straight from `accent`, which meant the pickers went on
+    /// showing an accent-lit Home after A1 took it off the device — the last
+    /// two accent-reads §A's diagnosis was about, found by the user's
+    /// screenshots rather than by the invariant, which is why
+    /// `FooterCapTests` now pins the two rules equal.
+    public var homeAccent: ChassisAccent {
+        ChassisAccent(cap: buttonSet.map { ChassisControl(litRamp: $0.home) } ?? control)
     }
 
     /// An original drawn mark, for the skins whose reference hardware's emblem

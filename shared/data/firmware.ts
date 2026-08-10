@@ -61,6 +61,85 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.8.99",
+  date: "2026-08-10",
+  headline: "ONE DRAWING",
+  // The terse register, kept. 0.8.98 made the code one pass; this makes the
+  // art one drawing — there is nothing home-specific left to disagree.
+  notes: [
+    "HOME's cap is BACK's drawing now, with the house incised in place of the chevron -- same face, same bezel, same everything, on every shell.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const PREVIOUS_0898: FirmwareRelease = {
+  version: "0.8.98",
+  date: "2026-08-10",
+  headline: "ONE BUTTON PASS",
+  // The end of §A in code: not "resolves to the same colour" but "is the
+  // same code" — the buttons cannot be told apart.
+  notes: [
+    "HOME is drawn by the exact pass the other caps wear -- no ramp, no lip, no special case -- and a lit console Home is just a brighter cap, on every shell.",
+    "The walkthrough's diagram stops lighting HOME from the accent -- the last accent-read is gone.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const PREVIOUS_0897: FirmwareRelease = {
+  version: "0.8.97",
+  date: "2026-08-10",
+  headline: "AND THEN THE SEAM",
+  // 0.8.96's graft printed its own join as a line across the cap; the band
+  // now blends in over ten rows, aligned row-for-row.
+  notes: [
+    "The skirt graft lost its seam: HOME's band fades into its siblings' shading instead of switching in one line, and the rows align exactly.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const PREVIOUS_0896: FirmwareRelease = {
+  version: "0.8.96",
+  date: "2026-08-10",
+  headline: "ONE MOULDED SKIRT",
+  // The HOME saga's last chapter was never colour: the drawing's bottom wall
+  // was 21 pixels where its siblings carry 120.
+  notes: [
+    "HOME's bottom bezel was thin in the drawing itself; it is grafted from its siblings now -- one moulded skirt on all four caps, on every shell.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const PREVIOUS_0895: FirmwareRelease = {
+  version: "0.8.95",
+  date: "2026-08-09",
+  headline: "PREVIEWS TELL TRUTH",
+  // A patch on 0.8.94's A: the device was fixed, the pickers were still
+  // drawing the old button.
+  notes: [
+    "CUSTOMIZE's skin tiles and the workshop schematic draw HOME in the material it actually wears.",
+    "The lit-Home roster is pinned in test: exactly the four console liveries, so the fallback can never go unexercised again.",
+    "If HOME still looks lit on an ordinary shell, check this page's number -- builds before 0.8.94 drew the old button.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const PREVIOUS_0894: FirmwareRelease = {
+  version: "0.8.94",
+  date: "2026-08-09",
+  headline: "HOME, AT THE ROOT",
+  // The terse register, kept.
+  notes: [
+    "The HOME button is fixed at the root: it was the one cap on its own colour path, and now all four resolve through one -- with a test so it cannot fork again.",
+    "The boot screen waits for your tap. It no longer opens the app by itself.",
+    "Pack names stop truncating: the label was asking for sizes the font quietly refused to render.",
+    "Sharing an entry prefills 'Check this out on Vinodex' with a link to its page on the web app.",
+    "The share card carries the entry's whole description; the canvas grows instead of the text cutting.",
+    "Flavour pages describe the flavour family itself, in a line, instead of the sip.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const PREVIOUS_0893: FirmwareRelease = {
   version: "0.8.93",
   date: "2026-08-09",
   headline: "PROF. VINO",
@@ -103,6 +182,12 @@ const PREVIOUS_0892: FirmwareRelease = {
 };
 
 const PREVIOUS: FirmwareRelease[] = [
+  PREVIOUS_0898,
+  PREVIOUS_0897,
+  PREVIOUS_0896,
+  PREVIOUS_0895,
+  PREVIOUS_0894,
+  PREVIOUS_0893,
   PREVIOUS_0892,
   {
     version: "0.8.91",

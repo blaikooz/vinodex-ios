@@ -37,10 +37,32 @@ public enum ShareCardRenderer {
     /// `ImageRenderer` is `@MainActor`, hence the isolation on the whole type.
     /// An explicit `.frame` is required: the card views size themselves to the
     /// device otherwise, and `ImageRenderer` supplies no proposed size.
-    public static func image<Content: View>(@ViewBuilder _ content: () -> Content) -> UIImage? {
+    ///
+    /// **`sizedToContent` (0.8.94, D2).** The fixed 4:5 was the whole
+    /// contract until the entry card was asked to carry its complete info
+    /// text: prose is not a fixed-height thing, and a rectangle that cannot
+    /// grow is where the old two-line cut came from. Opted into by the entry
+    /// card alone — the height becomes `max(content, 450)`, so a short entry
+    /// still exports the 4:5 every other card keeps, and a long one gets the
+    /// exact rows its prose needs. The width never moves; social surfaces
+    /// crop height far more gracefully than they scale width.
+    public static func image<Content: View>(
+        sizedToContent: Bool = false,
+        @ViewBuilder _ content: () -> Content
+    ) -> UIImage? {
+        let framed = Group {
+            if sizedToContent {
+                content()
+                    .frame(width: size.width)
+                    .frame(minHeight: size.height, alignment: .top)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                content()
+                    .frame(width: size.width, height: size.height)
+            }
+        }
         let renderer = ImageRenderer(
-            content: content()
-                .frame(width: size.width, height: size.height)
+            content: framed
                 // The app pins `.dynamicTypeSize(.large)` at the root so a
                 // screen's layout cannot be pulled apart by a text setting.
                 // An exported image has to pin it too — it is not inside the
@@ -160,13 +182,19 @@ enum SharePayload: Identifiable {
     /// An image card (B1–B3), with the name the share sheet's header shows
     /// (0.8.2). The title is not decoration: without an item source supplying
     /// it there is no header at all.
-    case image(UIImage, title: String)
+    ///
+    /// `message` and `link` (0.8.94, D1): the prefilled line and the entry's
+    /// web address, riding beside the image as their own activity items —
+    /// Messages composes all three, Mail takes the text into the body, and an
+    /// activity that only wants the picture ignores the rest. Nil on the
+    /// passport and stamp cards, which have no page to point at.
+    case image(UIImage, title: String, message: String? = nil, link: URL? = nil)
     /// A result string (C1) — shared as text, and separately copyable.
     case text(String)
 
     var id: String {
         switch self {
-        case .image(_, let title): "image:" + title
+        case .image(_, let title, _, _): "image:" + title
         case .text(let string): string
         }
     }
@@ -182,8 +210,13 @@ enum SharePayload: Identifiable {
         // The item source rather than the bare image — see
         // `ShareCardItemSource`. `UIActivityViewController` accepts either, and
         // the difference is entirely the preview.
-        case .image(let image, let title): [ShareCardItemSource(image: image, title: title)]
-        case .text(let string): [string]
+        case .image(let image, let title, let message, let link):
+            var items: [Any] = [ShareCardItemSource(image: image, title: title)]
+            if let message { items.append(message) }
+            if let link { items.append(link as NSURL) }
+            return items
+        case .text(let string):
+            return [string]
         }
     }
 }

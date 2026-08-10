@@ -68,8 +68,13 @@ struct ChassisMockup: View {
                     .padding(5 * s)
             }
             .overlay(alignment: .topTrailing) {
+                // The home stand-in, in the material Home actually wears
+                // (0.8.95). `skin.accent.bright` through 0.8.94, which kept
+                // every picker tile showing an accent-lit Home after the
+                // device stopped having one — the preview contradicting the
+                // part is what the §A screenshots caught.
                 Circle()
-                    .fill(skin.accent.bright)
+                    .fill(skin.homeAccent.bright)
                     .frame(width: 10 * s, height: 10 * s)
                     .padding(5 * s)
             }
