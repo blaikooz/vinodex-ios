@@ -120,10 +120,18 @@ public struct ChassisAccent: Sendable {
     /// its own pair or it would be the single button in the band that kept the
     /// 0.8.3 single-tone treatment.
     public let inkHex: String
+    /// The last two stops as strings (0.8.98), for `ChassisControl(litRamp:)`
+    /// — the adapter that restates an authored lit-Home ramp as the moulded
+    /// cap the one button pass draws. Same trade as `lightHex`, same reader
+    /// count: the caller has the string at init and nowhere afterwards.
+    public let midHex: String
+    public let edgeHex: String
 
     public init(pale: String, light: String, bright: String, mid: String, edge: String, ink: String) {
         self.lightHex = light
         self.inkHex = ink
+        self.midHex = mid
+        self.edgeHex = edge
         self.pale = Color(dexHex: pale)
         self.light = Color(dexHex: light)
         self.bright = Color(dexHex: bright)
@@ -220,6 +228,34 @@ public extension ChassisAccent {
             mid: cap.bottomHex,
             edge: cap.edgeHex,
             ink: cap.glyphHex
+        )
+    }
+}
+
+public extension ChassisControl {
+    /// An authored lit-Home ramp, restated as the moulded cap it colours
+    /// (0.8.98) — the adapter that runs the other way from
+    /// `ChassisAccent(cap:)`.
+    ///
+    /// **This is how "lit" stopped being a code path.** Through 0.8.97 a
+    /// console livery's Home travelled as a `ChassisAccent` all the way into
+    /// `ChassisButton`, which kept a `.home` branch alive at every read the
+    /// ramp reached — and §A's history is that every such branch eventually
+    /// disagrees with its neighbours. Restating the ramp as a `ChassisControl`
+    /// at the *resolution* step means the buttons' view code has exactly one
+    /// colour model and cannot tell Home apart: a lit Home is a cap that
+    /// happens to be bright.
+    ///
+    /// `top` takes the ramp's `light` — the face `ChassisButton` has re-inked
+    /// the drawn cap with since 0.8.2 — so a console Home's drawn face is
+    /// byte-identical to what it was; `bottom` its `mid`, `edge` its `edge`,
+    /// `glyph` its `ink`, each the stop the old branch read for that surface.
+    init(litRamp ramp: ChassisAccent) {
+        self.init(
+            top: ramp.lightHex,
+            bottom: ramp.midHex,
+            edge: ramp.edgeHex,
+            glyph: ramp.inkHex
         )
     }
 }
@@ -942,7 +978,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     /// screenshots rather than by the invariant, which is why
     /// `FooterCapTests` now pins the two rules equal.
     public var homeAccent: ChassisAccent {
-        buttonSet?.home ?? ChassisAccent(cap: control)
+        ChassisAccent(cap: buttonSet.map { ChassisControl(litRamp: $0.home) } ?? control)
     }
 
     /// An original drawn mark, for the skins whose reference hardware's emblem

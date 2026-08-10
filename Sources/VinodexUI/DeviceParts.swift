@@ -500,20 +500,21 @@ public struct ChassisLook {
         case .back: buttonSet?.back ?? control
         case .bookmarks: buttonSet?.bookmarks ?? control
         case .settings: buttonSet?.settings ?? control
-        // Home's moulded material: what its ramp derives from when no livery
-        // lights it, and its lip ink when one does (0.8.93, item 6).
-        case .home: control
+        // Home is a cap like its three neighbours (0.8.98): an authored lit
+        // ramp arrives *here*, restated as the moulded cap it colours, and
+        // from this point on no reader can tell Home from Back. "Lit" is a
+        // colour, not a code path — see `ChassisControl(litRamp:)`.
+        case .home: buttonSet.map { ChassisControl(litRamp: $0.home) } ?? control
         }
     }
 
-    /// Home's ramp, and the whole of the A1 fix in one line: the fallback is
-    /// **the cap the other three wear**, restated as a ramp — not
-    /// `skin.accent`, the bright chassis accent that put a gold Home on
-    /// OAKED's wood and a white one on BURGUNDY's purple. A livery that
-    /// authors `buttonSet.home` (the consoles, every workshop `PartColor`)
-    /// keeps its lit Home untouched. `FooterCapTests` holds both halves.
+    /// Home's colours as a ramp, for the previews that want six stops
+    /// (`ChassisMockup`, the workshop schematic). A pure restatement of
+    /// `footerCap(.home)` since 0.8.98 — the device itself no longer reads a
+    /// ramp for Home at all, so a preview reading this cannot drift from the
+    /// part. `FooterCapTests` holds the two spellings equal.
     public var homeAccent: ChassisAccent {
-        buttonSet?.home ?? ChassisAccent(cap: footerCap(.home))
+        ChassisAccent(cap: footerCap(.home))
     }
 
     public var orb: Color { orbPart?.orb ?? skin.orb }

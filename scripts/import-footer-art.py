@@ -220,14 +220,17 @@ def strip_key_shadow(img):
     return img, cleared
 
 
-# --- The home cap's bottom lip (0.8.92 item 3; regrafted 0.8.96) -------------
+# --- The home cap's bottom lip (0.8.92 item 3; regrafted 0.8.96/0.8.98) ------
 #
-# Where the skirt band starts, as a fraction of the sprite height. Chosen off
-# the measurement in 0.8.92: the incised house glyph bottoms out around 0.72h
-# and the lip runs 0.80h-0.97h, so 0.78 clears the glyph on one side and takes
-# the whole band on the other. `ChassisCapLoader.lipBandTop` is the same number
-# in Swift; the two are one measurement in two languages.
-LIP_BAND_TOP = 0.78
+# Where the graft band starts, as a fraction of the sprite height. The incised
+# house glyph bottoms out around 0.72h, so 0.75 clears it with margin — and it
+# starts *above* the drawing's own face-to-skirt transition (~0.78h), so the
+# seam blend runs face-into-face, where the donors and home agree within a few
+# hundredths, and the entire visible transition into the bottom bezel is the
+# donors' own paint. (Untied from `ChassisCapLoader.lipBandTop` in 0.8.98: the
+# runtime lip ink is no longer passed for any cap, so the only band that
+# matters is this one.)
+LIP_BAND_TOP = 0.75
 
 
 # The seam: how many rows at the band's top blend home's own paint into the

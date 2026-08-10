@@ -291,7 +291,10 @@ struct DeviceDiagram: View {
     private var backCap: ChassisControl { skin.buttonSet?.back ?? skin.control }
     private var userCap: ChassisControl { skin.buttonSet?.bookmarks ?? skin.control }
     private var settingsCap: ChassisControl { skin.buttonSet?.settings ?? skin.control }
-    private var homeRamp: ChassisAccent { skin.buttonSet?.home ?? skin.accent }
+    // `skin.homeAccent`, not `buttonSet?.home ?? skin.accent` (0.8.98): the
+    // old spelling was §A's original bug, still alive in this diagram after
+    // the device dropped it — the last accent-read in the codebase.
+    private var homeRamp: ChassisAccent { skin.homeAccent }
 
     /// Whether a part is the subject of this step. `.device` lights everything,
     /// which is how the last step says "this whole object". The tools step
