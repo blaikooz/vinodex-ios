@@ -61,11 +61,23 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.8.99",
+  date: "2026-08-10",
+  headline: "ONE DRAWING",
+  // The terse register, kept. 0.8.98 made the code one pass; this makes the
+  // art one drawing — there is nothing home-specific left to disagree.
+  notes: [
+    "HOME's cap is BACK's drawing now, with the house incised in place of the chevron -- same face, same bezel, same everything, on every shell.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const PREVIOUS_0898: FirmwareRelease = {
   version: "0.8.98",
   date: "2026-08-10",
   headline: "ONE BUTTON PASS",
-  // The terse register, kept. The end of §A: not "resolves to the same
-  // colour" but "is the same code" — the buttons cannot be told apart.
+  // The end of §A in code: not "resolves to the same colour" but "is the
+  // same code" — the buttons cannot be told apart.
   notes: [
     "HOME is drawn by the exact pass the other caps wear -- no ramp, no lip, no special case -- and a lit console Home is just a brighter cap, on every shell.",
     "The walkthrough's diagram stops lighting HOME from the accent -- the last accent-read is gone.",
@@ -170,6 +182,7 @@ const PREVIOUS_0892: FirmwareRelease = {
 };
 
 const PREVIOUS: FirmwareRelease[] = [
+  PREVIOUS_0898,
   PREVIOUS_0897,
   PREVIOUS_0896,
   PREVIOUS_0895,
