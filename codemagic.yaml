@@ -1,0 +1,44 @@
+# Codemagic CI for vinodex-ios.
+#
+# This is NOT a React Native or Xcode project: the app is a SwiftPM package
+# built by xtool (see xtool.yml / Package.swift). The workflow mirrors the
+# local verification gates in scripts/gate.sh — `swift test` (VinodexCore
+# only; the UI targets are iOS-only) followed by a clean `xtool dev build` —
+# and collects the unsigned .ipa that xtool writes into xtool/.
+#
+# Signing note: the ipa is unsigned. Distribution (TestFlight / App Store)
+# needs a paid Apple Developer account and a real bundle ID; xtool.yml still
+# carries the free-profile com.example.Vinodex ID, so CI is a build/test
+# gate for now, not a delivery pipeline.
+
+workflows:
+  ios-xtool:
+    name: Vinodex iOS — test + xtool build
+    instance_type: mac_mini_m2
+    max_build_duration: 45
+    environment:
+      xcode: latest
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+        - pattern: testing
+          include: true
+      cancel_previous_builds: true
+    scripts:
+      - name: Install xtool
+        script: |
+          brew install xtool-org/tap/xtool
+          xtool --version
+      - name: swift test (VinodexCore)
+        script: swift test
+      - name: Clean xtool build
+        script: |
+          rm -rf .build xtool
+          xtool dev build
+      - name: Verify ipa
+        script: ls -l xtool/*.ipa
+    artifacts:
+      - xtool/*.ipa
