@@ -1,4 +1,4 @@
-import type { ContinentEntry } from '../types';
+import type { ContinentEntry } from '../types.ts';
 
 const CONTINENTS_BASE: ContinentEntry[] = [
   {

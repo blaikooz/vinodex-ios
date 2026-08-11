@@ -256,17 +256,18 @@ public enum DexRoute: Hashable, Sendable {
     case country(name: String)
     /// The regions of one state within a country.
     case state(name: String)
-    /// The guessing game — see `WhatsThat`. Named "WHAT'S THAT…?" rather than
-    /// "grape of the day" since the answer is a region as often as a grape.
+    /// Professor Vino's own screen (0.8.93, item 9): who he is, his six faces,
+    /// the silence switch, and — for now — the dev-facing ledger of what he
+    /// has and has not said. The interaction surface comes later; this is the
+    /// room it will happen in.
     ///
-    /// **The case keeps its old spelling (0.7.9, B).** The screen behind it went
-    /// from a silhouette-and-reveal (`DailyGrapeScreen`) to a clue-by-clue round
-    /// (`WhatsThatScreen`), and the route did not move — a `DexRoute` case is
-    /// vocabulary, named by `DemoMode`, `ChromeTests` and the back-handler in
-    /// `VinodexApp`, and renaming it would be churn in four files to describe a
-    /// change none of them care about. The same convention `scanner` follows,
-    /// which has been BLIND TASTING on screen since 0.7.1.
-    case dailyGrape
+    /// **This slot held `dailyGrape` — WHAT'S THAT…? — from 0.7.9 to 0.8.93.**
+    /// Item 9 deletes that tool outright, screen, engine, record and all, and
+    /// the convention that kept the case's old spelling through two screen
+    /// rewrites does not apply to a case whose feature no longer exists: a
+    /// fresh case is honest vocabulary, and `DexRoute` is not persisted, so
+    /// nothing stored can dangle.
+    case profVino
     /// The guided grape identifier — colour, body, origin and flavours, then a
     /// deduction. See `GrapeScanCriteria`.
     case scanner
@@ -415,8 +416,8 @@ public enum DexRoute: Hashable, Sendable {
             "COUNTRY SCAN"
         case .state(let name):
             name.uppercased()
-        case .dailyGrape:
-            "WHAT'S THAT…?"
+        case .profVino:
+            "PROF. VINO"
         case .scanner:
             // SCANNER → IDENTIFY (0.7.0, I3) → BLIND TASTING (0.7.1, E3), the
             // label only each time, per the same convention `wsetQuiz` and
@@ -570,9 +571,10 @@ public enum DexRoute: Hashable, Sendable {
             "flag.fill"
         case .state:
             "mappin.and.ellipse"
-        // Matches the TOOLS tile that opens it (K2, rule 1).
-        case .dailyGrape:
-            "sparkles"
+        // Matches the TOOLS tile that opens it (K2, rule 1). A mortarboard:
+        // the professor's page, and no other route wears one.
+        case .profVino:
+            "graduationcap.fill"
         // Matches its TOOLS tile, and frees `viewfinder` to be only the
         // unresolved-entry fallback above. `sparkle.magnifyingglass` until
         // 0.7.1: A2 reserves every magnifier for search, and once the tool was
@@ -736,7 +738,10 @@ public enum DexRoute: Hashable, Sendable {
         case .labelReader: "marquee-labelscanner"
         case .wsetQuiz: "marquee-wineexam"
         case .dailyChallenge: "marquee-dailychallenge"
-        case .dailyGrape: "marquee-whatsthat"
+        // No drawn face yet (0.8.93, item 9) — the mortarboard symbol stands
+        // in, per the 0.8.91 B3/F1 precedent below. `marquee-whatsthat` went
+        // to the attic with its tool.
+        case .profVino: nil
         case .moonDial: "marquee-moondial"
         // The shelf itself, from the SETTINGS grid's TOOLS door.
         case .minigames: "marquee-tools"

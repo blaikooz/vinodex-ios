@@ -139,7 +139,27 @@ public enum PartColor: String, CaseIterable, Identifiable, Sendable {
     /// looking at, and `edge` is a little over half black so the ring reads as a
     /// moulded lip rather than as a stroke.
     public var accent: ChassisAccent {
-        ChassisAccent(
+        // **ONYX inverts (0.8.93, item 7).** The standard derivation lightens
+        // toward white for the two pale stops, which on the one colour whose
+        // whole identity is "black" produced a near-white Home disc wearing a
+        // white ink — invisible, and the opposite of the part the player
+        // picked. ORANGE WINE's authored black ramp is the precedent: every
+        // stop steps *darker* from a light grey, so `pale -> bright` renders a
+        // dark disc, and the ink is pale because the disc it sits in is dark.
+        // Scoped to `.onyx` by name rather than by a luminance test: CLARET is
+        // also dark and is asking to be deep red, not black — lightening a
+        // wine red toward white is that colour behaving normally.
+        if self == .onyx {
+            return ChassisAccent(
+                pale: lighter(0.30).hex,
+                light: lighter(0.12).hex,
+                bright: baseHex,
+                mid: darker(0.40).hex,
+                edge: darker(0.70).hex,
+                ink: "#FFFFFF"
+            )
+        }
+        return ChassisAccent(
             pale: lighter(0.80).hex,
             light: lighter(0.56).hex,
             bright: baseHex,
@@ -390,6 +410,17 @@ public struct ChassisGrille: View {
 /// Everything not overridable forwards to the skin untouched — a workshop that
 /// let you recolour the shell's *pattern* or the back plate's screws is a
 /// different feature, and forwarding says so plainly.
+/// The four footer controls, as material questions (0.8.94, A2).
+///
+/// `ChassisButton.Kind` stays a three-case *behaviour* enum (Settings is
+/// still its own view in `DeviceChassis` — folding the views is the half of
+/// A2 deliberately deferred); this names the four **materials**, so
+/// `ChassisLook.footerCap(_:)` can be exhaustive over the band and a test can
+/// iterate it.
+public enum FooterCapKind: String, CaseIterable, Sendable {
+    case back, home, bookmarks, settings
+}
+
 public struct ChassisLook {
     public let skin: ChassisSkin
     private let buttonsPart: PartColor?
@@ -451,6 +482,40 @@ public struct ChassisLook {
     /// only Home — is a device whose buttons are five colours, which is not a
     /// choice anybody made.
     public var buttonSet: ChassisButtonSet? { buttonsPart?.buttonSet ?? skin.buttonSet }
+
+    // MARK: The footer caps, resolved in one place (0.8.94, A1/A2)
+
+    /// The moulded cap for one footer control — **the** path, for all four
+    /// kinds (0.8.94, A2).
+    ///
+    /// Until this batch the four caps resolved in three places: Back and User
+    /// inside `ChassisButton`, Settings inside `DeviceChassis.settingsButton`,
+    /// and Home through a `ChassisAccent` branch whose fallback was the bug —
+    /// see `homeAccent` below. One function means the next cap fix cannot
+    /// cover three buttons and skip the fourth, which is what §A's history is:
+    /// three consecutive batches of cap work that each "missed Home" because
+    /// Home was never on the path being fixed.
+    public func footerCap(_ kind: FooterCapKind) -> ChassisControl {
+        switch kind {
+        case .back: buttonSet?.back ?? control
+        case .bookmarks: buttonSet?.bookmarks ?? control
+        case .settings: buttonSet?.settings ?? control
+        // Home is a cap like its three neighbours (0.8.98): an authored lit
+        // ramp arrives *here*, restated as the moulded cap it colours, and
+        // from this point on no reader can tell Home from Back. "Lit" is a
+        // colour, not a code path — see `ChassisControl(litRamp:)`.
+        case .home: buttonSet.map { ChassisControl(litRamp: $0.home) } ?? control
+        }
+    }
+
+    /// Home's colours as a ramp, for the previews that want six stops
+    /// (`ChassisMockup`, the workshop schematic). A pure restatement of
+    /// `footerCap(.home)` since 0.8.98 — the device itself no longer reads a
+    /// ramp for Home at all, so a preview reading this cannot drift from the
+    /// part. `FooterCapTests` holds the two spellings equal.
+    public var homeAccent: ChassisAccent {
+        ChassisAccent(cap: footerCap(.home))
+    }
 
     public var orb: Color { orbPart?.orb ?? skin.orb }
     public var orbGlow: Color { orbPart?.orbGlow ?? skin.orbGlow }

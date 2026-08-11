@@ -122,11 +122,14 @@ public struct LabelReaderView: View {
 
     private var chooser: some View {
         VStack(spacing: 18) {
-            // §C2's glyph. `DexChromeGlyph` keeps the old symbol as its
-            // fallback, so this is the drawing where there is one and exactly
-            // what was here before where there is not.
+            // The tool's own button face, not the generated glyph (0.8.92,
+            // item 6 — was `UIGlyph.labelscanner.artStem` from 0.8.91's C2).
+            // "labelscanner" is the drawn face the TOOLS tile already wears,
+            // so the door and the room behind it now show the same picture —
+            // K2 rule 1, applied to the hero instead of a third drawing.
+            // `DexChromeGlyph` keeps the old symbol as its fallback.
             DexChromeGlyph(
-                UIGlyph.labelscanner.artStem,
+                "labelscanner",
                 symbol: "camera.viewfinder",
                 size: 84,
                 weight: .semibold,
@@ -723,9 +726,16 @@ public struct LabelReaderView: View {
     /// with that have one (0.8.1, J3). A map rather than a parameter because
     /// every caller already passes the symbol and none of them should have to
     /// know whether art exists for it.
+    ///
+    /// **`bigButton` itself reads it now (0.8.92, item 6).** Through 0.8.91
+    /// only `noticeCard` consumed the map, so TAKE PHOTO listed a camera face
+    /// here and drew the bare SF Symbol anyway. CHOOSE FROM LIBRARY takes the
+    /// demo-mode face: the library door replays a picture that already exists,
+    /// which is what DEMO MODE's picture means on the settings row it came from.
     private static let buttonArt: [String: String] = [
         "camera.fill": "camera",
         "house.fill": "home",
+        "photo.on.rectangle": "demomode",
     ]
 
     private func bigButton(
@@ -740,8 +750,17 @@ public struct LabelReaderView: View {
         } label: {
             HStack(spacing: 12) {
                 if let symbol {
-                    Image(systemName: symbol)
-                        .font(.system(size: 21, weight: .bold))
+                    // Through the art map above (0.8.92, item 6): the drawn
+                    // face where one is listed, the SF Symbol otherwise —
+                    // `DexChromeGlyph`'s own fallback, so a missing asset
+                    // renders exactly what shipped before.
+                    DexChromeGlyph(
+                        Self.buttonArt[symbol] ?? symbol,
+                        symbol: symbol,
+                        size: 24,
+                        weight: .bold,
+                        tint: tint
+                    )
                 }
                 Text(label)
                     .font(DexFont.retro(14))

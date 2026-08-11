@@ -1,0 +1,16 @@
+Vinodex
+
+Copyright (c) 2026 mirrorfarm. All rights reserved.
+
+This repository contains the source code, artwork, audio, and data of the
+Vinodex app. It is published for reference and for collaboration on the
+project itself. No license is granted to copy, modify, redistribute, or
+create derivative works from the first-party contents of this repository,
+in whole or in part, for any purpose, except as reasonably required to
+build and test the app in the course of contributing to this project.
+
+Third-party components included in this repository or in the built app are
+not covered by the paragraph above. They remain under their own licenses,
+which continue to apply, and are inventoried in NOTICE.md with their
+license texts under licenses/ and beside the assets they cover. Nothing in
+this file limits or overrides those licenses.

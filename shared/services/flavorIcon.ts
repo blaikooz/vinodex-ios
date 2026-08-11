@@ -1,10 +1,11 @@
 /**
- * Pure flavor-name -> Iconify id lookup, extracted from `FlavorIcon.jsx`.
+ * Pure flavor-name -> Iconify id lookup.
  *
  * This has no React/JSX dependency, so it can be imported by non-component
- * consumers — notably `native/scripts/generate.ts`, which runs under a plain
- * Node/ts-node script and can't load `.jsx` files. `FlavorIcon.jsx` re-exports
- * everything from here so existing imports of it keep working unchanged.
+ * consumers — here, `scripts/generate-ios-data.ts`, which resolves an icon id
+ * per entry when building `icons.json`. (Originally extracted from the web
+ * app's `FlavorIcon.jsx`, which is why the lookup lives apart from any view
+ * code.)
  */
 
 /**
@@ -16,7 +17,7 @@
  * rather than foods, so a class icon can never collide with one of its own
  * subclasses' icons below.
  */
-export const FLAVOR_CLASS_ICON_MAP: Record<string, string> = {
+const FLAVOR_CLASS_ICON_MAP: Record<string, string> = {
   sweet: 'lucide:sparkles',
   sour: 'lucide:citrus',
   salty: 'lucide:droplet',
@@ -24,7 +25,7 @@ export const FLAVOR_CLASS_ICON_MAP: Record<string, string> = {
   umami: 'lucide:leaf',
 };
 
-export const FLAVOR_ICON_MAP: Record<string, string> = {
+const FLAVOR_ICON_MAP: Record<string, string> = {
   'orchard fruit': 'game-icons:shiny-apple',
   'stone fruit': 'game-icons:peach',
   'tropical': 'game-icons:banana-bunch',
@@ -52,7 +53,7 @@ export const FLAVOR_ICON_MAP: Record<string, string> = {
   'wood': 'game-icons:oak-leaf',
 };
 
-export const FLAVOR_NAME_ICON_MAP: Record<string, string> = {
+const FLAVOR_NAME_ICON_MAP: Record<string, string> = {
   // Orchard
   'apple': 'game-icons:shiny-apple',
   'red apple': 'game-icons:shiny-apple',

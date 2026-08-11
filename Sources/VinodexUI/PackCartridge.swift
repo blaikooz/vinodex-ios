@@ -126,27 +126,31 @@ struct PackCartridge: View {
     /// The pack's name, printed **inside** the drawn cartridge's label well
     /// (0.8.3, C4).
     ///
-    /// Nil on the shelf, where the tile prints its own label underneath at a
-    /// legible size: the well is 11% of the cartridge's height, which at the
-    /// shelf's 58pt is six points of type. It is set on the splash hero, where
-    /// the cartridge is the page and the well is the place the name belongs.
+    /// **On the shelf too, since 0.8.92 (item 1).** C4's measurement — the
+    /// well is 11% of the cartridge's height, six points of type at the
+    /// shelf's 58pt — kept it off the shelf for five releases, and the item
+    /// overrules it knowingly: the ask is the name *on the icon*, in tiny
+    /// type, with the tile's caption underneath still carrying legibility.
+    /// On the splash hero the same fraction is a real label; see `wellLabel`'s
+    /// raised cap.
     ///
     /// Ignored when there is no art — the code-drawn cartridge below has a
     /// glyph plate where the well would be, and printing a name over it would
     /// stack two identities on one plate.
     var label: String?
-    /// The pack's name, printed in the **top band** of the drawn cartridge
-    /// (0.8.91, A1).
+    /// The **kind**, printed in the top band of the drawn cartridge — ATLAS,
+    /// DEVICE or DISPLAY (0.8.92, item 1; the band printed the pack's *name*
+    /// for one release, 0.8.91's A1, before the name moved down into the well
+    /// where the printed label belongs).
     ///
-    /// Separate from `label` rather than a placement flag on it, because the two
-    /// are different jobs and the splash wants both: the well at the bottom is
-    /// the cartridge's own printed label, and this is the shelf's answer to
-    /// "which pack is this" without reading the caption underneath.
+    /// Separate from `label` rather than a placement flag on it, because the
+    /// two are different jobs: the well is the cartridge's own printed label,
+    /// the band is the shelf it came off. Nil on the five upgrade cartridges,
+    /// which are not a `Kind` and whose gold band carries a drawn star where
+    /// the type would land.
     ///
-    /// §A1 says "the top burgundy band", which is the atlas packs' colour. It is
-    /// teal on the device packs and amber on the display ones — the item names
-    /// all three shelves in the same sentence, so the band is what it means
-    /// rather than the hue. `bandInk` is what copes with that.
+    /// The band is burgundy on the atlas packs, teal on the device packs and
+    /// amber on the display ones — `bandInk` is what copes with that.
     var title: String?
 
     init(
@@ -285,8 +289,27 @@ struct PackCartridge: View {
         if let label {
             let well = Self.labelWell(for: image.size, in: container)
             if well.width > 0, well.height > 0 {
+                // Sized by the well's height *and* its width (0.8.93), and —
+                // the half that actually ends the truncation (0.8.94, C1) —
+                // rendered through `retroFixed`. Two releases of fit
+                // arithmetic computed sizes `DexFont.retro` then silently
+                // refused to draw: `retro` floors every request at
+                // `TypeScale.nominalFloor` (10pt, times TEXT SIZE), so the
+                // well's computed ~3pt rendered at 10+, overflowed the 29pt
+                // recess, and NEW WORLD became "NEW WO…" — the exact trap
+                // `StampFrame` documents. This label is a legend printed on
+                // an object whose recess cannot grow, which is precisely the
+                // moulded-part category `retroFixed` exists for (0.8.6, D1) —
+                // and what this comment's own TEXT SIZE caveat had been
+                // describing all along.
+                let count = max(CGFloat(label.count), 1)
+                let widthFit = (well.width - 0.5 * (count - 1)) / count
                 Text(label)
-                    .font(DexFont.retro(min(11, well.height * 0.52)))
+                    // The height cap is 16 since 0.8.92 (item 1), up from 11.
+                    // It only ever binds on the splash hero, where the well is
+                    // ~27pt tall; 11 was leaving it two-thirds empty on the
+                    // page whose whole job is to print the name legibly.
+                    .font(DexFont.retroFixed(max(2, min(16, well.height * 0.52, widthFit))))
                     .tracking(0.5)
                     .lineLimit(1)
                     .minimumScaleFactor(0.4)
@@ -423,8 +446,17 @@ struct PackCartridge: View {
             let band = Self.titleBand(for: image.size, in: container)
             if band.width > 0, band.height > 0 {
                 let light = Self.bandIsLight(image, stem: stem)
+                // Width-fitted and `retroFixed` with the well label (0.8.94,
+                // C1) — the band asked `retro` for ~2.3pt on the shelf and
+                // was rendered at the 10pt floor, so ATLAS survived on luck
+                // and DISPLAY was clipping. Same mechanism, same fix.
+                let count = max(CGFloat(title.count), 1)
+                let widthFit = (band.width - 0.5 * (count - 1)) / count
                 Text(title)
-                    .font(DexFont.retro(min(10, band.height * 0.62)))
+                    // 14 since 0.8.92 (item 1), up from 10, for `wellLabel`'s
+                    // reason: the cap only binds on the splash hero, where the
+                    // band is ~16pt tall and the type was floating in it.
+                    .font(DexFont.retroFixed(max(2, min(14, band.height * 0.62, widthFit))))
                     .tracking(0.5)
                     .lineLimit(1)
                     .minimumScaleFactor(0.35)

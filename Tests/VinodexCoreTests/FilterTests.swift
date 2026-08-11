@@ -147,6 +147,223 @@ struct FilterTests {
         #expect(db.countries(matching: "") == db.searchableCountries)
         #expect(db.countries(matching: "zzz").isEmpty)
     }
+
+    // MARK: - AUDIT M33: the four branches no test reached
+
+    /// `.type` is what a grape's COLOR and TYPE tiles emit
+    /// (`EntryDetailScreen.swift:334`, `:339`). Colour is the discriminating
+    /// axis, so RED and WHITE must between them account for every grape —
+    /// stated as a partition rather than as two counts, since the catalogue grows.
+    @Test("type filter matches a grape's colour and its style")
+    func typeFilter() {
+        let reds = db.entries.apply(.category(.grapes, filter: .type("red")))
+        #expect(!reds.isEmpty)
+        #expect(reds.allSatisfy { entry in
+            guard case .grape(let g) = entry else { return false }
+            return g.grapeType == .red
+        })
+
+        let whites = db.entries.apply(.category(.grapes, filter: .type("white")))
+        #expect(reds.count + whites.count == db.entries(in: .grapes).count,
+                "RED and WHITE must partition the grapes")
+
+        // `grapeStyle` — the TYPE tile's value. (`wineType` is emitted
+        // identically by the generator today, so it cannot be told apart here.)
+        #expect(!db.entries.apply(.category(.grapes, filter: .type("Full-Body Red"))).isEmpty)
+        // Normalised on both sides, so a display-cased value still filters.
+        #expect(db.entries.apply(.category(.grapes, filter: .type("RED"))).count == reds.count)
+        // Styles fall through unconditionally — the colour inference they would
+        // need lives in the UI layer.
+        #expect(db.entries.apply(.category(.styles, filter: .type("red"))).isEmpty)
+    }
+
+    /// 0.6.2 D2 made `.type("DUAL")` match every grape, because a dual style's
+    /// COLOR tile routed here and an empty list was judged worse than all of
+    /// them. 0.8.8 C1 retired that: the tile pushes `.styleColor` now (see
+    /// `everyColorChipLeadsSomewhere`), and the grape-type filter went back to
+    /// knowing exactly the two colours a grape can be.
+    @Test("the grape-type filter knows red and white, and DUAL is nobody")
+    func typeFilterDual() {
+        #expect(db.entries.apply(.category(.grapes, filter: .type("DUAL"))).isEmpty)
+        #expect(db.entries.apply(.category(.grapes, filter: .type("dual"))).isEmpty)
+        // The name that used to prove the DUAL tile reachable is catalogued
+        // now — the data answers RED where inference once shrugged.
+        #expect(EntryDisplay.colorType(name: "Bordeaux Blend") == .red)
+        // Grape-side only; a style never matches the grape-type filter.
+        #expect(db.entries.apply(.category(.styles, filter: .type("DUAL"))).isEmpty)
+    }
+
+    /// The two colour types no grape carries, and where they live after C1.
+    ///
+    /// From 0.6.2 D2 a ROSE or ORANGE chip re-coloured the grape listing —
+    /// rosé is "made from red grapes with minimal skin contact", orange is
+    /// "white grapes vinified like red wine", so the chip opened the matching
+    /// grape set. 0.8.8 C1 moved the tile to `.styleColor`, which makes the
+    /// process→grape mapping pure data (`grapeColor`) and takes both names
+    /// back out of the grape-type filter's vocabulary.
+    @Test("ROSE and ORANGE keep their grape mapping, but left the type filter")
+    func typeFilterRoseAndOrange() {
+        #expect(EntryDisplay.colorType(name: "Rosé") == .rose)
+        #expect(EntryDisplay.colorType(name: "Orange Wine") == .orange)
+        #expect(StyleColorType.rose.grapeColor == .red)
+        #expect(StyleColorType.orange.grapeColor == .white)
+        #expect(StyleColorType.dual.grapeColor == nil)
+
+        // C1: the grape-type filter answers for red and white only.
+        #expect(db.entries.apply(.category(.grapes, filter: .type("ROSE"))).isEmpty)
+        #expect(db.entries.apply(.category(.grapes, filter: .type("ORANGE"))).isEmpty)
+        // And red/white still partition the grape table exactly.
+        let red = db.entries.apply(.category(.grapes, filter: .type("red")))
+        let white = db.entries.apply(.category(.grapes, filter: .type("white")))
+        #expect(red.count + white.count == db.entries(in: .grapes).count)
+        // Still grape-side only — a style never matches a colour filter.
+        #expect(db.entries.apply(.category(.styles, filter: .type("ROSE"))).isEmpty)
+    }
+
+    /// **`Prosecco` is not a rosé**, and a bare `contains` said it was: the
+    /// substring "rose" sits inside "p-rose-cco". Italy's best-known sparkling
+    /// *white* wine carried a ROSE chip on its own detail page, and the filter
+    /// behind it found nothing. The whole-term test is the same one `.origin`
+    /// has always used. Since the 0.8.9x catalogue classifies styles directly,
+    /// Prosecco resolves WHITE by data before inference runs at all; the
+    /// made-up names below still exercise the word-boundary rule itself.
+    @Test("a colour word inside another word is not a colour")
+    func colorTypeMatchesWholeWords() {
+        #expect(EntryDisplay.colorType(name: "Prosecco") == .white)
+        // The catalogue's own Prosecco, not just the string.
+        if let prosecco = db.entry(named: "Prosecco", category: .styles) {
+            #expect(EntryDisplay.colorType(name: prosecco.name) == .white)
+        }
+        // Hyphens still collapse, so the body styles keep resolving.
+        #expect(EntryDisplay.colorType(name: "Full-Body Red") == .red)
+        #expect(EntryDisplay.colorType(name: "Light-Body White") == .white)
+    }
+
+    /// The invariant the whole item is really about: **no style's COLOR chip
+    /// may open onto an empty list.** Three did once. The chip's destination
+    /// moved in 0.8.8 (C1) — `.styleColor` over the styles table, not a grape
+    /// recolouring — so the walk takes the route the tile actually pushes
+    /// (`EntryDetailScreen`'s COLOR chip). A per-name test would have missed
+    /// the next one; this walks the catalogue.
+    @Test("every style's COLOR chip finds at least one style")
+    func everyColorChipLeadsSomewhere() {
+        for entry in db.entries(in: .styles) {
+            guard case .style(let s) = entry else { continue }
+            let color = EntryDisplay.colorType(name: s.common.name)
+            let hits = db.entries.apply(.category(.styles, filter: .styleColor(color)))
+            #expect(!hits.isEmpty,
+                    "\(s.common.name)'s COLOR chip says \(color.rawValue) and opens onto nothing")
+        }
+    }
+
+    /// `.tasting` is the FLAVOR screen's CLASS tile
+    /// (`EntryDetailScreen.swift:416`). Two branches in order: a tasting *note*,
+    /// then the entry's classification — and no fall-through past the second,
+    /// so an entry that has a classification is judged on it alone.
+    @Test("tasting filter matches a classification, then a note")
+    func tastingFilter() {
+        let sweet = db.entries.apply(.category(.flavors, filter: .tasting("SWEET")))
+        #expect(!sweet.isEmpty)
+        #expect(sweet.allSatisfy { $0.classification == "SWEET" })
+
+        // The note branch is the only one a grape can take: no grape in the
+        // catalogue carries a `details.classification` at all.
+        #expect(db.entries(in: .grapes).allSatisfy { $0.classification == nil })
+        let noted = db.entries.apply(.category(.grapes, filter: .tasting("Blackcurrant")))
+        #expect(!noted.isEmpty)
+        #expect(noted.allSatisfy { entry in
+            entry.tastingProfile.contains { TextNormalize.label($0.note) == "blackcurrant" }
+        })
+        #expect(db.entries.apply(.category(.grapes, filter: .tasting("Not A Note"))).isEmpty)
+    }
+
+    /// `.system` is the STYLE screen's CLASS tile
+    /// (`EntryDetailScreen.swift:387`), and 0.6.x made it compare through
+    /// `EntryDisplay.styleClass` rather than the raw `classification` string.
+    /// Champagne is what proves it: its raw classification is the
+    /// near-universal "STYLE", and the chip beside it plainly says ORIGIN.
+    @Test("system filter compares styles through the inferred class")
+    func systemFilterOnStyles() throws {
+        let champagne = try #require(db.entry(named: "Champagne", category: .styles))
+        guard case .style(let s) = champagne else {
+            Issue.record("Champagne is not a style"); return
+        }
+        #expect(s.details.classification == "STYLE")
+        #expect(EntryFilter.system("ORIGIN").matches(champagne))
+        #expect(!EntryFilter.system("STYLE").matches(champagne),
+                "the raw classification must not filter a style any more")
+
+        let origins = db.entries.apply(.category(.styles, filter: .system("ORIGIN")))
+        #expect(!origins.isEmpty)
+        #expect(origins.allSatisfy { entry in
+            guard case .style(let s) = entry else { return false }
+            return EntryDisplay.styleClass(
+                name: s.common.name, classification: s.details.classification
+            ) == .origin
+        })
+
+        // The five class values partition the styles, and STYLE takes none of
+        // them — nothing infers `.style`, per the note on `EntryDisplay.styleClass`.
+        let counts = StyleClassType.allCases.map {
+            db.entries.apply(.category(.styles, filter: .system($0.rawValue))).count
+        }
+        #expect(counts.reduce(0, +) == db.entries(in: .styles).count, "got \(counts)")
+        #expect(db.entries.apply(.category(.styles, filter: .system("STYLE"))).isEmpty)
+    }
+
+    /// Non-styles keep the raw-classification comparison, so a region is still
+    /// reachable by its appellation system.
+    @Test("system filter falls through to the raw classification for non-styles")
+    func systemFilterOnRegions() {
+        let aoc = db.entries.apply(.category(.regions, filter: .system("AOC")))
+        #expect(!aoc.isEmpty)
+        #expect(aoc.allSatisfy { $0.classification == "AOC" })
+        #expect(db.entries.apply(.category(.regions, filter: .system("aoc"))).count == aoc.count)
+    }
+
+    /// `.soil` is constructed **nowhere** in `Sources/` — the GEOLOGY chip it
+    /// was written for never shipped — so no shipped entry can reach it and
+    /// only a fixture can. Kept rather than deleted because `scanTitle`,
+    /// `indicatorText` and `storageKey` all still spell it out, and 36 of the
+    /// shipped regions carry a `soilType` for it to match the day the chip lands.
+    ///
+    /// Note the semantics it pins: **substring**, not equality — the only
+    /// filter branch that works that way.
+    @Test("soil filter substring-matches a region's soil type")
+    func soilFilter() throws {
+        let fixture = try DBFixture.database(DBFixture.region, DBFixture.grape)
+        #expect(fixture.entries.apply(.category(.regions, filter: .soil("limestone"))).map(\.id) == ["FX_R"])
+        #expect(fixture.entries.apply(.category(.regions, filter: .soil("LIMESTONE"))).map(\.id) == ["FX_R"])
+        #expect(fixture.entries.apply(.category(.regions, filter: .soil("granite"))).isEmpty)
+        // Only regions carry soil; the `guard case .region` holds for everything else.
+        #expect(fixture.entries.apply(.category(.grapes, filter: .soil("limestone"))).isEmpty)
+
+        // …and there is real data behind it, so the branch is worth keeping.
+        let real = db.entries(in: .regions).filter {
+            guard case .region(let r) = $0 else { return false }
+            return r.details.soilType?.isEmpty == false
+        }
+        #expect(real.count >= 30, "only \(real.count) regions carry a soilType")
+    }
+
+    /// Everything above goes through `[WineEntry].apply(_:)`; every screen goes
+    /// through `WineDatabase.entries(matching:)`, which runs the same predicate
+    /// against a load-time index (AUDIT M5). The two must not drift.
+    @Test("the indexed and unindexed paths agree on every filter branch",
+          arguments: [
+            EntryQuery(categories: [.grapes], filter: .type("red")),
+            EntryQuery(categories: [.grapes], filter: .type("DUAL")),
+            EntryQuery(categories: [.flavors], filter: .tasting("SWEET")),
+            EntryQuery(categories: [.styles], filter: .system("ORIGIN")),
+            EntryQuery(categories: [.regions], filter: .system("AOC")),
+            EntryQuery(categories: [.flavors], filter: .flavorSubclass("BERRY")),
+            EntryQuery(categories: [.regions], filter: .origin("France")),
+            EntryQuery(categories: [.grapes], filter: .rarity(.noble)),
+            EntryQuery(categories: [.regions], filter: .climate(.warm)),
+          ])
+    func indexedPathAgrees(_ query: EntryQuery) {
+        #expect(db.entries.apply(query).map(\.id) == db.entries(matching: query).map(\.id))
+    }
 }
 
 @Suite("Cross-link resolution")
@@ -211,5 +428,73 @@ struct CrossLinkTests {
         // "Champagne" exists as both a style and (in the full DB) a region.
         #expect(db.entry(named: "Champagne", category: .styles) != nil)
         #expect(db.entry(named: "Champagne", category: .grapes) == nil)
+    }
+}
+
+/// AUDIT M33's second half. `styleClass` and `colorType` are ordered keyword
+/// walks with nothing pinning the order, and `.system` reads `styleClass` for
+/// **every** style (`EntryFilter.swift:162`) — so reordering a table silently
+/// re-buckets the whole STYLES listing and every CLASS chip with it.
+@Suite("Style class and colour inference")
+struct StyleInferenceTests {
+    @Test("an explicit classification overrides the keyword tables")
+    func classificationOverrides() {
+        // "champagne" is an ORIGIN keyword; the field wins anyway.
+        #expect(EntryDisplay.styleClass(name: "Champagne", classification: "METHOD") == .method)
+        #expect(EntryDisplay.styleClass(name: "Champagne", classification: "BLEND") == .blend)
+    }
+
+    /// The one value that is *not* an override — and the whole reason `.system`
+    /// stopped filtering on the raw field. 22 of the 31 shipped styles carry
+    /// "STYLE" here.
+    @Test("a STYLE classification is not an override")
+    func styleIsNotAnOverride() {
+        #expect(EntryDisplay.styleClass(name: "Champagne", classification: "STYLE") == .origin)
+        #expect(EntryDisplay.styleClass(name: "Full-Body Red", classification: "STYLE") == .type)
+        #expect(EntryDisplay.styleClass(name: "Fortified Wine", classification: "STYLE") == .method)
+    }
+
+    /// ORIGIN, then TYPE, then METHOD — the comment above the tables says so,
+    /// and shipped names depend on all three orderings.
+    @Test("keyword precedence is ORIGIN, then TYPE, then METHOD")
+    func keywordPrecedence() {
+        // "sparkling" is a METHOD keyword and "sparkling wine" a TYPE one, so
+        // the longer TYPE entry has to be tested first.
+        #expect(EntryDisplay.styleClass(name: "Sparkling Wine", classification: nil) == .type)
+        #expect(EntryDisplay.styleClass(name: "Sparkling Shiraz", classification: nil) == .method)
+        // "prosecco" is ORIGIN and "sparkling" METHOD; ORIGIN is tested first.
+        #expect(EntryDisplay.styleClass(name: "Sparkling Prosecco", classification: nil) == .origin)
+        #expect(EntryDisplay.styleClass(name: "Nothing In The Tables", classification: nil) == .style)
+    }
+
+    @Test("colour precedence is ORANGE, ROSE, RED, WHITE, then DUAL")
+    func colorPrecedence() {
+        #expect(EntryDisplay.colorType(name: "Orange Rose Red White") == .orange)
+        #expect(EntryDisplay.colorType(name: "Rose Red White") == .rose)
+        #expect(EntryDisplay.colorType(name: "Red White") == .red)
+        #expect(EntryDisplay.colorType(name: "White") == .white)
+        // Catalogued RED since the 0.8.9x data — see `typeFilterDual`.
+        #expect(EntryDisplay.colorType(name: "Bordeaux Blend") == .red)
+        // Diacritic-folded, so the catalogue's "Rosé" resolves.
+        #expect(EntryDisplay.colorType(name: "Rosé") == .rose)
+        // Whole words only — see `colorTypeMatchesWholeWords`. "Redcurrant" is
+        // not a red wine and "Whitehaven" is not a white one.
+        #expect(EntryDisplay.colorType(name: "Redcurrant") == .dual)
+        #expect(EntryDisplay.colorType(name: "Whitehaven") == .dual)
+    }
+
+    /// The invariant that makes `.system` a total function over styles: every
+    /// shipped style must be filtered back out by the chip its own detail
+    /// screen renders.
+    @Test("every style's inferred class round-trips through its own CLASS chip")
+    func everyStyleRoundTrips() {
+        for entry in WineDatabase.shared.entries(in: .styles) {
+            guard case .style(let s) = entry else { continue }
+            let cls = EntryDisplay.styleClass(
+                name: s.common.name, classification: s.details.classification
+            )
+            #expect(EntryFilter.system(cls.rawValue).matches(entry),
+                    "\(s.common.name) does not match its own CLASS chip")
+        }
     }
 }

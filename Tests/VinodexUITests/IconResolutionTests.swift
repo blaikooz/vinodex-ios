@@ -3,7 +3,9 @@ import Testing
 import SwiftUI
 import UIKit
 import VinodexCore
-import VinodexUI
+// `@testable`: the three loaders this suite drives — `IconLoader`,
+// `PixelArtLoader`, `FlagLoader` — are internal to the module on purpose.
+@testable import VinodexUI
 
 /// Every icon an entry can ask for actually loads, from the shipped bundle (S1).
 ///
@@ -115,16 +117,21 @@ struct IconResolutionTests {
     /// `Flags` entry in `Package.swift` would show up here and nowhere else at
     /// runtime.
     ///
-    /// `FlagLoader`, not `PixelArtLoader` — they are two classes with two caches,
-    /// and only `FlagLoader` takes a country. `PixelArtLoader.image(_:)` takes a
-    /// filename stem, so the `for:` label was simply the wrong call.
+    /// `FlagLoader`, not `PixelArtLoader` — they are two classes with two
+    /// caches. Since AUDIT M27 the loader is keyed by *slug* — a filename —
+    /// and the call site resolves country → slug through `flagSlug(for:)`,
+    /// exactly as `EntryVisual` does; the walk here takes the same two steps,
+    /// so a country that resolves no slug fails on its own line.
     @Test("every shipped flag loads")
     func everyFlagLoads() {
         let countries = db.icons.flags.keys.sorted()
         #expect(!countries.isEmpty, "no flags — the table did not decode")
         for country in countries {
+            let slug = db.icons.flagSlug(for: country)
+            #expect(slug != nil, "\(country) ships a flag path but resolves no slug")
+            guard let slug else { continue }
             #expect(
-                FlagLoader.shared.image(for: country) != nil,
+                FlagLoader.shared.image(slug: slug) != nil,
                 "\(country) ships a flag path but the image did not load"
             )
         }

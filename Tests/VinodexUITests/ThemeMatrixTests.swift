@@ -3,7 +3,9 @@ import Testing
 import SwiftUI
 import UIKit
 import VinodexCore
-import VinodexUI
+// `@testable`: the matrix reads the theme layer's internal palette members
+// (`ScreenModes.swift` and friends) — internal to the module on purpose.
+@testable import VinodexUI
 
 /// The theme matrix, exercised end to end (S1).
 ///

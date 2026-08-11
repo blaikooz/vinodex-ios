@@ -198,6 +198,14 @@ public final class QuizProgress {
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        highestUnlocked = .novice
+        completed = []
+        reload()
+    }
+
+    /// Re-reads from `defaults` after a restore wrote the key behind this
+    /// store's back — see `BookmarkStore.reload()` for the full reasoning.
+    public func reload() {
         highestUnlocked = defaults.string(forKey: Self.storageKey)
             .flatMap(QuizTier.init(rawValue:)) ?? .novice
         // An unreadable or partly-unknown list degrades to whatever of it still

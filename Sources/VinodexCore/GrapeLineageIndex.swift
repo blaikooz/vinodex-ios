@@ -408,6 +408,11 @@ public struct GrapeLineageIndex: Sendable {
         // them at the end is one ordered de-dupe instead of six call sites
         // remembering to append — and it cannot fall out of step with what the
         // tree actually drew, which is the failure mode a parallel list has.
+        //
+        // Accumulated in typed steps rather than as one `+` chain: six array
+        // concatenations feeding a `map(\.note)` into an `[String?]` literal is
+        // more overload combinations than the type checker will finish, and it
+        // said so. Same order, same result.
         var notes: [String] = []
         // Accumulated into a typed local rather than one expression: the six-way
         // array `+` chain, the `compactMap` closure and the `\.note` key path in

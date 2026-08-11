@@ -61,29 +61,185 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
-  version: "0.8.91",
-  date: "2026-08-07",
-  headline: "BOOT + FIRST RUN",
+  version: "0.9.1",
+  date: "2026-08-10",
+  headline: "TWELVE SHELVES",
+  // 0.9.0's port carried five of the pixel-art loader's twelve directories;
+  // the art shipped, unreachable. One list restored, one test made two-way.
   notes: [
-    "A new startup screen: the tube powers on, the checks run, and the logo settles over scanlines.",
-    "Professor Vino narrates the whole tutorial now, at a size you can see him at.",
-    "The first-run coaching bubbles land on what they point at instead of above it, past it or over it.",
-    "SAVED, WANTED and TRIED are filter chips on every search screen.",
-    "Anything you have tried wears a green border, in every list.",
-    "YOU MIGHT LIKE shows five suggestions with a SHOW ALL page behind them.",
-    "SUPPORT joins SETTINGS > DEVICE: a contact screen with a mail button.",
-    "Pack cartridges print their name in the top band, on all three shop shelves.",
-    "Drawn faces for the workshop, the label scanner and the daily reminder, and icons are larger throughout.",
-    "The HOME button keeps its bottom lip on every shell.",
-    "VINODEX CLASSIC wears four grey glyphs on four black footer buttons.",
-    "The passport's activity graph covers a week instead of a month.",
-    "The screensaver toast sits in the middle of the marquee.",
-    "This history is a sentence a change instead of a paragraph.",
+    "The drawn chrome is back -- footer caps, marquee glyphs, button faces, cartridges, stickers and the Professor all draw again.",
+    "The art roster test now reads both ways, so a shelf the loader forgets fails a gate instead of a device check.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const PREVIOUS_0900: FirmwareRelease = {
+  version: "0.9.0",
+  date: "2026-08-10",
+  headline: "THE AUDIT CLOSES",
+  // PR13: the mirror line's audit closures land -- backup, the bigger type
+  // scale, and the licence record, merged over the 0.8.9x button saga.
+  notes: [
+    "STORED DATA backs the whole device up now -- every shelf, rating, streak and setting to one file you keep, and restores from it.",
+    "HUGE text got huger: 1.30x, and nothing draws smaller than 11pt on the default step.",
+    "Rose and Orange Wine's COLOR chip opens onto the grapes they are made from, and Prosecco is a white again.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const PREVIOUS_0899: FirmwareRelease = {
+  version: "0.8.99",
+  date: "2026-08-10",
+  headline: "ONE DRAWING",
+  // The terse register, kept. 0.8.98 made the code one pass; this makes the
+  // art one drawing — there is nothing home-specific left to disagree.
+  notes: [
+    "HOME's cap is BACK's drawing now, with the house incised in place of the chevron -- same face, same bezel, same everything, on every shell.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const PREVIOUS_0898: FirmwareRelease = {
+  version: "0.8.98",
+  date: "2026-08-10",
+  headline: "ONE BUTTON PASS",
+  // The end of §A in code: not "resolves to the same colour" but "is the
+  // same code" — the buttons cannot be told apart.
+  notes: [
+    "HOME is drawn by the exact pass the other caps wear -- no ramp, no lip, no special case -- and a lit console Home is just a brighter cap, on every shell.",
+    "The walkthrough's diagram stops lighting HOME from the accent -- the last accent-read is gone.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const PREVIOUS_0897: FirmwareRelease = {
+  version: "0.8.97",
+  date: "2026-08-10",
+  headline: "AND THEN THE SEAM",
+  // 0.8.96's graft printed its own join as a line across the cap; the band
+  // now blends in over ten rows, aligned row-for-row.
+  notes: [
+    "The skirt graft lost its seam: HOME's band fades into its siblings' shading instead of switching in one line, and the rows align exactly.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const PREVIOUS_0896: FirmwareRelease = {
+  version: "0.8.96",
+  date: "2026-08-10",
+  headline: "ONE MOULDED SKIRT",
+  // The HOME saga's last chapter was never colour: the drawing's bottom wall
+  // was 21 pixels where its siblings carry 120.
+  notes: [
+    "HOME's bottom bezel was thin in the drawing itself; it is grafted from its siblings now -- one moulded skirt on all four caps, on every shell.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const PREVIOUS_0895: FirmwareRelease = {
+  version: "0.8.95",
+  date: "2026-08-09",
+  headline: "PREVIEWS TELL TRUTH",
+  // A patch on 0.8.94's A: the device was fixed, the pickers were still
+  // drawing the old button.
+  notes: [
+    "CUSTOMIZE's skin tiles and the workshop schematic draw HOME in the material it actually wears.",
+    "The lit-Home roster is pinned in test: exactly the four console liveries, so the fallback can never go unexercised again.",
+    "If HOME still looks lit on an ordinary shell, check this page's number -- builds before 0.8.94 drew the old button.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const PREVIOUS_0894: FirmwareRelease = {
+  version: "0.8.94",
+  date: "2026-08-09",
+  headline: "HOME, AT THE ROOT",
+  // The terse register, kept.
+  notes: [
+    "The HOME button is fixed at the root: it was the one cap on its own colour path, and now all four resolve through one -- with a test so it cannot fork again.",
+    "The boot screen waits for your tap. It no longer opens the app by itself.",
+    "Pack names stop truncating: the label was asking for sizes the font quietly refused to render.",
+    "Sharing an entry prefills 'Check this out on Vinodex' with a link to its page on the web app.",
+    "The share card carries the entry's whole description; the canvas grows instead of the text cutting.",
+    "Flavour pages describe the flavour family itself, in a line, instead of the sip.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const PREVIOUS_0893: FirmwareRelease = {
+  version: "0.8.93",
+  date: "2026-08-09",
+  headline: "PROF. VINO",
+  // The terse register 0.8.92 tested, kept by request.
+  notes: [
+    "WHAT'S THAT...? is gone; PROF. VINO takes its square -- his page, his faces, his ledger.",
+    "His quiet switch moved from SETTINGS > DEVICE onto that page.",
+    "A region's CLIMATE, SOIL and APPELLATION SYSTEM sections are buttons now, each opening its matching scan.",
+    "A region's header is two bars: KEY GRAPE, and COUNTRY in ORIGIN's shape.",
+    "Style and flavour attributes wear the grape card's round chips.",
+    "Dark button liveries finally render dark -- ONYX, CLASSIC's black set and HALLOWINE included, white glyphs and all.",
+    "The HOME cap's lip takes the button colour, not the shell's.",
+    "MASTER SEARCH heads with the numbered stack; the sliders moved down onto FILTER.",
+    "Long pack names fit their cartridge label at every size.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const PREVIOUS_0892: FirmwareRelease = {
+  version: "0.8.92",
+  date: "2026-08-09",
+  headline: "PROFILES + POLISH",
+  // Deliberately terse (0.8.92, item 12): this release doubles as the test of
+  // H1's one-sentence rule at its shortest useful length.
+  notes: [
+    "Save and load up to five user profiles in STORED DATA; FRESH is a factory-new device every time.",
+    "FIRMWARE is a tile beside SHOP; its settings row is gone.",
+    "DAILY REMINDER moved into its own NOTIFICATIONS section.",
+    "Shop cartridges print their shelf on the band and their name in the well, here and on the pack pages.",
+    "A grape's COLOR and TYPE wear ORIGIN's shape, two to a line.",
+    "Origin names read correctly in the light themes.",
+    "INSIGHT reads at INFO's size, on INFO's plate.",
+    "Globe markers are simply there when the globe opens.",
+    "LABEL SCAN wears its tile's face, and its two buttons wear drawn faces.",
+    "The HOME cap's bottom lip finally takes the shell colour.",
+    "MASTER SEARCH's head wears the sliders, and the chip row just says FILTER.",
+    "Backend: the chassis and theme files split apart, seventeen palette switches became one table, and 396 theme combinations now build under test.",
     "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
   ],
 };
 
 const PREVIOUS: FirmwareRelease[] = [
+  PREVIOUS_0900,
+  PREVIOUS_0899,
+  PREVIOUS_0898,
+  PREVIOUS_0897,
+  PREVIOUS_0896,
+  PREVIOUS_0895,
+  PREVIOUS_0894,
+  PREVIOUS_0893,
+  PREVIOUS_0892,
+  {
+    version: "0.8.91",
+    date: "2026-08-07",
+    headline: "BOOT + FIRST RUN",
+    notes: [
+      "A new startup screen: the tube powers on, the checks run, and the logo settles over scanlines.",
+      "Professor Vino narrates the whole tutorial now, at a size you can see him at.",
+      "The first-run coaching bubbles land on what they point at instead of above it, past it or over it.",
+      "SAVED, WANTED and TRIED are filter chips on every search screen.",
+      "Anything you have tried wears a green border, in every list.",
+      "YOU MIGHT LIKE shows five suggestions with a SHOW ALL page behind them.",
+      "SUPPORT joins SETTINGS > DEVICE: a contact screen with a mail button.",
+      "Pack cartridges print their name in the top band, on all three shop shelves.",
+      "Drawn faces for the workshop, the label scanner and the daily reminder, and icons are larger throughout.",
+      "The HOME button keeps its bottom lip on every shell.",
+      "VINODEX CLASSIC wears four grey glyphs on four black footer buttons.",
+      "The passport's activity graph covers a week instead of a month.",
+      "The screensaver toast sits in the middle of the marquee.",
+      "This history is a sentence a change instead of a paragraph.",
+      "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+    ],
+  },
   {
     version: "0.8.9",
     date: "2026-08-07",

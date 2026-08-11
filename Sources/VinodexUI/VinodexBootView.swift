@@ -98,12 +98,9 @@ private extension View {
 /// ## The clock is absolute, not a sum of sleeps
 ///
 /// Every beat is scheduled against one `start` instant rather than by adding
-/// pauses, so the animation cannot accumulate drift and — the part that matters
-/// — the whole screen is bounded by `BootSequence.longestUntouched`. That is
-/// `duration + autoAdvance`, 5.4 seconds, and it is the number
-/// `BootSequenceTests.neverTraps` already asserts. A boot animation is a tax on
-/// every single launch forever; the delivered timing ran roughly twice that with
-/// `slowMotion` on, which is why the flag defaults off here.
+/// pauses, so the animation cannot accumulate drift; the *animated* portion is
+/// bounded by `BootSequence.duration` plus the splash's fixed beats. What is
+/// deliberately no longer bounded is the hold at the end — see below.
 ///
 /// ## Inside the LCD, framed by the chassis
 ///
@@ -113,12 +110,15 @@ private extension View {
 /// is a handheld booting; a translucent sheet dimming the bezel and the footer
 /// is a handheld losing power, which is the reading 0.7.3a rejected.
 ///
-/// ## It cannot trap anyone
+/// ## It waits to be answered (0.8.94, B1)
 ///
 /// Any touch anywhere advances — this view's own tap, and `BootAdvanceCatcher`
 /// over the whole window for the touches that land on the chassis furniture
-/// around it. If none arrives the screen answers its own prompt. `finish()` is
-/// idempotent, so the two paths racing is not a bug.
+/// around it. **And nothing else does.** Through 0.8.93 the screen answered
+/// its own prompt after 3.5s, which meant the app opened by itself under a
+/// prompt claiming to wait; `BootSequence`'s retirement note carries the full
+/// reversal. `finish()` stays idempotent — the tap and the catcher can still
+/// race each other.
 public struct VinodexBootView: View {
     /// The loaded catalog's entry count, for the DATABASE line. Zero is a
     /// legitimate answer — see `BootSequence.lines`.
@@ -172,10 +172,11 @@ public struct VinodexBootView: View {
 
     // MARK: Schedule
     //
-    // Offsets from the power-on instant, in seconds. The three that matter are
+    // Offsets from the power-on instant, in seconds. The two that matter are
     // `BootSequence`'s and are read rather than written: the checks land at
-    // their own `at`, the phase turns at `duration`, and the screen gives up at
-    // `longestUntouched`. The rest is the dressing between them.
+    // their own `at` and the phase turns at `duration`. The screen no longer
+    // gives up at all (0.8.94, B1) — it holds on the prompt for a touch. The
+    // rest is the dressing between them.
 
     /// When the terminal chrome resolves — before the first check line, so the
     /// line arrives *on* a screen rather than with it.
@@ -473,8 +474,9 @@ public struct VinodexBootView: View {
 
         guard !reduceMotion else {
             settleImmediately()
-            await hold(until: BootSequence.longestUntouched, from: start)
-            finish()
+            // And wait for the tap, like the animated path (0.8.94, B1) — an
+            // accessibility setting must not change what a screen *does*, and
+            // what this one does now is hold for an answer.
             return
         }
 
@@ -518,10 +520,10 @@ public struct VinodexBootView: View {
             promptBlink = true
         }
 
-        // The ceiling. `BootSequence.longestUntouched` is the number
-        // `neverTraps` pins, and this is the call site that makes it true.
-        await hold(until: BootSequence.longestUntouched, from: start)
-        finish()
+        // No ceiling any more (0.8.94, B1). The screen holds on the blinking
+        // prompt until a touch — `finish()` is reached only through the tap on
+        // this view or `BootAdvanceCatcher` over the window, so PRESS ANY
+        // BUTTON TO CONTINUE is an instruction again rather than a countdown.
     }
 
     /// Idempotent, because two things can reach it: a tap on this view, and
@@ -593,7 +595,7 @@ struct BootMark: View {
 @MainActor
 enum BootBadgeArt {
     static let badge: UIImage? = {
-        guard let url = DexResources.url(named: "vinodex-logo", ext: "png", subdirectory: "Logo"),
+        guard let url = DexResources.url(named: "vinodex-logo", ext: "png", in: .logo),
               let image = UIImage(contentsOfFile: url.path)
         else { return nil }
         return image

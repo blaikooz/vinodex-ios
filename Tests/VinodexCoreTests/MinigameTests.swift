@@ -6,6 +6,11 @@ import Foundation
 struct MoonCalendarTests {
     private func date(_ iso: String) -> Date {
         let f = DateFormatter()
+        // Pinned like the `utc` calendar beside this: inheriting the process
+        // locale/calendar makes the parse return nil under non-Gregorian or
+        // non-Latin-digit regions, and the `!` then kills the whole runner.
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.calendar = Calendar(identifier: .gregorian)
         f.dateFormat = "yyyy-MM-dd"
         f.timeZone = TimeZone(secondsFromGMT: 0)
         return f.date(from: iso)!
@@ -183,7 +188,10 @@ struct GrapeScanTests {
     }
 }
 
-@Suite("What's that reveal")
+// "What's that reveal" until 0.8.93 (item 9) — the suite name outlived the
+// tool. What it actually tests is `DailyPick` and `RevealCursor`, which the
+// daily challenge still runs on, so the suite stays and the name stops lying.
+@Suite("Daily reveal")
 struct DailyRevealTests {
     let db = WineDatabase.shared
 
@@ -195,6 +203,11 @@ struct DailyRevealTests {
 
     private func date(_ iso: String) -> Date {
         let f = DateFormatter()
+        // Pinned like the `utc` calendar beside this: inheriting the process
+        // locale/calendar makes the parse return nil under non-Gregorian or
+        // non-Latin-digit regions, and the `!` then kills the whole runner.
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.calendar = Calendar(identifier: .gregorian)
         f.dateFormat = "yyyy-MM-dd"
         f.timeZone = TimeZone(secondsFromGMT: 0)
         return f.date(from: iso)!
@@ -282,5 +295,85 @@ struct DailyRevealTests {
         #expect(cursor.advance() == 2)
         // A fresh instance over the same defaults continues rather than resetting.
         #expect(RevealCursor(defaults: defaults).value == 2)
+    }
+
+    // MARK: - The empty-category fallback (AUDIT M32)
+
+    /// `DailyPick`'s `return nil`. Unreachable against the shipped catalogue —
+    /// which is precisely why it had no coverage until there was a fixture —
+    /// and all three pickers own a copy of the guard.
+    @Test("an empty database reveals nothing rather than trapping")
+    func emptyDatabaseRevealsNothing() throws {
+        let empty = try DBFixture.database()
+        #expect(empty.entries.isEmpty)
+        let day = date("2026-03-14")
+        #expect(DailyPick.entry(for: day, in: empty, calendar: utc) == nil)
+        #expect(DailyPick.entry(cursor: 3, for: day, in: empty, calendar: utc) == nil)
+        #expect(DailyPick.grape(for: day, in: empty, calendar: utc) == nil)
+    }
+
+    /// Entries present, but none in the three rotated categories: the loop has
+    /// to walk the whole of `ordered` before giving up rather than stopping at
+    /// the first empty pool.
+    @Test("a database with no grapes, regions or styles reveals nothing")
+    func noRotatableCategoriesRevealsNothing() throws {
+        let db = try DBFixture.database(DBFixture.flavor, DBFixture.continent)
+        #expect(db.entries.count == 2)
+        #expect(DailyPick.categories.allSatisfy { db.entries(in: $0).isEmpty })
+        #expect(DailyPick.entry(for: date("2026-03-14"), in: db, calendar: utc) == nil)
+    }
+
+    /// The `continue` in the fallback loop — better a grape than an empty
+    /// screen. One surviving category carries every day of the rotation.
+    @Test("one surviving category carries every day of the rotation")
+    func fallsBackToTheOnlyNonEmptyCategory() throws {
+        let stylesOnly = try DBFixture.database(DBFixture.style)
+        for offset in 0..<9 {
+            let day = date("2026-01-01").addingTimeInterval(Double(offset) * 86_400)
+            let pick = try #require(DailyPick.entry(for: day, in: stylesOnly, calendar: utc))
+            #expect(pick.id == "FX_S", "day \(offset) landed on \(pick.id)")
+        }
+    }
+
+    /// The fallback *order* is `[wanted] + categories.filter { $0 != wanted }` —
+    /// the rotation's own order, not the database's. With grapes and styles
+    /// present and regions empty, a regions day lands on the grape (first in
+    /// `DailyPick.categories`), never on the style, whichever order the entries
+    /// were loaded in. The fixture deliberately loads the style *first*, so a
+    /// naive "take the first entry" implementation would fail here.
+    @Test("the fallback walks the rotation order, not the database order")
+    func fallbackOrderIsTheRotationOrder() throws {
+        let db = try DBFixture.database(DBFixture.style, DBFixture.grape)
+
+        #expect(DailyPick.category(for: date("1970-01-01"), calendar: utc) == .grapes)
+        #expect(DailyPick.entry(for: date("1970-01-01"), in: db, calendar: utc)?.id == "FX_G")
+
+        #expect(DailyPick.category(for: date("1970-01-02"), calendar: utc) == .regions)
+        #expect(DailyPick.entry(for: date("1970-01-02"), in: db, calendar: utc)?.id == "FX_G")
+    }
+
+    // MARK: - Negative day indices (AUDIT M32)
+
+    @Test("dayIndex is zero at the epoch and negative before it")
+    func dayIndexAcrossTheEpoch() {
+        #expect(DailyPick.dayIndex(for: date("1970-01-01"), calendar: utc) == 0)
+        #expect(DailyPick.dayIndex(for: date("1969-12-31"), calendar: utc) == -1)
+        #expect(DailyPick.dayIndex(for: date("1900-06-15"), calendar: utc) < 0)
+    }
+
+    /// `((i % n) + n) % n` appears four times — in `category` and in all three
+    /// pickers — because a raw `%` on a negative index walks backwards off the
+    /// front of the array. `DailyPickTests.preEpoch` pins only `grape(for:)`;
+    /// these are the other three, plus a negative *cursor*, which `RevealCursor`
+    /// can produce because `advance()` wraps.
+    @Test("every picker survives a negative day index")
+    func negativeDayIndexIsNormalised() throws {
+        #expect(DailyPick.category(for: date("1969-12-31"), calendar: utc) == .styles)
+
+        let old = date("1900-06-15")
+        _ = try #require(DailyPick.entry(for: old, in: db, calendar: utc))
+        _ = try #require(DailyPick.grape(for: old, in: db, calendar: utc))
+        _ = try #require(DailyPick.entry(cursor: 7, for: old, in: db, calendar: utc))
+        _ = try #require(DailyPick.entry(cursor: -5, for: old, in: db, calendar: utc))
     }
 }

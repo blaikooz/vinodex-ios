@@ -52,7 +52,9 @@ public enum DemoTour: Sendable {
         DemoStop(route: .labelReader, dwell: 4.0),
         DemoStop(route: .wsetQuiz, dwell: 4.5),
         DemoStop(route: .dailyChallenge, dwell: 4.0),
-        DemoStop(route: .dailyGrape, dwell: 4.0),
+        // PROF. VINO holds WHAT'S THAT…?'s slot (0.8.93, item 9): the loop
+        // still walks the whole shelf, and the shelf changed.
+        DemoStop(route: .profVino, dwell: 4.0),
         DemoStop(route: .moonDial, dwell: 4.5),
         DemoStop(route: .chipFilter, dwell: 3.5),
         // Two more of the encyclopedia, so the loop is not nine tools and one

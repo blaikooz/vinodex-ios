@@ -111,9 +111,22 @@ public enum UIGlyph: String, CaseIterable, Sendable {
     ///
     /// `bell` never entered the list: it was drawn for a row that was already
     /// waiting for it.
+    ///
+    /// **`labelscanner` came back in 0.8.92 (item 6)** — the first glyph to
+    /// make the return trip. 0.8.91's C2 wired it as the LABEL SCAN hero;
+    /// item 6 asks that screen to wear `ButtonArt/labelscanner.png` instead,
+    /// the same face as the TOOLS tile that opens it. So the painted glyph has
+    /// no call site again, and the honest state of the roster says so — parked
+    /// under the second reason above: the subject is already drawn, in the
+    /// register that ships.
+    ///
+    /// **`cog` followed in 0.8.93 (item 8), for the same reason.** Its one
+    /// call site was MASTER SEARCH's filter dropdown; the item puts the
+    /// SETTINGS tile's sliders face there — a cog means a place, sliders mean
+    /// a control — and the painted cog has nowhere left to be.
     public static let unwired: Set<UIGlyph> = [
-        .battery, .bookmark, .gaming, .heart,
-        .star, .tools, .trophy,
+        .battery, .bookmark, .cog, .gaming, .heart,
+        .labelscanner, .star, .tools, .trophy,
     ]
 }
 

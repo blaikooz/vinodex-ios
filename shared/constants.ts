@@ -158,28 +158,20 @@ const sanitizeTastingNoteIcon = (icon?: string): TastingNoteIcon =>
 
 const formatSubclassLabel = (subclass: string) => subclass.split('_').map(part => part.charAt(0) + part.slice(1).toLowerCase()).join(' ');
 
-/// Opening phrase per flavour class, so the generated blurbs stop reading as
-/// one sentence with the nouns swapped.
-const FLAVOR_CLASS_PHRASE: Record<string, string> = {
-  SWEET: 'a ripe, sweet-leaning',
-  UMAMI: 'a savoury, umami-leaning',
-  BITTER: 'a firm, bitter-edged',
-  SOUR: 'a tart, acid-lifted',
-  SALTY: 'a saline, mineral',
-};
-
-/// Closing clause per flavour class — how the note actually presents on the
-/// nose and palate. This is the half that changed in 0.5.7 (G1): the blurb
-/// used to close by naming the grapes it was derived from ("carried here by
-/// Barbera…"), which described the database rather than the flavour. The
-/// grapes are still on the entry as NOTABLE GRAPES; the prose now stays on
-/// the aroma itself.
-const FLAVOR_CLASS_CLOSER: Record<string, string> = {
-  SWEET: 'it reads as ripeness first, the sort of aroma that promises fruit before the sip',
-  UMAMI: 'it sits under the fruit as a savoury depth, closer to a place or a pantry than an orchard',
-  BITTER: 'it shows as grip and edge on the finish more than as a smell',
-  SOUR: 'it arrives as freshness, the lift that makes the mouth water',
-  SALTY: 'it leaves a clean mineral impression, like air off the sea',
+/// One line per flavour class, about the class itself (iOS 0.8.94, E1).
+///
+/// The third pass at this copy, each moving the same direction. 0.5.7's G1
+/// stopped the blurbs describing the *database* ("carried here by Barbera…");
+/// E1 stops them describing the *drinking* — "promises fruit before the sip"
+/// and "makes the mouth water" framed every flavour through the glass, on
+/// entries whose subject is the flavour. What is left is the family in its
+/// own terms, one short line each.
+const FLAVOR_CLASS_ABOUT: Record<string, string> = {
+  SWEET: 'Sweet flavors read as ripeness and sugar: fruit, honey and confection.',
+  UMAMI: 'Umami flavors are the savoury register: earth, leather, broth and pantry.',
+  BITTER: 'Bitter flavors are grip and edge: pith, char and green herbs.',
+  SOUR: 'Sour flavors are acidity and lift: citrus, orchard fruit and anything tart.',
+  SALTY: 'Salty flavors are the mineral register: brine, stone and sea air.',
 };
 
 const buildFlavorDescription = (
@@ -187,20 +179,21 @@ const buildFlavorDescription = (
   cls: string,
   subclassLabel: string,
 ): string => {
-  const phrase = FLAVOR_CLASS_PHRASE[cls] ?? `a ${cls.toLowerCase()}-leaning`;
   const kind = subclassLabel.toLowerCase();
+  const clsWord = cls.toLowerCase();
   // Drop the subclass when it would repeat something already said: the note
-  // itself ("Herbs is ... herb note") or the class ("saline, mineral salty
-  // note", where SALTY is both the class and the subclass).
+  // itself ("Herbs is ... herb note") or the class ("a salty salty note",
+  // where SALTY is both the class and the subclass).
   const redundant = !kind
     || kind === note.toLowerCase()
-    || kind === cls.toLowerCase()
-    || phrase.includes(kind);
+    || kind === clsWord;
+  const lead = redundant ? clsWord : kind;
+  const article = /^[aeiou]/.test(lead) ? 'an' : 'a';
   const body = redundant
-    ? `${note} is ${phrase} note`
-    : `${note} is ${phrase} ${kind} note`;
-  const closer = FLAVOR_CLASS_CLOSER[cls];
-  return closer ? `${body} — ${closer}.` : `${body}.`;
+    ? `${note} is ${article} ${clsWord} note`
+    : `${note} is ${article} ${kind} note in the ${clsWord} family`;
+  const about = FLAVOR_CLASS_ABOUT[cls];
+  return about ? `${body}. ${about}` : `${body}.`;
 };
 
 /**
@@ -354,9 +347,3 @@ export function buildWineEntries(selection?: EntrySelection): WineEntry[] {
     ...(selection?.includeCountries === false ? [] : COUNTRIES),
   ].map((entry) => applyCategoryCallbacks(canonicalizeEntry(entry)));
 }
-
-// Combined wine entries for the app
-export const WINE_ENTRIES: WineEntry[] = buildWineEntries();
-
-// Re-export shared helpers so existing consumers keep importing from `./constants`.
-export { FLAVOR_CLASS_COLORS, categorizeFlavor, categorizeFlavorSubclass };

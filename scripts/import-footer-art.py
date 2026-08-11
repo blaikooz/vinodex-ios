@@ -220,6 +220,190 @@ def strip_key_shadow(img):
     return img, cleared
 
 
+# --- Rebuilding the home cap from back's drawing (0.8.99) --------------------
+#
+# The runtime's glyph-detection constants, in source-pixel terms — the same
+# bands `ChassisCapLoader.fitCap` uses, so what this transplants is exactly
+# what the re-ink will treat as the incised symbol.
+GLYPH_VALUE_CEILING = 0.60 * 255
+GLYPH_VALUE_FLOOR = 0.06 * 255
+GLYPH_INNER_REACH = 0.20
+GLYPH_OUTER_LIMIT = 0.78
+# How far the *inpaint* mask grows past the chevron's dark core, in pixels.
+# The groove is drawn with an anti-aliased shoulder — mid-values above the
+# detection ceiling — and an inpaint that removes only the core leaves that
+# shoulder behind as a ghost chevron in the face. Three pixels takes the
+# shoulder; the house is stamped core-only, so no foreign face paint rides
+# along with it.
+INPAINT_DILATE = 3
+
+
+def _fit(img):
+    """Largest opaque component, its centroid, median radius and glyph mask —
+    a pure-PIL port of the runtime's `fitCap`, so both ends of the pipeline
+    agree on what a cap and its symbol are."""
+    px = img.load()
+    w, h = img.size
+
+    def neighbours(x, y):
+        if x > 0:
+            yield x - 1, y
+        if x < w - 1:
+            yield x + 1, y
+        if y > 0:
+            yield x, y - 1
+        if y < h - 1:
+            yield x, y + 1
+
+    # Largest 4-connected opaque region.
+    seen = bytearray(w * h)
+    best = set()
+    for sy in range(h):
+        for sx in range(w):
+            if seen[sy * w + sx] or px[sx, sy][3] == 0:
+                continue
+            region = []
+            stack = [(sx, sy)]
+            seen[sy * w + sx] = 1
+            while stack:
+                x, y = stack.pop()
+                region.append((x, y))
+                for nx, ny in neighbours(x, y):
+                    if not seen[ny * w + nx] and px[nx, ny][3] > 0:
+                        seen[ny * w + nx] = 1
+                        stack.append((nx, ny))
+            if len(region) > len(best):
+                best = set(region)
+
+    cx = sum(p[0] for p in best) / len(best)
+    cy = sum(p[1] for p in best) / len(best)
+
+    import math
+    radii = []
+    limit = float(max(w, h))
+    for i in range(360):
+        t = i * 2 * math.pi / 360
+        dx, dy = math.cos(t), math.sin(t)
+        r, last = 0.0, 0.0
+        while r < limit:
+            x, y = int(round(cx + r * dx)), int(round(cy + r * dy))
+            if 0 <= x < w and 0 <= y < h and (x, y) in best:
+                last = r
+            r += 0.5
+        radii.append(last)
+    radii.sort()
+    radius = max(radii[180], 1.0)
+
+    # Dark regions that start inside the inner reach and stay inside the
+    # outer limit are the incised symbol.
+    def value(x, y):
+        r, g, b, a = px[x, y]
+        return max(r, g, b)
+
+    dark = {
+        (x, y) for (x, y) in best
+        if GLYPH_VALUE_FLOOR < value(x, y) < GLYPH_VALUE_CEILING
+    }
+    glyph = set()
+    visited = set()
+    for start in dark:
+        if start in visited:
+            continue
+        region = []
+        stack = [start]
+        visited.add(start)
+        min_r, max_r = float("inf"), 0.0
+        while stack:
+            x, y = stack.pop()
+            region.append((x, y))
+            d = ((x - cx) ** 2 + (y - cy) ** 2) ** 0.5 / radius
+            min_r = min(min_r, d)
+            max_r = max(max_r, d)
+            for n in neighbours(x, y):
+                if n in dark and n not in visited:
+                    visited.add(n)
+                    stack.append(n)
+        if min_r < GLYPH_INNER_REACH and max_r < GLYPH_OUTER_LIMIT:
+            glyph.update(region)
+    return best, cx, cy, radius, glyph
+
+
+def rebuild_home_from_back(home, back):
+    """Rebuild the home cap as **back's drawing with the house incised**
+    (0.8.99, replacing 0.8.92-0.8.98's band surgery).
+
+    **The end of the skirt saga.** 0.8.92 lifted the lip's black paint,
+    0.8.96 grafted the siblings' skirt values, 0.8.97 blended the graft's
+    seam, 0.8.98 widened the band — and a line survived every one of them,
+    because the home drawing differs from its siblings *above* any band a
+    patch draws: its face is painted as a lit lens, glossier and differently
+    shaded, and wherever patched paint meets original paint there is a
+    boundary to see. The only band with no seam is the whole cap.
+
+    So home is not patched any more; it is **rebuilt**. The body is `back`'s
+    drawing verbatim — face, skirt, outline, every pixel of moulded plastic —
+    with back's chevron inpainted away (each symbol pixel takes the median of
+    the face within a widening window) and home's house transplanted in at
+    the same position relative to the cap's fitted centre. Glyph masks are
+    found by the runtime's own rules, dilated `GLYPH_DILATE` px so the
+    groove's anti-aliased shoulder travels with its core. After this there is
+    no home-specific paint left to disagree with the neighbours: the four
+    caps are one drawing family by construction, and the re-ink treats the
+    transplanted house exactly as it treated the drawn one.
+    """
+    _, bcx, bcy, _, back_glyph = _fit(back)
+    _, hcx, hcy, _, home_glyph = _fit(home)
+
+    out = back.copy()
+    opx = out.load()
+    bpx = back.load()
+    hpx = home.load()
+    w, h = out.size
+    hw, hh = home.size
+
+    # Inpaint the chevron — core *and* anti-aliased shoulder, hence the
+    # dilation — each removed pixel taking the median face value in a
+    # widening window, face meaning opaque, non-symbol, and bright enough
+    # not to be the cel outline.
+    erase = set(back_glyph)
+    for _ in range(INPAINT_DILATE):
+        grown = set(erase)
+        for (x, y) in erase:
+            for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                if 0 <= nx < w and 0 <= ny < h and bpx[nx, ny][3] > 0:
+                    grown.add((nx, ny))
+        erase = grown
+
+    for (x, y) in erase:
+        vals = []
+        reach = 4
+        while not vals and reach <= 40:
+            for dy in range(-reach, reach + 1):
+                for dx in range(-reach, reach + 1):
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < w and 0 <= ny < h and (nx, ny) not in erase:
+                        r, g, b, a = bpx[nx, ny]
+                        if a > 0 and max(r, g, b) >= GLYPH_VALUE_CEILING:
+                            vals.append((max(r, g, b), (r, g, b)))
+            reach += 4
+        if vals:
+            vals.sort(key=lambda t: t[0])
+            _, (r, g, b) = vals[len(vals) // 2]
+            opx[x, y] = (r, g, b, 255)
+
+    # Transplant the house, core only: its own groove paint, and none of the
+    # lit face around it.
+    sx, sy = bcx - hcx, bcy - hcy
+    stamped = 0
+    for (x, y) in home_glyph:
+        tx, ty = int(round(x + sx)), int(round(y + sy))
+        if 0 <= tx < w and 0 <= ty < h and opx[tx, ty][3] > 0:
+            r, g, b, a = hpx[x, y]
+            opx[tx, ty] = (r, g, b, 255)
+            stamped += 1
+    return out, stamped
+
+
 def main():
     src = source_dir()
     if not os.path.isdir(src):
@@ -238,18 +422,37 @@ def main():
     os.makedirs(DST, exist_ok=True)
     total_out = 0
     total_shadow = 0
+    total_stamped = 0
+
+    # Two passes rather than one: `home` is rebuilt *from* `back`, so every
+    # cap is background-stripped first and the rebuild runs over the
+    # processed set.
+    processed = {}
     for stem in stems:
         img = strip_background(Image.open(os.path.join(src, stem + ".png")))
         img = img.convert("RGBA")
         img, cleared = strip_key_shadow(img)
         total_shadow += cleared
+        processed[stem] = img
+
+    # `home` alone: its drawing never matched its siblings' moulding — see
+    # `rebuild_home_from_back`. Keyed on the stem rather than measured per
+    # file, because the defect is a fact about one drawing, and a fifth cap
+    # in either style should arrive untouched until somebody measures it.
+    if "home" in processed and "back" in processed:
+        processed["home"], total_stamped = rebuild_home_from_back(
+            processed["home"], processed["back"]
+        )
+
+    for stem in stems:
         out = os.path.join(DST, PREFIX + stem + ".png")
-        save_stable(quantize_stable(img), out, optimize=True)
+        save_stable(quantize_stable(processed[stem]), out, optimize=True)
         total_out += os.path.getsize(out)
 
     print(
         f"converted {len(stems)} footer caps -> {DST} ({total_out // 1024}KB), "
-        f"{total_shadow} cast-shadow pixels cleared"
+        f"{total_shadow} cast-shadow pixels cleared, "
+        f"home rebuilt from back with {total_stamped} house pixels stamped"
     )
 
 

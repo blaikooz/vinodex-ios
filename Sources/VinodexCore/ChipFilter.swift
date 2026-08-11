@@ -407,6 +407,107 @@ public struct ChipFilter: Codable, Sendable, Hashable {
         selected[ChipFacet.category.rawValue]?.contains(Self.countriesCategoryValue) ?? false
     }
 
+    /// The chips a facet offers.
+    ///
+    /// `countries` is a parameter rather than a `WineDatabase.shared` read
+    /// because this is Core: the singleton reaches the *bundled* database, so
+    /// a unit test asking for the COUNTRY chips was quietly asserting against
+    /// shipping data instead of its own fixture. Callers holding a database
+    /// should use `WineDatabase.chipOptions(for:)` below, which fills this in
+    /// from themselves. (AUDIT **M27**)
+    /// This is the implementation; the overload below narrows and delegates.
+    /// Only `.country` is genuinely injected — the data-driven rows still read
+    /// `WineDatabase.shared`, which is upstream's behaviour and outside what
+    /// M27 set out to fix. M27's finding was specifically that the COUNTRY row
+    /// asserted against shipping data; the rest is noted, not widened.
+    public static func options(for facet: ChipFacet, countries: [String]) -> [ChipOption] {
+        switch facet {
+        case .category:
+            return EntryCategory.allCases.map {
+                ChipOption(facet: facet, value: $0.rawValue, label: $0.rawValue)
+            } + [ChipOption(facet: facet, value: countriesCategoryValue, label: countriesCategoryValue)]
+        case .color:
+            return [GrapeColor.red, .white].map {
+                ChipOption(facet: facet, value: $0.rawValue, label: $0.rawValue.uppercased())
+            }
+        case .body:
+            return GrapeBody.allCases.map {
+                ChipOption(facet: facet, value: $0.rawValue, label: $0.label)
+            }
+        // From the data, like the flavour rows and `styleClass` — and here there
+        // is not even an enum to have been tempted by. See
+        // `WineDatabase.grapeStyles`.
+        case .grapeStyle:
+            return WineDatabase.shared.grapeStyles.map {
+                ChipOption(facet: facet, value: $0, label: $0.uppercased())
+            }
+        case .rarity:
+            return RarityLabel.allCases.map {
+                ChipOption(facet: facet, value: $0.rawValue, label: $0.rawValue)
+            }
+        case .climate:
+            return ClimateClass.allCases.map {
+                ChipOption(facet: facet, value: $0.rawValue, label: $0.rawValue.uppercased())
+            }
+        case .country:
+            // The countries that actually have pages — same list search uses.
+            return countries.map {
+                ChipOption(facet: facet, value: $0, label: $0.uppercased())
+            }
+        // From the data rather than from `StyleClassType.allCases`, and the
+        // test is what found it: `.style` is `EntryDisplay.styleClass`'s
+        // *fallback* arm, and no shipped style currently lands there, so the
+        // enum-driven row offered a chip whose only possible effect was to empty
+        // the listing. Same rule the flavour rows follow — a chip row describes
+        // the catalog, not the type system.
+        case .styleClass:
+            return WineDatabase.shared.styleClasses.map {
+                ChipOption(facet: facet, value: $0.rawValue, label: $0.rawValue)
+            }
+        // From the catalog, not from `StyleColorType.allCases`, for the same
+        // reason `.styleClass` is: an enum case no style resolves to would be a
+        // chip whose only possible effect is to empty the listing. DUAL is a
+        // real answer here and does appear; ROSE currently rests on a single
+        // style, which is exactly the kind of fact a data-driven row states and
+        // an enum-driven one hides.
+        case .styleColor:
+            let colors = WineDatabase.shared.entries(in: .styles)
+                .map { EntryDisplay.colorType(name: $0.name).rawValue }
+            return StyleColorType.allCases
+                .map(\.rawValue)
+                .filter(Set(colors).contains)
+                .map { ChipOption(facet: facet, value: $0, label: $0) }
+        // Driven off the data rather than off an enum, because neither of these
+        // taxonomies is one: `FlavorDetails.classification` and `.subclass` are
+        // strings the catalog authors, and hardcoding today's twenty-two
+        // families here would silently drop the twenty-third.
+        //
+        // Through `WineDatabase.flavorClasses` / `.flavorSubclasses`, which the
+        // scanner has used since it shipped — same data, same descending-size
+        // order (biggest family first, ties alphabetical), so the chip row and
+        // the scanner's answer list cannot disagree about what the taxonomy
+        // holds. A second derivation here would have been a second answer to a
+        // question that already had one.
+        case .flavorClass:
+            return WineDatabase.shared.flavorClasses.map {
+                ChipOption(facet: facet, value: $0, label: $0)
+            }
+        case .flavorSubclass:
+            return WineDatabase.shared.flavorSubclasses.map {
+                ChipOption(facet: facet, value: $0, label: $0.replacingOccurrences(of: "_", with: " "))
+            }
+        // The shelves themselves rather than a derived list — this is the one
+        // row whose vocabulary is a type and not a catalog, because the shelves
+        // are the app's own furniture. All three are always offered, including
+        // empty ones: a row that hid TRIED until you had tried something would
+        // hide the control at exactly the moment somebody was looking for it.
+        case .shelf:
+            return Shelf.allCases.map {
+                ChipOption(facet: facet, value: $0.rawValue, label: $0.chipLabel)
+            }
+        }
+    }
+
     /// Whether synthesised country rows should still be shown (0.7.0, H1).
     ///
     /// Country rows are not entries and so cannot go through `matches` — they
@@ -442,98 +543,35 @@ public struct ChipFilter: Codable, Sendable, Hashable {
         in categories: Set<EntryCategory>? = nil,
         includingCountries: Bool = true
     ) -> [ChipOption] {
-        switch facet {
-        case .category:
-            let shown = EntryCategory.allCases.filter { categories?.contains($0) ?? true }
-            return shown.map {
-                ChipOption(facet: facet, value: $0.rawValue, label: $0.rawValue)
-            } + (includingCountries
-                 ? [ChipOption(facet: facet, value: countriesCategoryValue, label: countriesCategoryValue)]
-                 : [])
-        case .color:
-            return [GrapeColor.red, .white].map {
-                ChipOption(facet: facet, value: $0.rawValue, label: $0.rawValue.uppercased())
-            }
-        case .body:
-            return GrapeBody.allCases.map {
-                ChipOption(facet: facet, value: $0.rawValue, label: $0.label)
-            }
-        // From the data, like the flavour rows and `styleClass` — and here there
-        // is not even an enum to have been tempted by. See
-        // `WineDatabase.grapeStyles`.
-        case .grapeStyle:
-            return WineDatabase.shared.grapeStyles.map {
-                ChipOption(facet: facet, value: $0, label: $0.uppercased())
-            }
-        case .rarity:
-            return RarityLabel.allCases.map {
-                ChipOption(facet: facet, value: $0.rawValue, label: $0.rawValue)
-            }
-        case .climate:
-            return ClimateClass.allCases.map {
-                ChipOption(facet: facet, value: $0.rawValue, label: $0.rawValue.uppercased())
-            }
-        case .country:
-            // The countries that actually have pages — same list search uses.
-            return WineDatabase.shared.searchableCountries.map {
-                ChipOption(facet: facet, value: $0, label: $0.uppercased())
-            }
-        // From the data rather than from `StyleClassType.allCases`, and the
-        // test is what found it: `.style` is `EntryDisplay.styleClass`'s
-        // *fallback* arm, and no shipped style currently lands there, so the
-        // enum-driven row offered a chip whose only possible effect was to empty
-        // the listing. Same rule the flavour rows follow — a chip row describes
-        // the catalog, not the type system.
-        case .styleClass:
-            return WineDatabase.shared.styleClasses.map {
-                ChipOption(facet: facet, value: $0.rawValue, label: $0.rawValue)
-            }
-        // Driven off the data rather than off an enum, because neither of these
-        // taxonomies is one: `FlavorDetails.classification` and `.subclass` are
-        // strings the catalog authors, and hardcoding today's twenty-two
-        // families here would silently drop the twenty-third.
-        //
-        // Through `WineDatabase.flavorClasses` / `.flavorSubclasses`, which the
-        // scanner has used since it shipped — same data, same descending-size
-        // order (biggest family first, ties alphabetical), so the chip row and
-        // the scanner's answer list cannot disagree about what the taxonomy
-        // holds. A second derivation here would have been a second answer to a
-        // question that already had one.
-        // From the catalog, not from `StyleColorType.allCases`, for the same
-        // reason `.styleClass` is: an enum case no style resolves to would be a
-        // chip whose only possible effect is to empty the listing. DUAL is a
-        // real answer here and does appear; ROSE currently rests on a single
-        // style, which is exactly the kind of fact a data-driven row states and
-        // an enum-driven one hides.
-        case .styleColor:
-            let colors = WineDatabase.shared.entries(in: .styles)
-                .map { EntryDisplay.colorType(name: $0.name).rawValue }
-            return StyleColorType.allCases
-                .map(\.rawValue)
-                .filter(Set(colors).contains)
-                .map { ChipOption(facet: facet, value: $0, label: $0) }
-        case .flavorClass:
-            return WineDatabase.shared.flavorClasses.map {
-                ChipOption(facet: facet, value: $0, label: $0)
-            }
-        case .flavorSubclass:
-            return WineDatabase.shared.flavorSubclasses.map {
-                ChipOption(facet: facet, value: $0, label: $0.replacingOccurrences(of: "_", with: " "))
-            }
-        // The shelves themselves rather than a derived list — this is the one
-        // row whose vocabulary is a type and not a catalog, because the shelves
-        // are the app's own furniture. All three are always offered, including
-        // empty ones: a row that hid TRIED until you had tried something would
-        // hide the control at exactly the moment somebody was looking for it.
-        case .shelf:
-            return Shelf.allCases.map {
-                ChipOption(facet: facet, value: $0.rawValue, label: $0.chipLabel)
-            }
+        // Only `.category` is narrowed here; every other facet is the same
+        // answer the injectable overload gives, so it gives it. Two copies of
+        // eleven arms is how the `.country` arm ended up reading a parameter
+        // this signature does not have.
+        guard case .category = facet else {
+            return options(for: facet, countries: WineDatabase.shared.searchableCountries)
         }
+        let shown = EntryCategory.allCases.filter { categories?.contains($0) ?? true }
+        return shown.map {
+            ChipOption(facet: facet, value: $0.rawValue, label: $0.rawValue)
+        } + (includingCountries
+             ? [ChipOption(facet: facet, value: countriesCategoryValue, label: countriesCategoryValue)]
+             : [])
     }
 }
 
 public extension WineDatabase {
+    /// This database's chips for a facet. The one call shape the app should
+    /// use: it is the database in hand that decides which countries have pages,
+    /// not whichever one the process happens to have loaded.
+    func chipOptions(for facet: ChipFacet) -> [ChipOption] {
+        ChipFilter.options(for: facet, countries: searchableCountries)
+    }
+
+    /// Every chip across every facet, flattened.
+    var allChipOptions: [ChipOption] {
+        ChipFacet.allCases.flatMap { chipOptions(for: $0) }
+    }
+
     /// Everything surviving a chip selection, in the same name order every other
     /// listing uses.
     /// Filtering the pre-sorted list rather than sorting the survivors: the

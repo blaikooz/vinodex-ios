@@ -26,8 +26,15 @@ See `horizon-md/README.md` for the other side's index.
 - [auditS.md](auditS.md) — the targeted compliance/security/test audit
   (PR #10). Its **H2** (flag provenance) and **M5** (trademarked logos under
   `shared/pixelflags/Other/`) are open and unaddressed.
-- [arch.md](arch.md) — the architecture, repository and platform audit (PR #10).
+- [arch.md](arch.md) — the architecture, repository and platform audit (PR #10),
+  **re-verified 2026-08-03 against the working tree**: 18 of its 63 findings
+  resolved, 11 partial, 31 open, 3 not checkable from a checkout. Its blocking
+  item **X1** (the publish script) is closed; **X2** replaces it — every
+  AUDIT.md fix since 2026-08-01 is uncommitted.
 
 Each of the three audits carries a dated **path note** at the top: they were
-written before `pixelflags/` and the art masters moved, so the note maps the
-old paths to the new ones. Their findings and verdicts are untouched.
+written before `shared/pixelflags/` and the art masters moved, so the note maps
+the old paths to the new ones. AUDIT.md and auditS.md carry their movement in
+per-item resolution notes and an update log; arch.md was re-verified in place on
+2026-08-03, and two of its remedies (**R1**, **B7**) are explicitly retracted
+there because later work resolved them the opposite way round.

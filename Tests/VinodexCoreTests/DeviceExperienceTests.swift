@@ -33,29 +33,19 @@ struct BootSequenceTests {
         )
     }
 
-    /// **The other half of the pin `brief` used to be on its own** (0.7.7, C2).
-    ///
-    /// The screen now waits for the user, which is a thing that can go wrong in
-    /// a way the old cut could not: a timeout of zero advances before the prompt
-    /// is readable and makes C2's instruction a lie, and no timeout at all — or
-    /// one someone lengthens "so people can see the logo" — is a launch that
-    /// hangs for anybody whose touch never lands. Both ends are asserted.
-    ///
-    /// Six seconds is the ceiling because it is comfortably above the 5.4 the
-    /// two constants currently sum to and comfortably below the point at which
-    /// a boot screen is a thing you sit through. It is a budget for the whole
-    /// untouched launch, so lengthening either constant has to be a decision
-    /// made against this number rather than a number nobody was watching.
-    @Test("the resting screen advances itself, and the untouched launch is bounded")
-    func neverTraps() {
-        #expect(BootSequence.autoAdvance > 0, "a zero timeout traps anyone whose touch never lands")
+    /// **`neverTraps` reversed (0.8.94, B1).** Through 0.8.93 this test pinned
+    /// a 3.5s auto-advance from both ends, on 0.7.7 C2's safety-net argument.
+    /// B1 rules the other way — the screen opened the app on its own under a
+    /// prompt claiming to wait — so the constant is gone, and what this now
+    /// pins is the *animated* portion staying brief: the checks plus the
+    /// settle are all the launch tax there is, because everything after them
+    /// is a hold the user ends. Deleting the test outright would leave the
+    /// next safety-net proposal nowhere to meet the reversal.
+    @Test("the animated portion is the whole launch tax")
+    func holdsForTheUser() {
         #expect(
-            BootSequence.autoAdvance >= 3.0,
-            "the prompt has to be readable before it answers itself"
-        )
-        #expect(
-            BootSequence.longestUntouched < 6.0,
-            "an untouched launch spends \(BootSequence.longestUntouched)s on the BIOS"
+            BootSequence.duration + BootSequence.settle < 3.0,
+            "the pre-prompt animation is a tax on every launch"
         )
     }
 
@@ -272,8 +262,9 @@ struct DemoModeTests {
     @Test("every tool is on the loop")
     func everyToolAppears() {
         let tools: [DexRoute] = [
+            // `.profVino` in `.dailyGrape`'s slot (0.8.93, item 9).
             .scanner, .labelReader, .wsetQuiz, .dailyChallenge,
-            .dailyGrape, .moonDial, .chipFilter,
+            .profVino, .moonDial, .chipFilter,
         ]
         let visited = Set(DemoTour.stops.map(\.route))
         for tool in tools {

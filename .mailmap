@@ -1,0 +1,4 @@
+# Commit 640efe9 was authored with curly quotes around the address and the dot
+# dropped; fold it into the real identity (arch R4). `Claude` is the co-author
+# trailer convention, correct as-is — not mapped.
+mirrorfarm <mirror.servicesnyc@gmail.com> mirrorfarm <“mirrorservicesnyc@gmail.com”>

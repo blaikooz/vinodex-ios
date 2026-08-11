@@ -28,7 +28,10 @@ struct ChromeTests {
             .bookmarks,
             .country(name: "France"),
             .state(name: "California"),
-            .dailyGrape,
+            // 0.8.93 (item 9): `.profVino` replaces `.dailyGrape` in the same
+            // edit that swapped the cases — WHAT'S THAT…? is deleted and the
+            // professor's page holds its slot, so the count below stands.
+            .profVino,
             .scanner,
             .labelReader,
             .moonDial,
