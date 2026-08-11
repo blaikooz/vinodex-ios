@@ -162,15 +162,14 @@ cases were adapted or dropped and why.
 
 To a phone, via xtool from WSL:
 
-- The bundle ID in [`xtool.yml`](xtool.yml) (`com.example.Vinodex`) is a
-  **placeholder** — change it before signing for real. A free Apple developer
-  profile caps you at **three App IDs**, so burn them thoughtfully. Changing it
-  is a **one-way door**: the bundle ID is the container identity, so every
-  saved shelf, rating and setting on an installed device stays behind and there
-  is no migration to write. Read
-  [Changing the bundle ID is a one-way door](KNOWN-ISSUES.md#changing-the-bundle-id-is-a-one-way-door)
-  first — the ordered preconditions are there, and the app's answer is
-  SETTINGS ▸ STORED DATA ▸ BACK UP.
+- The bundle ID in [`xtool.yml`](xtool.yml) is the real
+  `com.blaikooz.vinodex` (paid Apple Developer account, since 2026-08-11; it
+  was the `com.example.Vinodex` placeholder before that). Changing a bundle ID
+  is a **one-way door**: it is the container identity, so every saved shelf,
+  rating and setting on an installed device stays behind and there is no
+  migration to write — data on an old `com.example.Vinodex` install crosses
+  over only via SETTINGS ▸ STORED DATA ▸ BACK UP / RESTORE. See
+  [Changing the bundle ID is a one-way door](KNOWN-ISSUES.md#changing-the-bundle-id-is-a-one-way-door).
 - **Annotated git tags are the version of record** (`v` + the version in
   `AppVersion.swift`). xtool stamps `1.0.0` into every bundle it builds, so the
   tag and `AppVersion.fallback` are the truth, not the Info.plist.
