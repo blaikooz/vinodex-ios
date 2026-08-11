@@ -9,8 +9,11 @@ xtool/
 
 # iOS signing material and secrets — xtool's free-profile deploy handles these
 # in this working directory; never committable. (arch R3 / auditS L11)
+# *.p8 added 2026-08-11: an App Store Connect API AuthKey was found loose in
+# the repo root, one `git add .` away from being published.
 *.mobileprovision
 *.p12
+*.p8
 *.cer
 *.certSigningRequest
 *.ipa

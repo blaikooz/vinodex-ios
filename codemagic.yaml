@@ -1,15 +1,29 @@
 # Codemagic CI for vinodex-ios.
 #
 # This is NOT a React Native or Xcode project: the app is a SwiftPM package
-# built by xtool (see xtool.yml / Package.swift). The workflow mirrors the
-# local verification gates in scripts/gate.sh — `swift test` (VinodexCore
-# only; the UI targets are iOS-only) followed by a clean `xtool dev build` —
-# and collects the unsigned .ipa that xtool writes into xtool/.
+# built by xtool (see xtool.yml / Package.swift). Two workflows:
 #
-# Signing note: the ipa is unsigned. The bundle ID is the real
-# com.blaikooz.vinodex on the paid Apple Developer account (2026-08-11),
-# but this workflow does not sign or upload yet — CI is a build/test gate
-# until code signing / TestFlight publishing is wired in.
+#   ios-xtool      — push gate on main/testing. Mirrors scripts/gate.sh:
+#                    `swift test` (VinodexCore only; UI targets are iOS-only)
+#                    then a clean `xtool dev build --ipa`. Unsigned artifact.
+#
+#   ios-testflight — release pipeline, triggered by pushing a `v*` tag (tags
+#                    are the version of record — see README "Deploying").
+#                    Builds release, stamps the real version over xtool's
+#                    hardcoded 1.0.0/1 (xtool 1.17 has no distribution
+#                    signing: `xtool dev build` offers only --ipa/--triple/-c,
+#                    so the .app is re-signed by hand), fetches App Store
+#                    signing files via codemagic-cli-tools, re-signs, packages
+#                    Vinodex.ipa and uploads to TestFlight.
+#
+# The TestFlight workflow needs two things that live in the Codemagic UI, not
+# in this file (see README or ask for the runbook):
+#   1. An App Store Connect integration named exactly "Vinodex ASC Key"
+#      (Teams > Integrations > Developer Portal: .p8 key + Key ID + Issuer ID).
+#   2. An env group "appstore_credentials" containing secret var
+#      CERTIFICATE_PRIVATE_KEY — an RSA 2048 private key (PEM) that
+#      fetch-signing-files uses to create the Apple Distribution certificate:
+#        ssh-keygen -t rsa -b 2048 -m PEM -f cert_key -q -N ""
 
 workflows:
   ios-xtool:
@@ -17,7 +31,7 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 45
     environment:
-      xcode: latest
+      xcode: 26.4
     triggering:
       events:
         - push
@@ -37,8 +51,90 @@ workflows:
       - name: Clean xtool build
         script: |
           rm -rf .build xtool
-          xtool dev build
+          xtool dev build --ipa
       - name: Verify ipa
         script: ls -l xtool/*.ipa
     artifacts:
       - xtool/*.ipa
+
+  ios-testflight:
+    name: Vinodex iOS → TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: "Vinodex ASC Key"
+    environment:
+      groups:
+        - appstore_credentials # CERTIFICATE_PRIVATE_KEY
+      xcode: 26.4
+      vars:
+        BUNDLE_ID: "com.blaikooz.vinodex"
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: "v*"
+          include: true
+      cancel_previous_builds: true
+    scripts:
+      - name: Install xtool
+        script: |
+          brew install xtool-org/tap/xtool
+          xtool --version
+      - name: swift test (VinodexCore)
+        script: swift test
+      - name: Build release app with xtool
+        script: |
+          xtool dev build -c release
+          test -d xtool/Vinodex.app || { echo "no .app produced"; exit 1; }
+      - name: Stamp real version over xtool's 1.0.0
+        # xtool 1.17 writes CFBundleShortVersionString=1.0.0 / CFBundleVersion=1
+        # into every bundle (see AppVersion.swift). TestFlight rejects repeat
+        # (version, build) pairs, so: version from the v* tag, build from
+        # Codemagic's per-workflow BUILD_NUMBER.
+        script: |
+          set -e
+          APP="xtool/Vinodex.app"
+          VERSION="${CM_TAG:-$(git describe --tags --abbrev=0)}"
+          VERSION="${VERSION#v}"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$APP/Info.plist" \
+            || /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string $VERSION" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$APP/Info.plist" \
+            || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD_NUMBER" "$APP/Info.plist"
+          echo "version $VERSION build $BUILD_NUMBER"
+      - name: Fetch App Store signing files + keychain
+        # Integration "Vinodex ASC Key" provides APP_STORE_CONNECT_ISSUER_ID /
+        # _KEY_IDENTIFIER / _PRIVATE_KEY; CERTIFICATE_PRIVATE_KEY comes from the
+        # appstore_credentials group. --profiles-dir is pinned because the
+        # default is ~/Library/Developer/Xcode/UserData/..., not MobileDevice.
+        script: |
+          set -e
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE --create --profiles-dir /tmp/profiles
+          keychain add-certificates
+      - name: Re-sign for distribution + package ipa
+        # Flat bundle: one binary + resource-only .bundle dirs, no Frameworks/,
+        # so a single codesign of the .app is the whole signing job (no --deep;
+        # --options runtime is macOS-only and stays out).
+        script: |
+          set -e
+          APP="xtool/Vinodex.app"
+          PROFILE=$(ls /tmp/profiles/*.mobileprovision | head -1)
+          cp "$PROFILE" "$APP/embedded.mobileprovision"
+          security cms -D -i "$PROFILE" > /tmp/prof.plist
+          /usr/libexec/PlistBuddy -x -c 'Print :Entitlements' /tmp/prof.plist > /tmp/ent.plist
+          IDENTITY=$(security find-identity -v -p codesigning | grep -oE '"Apple Distribution[^"]*"' | head -1 | tr -d '"')
+          test -n "$IDENTITY" || { echo "no Apple Distribution identity in keychain"; exit 1; }
+          codesign --force --timestamp --sign "$IDENTITY" --entitlements /tmp/ent.plist "$APP"
+          codesign --verify --strict --verbose=2 "$APP"
+          rm -rf Payload Vinodex.ipa
+          mkdir Payload && cp -R "$APP" Payload/
+          zip -qry Vinodex.ipa Payload
+          ls -la Vinodex.ipa
+    artifacts:
+      - Vinodex.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
