@@ -21,9 +21,13 @@
 #   1. An App Store Connect integration named exactly "Vinodex ASC Key"
 #      (Teams > Integrations > Developer Portal: .p8 key + Key ID + Issuer ID).
 #   2. An env group "appstore_credentials" containing secret var
-#      CERTIFICATE_PRIVATE_KEY — an RSA 2048 private key (PEM) that
-#      fetch-signing-files uses to create the Apple Distribution certificate:
+#      CERTIFICATE_PRIVATE_KEY_B64 — an RSA 2048 private key (PEM) that
+#      fetch-signing-files uses to create the Apple Distribution certificate,
+#      base64-encoded to one line because a multiline PEM pasted into the
+#      Codemagic UI arrived mangled twice ("--certificate-key ... is not
+#      valid", 2026-08-11):
 #        ssh-keygen -t rsa -b 2048 -m PEM -f cert_key -q -N ""
+#        base64 -w0 cert_key > cert_key.b64   # paste cert_key.b64's one line
 
 workflows:
   ios-xtool:
@@ -65,7 +69,7 @@ workflows:
       app_store_connect: "Vinodex ASC Key"
     environment:
       groups:
-        - appstore_credentials # CERTIFICATE_PRIVATE_KEY
+        - appstore_credentials # CERTIFICATE_PRIVATE_KEY_B64
       xcode: 26.4
       vars:
         BUNDLE_ID: "com.blaikooz.vinodex"
@@ -104,14 +108,20 @@ workflows:
           echo "version $VERSION build $BUILD_NUMBER"
       - name: Fetch App Store signing files + keychain
         # Integration "Vinodex ASC Key" provides APP_STORE_CONNECT_ISSUER_ID /
-        # _KEY_IDENTIFIER / _PRIVATE_KEY; CERTIFICATE_PRIVATE_KEY comes from the
-        # appstore_credentials group. --profiles-dir is pinned because the
-        # default is ~/Library/Developer/Xcode/UserData/..., not MobileDevice.
+        # _KEY_IDENTIFIER / _PRIVATE_KEY. The certificate key arrives base64'd
+        # in CERTIFICATE_PRIVATE_KEY_B64 (appstore_credentials group) and is
+        # decoded to a file — a multiline PEM in a UI secret got mangled in
+        # transit twice. --profiles-dir is pinned because the default is
+        # ~/Library/Developer/Xcode/UserData/..., not MobileDevice.
         script: |
           set -e
+          printf '%s' "$CERTIFICATE_PRIVATE_KEY_B64" | base64 --decode > /tmp/cert_key
+          grep -q "BEGIN RSA PRIVATE KEY" /tmp/cert_key || { echo "decoded key is not a PEM RSA key"; exit 1; }
+          chmod 600 /tmp/cert_key
           keychain initialize
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE --create --profiles-dir /tmp/profiles
+            --type IOS_APP_STORE --create --profiles-dir /tmp/profiles \
+            --certificate-key=@file:/tmp/cert_key
           keychain add-certificates
       - name: Re-sign for distribution + package ipa
         # Flat bundle: one binary + resource-only .bundle dirs, no Frameworks/,
