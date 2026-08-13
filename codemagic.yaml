@@ -153,6 +153,23 @@ workflows:
           test -f "$APP/Assets.car" || { echo "actool produced no Assets.car"; exit 1; }
           /usr/libexec/PlistBuddy -c "Merge /tmp/icon-partial.plist" "$APP/Info.plist"
           plutil -p "$APP/Info.plist" | grep -i icon
+      - name: Patch Mach-O SDK version (LC_BUILD_VERSION)
+        # 90725 survived the DT plist keys: xtool's link step records the
+        # deployment target (17.0) as the *SDK* version in the binary's
+        # LC_BUILD_VERSION, and ASC reads the Mach-O. Rewrite the sdk field
+        # to the toolchain's real SDK; minos stays whatever the build set.
+        # Runs before re-sign, so the signature covers the patched binary.
+        script: |
+          set -e
+          BIN="xtool/Vinodex.app/Vinodex"
+          SDK_VERSION=$(xcrun --sdk iphoneos --show-sdk-version)
+          echo "--- before ---"; vtool -show-build "$BIN"
+          MINOS=$(vtool -show-build "$BIN" | awk '/minos/{print $2; exit}')
+          vtool -set-build-version ios "${MINOS:-17.0}" "$SDK_VERSION" \
+            -replace -output /tmp/Vinodex.patched "$BIN"
+          mv /tmp/Vinodex.patched "$BIN"
+          chmod +x "$BIN"
+          echo "--- after ---"; vtool -show-build "$BIN"
       - name: Fetch App Store signing files + keychain
         # Integration "Vinodex ASC Key" provides APP_STORE_CONNECT_ISSUER_ID /
         # _KEY_IDENTIFIER / _PRIVATE_KEY. The certificate key arrives base64'd
