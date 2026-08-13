@@ -132,6 +132,27 @@ workflows:
           plist_put DTCompiler com.apple.compilers.llvm.clang.1_0
           plist_put BuildMachineOSBuild "$(sw_vers -buildVersion)"
           echo "stamped: iphoneos$SDK_VERSION ($SDK_BUILD), Xcode $DTXCODE ($XCODE_BUILD)"
+      - name: Compile app icon asset catalog
+        # ASC requires icons as a compiled Assets.car + CFBundleIconName
+        # (90713) and an iPad 152pt entry (90023); xtool only drops
+        # AppIcon.png in the bundle root. Build a single-size (1024) icon
+        # catalog with actool and merge its partial plist. AppIcon.png in the
+        # repo is verified 1024x1024 RGB, no alpha (ASC rejects transparency).
+        script: |
+          set -e
+          APP="xtool/Vinodex.app"
+          ICONSET=/tmp/Assets.xcassets/AppIcon.appiconset
+          mkdir -p "$ICONSET"
+          cp AppIcon.png "$ICONSET/AppIcon.png"
+          printf '%s' '{"info":{"author":"xcode","version":1}}' > /tmp/Assets.xcassets/Contents.json
+          printf '%s' '{"images":[{"filename":"AppIcon.png","idiom":"universal","platform":"ios","size":"1024x1024"}],"info":{"author":"xcode","version":1}}' > "$ICONSET/Contents.json"
+          actool /tmp/Assets.xcassets --compile "$APP" \
+            --platform iphoneos --minimum-deployment-target 17.0 \
+            --target-device iphone --target-device ipad \
+            --app-icon AppIcon --output-partial-info-plist /tmp/icon-partial.plist
+          test -f "$APP/Assets.car" || { echo "actool produced no Assets.car"; exit 1; }
+          /usr/libexec/PlistBuddy -c "Merge /tmp/icon-partial.plist" "$APP/Info.plist"
+          plutil -p "$APP/Info.plist" | grep -i icon
       - name: Fetch App Store signing files + keychain
         # Integration "Vinodex ASC Key" provides APP_STORE_CONNECT_ISSUER_ID /
         # _KEY_IDENTIFIER / _PRIVATE_KEY. The certificate key arrives base64'd
