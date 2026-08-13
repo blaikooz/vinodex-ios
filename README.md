@@ -74,7 +74,7 @@ LCD never changes with the skin, so a colourway can never hurt legibility.
 | **Vin Jaune** | Walkman yellow | Signal red | Green |
 | **Box Wine** | Forest green | Pea green | Pea green |
 | **Empty Bottle** | Clear smoke over mock internals, front and back | Orange | Orange |
-| **Smart Grape** | Calculator black | Calculator orange | Orange |
+| **Field Blend** | Calculator black | Calculator orange | Orange |
 | **Champagne Gold** | Pale champagne | Gold leaf | Gold |
 | **Wine Xmas** | Pixel wrapping paper on pine | Holly red | Holly red |
 | **Retrovin** | Atomic-purple smoke over mock internals | Grape purple | Lilac |
@@ -82,11 +82,11 @@ LCD never changes with the skin, so a colourway can never hurt legibility.
 | **Vinho Verde** | Glow-in-the-dark green, glowing rim | Charged green | Green |
 | **Stainless Steel** | Brushed aluminium, crisp dark seams | Ice | Ice blue |
 | **Blush** | Rose pink, pale blush faceplate | Pearl pink | Pearl pink |
-| **PSVino** | Matte charcoal, console-grey faceplate | Cross blue | Triangle/circle/cross |
+| **PX** | Matte charcoal, console-grey faceplate | Blue | Green/red/blue trio |
 
 Plus nine screen modes in three groups. **Classic** is dark and light.
 **Retro** is period display hardware — monochrome VINTAGE (black on grey-green
-like an old organiser), the AMBER and TERMINAL phosphors, and the GRÜNERBOY
+like an old organiser), the AMBER and TERMINAL phosphors, and the GROOVEE
 dot-matrix. **Emulator** quotes one specific machine each — the early-GUI
 WINE.OS, the VINOFD blue tube, the L-WINES console — and each Emulator mode
 repaints the LCD's coloured chrome in its own palette rather than wearing the

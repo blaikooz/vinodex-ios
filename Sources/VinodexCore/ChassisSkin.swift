@@ -114,7 +114,7 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     /// (pale grey-pink rosé pressed from Gris grapes), and "grey shell, red
     /// buttons" is the same sentence. The house has done this twice before:
     /// the forest-green DMG homage ships as BOX WINE and the calculator livery
-    /// as SMART GRAPE. Naming a skin after someone else's hardware is the one
+    /// as FIELD BLEND. Naming a skin after someone else's hardware is the one
     /// thing this range does not do.
     case grisDeGris = "GRIS DE GRIS"
     /// Warning-orange moulding with black buttons (0.6.7, J2) — hazard livery,
@@ -176,11 +176,11 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
     /// from, and the stem `stickerStem` derives (`sticker-w64`). Moving it later
     /// resets the shell, repaints the wear on the devices that survive, and
     /// orphans the sticker — the three costs FIBERGLASS's and HALLOWINE's rename
-    /// notes were written up to avoid. It is ASCII, it collides with nothing in
-    /// `shared/`, the generated JSON or the art scripts, and it is the label as
-    /// well — `displayName` restates it rather than diverging from it, which is
-    /// the one thing every rename note in this file wishes the earlier names had
-    /// done.
+    /// notes were written up to avoid. It is ASCII, and it collides with nothing
+    /// in `shared/`, the generated JSON or the art scripts. It was the label as
+    /// well until 0.9.2, when the label moved to 1964 (trademark hygiene, per
+    /// the `displayName` note) and this rawValue stayed exactly where every
+    /// rename note in this file says a rawValue stays.
     case w64 = "W64"
 
     /// Derived, not restated — the literal is `"chassisSkin"` and it is written
@@ -255,7 +255,13 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // freed the name for the glow-green skin in 0.5.4.
         case .vinhoVerde: "BOX WINE"
         case .glouglou: "EMPTY BOTTLE"
-        case .smartGrape: "SMART GRAPE"
+        // SMART GRAPE → FIELD BLEND (0.9.2, item 1). Label only, per the note
+        // above — the rawValue "SMART GRAPE" is the stored key, the WornSeed
+        // input and the sticker stem (`sticker-smart-grape`), and all three
+        // stay put. The old label read as a riff on a phone brand; a field
+        // blend is a real wine (many varieties grown and vinified together),
+        // which puts this back on the house rule: a wine name, nobody's mark.
+        case .smartGrape: "FIELD BLEND"
         case .champagne: "CHAMPAGNE GOLD"
         case .christmas: "WINE XMAS"
         // Renamed from NOUVEAU (v0.5.9, A1) — label only, per the note above.
@@ -264,7 +270,13 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         case .nocturne: "VINHO VERDE"
         case .steel: "STAINLESS STEEL"
         case .blush: "BLUSH"
-        case .psvino: "PSVINO"
+        // PSVINO → PX (0.9.2, item 1). Label only, per the note above — the
+        // rawValue "PSVINO" is the stored key, the WornSeed input and the
+        // sticker stem (`sticker-psvino`), and renaming any of those revokes
+        // real state, so they stay. The old label kept a console's initials in
+        // it; PX is Pedro Ximénez, the sherry grape — dark as this shell, and
+        // a wine name per the house rule.
+        case .psvino: "PX"
         case .grisDeGris: "GRIS DE GRIS"
         case .orangeWine: "ORANGE WINE"
         // PÉT-NAT → FIBERGLASS (0.7.5, A4). Label only, per the note above,
@@ -286,13 +298,14 @@ public enum ChassisSkin: String, CaseIterable, Identifiable, Sendable {
         // (see `WornSeed.of`), so moving it would both reset every device
         // wearing this shell and repaint the ones that survived.
         case .halloween: "HALLOWINE"
-        // The one skin whose label and stored word are the same string on
-        // purpose (0.7.6, D1). This switch is exhaustive rather than defaulted,
-        // so the entry is required either way — but it is worth saying that the
-        // agreement is deliberate: every rename note in this file is about the
-        // cost of a label that has drifted from its rawValue, and picking a name
-        // that never needs to drift is the cheapest version of that.
-        case .w64: "W64"
+        // W64 → 1964 (0.9.2, item 1). 0.7.6 (D1) chose "W64" precisely so the
+        // label could restate the rawValue forever; the label still leaned on
+        // a console's numerals, so it drifts after all — label only, per the
+        // note above. The rawValue "W64" is the stored key, the WornSeed input
+        // and the sticker stem (`sticker-w64`), and all three stay put. 1964
+        // is just a vintage year — nobody's mark, and the four-colour deck
+        // reads as mid-sixties pop besides.
+        case .w64: "1964"
         }
     }
 

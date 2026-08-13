@@ -22,6 +22,18 @@ commit bodies and were reconstructed from the commit subject, the diffstat and
 the version-annotated doc comments throughout `Sources/`. Nothing in them is
 invented — where the record is thin the entry is short.
 
+## [0.9.2] — 2026-08-13
+
+### Changed
+- **Four trademark-evoking labels renamed to originals** — labels only, every
+  persisted identity untouched: the PSVINO shell shows **PX** (Pedro Ximénez),
+  the W64 shell shows **1964**, the SMART GRAPE shell shows **FIELD BLEND**,
+  and the GRÜNERBOY screen mode shows **GROOVEE**. Raw values, `@AppStorage`
+  keys, `WornSeed` inputs and sticker-art stems all keep their shipped
+  spellings, so no stored device, wear pattern, sticker or purchase moves.
+  The 0.7.6 firmware-changelog line now names the shell 1964, since that page
+  draws today's label.
+
 ## [0.9.1] — 2026-08-10
 
 ### Fixed

@@ -61,6 +61,22 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.9.2",
+  date: "2026-08-13",
+  headline: "ORIGINAL NAMES",
+  // Trademark hygiene (0.9.2, item 1): four labels that leaned on somebody
+  // else's hardware get names of our own. Labels only — every rawValue,
+  // entitlement id and art stem stays put, so no stored choice or purchase
+  // moves. PX is a wine (Pedro Ximénez); FIELD BLEND is a wine; 1964 is a
+  // year; GROOVEE is nobody's.
+  notes: [
+    "Four names of our own: the charcoal deck is PX, the purple deck is 1964, the dot-matrix screen is GROOVEE and the calculator shell is FIELD BLEND.",
+    "Renames are labels only -- every saved shell, screen and purchase keeps working untouched.",
+    "446 entries: 177 grapes, 124 regions, 33 styles, 106 flavours, 26 countries.",
+  ],
+};
+
+const PREVIOUS_0901: FirmwareRelease = {
   version: "0.9.1",
   date: "2026-08-10",
   headline: "TWELVE SHELVES",
@@ -209,6 +225,7 @@ const PREVIOUS_0892: FirmwareRelease = {
 };
 
 const PREVIOUS: FirmwareRelease[] = [
+  PREVIOUS_0901,
   PREVIOUS_0900,
   PREVIOUS_0899,
   PREVIOUS_0898,
@@ -491,7 +508,9 @@ const PREVIOUS: FirmwareRelease[] = [
       "The marquee says cheers on every screen, at the same moment the screensaver arrives.",
       "The orb is an elongated pill, matching the notch above it.",
       "Three more workshop parts: header lights, marquee lights and footer buttons.",
-      "New shell: W64, purple deck with four coloured face buttons.",
+      // Shipped as "W64"; the shell was renamed to 1964 in 0.9.2 and this
+      // page draws the label a user sees today, not the one that shipped.
+      "New shell: 1964, purple deck with four coloured face buttons.",
       "Shop splash screens are bigger and show what is in the box.",
       "The tutorial moves into SETTINGS > DEVICE, with a new page about the two lights.",
       "438 entries, unchanged: 171 grapes, 124 regions, 31 styles, 106 flavours, 26 countries.",

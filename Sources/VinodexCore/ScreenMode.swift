@@ -149,7 +149,8 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// vintage/amber grayscale-and-tint pass with the DMG's own green, so
     /// only the tokens' *luminance* matters — that is what collapses the
     /// whole LCD to the handheld's palette. The rawValue is ASCII on
-    /// purpose (it persists); the umlaut lives in `displayName`.
+    /// purpose (it persists); shipped labelled GRÜNERBOY, relabelled
+    /// GROOVEE in 0.9.2 — see `displayName`.
     case gruenerBoy = "GRUNER BOY"
 
     /// Derived, not restated — the literal is `"lcdMode"` and it is written
@@ -177,7 +178,12 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     public var displayName: String {
         switch self {
         case .blueScreen: "VINOFD"
-        case .gruenerBoy: "GRÜNERBOY"
+        // GRÜNERBOY → GROOVEE (0.9.2, item 1). Label only, per the note above
+        // — the rawValue "GRUNER BOY" is the persisted choice and stays. The
+        // old label grafted a grape onto a handheld's name; GROOVEE is
+        // nobody's, keeps the retro register, and drops the umlaut this
+        // label existed to carry.
+        case .gruenerBoy: "GROOVEE"
         // Capitalized like the rest of the roster since 0.5.8 (E1); the dot
         // keeps the file-name conceit.
         case .wineOS: "WINE.OS"
@@ -200,7 +206,8 @@ public enum LcdMode: String, CaseIterable, Identifiable, Sendable {
     /// CLASSIC because it is a *light* mode and the light modes lived together;
     /// but it is an homage to one specific desktop, which is the whole
     /// definition of EMULATOR, and it left CLASSIC as what that heading always
-    /// meant — light and dark, and nothing else. GRÜNERBOY went the other way:
+    /// meant — light and dark, and nothing else. GROOVEE (then GRÜNERBOY) went
+    /// the other way:
     /// it is a reflective dot-matrix LCD running the same grayscale-and-tint
     /// pass as VINTAGE, AMBER and TERMINAL, so it belongs with the period
     /// display *hardware* rather than with the machines that merely quote a

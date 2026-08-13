@@ -64,7 +64,7 @@ extension LcdMode {
     /// Whether a chosen font colour survives this mode.
     ///
     /// **It cannot on the four monochrome modes.** VINTAGE, AMBER, TERMINAL and
-    /// GRÜNERBOY are not colour schemes — they are a `grayscale(1)` and a
+    /// GROOVEE are not colour schemes — they are a `grayscale(1)` and a
     /// `colorMultiply(tint)` over the whole LCD (see `DeviceChassis.innerBezel`),
     /// which is exactly what collapses their tokens to one phosphor. A chosen ink
     /// pushed through that pass arrives as a *lightness* change of the mode's own
