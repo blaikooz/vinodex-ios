@@ -121,8 +121,12 @@ workflows:
           grep -q "BEGIN RSA PRIVATE KEY" /tmp/cert_key || { echo "decoded key is not a PEM RSA key"; exit 1; }
           chmod 600 /tmp/cert_key
           keychain initialize
+          # --strict-match-identifier: without it the loose identifier match
+          # latched onto xtool's XTL-N6BL8PYJ5X.com.blaikooz.vinodex App ID
+          # and signed with a profile for the wrong identity (2026-08-13).
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE --create --profiles-dir /tmp/profiles \
+            --type IOS_APP_STORE --create --strict-match-identifier \
+            --profiles-dir /tmp/profiles \
             --certificate-key=@file:/tmp/cert_key
           keychain add-certificates
       - name: Re-sign for distribution + package ipa
