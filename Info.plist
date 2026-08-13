@@ -37,5 +37,12 @@
     -->
     <key>NSPhotoLibraryUsageDescription</key>
     <string>Vinodex can read a wine label from a photo you choose. Photos are processed on this device and never uploaded.</string>
+    <!--
+      Export compliance, answered once here instead of per-build in App Store
+      Connect. Verified 2026-08-13: no CryptoKit/CommonCrypto/custom crypto
+      anywhere in Sources; the app implements no encryption of its own.
+    -->
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
 </dict>
 </plist>
