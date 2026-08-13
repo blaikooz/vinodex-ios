@@ -115,7 +115,9 @@ workflows:
         # ~/Library/Developer/Xcode/UserData/..., not MobileDevice.
         script: |
           set -e
-          printf '%s' "$CERTIFICATE_PRIVATE_KEY_B64" | base64 --decode > /tmp/cert_key
+          echo "CERTIFICATE_PRIVATE_KEY_B64 length: ${#CERTIFICATE_PRIVATE_KEY_B64} (expect ~2240)"
+          test -n "${CERTIFICATE_PRIVATE_KEY_B64:-}" || { echo "var is EMPTY: check it exists in the appstore_credentials group (click Add before Save)"; exit 1; }
+          printf '%s' "$CERTIFICATE_PRIVATE_KEY_B64" | tr -d '[:space:]' | base64 --decode > /tmp/cert_key
           grep -q "BEGIN RSA PRIVATE KEY" /tmp/cert_key || { echo "decoded key is not a PEM RSA key"; exit 1; }
           chmod 600 /tmp/cert_key
           keychain initialize
