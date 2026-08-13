@@ -106,6 +106,32 @@ workflows:
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$APP/Info.plist" \
             || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD_NUMBER" "$APP/Info.plist"
           echo "version $VERSION build $BUILD_NUMBER"
+      - name: Stamp Xcode build metadata (DT keys)
+        # xtool writes none of the DT* build-environment keys Xcode stamps.
+        # ASC validation requires DTPlatformName (90507) and, with no DTSDKName
+        # to read, infers "built with the iOS 17.0 SDK" from MinimumOSVersion
+        # and rejects (90725). Values come from the builder's real toolchain.
+        script: |
+          set -e
+          PLIST="xtool/Vinodex.app/Info.plist"
+          SDK_VERSION=$(xcrun --sdk iphoneos --show-sdk-version)
+          SDK_BUILD=$(xcrun --sdk iphoneos --show-sdk-build-version)
+          XCODE_BUILD=$(xcodebuild -version | awk '/Build version/{print $3}')
+          DTXCODE=$(xcodebuild -version | awk 'NR==1{split($2,v,"."); printf "%s%s%s", v[1], v[2], (v[3]=="" ? "0" : v[3])}')
+          plist_put() {
+            /usr/libexec/PlistBuddy -c "Set :$1 $2" "$PLIST" 2>/dev/null \
+              || /usr/libexec/PlistBuddy -c "Add :$1 string $2" "$PLIST"
+          }
+          plist_put DTPlatformName iphoneos
+          plist_put DTPlatformVersion "$SDK_VERSION"
+          plist_put DTSDKName "iphoneos$SDK_VERSION"
+          plist_put DTSDKBuild "$SDK_BUILD"
+          plist_put DTPlatformBuild "$SDK_BUILD"
+          plist_put DTXcode "$DTXCODE"
+          plist_put DTXcodeBuild "$XCODE_BUILD"
+          plist_put DTCompiler com.apple.compilers.llvm.clang.1_0
+          plist_put BuildMachineOSBuild "$(sw_vers -buildVersion)"
+          echo "stamped: iphoneos$SDK_VERSION ($SDK_BUILD), Xcode $DTXCODE ($XCODE_BUILD)"
       - name: Fetch App Store signing files + keychain
         # Integration "Vinodex ASC Key" provides APP_STORE_CONNECT_ISSUER_ID /
         # _KEY_IDENTIFIER / _PRIVATE_KEY. The certificate key arrives base64'd
