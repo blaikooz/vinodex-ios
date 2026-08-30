@@ -73,13 +73,20 @@ workflows:
       xcode: 26.4
       vars:
         BUNDLE_ID: "com.blaikooz.vinodex"
-    triggering:
-      events:
-        - tag
-      tag_patterns:
-        - pattern: "v*"
-          include: true
-      cancel_previous_builds: true
+    # DORMANT (2026-08-30): the tag trigger is disabled — TestFlight uploads
+    # now go through the local Xcode archive path (project.yml / Organizer).
+    # This workflow is kept runnable MANUALLY from the Codemagic UI as the
+    # fallback until the local path is proven end-to-end; it is not deleted,
+    # and pushing a v* tag no longer starts it. CAUTION: Codemagic reads this
+    # file from the ref it builds, so a tag pointing at a commit *older* than
+    # this one would still fire the old trigger — tags must point here or later.
+    # triggering:
+    #   events:
+    #     - tag
+    #   tag_patterns:
+    #     - pattern: "v*"
+    #       include: true
+    #   cancel_previous_builds: true
     scripts:
       - name: Install xtool
         script: |
