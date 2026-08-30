@@ -4,6 +4,12 @@ DerivedData/
 xcuserdata/
 *.xcuserstate
 
+# The Xcode project is generated from project.yml — run
+# scripts/generate-xcodeproj.sh; the spec is the source of truth.
+Vinodex.xcodeproj/
+App/Info.plist
+App/Version.generated.xcconfig
+
 # xtool's build output (the packaged .app)
 xtool/
 
