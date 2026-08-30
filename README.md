@@ -9,9 +9,9 @@
 **399 grapes, regions, styles and flavours** — colour-coded, cross-linked, and
 wrapped in a plastic shell you can re-skin sixteen different ways.
 
-### **[Build it → `xtool dev run`](#running-it)**
+### **[Build it → `scripts/generate-xcodeproj.sh`](#running-it)**
 
-`Swift 6.0` · `SwiftUI` · `iOS 17+` · `SwiftPM` · `xtool`
+`Swift 6.0` · `SwiftUI` · `iOS 17+` · `SwiftPM` · `XcodeGen`
 
 <p>
 <img src="Sources/VinodexUI/Resources/Flags/france.png" alt="France" height="24" />
@@ -102,9 +102,9 @@ rules — built on a different stack because it is for a different moment.
 | | **Vinodex for iOS** ← *this repo* | **Vinodex Web** |
 |---|---|---|
 | **What it is** | A native SwiftUI app for the phone in your pocket. Haptics on every button, the photo library for your avatar, and a real 3D globe. The one you open in a wine shop. | A progressive web app that runs in any browser and installs to a home screen. Nothing to download, nothing to sign. The one you send someone a link to. |
-| **Built with** | `Swift 6.0` · `SwiftUI` · `iOS 17+` · `SwiftPM` · `xtool` | `React 19` · `TypeScript` · `Vite` · `Tailwind v4` |
+| **Built with** | `Swift 6.0` · `SwiftUI` · `iOS 17+` · `SwiftPM` · `XcodeGen` | `React 19` · `TypeScript` · `Vite` · `Tailwind v4` |
 | **Where** | [`blaikooz/vinodex-ios`](https://github.com/blaikooz/vinodex-ios) | [`blaikooz/vinodex-web`](https://github.com/blaikooz/vinodex-web) → **[open it](https://vinodex.vercel.app)** |
-| **Run it** | `swift test`, then `xtool dev run` | `npm install && npm run dev` |
+| **Run it** | `swift test`, then `scripts/generate-xcodeproj.sh` and Run in Xcode | `npm install && npm run dev` |
 
 **This Swift source is the reference when the two disagree.** The web app is
 kept deliberately close to it, and neither repo copies from the other.
@@ -125,30 +125,27 @@ kept deliberately close to it, and neither repo copies from the other.
 
 ## Running it
 
-Swift 6.0, and for a device build
-[xtool **1.17.0**](https://github.com/xtool-org/xtool/releases/tag/v1.17.0) with
-a Darwin SDK. The app builds from the committed resources alone — **Node is not
-required** unless you are regenerating data. Development happens on Linux/WSL;
-there is no Xcode project.
+Xcode 26+ (Swift 6) and [XcodeGen](https://github.com/yonaskolb/XcodeGen)
+(`brew install xcodegen`). The app builds from the committed resources alone —
+**Node is not required** unless you are regenerating data. The Xcode project is
+generated, never committed: [`project.yml`](project.yml) is the source of truth.
 
-xtool is pinned rather than linked-and-hoped (AUDIT **L22**): it is the tool
-that packages and signs, and its behaviour is load-bearing in ways this repo
-works around. 1.17.0 is what `AppVersion.placeholders` was measured against, and
-the version-stamping bug documented in [`KNOWN-ISSUES.md`](KNOWN-ISSUES.md) is
-1.17.0's. A different version may fix it, change it, or break a workaround
-written for it — so a build made with something else is a build whose bundle
-metadata nobody has checked.
+> Until 2026-08-30 this repo built with xtool from Linux/WSL — no Mac, no
+> Xcode. That toolchain is retired; its runbook survives as history in
+> [`KNOWN-ISSUES.md`](KNOWN-ISSUES.md), and `xtool.yml` / `codemagic.yaml`
+> are in git history if it ever has to come back.
 
 ```bash
-swift test                 # VinodexCore — runs anywhere Swift does
+swift test                    # VinodexCore — runs anywhere Swift does
 ```
 
 ```bash
-xtool dev build            # build the iOS app
-xtool dev run              # build, install and launch on a connected device
+scripts/generate-xcodeproj.sh # stamp version/build from git, generate Vinodex.xcodeproj
+open Vinodex.xcodeproj        # run on a simulator or device from Xcode
 ```
 
-`swift test` and a clean `xtool dev build` are the gates.
+`swift test` and a clean Xcode build are the gates — CI runs both, plus the
+simulator test suite, on every push.
 
 Tests are Swift Testing suites in `Tests/VinodexCoreTests/`, covering the model
 and query layer — the only target with coverage. `swift test` does **not**
@@ -160,9 +157,17 @@ cases were adapted or dropped and why.
 
 ## Deploying
 
-To a phone, via xtool from WSL:
+To TestFlight, from the Mac:
 
-- The bundle ID in [`xtool.yml`](xtool.yml) is the real
+```bash
+scripts/generate-xcodeproj.sh
+xcodebuild archive -project Vinodex.xcodeproj -scheme Vinodex \
+  -destination 'generic/platform=iOS' -allowProvisioningUpdates \
+  -archivePath build/Vinodex.xcarchive
+open build/Vinodex.xcarchive   # → Organizer → Distribute App → TestFlight
+```
+
+- The bundle ID in [`project.yml`](project.yml) is the real
   `com.blaikooz.vinodex` (paid Apple Developer account, since 2026-08-11; it
   was the `com.example.Vinodex` placeholder before that). Changing a bundle ID
   is a **one-way door**: it is the container identity, so every saved shelf,
@@ -171,11 +176,15 @@ To a phone, via xtool from WSL:
   over only via SETTINGS ▸ STORED DATA ▸ BACK UP / RESTORE. See
   [Changing the bundle ID is a one-way door](KNOWN-ISSUES.md#changing-the-bundle-id-is-a-one-way-door).
 - **Annotated git tags are the version of record** (`v` + the version in
-  `AppVersion.swift`). xtool stamps `1.0.0` into every bundle it builds, so the
-  tag and `AppVersion.fallback` are the truth, not the Info.plist.
-- **Deploying from Windows + WSL is where the time actually goes.**
-  [`KNOWN-ISSUES.md`](KNOWN-ISSUES.md) is the runbook — start with the port
-  27015 race, which is the single most likely reason a deploy fails.
+  `AppVersion.swift`) — and since the Xcode path they are also what the bundle
+  actually carries: `CFBundleShortVersionString` comes from the newest tag and
+  `CFBundleVersion` from the commit count, both stamped by
+  `scripts/generate-xcodeproj.sh`. **Commit before you archive** — TestFlight
+  rejects duplicate (version, build) pairs, and the build number only moves
+  with the history.
+- **Tag before you archive, or the bundle wears the previous version.**
+  `git describe` resolves the *newest* tag; an archive cut before the release
+  tag exists stamps the last release's number.
 
 ### Release checklist
 
@@ -184,29 +193,23 @@ The build environment is part of the artifact, and none of it was written down
 release can be reproduced from the tag alone rather than from whoever cut it.
 
 ```bash
-swift --version            # expect 6.0
-xtool --version            # expect 1.17.0 — the pinned version, see above
+xcodebuild -version        # Xcode 26+ (Swift 6)
+xcodegen --version         # XcodeGen — 2.46.0 cut the first release
 ```
 
-1. **Toolchain.** Swift 6.0, xtool 1.17.0. A different xtool is not
-   automatically wrong, but it is untested here — note the version you used and
-   re-check the back plate's version readout, which is the thing its stamping
-   bug breaks.
+1. **Toolchain.** Xcode 26+, XcodeGen. Record both versions in the tag's
+   annotation, and re-check the back plate's version readout — it should show
+   the tag's number now that the bundle is stamped from git.
 2. **Data is current.** `npm run generate` then `git diff --stat
    Sources/VinodexCore/Resources/` — clean, or the tag ships JSON that does not
    match `shared/`.
 3. **Assets resolve.** SETTINGS > DEV, top block: every asset row reads `OK`
    (AUDIT **L26**). A miss there is a red placeholder somewhere in the app.
-4. **Gates.** `swift test`, a clean `xtool dev build`, and on a Mac both
-   `scripts/typecheck-ios-surface.sh` — the only check that sees `VinodexUI` —
-   and `python3 scripts/typecheck-core-tests.py`, which type-checks the test
-   target with the swift-testing macros stripped. The second exists because
-   `swift test` does not run on either maintainer's machine (no `Testing`
-   module), so until CI the test files are checked by nothing at all: a test
-   that does not compile is indistinguishable from one that passes. Add
-   `--run` to that last one to *execute* the suites as well — same rewrite,
-   but the stand-ins record pass/fail and a generated call list drives every
-   `@Test`. Neither mode proves the macros expand; CI is still the gate.
+4. **Gates.** `swift test`, a clean Xcode build of the `Vinodex` scheme, and
+   green CI — which runs both plus the simulator test suite (the only place
+   `VinodexUITests` executes). `scripts/typecheck-ios-surface.sh` and
+   `scripts/typecheck-core-tests.py` predate a machine that could run the
+   real thing and remain as fast local approximations.
 5. **Version.** Bump `AppVersion.fallback`, then tag `v<that number>`,
    annotated. **The tag is the version of record**, not the Info.plist. Add the
    release's section to [`CHANGELOG.md`](CHANGELOG.md) in the same commit — the
@@ -237,7 +240,8 @@ vinodex-ios/
   art/sfx/                 Audio masters, the source for Resources/SFX
   scripts/                 Data generator and icon rasteriser
   shared/pixelflags/       Pixel-art flags — cross-repo master (web consumes them too), source for Resources/Flags
-  xtool.yml                Bundle ID and icon path for xtool
+  project.yml              XcodeGen spec — Vinodex.xcodeproj is generated, never committed
+  App/                     App-target assets: icon, launch screen (generated Info.plist lands here too)
   godot-md/AUDIT.md        Standing work order — numbered, permanent IDs referenced in commits
   horizon-md/, godot-md/   Per-collaborator doc folders (0.6.5)
   KNOWN-ISSUES.md          Runbook: device deployment, WSL setup, traps that waste time
@@ -327,9 +331,9 @@ and not a side effect of an audit fix. The command is rule 1 without `--check`.
 
 - Branch from `main`, open a PR. CI runs `swift test` on Linux and checks the
   generated data is in step with `shared/`.
-- A green CI run does not mean the app builds — the UI layer is invisible to
-  Linux. Run `xtool dev build` before merging anything that touches
-  `Sources/VinodexUI/` or `Sources/VinodexApp/`.
+- CI's `iOS compile` and simulator-test jobs are what check the UI layer — the
+  Linux `swift test` job cannot see it. For a local check before pushing, build
+  the `Vinodex` scheme in Xcode.
 - `godot-md/AUDIT.md` carries permanent item IDs (`H3`, `M12`, `L27`). Name the ones a PR
   closes in its description and tick them in the same PR.
 - `KNOWN-ISSUES.md` is where operational discoveries go — anything that cost you
