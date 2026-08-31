@@ -37,6 +37,11 @@ public struct LabelReaderView: View {
     /// a number. Session-local and per-reading: SCAN AGAIN tears this view's
     /// result down, and a count carried across two bottles would be a lie.
     @State private var justMarked = 0
+    /// A rung crossed by a bulk mark, queued for its card (0.9.42) — the
+    /// scanner could shelve five entries at once and cross a passport rung
+    /// silently; the celebration waited for the user to open the passport.
+    /// Same idiom as `EntryDetailScreen.pendingRank`.
+    @State private var pendingRank: PassportTier?
     /// Professor Vino (0.8.9c, E2). Two triggers land here: `firstScan` on a
     /// confident read, and `firstTried` when this screen is the one that puts
     /// the first wine on the shelf — a scan-first player never taps the entry
@@ -64,7 +69,15 @@ public struct LabelReaderView: View {
                         .frame(minHeight: geo.size.height, alignment: .center)
                 }
             }
+
+            // The rung's card, over the results (0.9.42). This screen raises
+            // no rating prompt and no stamps, so there is no queue to join —
+            // the rank is the only celebration a bulk mark can produce.
+            if let tier = pendingRank {
+                RankUnlockedPrompt(tier: tier) { pendingRank = nil }
+            }
         }
+        .animation(DexMotion.overlay, value: pendingRank)
         .onAppear { model.restore() }
         // `PhotosPicker` runs out-of-process, so the library route needs no
         // permission of its own and cannot be denied — which is why it is also
@@ -338,6 +351,22 @@ public struct LabelReaderView: View {
                             // ask. See `CoachmarkWalkthrough` for why the
                             // sequence itself still goes through the catalog.
                             CoachmarkEngine.shared.report(.markedTried)
+                            // **The ladder moves here too (0.9.42).** A bulk
+                            // mark can cross a rung — five entries at once,
+                            // where the catalog moves one at a time — and this
+                            // was the one `markTried` writer that never asked.
+                            // At the tap, never in a view body, per the
+                            // warning both other call sites carry.
+                            let bookmarks = BookmarkStore.shared
+                            pendingRank = PassportProgress.shared.announceTier(
+                                Passport.compute(
+                                    tried: bookmarks.ids(on: .tried),
+                                    in: db,
+                                    bestStreak: StreakStore.shared.best,
+                                    highestTier: QuizProgress.shared.highestUnlocked,
+                                    triedDays: bookmarks.triedDayLog
+                                )
+                            )
                         }
                     }
                     Text("Adds them to your tried shelf, where the passport and INSIGHT read from.")
