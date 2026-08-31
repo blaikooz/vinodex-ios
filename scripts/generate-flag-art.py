@@ -317,18 +317,20 @@ def canada():
     img = canvas()
     red = rgb('FF0000')
     vbands(img, [(8, red), (16, rgb('FFFFFF')), (8, red)])
+    # Redrawn 0.9.41: the leaf's three lobes read as separate points now —
+    # the old map merged them into an arrowhead.
     pmap(img, 10, 3, [
-        '.....XX.....',
-        '.X...XX...X.',
-        '.XX..XX..XX.',
-        '.XXX.XX.XXX.',
-        '..XXXXXXXX..',
-        'XXXXXXXXXXXX',
-        '.XXXXXXXXXX.',
-        '....XXXX....',
-        '.....XX.....',
-        '.....XX.....',
-        '.....XX.....',
+        '.....X.....',
+        '....XXX....',
+        '.X..XXX..X.',
+        '.XX.XXX.XX.',
+        '.XXXXXXXXX.',
+        '..XXXXXXX..',
+        'XXXXXXXXXXX',
+        '..XXXXXXX..',
+        '...XXXXX...',
+        '.....X.....',
+        '.....X.....',
     ], {'X': red})
     return img
 
@@ -420,10 +422,22 @@ def hungary():
 
 def india():
     # Saffron-white-green with the navy chakra filling the white band.
-    # 24 spokes don't exist at 6px; the ring alone carries it.
+    # Hand-plotted (0.9.41): the sampled ring rendered as a donut blob. A
+    # 6px wheel is one ring, a hub, and the four spokes that fit.
     img = canvas()
     hbands(img, [(6, rgb('FF9933')), (6, rgb('FFFFFF')), (6, rgb('138808'))])
-    ring(img, 16, 9, 2.95, 1.55, rgb('000080'))
+    pmap(img, 13, 6, [
+        '.XXXX.',
+        'X.XX.X',
+        'XXXXXX',
+        'XXXXXX',
+        'X.XX.X',
+        '.XXXX.',
+    ], {'X': rgb('000080')})
+    # Punch the white back out of the wheel's quadrants so it reads as
+    # spokes rather than a filled disc.
+    for x, y in [(15, 7), (16, 7), (14, 8), (17, 8), (14, 9), (17, 9), (15, 10), (16, 10)]:
+        P(img, x, y, rgb('FFFFFF'))
     return img
 
 
@@ -436,9 +450,22 @@ def italy():
 
 def japan():
     # White field, crimson sun disc (3/5 of the height, per spec).
+    # Hand-plotted circle (0.9.41): the sampled disc came out lumpy at this
+    # scale — a 10px pixel circle is a known shape, not a rasterization.
     img = canvas()
     rect(img, 0, 0, W - 1, H - 1, rgb('FFFFFF'))
-    disc(img, 16, 9, 5.3, rgb('BC002D'))
+    pmap(img, 11, 4, [
+        '...XXXX...',
+        '..XXXXXX..',
+        '.XXXXXXXX.',
+        'XXXXXXXXXX',
+        'XXXXXXXXXX',
+        'XXXXXXXXXX',
+        'XXXXXXXXXX',
+        '.XXXXXXXX.',
+        '..XXXXXX..',
+        '...XXXX...',
+    ], {'X': rgb('BC002D')})
     return img
 
 
@@ -447,18 +474,18 @@ def lebanon():
     img = canvas()
     red = rgb('ED1C24')
     hbands(img, [(4, red), (10, rgb('FFFFFF')), (4, red)])
-    pmap(img, 8, 4, [
-        '.......XX.......',
-        '.....XXXXXX.....',
-        '....XXXXXXXX....',
-        '..XXXXXXXXXXXX..',
-        '....XXXXXXXX....',
-        'XXXXXXXXXXXXXXXX',
-        '....XXXXXXXX....',
-        '.......XX.......',
-        '.......XX.......',
-        '.....XXXXXX.....',
-    ], {'X': rgb('00A651')})
+    # Redrawn 0.9.41: a cedar is tiers with air between them and a trunk —
+    # the old map's bottom-heavy fill read as broccoli.
+    pmap(img, 10, 4, [
+        '.....XX.....',
+        '...XXXXXX...',
+        '.....XX.....',
+        '..XXXXXXXX..',
+        '.....XX.....',
+        'XXXXXXXXXXXX',
+        '.....XX.....',
+        '....NNNN....',
+    ], {'X': rgb('00A651'), 'N': rgb('6B4A2B')})
     return img
 
 
@@ -467,53 +494,73 @@ def mexico():
     # (brown eagle facing the hoist, gold beak, nopal, stone base).
     img = canvas()
     vbands(img, [(11, rgb('006341')), (10, rgb('FFFFFF')), (11, rgb('CE1126'))])
-    pmap(img, 11, 5, [
-        '...EE.....',
-        '..YKEE....',
-        '...EEEE...',
+    # Redrawn 0.9.41: head, raised wing, tail and the nopal are separated
+    # shapes now — the old map was one brown smear.
+    pmap(img, 11, 4, [
+        '.KY.......',
+        '.KK..EE...',
+        '..EEEEEE..',
+        '..EEEEEEE.',
         '...EEEEE..',
-        '....EEEE..',
-        '....E.E...',
+        '...EEEE...',
+        '....EE.E..',
+        '....E..E..',
         '..CCCCCC..',
         '....CC....',
         '...SSSS...',
-    ], {'E': rgb('6B4A2B'), 'K': rgb('3D2B1F'), 'Y': rgb('C8A040'),
+    ], {'E': rgb('6B4A2B'), 'K': rgb('3D2B1F'), 'Y': rgb('E8B923'),
         'C': rgb('4E8C3A'), 'S': rgb('C7B37F')})
     return img
 
 
 def morocco():
-    # Red field with the green interlaced pentagram (drawn as chords).
+    # Red field with the green interlaced pentagram.
+    # Hand-plotted (0.9.41): the chord-drawn star overlapped into a blob at
+    # this scale; a pentagram outline is a shape you plot, not five lines.
     img = canvas()
-    rect(img, 0, 0, W - 1, H - 1, rgb('C1272D'))
-    pts = []
-    for i in range(5):
-        ang = math.radians(i * 72.0)
-        pts.append((round(16 + 5.4 * math.sin(ang) - 0.5),
-                    round(9.4 - 5.4 * math.cos(ang) - 0.5)))
-    green = rgb('006233')
-    for a, b in [(0, 2), (2, 4), (4, 1), (1, 3), (3, 0)]:
-        line(img, pts[a][0], pts[a][1], pts[b][0], pts[b][1], green)
+    red = rgb('C1272D')
+    rect(img, 0, 0, W - 1, H - 1, red)
+    # Third time is the plot (0.9.41): the chord renderer blobbed and the
+    # filled-star punch scraggled, so the five edges are traced onto the
+    # grid by hand — vertex list top/left/right/bottom-pair, every row
+    # mirror-symmetric about the center column.
+    pmap(img, 11, 4, [
+        '.....X.....',
+        '.....X.....',
+        '....X.X....',
+        'XXXXXXXXXXX',
+        '.X..X.X..X.',
+        '...X...X...',
+        '...XX.XX...',
+        '...X.X.X...',
+        '..XX...XX..',
+        '..X.....X..',
+    ], {'X': rgb('006233')})
     return img
 
 
 def new_york():
     # Blue field, arms abstracted: Liberty (blue gown) and Justice (gold)
     # flanking the sun-over-river shield, eagle above, motto ribbon below.
+    # Redrawn 0.9.41: the flanking figures became robots at 2px wide, so
+    # they go — the arms reduce to what survives this scale: the eagle atop
+    # the shield, the sun over the Hudson inside it, the ribbon below.
     img = canvas()
     rect(img, 0, 0, W - 1, H - 1, rgb('002D72'))
-    pmap(img, 9, 3, [
-        '......GG......',
-        '.....GGGG.....',
-        '.F...WWWW...F.',
-        'LL...WGGW...GG',
-        'LL...WWWW...GG',
-        'LL...WLLW...GG',
-        'LL...WWWW...GG',
-        '.L....WW....G.',
-        '..WWWWWWWWWW..',
-    ], {'G': rgb('FFC72C'), 'W': rgb('FFFFFF'), 'L': rgb('9BCBEB'),
-        'F': rgb('E8B88A')})
+    pmap(img, 11, 3, [
+        '....GGG....',
+        '.....G.....',
+        '.WWWWWWWWW.',
+        '.WWWGGGWWW.',
+        '.WWGGGGGWW.',
+        '.WWWGGGWWW.',
+        '.WLLLLLLLW.',
+        '.WWLLLLLWW.',
+        '..WWWWWWW..',
+        '...WWWWW...',
+        '.....W.....',
+        '..GGGGGGG..',
+    ], {'G': rgb('FFC72C'), 'W': rgb('FFFFFF'), 'L': rgb('9BCBEB')})
     return img
 
 
@@ -543,21 +590,28 @@ def new_zealand():
 def oregon():
     # Navy field, obverse rendered gold-on-navy: eagle over the escutcheon,
     # "1859" reduced to tick marks below.
+    # Redrawn 0.9.41: the open outline read as a kettle. The escutcheon is
+    # solid gold now with the scene punched out in navy — sun rays over
+    # mountains, the valley below — which is how a seal actually prints.
     img = canvas()
-    rect(img, 0, 0, W - 1, H - 1, rgb('002A86'))
-    pmap(img, 8, 3, [
-        '......GGGG......',
-        '.......GG.......',
-        '...GGGGGGGGGG...',
-        '...G........G...',
-        '...G...GG...G...',
-        '...G........G...',
-        '....G.GGGG.G....',
-        '.....G....G.....',
-        '......G..G......',
-        '.......GG.......',
-        '................',
-        '....G.G..G.G....',
+    navy = rgb('002A86')
+    rect(img, 0, 0, W - 1, H - 1, navy)
+    # Second redraw (0.9.41): the punched-rays version paired two holes and
+    # grew a face. An outlined shield holding a solid sun-over-mountains —
+    # no symmetric voids, nothing to pareidolia.
+    pmap(img, 9, 3, [
+        '.....GGGG.....',
+        '......GG......',
+        '.GGGGGGGGGGGG.',
+        '.G..........G.',
+        '.G....GG....G.',
+        '.G...GGGG...G.',
+        '.G..GGGGGG..G.',
+        '.G.GGGGGGGG.G.',
+        '.GGGGGGGGGGGG.',
+        '..GG......GG..',
+        '...GGGGGGGG...',
+        '...G.G..G.G...',
     ], {'G': rgb('FFC400')})
     return img
 
@@ -567,12 +621,23 @@ def portugal():
     # the boundary, white shield with the quinas reduced to a blue mark.
     img = canvas()
     vbands(img, [(13, rgb('046A38')), (19, rgb('DA291C'))])
-    ring(img, 13, 9, 4.5, 3.4, rgb('FFE900'))
-    shield_red = rgb('DA291C')
-    rect(img, 10, 5, 15, 11, shield_red)
-    rect(img, 11, 12, 14, 12, shield_red)
-    rect(img, 11, 6, 14, 11, rgb('FFFFFF'))
-    rect(img, 12, 8, 13, 9, rgb('003399'))
+    # Redrawn 0.9.41: a hand ring with the shield seated inside it — the
+    # sampled ring plus stacked rects made a mudball on the boundary. The
+    # quinas keep their cross-of-five arrangement.
+    pmap(img, 8, 3, [
+        '...YYYY....',
+        '..Y....YY..',
+        '.YRRRRRRRY.',
+        'YRRWWWWWRRY',
+        'YRWWWBWWWRY',
+        'YRWWBWBWWRY',
+        'YRWWWBWWWRY',
+        'YRRWWWWWRRY',
+        '.YRRWWWRRY.',
+        '..YRRRRRY..',
+        '...YYYY....',
+    ], {'Y': rgb('FFE900'), 'R': rgb('DA291C'), 'W': rgb('FFFFFF'),
+        'B': rgb('003399')})
     return img
 
 
@@ -589,17 +654,22 @@ def slovenia():
     img = canvas()
     blue = rgb('0033A0')
     hbands(img, [(6, rgb('FFFFFF')), (6, blue), (6, rgb('D8232A'))])
-    pmap(img, 6, 3, [
-        '.RRRRR.',
-        'RBYBYBR',
-        'RBBYBBR',
-        'RBBBBBR',
-        'RBBWBBR',
-        'RBWWWBR',
-        'RWWWWWR',
-        'RBWBWBR',
-        '.RRRRR.',
-    ], {'R': rgb('D8232A'), 'B': blue, 'Y': rgb('FFDD00'), 'W': rgb('FFFFFF')})
+    # Redrawn 0.9.41: the all-sides red border crowded a 7px shield into
+    # noise. The arms read from three things — gold stars in a triangle,
+    # Triglav's three peaks, the waves — so those get the pixels.
+    pmap(img, 6, 2, [
+        '.BBBBBBB.',
+        'BBYBYBBBB',
+        'BBBYBBBBB',
+        'BBBBWBBBB',
+        'BBBWWWBBB',
+        'BBWWWWWBB',
+        'BWWWWWWWB',
+        'BBLBLBLBB',
+        '.BBBBBBB.',
+        '..BBBBB..',
+        '....B....',
+    ], {'B': blue, 'Y': rgb('FFDD00'), 'W': rgb('FFFFFF'), 'L': rgb('9BCBEB')})
     return img
 
 
@@ -623,18 +693,24 @@ def spain():
     # quartered shield between the Pillars of Hercules.
     img = canvas()
     hbands(img, [(4, rgb('AA151B')), (10, rgb('F1BF00')), (4, rgb('AA151B'))])
+    # Redrawn 0.9.41: the 2x2 quarters dissolved into confetti. The crest
+    # keeps its silhouette — crown, bordured shield, the two pillars with
+    # their capitals — and the quartering reduces to one red mark per half,
+    # which is as much heraldry as ten pixels hold.
     pmap(img, 5, 4, [
-        'Y..YYYY..Y',
-        'P.RRRWWW.P',
-        'P.RYRWRW.P',
-        'P.RRRWWW.P',
-        'P.WWWRRR.P',
-        'P.WRWRYR.P',
-        'P.WWWRRR.P',
-        'P..RRRR..P',
-        'P...RR...P',
+        'P...YYY...P',
+        'P..RRRRR..P',
+        'P.RWWWWWR.P',
+        'P.RWRWRWR.P',
+        'P.RWWWWWR.P',
+        'P.RWRWRWR.P',
+        'P.RWWWWWR.P',
+        'P..RRRRR..P',
+        'P...RRR...P',
     ], {'R': rgb('CE1126'), 'W': rgb('FFFFFF'), 'Y': rgb('FFD24D'),
         'P': rgb('C9C9C9')})
+    for x in (5, 15):
+        P(img, x, 3, rgb('FFD24D'))
     return img
 
 
@@ -665,15 +741,18 @@ def uruguay():
     for i in range(9):
         rect(img, 0, i * 2, W - 1, i * 2 + 1, white if i % 2 == 0 else blue)
     rect(img, 0, 0, 10, 9, white)
+    # Redrawn 0.9.41: the rays detach from the disc now (a Sun of May's
+    # rays radiate, they don't stack), and the disc is a clean pixel round
+    # with the face's eyes kept.
     pmap(img, 1, 0, [
         '....G....',
-        '.G..G..G.',
+        '.G.....G.',
         '...GGG...',
         '..GGGGG..',
-        'GGGKGKGGG',
+        'G.GKGKG.G',
         '..GGGGG..',
         '...GGG...',
-        '.G..G..G.',
+        '.G.....G.',
         '....G....',
     ], {'G': rgb('F6B40E'), 'K': rgb('7B3F00')})
     return img
