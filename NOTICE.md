@@ -67,26 +67,22 @@ Distributed under the [Apache License 2.0](licenses/Apache-2.0.txt) per the
 Iconify collection metadata and the
 [Pictogrammers Free License](licenses/LICENSE-mdi.txt).
 
-## Pixel flags — R74n PixelFlags, conditional license
+## Pixel flags — R74n PixelFlags, not bundled (repo copy only)
 
-The 465 PNGs under `shared/pixelflags/` (33 of them bundled in-app in
-`Sources/VinodexUI/Resources/Flags/`) are from
+**The app no longer ships R74n's flags (0.9.4).** The bundled set in
+`Sources/VinodexUI/Resources/Flags/` is now the first-party art from
+`art/flags/` — see "First-party assets" below — so the paid release no
+longer waits on R74n's permission (requested 2026-08-06; the swap this
+paragraph used to gate on has simply been made).
+
+The 465 PNGs under `shared/pixelflags/` remain in the repo: they are the
+cross-repo master's mirror, still consumed by the web app, and are from
 [PixelFlags by R74n](https://r74n.com/pixelflags/), used under the
 [R74n Content License v1.1](licenses/LICENSE-r74n.txt)
-([original](https://r74n.com/license.txt)). Credit: **pixel flags by R74n**.
-
-That license requires clear credit (this file provides it), forbids
-commercial use without explicit permission, and reserves R74n's right to
-demand removal. The app is unreleased and development builds are
-non-commercial, so the R74n set keeps shipping for now, and the owner has
-emailed R74n requesting permission for the eventual paid release (recorded
-2026-08-06). **Before any paid release, either that written permission must
-be in hand or the bundled flags swap to the first-party standby set**,
-which already exists: `art/flags/` holds 33 recreations drawn in code from
-the underlying flag designs — not from R74n's pixels, since under license
-§4 derivatives of their artwork are theirs to reuse freely — by
-`scripts/generate-flag-art.py` (2026-08-05). Flipping the flag-copy source
-in `scripts/rasterize-icons.sh` is the only change the swap needs.
+([original](https://r74n.com/license.txt)). Credit: **pixel flags by
+R74n**. That license requires clear credit (this file provides it) and
+forbids commercial use without explicit permission — which is why the
+bundled set swapped rather than kept shipping them.
 
 `shared/pixelflags/Other/` additionally contains renderings of brand
 trademarks and statute-protected emblems that the app never uses; deleting
@@ -98,14 +94,14 @@ redistributing it.
 - **Drawn art** — the 254 assets regenerated from `art/` (the `art:*` glyph
   ids, chassis, class/flavor/grape/style art, and logo assets) are
   first-party work.
-- **Pixel flags (standby set, not currently bundled)** — `art/flags/` holds
-  33 first-party pixel renditions drawn in code by
-  `scripts/generate-flag-art.py` (2026-08-05) from each flag's official
-  construction and published colors, made without reference to R74n's
-  artwork. Flag designs themselves are government insignia, which carry no
-  copyright; the pixel art is original. They stand ready to replace the
-  bundled R74n set before any paid release if R74n's permission is not
-  granted (see the pixel-flags section above).
+- **Pixel flags (the bundled set as of 0.9.4)** — `art/flags/` holds 34
+  first-party pixel renditions drawn in code by
+  `scripts/generate-flag-art.py` (2026-08-05; Brazil added 0.9.4) from each
+  flag's official construction and published colors, made without reference
+  to R74n's artwork. Flag designs themselves are government insignia, which
+  carry no copyright; the pixel art is original. These are what
+  `scripts/rasterize-icons.sh` copies into
+  `Sources/VinodexUI/Resources/Flags/` (see the pixel-flags section above).
 - **World map** — `Sources/VinodexUI/Resources/Maps/updatedglobemap.jpg` was
   created first-party (owner statement, 2026-08-05).
 - **Sound effects** — `button-tap.mp3`, `correct-answer.mp3`,

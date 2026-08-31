@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Draws the 33 bundled pixel flags as first-party art -> art/flags/<slug>.png.
+"""Draws the 34 bundled pixel flags as first-party art -> art/flags/<slug>.png.
 
-A STANDBY set as of 2026-08-06: development builds still ship the R74n
-PixelFlags copies (non-commercial use, credited in NOTICE.md) while the
-owner's emailed permission request to R74n is pending. If permission is
-refused, pointing the rasterize-icons.sh flag block at art/flags/<slug>.png
-is the whole swap — slugs and canvas already match.
+THE SHIPPED SET as of 0.9.4: rasterize-icons.sh copies these into the bundle
+(the swap its flag block documents; auditS H2 closed). The R74n PixelFlags
+copies stay only in the cross-repo shared/pixelflags master for the web app;
+this repo's bundle no longer ships them, so the paid release no longer waits
+on the 2026-08-06 permission request.
 
 Written 2026-08-05 so the shipped set can drop the R74n copies before any
 paid release:
@@ -257,6 +257,30 @@ def austria():
     img = canvas()
     red = rgb('EF3340')
     hbands(img, [(6, red), (6, rgb('FFFFFF')), (6, red)])
+    return img
+
+
+def brazil():
+    # Green field, yellow rhombus (vertices 1.7/20 units in from each edge,
+    # per the construction sheet), blue celestial disc (r = 1.75/14 of the
+    # height) crossed by the white ORDEM E PROGRESSO band — abstracted to a
+    # rising arc, stars to three white points below it.
+    #
+    # Joined the set 0.9.4: Brazil entered the shipped roster in 0.7.3c,
+    # after this generator's 2026-08-05 pass, so its slot was the one R74n
+    # copy left when the swap flipped. Drawn from the official construction
+    # like every flag above it; R74n's file was not opened.
+    img = canvas()
+    rect(img, 0, 0, W - 1, H - 1, rgb('009739'))
+    poly(img, [(2.7, 9.0), (16.0, 1.5), (29.3, 9.0), (16.0, 16.5)], rgb('FEDD00'))
+    disc(img, 16, 9, 4.5, rgb('002776'))
+    white = rgb('FFFFFF')
+    # The band climbs hoist-to-fly across the disc, one pixel thick.
+    for x, y in [(12, 10), (13, 9), (14, 9), (15, 8), (16, 8), (17, 8), (18, 7), (19, 7)]:
+        P(img, x, y, white)
+    # Three stars of the southern sky, reduced to points under the band.
+    for x, y in [(14, 11), (17, 10), (16, 12)]:
+        P(img, x, y, white)
     return img
 
 
@@ -695,6 +719,7 @@ FLAGS = {
     'argentina': argentina,
     'australia': australia,
     'austria': austria,
+    'brazil': brazil,
     'bulgaria': bulgaria,
     'california': california,
     'canada': canada,
