@@ -22,7 +22,7 @@ import VinodexCore
 /// *reduction* of the picker's card — a bezel, a ground, an accent bar and
 /// three ragged body lines, with no glyph and, more seriously, no monochrome
 /// pass. That last omission is the reason F exists: AMBER, VINTAGE, TERMINAL
-/// and GRÜNER BOY are built by taking the dark theme's tokens, greying them and
+/// and GROOVEE are built by taking the dark theme's tokens, greying them and
 /// multiplying by one phosphor, and a preview that skips that step shows four
 /// modes as the *green* they are made from. The shop was selling the RETRO pack
 /// with two of its three screens previewed in the wrong colour.

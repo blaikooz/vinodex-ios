@@ -1,5 +1,74 @@
 # Known issues & environment runbook
 
+> ## 2026-08-28 — this repo moved to a Mac mini; the WSL/xtool runbook below is historical
+>
+> The whole workspace moved from the Windows PC (`H:\vscode-projects\HGapps`,
+> WSL2 distro `xtool-ubuntu`, iPhone over TCP usbmuxd on port 27015) to a Mac
+> mini at `~/Developer/HGapps` with **Xcode 26.6 / Swift 6.3.3** installed
+> natively. Everything from [Deploying to the iPhone](#deploying-to-the-iphone)
+> down to [Traps that produce false readings](#traps-that-produce-false-readings)
+> describes the old machine and is kept as history — the reasoning in it
+> (trust before build, cheap gates before expensive ones, "a threshold change
+> that alters nothing means the event never arrived") still holds; the
+> commands do not. Specifically:
+>
+> | Section | On the Mac |
+> |---|---|
+> | The 27015 port race, `fix-27015.ps1`, portproxy, states 1–3, `usbipd` | **Moot.** No WSL, no TCP bridge; usbmuxd is native. `scripts/fix-27015.ps1` and `scripts/deploy-iphone.ps1` are Windows-only and stay in the tree only as the record of what the pipeline was. |
+> | Free-profile App ID cap · bundle-ID one-way door · 409 `ENTITY_ERROR` | **Still true** — these are Apple-side facts, not Windows ones. The account is paid and the ID is `com.blaikooz.vinodex`. |
+> | `Multiple library products` / `xtool.yml` needs `product:` | Still true *if* xtool is used (xtool 1.17.0 is installed via Homebrew for that reason), but the Mac path is Xcode: open `Package.swift` in Xcode, or `xcodebuild`. |
+> | `swift build` cannot see three-quarters of the app · `typecheck-ios-surface.sh` | **Still true, and now runnable** — `scripts/typecheck-ios-surface.sh` was written for a Mac and finally has one. The stronger gate is CI's own command, which also runs here: `xcodebuild build -scheme Vinodex -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO`. |
+> | The WSL mirror goes stale · `.gates.sh`, `.retest.sh`, `scripts/gate.sh`, `scripts/testonly.sh`, `scripts/build-log.sh` | **Moot.** There is no mirror: builds run against the checkout. Those five scripts hardcode `/mnt/h/...` and `/root/projects/...` and are dead here. |
+> | `swift test` cannot see any UI code | **Half true.** `swift test` still tests `VinodexCore` only, but on this machine `xcodebuild test -scheme Vinodex-Package -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest'` runs `VinodexUITests` on a simulator (809 core + 17 UI tests as of 2026-08-28). |
+> | `.contentShape` outside `.offset` · `rethrows` inside `#expect` · renamed-repo cache poison · xtool version stamp · Open bugs | **Still true** — SwiftUI, swift-testing and Actions facts. |
+>
+> **New on this machine (2026-08-28):** moving the checkout invalidates
+> `.build` — the module cache bakes absolute paths in, and a moved tree fails
+> with `module '_DarwinFoundation1' is defined in both ...` and a swift-frontend
+> SIGSEGV. `rm -rf .build` and rebuild (clean `swift build` is ~8 s here). Same
+> class as the renamed-repo Actions cache poison below.
+>
+> The Mac gates, in order: `swift build` → `swift test` →
+> `bash scripts/typecheck-ios-surface.sh` → the `xcodebuild` build above →
+> the simulator test above. Device deploy is Xcode's Run button or
+> `xcodebuild` + `xcrun devicectl`; it has **not** been proven on this machine
+> yet — see `HGapps/HANDOVER-MAC.md` and the `deploybot` agent charter.
+
+> ## 2026-08-30 — TestFlight ships from this Mac; xtool and Codemagic retired
+>
+> The first Xcode-path release is **0.9.2 (195)**: `scripts/generate-xcodeproj.sh`
+> → `xcodebuild archive -allowProvisioningUpdates` → Organizer → Distribute App.
+> It reached `processingState: VALID` the same night, with none of the five
+> patch steps the Codemagic pipeline needed (DT plist keys, actool icon
+> catalog, vtool LC_BUILD_VERSION rewrite, PlistBuddy version stamp, hand
+> re-sign) — Xcode does all of that itself, which is the whole argument for
+> the migration. `xtool.yml` and `codemagic.yaml` are deleted; both live in
+> git history at tag `v0.9.2` and earlier if the Linux path ever has to come back.
+>
+> **The version scheme, and its one rule.** `CFBundleShortVersionString` is the
+> newest annotated tag (stripped `v`); `CFBundleVersion` is
+> `git rev-list --count HEAD`. Both stamp at project *generation*, so:
+> **commit, then tag, then generate, then archive.** TestFlight rejects a
+> reused (version, build) pair, and the build number only moves with history —
+> a re-archive of the same commit is a rejected upload, not a retry.
+>
+> **The tag/ref trigger trap (how an upload nearly fired anyway).** Codemagic
+> reads `codemagic.yaml` from the ref it builds, not from HEAD. Disabling the
+> `v*` tag trigger on a new commit does **not** defuse a tag pointing at an
+> older commit — the old file rides the tag, live trigger and all. `v0.9.2`
+> was created on the pre-disable commit and had to be deleted and re-created
+> on the disable commit before it was safe to push. The general rule survives
+> the retirement: a CI trigger is only as dead as the oldest ref that still
+> carries it.
+>
+> **ASC API access from this Mac.** An App Store Connect API key lives in
+> `~/.appstoreconnect/private_keys/` (created 2026-08-30, *Developer* role) —
+> what the processing-state poll used, and what any future upload automation
+> (`xcodebuild -exportArchive` with `-authenticationKeyPath`, or `altool`)
+> should use. The key file downloads from ASC exactly once; if it is lost, a
+> new key is minted rather than recovered.
+
+
 Hard-won operational knowledge for this repo. Most of it is about getting a build
 onto the phone from Windows + WSL, which is where the time actually goes.
 
@@ -219,18 +288,21 @@ The cap is on **App IDs registered to the profile, not apps installed on the
 device.** `xtool uninstall` reports `Success!` and frees nothing — the App IDs
 stay held.
 
-This is why `ios/xtool.yml` still uses `com.example.Vinodex`: reusing an
-existing App ID is the only way to deploy. Changing it to a real reverse-DNS ID
-needs the quota to free up or a paid account.
+This is why `ios/xtool.yml` used `com.example.Vinodex` until 2026-08-11:
+reusing an existing App ID was the only way to deploy on the free profile.
+The account is paid as of 2026-08-11 (no App ID quota), and `xtool.yml` now
+carries the real `com.blaikooz.vinodex` — see the one-way-door section below
+for what that change does to on-device data.
 
 ### Changing the bundle ID is a one-way door
 
 *(AUDIT **M35**. Read this before touching `xtool.yml:8`.)*
 
-**The intended ID is `com.blaikooz.vinodex`.** It existed once — introduced at
-`b59cafb` with the note that `com.example.Vinodex` is a template value Apple
-rejects, reverted at `b732221` for the quota above. There is no naming decision
-left to make here, only a quota to free.
+**The ID is `com.blaikooz.vinodex`, set on 2026-08-11 on the paid account.**
+History: introduced at `b59cafb` with the note that `com.example.Vinodex` is a
+template value Apple rejects, reverted at `b732221` for the quota above,
+restored when the account went paid. The door has been walked through — what
+follows is the record of what that means for on-device data.
 
 **On iOS the bundle ID *is* the container identity.** A new App ID gets a new
 `Library/Preferences/<bundleID>.plist` and a new `Library/Application Support/`.
@@ -243,24 +315,25 @@ would be a lie. What exists instead is BACK UP / RESTORE in
 SETTINGS ▸ STORED DATA, which writes a `SavedDataArchive` the user keeps
 outside the container.
 
-Preconditions, in this order:
+Preconditions, and how each was met (or wasn't) when the ID changed on
+2026-08-11:
 
-1. **Quota freed, or a paid account.** Nothing below is reachable otherwise.
-2. **If — and only if — the account is paid:** register App Group
-   `group.com.blaikooz.vinodex`, add it to the **old** App ID, and move the
-   defaults to `UserDefaults(suiteName:)` **before** changing the ID. A group
-   added *after* the change shares an empty container, which looks identical
-   until someone checks. Note that xtool 1.17 has no entitlements key in
-   `xtool.yml`, so this needs a signing pipeline that is not the current one.
-3. **Ship a build containing BACK UP, and leave a release cycle for people to
-   use it.** A backup taken after the change is a backup of nothing.
-4. Then change `xtool.yml:8`.
+1. **Quota freed, or a paid account.** Met — the account went paid 2026-08-11.
+2. **App Group migration** (register `group.com.blaikooz.vinodex`, add it to
+   the **old** App ID, move defaults to `UserDefaults(suiteName:)` *before*
+   the change). **Not done, and not writable:** xtool 1.17 has no entitlements
+   key in `xtool.yml`, so this needed a signing pipeline that did not exist.
+   A group added *after* the change shares an empty container.
+3. **A build containing BACK UP shipped first.** Met — BACK UP / RESTORE has
+   been in SETTINGS ▸ STORED DATA since before the change.
+4. Change `xtool.yml:8`. Done 2026-08-11.
 5. The first build under the new ID should put RESTORE where it will be found.
 
-**The residual, plainly:** on this account today, steps 1 and 2 are not
-available, so the archive is the whole of the answer. It is a real one — it
-also survives a reinstall and moves a shelf between phones — but it depends on
-the user having taken it.
+**The residual, plainly:** step 2 being unavailable means the archive is the
+whole of the answer. Before deleting the old `com.example.Vinodex` install,
+take BACK UP inside it; RESTORE into the first `com.blaikooz.vinodex` build.
+The old container is deleted with the old install, and nothing else carries
+the 20 `SavedDataKey` keys or `avatar.jpg` across.
 ### Provisioning fails with a 409 `ENTITY_ERROR` about device IDs
 
 Seen 2026-08-03. The deploy clears all three preflight gates, gets through
@@ -295,8 +368,8 @@ propagating to the profile service. The device was `ENABLED` and the profile
 `ACTIVE` by the time anyone looked.
 
 **The rule: on a 409 here, re-run. Do not "fix" it.** Specifically do not change
-the bundle ID (the App ID quota is 3 and burning one is unrecoverable — see
-above), do not `xtool auth logout`, and do not go to the Developer portal to add
+the bundle ID (it is a one-way door for on-device data — see above; on the old
+free account it also burned quota), do not `xtool auth logout`, and do not go to the Developer portal to add
 the device by hand. Every one of those is a plausible-looking response to the
 error text and all three make things worse. If `xtool ds devices list` shows the
 UDID present and `ENABLED`, the account side is *already correct* and the only
@@ -695,7 +768,10 @@ nothing on 17 — use a `GeometryReader`.
 
 ## Open bugs
 
-**Bundle ID is a placeholder.** `com.example.Vinodex` — see the App ID cap above.
+**Bundle ID migration is user-dependent.** The ID became the real
+`com.blaikooz.vinodex` on 2026-08-11 (paid account); data on the old
+`com.example.Vinodex` install only crosses over via BACK UP / RESTORE — see
+"Changing the bundle ID is a one-way door" above.
 
 **`VinodexUI` and `VinodexApp` have no test coverage.** The test target depends
 on `VinodexCore` only, so every UI change is verified by eye on the device.

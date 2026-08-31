@@ -231,10 +231,10 @@ $code = $LASTEXITCODE
 
 Write-Host ''
 if ($code -eq 0) {
-    Write-Host 'Deployed. Free-profile signing expires 7 days from now.' -ForegroundColor Green
+    Write-Host 'Deployed. Paid-account dev signing (since 2026-08-11); profile lasts ~1 year, not 7 days.' -ForegroundColor Green
 } else {
     Bad "xtool dev run exit $code"
-    Note 'ApplicationVerificationFailed / max apps -> App ID quota is 3; keep bundle id com.example.Vinodex.'
+    Note 'ApplicationVerificationFailed / max apps -> free-profile App ID cap; should not happen on the paid account. Check `xtool auth status` is the paid team, not the old free login.'
     Note 'Operation not permitted                  -> the port race flipped mid-run; fix-27015.ps1, then -SkipSync.'
     Note 'Swift errors                             -> re-run with -Clean; a warm .build hides UI breakage.'
 }

@@ -58,8 +58,10 @@ struct AppSettingsTests {
             "GRIS DE GRIS", "ORANGE WINE", "PET NAT", "WALDGLAS", "HALLOWEEN",
             "W64",
         ])
-        // GRUNER BOY's raw value is ASCII on purpose — it persists, and the
-        // umlaut lives in `displayName`. Hold the whole roster to that rule:
+        // GRUNER BOY's raw value is ASCII on purpose — it persists; the umlaut
+        // lived in its label until 0.9.2 retired the label itself (GROOVEE
+        // carries no accent, the stored word never carried one). Hold the
+        // whole roster to that rule:
         // a stored string with a code point that can differ by normalisation
         // form is a stored string that can fail to round-trip.
         for raw in UIScale.allCases.map(\.rawValue)
@@ -136,13 +138,24 @@ struct AppSettingsTests {
     /// reset choices respectively.
     @Test("a label rename moves the label and only the label")
     func labelsAreSplitFromStorage() {
-        // BLUE SCREEN shipped in 0.5.1 and re-branded as VINOFD; the umlaut
-        // that cannot be in GRUNER BOY's stored form lives in its label.
+        // BLUE SCREEN shipped in 0.5.1 and re-branded as VINOFD; GRUNER BOY
+        // shipped labelled GRÜNERBOY and re-branded as GROOVEE in 0.9.2.
         #expect(LcdMode.blueScreen.rawValue == "BLUE SCREEN")
         #expect(LcdMode.blueScreen.displayName == "VINOFD")
-        #expect(LcdMode.gruenerBoy.displayName == "GRÜNERBOY")
+        #expect(LcdMode.gruenerBoy.rawValue == "GRUNER BOY")
+        #expect(LcdMode.gruenerBoy.displayName == "GROOVEE")
         #expect(LcdMode.wineOS.displayName == "WINE.OS")
         #expect(LcdMode.starTrek.displayName == "L-WINES")
+
+        // The 0.9.2 trademark-hygiene renames, all riding unchanged raw
+        // values: the stored key, the WornSeed input and the sticker stem are
+        // the same three strings they were the day each skin shipped.
+        #expect(ChassisSkin.psvino.rawValue == "PSVINO")
+        #expect(ChassisSkin.psvino.displayName == "PX")
+        #expect(ChassisSkin.smartGrape.rawValue == "SMART GRAPE")
+        #expect(ChassisSkin.smartGrape.displayName == "FIELD BLEND")
+        #expect(ChassisSkin.w64.rawValue == "W64")
+        #expect(ChassisSkin.w64.displayName == "1964")
 
         // The trap this split makes survivable: "VINHO VERDE" the *name* moved
         // houses (0.5.1 → 0.5.4) while "VINHO VERDE" the *stored value* stayed

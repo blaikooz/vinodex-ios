@@ -2252,7 +2252,7 @@ struct ChassisPressStyle: ButtonStyle {
 ///
 /// **Monochrome modes only, and the gate is derived rather than listed.** A
 /// single-phosphor panel is the only display this belongs on: VINTAGE, AMBER,
-/// TERMINAL and GRÜNERBOY are a reflective LCD and three phosphor tubes, all of
+/// TERMINAL and GROOVEE are a reflective LCD and three phosphor tubes, all of
 /// which visibly *redraw* when their contents change, and none of which can
 /// show a hue. The colour modes are meant to read as a modern screen and get
 /// nothing. The test is `lcd.monochromeTint != nil` — the same predicate

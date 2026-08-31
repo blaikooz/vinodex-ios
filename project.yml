@@ -1,0 +1,105 @@
+# XcodeGen spec — the checked-in source of truth for Vinodex.xcodeproj.
+#
+# The project file itself is gitignored: regenerate it with
+# `scripts/generate-xcodeproj.sh`, which derives MARKETING_VERSION from the
+# newest annotated tag (tags are the version of record — see README
+# "Deploying") and CURRENT_PROJECT_VERSION from the commit count, then runs
+# `xcodegen`. Do not run bare `xcodegen` — it would generate a project whose
+# version settings point at an xcconfig the script writes.
+#
+# This is the Mac/Xcode build path (2026-08-30). xtool.yml remains the
+# WSL/Linux fallback and codemagic.yaml remains the TestFlight upload path
+# until this one is proven end-to-end; neither is replaced by this file yet.
+#
+# The app target compiles Sources/VinodexApp/ directly rather than linking
+# the package's `Vinodex` library product: `struct VinodexApp` is internal,
+# so its @main cannot be reached from a shim module, and the target needs a
+# source anyway. Same two files, zero duplication of logic or resources —
+# and PrivacyInfo.xcprivacy lands at the bundle root, where App Store
+# tooling looks for it.
+name: Vinodex
+
+options:
+  minimumXcodeGenVersion: "2.40.0"
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "17.0"
+
+packages:
+  VinodexPackage:
+    path: .
+
+targets:
+  Vinodex:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Sources/VinodexApp
+      - path: App/Assets.xcassets
+    dependencies:
+      - package: VinodexPackage
+        product: VinodexUI
+      - package: VinodexPackage
+        product: VinodexCore
+    # MARKETING_VERSION / CURRENT_PROJECT_VERSION live in this generated
+    # xcconfig — written by scripts/generate-xcodeproj.sh, gitignored.
+    configFiles:
+      Debug: App/Version.generated.xcconfig
+      Release: App/Version.generated.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.blaikooz.vinodex
+        PRODUCT_NAME: Vinodex
+        # Individual team "HARRISON JAMES CLAUDE SEARS" (paid, 2026-08-11).
+        # Signing must stay matched to com.blaikooz.vinodex exactly — xtool
+        # registered a stray XTL-N6BL8PYJ5X.com.blaikooz.vinodex App ID on
+        # this same team that loose matching once latched onto (see
+        # codemagic.yaml, fetch-signing-files --strict-match-identifier).
+        DEVELOPMENT_TEAM: N6BL8PYJ5X
+        CODE_SIGN_STYLE: Automatic
+        # iPhone + iPad with UIRequiresFullScreen (in `info:` below) — what
+        # the Codemagic TestFlight build shipped. Full-screen is what makes
+        # the AppDelegate's portrait-only lock legal on iPad.
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        SWIFT_VERSION: "6.0"
+        SUPPORTS_MACCATALYST: NO
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Vinodex
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        # ── Carried verbatim from the root Info.plist (the xtool partial),
+        # which stays in place for the xtool fallback path. Keep in sync. ──
+        NSCameraUsageDescription: "Vinodex uses the camera to read wine labels. Photos are processed on this device and never uploaded."
+        NSPhotoLibraryUsageDescription: "Vinodex can read a wine label from a photo you choose. Photos are processed on this device and never uploaded."
+        ITSAppUsesNonExemptEncryption: false
+        # ── End of the carried partial. ──
+        # No UISupportedInterfaceOrientations on purpose: the portrait lock
+        # is AppDelegate.application(_:supportedInterfaceOrientationsFor:),
+        # consulted per window and overriding the plist regardless — the
+        # repo's documented decision (xtool.yml, VinodexApp.swift).
+        UIRequiresFullScreen: true
+        # Hidden from the first frame — the app hides it at runtime with
+        # .statusBarHidden(); this covers the launch screen.
+        UIStatusBarHidden: true
+        # No white flash into the chassis: solid house-red (Dex.red #DC0A2D)
+        # with the drawn Vinodex mark centered. Both live in App/Assets.xcassets;
+        # the mark is a copy of Sources/VinodexUI/Resources/Logo/vinodex-mark-face.png.
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+          UIImageName: LaunchMark
+
+schemes:
+  Vinodex:
+    build:
+      targets:
+        Vinodex: all
+    run:
+      config: Debug
+    profile:
+      config: Release
+    archive:
+      config: Release

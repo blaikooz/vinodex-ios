@@ -4,13 +4,22 @@ DerivedData/
 xcuserdata/
 *.xcuserstate
 
+# The Xcode project is generated from project.yml — run
+# scripts/generate-xcodeproj.sh; the spec is the source of truth.
+Vinodex.xcodeproj/
+App/Info.plist
+App/Version.generated.xcconfig
+
 # xtool's build output (the packaged .app)
 xtool/
 
 # iOS signing material and secrets — xtool's free-profile deploy handles these
 # in this working directory; never committable. (arch R3 / auditS L11)
+# *.p8 added 2026-08-11: an App Store Connect API AuthKey was found loose in
+# the repo root, one `git add .` away from being published.
 *.mobileprovision
 *.p12
+*.p8
 *.cer
 *.certSigningRequest
 *.ipa
