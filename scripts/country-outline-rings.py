@@ -62,6 +62,7 @@ FILENAME = {
     "spain": "spain.png",
     "hungary": "hungary.png",
     "austria": "austria.png",
+    "bulgaria": "bulgaria.png",
     "croatia": "croatia.png",
     "california": "california.png",
     "oregon": "oregon.png",
@@ -197,6 +198,17 @@ RINGS = {
         (13.03, 47.46), (12.75, 48.12), (13.83, 48.77), (14.98, 48.78), (16.95, 48.72),
         (17.16, 48.00), (16.11, 46.87), (15.00, 46.65), (13.70, 46.52), (12.20, 46.90),
         (11.00, 46.77), (10.45, 46.87), (10.10, 46.85),
+    ]],
+    # The Danube rules the north edge and the Black Sea bays give the east
+    # its two notches (Varna, Burgas); the south runs the Rhodope crest to
+    # the Turkish corner at Rezovo. Drawn 0.9.42 — the fourth latent shape
+    # from COUNTRY_SHAPE_ICONS' own note, latent no longer.
+    "bulgaria": [[
+        (22.65, 44.05), (23.05, 43.85), (24.15, 43.70), (25.10, 43.65), (25.95, 43.85),
+        (26.90, 44.14), (27.27, 44.12), (27.95, 43.98), (28.58, 43.74), (28.60, 43.54),
+        (27.92, 43.20), (27.90, 42.75), (27.48, 42.49), (27.98, 42.06), (26.95, 42.00),
+        (26.32, 41.72), (25.29, 41.24), (24.05, 41.52), (23.63, 41.38), (22.94, 41.34),
+        (22.36, 42.32), (22.51, 42.87), (22.44, 43.38), (22.35, 43.81),
     ]],
     # The boomerang: a northern arm along the Sava to Ilok and a coastal arm down
     # Dalmatia, with Bosnia's wedge between them. The first pass filled the wedge

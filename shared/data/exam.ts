@@ -2943,7 +2943,7 @@ export const EXAM_QUESTIONS: ExamQuestion[] = [
     axis: { from: 'Driest', to: 'Sweetest' },
     explanation: 'The four noble Madeira varieties define a sweetness ladder, because the spirit is added at a different point for each. Malmsey is Malvasia de Sao Jorge. Tinta Negra, a black grape, accounts for the bulk of production and can be made across the whole range.',
     source: 'Instituto do Vinho, do Bordado e do Artesanato da Madeira (IVBAM)',
-    entryRefs: ['S033', 'R081', 'G173', 'G073', 'G174', 'G175', 'G165'],
+    entryRefs: ['R081', 'G173', 'G073', 'G174', 'G175', 'G165'],
   },
   {
     id: 'EXQ-FOR-011', tier: 'intermediate', category: 'FORTIFIED', format: 'multipleChoice',
@@ -4401,14 +4401,14 @@ export const EXAM_QUESTIONS: ExamQuestion[] = [
     answerIndex: 1,
     explanation: 'Madeira is heated on purpose - quickly in temperature-controlled tanks (estufagem), or slowly in warm lofts over years (canteiro). Heat and oxygen together cook the wine into something almost indestructible, which is the reverse of how every other fine wine is treated.',
     source: 'Instituto do Vinho, do Bordado e do Artesanato da Madeira (IVBAM)',
-    entryRefs: ['S033', 'R081'],
+    entryRefs: ['R081'],
   },
   {
     id: 'EXQ-FOR-023', tier: 'beginner', category: 'FORTIFIED', format: 'trueFalse',
     prompt: 'An opened bottle of Madeira must be finished within a day or two, like most table wine.',
     answer: false,
     explanation: 'Madeira has already been heated and oxidised as part of its production, so there is very little left for air to spoil. An open bottle holds its character for months, which makes it one of the few fine wines that can be poured by the glass without hurry.',
-    entryRefs: ['S033'],
+    entryRefs: ['R081'],
   },
   {
     id: 'EXQ-FOR-024', tier: 'beginner', category: 'FORTIFIED', format: 'multipleChoice',
@@ -4417,7 +4417,7 @@ export const EXAM_QUESTIONS: ExamQuestion[] = [
     answerIndex: 2,
     explanation: 'Tinta Negra, a black grape, makes roughly four fifths of all Madeira. It is also the only variety permitted across all four sweetness categories, from Seco to Doce, which is why it fills the shelves while the noble whites take the labels.',
     source: 'Instituto do Vinho, do Bordado e do Artesanato da Madeira (IVBAM)',
-    entryRefs: ['G165', 'S033'],
+    entryRefs: ['G165', 'R081'],
   },
   {
     id: 'EXQ-FOR-025', tier: 'beginner', category: 'FORTIFIED', format: 'multipleChoice',
@@ -4425,7 +4425,7 @@ export const EXAM_QUESTIONS: ExamQuestion[] = [
     options: ['Malbec', 'Malvasia', 'Marsanne', 'Mourvedre'],
     answerIndex: 1,
     explanation: 'Malmsey is the English corruption of Malvasia. On Madeira today that means Malvasia de Sao Jorge, planted from the late 1960s; the historic Malvasia Candida survives on only a few hectares.',
-    entryRefs: ['G175', 'S033'],
+    entryRefs: ['G175', 'R081'],
   },
   {
     id: 'EXQ-FOR-026', tier: 'intermediate', category: 'FORTIFIED', format: 'multipleChoice',
@@ -4443,7 +4443,7 @@ export const EXAM_QUESTIONS: ExamQuestion[] = [
     answerIndex: 3,
     explanation: 'Frasqueira, also called Garrafeira, requires at least twenty years of continuous cask ageing by the canteiro method. Reserva is five years, Special Reserve ten and Extra Reserve fifteen, so Frasqueira sits a full step beyond the rest of the ladder.',
     source: 'IVBAM; Autonomous Region of Madeira official gazette, 13 February 2015',
-    entryRefs: ['S033', 'R081'],
+    entryRefs: ['R081'],
   },
   {
     id: 'EXQ-GRP-035', tier: 'beginner', category: 'GRAPES', format: 'multipleChoice',
@@ -4483,7 +4483,7 @@ export const EXAM_QUESTIONS: ExamQuestion[] = [
     answerIndex: 0,
     explanation: 'Macabeo brings apple freshness, Xarel-lo the structure and grip that let a good Cava age a decade, and Parellada the delicacy. Chardonnay and Pinot Noir are authorised too, but the Catalan trio is still the backbone.',
     source: 'Consejo Regulador DO Cava, authorised grape varieties',
-    entryRefs: ['S034', 'G143', 'G126', 'G144'],
+    entryRefs: ['R102', 'G143', 'G126', 'G144'],
   },
   {
     id: 'EXQ-SPK-024', tier: 'advanced', category: 'SPARKLING', format: 'multipleChoice',
@@ -4497,7 +4497,7 @@ export const EXAM_QUESTIONS: ExamQuestion[] = [
     answerIndex: 1,
     explanation: 'Trepat is a pale Catalan red from Conca de Barbera, and the DO permits it for rosado alone. The other authorised red varieties - Garnacha, Monastrell and Pinot Noir - are not restricted in that way.',
     source: 'Consejo Regulador DO Cava, authorised grape varieties',
-    entryRefs: ['S034', 'G129'],
+    entryRefs: ['R102', 'G129'],
   },
   {
     id: 'EXQ-HIS-020', tier: 'beginner', category: 'HISTORY', format: 'multipleChoice',
@@ -4511,7 +4511,7 @@ export const EXAM_QUESTIONS: ExamQuestion[] = [
     answerIndex: 1,
     explanation: 'Madeira sat on the Atlantic trade routes, and casks carried as ballast crossed and recrossed the tropics. Merchants found the heat had improved the wine rather than ruined it, and the industry then set about reproducing the voyage on land.',
     source: 'Instituto do Vinho, do Bordado e do Artesanato da Madeira (IVBAM)',
-    entryRefs: ['S033', 'R081'],
+    entryRefs: ['R081'],
   },
   {
     id: 'EXQ-APP-028', tier: 'beginner', category: 'APPELLATIONS', format: 'multipleChoice',
@@ -4525,7 +4525,7 @@ export const EXAM_QUESTIONS: ExamQuestion[] = [
     answerIndex: 1,
     explanation: 'Cava is a method-and-municipality denomination rather than one block of land: its registered zones lie in Catalonia, the Ebro valley, Extremadura and the Levante. Most Cava is made around Penedes, but the DO is not confined there.',
     source: 'Consejo Regulador DO Cava',
-    entryRefs: ['S034', 'R102'],
+    entryRefs: ['R102'],
   },
 ];
 
