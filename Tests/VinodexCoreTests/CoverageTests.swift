@@ -228,7 +228,11 @@ struct CoverageTests {
         }
         #expect(g.grapeCharacteristics.tannin == 4)
         #expect(g.grapeCharacteristics.acid == 4)
-        #expect(g.grapeCharacteristics.aromatics == 5)
+        // 3, not 5, since the shared master's authored characteristics reached
+        // this mirror (2026-08-31 sync): 5 was the derivation's own answer
+        // (three tasting notes + 2) wearing an authored label, and the web has
+        // shipped the authored 3 for weeks. The other four bars still hold.
+        #expect(g.grapeCharacteristics.aromatics == 3)
         #expect(g.grapeCharacteristics.body == 5)
         #expect(g.rarity == .noble)
         #expect(g.grapeBodyClass == "Full")

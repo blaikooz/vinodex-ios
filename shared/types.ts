@@ -339,6 +339,27 @@ export interface LegacyGrapeRecord {
    * to change there.
    */
   lineage?: GrapeLineage;
+
+  /**
+   * Authored stat-bar values, overriding the text derivation (0.9.x).
+   *
+   * `grapeCards.ts` derives all five bars from prose. Two of them never
+   * carried any information: `colorIntensity` was `type === 'red' ? 4 : 2`
+   * with zero exceptions, so three teinturiers read like Pinot Noir, and
+   * `aromatics` was `min(notes, 3) + 2`, which scored 5 on 174 of 177 grapes
+   * and really measured whether three tasting notes had been authored.
+   *
+   * Both are now authored per variety, which is why this is a field rather
+   * than a better formula: a second derivation would be a subtler version of
+   * the same defect.
+   *
+   * `Partial` on purpose. Anything absent falls back to the text derivation,
+   * so the three prose-backed bars keep working untouched and can be moved
+   * over later, one at a time, without a flag day. **The merge in
+   * `grapeCards.ts` uses `??`, not `||`** - 0 is a legal authored value and
+   * `||` would silently discard it.
+   */
+  characteristics?: Partial<GrapeCharacteristics>;
 }
 
 /**
