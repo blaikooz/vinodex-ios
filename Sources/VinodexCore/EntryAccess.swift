@@ -241,6 +241,23 @@ public final class AccessStore {
         return isUnlocked(pack.entitlement)
     }
 
+    /// Whether the shop is on the device's surfaces at all (0.9.4).
+    ///
+    /// **Hidden by default, revealed by the NEGOCIANT code** — see the note on
+    /// that entry in `CheatCodes.all` for why the storefront comes off the
+    /// shell while `LocalPurchaseProvider` is the only provider behind it.
+    /// One predicate rather than three checks, because three surfaces ask it
+    /// — the settings grid, the lamp chooser and the chassis lamps — and a
+    /// surface that asked differently would be a door the others don't know
+    /// about.
+    ///
+    /// Through `hasFound`, so it bypasses `starterOnly` the way every egg
+    /// does: the shop's visibility is an unlock, not a purchase, and must not
+    /// come free with the free-tier switch being off.
+    public var shopIsRevealed: Bool {
+        hasFound(CheatCodes.shopfront)
+    }
+
     /// Whether an easter egg has been found (0.7.3, F1).
     ///
     /// Bypasses `starterOnly` entirely, and that is the difference between an

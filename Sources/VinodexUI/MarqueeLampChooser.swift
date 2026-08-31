@@ -43,7 +43,17 @@ struct MarqueeLampChooser: View {
     private var skin: ChassisLook { ChassisLook(skinRaw: skinRaw, marquee: partMarquee) }
 
     @State private var pins = QuickPinStore.shared
+    /// The SHOP chip is only offered while the shop is on the device at all
+    /// (0.9.4) — see `AccessStore.shopIsRevealed`.
+    @State private var access = AccessStore.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// The chips on offer: every pin, minus SHOP while it is hidden. A stored
+    /// ACCESS pin is the chassis lamp's problem, not this list's — see
+    /// `DeviceChassis.lampButton` for the substitution.
+    private var offeredPins: [MarqueePin] {
+        MarqueePin.allCases.filter { $0 != .access || access.shopIsRevealed }
+    }
 
     /// Which lamp this is, in words. "LEFT" and "RIGHT" rather than "1" and "2":
     /// the two buttons are physical objects on the shell and the user is looking
@@ -97,7 +107,7 @@ struct MarqueeLampChooser: View {
             // arithmetic 0.7.1's A4 wrote down when PACKS briefly made that row
             // five wide. Three columns is 91pt and CUSTOMIZE fits on two lines.
             LazyVGrid(columns: Self.columns, spacing: 8) {
-                ForEach(MarqueePin.allCases) { pin in
+                ForEach(offeredPins) { pin in
                     chip(pin)
                 }
             }

@@ -96,6 +96,11 @@ public struct DeviceChassis<Content: View>: View {
     /// reassigning a lamp in the chooser repaints it here on the next render with
     /// nothing threaded between them.
     @State private var pins = QuickPinStore.shared
+    /// Observed for the same reason `pins` is: a lamp holding a stored SHOP
+    /// pin substitutes its factory face while the shop is hidden (0.9.4), and
+    /// entering NEGOCIANT must light it back up on the next render — see
+    /// `lampButton`.
+    @State private var access = AccessStore.shared
     /// Which lamp the reassignment chooser is open for, or nil (0.7.6, A1).
     @State private var lampBeingAssigned: Int?
     /// The app's one idle timer (0.7.3, F2). Drives both the marquee's greeting
@@ -1671,7 +1676,16 @@ public struct DeviceChassis<Content: View>: View {
         // The store always holds `capacity` pins, so this is a formality — but a
         // chassis that crashed because a list was short would be a poor trade for
         // one saved line. See `QuickPinStore.decode`.
-        let pin = pins.pin(at: slot) ?? QuickPinStore.defaults[min(slot, QuickPinStore.defaults.count - 1)]
+        let stored = pins.pin(at: slot) ?? QuickPinStore.defaults[min(slot, QuickPinStore.defaults.count - 1)]
+        // **A stored SHOP pin while the shop is hidden wears the slot's factory
+        // face instead (0.9.4).** The pin store is not rewritten — someone who
+        // pinned SHOP before it went behind NEGOCIANT gets their lamp back the
+        // moment they reveal it — but a lamp must not be a door to a surface
+        // the settings grid no longer shows. The defaults are TOOLS and
+        // CUSTOMIZE, so the substitution can never itself be SHOP.
+        let pin = (stored == .access && !access.shopIsRevealed)
+            ? QuickPinStore.defaults[min(slot, QuickPinStore.defaults.count - 1)]
+            : stored
 
         return Button {
             Haptics.tap()
