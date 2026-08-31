@@ -774,6 +774,20 @@ public struct EntryDetailScreen: View {
                         // grape and style bars draw it.
                         FlagSwatch(db: db, country: r.details.origin)
                     }
+                    // **STATE under COUNTRY (0.9.41)** — the four US regions
+                    // carry one, and it was reachable only through the
+                    // country page's list. Same bar, same flag well (the
+                    // state flags ship in the bundle), destination the state
+                    // page the country screen already links.
+                    if let state = r.details.state {
+                        attributeBar(
+                            label: "STATE",
+                            chip: chip(state.uppercased(), .country, key: state),
+                            destination: .state(name: state)
+                        ) {
+                            FlagSwatch(db: db, country: state)
+                        }
+                    }
                 }
 
             // **ORIGIN comes out of the row (0.8.3, G)**, exactly as the grape

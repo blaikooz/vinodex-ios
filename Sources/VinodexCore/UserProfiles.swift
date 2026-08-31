@@ -88,7 +88,9 @@ public final class UserProfileStore {
     init(directory: URL) {
         self.directory = directory
         load()
-        seedIfNeeded()
+        // `seedIfNeeded()` retired here (0.9.41): a fresh install starts
+        // with five empty slots and no built-in rows — see the note on the
+        // seeder below.
     }
 
     // MARK: The key filter
@@ -193,10 +195,15 @@ public final class UserProfileStore {
         try? data.write(to: indexURL, options: .atomic)
     }
 
-    /// HORIZON, the standing long-term profile, seeded once (0.8.92, item 5).
-    /// Only when the index file does not exist at all — an empty index that
-    /// *does* exist means the user deleted their profiles, and re-seeding
-    /// would resurrect what they removed.
+    /// HORIZON seeding, retired (0.9.41; was 0.8.92, item 5).
+    ///
+    /// The built-in test users were development furniture: HORIZON held a
+    /// long-lived tester's state and FRESH walked the first run. The first
+    /// version build ships the feature blank — five empty slots, the user's
+    /// own names — so nothing seeds. A device that already carries a HORIZON
+    /// row keeps it: the index exists, and deleting a user's profiles on
+    /// update is exactly the resurrection-in-reverse the old guard clause
+    /// existed to prevent. The method stays for a dev build to call.
     private func seedIfNeeded() {
         guard !fm.fileExists(atPath: indexURL.path) else { return }
         profiles = [Profile(slot: 1, name: "HORIZON", savedAt: nil)]
