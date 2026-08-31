@@ -382,7 +382,15 @@ struct MarqueeBanner: View {
     private var glyph: some View {
         if fadeStart == nil {
             glyphImage(shownSymbol, art: shownArt)
-        } else {
+        // **Both sides nil collapses the slot (0.9.42).** At rest a nil glyph
+        // is an `Optional` view and the VStack holds only the title, centred.
+        // During a dissolve the `TimelineView` was a real zero-size subview,
+        // so the glyph gap still applied and the screensaver toast — whose
+        // fade in is the slow one — sat 4pt below centre for the whole ride.
+        // The dissolve only exists to cross-fade pictures; two nils have
+        // nothing to cross-fade.
+        } else if shownSymbol != nil || shownArt != nil
+                    || outgoingSymbol != nil || outgoingArt != nil {
             TimelineView(.animation) { context in
                 let p = fadeProgress(at: context.date)
                 ZStack {
@@ -432,16 +440,25 @@ struct MarqueeBanner: View {
     @ViewBuilder
     private func glyphImage(_ name: String?, art: String?) -> some View {
         if let name {
+            // **The glyph wears the skin's grid phosphor, not the ink
+            // (0.9.42).** Flattened to `ink` — the near-black shadow tone on
+            // all 22 liveries — every page glyph read as flat black, which is
+            // 0.8.3 §A's spec surviving A2's reversal in practice. The title
+            // keeps the ink (it is type, and type on a segment LCD is dark);
+            // the glyph is a picture and takes the same treatment §H gave the
+            // status lamps: the skin's own lit mid-tone. That deliberately
+            // breaks A2's glyph/title coupling — the coupling is what kept
+            // the glyphs black.
             DexChromeGlyph(
                 art ?? name,
                 symbol: name,
                 size: DexMetrics.marqueeGlyph,
                 weight: .bold,
-                tint: ink,
-                flatten: ink,
+                tint: skin.marqueeGrid,
+                flatten: skin.marqueeGrid,
                 smoothing: true
             )
-            .shadow(color: ground.opacity(0.7), radius: 0, x: 1, y: 1)
+            .shadow(color: ink.opacity(0.7), radius: 0, x: 1, y: 1)
         }
     }
 

@@ -604,6 +604,10 @@ const COUNTRY_SHAPE_ICONS: Record<string, string> = {
   slovenia: 'art:outline-slovenia',
   lebanon: 'art:outline-lebanon',
   'united kingdom': 'art:outline-united-kingdom',
+  // Latent no longer (0.9.42): drawn from an authored ring the day the
+  // Thracian Lowlands and Struma Valley gave the coverage gate a reason
+  // to demand it.
+  bulgaria: 'art:outline-bulgaria',
 };
 
 /// Icon-well background per style classification.
@@ -746,15 +750,9 @@ const STYLE_ART: Record<string, string> = {
   'bordeaux blend': 'bordeauxblend',
   'botrytis wine': 'botrytiswine',
   'champagne': 'champagne',
-  // 0.7.9 (G). S033 and S034 arrived with sommbot's P1/P2 batch and
-  // `CoverageTests.styleArtWiring` requires a portrait for every style but GSM
-  // Blend. Both masters are **recolours of shipped siblings** rather than drawn
-  // art -- madeira from port.png (ruby -> amber-brown, same fortified flask),
-  // cava from prosecco.png (gold -> pale straw, same flute). Placeholders in
-  // the house style; flagged in PLAN.md for an artist pass. They keep their
-  // white backgrounds, so neither needs to join import-style-art.py's MASTERS.
-  'cava': 'cava',
-  'madeira': 'madeira',
+  // The 'cava' and 'madeira' rows left with S033/S034 (0.9.42) — their
+  // recolour placeholders (0.7.9's port/prosecco siblings) moved to
+  // art/icons/attic with the rest of the retired art.
   'cremant': 'cremant',
   'cru beaujolais': 'crubeaujolas',
   'dessert wine': 'dessertwine',

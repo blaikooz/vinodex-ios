@@ -837,7 +837,7 @@ export const COUNTRIES: CountryGateEntry[] = [
     details: {
       origin: 'Hungary',
       classification: 'COUNTRY',
-      keyRegions: ['Tokaj'],
+      keyRegions: ['Tokaj', 'Villány'],
       notableGrapes: ['Furmint', 'Hárslevelű', 'Kékfrankos']
     }
   },
@@ -867,7 +867,7 @@ export const COUNTRIES: CountryGateEntry[] = [
     details: {
       origin: 'Switzerland',
       classification: 'COUNTRY',
-      keyRegions: ['Valais'],
+      keyRegions: ['Valais', 'Lavaux'],
       notableGrapes: ['Pinot Noir', 'Gamay', 'Merlot']
     }
   },
@@ -882,7 +882,7 @@ export const COUNTRIES: CountryGateEntry[] = [
     details: {
       origin: 'Romania',
       classification: 'COUNTRY',
-      keyRegions: ['Dealu Mare'],
+      keyRegions: ['Dealu Mare', 'Târnave'],
       notableGrapes: ['Cabernet Sauvignon', 'Merlot', 'Pinot Noir']
     }
   },
@@ -987,7 +987,7 @@ export const COUNTRIES: CountryGateEntry[] = [
     details: {
       origin: 'Uruguay',
       classification: 'COUNTRY',
-      keyRegions: ['Canelones'],
+      keyRegions: ['Canelones', 'Maldonado'],
       notableGrapes: ['Tannat', 'Cabernet Sauvignon', 'Merlot']
     }
   },
@@ -1092,7 +1092,7 @@ export const COUNTRIES: CountryGateEntry[] = [
     details: {
       origin: 'Morocco',
       classification: 'COUNTRY',
-      keyRegions: ['Guerrouane'],
+      keyRegions: ['Guerrouane', 'Zenata'],
       notableGrapes: ['Syrah', 'Cabernet Sauvignon', 'Chardonnay']
     }
   },
@@ -1107,7 +1107,7 @@ export const COUNTRIES: CountryGateEntry[] = [
     details: {
       origin: 'Croatia',
       classification: 'COUNTRY',
-      keyRegions: ['Dalmatia'],
+      keyRegions: ['Dalmatia', 'Istria'],
       notableGrapes: ['Zinfandel', 'Babić']
     }
   },
@@ -1122,7 +1122,7 @@ export const COUNTRIES: CountryGateEntry[] = [
     details: {
       origin: 'Mexico',
       classification: 'COUNTRY',
-      keyRegions: ['Valle de Guadalupe'],
+      keyRegions: ['Valle de Guadalupe', 'Parras Valley'],
       notableGrapes: ['Nebbiolo', 'Tempranillo', 'Cabernet Sauvignon']
     }
   },
@@ -1152,7 +1152,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C025',
     name: 'United Kingdom',
-    description: 'England\'s chalk downs share their geology with Champagne, and a warming climate has turned that from trivia into a sparkling-wine industry the French now invest in. Sussex and Kent lead with traditional-method fizz from Chardonnay, Pinot Noir and Pinot Meunier. Regions coming soon.',
+    description: 'England\'s chalk downs share their geology with Champagne, and a warming climate has turned that from trivia into a sparkling-wine industry the French now invest in. Sussex and Kent lead with traditional-method fizz from Chardonnay, Pinot Noir and Pinot Meunier.',
     category: 'COUNTRY_GATE',
     color: '#1e3a8a',
     icon: 'flag',
@@ -1160,14 +1160,14 @@ export const COUNTRIES: CountryGateEntry[] = [
     details: {
       origin: 'United Kingdom',
       classification: 'COUNTRY',
-      keyRegions: [],
+      keyRegions: ['Sussex', 'Kent'],
       notableGrapes: ['Chardonnay', 'Pinot Noir', 'Pinot Meunier']
     }
   },
   {
     id: 'C026',
     name: 'Slovenia',
-    description: 'Slovenia sits where the Alps, the Adriatic and the Pannonian plain meet, and its wines have been quietly excellent for centuries — the world\'s oldest living grapevine grows in Maribor. Orange wine as a modern movement largely started here, on the Italian border. Regions coming soon.',
+    description: 'Slovenia sits where the Alps, the Adriatic and the Pannonian plain meet, and its wines have been quietly excellent for centuries — the world\'s oldest living grapevine grows in Maribor. Orange wine as a modern movement largely started here, on the Italian border.',
     category: 'COUNTRY_GATE',
     color: '#0e7490',
     icon: 'flag',
@@ -1175,14 +1175,14 @@ export const COUNTRIES: CountryGateEntry[] = [
     details: {
       origin: 'Slovenia',
       classification: 'COUNTRY',
-      keyRegions: [],
+      keyRegions: ['Goriška Brda', 'Vipava Valley'],
       notableGrapes: ['Sauvignon Blanc', 'Merlot']
     }
   },
   {
     id: 'C027',
     name: 'Bulgaria',
-    description: 'Bulgaria was once the world\'s second-largest wine exporter, filling 1980s shelves with affordable Cabernet. The old bulk machine is gone; what remains are warm valleys, native reds like Mavrud and Melnik, and a new generation bottling them seriously. Regions coming soon.',
+    description: 'Bulgaria was once the world\'s second-largest wine exporter, filling 1980s shelves with affordable Cabernet. The old bulk machine is gone; what remains are warm valleys, native reds like Mavrud and Melnik, and a new generation bottling them seriously.',
     category: 'COUNTRY_GATE',
     color: '#166534',
     icon: 'flag',
@@ -1190,14 +1190,14 @@ export const COUNTRIES: CountryGateEntry[] = [
     details: {
       origin: 'Bulgaria',
       classification: 'COUNTRY',
-      keyRegions: [],
+      keyRegions: ['Thracian Lowlands', 'Struma Valley'],
       notableGrapes: ['Cabernet Sauvignon', 'Merlot']
     }
   },
   {
     id: 'C028',
     name: 'Lebanon',
-    description: 'Lebanese wine has survived every century thrown at it: the Bekaa Valley has grown vines for five thousand years, and Chateau Musar\'s cedar-scented reds became a cult through a civil war. High-altitude Cinsault and Cabernet under relentless mountain sun. Regions coming soon.',
+    description: 'Lebanese wine has survived every century thrown at it: the Bekaa Valley has grown vines for five thousand years, and Chateau Musar\'s cedar-scented reds became a cult through a civil war. High-altitude Cinsault and Cabernet under relentless mountain sun.',
     category: 'COUNTRY_GATE',
     color: '#7f1d1d',
     icon: 'flag',
@@ -1205,7 +1205,7 @@ export const COUNTRIES: CountryGateEntry[] = [
     details: {
       origin: 'Lebanon',
       classification: 'COUNTRY',
-      keyRegions: [],
+      keyRegions: ['Bekaa Valley', 'Batroun'],
       notableGrapes: ['Cinsault', 'Cabernet Sauvignon']
     }
   }

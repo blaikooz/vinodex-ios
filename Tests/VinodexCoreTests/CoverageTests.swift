@@ -46,11 +46,18 @@ struct CoverageTests {
         // Boal, G175 Malvasia de São Jorge, G176 Gouais Blanc, G177 Plavac
         // Mali, G178 Manto Negro) and +2 styles (S033 Madeira, S034 Cava).
         // Regions unchanged at 124 — every new grape had a home already.
+        // 0.9.42: the catalog boost. +15 regions (R125–R139): the four
+        // coming-soon countries came alive (Bulgaria, Lebanon, Slovenia, the
+        // United Kingdom, two each) and the seven single-region countries
+        // each gained a second answer.
         #expect(db.entries(in: .grapes).count == 177)
-        #expect(db.entries(in: .regions).count == 124)
+        #expect(db.entries(in: .regions).count == 139)
         // 31 since 0.6.x: Medium-Full Red removed, its grapes now Full-Body.
-        // 33 since 0.7.9 (G): Madeira and Cava.
-        #expect(db.entries(in: .styles).count == 33)
+        // 33 since 0.7.9 (G): Madeira and Cava. **31 again since 0.9.42** —
+        // both came back off the shelf on the maintainer's ruling; their exam
+        // questions re-point at R081 Madeira and R102 Penedès, so the paper
+        // still teaches both wines from the places that make them.
+        #expect(db.entries(in: .styles).count == 31)
         #expect(db.entries(in: .continents).count == 6)
     }
 
@@ -89,7 +96,9 @@ struct CoverageTests {
         // flavours unchanged at 106 for the fourth data batch running.
         // 446 since 0.7.9 (G): sommbot's P1/P2 batch, +6 grapes and +2 styles.
         // Flavours unchanged at 106 for the fifth data batch running.
-        #expect(stats.total == 446)
+        // 459 since 0.9.42: +15 regions, −2 styles (Madeira and Cava retired).
+        // Flavours unchanged at 106 for the sixth data batch running.
+        #expect(stats.total == 459)
         // 26 since 0.7.3c: Brazil is the first *new* origin since Mexico. The
         // count is distinct region origins, so the coming-soon gates still do
         // not count and adding a country without a region would not move it.
@@ -99,7 +108,10 @@ struct CoverageTests {
         // (see `ExpansionPacks.oldWorld`) and Gouais Blanc's is Croatia, but
         // neither is a *region* origin — Slovenia has no region entry at all,
         // and Croatia already had one.
-        #expect(stats.countries == 26)
+        //
+        // 30 since 0.9.42: the four coming-soon countries each grew real
+        // regions, so the distinct-region-origin rule finally counts them.
+        #expect(stats.countries == 30)
         #expect(stats.categoryLines.count == 6)
     }
 
@@ -541,11 +553,12 @@ struct CoverageTests {
     /// the wrong answer for every row, so this asserts on the function, not on
     /// the table.
     ///
-    /// **Seventeen since 0.8.2**, when Madeira joined on sommbot's ruling —
-    /// counted in the title because the number is the only thing here that says
-    /// a row was added rather than edited, and a silent seventeenth row is how
-    /// the sixteenth would have arrived unnoticed.
-    @Test("all seventeen colour overrides resolve, and each names a real style")
+    /// **Seventeen since 0.8.2**, when Madeira joined on sommbot's ruling;
+    /// **fifteen since 0.9.42**, when Madeira and Cava left with their style
+    /// entries — counted in the title because the number is the only thing
+    /// here that says a row was added or removed rather than edited, and a
+    /// silent extra row is how a wrong one would arrive unnoticed.
+    @Test("all fifteen colour overrides resolve, and each names a real style")
     func colorOverridesResolve() {
         let styleNames = Set(db.entries(in: .styles).map {
             TextNormalize.label($0.name).trimmingCharacters(in: .whitespaces)
@@ -553,7 +566,7 @@ struct CoverageTests {
         // The title states a number, so something has to hold it to it. It said
         // "sixteen" through the whole of 0.8.2's authoring while the table had
         // seventeen rows, because nothing here ever read the count.
-        #expect(EntryDisplay.colorOverrides.count == 17)
+        #expect(EntryDisplay.colorOverrides.count == 15)
         for (key, expected) in EntryDisplay.colorOverrides {
             #expect(
                 EntryDisplay.colorType(name: key) == expected,

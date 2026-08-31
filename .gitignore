@@ -39,3 +39,4 @@ scripts/__pycache__/
 # never a diff to review.
 art/icons/countries-from-rings/
 build.log
+build/

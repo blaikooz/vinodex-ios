@@ -27,6 +27,8 @@ FILL = {
     # --- Europe -----------------------------------------------------------
     "austria": "#D14B4B",
     "bosnia": "#2E52A0",
+    # Flag-dominant per the rule above: Bulgaria's green band, mid-tone.
+    "bulgaria": "#3E8E5A",
     "croatia": "#2E62B0",
     "czechia": "#2E62B0",
     "france": "#2E5AA8",
