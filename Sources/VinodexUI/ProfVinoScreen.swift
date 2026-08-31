@@ -41,14 +41,14 @@ public struct ProfVinoScreen: View {
                 VStack(alignment: .leading, spacing: 18) {
                     hero
                     silenceRow
-                    facesSection
-                    dutiesSection
-                    // The dev-facing ledger and the "later firmware" note both
-                    // came off the page in 0.9.4 with the rest of the
-                    // developer surface: trigger identifiers are engineering
-                    // vocabulary the first version build has no reader for,
-                    // and a roadmap line is a COMING SOON in prose. The
-                    // sections stand below, dormant, for a dev build.
+                    // The page slimmed twice. 0.9.4 took the dev-facing
+                    // ledger and the "later firmware" note (engineering
+                    // vocabulary, and a COMING SOON in prose). 0.9.41 takes
+                    // the faces gallery and the duties list too: both were
+                    // the "working diagram" of the professor, and a diagram
+                    // is documentation — the shipped page is the professor
+                    // himself and the one control a user has over him. All
+                    // four sections stand below, dormant, for a dev build.
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)

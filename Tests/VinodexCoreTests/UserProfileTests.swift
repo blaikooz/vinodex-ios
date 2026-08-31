@@ -14,14 +14,14 @@ struct UserProfileTests {
             .appendingPathComponent("UserProfileTests-\(UUID().uuidString)", isDirectory: true)
     }
 
-    @Test("a fresh index seeds HORIZON, unsaved, in slot 1")
-    func seedsHorizon() {
+    /// **Nothing seeds (0.9.41; reverses 0.8.92 item 5's HORIZON).** The
+    /// built-in test users came off the shipped build — a fresh install has
+    /// five empty slots and whatever the user saves. The seeder still exists
+    /// for a dev build to call; this pins that nobody calls it.
+    @Test("a fresh index seeds nothing")
+    func startsBlank() {
         let store = UserProfileStore(directory: scratchDirectory())
-        #expect(store.profiles.count == 1)
-        #expect(store.profiles.first?.name == "HORIZON")
-        #expect(store.profiles.first?.slot == 1)
-        #expect(store.profiles.first?.savedAt == nil)
-        // Never saved into means no snapshot — loading it is a fresh start.
+        #expect(store.profiles.isEmpty)
         #expect(store.snapshot(ofSlot: 1) == nil)
     }
 

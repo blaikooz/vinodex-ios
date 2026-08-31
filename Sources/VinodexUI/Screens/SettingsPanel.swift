@@ -1188,15 +1188,18 @@ public struct SettingsSectionPanel: View {
                     }
                 }
             case .load:
-                // FRESH first: the virtual blank profile, for walking the
-                // first-run experience. Loading it is a factory reset plus
-                // relaunch, and it can never be saved over.
-                profileSlotRow(
-                    name: UserProfileStore.freshProfileName,
-                    detail: "A brand-new device, every time.",
-                    occupied: true
-                ) {
-                    pendingProfile = .loadFresh
+                // The FRESH virtual row left with the seeded HORIZON
+                // (0.9.41): both were test users, and a row that factory-
+                // resets the device does not belong one tap under LOAD on a
+                // shipped build — CLEAR SAVED DATA below is the deliberate
+                // route to a blank device. `.loadFresh` and its alert stay
+                // wired for a dev build.
+                if profiles.profiles.isEmpty {
+                    profileSlotRow(
+                        name: "NO SAVED PROFILES",
+                        detail: "Save one first — SAVE captures this device into a slot.",
+                        occupied: false
+                    ) {}
                 }
                 ForEach(profiles.profiles) { profile in
                     profileSlotRow(
@@ -2107,25 +2110,10 @@ public struct SettingsSectionPanel: View {
                 // stay wired for the StoreKit phase; a door to an empty table
                 // would be the app's own definition of a dead end.
 
-                Button {
-                    Haptics.select()
-                    onDemoMode()
-                } label: {
-                    settingRow(
-                        symbol: "play.rectangle.fill", art: "demomode",
-                        tint: lcd.accent,
-                        title: "DEMO MODE",
-                        detail: "Cycles the tools unattended. Any input stops it."
-                    ) {
-                        // No chevron: this one does not open a panel, it starts
-                        // something and closes settings behind it. A chevron
-                        // would promise a page to come back from.
-                        Image(systemName: "play.fill")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(lcd.subtext)
-                    }
-                }
-                .buttonStyle(DexPressStyle(scale: 0.98))
+                // DEMO MODE's row is off the panel (0.9.41) — a kiosk control
+                // is exhibition furniture, not a user setting. The mode
+                // itself and `onDemoMode` stay wired, dormant, for the day a
+                // counter needs it.
             }
         }
 
@@ -2227,32 +2215,11 @@ public struct SettingsSectionPanel: View {
             }
         }
 
-        // The back of the device was reachable only by a one-second press on
-        // an orb that looks like a lamp — an easter egg doing the job of a
-        // signpost, with the version number, the maker's mark and the earned
-        // collector stamps behind it. The egg stays; this is the route for
-        // people who were never going to guess it. (AUDIT **M21**)
-        settingsSection("ABOUT") {
-            Button {
-                Haptics.tap()
-                ChassisFlipRouter.shared.flip()
-            } label: {
-                settingRow(
-                    // iOS 13 vintage, deliberately: the `arrow.trianglehead.*`
-                    // family reads better here and renders blank on 17, which
-                    // is the floor. See KNOWN-ISSUES.
-                    symbol: "arrow.triangle.2.circlepath",
-                    tint: lcd.subtext,
-                    title: "TURN THE DEVICE OVER",
-                    detail: "Version, serial and maker's mark are engraved on the back — along with any collector stamps you have earned. Swipe to come back."
-                ) {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(lcd.subtext)
-                }
-            }
-            .buttonStyle(DexPressStyle(scale: 0.98))
-        }
+        // The ABOUT section and its TURN THE DEVICE OVER row came off the
+        // panel (0.9.41), reversing M21's signpost: the maintainer prefers
+        // the back of the device found the way it was designed to be — the
+        // one-second orb press. The flip itself and `ChassisFlipRouter` are
+        // untouched; only the settings-row route is gone.
 
         // The DEVELOPER section and its DEV door came off the panel in 0.9.4:
         // the first version build ships no developer surface. The `dev` panel,
