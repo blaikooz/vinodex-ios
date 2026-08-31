@@ -40,6 +40,11 @@ public struct SettingsPanel: View {
     var settings: AppSettings = .shared
     private var lcd: LcdMode { settings.lcdMode }
 
+    /// Whether the SHOP tile is drawn at all (0.9.4) — see
+    /// `AccessStore.shopIsRevealed`. Observed the way `SettingsSectionPanel`
+    /// observes it, so entering NEGOCIANT redraws the grid on the way back.
+    @State private var access = AccessStore.shared
+
     public init(
         onClose: @escaping () -> Void,
         onSection: @escaping (SettingsSection) -> Void = { _ in },
@@ -101,55 +106,86 @@ public struct SettingsPanel: View {
             }
             // DEV is deliberately absent from the grid — it lives as a
             // button inside SETTINGS, where developer plumbing belongs.
-            HStack(spacing: 10) {
-                featureTile(
-                    title: SettingsSection.settings.rawValue,
-                    symbol: SettingsSection.settings.symbol,
-                    art: SettingsSection.settings.artStem,
-                    livery: .orange
-                ) {
-                    onSection(.settings)
+            //
+            // **SHOP is off the grid entirely in the first version build
+            // (0.9.4)** — see `AccessStore.shopIsRevealed`, which nothing in
+            // this build can flip. Nothing behind the tile is touched: the
+            // panel, the shelves and their tests all stand, exactly as DEV
+            // has lived off this grid since 0.7.3a without its panel going
+            // anywhere. Five tiles leave an orphan (the same arithmetic
+            // 0.7.6's F1 wrote down), and the orphan the maintainer chose
+            // for the wide row is SETTINGS — the tile someone actually comes
+            // to this screen for — so FIRMWARE moves up beside DATA and
+            // SETTINGS takes the bottom row alone. When the StoreKit phase
+            // reveals the shop, the grid returns to the 0.8.92 three-by-two:
+            // SETTINGS beside DATA, SHOP beside FIRMWARE. `displayName`, not
+            // `rawValue`, on SHOP: the one tile where the two differ
+            // (0.7.5, B2).
+            if access.shopIsRevealed {
+                HStack(spacing: 10) {
+                    settingsTile
+                    dataTile
                 }
-                featureTile(
-                    title: SettingsSection.data.rawValue,
-                    symbol: SettingsSection.data.symbol,
-                    art: SettingsSection.data.artStem,
-                    livery: .sky
-                ) {
-                    onSection(.data)
+                HStack(spacing: 10) {
+                    featureTile(
+                        title: SettingsSection.access.displayName,
+                        symbol: SettingsSection.access.symbol,
+                        art: SettingsSection.access.artStem,
+                        livery: .violet
+                    ) {
+                        onSection(.access)
+                    }
+                    firmwareTile
                 }
-            }
-            // **The last row is a pair again (0.8.92, item 2).** SHOP had the
-            // full width from 0.7.6's F1, when five tiles left an orphan; the
-            // sixth tile is FIRMWARE, moved up out of SETTINGS > DEVICE, and
-            // it sits to SHOP's right — so the grid is back to the fixed
-            // three-by-two it was sized as. `displayName`, not `rawValue`, on
-            // SHOP: the one tile where the two differ (0.7.5, B2).
-            HStack(spacing: 10) {
-                featureTile(
-                    title: SettingsSection.access.displayName,
-                    symbol: SettingsSection.access.symbol,
-                    art: SettingsSection.access.artStem,
-                    livery: .violet
-                ) {
-                    onSection(.access)
+            } else {
+                HStack(spacing: 10) {
+                    dataTile
+                    firmwareTile
                 }
-                // The green TUTORIAL freed in 0.7.6 (F1), reassigned at last
-                // (0.8.92, item 2): FIRMWARE is a new tile, so this repaints
-                // nothing.
-                featureTile(
-                    title: "FIRMWARE",
-                    symbol: "memorychip.fill",
-                    art: "firmware",
-                    livery: .green
-                ) {
-                    onFirmware()
-                }
+                settingsTile
             }
         }
         .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(lcd.panelGround)
+    }
+
+    // The three tiles both grid layouts share, hoisted so the hidden-shop and
+    // revealed-shop arrangements above cannot drift apart on a livery or a
+    // callback — the L33 lesson, one level up.
+    private var settingsTile: some View {
+        featureTile(
+            title: SettingsSection.settings.rawValue,
+            symbol: SettingsSection.settings.symbol,
+            art: SettingsSection.settings.artStem,
+            livery: .orange
+        ) {
+            onSection(.settings)
+        }
+    }
+
+    private var dataTile: some View {
+        featureTile(
+            title: SettingsSection.data.rawValue,
+            symbol: SettingsSection.data.symbol,
+            art: SettingsSection.data.artStem,
+            livery: .sky
+        ) {
+            onSection(.data)
+        }
+    }
+
+    // The green TUTORIAL freed in 0.7.6 (F1), reassigned at last (0.8.92,
+    // item 2): FIRMWARE was a new tile, so it repainted nothing.
+    private var firmwareTile: some View {
+        featureTile(
+            title: "FIRMWARE",
+            symbol: "memorychip.fill",
+            art: "firmware",
+            livery: .green
+        ) {
+            onFirmware()
+        }
     }
 
     /// Styled like the main menu's tiles — filled face, 6pt bottom extrusion,
@@ -1288,7 +1324,12 @@ public struct SettingsSectionPanel: View {
     /// the two axes it also contains.
     @ViewBuilder
     private var customization: some View {
-        deviceWorkshop
+        // **The workshop door came off this page in 0.9.4.** The first
+        // version build sells nothing, so its premium superset control went
+        // shopward with the rest of the paid surface — the panel, its route
+        // and `Entitlement.workshop` all stand, dormant, for the StoreKit
+        // phase. Saved custom devices keep rendering; only the door to build
+        // more is gone.
         screenMode
         skinTesting
     }
@@ -2061,22 +2102,10 @@ public struct SettingsSectionPanel: View {
                 }
                 .buttonStyle(DexPressStyle(scale: 0.98))
 
-                Button {
-                    Haptics.screenTap()
-                    onCheatConsole()
-                } label: {
-                    settingRow(
-                        symbol: "terminal.fill", art: "cheatcodes",
-                        tint: lcd.accent,
-                        title: "CHEAT CODES",
-                        detail: "Enter unlock codes for cosmetics and hidden features."
-                    ) {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(lcd.subtext)
-                    }
-                }
-                .buttonStyle(DexPressStyle(scale: 0.98))
+                // The CHEAT CODES row left with its table (0.9.4) — see
+                // `CheatCodes.all`. The console screen and `onCheatConsole`
+                // stay wired for the StoreKit phase; a door to an empty table
+                // would be the app's own definition of a dead end.
 
                 Button {
                     Haptics.select()
@@ -2225,24 +2254,11 @@ public struct SettingsSectionPanel: View {
             .buttonStyle(DexPressStyle(scale: 0.98))
         }
 
-        settingsSection("DEVELOPER") {
-            Button {
-                Haptics.screenTap()
-                onDev()
-            } label: {
-                settingRow(
-                    symbol: "ladybug.fill", art: "dev",
-                    tint: lcd.subtext,
-                    title: "DEV",
-                    detail: "Diagnostics, the component gallery and the icon sheet."
-                ) {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(lcd.subtext)
-                }
-            }
-            .buttonStyle(DexPressStyle(scale: 0.98))
-        }
+        // The DEVELOPER section and its DEV door came off the panel in 0.9.4:
+        // the first version build ships no developer surface. The `dev` panel,
+        // `SettingsSection.dev` and `onDev` all stand — dormant, exactly as
+        // the shop panel is — so the door is one settingsSection away from
+        // coming back when a build needs it.
     }
 
     /// "CHASSIS SKINS", not "SHELL SKINS": the rest of the app calls this part
@@ -2269,7 +2285,11 @@ public struct SettingsSectionPanel: View {
             // note on `ChassisSkin.section`. Nothing in this file can drop a
             // skin from the picker.
             VStack(alignment: .leading, spacing: 16) {
-                ForEach(ChassisSkinSection.allCases) { group in
+                // The starter sections only (0.9.4) — the themed shelves are
+                // shop goods waiting on StoreKit. See
+                // `ChassisSkinSection.starter` for the argument and for what
+                // happens to a stored premium skin (it keeps rendering).
+                ForEach(ChassisSkinSection.starter) { group in
                     VStack(alignment: .leading, spacing: 8) {
                         pickerHeading(group.rawValue)
                         skinGrid(group.skins)
@@ -2399,7 +2419,9 @@ public struct SettingsSectionPanel: View {
     private var screenMode: some View {
         settingsSection("SCREEN MODE") {
             VStack(alignment: .leading, spacing: 16) {
-                ForEach(LcdModeSection.allCases) { group in
+                // The starter sections only (0.9.4), same trim as the skins —
+                // see `LcdModeSection.starter`.
+                ForEach(LcdModeSection.starter) { group in
                     VStack(alignment: .leading, spacing: 8) {
                         pickerHeading(group.rawValue)
                         modeGrid(group.modes)

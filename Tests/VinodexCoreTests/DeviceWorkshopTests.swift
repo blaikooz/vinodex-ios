@@ -540,13 +540,13 @@ struct DeviceWorkshopTests {
         #expect(!access.isUnlocked(.lightMode))
     }
 
-    /// GARAGISTE grants the real bundle, like every other code (A4/F1).
-    @Test("the workshop cheat code grants the workshop")
-    func garagisteUnlocksTheWorkshop() {
-        let code = CheatCodes.match("garagiste")
-        #expect(code?.grants == .workshop)
-        // Forgiving matching, per `CheatCodes.match(_:)`.
-        #expect(CheatCodes.match(" GARAGISTE ")?.grants == .workshop)
-        #expect(CheatCodes.match("garage") == nil, "no fuzzy matching on a secret")
+    /// GARAGISTE left with the code table (0.9.4) — the workshop is shopward
+    /// with everything else paid, and its door is off CUSTOMIZE. What this
+    /// pins now is the consequence: no code reaches the workshop bundle, so
+    /// nothing in the first version build can open it.
+    @Test("no code grants the workshop")
+    func noCodeUnlocksTheWorkshop() {
+        #expect(CheatCodes.match("garagiste") == nil)
+        #expect(CheatCodes.all.allSatisfy { $0.grants != .workshop })
     }
 }

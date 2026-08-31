@@ -112,6 +112,11 @@ public enum LcdModeSection: String, CaseIterable, Identifiable, Sendable {
     /// the whole picker by construction: this is a partition of `allCases`, not
     /// three hand-kept lists that have to agree with it.
     public var modes: [LcdMode] { LcdMode.allCases.filter { $0.section == self } }
+
+    /// The sections the CUSTOMIZE picker offers in the first version build
+    /// (0.9.4): light and dark, no conceit. Same argument, same stored-choice
+    /// behaviour and same StoreKit destiny as `ChassisSkinSection.starter`.
+    public static let starter: [LcdModeSection] = [.classic]
 }
 
 /// Whether the LCD renders dark-on-black or the original handheld's dark-on-

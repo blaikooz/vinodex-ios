@@ -187,17 +187,20 @@ echo "rasterized $total icons -> $OUTDIR"
 echo "failed: $failed"
 
 # ---------------------------------------------------------------------------
-# Flags are already pixel-art PNGs in the web repo, so they are copied rather
-# than rendered. Only the countries present in the current selection ship.
+# Flags are pixel-art PNGs copied rather than rendered. Only the countries
+# present in the current selection ship.
 #
-# The shipped set is R74n's PixelFlags (licenses/LICENSE-r74n.txt: credit
-# given in NOTICE.md, non-commercial without explicit permission) — fine while
-# development builds are non-commercial, and the owner has emailed R74n for
-# permission ahead of the paid release (2026-08-06). If that answer is no, a
-# complete first-party replacement already exists: art/flags/, drawn in code
-# from the official flag constructions by scripts/generate-flag-art.py
-# (2026-08-05, same slugs and canvas) — flipping this block's source to
-# art/flags/<slug>.png is the whole swap (auditS H2).
+# **The shipped set is first-party as of 0.9.4 (auditS H2, closed).** Through
+# 0.9.3 this block copied R74n's PixelFlags out of shared/pixelflags
+# (licenses/LICENSE-r74n.txt: non-commercial without explicit permission;
+# permission was requested 2026-08-06 and the swap stopped waiting on the
+# answer). The source is now art/flags/<slug>.png — drawn in code from the
+# official flag constructions by scripts/generate-flag-art.py (2026-08-05,
+# same slugs, same 32x18 canvas), exactly the flip that script's header
+# promised. The manifest still names which countries ship and their slugs;
+# only where the pixels come from changed. shared/pixelflags stays in the
+# cross-repo master untouched — the web app still reads it, and this repo's
+# mirror copy rides the sync ceremony either way.
 # ---------------------------------------------------------------------------
 
 # Flags sit beside Icons under Resources/, so the default run writes to the
@@ -217,14 +220,13 @@ fi
 # via sync-shared.ps1, so the flags ride the same master->mirror path as the
 # data. (The old shared/newicons/ nesting went away with the drawn-art masters,
 # which now live in art/.)
-PIXELFLAGS="${PIXELFLAGS:-$REPO_ROOT/shared/pixelflags}"
+FLAGART="${FLAGART:-$REPO_ROOT/art/flags}"
 mkdir -p "$FLAGDIR"
 
-if [ -d "$PIXELFLAGS" ]; then
+if [ -d "$FLAGART" ]; then
   copied=0
   while IFS=$'\t' read -r country relpath slug; do
     [ -z "$country" ] && continue
-    src="$PIXELFLAGS/$relpath"
     # The slug comes from the manifest, not from `tr` (audit L25). The rule was
     # written twice — here, naming the file that gets copied, and in Swift's
     # `IconManifest.flagSlug(for:)`, naming the file the app asks for — with no
@@ -237,11 +239,15 @@ if [ -d "$PIXELFLAGS" ]; then
       failed=$((failed + 1))
       continue
     fi
+    # First-party source, keyed by the same slug the app asks for (0.9.4).
+    # The manifest's relpath still names the master copy in shared/pixelflags;
+    # it is reported on a miss so the two sets stay comparable.
+    src="$FLAGART/$slug.png"
     if [ -f "$src" ]; then
       cp "$src" "$FLAGDIR/$slug.png"
       copied=$((copied + 1))
     else
-      echo "  MISSING flag $country ($relpath)"
+      echo "  MISSING first-party flag $country ($slug.png; master relpath $relpath) — run scripts/generate-flag-art.py"
       failed=$((failed + 1))
     fi
   done < <(python3 -c "
@@ -254,11 +260,11 @@ for country, path in manifest.get('flags', {}).items():
 " "$MANIFEST")
   echo "copied $copied flags -> $FLAGDIR"
 elif [ "${SKIP_FLAGS:-0}" = "1" ]; then
-  echo "  pixelflags dir not found at $PIXELFLAGS — skipping flags (SKIP_FLAGS=1)"
+  echo "  first-party flag dir not found at $FLAGART — skipping flags (SKIP_FLAGS=1)"
 else
   # A silent skip that still exits 0 could ship a build with no flags (audit
   # L24). Fail unless the skip is explicit.
-  echo "  pixelflags dir not found at $PIXELFLAGS — set SKIP_FLAGS=1 to skip intentionally"
+  echo "  first-party flag dir not found at $FLAGART — run scripts/generate-flag-art.py, or set SKIP_FLAGS=1 to skip intentionally"
   failed=$((failed + 1))
 fi
 

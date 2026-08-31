@@ -41,6 +41,18 @@ public enum ChassisSkinSection: String, CaseIterable, Identifiable, Sendable {
     /// partition of `allCases`: no skin can be dropped from the picker by being
     /// left off a list, and none can appear twice.
     public var skins: [ChassisSkin] { ChassisSkin.allCases.filter { $0.section == self } }
+
+    /// The sections the CUSTOMIZE picker offers in the first version build
+    /// (0.9.4): the house device and its variations, nothing themed.
+    ///
+    /// The first release sells nothing, so the themed shelves — the very
+    /// shells `.skins` and the device cartridges exist to sell — come off the
+    /// picker rather than sitting there free and making the eventual shop's
+    /// launch a *removal*. Sections, not a hand-kept skin list: the partition
+    /// argument on `skins` holds inside the starter set too. A stored premium
+    /// skin keeps rendering on the chassis — the picker no longer offers it,
+    /// but a device repainting itself on update would read as data loss.
+    public static let starter: [ChassisSkinSection] = [.classic]
 }
 
 /// Chassis colourway. The LCD itself never changes — only the moulding around

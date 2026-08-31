@@ -332,83 +332,31 @@ struct CheatCodeTests {
         return AccessStore(defaults: defaults)
     }
 
-    @Test("an exact code matches")
-    func exactMatch() throws {
-        let code = try #require(CheatCodes.match("CELLARDOOR"))
-        #expect(code.grants == .skins)
+    /// **The table ships empty (0.9.4)** — see the note on `CheatCodes.all`.
+    /// The first version build has nothing a code could unlock, and a code
+    /// that unlocks nothing is the exact failure the console's own doc names.
+    /// This pin is what turns "someone re-adds a code" into a deliberate act:
+    /// the StoreKit phase deletes this test when it restores the table.
+    @Test("the code table is empty and matches nothing")
+    func tableIsEmpty() {
+        #expect(CheatCodes.all.isEmpty)
+        for typed in ["CELLARDOOR", "GRANDCRU", "MAINFRAME", "GARAGISTE", "hunter2", ""] {
+            #expect(CheatCodes.match(typed) == nil, "\(typed) matched against an empty table")
+        }
     }
 
-    /// **Forgiving on purpose.** Someone typing a code on a phone keyboard gets
-    /// autocapitalisation and a trailing space from the space bar; rejecting
-    /// that makes the console feel broken rather than strict.
-    @Test("matching survives a phone keyboard")
-    func forgivingMatch() {
+    /// The normaliser outlives the table — the console screen still runs
+    /// typed input through it, and the StoreKit phase inherits it as-is.
+    @Test("normalisation strips case, whitespace and punctuation")
+    func normalizes() {
         for typed in ["cellardoor", " CELLARDOOR ", "Cellar Door", "cellar-door", "CELLAR  DOOR"] {
-            #expect(CheatCodes.match(typed)?.code == "CELLARDOOR", "\(typed) did not match")
+            #expect(CheatCodes.normalize(typed) == "CELLARDOOR", "\(typed) did not normalise")
         }
-    }
-
-    /// What is *not* forgiven is a wrong word. There is no fuzzy matching:
-    /// "did you mean" on a secret is not a secret.
-    @Test("a wrong code does not match")
-    func rejectsWrongCodes() {
-        for typed in ["", "   ", "CELLAR", "CELLARDOORS", "GRANDCRUX", "hunter2"] {
-            #expect(CheatCodes.match(typed) == nil, "\(typed) should not have matched")
-        }
-    }
-
-    /// Codes have to be distinct after normalisation, or one of them is
-    /// unreachable and nothing says which.
-    @Test("codes are unique and well-formed")
-    func codesAreDistinct() {
-        let normalized = CheatCodes.all.map { CheatCodes.normalize($0.code) }
-        #expect(Set(normalized).count == CheatCodes.all.count)
-        for code in CheatCodes.all {
-            #expect(code.code == code.code.uppercased())
-            // Hoisted for the `rethrows` reason above.
-            let plainLetters = code.code.allSatisfy { $0.isASCII && $0.isLetter }
-            #expect(plainLetters)
-            #expect(code.code.count >= 6, "\(code.code) is short enough to be typed by accident")
-            #expect(!code.reveal.isEmpty)
-            #expect(code.reveal == code.reveal.uppercased())
-        }
-    }
-
-    /// **F1's whole point.** A cheat writes to the same store a purchase does,
-    /// so the skin picker cannot end up with two notions of whether the bundle
-    /// is owned.
-    @Test("a code grants through the entitlement store")
-    func grantsThroughTheStore() throws {
-        let store = makeStore()
-        store.starterOnly = true
-        #expect(!store.isUnlocked(.skins))
-
-        let code = try #require(CheatCodes.match("cellardoor"))
-        store.grant(code.grants)
-
-        #expect(store.isUnlocked(.skins))
-        #expect(store.granted.contains(.skins))
-    }
-
-    /// And it survives a relaunch, because it went through the persisted set
-    /// rather than a session flag.
-    @Test("an unlocked code persists")
-    func persists() throws {
-        let name = UUID().uuidString
-        let defaults = UserDefaults(suiteName: name)!
-        defaults.removePersistentDomain(forName: name)
-
-        let first = AccessStore(defaults: defaults)
-        let code = try #require(CheatCodes.match("MAINFRAME"))
-        first.grant(code.grants)
-
-        let second = AccessStore(defaults: defaults)
-        #expect(second.hasFound(CheatCodes.verboseBoot))
     }
 
     /// An easter egg is *found*, not owned: `isUnlocked` answers true for
     /// everything when the paywall is off, which would mean every hidden feature
-    /// is on by default and the console has nothing to reveal.
+    /// is on by default and the console would have nothing to reveal.
     @Test("eggs ignore the free-tier switch")
     func eggsBypassThePaywall() {
         let store = makeStore()
@@ -420,13 +368,33 @@ struct CheatCodeTests {
         #expect(store.hasFound(CheatCodes.verboseBoot))
     }
 
-    /// The MAINFRAME code names the egg the boot screen checks for. Two string
-    /// literals at opposite ends of that would be granted, persisted, and
-    /// silently inert.
-    @Test("the verbose egg id is shared with the boot screen")
-    func verboseEggIsWired() throws {
-        let code = try #require(CheatCodes.all.first { $0.code == "MAINFRAME" })
-        #expect(code.grants == .easterEgg(CheatCodes.verboseBoot))
+    /// A found egg survives a relaunch, because it went through the persisted
+    /// set rather than a session flag.
+    @Test("a found egg persists")
+    func persists() {
+        let name = UUID().uuidString
+        let defaults = UserDefaults(suiteName: name)!
+        defaults.removePersistentDomain(forName: name)
+
+        let first = AccessStore(defaults: defaults)
+        first.grant(.easterEgg(CheatCodes.verboseBoot))
+
+        let second = AccessStore(defaults: defaults)
+        #expect(second.hasFound(CheatCodes.verboseBoot))
+    }
+
+    /// **The shop ships hidden, with no way in (0.9.4).** A fresh install
+    /// answers no, and with the code table empty and the DEV door gone,
+    /// nothing in this build can flip it — the seam stays for the StoreKit
+    /// phase, and granting the egg directly is how this test proves the three
+    /// surfaces would light up when that phase wires a reveal.
+    @Test("the shop is hidden and stays hidden")
+    func shopHiddenByDefault() {
+        let store = makeStore()
+        #expect(!store.shopIsRevealed)
+
+        store.grant(.easterEgg(CheatCodes.shopfront))
+        #expect(store.shopIsRevealed)
     }
 }
 

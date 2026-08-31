@@ -43,8 +43,12 @@ public struct ProfVinoScreen: View {
                     silenceRow
                     facesSection
                     dutiesSection
-                    ledgerSection
-                    roadmapNote
+                    // The dev-facing ledger and the "later firmware" note both
+                    // came off the page in 0.9.4 with the rest of the
+                    // developer surface: trigger identifiers are engineering
+                    // vocabulary the first version build has no reader for,
+                    // and a roadmap line is a COMING SOON in prose. The
+                    // sections stand below, dormant, for a dev build.
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)

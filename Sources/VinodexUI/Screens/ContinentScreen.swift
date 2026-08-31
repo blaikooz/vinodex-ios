@@ -130,7 +130,14 @@ public struct ContinentScreen: View {
 
     @ViewBuilder
     private var countriesSection: some View {
-        let countries = continent.details.keyRegions
+        // **Unwritten countries are off the list (0.9.4).** Through 0.9.3 a
+        // country with no regions in the data sat here dimmed, promising
+        // COMING SOON — a designed state (0.6.4, batch 2), and still a row
+        // that goes nowhere. The first version build lists what it has; the
+        // teasers stay authored in countries.json and the dimmed-row
+        // treatment below stays built, so the promise costs one filter to
+        // bring back when the data lands.
+        let countries = continent.details.keyRegions.filter { db.hasRegions(inCountry: $0) }
         if !countries.isEmpty {
             DexSection("COUNTRIES", symbol: "list.bullet") {
                 VStack(spacing: 8) {

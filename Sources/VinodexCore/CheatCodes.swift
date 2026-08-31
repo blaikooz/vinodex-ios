@@ -20,60 +20,24 @@ public struct CheatCode: Sendable, Hashable, Identifiable {
     }
 }
 
-/// The code table (0.7.3, A4).
+/// The code table (0.7.3, A4; emptied 0.9.4).
 ///
-/// **Every code here does something today.** The temptation in a cheat console
-/// is to ship a long list against features that do not exist yet, which produces
-/// the one failure mode a cheat console cannot survive: a code that is
-/// documented, accepted, reported as unlocked, and changes nothing. Four codes,
-/// four visible effects. 0.7.3b and 0.7.3c add theirs when they add the things
-/// they unlock.
+/// **Empty on purpose, and the console's door went with it.** The first
+/// version build carries no unlockables a code could grant: the shop is off
+/// the shell until StoreKit backs it, the workshop is shopward-bound with it,
+/// and the cosmetics the wine-word codes granted are free or trimmed to the
+/// starter set. A table of codes against surfaces that are not on the device
+/// would be exactly the failure mode this type's original note warned
+/// against — a code that is documented, accepted, reported as unlocked, and
+/// changes nothing. The CHEAT CODES row left SETTINGS > DEVICE in the same
+/// batch, so nothing routes here; the console screen and this machinery stay
+/// because the StoreKit phase gets its unlock story back, and `match` over an
+/// empty table is honestly nil rather than a door that lies.
 ///
-/// **They grant real entitlements, not a separate "cheats" flag.** That is F1's
-/// whole argument — an unlock and a purchase are the same question asked of the
-/// same store — and it has a practical edge here: CELLARDOOR and the shopfront
-/// grant the identical `.skins` bundle, so the picker cannot end up with two
-/// notions of whether you have it.
-///
-/// The codes are wine words rather than `IDDQD`-style nonsense: this device is a
-/// wine encyclopedia pretending to be a handheld, and a code you can half-guess
-/// from the subject matter is a better easter egg than one you can only be told.
+/// The five wine-word codes (CELLARDOOR, PHOSPHOR, GRANDCRU, MAINFRAME,
+/// GARAGISTE) are recoverable at tag v0.9.3, granting rules and all.
 public enum CheatCodes: Sendable {
-    public static let all: [CheatCode] = [
-        CheatCode(
-            code: "CELLARDOOR",
-            grants: .skins,
-            reveal: "ALL CHASSIS SKINS"
-        ),
-        CheatCode(
-            code: "PHOSPHOR",
-            grants: .lightMode,
-            reveal: "ALL SCREEN MODES"
-        ),
-        CheatCode(
-            code: "GRANDCRU",
-            grants: .pro,
-            reveal: "EVERYTHING UNLOCKED"
-        ),
-        CheatCode(
-            code: "MAINFRAME",
-            grants: .easterEgg(CheatCodes.verboseBoot),
-            reveal: "VERBOSE BOOT"
-        ),
-        // 0.7.3b's code, added with the thing it unlocks, per the note above.
-        //
-        // A *garagiste* is a real wine word — the small-scale Bordeaux
-        // winemakers of the early nineties, working out of garages and
-        // outbuildings and bottling by hand — and it means, quite literally,
-        // somebody building the thing themselves in a workshop. The house rule
-        // that a code should be half-guessable from the subject matter has never
-        // been met this exactly.
-        CheatCode(
-            code: "GARAGISTE",
-            grants: .workshop,
-            reveal: "DEVICE WORKSHOP"
-        ),
-    ]
+    public static let all: [CheatCode] = []
 
     /// The egg id the boot screen checks for its extra POST lines (A1).
     ///
@@ -81,6 +45,18 @@ public enum CheatCodes: Sendable {
     /// whose id is misspelled at one of its two ends is granted, persisted, and
     /// silently inert — the failure this whole type is written to avoid.
     public static let verboseBoot = "verboseBoot"
+
+    /// The egg id that puts the SHOP tile on the settings grid (0.9.4).
+    ///
+    /// A constant for the reason `verboseBoot` is: the grid, the lamp chooser
+    /// and the chassis lamps all check it through `AccessStore.shopIsRevealed`.
+    /// **Nothing in this build grants it** — the code table above is empty and
+    /// the DEV panel's door is gone — so the shop is hidden unconditionally
+    /// until the StoreKit phase wires a reveal back up. The seam is kept
+    /// rather than the check hard-coded to false, because that phase's first
+    /// job would otherwise be re-threading three surfaces this one already
+    /// threads.
+    public static let shopfront = "shopfront"
 
     /// The code a typed string is, if any.
     ///
