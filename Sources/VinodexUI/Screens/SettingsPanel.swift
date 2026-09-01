@@ -600,13 +600,21 @@ public struct SettingsSectionPanel: View {
         .animation(DexMotion.overlay, value: transferNotice)
     }
 
-    /// BACK UP and RESTORE share a face. Drawn like the CLEAR button below
-    /// them rather than like a `settingRow`, because all three are actions on
-    /// the whole store rather than settings with a value.
-    private func transferLabel(_ title: String, symbol: String, tint: Color) -> some View {
+    /// BACK UP and RESTORE each have their own drawn face since 0.9.43 —
+    /// the archive box with the arrow leaving, and with it returning — which
+    /// retires the shared-face note that stood here. Drawn like the CLEAR
+    /// button below them rather than like a `settingRow`, because all three
+    /// are actions on the whole store rather than settings with a value.
+    private func transferLabel(_ title: String, symbol: String, art: String? = nil, tint: Color) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: symbol)
-                .font(.system(size: 14, weight: .bold))
+            DexChromeGlyph(
+                art ?? symbol,
+                symbol: symbol,
+                size: 16,
+                weight: .bold,
+                tint: tint,
+                flatten: tint
+            )
             Text(title)
                 .font(DexFont.retro(11))
                 .tracking(1)
@@ -1138,10 +1146,19 @@ public struct SettingsSectionPanel: View {
             }
         } label: {
             HStack(spacing: 8) {
-                Image(systemName: mode == .save
-                    ? "square.and.arrow.down"
-                    : "person.crop.circle.badge.checkmark")
-                    .font(.system(size: 14, weight: .bold))
+                // The drawn faces since 0.9.43 — the floppy pressing in, the
+                // cartridge rising out — flattened to the button's own ink so
+                // the open/closed state keeps reading in the colour.
+                DexChromeGlyph(
+                    mode == .save ? "save" : "load",
+                    symbol: mode == .save
+                        ? "square.and.arrow.down"
+                        : "person.crop.circle.badge.checkmark",
+                    size: 16,
+                    weight: .bold,
+                    tint: isOpen ? lcd.onAccent : lcd.accent,
+                    flatten: isOpen ? lcd.onAccent : lcd.accent
+                )
                 Text(label)
                     .font(DexFont.retro(11))
                     .tracking(1)
@@ -2004,6 +2021,10 @@ public struct SettingsSectionPanel: View {
             VStack(alignment: .leading, spacing: 10) {
                 settingRow(
                     symbol: settings.keepAwakeEnabled ? "sun.max.fill" : "moon.zzz.fill",
+                    // One drawn face for both states (0.9.43): the clock with
+                    // the sun above it. The toggle's state still reads in the
+                    // tint and the detail line, as it always has.
+                    art: "keepawake",
                     tint: settings.keepAwakeEnabled ? Dex.green : lcd.subtext,
                     title: "KEEP AWAKE",
                     detail: settings.keepAwakeEnabled
@@ -2152,7 +2173,7 @@ public struct SettingsSectionPanel: View {
                 // `.fileImporter` is: the OS owns the destination picker.
                 if let backupURL {
                     ShareLink(item: backupURL) {
-                        transferLabel("BACK UP", symbol: "square.and.arrow.up", tint: lcd.text)
+                        transferLabel("BACK UP", symbol: "square.and.arrow.up", art: "backup", tint: lcd.text)
                     }
                     .buttonStyle(DexPressStyle(scale: 0.98))
                 } else {
@@ -2166,7 +2187,7 @@ public struct SettingsSectionPanel: View {
                             transferNotice = "Could not write the backup file: \(error.localizedDescription)"
                         }
                     } label: {
-                        transferLabel("BACK UP", symbol: "square.and.arrow.up", tint: lcd.text)
+                        transferLabel("BACK UP", symbol: "square.and.arrow.up", art: "backup", tint: lcd.text)
                     }
                     .buttonStyle(DexPressStyle(scale: 0.98))
                 }
@@ -2175,7 +2196,7 @@ public struct SettingsSectionPanel: View {
                     Haptics.tap()
                     showingImporter = true
                 } label: {
-                    transferLabel("RESTORE", symbol: "square.and.arrow.down", tint: lcd.text)
+                    transferLabel("RESTORE", symbol: "square.and.arrow.down", art: "restore", tint: lcd.text)
                 }
                 .buttonStyle(DexPressStyle(scale: 0.98))
 
