@@ -479,6 +479,28 @@ public final class VinoPresenter {
         queue.removeFirst()
     }
 
+    // MARK: Moments (rework V4)
+
+    /// The ambient lane beyond first-times — the daily line and streak
+    /// marks. A separate queue because moments are polite by design: a
+    /// first-time tip always outranks one, and `currentMoment` answers nil
+    /// whenever a tip is waiting or anything holds the screen.
+    private(set) public var momentQueue: [VinoMomentLine] = []
+
+    public var currentMoment: VinoMomentLine? {
+        (isSuspended || !queue.isEmpty) ? nil : momentQueue.first
+    }
+
+    public func present(moment: VinoMomentLine) {
+        guard !momentQueue.contains(where: { $0.key == moment.key }) else { return }
+        momentQueue.append(moment)
+    }
+
+    public func dismissMoment() {
+        guard !momentQueue.isEmpty else { return }
+        momentQueue.removeFirst()
+    }
+
     /// Drop everything waiting — the SILENCE control, and what the host calls
     /// when the player navigates away from the screen a line was about.
     public func clear() {

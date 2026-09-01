@@ -133,11 +133,15 @@ public enum ToolRoster {
         ToolIntro(
             id: "profVino",
             title: "VINOBOT",
-            tagline: "The resident professor, and his page.",
+            tagline: "The resident robot, and his page.",
+            // Rewritten in the V4 text pass: the old body described the
+            // deleted diagram page (faces, ledger) and promised "a later
+            // firmware" — the firmware arrived, so the card tells the truth
+            // the scene now delivers.
             body: """
-                Who Vinobot is and everything he does — his faces, the \
-                switch that quiets him, and his ledger of what he has already \
-                told you. Talking to him directly lands here in a later firmware.
+                Talk to him. Ask about today, your picks, what to study \
+                next, or the device itself. He answers out loud if you \
+                press the speaker, and quiet mode is something you tell him.
                 """,
             art: VinoExpression.neutral.artStem,
             symbol: "graduationcap.fill",

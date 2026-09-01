@@ -300,24 +300,19 @@ public enum Walkthrough {
             highlight: .collection,
             expression: .goodjob
         ),
+        // The WORKSHOP and SHOP steps left in the onboarding pass
+        // (2026-09-01): both toured doors the first version build removed —
+        // a walkthrough pointing at surfaces that do not exist is the worst
+        // kind of coming soon. Their slot goes to the device's actual new
+        // headliner. Both old steps are recoverable in git for the StoreKit
+        // era, when their doors return.
         WalkthroughStep(
-            id: "workshop",
-            title: "BUILD YOUR OWN",
+            id: "vinobot",
+            title: "ASK THE ROBOT",
             body: """
-            The workshop takes the device apart: shell, buttons, orb, lamps, \
-            grille, screen and font, each chosen separately. Save a build under \
-            a name and fit it again whenever you like.
-            """,
-            highlight: .collection,
-            expression: .thinking
-        ),
-        WalkthroughStep(
-            id: "shop",
-            title: "MORE OF IT",
-            body: """
-            The shop holds expansion packs — more of the catalog by country, \
-            plus skins, screen modes and the workshop itself. What you own \
-            stays owned.
+            Vinobot lives on the tools shelf. Ask him about today, your \
+            picks, what to study next, or this device itself. Press the \
+            speaker on any entry and he reads his notes out loud.
             """,
             highlight: .collection,
             expression: .smiling

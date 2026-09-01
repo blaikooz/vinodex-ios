@@ -355,7 +355,14 @@ public struct EncyclopediaListScreen: View {
                                     // from an enumerated index, so `ForEach`
                                     // keeps the stable identity the scroll
                                     // restoration below depends on.
-                                    .coachmarkTarget(row.id == rows.first?.id ? .listingRow : nil)
+                                    // The guided run's first grape is
+                                    // Pinot Noir by maintainer ruling
+                                    // (onboarding pass, 2026-09-01): the
+                                    // heartbreak grape is the better first
+                                    // lesson than the alphabet's Cabernet.
+                                    // Falls back to the first row on any
+                                    // list where he is absent.
+                                    .coachmarkTarget(row.id == (rows.first(where: { $0.name == "Pinot Noir" })?.id ?? rows.first?.id) ? .listingRow : nil)
                                 }
                             }
                         }

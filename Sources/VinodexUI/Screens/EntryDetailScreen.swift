@@ -114,6 +114,10 @@ public struct EntryDetailScreen: View {
         static let sections = "sections"
     }
 
+    /// Watched for the INSIGHT walkthrough step — see the scroll note on
+    /// `scrollPosition` below.
+    @State private var coachmarks = CoachmarkEngine.shared
+
     private var anchorBinding: Binding<String?> {
         Binding(
             get: { screens.anchor(for: screenKey) },
@@ -193,6 +197,18 @@ public struct EntryDetailScreen: View {
         // the top — the stored anchor is keyed per entry id, so a cross-link to
         // a new entry has none. See `ScreenStateStore`.
         .scrollPosition(id: anchorBinding)
+        // The walkthrough's INSIGHT step spotlights a panel that now closes
+        // the page (checkpoint V3 moved it), so the step must bring the
+        // page to the panel — the spotlight cannot light what is off
+        // screen. Scrolls once per activation; the maintainer flags this
+        // whole flow for the onboarding rework, where it may change again.
+        .onChange(of: coachmarks.current?.id) { _, stepID in
+            if stepID == "insight" {
+                withAnimation(.easeInOut(duration: 0.45)) {
+                    screens.setAnchor(Anchor.insight, for: screenKey)
+                }
+            }
+        }
         .background(lcd.page)
         .shareCard($sharePayload)
         // Following a cross-link swaps the entry but keeps the same ScrollView,

@@ -58,11 +58,14 @@ struct CoverageTests {
         #expect(db.entries(in: .grapes).count == 187)
         #expect(db.entries(in: .regions).count == 139)
         // 31 since 0.6.x: Medium-Full Red removed, its grapes now Full-Body.
-        // 33 since 0.7.9 (G): Madeira and Cava. **31 again since 0.9.42** —
+        // 33 since 0.7.9 (G): Madeira and Cava; 31 through 0.9.42's removal;
+        // **33 again since 0.9.45**: the maintainer reversed the removal
+        // ("misattributed, bring them back"), exam refs restored with them,
+        // and Batch A's Madeira wineType dangler resolves itself. Old note —
         // both came back off the shelf on the maintainer's ruling; their exam
         // questions re-point at R081 Madeira and R102 Penedès, so the paper
         // still teaches both wines from the places that make them.
-        #expect(db.entries(in: .styles).count == 31)
+        #expect(db.entries(in: .styles).count == 33)
         #expect(db.entries(in: .continents).count == 6)
     }
 
@@ -103,11 +106,12 @@ struct CoverageTests {
         // Flavours unchanged at 106 for the fifth data batch running.
         // 459 since 0.9.42: +15 regions, −2 styles (Madeira and Cava retired).
         // Flavours unchanged at 106 for the sixth data batch running.
-        // 469 since Batch A, "THE SEAM" (sommbot, 2026-09-01): +10 grapes,
+        // 471 since 0.9.45: Madeira and Cava restored (+2 styles) atop
+        // 469 from Batch A, "THE SEAM" (sommbot, 2026-09-01): +10 grapes,
         // closing every native variety the 0.9.42 regions pointed at.
         // Flavours unchanged at 106 for the seventh data batch running —
         // all 30 new tasting notes drawn from the existing vocabulary.
-        #expect(stats.total == 469)
+        #expect(stats.total == 471)
         // 26 since 0.7.3c: Brazil is the first *new* origin since Mexico. The
         // count is distinct region origins, so the coming-soon gates still do
         // not count and adding a country without a region would not move it.
@@ -572,7 +576,7 @@ struct CoverageTests {
     /// entries — counted in the title because the number is the only thing
     /// here that says a row was added or removed rather than edited, and a
     /// silent extra row is how a wrong one would arrive unnoticed.
-    @Test("all fifteen colour overrides resolve, and each names a real style")
+    @Test("all seventeen colour overrides resolve, and each names a real style")
     func colorOverridesResolve() {
         let styleNames = Set(db.entries(in: .styles).map {
             TextNormalize.label($0.name).trimmingCharacters(in: .whitespaces)
@@ -580,7 +584,7 @@ struct CoverageTests {
         // The title states a number, so something has to hold it to it. It said
         // "sixteen" through the whole of 0.8.2's authoring while the table had
         // seventeen rows, because nothing here ever read the count.
-        #expect(EntryDisplay.colorOverrides.count == 15)
+        #expect(EntryDisplay.colorOverrides.count == 17)
         for (key, expected) in EntryDisplay.colorOverrides {
             #expect(
                 EntryDisplay.colorType(name: key) == expected,
