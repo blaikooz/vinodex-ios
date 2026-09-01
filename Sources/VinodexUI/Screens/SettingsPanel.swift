@@ -612,8 +612,7 @@ public struct SettingsSectionPanel: View {
                 symbol: symbol,
                 size: 16,
                 weight: .bold,
-                tint: tint,
-                flatten: tint
+                tint: tint
             )
             Text(title)
                 .font(DexFont.retro(11))
@@ -1156,8 +1155,7 @@ public struct SettingsSectionPanel: View {
                         : "person.crop.circle.badge.checkmark",
                     size: 16,
                     weight: .bold,
-                    tint: isOpen ? lcd.onAccent : lcd.accent,
-                    flatten: isOpen ? lcd.onAccent : lcd.accent
+                    tint: isOpen ? lcd.onAccent : lcd.accent
                 )
                 Text(label)
                     .font(DexFont.retro(11))

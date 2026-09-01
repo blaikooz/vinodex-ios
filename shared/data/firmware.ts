@@ -61,6 +61,86 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.9.44",
+  date: "2026-09-01",
+  headline: "TRUE COLOURS",
+  // The catch-up release: five firmwares shipped in one day (0.9.3 through
+  // 0.9.43, below) while this history stood still at 0.9.2, and the icons
+  // that arrived in 0.9.43 rendered as single-colour silhouettes where the
+  // maintainer wanted the drawn art itself.
+  notes: [
+    "This history caught up: the five firmwares below shipped before their notes did.",
+    "The moon dial's day and verdict faces, the SAVE, LOAD, BACK UP and RESTORE buttons and the photo badge now show their drawn art in full colour.",
+  ],
+};
+
+const PREVIOUS_0943: FirmwareRelease = {
+  version: "0.9.43",
+  date: "2026-08-31",
+  headline: "THE ICON DROP",
+  notes: [
+    "Fifteen drawn faces across the device, from the marquee to the settings rows.",
+    "Professor Vino's new robot portrait fronts his tile on the tools shelf.",
+    "SAVE, LOAD, BACK UP and RESTORE each get a face of their own.",
+    "The moon dial draws its own grapes, blossom, leaf and root -- and a wine glass or a raised hand for the verdict.",
+    "Marquee page glyphs are a quarter larger, in the panel's own ink.",
+    "The photo badge on the USER screen wears the drawn camera.",
+  ],
+};
+
+const PREVIOUS_0942: FirmwareRelease = {
+  version: "0.9.42",
+  date: "2026-08-31",
+  headline: "NEW WORLDS",
+  notes: [
+    "Fifteen new regions: Bulgaria, Lebanon, Slovenia and the United Kingdom open their first pages, and seven one-region countries gain a second.",
+    "Bulgaria's outline joins the atlas.",
+    "Madeira and Cava leave the style shelf; the exam still teaches both wines from the places that make them.",
+    "A rank earned by scanning bottles celebrates on the spot instead of waiting for the passport.",
+    "The screensaver toast sits truly centred through its fade.",
+    "459 entries: 177 grapes, 139 regions, 31 styles, 106 flavours, 30 countries.",
+  ],
+};
+
+const PREVIOUS_0941: FirmwareRelease = {
+  version: "0.9.41",
+  date: "2026-08-31",
+  headline: "SMALL STEPS",
+  notes: [
+    "US region scans show their STATE under COUNTRY, flag and all.",
+    "Twelve emblem flags redrawn -- Japan's sun is round, Canada's leaf has lobes, Mexico's eagle has a head.",
+    "Profiles start blank: five empty slots, your own names.",
+    "Professor Vino's page slims to the professor and his switch.",
+    "The back of the device is reached the way it was designed to be: hold the orb.",
+  ],
+};
+
+const PREVIOUS_0904: FirmwareRelease = {
+  version: "0.9.4",
+  date: "2026-08-31",
+  headline: "SHIP SHAPE",
+  notes: [
+    "The storefront comes off the shell until there is a till behind it; nothing on the device is for sale.",
+    "CUSTOMIZE carries the classic shells and the classic screens; the themed shelves wait with the shop.",
+    "The cheat console and the developer panel leave the settings.",
+    "Every flag on the device is our own pixel art, Brazil included.",
+    "Continent pages list the countries that have pages -- no more promises.",
+    "SETTINGS takes the wide row of the system grid.",
+  ],
+};
+
+const PREVIOUS_0903: FirmwareRelease = {
+  version: "0.9.3",
+  date: "2026-08-31",
+  headline: "SHARED HARVEST",
+  notes: [
+    "Every grape's characteristics bars are authored by hand, all 177 of them.",
+    "Mallorca's Manto Negro arrives with its lineage.",
+    "The mirror and the master agree, in both directions.",
+  ],
+};
+
+const PREVIOUS_0902: FirmwareRelease = {
   version: "0.9.2",
   date: "2026-08-13",
   headline: "ORIGINAL NAMES",
@@ -225,6 +305,12 @@ const PREVIOUS_0892: FirmwareRelease = {
 };
 
 const PREVIOUS: FirmwareRelease[] = [
+  PREVIOUS_0943,
+  PREVIOUS_0942,
+  PREVIOUS_0941,
+  PREVIOUS_0904,
+  PREVIOUS_0903,
+  PREVIOUS_0902,
   PREVIOUS_0901,
   PREVIOUS_0900,
   PREVIOUS_0899,

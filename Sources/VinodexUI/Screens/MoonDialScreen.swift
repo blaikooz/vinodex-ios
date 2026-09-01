@@ -163,8 +163,7 @@ public struct MoonDialScreen: View {
                     symbol: symbol,
                     size: size * 0.27,
                     weight: .semibold,
-                    tint: tint,
-                    flatten: tint
+                    tint: tint
                 )
                 Text(day.rawValue)
                     .font(DexFont.retro(16 + 5 * grow))
@@ -264,8 +263,7 @@ public struct MoonDialScreen: View {
                 symbol: day.isGoodForDrinking ? "checkmark.seal.fill" : "hand.raised.fill",
                 size: 28 + 12 * grow,
                 weight: .bold,
-                tint: tint,
-                flatten: tint
+                tint: tint
             )
 
             Text(day.verdict)
