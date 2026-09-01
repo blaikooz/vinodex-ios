@@ -213,7 +213,13 @@ struct RootView: View {
                 // under it, not only the ones that swap the screen — this used
                 // to null seventeen in-screen `withAnimation` calls, the daily
                 // reveal and the entry expander among them. (AUDIT **M24**)
-                screen
+                //
+                // Publishes the LCD's own frame as `.lcdScreen` — never a
+                // step's target, only the stage the walkthrough bubble is
+                // confined to. Through `coachmarkStage()`, which merges: the
+                // target modifier's replace semantics erased every anchor
+                // the screens inside publish. See the note on that modifier.
+                screen.coachmarkStage()
 
                 if let entry = lockedAttempt {
                     // Offers the bundle the entry actually belongs to rather than
@@ -476,10 +482,11 @@ struct RootView: View {
                         step: step,
                         canvas: proxy.size,
                         spotlight: step.target.flatMap { anchors[$0] }.map { proxy[$0] },
+                        lcdFrame: anchors[.lcdScreen].map { proxy[$0] },
                         position: coachmarks.position ?? 1,
                         total: CoachmarkWalkthrough.count,
-                        onAcknowledge: { coachmarks.report(.acknowledged) },
-                        onSkip: { coachmarks.skip() }
+                        onNext: { coachmarks.advance() },
+                        onQuit: { coachmarks.skip() }
                     )
                 }
             }

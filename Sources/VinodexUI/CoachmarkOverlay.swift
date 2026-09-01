@@ -52,6 +52,25 @@ public extension View {
             target.map { [$0: anchor] } ?? [:]
         }
     }
+
+    /// Publish this view's bounds as the walkthrough's stage (`.lcdScreen`)
+    /// without disturbing the targets its subtree publishes.
+    ///
+    /// **Not `coachmarkTarget(_:)`, and the difference bit once** (0.9.45):
+    /// `anchorPreference` *sets* the subtree's value for the key — replace,
+    /// not merge; only sibling branches combine through `reduce`. Hanging it
+    /// on the LCD content therefore erased every step target the screens
+    /// inside had published: no spotlight, no hole, no grey, and a bubble
+    /// with nothing to point at. `transformAnchorPreference` folds the stage
+    /// into the accumulated dictionary instead. The leaf `coachmarkTarget`
+    /// call sites are safe with replace semantics because leaves have no
+    /// publishing subtree — which is exactly why the bug waited for the
+    /// first container to borrow the modifier.
+    func coachmarkStage() -> some View {
+        transformAnchorPreference(key: CoachmarkTargetKey.self, value: .bounds) { value, anchor in
+            value[.lcdScreen] = anchor
+        }
+    }
 }
 
 /// **The grayout walkthrough's one screen** (0.8.9d, G1).
@@ -78,9 +97,9 @@ public extension View {
 /// nobody could advance. The **dim** is the even-odd path, and it does no hit
 /// testing at all — one job each.
 ///
-/// SKIP is always drawn and always live. It is the only exit from the barrier,
-/// so a target whose anchor never resolves degrades to a bubble with a way out
-/// rather than to a locked device.
+/// NEXT and QUIT are always drawn and always live. They are the exits from
+/// the barrier, so a target whose anchor never resolves degrades to a bubble
+/// with two ways out rather than to a locked device.
 ///
 /// ## It covers the chassis, unlike every other overlay in this app
 ///
@@ -102,27 +121,41 @@ public struct CoachmarkOverlay: View {
     /// The target's rectangle in this overlay's space, or nil when the step
     /// points at nothing (the closing line) or its target is not on screen.
     let spotlight: CGRect?
+    /// The LCD glass's rectangle, published as `.lcdScreen`. The bubble is
+    /// staged inside it (0.9.45 ruling: his UI lives on the screen, only the
+    /// spotlight may reach onto the chassis); nil falls back to the window.
+    let lcdFrame: CGRect?
     let position: Int
     let total: Int
-    let onAcknowledge: () -> Void
-    let onSkip: () -> Void
+    let onNext: () -> Void
+    let onQuit: () -> Void
 
     public init(
         step: CoachmarkStep,
         canvas: CGSize,
         spotlight: CGRect?,
+        lcdFrame: CGRect?,
         position: Int,
         total: Int,
-        onAcknowledge: @escaping () -> Void,
-        onSkip: @escaping () -> Void
+        onNext: @escaping () -> Void,
+        onQuit: @escaping () -> Void
     ) {
         self.step = step
         self.canvas = canvas
         self.spotlight = spotlight
+        self.lcdFrame = lcdFrame
         self.position = position
         self.total = total
-        self.onAcknowledge = onAcknowledge
-        self.onSkip = onSkip
+        self.onNext = onNext
+        self.onQuit = onQuit
+    }
+
+    /// Where the bubble may stand: the LCD when its frame arrived, the whole
+    /// window otherwise — clamped, because a frame mid-transition can poke
+    /// past the canvas the placement arithmetic runs in.
+    private var stage: CGRect {
+        guard let lcdFrame else { return CGRect(origin: .zero, size: canvas) }
+        return clamp(lcdFrame, in: canvas)
     }
 
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
@@ -137,7 +170,7 @@ public struct CoachmarkOverlay: View {
     /// zero here would have to be excluded from the opacity, and an
     /// `opacity(0)` view in SwiftUI still hit-tests — so a measurement that
     /// never arrived would leave an invisible wall over the whole window with an
-    /// invisible SKIP on it, which is the one failure this overlay's own note
+    /// invisible QUIT on it, which is the one failure this overlay's own note
     /// says it must not have. 128 is roughly what the block measures at the
     /// default text size, so the first frame is approximately right and every
     /// frame after it is exact.
@@ -159,7 +192,7 @@ public struct CoachmarkOverlay: View {
     /// reason this constant exists (0.8.91, I1). Two of the six steps point at
     /// something that lives in a `ScrollView`: `.listingRow` is inside a
     /// `LazyVStack`, so scrolling it out of realization drops the anchor
-    /// entirely, and `.insightPanel` sits below the fold on an entry page, so
+    /// entirely, and `.vinobotPanel` can sit below the fold on an entry page, so
     /// before you scroll to it the clamp yields a degenerate rectangle pinned to
     /// an edge. The old code drew a zero-size glowing ring at that edge and a
     /// caret pointing into it. Under this floor both cases resolve to "no
@@ -240,18 +273,22 @@ public struct CoachmarkOverlay: View {
     /// arrow rather than by lying with it.
     func placement(hole: CGRect?) -> Placement {
         let group = bubbleHeight + Self.caretHeight
-        let lo = Self.margin
-        let hi = max(Self.margin, canvas.height - group - Self.margin)
+        let lo = stage.minY + Self.margin
+        let hi = max(lo, stage.maxY - group - Self.margin)
 
         guard let hole else {
-            // The closing step points at nothing. Bottom of the window, where
+            // The closing step points at nothing. Bottom of the stage, where
             // `VinoBubble` lives — the same character in the same place.
             return Placement(top: hi, below: false, showsCaret: false)
         }
 
+        // Rooms are measured against the stage, not the window: a chassis
+        // target below the glass yields a negative roomBelow, which correctly
+        // sends the bubble up onto the screen with its caret pointing down at
+        // the plastic.
         let need = group + Self.standoff
-        let roomBelow = canvas.height - hole.maxY - Self.margin
-        let roomAbove = hole.minY - Self.margin
+        let roomBelow = stage.maxY - hole.maxY - Self.margin
+        let roomAbove = hole.minY - stage.minY - Self.margin
         let fitsBelow = roomBelow >= need
         let fitsAbove = roomAbove >= need
         let below = fitsBelow || (!fitsAbove && roomBelow >= roomAbove)
@@ -341,10 +378,13 @@ public struct CoachmarkOverlay: View {
         // The caret's x, clamped to the bubble's own edges — the block is inset
         // by `margin` on both sides, and an arrow hanging off the corner radius
         // reads as a rendering fault rather than as a pointer.
+        // Caret x in stage space: the group is confined to the LCD, so a
+        // target out on the chassis clamps to the glass's near edge — the
+        // arrow still leans toward it without leaving the screen.
         let caretW: CGFloat = 20
         let lo = Self.margin + 14
-        let hi = max(lo, canvas.width - Self.margin - caretW - 14)
-        let caretX = min(max((hole?.midX ?? canvas.width / 2) - caretW / 2, lo), hi)
+        let hi = max(lo, stage.width - Self.margin - caretW - 14)
+        let caretX = min(max((hole?.midX ?? stage.midX) - stage.minX - caretW / 2, lo), hi)
 
         return VStack(spacing: 0) {
             if place.below {
@@ -355,8 +395,8 @@ public struct CoachmarkOverlay: View {
                 caret(x: caretX, pointingUp: false, visible: place.showsCaret)
             }
         }
-        .frame(width: canvas.width, alignment: .top)
-        .offset(y: place.top)
+        .frame(width: stage.width, alignment: .top)
+        .offset(x: stage.minX, y: place.top)
         // The bubble follows its subject rather than cutting to it, which is
         // what makes a step that moves the spotlight read as one narrator
         // turning to point at something else.
@@ -437,7 +477,7 @@ public struct CoachmarkOverlay: View {
         // What the placement solves against.
         //
         // `onChange` as well as `onAppear`, because the height moves with TEXT
-        // SIZE, with the line, and with whether CONTINUE is drawn — a
+        // SIZE and with the line — a
         // measurement taken once would be stale for two of those three. Both
         // run after layout, so neither writes state during a view update.
         //
@@ -458,25 +498,25 @@ public struct CoachmarkOverlay: View {
 
     private var controls: some View {
         HStack(spacing: 8) {
-            // CONTINUE only on the steps that have nothing to do — see
-            // `CoachmarkAction.acknowledged`. Every other step is advanced by
-            // the thing it is asking for, and a button beside that would be a
-            // way to claim you did something you did not.
-            if step.advancesOn == .acknowledged {
-                Button {
-                    Haptics.screenTap()
-                    onAcknowledge()
-                } label: {
-                    pill("CONTINUE", fill: lcd.accent, ink: lcd.isLight ? .white : .black)
-                }
-                .buttonStyle(DexPressStyle(scale: 0.97))
+            // NEXT on every step (maintainer ruling, 0.9.45 test pass). This
+            // was CONTINUE, drawn only on `.acknowledged` steps, on the theory
+            // that a button beside an action step claims something you did not
+            // do — and then a step whose target sat offscreen wedged the whole
+            // run. The engine's `advance()` moves on without reporting the
+            // action, so the ledgers stay honest and the run stays walkable.
+            Button {
+                Haptics.screenTap()
+                onNext()
+            } label: {
+                pill("NEXT", fill: lcd.accent, ink: lcd.isLight ? .white : .black)
             }
+            .buttonStyle(DexPressStyle(scale: 0.97))
 
             Button {
                 Haptics.select()
-                onSkip()
+                onQuit()
             } label: {
-                pill("SKIP", fill: .clear, ink: lcd.subtext)
+                pill("QUIT", fill: .clear, ink: lcd.subtext)
             }
             .buttonStyle(DexPressStyle(scale: 0.97))
         }
