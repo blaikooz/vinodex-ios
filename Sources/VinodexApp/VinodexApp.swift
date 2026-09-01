@@ -216,8 +216,10 @@ struct RootView: View {
                 //
                 // Publishes the LCD's own frame as `.lcdScreen` — never a
                 // step's target, only the stage the walkthrough bubble is
-                // confined to. See `CoachmarkOverlay.placement`.
-                screen.coachmarkTarget(.lcdScreen)
+                // confined to. Through `coachmarkStage()`, which merges: the
+                // target modifier's replace semantics erased every anchor
+                // the screens inside publish. See the note on that modifier.
+                screen.coachmarkStage()
 
                 if let entry = lockedAttempt {
                     // Offers the bundle the entry actually belongs to rather than

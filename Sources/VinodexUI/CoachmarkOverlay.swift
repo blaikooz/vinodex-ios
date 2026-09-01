@@ -52,6 +52,25 @@ public extension View {
             target.map { [$0: anchor] } ?? [:]
         }
     }
+
+    /// Publish this view's bounds as the walkthrough's stage (`.lcdScreen`)
+    /// without disturbing the targets its subtree publishes.
+    ///
+    /// **Not `coachmarkTarget(_:)`, and the difference bit once** (0.9.45):
+    /// `anchorPreference` *sets* the subtree's value for the key — replace,
+    /// not merge; only sibling branches combine through `reduce`. Hanging it
+    /// on the LCD content therefore erased every step target the screens
+    /// inside had published: no spotlight, no hole, no grey, and a bubble
+    /// with nothing to point at. `transformAnchorPreference` folds the stage
+    /// into the accumulated dictionary instead. The leaf `coachmarkTarget`
+    /// call sites are safe with replace semantics because leaves have no
+    /// publishing subtree — which is exactly why the bug waited for the
+    /// first container to borrow the modifier.
+    func coachmarkStage() -> some View {
+        transformAnchorPreference(key: CoachmarkTargetKey.self, value: .bounds) { value, anchor in
+            value[.lcdScreen] = anchor
+        }
+    }
 }
 
 /// **The grayout walkthrough's one screen** (0.8.9d, G1).
