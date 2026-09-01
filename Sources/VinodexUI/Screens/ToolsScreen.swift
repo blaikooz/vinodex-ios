@@ -151,7 +151,10 @@ public struct ToolsScreen: View {
                     // different kind of button.
                     tile(
                         title: "PROF.\nVINO",
-                        art: VinoExpression.neutral.artStem,
+                        // His own drawn tile face since 0.9.43 (the
+                        // cork-hatted robot), replacing the borrowed
+                        // `VinoExpression` portrait.
+                        art: "profvino",
                         symbol: "graduationcap.fill",
                         face: "#EAB308", shadow: "#a16207",
                         action: onProfVino

@@ -738,10 +738,9 @@ public enum DexRoute: Hashable, Sendable {
         case .labelReader: "marquee-labelscanner"
         case .wsetQuiz: "marquee-wineexam"
         case .dailyChallenge: "marquee-dailychallenge"
-        // No drawn face yet (0.8.93, item 9) — the mortarboard symbol stands
-        // in, per the 0.8.91 B3/F1 precedent below. `marquee-whatsthat` went
-        // to the attic with its tool.
-        case .profVino: nil
+        // The professor's own dot-matrix portrait (0.9.43) — the mortarboard
+        // stood in from 0.8.93 until the maintainer drew him.
+        case .profVino: "marquee-profvino"
         case .moonDial: "marquee-moondial"
         // The shelf itself, from the SETTINGS grid's TOOLS door.
         case .minigames: "marquee-tools"
@@ -773,12 +772,11 @@ public enum DexRoute: Hashable, Sendable {
         // C asks for a route distinct from SHOP wearing the same glyph, and art
         // is the half of the pair that is allowed to repeat.
         case .pack: "marquee-shop"
-        // No drawn face for either (0.8.91, B3/F1). `marqueeArt` is allowed to
-        // be nil — the SF Symbol above is the fallback and `ChromeTests`
-        // only checks the stems that *are* given. A new PNG is a pipeline
-        // change (`assertAssetsExist`, `ArtPipelineRosterTests`,
-        // `verify-art.py`), and neither page has earned one yet.
-        case .recommendations, .support: nil
+        // Drawn in the 0.9.43 drop — the thumbs-up and the envelope, ending
+        // the last two nils this table carried besides `.detail`'s deliberate
+        // fallback.
+        case .recommendations: "marquee-suggestions"
+        case .support: "marquee-support"
         }
     }
 }
