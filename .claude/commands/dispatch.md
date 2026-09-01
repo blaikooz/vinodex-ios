@@ -10,7 +10,12 @@ report rather than improvising if any gate fails.
    `main`, up to date with `origin/main`. If not, stop and say so.
 2. The tip of main must be CI-green: check the latest run on main (or the
    testing/PR run for the same tree) with `gh run list`. No green, no cut.
-3. HEAD must not already carry an annotated release tag — never re-archive
+3. SIM-VERIFIED FIRST (maintainer flow, 2026-09-01): a dispatch ships only
+   a tree the maintainer has walked on the simulator — build to a sim
+   (`xcodebuild -destination 'id=<sim udid>'`, install, launch) and get
+   their thumbs-up before any tag. Batches accumulate between dispatches
+   on purpose; do not dispatch per-change.
+4. HEAD must not already carry an annotated release tag — never re-archive
    a commit already shipped: TestFlight rejects duplicate version+build
    pairs, and the build number is the commit count, so a new upload needs
    at least one new commit.
