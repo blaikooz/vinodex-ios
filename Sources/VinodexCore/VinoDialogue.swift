@@ -331,7 +331,7 @@ public enum VinoDialogue {
             //
             // ASCII: "online - vintage" was an em dash; the leading "> BOOP."
             // arrow is now `chirp`.
-            line: "Professor Vino online - vintage intelligence, no taste buds. What do I call you, explorer?",
+            line: "Vinobot online - vintage intelligence, no taste buds. What do I call you, explorer?",
             expression: .neutral,
             chirp: .boop,
             // Gag 1 of 4. The character premise: without it he is a database.

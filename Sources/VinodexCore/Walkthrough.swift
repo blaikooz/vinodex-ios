@@ -337,7 +337,7 @@ public enum Walkthrough {
             id: "done",
             title: "THAT'S IT.",
             body: """
-            That was the map. SHOW ME and Professor Vino walks you through a \
+            That was the map. SHOW ME and Vinobot walks you through a \
             first tasting on the real screens; DONE and you're on your own. \
             Both live under TUTORIAL in settings.
             """,
