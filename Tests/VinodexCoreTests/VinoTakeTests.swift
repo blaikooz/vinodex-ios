@@ -25,7 +25,7 @@ struct VinoTakeTests {
         for (id, authored) in VinoTake.overrides {
             let entry = db.entry(id: id)
             #expect(entry != nil, "\(id)")
-            #expect(entry.flatMap(VinoTake.compose(for:)) == authored, "\(id)")
+            #expect(entry.flatMap { VinoTake.compose(for: $0, in: db) } == authored, "\(id)")
         }
     }
 
@@ -35,7 +35,7 @@ struct VinoTakeTests {
     @Test("continents stay silent")
     func continentsSilent() {
         for entry in db.entries(in: .continents) {
-            #expect(VinoTake.compose(for: entry) == nil)
+            #expect(VinoTake.compose(for: entry, in: db) == nil)
         }
     }
 }

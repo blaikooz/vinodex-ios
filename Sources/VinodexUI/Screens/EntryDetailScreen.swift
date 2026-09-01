@@ -144,14 +144,11 @@ public struct EntryDetailScreen: View {
                 if !entry.entryDescription.isEmpty {
                     infoSection.id(Anchor.info)
                 }
-                // The walkthrough's fourth step lights this panel *after* the
-                // tried tap changed it (0.8.9d, G2), which is why that step has
-                // nothing to do but be read. See `CoachmarkAction.acknowledged`.
-                insightSection.id(Anchor.insight).coachmarkTarget(.insightPanel)
                 // **VINOBOT'S TAKE (rework V3).** One line in his voice —
                 // authored for the flagships, composed from this entry's own
                 // fields for everyone else (`VinoTake`, gated over the whole
                 // catalog by `VinoTakeTests`). Tapping the row visits him.
+                // Directly under INFO by the maintainer's checkpoint ruling.
                 vinoTakeSection
                 if entry.isTastable, bookmarks.contains(entry.id, on: .tried) {
                     myTasting
@@ -178,6 +175,12 @@ public struct EntryDetailScreen: View {
                     }
                 }
                 .id(Anchor.sections)
+                // **INSIGHT closes the page (checkpoint V3 ruling).** It read
+                // the page's summary sitting at the top; as the last section
+                // it reads as the page's verdict — and the walkthrough's
+                // fourth step still lights it after the tried tap changed it
+                // (0.8.9d, G2). See `CoachmarkAction.acknowledged`.
+                insightSection.id(Anchor.insight).coachmarkTarget(.insightPanel)
             }
             .scrollTargetLayout()
         }
@@ -608,11 +611,14 @@ public struct EntryDetailScreen: View {
         )
     }
 
+    /// The reader behind the take row's speaker button.
+    @State private var vinoVoice = VinoVoice.shared
+
     /// His face, his line, and a door to his page. Continents compose no
     /// take and render nothing — the section is its own guard.
     @ViewBuilder
     private var vinoTakeSection: some View {
-        if let take = VinoTake.compose(for: entry) {
+        if let take = VinoTake.compose(for: entry, in: db) {
             DexSection("VINOBOT", symbol: "graduationcap.fill") {
                 HStack(alignment: .top, spacing: 10) {
                     DexChromeGlyph(
@@ -627,9 +633,30 @@ public struct EntryDetailScreen: View {
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 4)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(lcd.subtext)
+                    VStack(spacing: 10) {
+                        // He reads his own entry aloud (checkpoint V3,
+                        // round three) — the system synthesizer, offline,
+                        // summoned by tap so QUIET does not gate it. An
+                        // inner Button wins the hit test over the row's
+                        // TileLink, so speaking never navigates.
+                        Button {
+                            Haptics.select()
+                            vinoVoice.speak(take)
+                        } label: {
+                            Image(systemName: vinoVoice.speaking
+                                ? "speaker.wave.2.fill"
+                                : "speaker.wave.2")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundStyle(vinoVoice.speaking ? lcd.accent : lcd.subtext)
+                        }
+                        .buttonStyle(DexPressStyle(scale: 0.9))
+                        .accessibilityLabel(vinoVoice.speaking
+                            ? "Stop Vinobot reading"
+                            : "Have Vinobot read this aloud")
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(lcd.subtext)
+                    }
                 }
                 .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)

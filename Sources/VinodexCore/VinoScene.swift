@@ -164,7 +164,7 @@ public enum VinoScenes {
         let dayWord = input.moonDay.rawValue.lowercased()
         let moonLine = input.goodDay
             ? "A \(dayWord) day on the moon dial, and a good one to drink. My sensors envy you."
-            : "A \(dayWord) day on the moon dial. The old calendar says hold off - your call, not mine."
+            : "A \(dayWord) day on the moon dial. The old calendar says hold off. Your call, not mine."
         nodes.append(VinoSceneNode(
             id: "today",
             text: moonLine,
@@ -176,7 +176,7 @@ public enum VinoScenes {
         ))
         let shelfLine: String
         if input.triedCount == 0 {
-            shelfLine = "Nothing marked TRIED yet. Every catalogue starts empty - find one bottle and press the button."
+            shelfLine = "Nothing marked TRIED yet. Every catalogue starts empty. Find one bottle and press the button."
         } else if input.bestStreak > 1 {
             shelfLine = "\(input.triedCount) tried, best streak \(input.bestStreak). The Vinodex fills, one glass at a time."
         } else {
@@ -307,6 +307,9 @@ public enum VinoScenes {
             }
             if node.text.contains(where: { !$0.isASCII }) {
                 out.append("\(node.id): non-ASCII in authored text")
+            }
+            if node.text.contains(" - ") {
+                out.append("\(node.id): dash construction in scene text")
             }
             // Five, not four, since checkpoint V1: a HELP menu page is
             // three topics + MORE + BACK, and five short pills still fit
