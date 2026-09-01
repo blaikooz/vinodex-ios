@@ -72,6 +72,7 @@ const CURRENT: FirmwareRelease = {
     "MY PICKS: he presents your recommendations with the reason your shelf earned them.",
     "STUDY: he names your weakest exam category and sends you to the next paper.",
     "Unlocking an exam tier earns a certificate, handed over by the examiner himself.",
+    "VINOBOT'S TAKE: one line of his opinion on every grape, region, style and flavour page.",
   ],
 };
 

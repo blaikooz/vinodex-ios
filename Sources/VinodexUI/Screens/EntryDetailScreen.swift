@@ -148,6 +148,11 @@ public struct EntryDetailScreen: View {
                 // tried tap changed it (0.8.9d, G2), which is why that step has
                 // nothing to do but be read. See `CoachmarkAction.acknowledged`.
                 insightSection.id(Anchor.insight).coachmarkTarget(.insightPanel)
+                // **VINOBOT'S TAKE (rework V3).** One line in his voice —
+                // authored for the flagships, composed from this entry's own
+                // fields for everyone else (`VinoTake`, gated over the whole
+                // catalog by `VinoTakeTests`). Tapping the row visits him.
+                vinoTakeSection
                 if entry.isTastable, bookmarks.contains(entry.id, on: .tried) {
                     myTasting
                 }
@@ -601,6 +606,43 @@ public struct EntryDetailScreen: View {
             in: db,
             triedDays: bookmarks.triedDayLog
         )
+    }
+
+    /// His face, his line, and a door to his page. Continents compose no
+    /// take and render nothing — the section is its own guard.
+    @ViewBuilder
+    private var vinoTakeSection: some View {
+        if let take = VinoTake.compose(for: entry) {
+            DexSection("VINOBOT", symbol: "graduationcap.fill") {
+                HStack(alignment: .top, spacing: 10) {
+                    DexChromeGlyph(
+                        VinoExpression.thinking.artStem,
+                        symbol: "graduationcap.fill",
+                        size: 34,
+                        tint: lcd.accent
+                    )
+                    Text(take)
+                        .font(DexFont.mono(18))
+                        .foregroundStyle(lcd.bodyText)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 4)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(lcd.subtext)
+                }
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .strokeBorder(lcd.surfaceEdge, lineWidth: 1)
+                )
+                // The house tap idiom, exactly as `attributeBar` wears it —
+                // the whole row is the door to his page.
+                .modifier(TileLink(destination: .profVino, onOpen: onOpenRoute))
+            }
+        }
     }
 
     @ViewBuilder
