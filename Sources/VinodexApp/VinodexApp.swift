@@ -981,7 +981,14 @@ struct RootView: View {
 
         // WHAT'S THAT…? deleted, PROF. VINO in its place (0.8.93, item 9).
         case .profVino:
-            ProfVinoScreen()
+            ProfVinoScreen(
+                // The conversation's two exits (rework V2): a pick opens its
+                // entry, SIT A PAPER opens the exam. `push`, not `openRoute`
+                // — his page is already a frame, and drilling into a pick is
+                // drilling, not jumping.
+                onOpenEntry: { push(.detail(entryID: $0)) },
+                onExam: { push(.wsetQuiz) }
+            )
 
         case .settings:
             SettingsPanel(

@@ -19,7 +19,15 @@ struct VinoSceneTests {
                             name: tried == 0 ? nil : "Harrison",
                             moonDay: day, goodDay: good,
                             bestStreak: streak, triedCount: tried,
-                            silenced: silenced
+                            silenced: silenced,
+                            picks: tried == 0 ? [] : [
+                                VinoScenePick(id: "G001", name: "Cabernet Sauvignon"),
+                                VinoScenePick(id: "S002", name: "Orange Wine"),
+                            ],
+                            favoriteOrigin: tried > 1 ? "France" : nil,
+                            study: streak > 1
+                                ? VinoStudyReading(categoryLabel: "FLAVOR PROFILES", right: 2, asked: 5)
+                                : nil
                         ))
                     }
                 }
@@ -81,6 +89,45 @@ struct VinoSceneTests {
         }
         #expect(graph["help"]!.choices.contains { $0.label == "MORE" })
         #expect(graph["help.2"] != nil)
+    }
+
+    /// MY PICKS (V2): thin profile gets the honest nudge; a real one gets
+    /// the reason line and pick pills whose destinations leave the scene
+    /// through the `open:` prefix — which `problems()` must accept.
+    @Test("picks door: honest when thin, evidenced when not")
+    func picksDoor() {
+        let thin = VinoScenes.compose(VinoSceneInput(
+            name: nil, moonDay: .leaf, goodDay: true,
+            bestStreak: 0, triedCount: 0, silenced: false))
+        #expect(thin["picks"]!.text.contains("More data required"))
+
+        let rich = VinoScenes.compose(VinoSceneInput(
+            name: "Harrison", moonDay: .leaf, goodDay: true,
+            bestStreak: 3, triedCount: 20, silenced: false,
+            picks: [VinoScenePick(id: "G001", name: "Cabernet Sauvignon")],
+            favoriteOrigin: "France"))
+        #expect(rich["picks"]!.text.contains("returning to France"))
+        #expect(rich["picks"]!.choices.contains {
+            $0.label == "CABERNET SAUVIGNON" && $0.goes == "open:G001"
+        })
+    }
+
+    /// STUDY (V2): the weakest-category rule's honesty carries through —
+    /// no papers means no claimed blind spot, and both states offer the
+    /// paper through the `exam:` external.
+    @Test("study door: names the blind spot only when the ledger can")
+    func studyDoor() {
+        let fresh = VinoScenes.compose(VinoSceneInput(
+            name: nil, moonDay: .root, goodDay: false,
+            bestStreak: 0, triedCount: 0, silenced: false))
+        #expect(fresh["study"]!.text.contains("No meaningful papers"))
+        #expect(fresh["study"]!.choices.contains { $0.goes == "exam:" })
+
+        let read = VinoScenes.compose(VinoSceneInput(
+            name: nil, moonDay: .root, goodDay: false,
+            bestStreak: 2, triedCount: 5, silenced: false,
+            study: VinoStudyReading(categoryLabel: "REGIONS", right: 1, asked: 4)))
+        #expect(read["study"]!.text.contains("REGIONS: 1 of 4"))
     }
 
     /// The empty shelf gets the beginner line; a shelf with a streak gets

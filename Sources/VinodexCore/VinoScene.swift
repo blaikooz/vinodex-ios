@@ -5,7 +5,7 @@ import Foundation
 /// The rework spec (`horizon-md/vinodex-vino-rework.md`) turns his page from
 /// a diagram into a place: a dialogue graph the player walks by tapping
 /// choices, in the RPG register the maintainer chose. This file is the
-/// graph's vocabulary and the V1 scenes — TODAY and HELP — with the
+/// graph's vocabulary and the scenes — TODAY, MY PICKS, STUDY, HELP — with the
 /// same discipline `VinoDialogue` established for the bubbles: the copy is
 /// data, the rules are executable, and `problems()` is what keeps his voice
 /// from drifting when the next batch adds nodes.
@@ -76,6 +76,30 @@ public struct VinoSceneNode: Sendable, Hashable, Identifiable {
     }
 }
 
+/// One recommendation, reduced to what a choice pill needs. The pick's
+/// pill `goes` to `open:<id>` — an external destination the UI resolves
+/// into a pushed entry page.
+public struct VinoScenePick: Sendable, Hashable {
+    public let id: String
+    public let name: String
+    public init(id: String, name: String) {
+        self.id = id
+        self.name = name
+    }
+}
+
+/// The study readout, reduced to the sentence it becomes.
+public struct VinoStudyReading: Sendable, Hashable {
+    public let categoryLabel: String
+    public let right: Int
+    public let asked: Int
+    public init(categoryLabel: String, right: Int, asked: Int) {
+        self.categoryLabel = categoryLabel
+        self.right = right
+        self.asked = asked
+    }
+}
+
 /// What the UI hands Core to compose a visit. Values, not stores.
 public struct VinoSceneInput: Sendable {
     public let name: String?
@@ -84,6 +108,13 @@ public struct VinoSceneInput: Sendable {
     public let bestStreak: Int
     public let triedCount: Int
     public let silenced: Bool
+    /// V2: up to three of `PalateProfile.recommendations`, empty when the
+    /// profile is thin — the scene renders the emptiness honestly.
+    public let picks: [VinoScenePick]
+    /// V2: the most common origin on the tried shelf, for the reason line.
+    public let favoriteOrigin: String?
+    /// V2: `ExamStats.weakest()` reduced; nil when no meaningful papers.
+    public let study: VinoStudyReading?
 
     public init(
         name: String?,
@@ -91,7 +122,10 @@ public struct VinoSceneInput: Sendable {
         goodDay: Bool,
         bestStreak: Int,
         triedCount: Int,
-        silenced: Bool
+        silenced: Bool,
+        picks: [VinoScenePick] = [],
+        favoriteOrigin: String? = nil,
+        study: VinoStudyReading? = nil
     ) {
         self.name = name
         self.moonDay = moonDay
@@ -99,6 +133,9 @@ public struct VinoSceneInput: Sendable {
         self.bestStreak = bestStreak
         self.triedCount = triedCount
         self.silenced = silenced
+        self.picks = picks
+        self.favoriteOrigin = favoriteOrigin
+        self.study = study
     }
 }
 
@@ -116,6 +153,8 @@ public enum VinoScenes {
             expression: .smiling,
             choices: [
                 VinoSceneChoice("TODAY", goes: "today"),
+                VinoSceneChoice("MY PICKS", goes: "picks"),
+                VinoSceneChoice("STUDY", goes: "study"),
                 VinoSceneChoice("HELP", goes: "help"),
                 VinoSceneChoice(input.silenced ? "SPEAK MORE" : "SPEAK LESS", goes: "quiet"),
             ]
@@ -187,6 +226,60 @@ public enum VinoScenes {
             ))
         }
 
+        // --- MY PICKS (V2): the recommendation engine, voiced. The picks
+        // arrive scored from `PalateProfile.recommendations`; the reason
+        // line is composed from the shelf the engine actually read, so he
+        // never claims a taste the data cannot show. Empty is an honest
+        // answer — the engine refuses to guess from a thin profile, and so
+        // does he.
+        if input.picks.isEmpty {
+            nodes.append(VinoSceneNode(
+                id: "picks",
+                text: "More data required, \(name). Mark a few bottles TRIED and my picks will follow.",
+                expression: .thinking,
+                choices: [VinoSceneChoice("BACK", goes: "root")]
+            ))
+        } else {
+            let reason = input.favoriteOrigin.map {
+                "You keep returning to \($0). These score highest against your palate:"
+            } ?? "Your palate has opinions, \(name). These score highest against it:"
+            var pickChoices = input.picks.prefix(3).map {
+                VinoSceneChoice($0.name.uppercased(), goes: "open:\($0.id)")
+            }
+            pickChoices.append(VinoSceneChoice("BACK", goes: "root"))
+            nodes.append(VinoSceneNode(
+                id: "picks",
+                text: reason,
+                expression: .smiling,
+                choices: Array(pickChoices)
+            ))
+        }
+
+        // --- STUDY (V2): the exam coach. `weakest()` needs three asked
+        // questions before it will name a category, and he inherits that
+        // honesty — no blind spot is claimed from one wrong answer.
+        if let study = input.study {
+            nodes.append(VinoSceneNode(
+                id: "study",
+                text: "Your blind spot is \(study.categoryLabel): \(study.right) of \(study.asked) right. Read one entry, then sit another paper.",
+                expression: .thinking,
+                choices: [
+                    VinoSceneChoice("SIT A PAPER", goes: "exam:"),
+                    VinoSceneChoice("BACK", goes: "root"),
+                ]
+            ))
+        } else {
+            nodes.append(VinoSceneNode(
+                id: "study",
+                text: "No meaningful papers yet, \(name). Sit a WINE EXAM and I will find your blind spot.",
+                expression: .neutral,
+                choices: [
+                    VinoSceneChoice("SIT A PAPER", goes: "exam:"),
+                    VinoSceneChoice("BACK", goes: "root"),
+                ]
+            ))
+        }
+
         // --- QUIET: the silence switch as a conversation. The UI performs
         // the toggle before showing this node, so the text states the NEW
         // truth. Gag 2 of 2.
@@ -222,6 +315,10 @@ public enum VinoScenes {
                 out.append("\(node.id): \(node.choices.count) choices, need 1-5")
             }
             for choice in node.choices where graph[choice.goes] == nil {
+                // External destinations leave the scene: `open:<id>` pushes
+                // an entry page, `exam:` the WINE EXAM. The UI owns them;
+                // the graph rule only demands the prefix be a known one.
+                if choice.goes.hasPrefix("open:") || choice.goes == "exam:" { continue }
                 out.append("\(node.id): choice '\(choice.label)' goes to missing '\(choice.goes)'")
             }
             if node.id != "root",

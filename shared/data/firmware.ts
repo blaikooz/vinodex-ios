@@ -69,6 +69,9 @@ const CURRENT: FirmwareRelease = {
     "His page is a conversation: tap his questions, hear about TODAY, ask about THIS DEVICE.",
     "His one-time tips are replayable at last, from his own screen.",
     "Quiet mode is something you tell him, and he answers in character.",
+    "MY PICKS: he presents your recommendations with the reason your shelf earned them.",
+    "STUDY: he names your weakest exam category and sends you to the next paper.",
+    "Unlocking an exam tier earns a certificate, handed over by the examiner himself.",
   ],
 };
 
