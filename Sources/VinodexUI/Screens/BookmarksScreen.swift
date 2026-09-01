@@ -796,8 +796,7 @@ private struct AvatarBadge: View {
                 symbol: "camera.fill",
                 size: 16,
                 weight: .bold,
-                tint: lcd.isLight ? .white : .black,
-                flatten: lcd.isLight ? .white : .black
+                tint: lcd.isLight ? .white : .black
             )
             .frame(width: 30, height: 30)
             .background(Circle().fill(lcd.accent))
