@@ -440,25 +440,23 @@ struct MarqueeBanner: View {
     @ViewBuilder
     private func glyphImage(_ name: String?, art: String?) -> some View {
         if let name {
-            // **The glyph wears the skin's grid phosphor, not the ink
-            // (0.9.42).** Flattened to `ink` — the near-black shadow tone on
-            // all 22 liveries — every page glyph read as flat black, which is
-            // 0.8.3 §A's spec surviving A2's reversal in practice. The title
-            // keeps the ink (it is type, and type on a segment LCD is dark);
-            // the glyph is a picture and takes the same treatment §H gave the
-            // status lamps: the skin's own lit mid-tone. That deliberately
-            // breaks A2's glyph/title coupling — the coupling is what kept
-            // the glyphs black.
+            // **Black, and bigger (0.9.43, maintainer ruling).** 0.9.42
+            // briefly dressed the glyph in `skin.marqueeGrid` to answer the
+            // "all black" complaint; the ruling that followed is that black
+            // was never the problem — legibility was. The glyph goes back to
+            // the ink, restoring A2's glyph/title coupling, and the size
+            // moves instead: `DexMetrics.marqueeGlyph` grew from 0.32 to
+            // 0.40 of the band, which is where the visibility comes from.
             DexChromeGlyph(
                 art ?? name,
                 symbol: name,
                 size: DexMetrics.marqueeGlyph,
                 weight: .bold,
-                tint: skin.marqueeGrid,
-                flatten: skin.marqueeGrid,
+                tint: ink,
+                flatten: ink,
                 smoothing: true
             )
-            .shadow(color: ink.opacity(0.7), radius: 0, x: 1, y: 1)
+            .shadow(color: ground.opacity(0.7), radius: 0, x: 1, y: 1)
         }
     }
 

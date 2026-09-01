@@ -1043,7 +1043,9 @@ public enum DexMetrics {
     /// SETTINGS > TEXT SIZE would grow inside a panel whose height does not,
     /// and at the HUGE step would push the words it introduces out of the
     /// bottom of it. The title takes whatever is left and fits itself to that.
-    public static var marqueeGlyph: CGFloat { marqueeHeight * 0.32 }
+    // 0.32 → 0.40 (0.9.43): the glyph stays ink-black by ruling, so the
+    // legibility budget is spent on size — see `MarqueeBanner.glyphImage`.
+    public static var marqueeGlyph: CGFloat { marqueeHeight * 0.40 }
     /// Air between the glyph and the title. Tight: they are one block, and a
     /// generous gap here reads as two unrelated things sharing a panel.
     public static let marqueeGlyphGap: CGFloat = 4

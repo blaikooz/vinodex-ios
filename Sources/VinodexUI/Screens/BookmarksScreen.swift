@@ -786,13 +786,22 @@ private struct AvatarBadge: View {
         .overlay(Circle().strokeBorder(lcd.accent.opacity(0.7), lineWidth: 3))
         // A camera badge rather than a caption: the affordance has to be on
         // the avatar, because the avatar is the target.
+        //
+        // The drawn camera face since 0.9.43 — the same master TAKE PHOTO
+        // wears in the label reader (`LabelReaderView.buttonArt`), flattened
+        // to the badge's ink so it reads as a badge rather than a painting.
         .overlay(alignment: .bottomTrailing) {
-            Image(systemName: "camera.fill")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(lcd.isLight ? .white : .black)
-                .frame(width: 30, height: 30)
-                .background(Circle().fill(lcd.accent))
-                .overlay(Circle().strokeBorder(lcd.surface, lineWidth: 2))
+            DexChromeGlyph(
+                "camera",
+                symbol: "camera.fill",
+                size: 16,
+                weight: .bold,
+                tint: lcd.isLight ? .white : .black,
+                flatten: lcd.isLight ? .white : .black
+            )
+            .frame(width: 30, height: 30)
+            .background(Circle().fill(lcd.accent))
+            .overlay(Circle().strokeBorder(lcd.surface, lineWidth: 2))
         }
         .shadow(color: .black.opacity(0.45), radius: 4, y: 3)
     }
