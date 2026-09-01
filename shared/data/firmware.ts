@@ -71,6 +71,7 @@ const CURRENT: FirmwareRelease = {
   notes: [
     "This history caught up: the five firmwares below shipped before their notes did.",
     "The moon dial's day and verdict faces, the SAVE, LOAD, BACK UP and RESTORE buttons and the photo badge now show their drawn art in full colour.",
+    "Blends and crossings fly a pennant of their own instead of a grey blank.",
   ],
 };
 
