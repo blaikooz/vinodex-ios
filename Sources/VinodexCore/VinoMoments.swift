@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 /// **Vinobot beyond first-times** (rework V4, 2026-09-01): the daily line
 /// and the streak milestones — the "chattier" the maintainer dialled in,
