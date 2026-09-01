@@ -132,10 +132,10 @@ public enum ToolRoster {
         // read, per the store's own unknown-ids rule below.
         ToolIntro(
             id: "profVino",
-            title: "PROF. VINO",
+            title: "VINOBOT",
             tagline: "The resident professor, and his page.",
             body: """
-                Who Professor Vino is and everything he does — his faces, the \
+                Who Vinobot is and everything he does — his faces, the \
                 switch that quiets him, and his ledger of what he has already \
                 told you. Talking to him directly lands here in a later firmware.
                 """,

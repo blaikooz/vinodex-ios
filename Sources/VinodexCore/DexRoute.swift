@@ -417,7 +417,7 @@ public enum DexRoute: Hashable, Sendable {
         case .state(let name):
             name.uppercased()
         case .profVino:
-            "PROF. VINO"
+            "VINOBOT"
         case .scanner:
             // SCANNER → IDENTIFY (0.7.0, I3) → BLIND TASTING (0.7.1, E3), the
             // label only each time, per the same convention `wsetQuiz` and

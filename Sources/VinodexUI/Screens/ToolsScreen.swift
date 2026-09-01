@@ -150,7 +150,7 @@ public struct ToolsScreen: View {
                     // four tiles — the dark inks made this row read as a
                     // different kind of button.
                     tile(
-                        title: "PROF.\nVINO",
+                        title: "VINOBOT",
                         // His own drawn tile face since 0.9.43 (the
                         // cork-hatted robot), replacing the borrowed
                         // `VinoExpression` portrait.

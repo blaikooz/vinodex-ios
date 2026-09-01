@@ -504,7 +504,7 @@ public struct SettingsSectionPanel: View {
             } else if offeringTour {
                 DexAlert(
                     title: "TAKE THE TOUR?",
-                    message: "A quick walk round the device — what each button does and where things live. About a minute, and at the end Professor Vino offers to walk you through a first tasting.",
+                    message: "A quick walk round the device — what each button does and where things live. About a minute, and at the end Vinobot offers to walk you through a first tasting.",
                     confirmLabel: "YES",
                     cancelLabel: "NOT NOW",
                     onConfirm: {

@@ -61,6 +61,18 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.9.45",
+  date: "2026-09-01",
+  headline: "MEET VINOBOT",
+  notes: [
+    "The professor is a robot now, and his name is VINOBOT -- same cork hat, same opinions.",
+    "His page is a conversation: tap his questions, hear about TODAY, ask about THIS DEVICE.",
+    "His one-time tips are replayable at last, from his own screen.",
+    "Quiet mode is something you tell him, and he answers in character.",
+  ],
+};
+
+const PREVIOUS_0944: FirmwareRelease = {
   version: "0.9.44",
   date: "2026-09-01",
   headline: "TRUE COLOURS",
@@ -306,6 +318,7 @@ const PREVIOUS_0892: FirmwareRelease = {
 };
 
 const PREVIOUS: FirmwareRelease[] = [
+  PREVIOUS_0944,
   PREVIOUS_0943,
   PREVIOUS_0942,
   PREVIOUS_0941,

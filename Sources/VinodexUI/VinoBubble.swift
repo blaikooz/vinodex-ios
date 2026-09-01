@@ -86,7 +86,7 @@ public struct VinoBubble: View {
                 onDismiss()
             }
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("Professor Vino: " + line.rendered(name: displayName))
+            .accessibilityLabel("Vinobot: " + line.rendered(name: displayName))
             .accessibilityHint("Tap to dismiss")
             .accessibilityAddTraits(.isButton)
             // Rises from the bottom edge, which is where he is - not a panel

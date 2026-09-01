@@ -409,7 +409,7 @@ public struct CoachmarkOverlay: View {
                     // remark and a tutorial that happen to share a portrait.
                     // The count stays: it is the one thing a walkthrough owes
                     // you that a remark does not.
-                    Text("PROF. VINO \u{00B7} \(position)/\(total)")
+                    Text("VINOBOT \u{00B7} \(position)/\(total)")
                         .font(DexFont.retro(10))
                         .tracking(1)
                         .foregroundStyle(lcd.accent)
@@ -453,7 +453,7 @@ public struct CoachmarkOverlay: View {
             }
         )
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Professor Vino, step \(position) of \(total)")
+        .accessibilityLabel("Vinobot, step \(position) of \(total)")
     }
 
     private var controls: some View {

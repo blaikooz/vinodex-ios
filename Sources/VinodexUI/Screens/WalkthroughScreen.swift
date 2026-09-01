@@ -194,7 +194,7 @@ public struct WalkthroughScreen: View {
         // the ordinal is the deterministic fix; an announcement notification
         // would race the one SwiftUI already posts for the swapped subtree.
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Step \(index + 1) of \(steps.count). Professor Vino: \(step.title). \(step.body)")
+        .accessibilityLabel("Step \(index + 1) of \(steps.count). Vinobot: \(step.title). \(step.body)")
         .accessibilityFocused($copyFocused)
     }
 
