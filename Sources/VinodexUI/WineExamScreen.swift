@@ -46,6 +46,11 @@ public struct WineExamScreen: View {
     /// so. State rather than recomputed: recording must fire once per
     /// completion, never once per render.
     @State private var newlyUnlocked: QuizTier?
+    /// The tier card (rework V2): set alongside `newlyUnlocked` at the one
+    /// place a paper completes, cleared by its own dismiss. Separate state
+    /// because `newlyUnlocked` also feeds the results column's gold line,
+    /// which must survive the card being dismissed.
+    @State private var presentedTier: QuizTier?
     /// Draft answers for the multi-tap formats, held in view state rather than
     /// in `ExamRun` while they are still being built.
     @State private var picks: Set<Int> = []
@@ -92,6 +97,14 @@ public struct WineExamScreen: View {
     public var body: some View {
         ZStack {
             DexScreenBackground()
+
+            // The tier card sits over everything when a paper unlocks the
+            // next rung — the examiner's own moment, before the results
+            // column is read.
+            if let tier = presentedTier {
+                VinoTierPrompt(tier: tier) { presentedTier = nil }
+                    .zIndex(10)
+            }
             GeometryReader { geo in
                 let grow = CGFloat(PageRoom.growth(pageHeight: Double(geo.size.height)))
                 ScrollView {
@@ -199,6 +212,9 @@ public struct WineExamScreen: View {
         // streak *and* the ladder unlock — see `ExamRecordStore`.
         if current.isComplete {
             newlyUnlocked = records.record(current)
+            // Vinobot hands over the certificate (rework V2) — at the write,
+            // never in a view body, per the standing announce rule.
+            presentedTier = newlyUnlocked
         }
         withAnimation(.easeOut(duration: 0.2)) { run = current }
     }

@@ -35,7 +35,19 @@ public struct ProfVinoScreen: View {
     @State private var revealed = 0
     @State private var typing: Task<Void, Never>?
 
-    public init() {}
+    /// V2: the two ways a conversation leaves the scene — a pick opens its
+    /// entry page, SIT A PAPER opens the WINE EXAM. Wired by the app shell;
+    /// default to no-ops so previews and tests can build the screen bare.
+    let onOpenEntry: (String) -> Void
+    let onExam: () -> Void
+
+    public init(
+        onOpenEntry: @escaping (String) -> Void = { _ in },
+        onExam: @escaping () -> Void = {}
+    ) {
+        self.onOpenEntry = onOpenEntry
+        self.onExam = onExam
+    }
 
     private var node: VinoSceneNode? { graph[currentID] }
     private var lineDone: Bool {
@@ -156,17 +168,62 @@ public struct ProfVinoScreen: View {
             rebuild(showing: "quiet")
             return
         }
+        // The external destinations (V2): the conversation hands over to a
+        // real page. `openRoute` semantics belong to the shell; here they
+        // are plain callbacks.
+        if choice.goes.hasPrefix("open:") {
+            onOpenEntry(String(choice.goes.dropFirst("open:".count)))
+            return
+        }
+        if choice.goes == "exam:" {
+            onExam()
+            return
+        }
         show(choice.goes)
     }
 
     private func rebuild(showing id: String) {
+        let db = WineDatabase.shared
+        let triedIDs = bookmarks.ids(on: .tried)
+
+        // MY PICKS: the same engine the passport strip reads, capped at the
+        // three pills a scene can seat.
+        let index = DiscoveryIndex(tried: triedIDs, in: db)
+        let picks = PalateProfile(index: index)
+            .recommendations(index: index, limit: 3)
+            .map { VinoScenePick(id: $0.id, name: $0.name) }
+
+        // The reason line's evidence: the origin the shelf leans on. Blends
+        // ("Various") are excluded — leaning on nowhere is not a lean.
+        var originCounts: [String: Int] = [:]
+        for id in triedIDs {
+            if let origin = db.entry(id: id)?.origin, origin != "Various" {
+                originCounts[origin, default: 0] += 1
+            }
+        }
+        let favorite = originCounts.filter { $0.value >= 2 }.max {
+            $0.value == $1.value ? $0.key > $1.key : $0.value < $1.value
+        }?.key
+
+        // STUDY: the exam ledger's own weakest-category rule, verbatim.
+        let study = ExamRecordStore.shared.stats.weakest().map {
+            VinoStudyReading(
+                categoryLabel: $0.category.rawValue.replacingOccurrences(of: "_", with: " "),
+                right: $0.tally.right,
+                asked: $0.tally.asked
+            )
+        }
+
         graph = VinoScenes.compose(VinoSceneInput(
             name: displayName,
             moonDay: MoonCalendar.day(),
             goodDay: MoonCalendar.day().isGoodForDrinking,
             bestStreak: StreakStore.shared.best,
-            triedCount: bookmarks.ids(on: .tried).count,
-            silenced: triggers.isSilenced
+            triedCount: triedIDs.count,
+            silenced: triggers.isSilenced,
+            picks: picks,
+            favoriteOrigin: favorite,
+            study: study
         ))
         show(id)
     }
