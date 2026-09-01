@@ -1176,7 +1176,7 @@ export const COUNTRIES: CountryGateEntry[] = [
       origin: 'Slovenia',
       classification: 'COUNTRY',
       keyRegions: ['Goriška Brda', 'Vipava Valley'],
-      notableGrapes: ['Sauvignon Blanc', 'Merlot']
+      notableGrapes: ['Zelen', 'Pinela', 'Sauvignon Blanc']
     }
   },
   {
@@ -1191,7 +1191,7 @@ export const COUNTRIES: CountryGateEntry[] = [
       origin: 'Bulgaria',
       classification: 'COUNTRY',
       keyRegions: ['Thracian Lowlands', 'Struma Valley'],
-      notableGrapes: ['Cabernet Sauvignon', 'Merlot']
+      notableGrapes: ['Mavrud', 'Melnik', 'Cabernet Sauvignon']
     }
   },
   {
@@ -1206,7 +1206,7 @@ export const COUNTRIES: CountryGateEntry[] = [
       origin: 'Lebanon',
       classification: 'COUNTRY',
       keyRegions: ['Bekaa Valley', 'Batroun'],
-      notableGrapes: ['Cinsault', 'Cabernet Sauvignon']
+      notableGrapes: ['Obaideh', 'Merwah', 'Cinsault']
     }
   }
 ];

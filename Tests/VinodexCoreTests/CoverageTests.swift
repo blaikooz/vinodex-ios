@@ -50,7 +50,12 @@ struct CoverageTests {
         // coming-soon countries came alive (Bulgaria, Lebanon, Slovenia, the
         // United Kingdom, two each) and the seven single-region countries
         // each gained a second answer.
-        #expect(db.entries(in: .grapes).count == 177)
+        // Batch A, "THE SEAM" (sommbot, 2026-09-01): +10 grapes (G179–G188) —
+        // the ten natives the 0.9.42 regions named without catalog entries
+        // (Mavrud, Melnik, Obaideh, Merwah, Zelen, Pinela, Chasselas,
+        // Malvazija Istarska, Teran, Fetească Regală). Regions and styles
+        // untouched: every new grape points at a home 0.9.42 already built.
+        #expect(db.entries(in: .grapes).count == 187)
         #expect(db.entries(in: .regions).count == 139)
         // 31 since 0.6.x: Medium-Full Red removed, its grapes now Full-Body.
         // 33 since 0.7.9 (G): Madeira and Cava. **31 again since 0.9.42** —
@@ -98,7 +103,11 @@ struct CoverageTests {
         // Flavours unchanged at 106 for the fifth data batch running.
         // 459 since 0.9.42: +15 regions, −2 styles (Madeira and Cava retired).
         // Flavours unchanged at 106 for the sixth data batch running.
-        #expect(stats.total == 459)
+        // 469 since Batch A, "THE SEAM" (sommbot, 2026-09-01): +10 grapes,
+        // closing every native variety the 0.9.42 regions pointed at.
+        // Flavours unchanged at 106 for the seventh data batch running —
+        // all 30 new tasting notes drawn from the existing vocabulary.
+        #expect(stats.total == 469)
         // 26 since 0.7.3c: Brazil is the first *new* origin since Mexico. The
         // count is distinct region origins, so the coming-soon gates still do
         // not count and adding a country without a region would not move it.
@@ -279,7 +288,12 @@ struct CoverageTests {
         // Plavac Mali) from sommbot's P1/P2 batch. **Not in the 0.7.9 spec's
         // pin list** — it moves with every grape batch by construction, which
         // is exactly what it is for.
-        #expect(counts == [2: 42, 3: 81, 4: 17, 5: 37])
+        // Batch A, "THE SEAM" (2026-09-01): +2 Light (Pinela, Chasselas),
+        // +6 Medium (Melnik, Merwah, Malvazija Istarska and Teran authored
+        // "Medium"; Zelen and Fetească Regală authored "Light-Medium", which
+        // rounds to the same bar), +1 Medium-Full (Obaideh) and +1 Full
+        // (Mavrud).
+        #expect(counts == [2: 44, 3: 87, 4: 18, 5: 38])
 
         // Chardonnay is authored `body: "Medium-Full"` and drew a full bar.
         // (`grapeBodyClass` still reads "Full" for it — that is a *different*
