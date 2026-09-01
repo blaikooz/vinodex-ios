@@ -1,5 +1,20 @@
 # Known issues & environment runbook
 
+> ## 2026-09-01 — simulator state lies between sessions; the full /dispatch ceremony is proven
+>
+> **Never trust "the simulator is already booted".** A sim that was booted in a
+> previous session can be `Shutdown` by the time you act, and `simctl install`
+> against it fails with exit 149 / `Unable to lookup in current state: Shutdown`
+> (CoreSimulator error 405). Booting is cheap and near-idempotent, so always run
+> `xcrun simctl boot <UDID>` then `xcrun simctl bootstatus <UDID>` (blocks until
+> the sim is actually usable, ~10 s cold) before install/launch — the reasoning:
+> checking the claimed state costs more than just re-establishing it.
+>
+> **The scripted dispatch (tag → generate → archive → export-upload) works
+> end-to-end as written** — first proven run 2026-09-01, v0.9.44 (219): archive
+> ~1 min, export+upload ~2 min, `EXPORT SUCCEEDED` / `Upload succeeded` with the
+> ASC key and the `PATH="/usr/bin:$PATH"` prefix, no Organizer involved.
+
 > ## 2026-08-28 — this repo moved to a Mac mini; the WSL/xtool runbook below is historical
 >
 > The whole workspace moved from the Windows PC (`H:\vscode-projects\HGapps`,
