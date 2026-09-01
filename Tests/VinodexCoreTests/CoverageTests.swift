@@ -50,14 +50,22 @@ struct CoverageTests {
         // coming-soon countries came alive (Bulgaria, Lebanon, Slovenia, the
         // United Kingdom, two each) and the seven single-region countries
         // each gained a second answer.
-        #expect(db.entries(in: .grapes).count == 177)
+        // Batch A, "THE SEAM" (sommbot, 2026-09-01): +10 grapes (G179–G188) —
+        // the ten natives the 0.9.42 regions named without catalog entries
+        // (Mavrud, Melnik, Obaideh, Merwah, Zelen, Pinela, Chasselas,
+        // Malvazija Istarska, Teran, Fetească Regală). Regions and styles
+        // untouched: every new grape points at a home 0.9.42 already built.
+        #expect(db.entries(in: .grapes).count == 187)
         #expect(db.entries(in: .regions).count == 139)
         // 31 since 0.6.x: Medium-Full Red removed, its grapes now Full-Body.
-        // 33 since 0.7.9 (G): Madeira and Cava. **31 again since 0.9.42** —
+        // 33 since 0.7.9 (G): Madeira and Cava; 31 through 0.9.42's removal;
+        // **33 again since 0.9.45**: the maintainer reversed the removal
+        // ("misattributed, bring them back"), exam refs restored with them,
+        // and Batch A's Madeira wineType dangler resolves itself. Old note —
         // both came back off the shelf on the maintainer's ruling; their exam
         // questions re-point at R081 Madeira and R102 Penedès, so the paper
         // still teaches both wines from the places that make them.
-        #expect(db.entries(in: .styles).count == 31)
+        #expect(db.entries(in: .styles).count == 33)
         #expect(db.entries(in: .continents).count == 6)
     }
 
@@ -98,7 +106,12 @@ struct CoverageTests {
         // Flavours unchanged at 106 for the fifth data batch running.
         // 459 since 0.9.42: +15 regions, −2 styles (Madeira and Cava retired).
         // Flavours unchanged at 106 for the sixth data batch running.
-        #expect(stats.total == 459)
+        // 471 since 0.9.45: Madeira and Cava restored (+2 styles) atop
+        // 469 from Batch A, "THE SEAM" (sommbot, 2026-09-01): +10 grapes,
+        // closing every native variety the 0.9.42 regions pointed at.
+        // Flavours unchanged at 106 for the seventh data batch running —
+        // all 30 new tasting notes drawn from the existing vocabulary.
+        #expect(stats.total == 471)
         // 26 since 0.7.3c: Brazil is the first *new* origin since Mexico. The
         // count is distinct region origins, so the coming-soon gates still do
         // not count and adding a country without a region would not move it.
@@ -279,7 +292,12 @@ struct CoverageTests {
         // Plavac Mali) from sommbot's P1/P2 batch. **Not in the 0.7.9 spec's
         // pin list** — it moves with every grape batch by construction, which
         // is exactly what it is for.
-        #expect(counts == [2: 42, 3: 81, 4: 17, 5: 37])
+        // Batch A, "THE SEAM" (2026-09-01): +2 Light (Pinela, Chasselas),
+        // +6 Medium (Melnik, Merwah, Malvazija Istarska and Teran authored
+        // "Medium"; Zelen and Fetească Regală authored "Light-Medium", which
+        // rounds to the same bar), +1 Medium-Full (Obaideh) and +1 Full
+        // (Mavrud).
+        #expect(counts == [2: 44, 3: 87, 4: 18, 5: 38])
 
         // Chardonnay is authored `body: "Medium-Full"` and drew a full bar.
         // (`grapeBodyClass` still reads "Full" for it — that is a *different*
@@ -558,7 +576,7 @@ struct CoverageTests {
     /// entries — counted in the title because the number is the only thing
     /// here that says a row was added or removed rather than edited, and a
     /// silent extra row is how a wrong one would arrive unnoticed.
-    @Test("all fifteen colour overrides resolve, and each names a real style")
+    @Test("all seventeen colour overrides resolve, and each names a real style")
     func colorOverridesResolve() {
         let styleNames = Set(db.entries(in: .styles).map {
             TextNormalize.label($0.name).trimmingCharacters(in: .whitespaces)
@@ -566,7 +584,7 @@ struct CoverageTests {
         // The title states a number, so something has to hold it to it. It said
         // "sixteen" through the whole of 0.8.2's authoring while the table had
         // seventeen rows, because nothing here ever read the count.
-        #expect(EntryDisplay.colorOverrides.count == 15)
+        #expect(EntryDisplay.colorOverrides.count == 17)
         for (key, expected) in EntryDisplay.colorOverrides {
             #expect(
                 EntryDisplay.colorType(name: key) == expected,

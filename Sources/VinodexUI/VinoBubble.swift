@@ -31,12 +31,33 @@ import VinodexCore
 /// be most of it, and an affordance that competes with "tap it" makes the
 /// simpler gesture look wrong.
 public struct VinoBubble: View {
-    let line: VinoLine
+    let line: VinoLine?
+    /// A V4 moment wearing the same bubble — text pre-resolved, no chirp.
+    let moment: VinoMomentLine?
     let onDismiss: () -> Void
 
     public init(line: VinoLine, onDismiss: @escaping () -> Void) {
         self.line = line
+        self.moment = nil
         self.onDismiss = onDismiss
+    }
+
+    public init(moment: VinoMomentLine, onDismiss: @escaping () -> Void) {
+        self.line = nil
+        self.moment = moment
+        self.onDismiss = onDismiss
+    }
+
+    /// The two identities, unified for the body: what he says, the face he
+    /// says it with, and the change key the landing animation watches.
+    private var renderedText: String {
+        moment?.text ?? line?.rendered(name: displayName) ?? ""
+    }
+    private var expression: VinoExpression {
+        moment?.expression ?? line?.expression ?? .neutral
+    }
+    private var identity: String {
+        moment?.key ?? line?.trigger.rawValue ?? ""
     }
 
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
@@ -86,7 +107,7 @@ public struct VinoBubble: View {
                 onDismiss()
             }
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("Vinobot: " + line.rendered(name: displayName))
+            .accessibilityLabel("Vinobot: " + renderedText)
             .accessibilityHint("Tap to dismiss")
             .accessibilityAddTraits(.isButton)
             // Rises from the bottom edge, which is where he is - not a panel
@@ -100,7 +121,7 @@ public struct VinoBubble: View {
         }
         // Re-runs the entrance for the next queued line, so two bubbles in a row
         // read as two remarks rather than as one panel whose text changed.
-        .onChange(of: line.trigger) { _, _ in
+        .onChange(of: identity) { _, _ in
             guard !reduceMotion else { return }
             landed = false
             withAnimation(DexMotion.settle) { landed = true }
@@ -116,7 +137,7 @@ public struct VinoBubble: View {
     /// to a hole. `ArtPipelineRosterTests` is what makes that a theoretical case.
     private var portrait: some View {
         DexChromeGlyph(
-            line.expression.artStem,
+            expression.artStem,
             symbol: "cpu",
             size: portraitSize,
             weight: .semibold,
@@ -130,7 +151,7 @@ public struct VinoBubble: View {
 
     private var bubble: some View {
         VStack(alignment: .leading, spacing: 4) {
-            if let chirp = line.chirp {
+            if let chirp = line?.chirp {
                 // Its own run, in the retro face - which is the reason `chirp`
                 // is a separate field. See `VinoChirp`.
                 Text(chirp.text)
@@ -139,7 +160,7 @@ public struct VinoBubble: View {
                     .foregroundStyle(lcd.accent)
             }
 
-            Text(line.rendered(name: displayName))
+            Text(renderedText)
                 .font(DexFont.mono(18))
                 .foregroundStyle(lcd.text)
                 .multilineTextAlignment(.leading)

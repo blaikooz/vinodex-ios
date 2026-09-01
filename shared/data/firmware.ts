@@ -72,7 +72,9 @@ const CURRENT: FirmwareRelease = {
     "MY PICKS: he presents your recommendations with the reason your shelf earned them.",
     "STUDY: he names your weakest exam category and sends you to the next paper.",
     "Unlocking an exam tier earns a certificate, handed over by the examiner himself.",
-    "VINOBOT'S TAKE: one line of his opinion on every grape, region, style and flavour page.",
+    "VINOBOT'S TAKE: one line of his opinion on every grape, region, style and flavour page, read aloud on request in his own voice.",
+    "He greets each day once: the moon's ruling, and any streak worth a word.",
+    "A pass over all his older lines: one voice, no dashes, no stale promises.",
   ],
 };
 

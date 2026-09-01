@@ -331,7 +331,7 @@ public enum VinoDialogue {
             //
             // ASCII: "online - vintage" was an em dash; the leading "> BOOP."
             // arrow is now `chirp`.
-            line: "Vinobot online - vintage intelligence, no taste buds. What do I call you, explorer?",
+            line: "Vinobot online: vintage intelligence, no taste buds. What do I call you, explorer?",
             expression: .neutral,
             chirp: .boop,
             // Gag 1 of 4. The character premise: without it he is a database.
@@ -356,7 +356,7 @@ public enum VinoDialogue {
         VinoLine(
             trigger: .firstGrapeViewed,
             // ASCII: "lineage - the whole file" was an em dash.
-            line: "A grape entry, {name}. Origin, body, tannin, lineage - the whole file. Mark it TRIED when you have.",
+            line: "A grape entry, {name}. Origin, body, tannin, lineage: the whole file. Mark it TRIED when you have.",
             expression: .neutral
         ),
         VinoLine(
@@ -367,7 +367,7 @@ public enum VinoDialogue {
         VinoLine(
             trigger: .firstStyleViewed,
             // ASCII: "not a place - a way" was an em dash.
-            line: "A style, {name}. Not a grape and not a place - a way of making the wine.",
+            line: "A style, {name}. Not a grape and not a place. A way of making the wine.",
             expression: .thinking
         ),
         VinoLine(
@@ -465,7 +465,7 @@ public enum VinoDialogue {
             // ASCII: "away - new shell" was an em dash. "lights" are the real
             // marquee lamps, "shell" is the chassis, and CUSTOMIZE is the shipped
             // American spelling.
-            line: "Customize away - new shell, new lights. Same genius inside. You're welcome, {name}.",
+            line: "Customize away: new shell, new lights. Same genius inside. You're welcome, {name}.",
             expression: .smiling
         ),
         VinoLine(
@@ -537,6 +537,14 @@ public enum VinoDialogue {
 
             if entry.line.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 problems.append("\(where_): line is empty")
+            }
+
+            // The dash construction is banned by maintainer ruling (V4 text
+            // pass, 2026-09-01): a spaced hyphen reads as an em dash, and he
+            // speaks in sentences, colons and commas. The scenes and takes
+            // carry the same rule in their own gates.
+            if entry.line.contains(" - ") {
+                problems.append("\(where_): dash construction in line")
             }
             if entry.wordCount > maxWords {
                 problems.append("\(where_): \(entry.wordCount) words; the bubble takes \(maxWords)")

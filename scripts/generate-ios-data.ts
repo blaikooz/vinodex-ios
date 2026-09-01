@@ -754,9 +754,11 @@ const STYLE_ART: Record<string, string> = {
   'bordeaux blend': 'bordeauxblend',
   'botrytis wine': 'botrytiswine',
   'champagne': 'champagne',
-  // The 'cava' and 'madeira' rows left with S033/S034 (0.9.42) — their
-  // recolour placeholders (0.7.9's port/prosecco siblings) moved to
-  // art/icons/attic with the rest of the retired art.
+  // Restored 0.9.45 with S033/S034 (maintainer ruling: the 0.9.42
+  // deletion is reversed) — the 0.7.9 recolour placeholders came back out
+  // of the attic with them.
+  'cava': 'cava',
+  'madeira': 'madeira',
   'cremant': 'cremant',
   'cru beaujolais': 'crubeaujolas',
   'dessert wine': 'dessertwine',

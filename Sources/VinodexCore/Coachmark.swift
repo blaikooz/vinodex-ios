@@ -259,7 +259,7 @@ public enum CoachmarkWalkthrough {
             id: "listing",
             target: .listingRow,
             advancesOn: .openedEntry,
-            line: "Every grape I hold, {name}. Open one you have drunk, or one you like the look of.",
+            line: "Every grape I hold, {name}. Start with Pinot Noir: temperamental, famous, and honest about both.",
             expression: .neutral
         ),
         CoachmarkStep(

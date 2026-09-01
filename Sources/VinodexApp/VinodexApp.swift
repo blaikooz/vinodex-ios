@@ -317,6 +317,10 @@ struct RootView: View {
                 // what is on it. See `VinoBubble`.
                 if let line = vino.current {
                     VinoBubble(line: line) { vino.dismiss() }
+                } else if let moment = vino.currentMoment {
+                    // The ambient lane (rework V4): drawn only when no tip
+                    // is waiting — a moment never outranks a first-time.
+                    VinoBubble(moment: moment) { vino.dismissMoment() }
                 }
 
                 // **The introduction, and the name** (0.8.9d, F1).
@@ -577,6 +581,12 @@ struct RootView: View {
         // pending week goes stale the moment a paper is sat or a day rolls over.
         // A no-op when the user has never opted in.
         .onChange(of: scenePhase) { _, phase in
+            // The daily evaluation (rework V4): once per calendar day, on
+            // the first foreground — the moon line, plus any streak mark
+            // crossed since it last spoke. QUIET wins outright, and the
+            // once-ledgers write at enqueue so a swallowed bubble cannot
+            // re-arm tomorrow's double.
+            if phase == .active { fireDailyMoments() }
             guard phase == .active else { return }
             Task { await NotificationScheduler.shared.syncFromStores() }
         }
@@ -713,6 +723,27 @@ struct RootView: View {
     /// The return values are discarded rather than enqueued — the card *is* the
     /// presentation, and re-presenting the same two sentences as bubbles a
     /// moment later would be saying everything twice.
+    private func fireDailyMoments() {
+        let store = VinoMomentStore.shared
+        guard !triggers.isSilenced, !store.hasSpokenToday() else { return }
+        let day = MoonCalendar.day()
+        let lines = VinoMoments.compose(
+            name: UserDefaults.standard.string(forKey: VinoName.storageKey),
+            moonDay: day,
+            goodDay: day.isGoodForDrinking,
+            bestStreak: StreakStore.shared.best,
+            alreadySpokenMarks: store.spokenMarks
+        )
+        guard !lines.isEmpty else { return }
+        store.markSpokenToday()
+        for line in lines {
+            vino.present(moment: line)
+            if line.key.hasPrefix("streak."), let mark = Int(line.key.dropFirst("streak.".count)) {
+                store.markStreakSpoken(mark)
+            }
+        }
+    }
+
     private func finishIntro() {
         showingIntro = false
         triggers.fireOnce(.firstLaunch)
