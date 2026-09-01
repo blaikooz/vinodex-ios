@@ -25,6 +25,16 @@ public struct EncyclopediaListScreen: View {
     @State private var access = AccessStore.shared
     /// The eight stored settings, as one model (arch **A17**).
     var settings: AppSettings = .shared
+
+    /// The row the walkthrough spotlights (onboarding pass, 2026-09-01):
+    /// Pinot Noir by maintainer ruling — the heartbreak grape is a better
+    /// first lesson than the alphabet's Cabernet — falling back to the
+    /// first row on any list where he is absent. Hoisted out of the row
+    /// loop because the inline form sent the type-checker over budget.
+    private func spotlitRowID(in rows: [SearchRow]) -> String? {
+        rows.first(where: { $0.sortName == "Pinot Noir" })?.id ?? rows.first?.id
+    }
+
     private var lcd: LcdMode { settings.lcdMode }
     /// The database this screen reads. Defaulted so no call site changes, but
     /// injectable, which is the whole of **M27**: a screen that hard-reads
@@ -355,14 +365,7 @@ public struct EncyclopediaListScreen: View {
                                     // from an enumerated index, so `ForEach`
                                     // keeps the stable identity the scroll
                                     // restoration below depends on.
-                                    // The guided run's first grape is
-                                    // Pinot Noir by maintainer ruling
-                                    // (onboarding pass, 2026-09-01): the
-                                    // heartbreak grape is the better first
-                                    // lesson than the alphabet's Cabernet.
-                                    // Falls back to the first row on any
-                                    // list where he is absent.
-                                    .coachmarkTarget(row.id == (rows.first(where: { $0.name == "Pinot Noir" })?.id ?? rows.first?.id) ? .listingRow : nil)
+                                    .coachmarkTarget(row.id == spotlitRowID(in: rows) ? .listingRow : nil)
                                 }
                             }
                         }
