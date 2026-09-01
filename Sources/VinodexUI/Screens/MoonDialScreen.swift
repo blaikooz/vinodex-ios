@@ -153,9 +153,19 @@ public struct MoonDialScreen: View {
             }
 
             VStack(spacing: 6) {
-                Image(systemName: symbol)
-                    .font(.system(size: size * 0.27, weight: .semibold))
-                    .foregroundStyle(tint)
+                // The drawn day faces since 0.9.43 — grape bunch, blossom,
+                // vine leaf, taproot — flattened to the day's tint exactly as
+                // the SF symbols were. FRUIT's `applelogo` stand-in retires
+                // with them: a literal Apple trademark had no business on a
+                // biodynamic dial.
+                DexChromeGlyph(
+                    artStem,
+                    symbol: symbol,
+                    size: size * 0.27,
+                    weight: .semibold,
+                    tint: tint,
+                    flatten: tint
+                )
                 Text(day.rawValue)
                     .font(DexFont.retro(16 + 5 * grow))
                     .tracking(2)
@@ -175,6 +185,18 @@ public struct MoonDialScreen: View {
         case .flower: "camera.macro"
         case .leaf: "leaf.fill"
         case .root: "mountain.2.fill"
+        }
+    }
+
+    /// The drawn face beside each fallback symbol (0.9.43) — total, so the
+    /// symbols above are reachable only if a master goes missing from the
+    /// bundle.
+    private var artStem: String {
+        switch day {
+        case .fruit: "moonday-fruit"
+        case .flower: "moonday-flower"
+        case .leaf: "moonday-leaf"
+        case .root: "moonday-root"
         }
     }
 
@@ -235,9 +257,16 @@ public struct MoonDialScreen: View {
     /// to hand.
     private func verdict(grow: CGFloat) -> some View {
         VStack(spacing: 10 + 4 * grow) {
-            Image(systemName: day.isGoodForDrinking ? "checkmark.seal.fill" : "hand.raised.fill")
-                .font(.system(size: 28 + 12 * grow, weight: .bold))
-                .foregroundStyle(tint)
+            // The wine glass with its check, and the raised hand (0.9.43) —
+            // the verdict pair from the same drop as the day faces.
+            DexChromeGlyph(
+                day.isGoodForDrinking ? "moonday-drink" : "moonday-hold",
+                symbol: day.isGoodForDrinking ? "checkmark.seal.fill" : "hand.raised.fill",
+                size: 28 + 12 * grow,
+                weight: .bold,
+                tint: tint,
+                flatten: tint
+            )
 
             Text(day.verdict)
                 .font(DexFont.retro(15 + 5 * grow))
