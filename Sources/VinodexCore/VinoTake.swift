@@ -42,11 +42,13 @@ public enum VinoTake {
         // Napa: the new world's proof.
         "R013": "Proof the new world could go toe to toe, and priced like it knows. The valley floor is sunshine with a mortgage.",
         // Orange wine: the oldest new thing.
-        "S015": "White grapes treated like reds - the oldest technique currently being called a trend. Amber glass, tea tannin, strong opinions included.",
+        "S015": "White grapes treated like reds. The oldest technique in the book, currently being called a trend. Amber glass, tea tannin, strong opinions included.",
     ]
 
-    /// The floor. Nil only for continents.
-    public static func compose(for entry: WineEntry) -> String? {
+    /// The floor. Nil only for continents. Takes the database because a
+    /// pokedex entry cites the pokedex: a flavour's take counts the grapes
+    /// that log it, and inventing that number would break the honesty rule.
+    public static func compose(for entry: WineEntry, in db: WineDatabase) -> String? {
         if let authored = overrides[entry.id] { return authored }
         switch entry {
         case .grape(let g):
@@ -56,7 +58,14 @@ public enum VinoTake {
         case .style(let s):
             return styleTake(s)
         case .flavor:
-            return "Find it in the glass before you read it on the card. Every note you can name is one you will find again."
+            let count = db.entries(in: .grapes).filter { grape in
+                guard case .grape(let g) = grape else { return false }
+                return g.tastingProfile?.contains { $0.note == entry.name } ?? false
+            }.count
+            if count > 0 {
+                return "Logged in \(count) \(count == 1 ? "grape" : "grapes") across the catalog. Name it blind three times and it is yours for life."
+            }
+            return "Rare in the wild. No grape in the catalog leads with it. Consider it a collector's note."
         case .continent:
             return nil
         }
@@ -67,66 +76,83 @@ public enum VinoTake {
     private static func grapeTake(_ g: GrapeEntry) -> String {
         let c = g.grapeCharacteristics
         let origin = g.details.origin
-        // **Dominant axis, not threshold order** (checkpoint V3's first
-        // finding): fixed thresholds put the whole catalog in two buckets —
-        // 77 grapes "struck bell", 97 "big tannin", three templates
-        // unreachable. The authored bars skew high, so what distinguishes a
-        // grape is which bar leads, and a near-flat profile is its own
-        // personality. Spread on live data: ~31 tannin, ~110 acid (split by
-        // body), ~21 balanced, ~15 aromatic.
+        // The pokedex register (checkpoint V3, round two): observed nature
+        // first — this grape's own logged tasting notes — then one wry,
+        // factual behaviour. "Robotic" was round one's serving advice;
+        // an entry that names its own flavours cannot be mistaken for a
+        // form letter.
+        let notes = (g.tastingProfile ?? []).map(\.note)
+        let n1 = notes.first?.lowercased()
+        let n2 = notes.dropFirst().first?.lowercased()
+
+        if g.rarity == .godforsaken, let n1 {
+            return "Nearly extinct in the wild. A handful of rows keeps it going, and what survives tastes of \(n1) and stubbornness."
+        }
+
         let axes: [(String, Double)] = [
             ("tannin", c.tannin), ("acid", c.acid), ("aromatics", c.aromatics),
         ]
         let spread = (axes.map(\.1).max() ?? 0) - (axes.map(\.1).min() ?? 0)
         if spread < 0.15 {
-            return "No loud edges - tannin, acid and perfume in step. Balance reads as boring until you taste it done right."
+            if let n1, let n2 {
+                return "Shows \(n1), \(n2), and no single loud voice. Balance reads as boring until somebody does it right."
+            }
+            return "No loud edges: tannin, acid and perfume in step. Balance reads as boring until you taste it done right."
         }
         switch axes.max(by: { $0.1 < $1.1 })?.0 {
         case "tannin":
-            return "Tannin leads here. Decant it, feed it something that pushes back, and do not rush what \(origin) built to last."
+            if let n1, let n2 {
+                return "Leads with \(n1) and \(n2) from behind a wall of tannin. It guards its fruit the way \(origin) guards a recipe."
+            }
+            return "Tannin leads here. It guards its fruit the way \(origin) guards a recipe: firmly, and for years."
         case "aromatics":
-            return "The perfume does half the work before you sip. Serve it cool and let the glass introduce itself."
+            if let n1 {
+                return "The \(n1) perfume arrives before the glass does. The vines are quieter than the wine."
+            }
+            return "The perfume arrives before the glass does. The vines are quieter than the wine."
         default:
             if c.body <= 0.45 {
-                return "Acid up front, nothing to hide behind. Cold bottle, bright glass - \(origin)'s idea of refreshment."
+                if let n1, let n2 {
+                    return "Mostly \(n1), \(n2) and voltage. Built for cold bottles and hot afternoons."
+                }
+                return "Acid up front, nothing hiding behind it. Built for cold bottles and hot afternoons."
             }
-            return "Acidity like a struck bell, with the frame to carry it. It cuts through anything the kitchen sends out."
+            if let n1, let n2 {
+                return "Carries \(n1) and \(n2) on a spine of acidity. It cuts through a rich meal like fresh string through clay."
+            }
+            return "Acidity with the frame to carry it. It cuts through a rich meal like fresh string through clay."
         }
     }
 
     private static func regionTake(_ r: RegionEntry) -> String {
         let climateWord = (r.climate?.rawValue ?? "patient").lowercased()
         let grape = r.details.notableGrapes.first
-        if let soil = r.details.soilType?.split(separator: ",").first.map(String.init) {
-            let dirt = soil.lowercased()
-            if let grape {
-                return "\(dirt.prefix(1).capitalized + dirt.dropFirst()) under a \(climateWord) sky, and \(grape) knows it. The dirt writes the first draft here."
-            }
-            return "\(dirt.prefix(1).capitalized + dirt.dropFirst()) under a \(climateWord) sky. The dirt writes the first draft; the cellar edits."
+        if let soil = r.details.soilType?.split(separator: ",").first.map(String.init)?.lowercased(), let grape {
+            return "Raises \(grape) on \(soil) under a \(climateWord) sky. The ground writes the first draft; the cellar only edits."
         }
         if let grape {
-            return "A \(climateWord) climate and \(grape) with opinions. The place argues; the wine usually wins."
+            return "A \(climateWord) home where \(grape) sets the house style. Maps explain the borders; the glass explains the map."
         }
-        return "A \(climateWord) climate with history in the hedgerows. Places like this taught the grapes everything."
+        return "A \(climateWord) outpost with more history than hectares. Small places argue loudest in wine."
     }
 
     private static func styleTake(_ s: StyleEntry) -> String {
         switch s.details.classification {
         case "METHOD":
-            return "A method, not a place. Learn how it is made and you will spot it blind for the rest of your life."
+            return "Defined by how it is made, not where. Learn the method once and you will spot it blindfolded forever."
         case "BLEND":
-            return "A committee that works: each grape covers another's weaknesses. Rare in wine. Rarer in committees."
+            return "A committee that works: each grape covers another's weakness. Rare in wine. Rarer in committees."
         case "ORIGIN":
-            return "Named for where it comes from, and the name is doing legal work. The place is the recipe."
+            return "Its name is a place doing legal work. Imitators can copy the grapes but never the paperwork."
         default:
             let body = (s.details.body ?? "").lowercased()
             if body.contains("full") {
-                return "The heavyweight shelf. Pour it with food that pushes back, and give the glass room to breathe."
+                return "The heavyweight class. It trains against rich food and usually wins on points."
             }
             if body.contains("light") {
-                return "Easy company. Chill it, pour it, repeat - not every bottle needs a thesis."
+                return "Featherweight and proud of it. Serve it cold, drink it young, repeat as needed."
             }
-            return "A way of making wine, not a place it is from. Once you can taste the intent, labels get easier."
+            return "A way of making wine rather than a place. Taste the intent and labels stop being homework."
         }
     }
 
@@ -139,7 +165,7 @@ public enum VinoTake {
             out.append("override \(id) names no entry")
         }
         for entry in db.entries {
-            guard let take = compose(for: entry) else {
+            guard let take = compose(for: entry, in: db) else {
                 if entry.category != .continents {
                     out.append("\(entry.id): no take composed")
                 }
@@ -169,6 +195,10 @@ public enum VinoTake {
                 residue = residue.replacingOccurrences(of: word.lowercased(), with: "")
             }
             if residue.contains(where: { !$0.isASCII }) { out.append("\(entry.id): non-ASCII in authored words") }
+            // The dash construction is banned by maintainer ruling
+            // (checkpoint V3, round three): a spaced hyphen reads as an em
+            // dash in prose, and he speaks in sentences, colons and commas.
+            if take.contains(" - ") { out.append("\(entry.id): dash construction in take") }
         }
         return out
     }

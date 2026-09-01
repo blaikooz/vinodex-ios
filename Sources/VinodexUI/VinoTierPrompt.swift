@@ -55,7 +55,7 @@ struct VinoTierPrompt: View {
                     .foregroundStyle(lcd.text)
                     .multilineTextAlignment(.center)
 
-                Text("A harder paper, unlocked. I taught you most of what you know - not most of what I know.")
+                Text("A harder paper, unlocked. I taught you most of what you know. Not most of what I know.")
                     .font(DexFont.mono(17))
                     .foregroundStyle(lcd.subtext)
                     .multilineTextAlignment(.center)
