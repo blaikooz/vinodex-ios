@@ -86,15 +86,15 @@ public struct ProfVinoScreen: View {
             // The typewriter line. `prefix` is safe past the end, so the
             // reveal counter never needs clamping.
             Text(String((node?.text ?? "").prefix(revealed)))
-                .font(DexFont.mono(18))
+                .font(DexFont.mono(21))
                 .foregroundStyle(lcd.text)
                 .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, minHeight: 78, alignment: .topLeading)
+                .frame(maxWidth: .infinity, minHeight: 90, alignment: .topLeading)
 
             if lineDone, let body = node?.importedBody {
                 ScrollView {
                     Text(body)
-                        .font(DexFont.mono(16))
+                        .font(DexFont.mono(18))
                         .foregroundStyle(lcd.subtext)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .topLeading)

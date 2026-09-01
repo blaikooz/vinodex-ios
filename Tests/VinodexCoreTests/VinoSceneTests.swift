@@ -68,15 +68,19 @@ struct VinoSceneTests {
         #expect(speaking["quiet"]!.text.contains("Quiet mode on"))
     }
 
-    /// THIS DEVICE replays shipped `ToolIntro` copy verbatim — imported,
-    /// not re-authored, so the scene cap deliberately does not gate it.
-    @Test("the device door replays tool intros verbatim")
-    func deviceDoorImports() {
+    /// HELP replays shipped `ToolIntro` copy verbatim — imported, not
+    /// re-authored, so the scene cap deliberately does not gate it — and
+    /// since checkpoint V1 it lists the WHOLE roster, paginated: every
+    /// intro is reachable, and page one's MORE chains to page two.
+    @Test("help lists the whole roster, paginated, verbatim")
+    func helpListsEverything() {
         let graph = VinoScenes.compose(inputs()[0])
-        for intro in ToolRoster.all.prefix(3) {
-            let node = graph["device.\(intro.id)"]
-            #expect(node?.importedBody == intro.body)
+        for intro in ToolRoster.all {
+            let node = graph["help.\(intro.id)"]
+            #expect(node?.importedBody == intro.body, "missing \(intro.id)")
         }
+        #expect(graph["help"]!.choices.contains { $0.label == "MORE" })
+        #expect(graph["help.2"] != nil)
     }
 
     /// The empty shelf gets the beginner line; a shelf with a streak gets

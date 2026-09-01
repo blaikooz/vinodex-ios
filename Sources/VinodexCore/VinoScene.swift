@@ -5,7 +5,7 @@ import Foundation
 /// The rework spec (`horizon-md/vinodex-vino-rework.md`) turns his page from
 /// a diagram into a place: a dialogue graph the player walks by tapping
 /// choices, in the RPG register the maintainer chose. This file is the
-/// graph's vocabulary and the V1 scenes — TODAY and THIS DEVICE — with the
+/// graph's vocabulary and the V1 scenes — TODAY and HELP — with the
 /// same discipline `VinoDialogue` established for the bubbles: the copy is
 /// data, the rules are executable, and `problems()` is what keeps his voice
 /// from drifting when the next batch adds nodes.
@@ -116,7 +116,7 @@ public enum VinoScenes {
             expression: .smiling,
             choices: [
                 VinoSceneChoice("TODAY", goes: "today"),
-                VinoSceneChoice("THIS DEVICE", goes: "device"),
+                VinoSceneChoice("HELP", goes: "help"),
                 VinoSceneChoice(input.silenced ? "SPEAK MORE" : "SPEAK LESS", goes: "quiet"),
             ]
         ))
@@ -150,26 +150,38 @@ public enum VinoScenes {
             choices: [VinoSceneChoice("BACK", goes: "root")]
         ))
 
-        // --- THIS DEVICE: his old one-time tips, replayable at last. The
-        // topics are the shipped `ToolIntro` set, imported verbatim.
-        var deviceChoices = ToolRoster.all.prefix(3).map {
-            VinoSceneChoice($0.title, goes: "device.\($0.id)")
+        // --- HELP: his old one-time tips, replayable at last — the WHOLE
+        // roster (checkpoint V1: "expand the device section"), paginated in
+        // threes because a menu is pills on an LCD, not a scroll. Page one
+        // carries MORE; the last page carries only BACK.
+        let intros = Array(ToolRoster.all)
+        let pages = stride(from: 0, to: intros.count, by: 3).map {
+            Array(intros[$0..<min($0 + 3, intros.count)])
         }
-        deviceChoices.append(VinoSceneChoice("BACK", goes: "root"))
-        nodes.append(VinoSceneNode(
-            id: "device",
-            text: "Ask away. I contain multitudes, alphabetised.",
-            expression: .neutral,
-            choices: Array(deviceChoices)
-        ))
-        for intro in ToolRoster.all.prefix(3) {
+        for (index, page) in pages.enumerated() {
+            let pageID = index == 0 ? "help" : "help.\(index + 1)"
+            var choices = page.map { VinoSceneChoice($0.title, goes: "help.\($0.id)") }
+            if index + 1 < pages.count {
+                choices.append(VinoSceneChoice("MORE", goes: "help.\(index + 2)"))
+            }
+            choices.append(VinoSceneChoice("BACK", goes: "root"))
             nodes.append(VinoSceneNode(
-                id: "device.\(intro.id)",
+                id: pageID,
+                text: index == 0
+                    ? "Ask away. I contain multitudes, alphabetised."
+                    : "There is more of me. Take your pick.",
+                expression: .neutral,
+                choices: choices
+            ))
+        }
+        for intro in intros {
+            nodes.append(VinoSceneNode(
+                id: "help.\(intro.id)",
                 text: "My file on \(intro.title):",
                 expression: .thinking,
                 importedBody: intro.body,
                 choices: [
-                    VinoSceneChoice("ANOTHER", goes: "device"),
+                    VinoSceneChoice("ANOTHER", goes: "help"),
                     VinoSceneChoice("BACK", goes: "root"),
                 ]
             ))
@@ -203,14 +215,17 @@ public enum VinoScenes {
             if node.text.contains(where: { !$0.isASCII }) {
                 out.append("\(node.id): non-ASCII in authored text")
             }
-            if node.choices.isEmpty || node.choices.count > 4 {
-                out.append("\(node.id): \(node.choices.count) choices, need 1-4")
+            // Five, not four, since checkpoint V1: a HELP menu page is
+            // three topics + MORE + BACK, and five short pills still fit
+            // the LCD. Six would not.
+            if node.choices.isEmpty || node.choices.count > 5 {
+                out.append("\(node.id): \(node.choices.count) choices, need 1-5")
             }
             for choice in node.choices where graph[choice.goes] == nil {
                 out.append("\(node.id): choice '\(choice.label)' goes to missing '\(choice.goes)'")
             }
             if node.id != "root",
-               !node.choices.contains(where: { $0.goes == "root" || $0.goes == "device" || $0.goes == "today" }) {
+               !node.choices.contains(where: { $0.goes == "root" || $0.goes.hasPrefix("help") || $0.goes == "today" }) {
                 out.append("\(node.id): no route back toward root")
             }
             for choice in node.choices where choice.label != choice.label.uppercased() {
