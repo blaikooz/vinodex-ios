@@ -34,7 +34,7 @@ struct CoachmarkTests {
     func sequenceIsSpecOrder() {
         #expect(
             CoachmarkWalkthrough.steps.map(\.id)
-                == ["menu", "listing", "tried", "insight", "passport", "done"]
+                == ["menu", "listing", "tried", "vinobot", "passport", "done"]
         )
     }
 

@@ -110,6 +110,7 @@ public struct EntryDetailScreen: View {
         static let hero = "hero"
         static let tiles = "tiles"
         static let info = "info"
+        static let vinobot = "vinobot"
         static let insight = "insight"
         static let sections = "sections"
     }
@@ -153,7 +154,9 @@ public struct EntryDetailScreen: View {
                 // fields for everyone else (`VinoTake`, gated over the whole
                 // catalog by `VinoTakeTests`). Tapping the row visits him.
                 // Directly under INFO by the maintainer's checkpoint ruling.
-                vinoTakeSection
+                // The walkthrough's fourth step lights it (0.9.45 pass,
+                // repointed here from INSIGHT).
+                vinoTakeSection.id(Anchor.vinobot).coachmarkTarget(.vinobotPanel)
                 if entry.isTastable, bookmarks.contains(entry.id, on: .tried) {
                     myTasting
                 }
@@ -181,10 +184,10 @@ public struct EntryDetailScreen: View {
                 .id(Anchor.sections)
                 // **INSIGHT closes the page (checkpoint V3 ruling).** It read
                 // the page's summary sitting at the top; as the last section
-                // it reads as the page's verdict — and the walkthrough's
-                // fourth step still lights it after the tried tap changed it
-                // (0.8.9d, G2). See `CoachmarkAction.acknowledged`.
-                insightSection.id(Anchor.insight).coachmarkTarget(.insightPanel)
+                // it reads as the page's verdict. The walkthrough's fourth
+                // step lit it until the 0.9.45 pass repointed the step at
+                // VINOBOT's section above.
+                insightSection.id(Anchor.insight)
             }
             .scrollTargetLayout()
         }
@@ -197,15 +200,15 @@ public struct EntryDetailScreen: View {
         // the top — the stored anchor is keyed per entry id, so a cross-link to
         // a new entry has none. See `ScreenStateStore`.
         .scrollPosition(id: anchorBinding)
-        // The walkthrough's INSIGHT step spotlights a panel that now closes
-        // the page (checkpoint V3 moved it), so the step must bring the
-        // page to the panel — the spotlight cannot light what is off
-        // screen. Scrolls once per activation; the maintainer flags this
-        // whole flow for the onboarding rework, where it may change again.
+        // The walkthrough's fourth step spotlights VINOBOT's section, and a
+        // long INFO blurb can push it below the fold — the spotlight cannot
+        // light what is off screen. Scrolls once per activation; the
+        // maintainer flags this whole flow for the onboarding rework, where
+        // it may change again.
         .onChange(of: coachmarks.current?.id) { _, stepID in
-            if stepID == "insight" {
+            if stepID == "vinobot" {
                 withAnimation(.easeInOut(duration: 0.45)) {
-                    screens.setAnchor(Anchor.insight, for: screenKey)
+                    screens.setAnchor(Anchor.vinobot, for: screenKey)
                 }
             }
         }

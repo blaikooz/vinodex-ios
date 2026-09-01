@@ -163,10 +163,16 @@ public enum CoachmarkTarget: String, Sendable, CaseIterable, Hashable {
     case listingRow
     /// The TRIED pill on an entry page.
     case triedControl
-    /// The INSIGHT panel on an entry page.
-    case insightPanel
+    /// VINOBOT's take on an entry page (0.9.45 pass: the fourth step pointed
+    /// at INSIGHT; the maintainer repointed it at his own section).
+    case vinobotPanel
     /// Whatever leads to the passport from where you are standing.
     case passportButton
+    /// **Not a step target.** The LCD glass itself, published by the app
+    /// shell so the overlay can keep the bubble on the screen while the
+    /// spotlight stays free to light chassis controls (0.9.45 ruling: "keep
+    /// the vinobot UI inside the lcd, highlighted sections can be outside").
+    case lcdScreen
 }
 
 // MARK: - Actions
@@ -272,12 +278,13 @@ public enum CoachmarkWalkthrough {
             expression: .thinking
         ),
         CoachmarkStep(
-            id: "insight",
-            target: .insightPanel,
+            id: "vinobot",
+            target: .vinobotPanel,
             advancesOn: .acknowledged,
-            // INSIGHT in the panel's own casing, the rule `VinoDialogue` set
-            // when `firstInsight` was written against the shipped header.
-            line: "There, {name}. INSIGHT reads your shelf back to you, and it deepens with every tasting.",
+            // Was the INSIGHT panel until the 0.9.45 pass; the maintainer
+            // repointed the step at VINOBOT's own section, which sits right
+            // under INFO where the fresh TRIED press left the reader.
+            line: "Found me, {name}? That panel is my take on this grape, and the speaker reads it aloud.",
             expression: .goodjob
         ),
         CoachmarkStep(
