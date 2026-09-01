@@ -720,6 +720,10 @@ const FLAG_PATHS: Record<string, string> = {
   Slovenia: 'Europe/slovenia/slovenia.png',
   Bulgaria: 'Europe/bulgaria/bulgaria.png',
   Lebanon: 'Asia/lebanon/lebanon.png',
+  // Not a country (0.9.44): the generic pennant the web side drew for
+  // blends and crossings whose origin is "Various". Ends the stone-grey
+  // fallback being the one well in the app with nothing in it.
+  Various: 'FirstParty/various.png',
   'South Africa': 'Africa/south_africa/south_africa.png',
   Morocco: 'Africa/morocco/morocco.png',
   USA: 'North America/united_states/united_states.png',
