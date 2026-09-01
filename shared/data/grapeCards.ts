@@ -86,7 +86,7 @@ export const GRAPE_CARDS: GrapeCard[] = LEGACY_GRAPES.map((legacy) => {
   const tastingProfile = (legacy.tastingProfile || []).slice(0, 3).map(t => t.note);
   const rarityTier = toRarityTier(legacy.rarity);
   // Authored bars win over the prose derivation; `??` not `||`, because 0 is a
-  // legal value for every one of these and `||` would throw it away. All 177
+  // legal value for every one of these and `||` would throw it away. All 187
   // grapes author `colorIntensity` and `aromatics`; the other three still fall
   // through to the text, which is why this is a merge and not a swap.
   const authored = legacy.characteristics ?? {};
