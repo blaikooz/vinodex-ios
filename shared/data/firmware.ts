@@ -75,6 +75,10 @@ const CURRENT: FirmwareRelease = {
     "VINOBOT'S TAKE: one line of his opinion on every grape, region, style and flavour page, read aloud on request in his own voice.",
     "He greets each day once: the moon's ruling, and any streak worth a word.",
     "A pass over all his older lines: one voice, no dashes, no stale promises.",
+    "Madeira and Cava, struck off in error, are reinstated with apologies.",
+    "Ten new grapes join the shelf: Mavrud, Melnik, Zelen, Teran, Chasselas and five more from the seams of the map.",
+    "The walkthrough starts you on Pinot Noir and scrolls him into view, and every step now has NEXT and QUIT.",
+    "CLEAR SAVED DATA now closes the app after wiping, so the next launch is a true fresh start.",
   ],
 };
 

@@ -23,6 +23,7 @@ public struct EncyclopediaListScreen: View {
     /// rebuilt when you open an entry and come back — see `SearchStateStore`.
     @State private var searches = SearchStateStore.shared
     @State private var access = AccessStore.shared
+    @State private var coachmarks = CoachmarkEngine.shared
     /// The eight stored settings, as one model (arch **A17**).
     var settings: AppSettings = .shared
 
@@ -264,6 +265,22 @@ public struct EncyclopediaListScreen: View {
         rows = (entries + countries).sorted {
             $0.sortName.localizedCaseInsensitiveCompare($1.sortName) == .orderedAscending
         }
+        scrollToSpotlitRow()
+    }
+
+    /// The walkthrough's listing step spotlights Pinot Noir, who sits well
+    /// below the fold of a 187-grape list. A spotlight whose target never
+    /// reports geometry is a wedge: no halo draws and there is nothing to
+    /// tap, which stalled the whole run on step 2 (0.9.45 test pass). So
+    /// whenever this list is built or the step goes live while it is up,
+    /// drive the scroll anchor to his row — the same store the two-way
+    /// `scrollPosition(id:)` binding below already reads.
+    private func scrollToSpotlitRow() {
+        guard coachmarks.current?.id == "listing",
+              let id = spotlitRowID(in: rows) else { return }
+        withAnimation(.easeInOut(duration: 0.45)) {
+            searches.setAnchor(id, for: searchKey)
+        }
     }
 
     /// `task(id:)` alone covers first appearance. The `onAppear` that used to sit
@@ -286,6 +303,11 @@ public struct EncyclopediaListScreen: View {
             // chip — one of those would eventually be added without its save.
             .onChange(of: chips) { _, value in
                 screens.encode(value.isEmpty ? nil : value, "chips", for: searchKey)
+            }
+            // The resumed-run case `recompute()` cannot see: the rows are
+            // already built when the listing step goes live over them.
+            .onChange(of: coachmarks.current?.id) { _, stepID in
+                if stepID == "listing" { scrollToSpotlitRow() }
             }
     }
 

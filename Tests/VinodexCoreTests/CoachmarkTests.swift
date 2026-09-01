@@ -94,6 +94,33 @@ struct CoachmarkTests {
         #expect(engine.current?.id == "listing")
     }
 
+    /// The overlay's NEXT button (0.9.45 test pass): every step is escapable
+    /// without performing its action, because a step whose target cannot be
+    /// reached would otherwise wedge the run.
+    @Test("NEXT advances any step, keeps the high-water mark, and can finish")
+    func nextAdvancesUnconditionally() {
+        let engine = makeEngine()
+        engine.advance()
+        #expect(engine.isRunning == false, "NEXT on an idle engine started it")
+
+        engine.start()
+        for step in CoachmarkWalkthrough.steps {
+            #expect(engine.current?.id == step.id)
+            engine.advance()
+        }
+        #expect(engine.isRunning == false)
+        #expect(engine.isComplete, "a run walked entirely on NEXT still completes")
+
+        // NEXT keeps the resume high-water mark the way the actions do.
+        let second = makeEngine()
+        second.start()
+        second.advance()
+        second.skip()
+        #expect(second.isComplete == false)
+        second.start()
+        #expect(second.current?.id != nil, "a quit after NEXT lost the run")
+    }
+
     @Test("running the whole sequence finishes it")
     func fullRunCompletes() {
         let engine = makeEngine()

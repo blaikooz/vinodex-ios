@@ -516,12 +516,12 @@ public struct SettingsSectionPanel: View {
             } else if confirmingWipe {
                 DexAlert(
                     title: "CLEAR SAVED DATA?",
-                    message: "Everything stored on this device — bookmarks, recents, tastings and ratings, quiz progress, streak, profile, purchases and appearance — goes back to a fresh install. This cannot be undone.",
+                    message: "Everything stored on this device — bookmarks, recents, tastings and ratings, quiz progress, streak, profile, purchases and appearance — goes back to a fresh install. This cannot be undone. The app will close; open it again for the fresh start.",
                     confirmLabel: "ERASE",
                     destructive: true,
                     onConfirm: {
                         confirmingWipe = false
-                        SavedDataReset.wipeAll()
+                        SavedDataReset.wipeAllAndRelaunch()
                     },
                     onCancel: { confirmingWipe = false }
                 )

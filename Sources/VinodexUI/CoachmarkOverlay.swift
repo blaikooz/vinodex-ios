@@ -78,9 +78,9 @@ public extension View {
 /// nobody could advance. The **dim** is the even-odd path, and it does no hit
 /// testing at all — one job each.
 ///
-/// SKIP is always drawn and always live. It is the only exit from the barrier,
-/// so a target whose anchor never resolves degrades to a bubble with a way out
-/// rather than to a locked device.
+/// NEXT and QUIT are always drawn and always live. They are the exits from
+/// the barrier, so a target whose anchor never resolves degrades to a bubble
+/// with two ways out rather than to a locked device.
 ///
 /// ## It covers the chassis, unlike every other overlay in this app
 ///
@@ -104,8 +104,8 @@ public struct CoachmarkOverlay: View {
     let spotlight: CGRect?
     let position: Int
     let total: Int
-    let onAcknowledge: () -> Void
-    let onSkip: () -> Void
+    let onNext: () -> Void
+    let onQuit: () -> Void
 
     public init(
         step: CoachmarkStep,
@@ -113,16 +113,16 @@ public struct CoachmarkOverlay: View {
         spotlight: CGRect?,
         position: Int,
         total: Int,
-        onAcknowledge: @escaping () -> Void,
-        onSkip: @escaping () -> Void
+        onNext: @escaping () -> Void,
+        onQuit: @escaping () -> Void
     ) {
         self.step = step
         self.canvas = canvas
         self.spotlight = spotlight
         self.position = position
         self.total = total
-        self.onAcknowledge = onAcknowledge
-        self.onSkip = onSkip
+        self.onNext = onNext
+        self.onQuit = onQuit
     }
 
     @AppStorage(LcdMode.storageKey) private var lcdRaw = LcdMode.dark.rawValue
@@ -137,7 +137,7 @@ public struct CoachmarkOverlay: View {
     /// zero here would have to be excluded from the opacity, and an
     /// `opacity(0)` view in SwiftUI still hit-tests — so a measurement that
     /// never arrived would leave an invisible wall over the whole window with an
-    /// invisible SKIP on it, which is the one failure this overlay's own note
+    /// invisible QUIT on it, which is the one failure this overlay's own note
     /// says it must not have. 128 is roughly what the block measures at the
     /// default text size, so the first frame is approximately right and every
     /// frame after it is exact.
@@ -437,7 +437,7 @@ public struct CoachmarkOverlay: View {
         // What the placement solves against.
         //
         // `onChange` as well as `onAppear`, because the height moves with TEXT
-        // SIZE, with the line, and with whether CONTINUE is drawn — a
+        // SIZE and with the line — a
         // measurement taken once would be stale for two of those three. Both
         // run after layout, so neither writes state during a view update.
         //
@@ -458,25 +458,25 @@ public struct CoachmarkOverlay: View {
 
     private var controls: some View {
         HStack(spacing: 8) {
-            // CONTINUE only on the steps that have nothing to do — see
-            // `CoachmarkAction.acknowledged`. Every other step is advanced by
-            // the thing it is asking for, and a button beside that would be a
-            // way to claim you did something you did not.
-            if step.advancesOn == .acknowledged {
-                Button {
-                    Haptics.screenTap()
-                    onAcknowledge()
-                } label: {
-                    pill("CONTINUE", fill: lcd.accent, ink: lcd.isLight ? .white : .black)
-                }
-                .buttonStyle(DexPressStyle(scale: 0.97))
+            // NEXT on every step (maintainer ruling, 0.9.45 test pass). This
+            // was CONTINUE, drawn only on `.acknowledged` steps, on the theory
+            // that a button beside an action step claims something you did not
+            // do — and then a step whose target sat offscreen wedged the whole
+            // run. The engine's `advance()` moves on without reporting the
+            // action, so the ledgers stay honest and the run stays walkable.
+            Button {
+                Haptics.screenTap()
+                onNext()
+            } label: {
+                pill("NEXT", fill: lcd.accent, ink: lcd.isLight ? .white : .black)
             }
+            .buttonStyle(DexPressStyle(scale: 0.97))
 
             Button {
                 Haptics.select()
-                onSkip()
+                onQuit()
             } label: {
-                pill("SKIP", fill: .clear, ink: lcd.subtext)
+                pill("QUIT", fill: .clear, ink: lcd.subtext)
             }
             .buttonStyle(DexPressStyle(scale: 0.97))
         }

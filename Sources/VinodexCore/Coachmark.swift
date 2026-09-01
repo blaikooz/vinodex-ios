@@ -489,7 +489,18 @@ public final class CoachmarkEngine {
     /// The player did something. Advances only if it is what this step was
     /// waiting for; anything else is ignored rather than skipped past.
     public func report(_ action: CoachmarkAction) {
-        guard let index, let step = current, step.advancesOn == action else { return }
+        guard let step = current, step.advancesOn == action else { return }
+        advance()
+    }
+
+    /// Move on unconditionally — the overlay's NEXT button (maintainer ruling,
+    /// 0.9.45 test pass). The original design advanced action steps only by
+    /// their action, but a step whose target the player cannot reach wedges
+    /// the whole run with no exit short of quitting; NEXT trades the purity
+    /// for a walkthrough that can always be walked. The step's action is not
+    /// reported, so nothing is claimed that did not happen.
+    public func advance() {
+        guard let index else { return }
         let next = index + 1
         if next >= CoachmarkWalkthrough.count {
             finish()

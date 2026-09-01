@@ -150,6 +150,19 @@ enum SavedDataReset {
         // launch because the setting that said so no longer exists.
         ScreenWake.settingChanged()
     }
+
+    /// Wipe, then close the app (maintainer ruling, 0.9.45 test pass). The
+    /// live wipe above is complete for the stores, but a fresh install is
+    /// more than fresh keys: the boot, the intro and the walkthrough offer
+    /// only replay from a cold launch. Same delayed `exit(0)` as
+    /// `ProfileSwitcher.apply` below, and acceptable for the same reason —
+    /// the alert promised the close, so it is a kept promise, not a crash.
+    static func wipeAllAndRelaunch() {
+        wipeAll()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            exit(0)
+        }
+    }
 }
 
 // MARK: - Back up and restore

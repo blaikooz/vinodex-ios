@@ -478,8 +478,8 @@ struct RootView: View {
                         spotlight: step.target.flatMap { anchors[$0] }.map { proxy[$0] },
                         position: coachmarks.position ?? 1,
                         total: CoachmarkWalkthrough.count,
-                        onAcknowledge: { coachmarks.report(.acknowledged) },
-                        onSkip: { coachmarks.skip() }
+                        onNext: { coachmarks.advance() },
+                        onQuit: { coachmarks.skip() }
                     )
                 }
             }
