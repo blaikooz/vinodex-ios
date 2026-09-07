@@ -69,12 +69,43 @@ SOURCE_TO_STEM = {
     "greenfullcommon.png": "green-full-common",
     "greenfullrare.png": "green-full-rare",
     "greenfullnoble.png": "green-full-noble",
-    "greenambercommon.png": "green-amber-common",
-    "greenamberrare.png": "green-amber-rare",
-    "greenambernoble.png": "green-amber-noble",
-    "greenpinklightcommon.png": "green-pink-light-common",
-    "greeenpinklightrare.png": "green-pink-light-rare",
-    "greenpinkrare.png": "green-pink-rare",
+    # The green blends, at all three depths since the 0.9.47 quick-fix sheet.
+    # The old sources (greenpinkrare.png and friends) are retired: their
+    # orange-red leaf sat outside the yellow band and broke the rarity
+    # re-ink, which is half of what the sheet was commissioned to fix.
+    "greenpinklight.png": "green-pink-light-rare",
+    "greenpinkmedium.png": "green-pink-medium-rare",
+    "greenpinkfull.png": "green-pink-full-rare",
+    "greenamberlight.png": "green-amber-light-rare",
+    "greenambermedium.png": "green-amber-medium-rare",
+    "greenamberfull.png": "green-amber-full-rare",
+    # The ampelographic portraits (0.9.47): flagships drawn as themselves.
+    "pinotnoir.png": "pinotnoir",
+    "cabernetsauvignon.png": "cabernetsauvignon",
+    "chardonnay.png": "chardonnay",
+    "merlot.png": "merlot",
+    "syrah.png": "syrah",
+    "sauvignonblanc.png": "sauvignonblanc",
+    "riesling.png": "riesling",
+    "nebbiolo.png": "nebbiolo",
+    "sangiovese.png": "sangiovese",
+    "grenache.png": "grenache",
+    "tempranillo.png": "tempranillo",
+    "malbec.png": "malbec",
+    "cheninblanc.png": "cheninblanc",
+    "gamay.png": "gamay",
+    "zinfandel.png": "zinfandel",
+    "pinotgris.png": "pinotgris",
+    "gewurztraminer.png": "gewurztraminer",
+    "muscatblanc.png": "muscatblanc",
+    "barbera.png": "barbera",
+    "viognier.png": "viognier",
+    "touriganacional.png": "touriganacional",
+    "assyrtiko.png": "assyrtiko",
+    "furmint.png": "furmint",
+    # The GODFORSAKEN tier's shared gnarl. The eight archetype masters are
+    # handled separately (ARCH_SOURCES): each yields three hue variants.
+    "archgodforsaken.png": "arch-godforsaken",
     "redlightcommon.png": "red-light-common",
     "redlightrare.png": "red-light-rare",
     "redlightnoble.png": "red-light-noble",
@@ -103,6 +134,55 @@ SOURCE_TO_STEM = {
 # Copied through untouched, for the reason given in art_common.copy_master.
 MASTERS = {"gold-full-rare", "gold-light-rare", "gold-medium-rare"}
 
+# The sheet-D cluster archetypes (0.9.47): drawn once in a neutral mid-red,
+# multiplied here into the three catalog hues. The berry pixels are
+# hue-rotated; the leaf (yellow band) and the outline (near-black) are left
+# alone, so the runtime rarity re-ink keeps its contract on every variant.
+ARCH_SOURCES = {
+    "archpineconesmall.png": "pinecone-small",
+    "archpineconelarge.png": "pinecone-large",
+    "archconesmall.png": "cone-small",
+    "archconelarge.png": "cone-large",
+    "archpyramidsmall.png": "pyramid-small",
+    "archpyramidlarge.png": "pyramid-large",
+    "archloosesmall.png": "loose-small",
+    "archlooselarge.png": "loose-large",
+}
+
+# hue, saturation scale, value scale per variant. Red passes through.
+ARCH_HUES = {
+    "red": None,
+    "green": (0.24, 0.95, 1.0),
+    "gold": (0.115, 1.05, 1.0),
+}
+
+
+def berry_hue_shift(img, variant):
+    """Rotate an archetype master's berries to the variant hue. The leaf's
+    yellow band and the cel outline are untouched; desaturated glints keep
+    their shading."""
+    target = ARCH_HUES[variant]
+    if target is None:
+        return img
+    th, ss, vs = target
+    img = img.convert("RGBA")
+    px = img.load()
+    w, h = img.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a == 0:
+                continue
+            hh, s, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+            if 0.08 <= hh <= 0.17 and s > 0.45:
+                continue  # the leaf stays yellow for the runtime re-ink
+            if v < 0.22 or s < 0.18:
+                continue  # outline and glints
+            if hh <= 0.09 or hh >= 0.85:  # the red masters' berry range
+                rr, gg, bb = colorsys.hsv_to_rgb(th, min(1.0, s * ss), min(1.0, v * vs))
+                px[x, y] = (int(rr * 255), int(gg * 255), int(bb * 255), a)
+    return img
+
 
 def main():
     src = resolve_source_dir(ROOT, "entries", "grapes")
@@ -130,6 +210,19 @@ def main():
             save_stable(quantize_stable(img), out, optimize=True)
         converted += 1
         total_out += os.path.getsize(out)
+
+    # The archetype masters, multiplied into their three hues.
+    for name, cluster in sorted(ARCH_SOURCES.items()):
+        path = os.path.join(src, name)
+        if not os.path.exists(path):
+            missing.append(name)
+            continue
+        base = strip_background(Image.open(path))
+        for variant in ("red", "green", "gold"):
+            out = os.path.join(DST, f"arch-{cluster}-{variant}.png")
+            save_stable(quantize_stable(berry_hue_shift(base, variant)), out, optimize=True)
+            converted += 1
+            total_out += os.path.getsize(out)
 
     print(f"converted {converted} bunches -> {DST} ({total_out // 1024}KB)")
     if missing:

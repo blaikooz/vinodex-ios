@@ -159,6 +159,13 @@ public struct IconManifest: Codable, Sendable {
     /// with fallbacks, so every key the app can derive resolves. Optional so
     /// an older manifest still decodes; grapes then keep their tinted glyph.
     public let grapeArt: [String: String]?
+    /// Per-grape portrait stem, keyed by grape *id* (0.9.47, the icon
+    /// campaign): the ampelographic set — flagships drawn as themselves,
+    /// the long tail assigned a cluster-shape archetype, GODFORSAKEN its
+    /// gnarl. Checked before the `grapeArt` colour-key grid, which stays
+    /// the fallback for any grape the table does not name. Optional so an
+    /// older manifest still decodes.
+    public let grapePortraits: [String: String]?
     /// Full-colour pixel-art portrait per style, keyed by *normalised name*
     /// like `flavorArt`. PNGs under `Resources/StyleArt`. Optional so an
     /// older manifest still decodes; styles then keep their class glyph.
@@ -254,6 +261,12 @@ public struct IconManifest: Codable, Sendable {
     /// Bunch-sprite stem for a `GrapeArt` key, or nil when no art shipped.
     public func grapeArtStem(forKey key: String) -> String? {
         grapeArt?[key]
+    }
+
+    /// Portrait stem for a grape id, or nil when the grape rides the
+    /// colour-key grid. The caller falls back to `grapeArtStem(forKey:)`.
+    public func grapePortraitStem(forGrapeID id: String) -> String? {
+        grapePortraits?[id]
     }
 
     /// Pixel-art stem for a style name, or nil when the set has no portrait.
@@ -795,6 +808,7 @@ public final class WineDatabase: Sendable {
         flavorSubclassIcons: nil,
         flavorArt: nil,
         grapeArt: nil,
+        grapePortraits: nil,
         styleArt: nil,
         countryShapeIcons: [:],
         styleClassBg: [:],

@@ -343,9 +343,9 @@ const FLAVOR_ART: Record<string, string> = {
   'apricot': 'apricot',
   'banana': 'banana',
   'beeswax': 'beeswax',
-  'bell pepper': 'greenbellpepper',
+  'bell pepper': 'bellpeppers',
   'black cherry': 'blackcherry',
-  'black fruit': 'blackberry',
+  'black fruit': 'blackfruit',
   'black pepper': 'peppercorn',
   'black plum': 'blackplum',
   'blackberry': 'blackberry',
@@ -372,7 +372,7 @@ const FLAVOR_ART: Record<string, string> = {
   'espresso': 'coffee',
   'fennel': 'fennel',
   'fig': 'fig',
-  'floral': 'whiteblossom',
+  'floral': 'floralbouquet',
   'fresh herbs': 'mint',
   'game': 'game',
   'ginger': 'ginger',
@@ -385,9 +385,9 @@ const FLAVOR_ART: Record<string, string> = {
   'green pepper': 'greenbellpepper',
   'green peppercorn': 'greenpeppercorn',
   'hazelnut': 'hazelnut',
-  'herb': 'driedherbs',
-  'herbal tea': 'tealeaf',
-  'herbs': 'driedherbs',
+  'herb': 'freshherb',
+  'herbal tea': 'herbaltea',
+  'herbs': 'herbbundle',
   'honey': 'honey',
   'honeysuckle': 'honeysuckle',
   // First art for this note (0.5.7) — it was the one flavour with none.
@@ -411,7 +411,7 @@ const FLAVOR_ART: Record<string, string> = {
   'orange blossom': 'orange-blossom',
   'peach': 'peach',
   'pear': 'pear',
-  'pepper': 'peppercorn',
+  'pepper': 'peppermill',
   'petrol': 'petrol',
   'pineapple': 'pineapple',
   'plum': 'plum',
@@ -419,7 +419,7 @@ const FLAVOR_ART: Record<string, string> = {
   'quince': 'quince',
   'raspberry': 'raspberry',
   'red apple': 'red-apple',
-  'red cherry': 'cherry',
+  'red cherry': 'redcherry',
   'rose': 'redrose',
   'rose petal': 'rosepetal',
   'sage': 'sage',
@@ -431,7 +431,7 @@ const FLAVOR_ART: Record<string, string> = {
   // Own portrait since 0.5.7 — shared smoke.png before.
   'smoky spice': 'smokyspice',
   'sour cherry': 'sour-cherry',
-  'spice': 'peppercorn',
+  'spice': 'spices',
   'stone': 'stone',
   'strawberry': 'strawberry',
   // Own portrait since 0.5.7 — shared strawberry.png before.
@@ -446,7 +446,7 @@ const FLAVOR_ART: Record<string, string> = {
   'violet': 'violet',
   'volcanic ash': 'volcanicash',
   'white blossom': 'whiteblossom',
-  'white flower': 'whiteblossom',
+  'white flower': 'whiteflower',
   'white peach': 'white-peach',
   'white pepper': 'whitepepper',
   'yuzu citrus': 'yuzu',
@@ -815,12 +815,13 @@ function buildGrapeArt(): Record<string, string> {
   const stemFor = (color: string, depth: string, blend: string): string => {
     if (blend === 'none') return `${color}-${depth}-rare`;
     const blendColor = color === 'gold' ? 'green' : color;
-    // The blends ship at one depth each; depth falls back to what exists.
-    if (blendColor === 'green' && blend === 'amber') return 'green-amber-rare';
+    // The green blends ship at all three depths since the 0.9.47 quick-fix
+    // sheet (which also retired the orange-leafed pink sources that broke
+    // the rarity re-ink). The red blends still ship one depth each.
+    if (blendColor === 'green' && blend === 'amber') return `green-amber-${depth}-rare`;
     if (blendColor === 'red' && blend === 'amber') return 'red-amber-medium-rare';
     if (blendColor === 'red' && blend === 'pink') return 'red-pink-rare';
-    // Green pink: the light rare is the cleaner of the two sources.
-    return depth === 'light' ? 'green-pink-light-rare' : 'green-pink-rare';
+    return `green-pink-${depth}-rare`;
   };
 
   const out: Record<string, string> = {};
@@ -830,6 +831,242 @@ function buildGrapeArt(): Record<string, string> {
         out[`${color}-${depth}-${blend}`] = stemFor(color, depth, blend);
       }
     }
+  }
+  return out;
+}
+
+/// The ampelographic portraits (0.9.47, the icon campaign): grapes drawn as
+/// themselves, keyed by catalog name and resolved to ids at build time so a
+/// renamed grape fails the build instead of silently losing its face.
+/// Zinfandel/Primitivo and Muscat/Moscato are the same variety and share a
+/// drawing on purpose.
+const GRAPE_PORTRAITS: Record<string, string> = {
+  'Pinot Noir': 'pinotnoir',
+  'Cabernet Sauvignon': 'cabernetsauvignon',
+  'Chardonnay': 'chardonnay',
+  'Merlot': 'merlot',
+  'Syrah': 'syrah',
+  'Sauvignon Blanc': 'sauvignonblanc',
+  'Riesling': 'riesling',
+  'Nebbiolo': 'nebbiolo',
+  'Sangiovese': 'sangiovese',
+  'Grenache': 'grenache',
+  'Tempranillo': 'tempranillo',
+  'Malbec': 'malbec',
+  'Chenin Blanc': 'cheninblanc',
+  'Gamay': 'gamay',
+  'Zinfandel': 'zinfandel',
+  'Primitivo': 'zinfandel',
+  'Pinot Gris': 'pinotgris',
+  'Gewürztraminer': 'gewurztraminer',
+  'Muscat Blanc à Petits Grains': 'muscatblanc',
+  'Moscato': 'muscatblanc',
+  'Barbera': 'barbera',
+  'Viognier': 'viognier',
+  'Touriga Nacional': 'touriganacional',
+  'Assyrtiko': 'assyrtiko',
+  'Furmint': 'furmint',
+};
+
+/// Cluster archetype per grape — `<shape>-<berry>` against the sheet-D
+/// masters ({pinecone, cone, pyramid, loose} x {small, large}). First pass
+/// authored from standard ampelographic references (cluster silhouette and
+/// berry scale, not wine style); a grape absent here falls to the default in
+/// `buildGrapePortraits`, and GODFORSAKEN grapes never reach either — the
+/// tier wears its shared gnarl. Refine freely; this table is data, not code.
+const GRAPE_CLUSTERS: Record<string, string> = {
+  'Cabernet Franc': 'cone-small',
+  'Semillon': 'cone-large',
+  'Mourvèdre': 'pinecone-small',
+  'Petit Verdot': 'pinecone-small',
+  'Carmenère': 'loose-small',
+  'Torrontés': 'loose-large',
+  'Albariño': 'pinecone-small',
+  'Grüner Veltliner': 'pinecone-small',
+  'Vermentino': 'pyramid-large',
+  'Verdejo': 'pinecone-small',
+  'Roussanne': 'pinecone-small',
+  'Marsanne': 'cone-large',
+  'Trebbiano': 'pyramid-small',
+  'Fiano': 'pinecone-small',
+  'Aglianico': 'cone-small',
+  "Nero d'Avola": 'cone-small',
+  'Tannat': 'pyramid-large',
+  'Saperavi': 'cone-small',
+  'Rkatsiteli': 'pyramid-small',
+  'Dolcetto': 'pyramid-small',
+  'Pinotage': 'pinecone-small',
+  'Montepulciano': 'cone-large',
+  'Corvina': 'pyramid-small',
+  'Rondinella': 'pinecone-small',
+  'Pinot Blanc': 'pinecone-small',
+  'Pinot Meunier': 'pinecone-small',
+  'Petite Sirah': 'pinecone-small',
+  'Palomino': 'loose-large',
+  'Baga': 'pinecone-small',
+  'Teroldego': 'pyramid-small',
+  'Lagrein': 'cone-large',
+  'Aligoté': 'pinecone-small',
+  'Melon de Bourgogne': 'pinecone-small',
+  'Xinomavro': 'cone-large',
+  'Agiorgitiko': 'cone-small',
+  'Glera': 'loose-large',
+  'Carignan': 'cone-large',
+  'Cinsault': 'loose-large',
+  'Falanghina': 'cone-small',
+  'Verdicchio': 'cone-small',
+  'Müller-Thurgau': 'loose-large',
+  'Silvaner': 'pinecone-small',
+  'Godello': 'pinecone-small',
+  'Verdelho': 'pinecone-small',
+  'Arinto': 'cone-small',
+  'Zweigelt': 'cone-large',
+  'Blaufränkisch': 'cone-large',
+  'Nerello Mascalese': 'pyramid-large',
+  'Friulano': 'loose-small',
+  'Moschofilero': 'cone-small',
+  'Pedro Ximénez': 'cone-large',
+  'Ribolla Gialla': 'pinecone-small',
+  'Savagnin': 'pinecone-small',
+  'Touriga Franca': 'cone-small',
+  'Frappato': 'cone-small',
+  'Garganega': 'pyramid-large',
+  'Graciano': 'pinecone-small',
+  'Greco': 'pinecone-small',
+  'Grillo': 'loose-small',
+  'Hárslevelű': 'pyramid-small',
+  'Lambrusco': 'loose-large',
+  'Loureiro': 'pyramid-small',
+  'Negroamaro': 'cone-large',
+  'Poulsard': 'loose-large',
+  'Trousseau': 'pinecone-small',
+  'Vidal': 'cone-small',
+  'Picpoul': 'cone-large',
+  'Counoise': 'loose-large',
+  'Clairette': 'cone-small',
+  'Bourboulenc': 'cone-large',
+  'Grignolino': 'loose-small',
+  'Pignoletto': 'pinecone-small',
+  'Schioppettino': 'pyramid-small',
+  'Carricante': 'cone-small',
+  'Xarel·lo': 'cone-small',
+  'Bobal': 'cone-large',
+  'Mencía': 'cone-small',
+  'Trepat': 'cone-large',
+  'Grenache Blanc': 'cone-large',
+  'Colombard': 'cone-small',
+  'Mondeuse': 'pyramid-small',
+  'Négrette': 'cone-small',
+  'Jacquère': 'cone-large',
+  'Cortese': 'pyramid-small',
+  'Arneis': 'cone-small',
+  'Pecorino': 'pinecone-small',
+  'Vernaccia': 'cone-small',
+  'Catarratto': 'cone-large',
+  'Cesanese': 'loose-small',
+  'Airén': 'loose-large',
+  'Macabeo': 'cone-large',
+  'Parellada': 'loose-large',
+  'Garnacha Blanca': 'cone-large',
+  'Listán Negro': 'cone-large',
+  'Treixadura': 'cone-small',
+  'Alicante Bouschet': 'cone-large',
+  'Castelão': 'cone-small',
+  'Croatina': 'pyramid-large',
+  'St. Laurent': 'pinecone-small',
+  'País': 'loose-large',
+  'Plavac Mali': 'pinecone-small',
+  'Manto Negro': 'cone-large',
+  'Mavrud': 'pinecone-small',
+  'Melnik': 'pinecone-small',
+  'Chasselas': 'loose-large',
+  'Teran': 'cone-small',
+  'Fetească Regală': 'pinecone-small',
+  'Malvazija Istarska': 'cone-large',
+  'Sercial': 'cone-small',
+  'Boal': 'cone-large',
+  'Corvinone': 'loose-large',
+  'Canaiolo': 'cone-large',
+  'Colorino': 'pinecone-small',
+  'Freisa': 'pyramid-small',
+  'Grolleau': 'cone-large',
+  'Negramoll': 'cone-large',
+  'Nerello Cappuccio': 'cone-small',
+  'Sciaccarellu': 'loose-small',
+  'Valdiguié': 'cone-large',
+  'Vinhão': 'cone-small',
+  'Espadeiro': 'loose-large',
+  'Brancellao': 'loose-small',
+  'Caíño Tinto': 'cone-small',
+  'Callet': 'cone-large',
+  'Babić': 'loose-small',
+  'Alfrocheiro': 'cone-small',
+  'Abouriou': 'cone-large',
+  'Fer Servadou': 'cone-small',
+  'Koshu': 'loose-large',
+  'Muscat Bailey A': 'loose-large',
+  'Cabernet Gernischt': 'cone-small',
+  'Kisi': 'cone-small',
+  'Chinuri': 'cone-large',
+  'Goruli Mtsvane': 'cone-small',
+  'Mtsvane': 'cone-small',
+  'Otskhanuri Sapere': 'cone-small',
+  'Tsolikouri': 'cone-large',
+  'Hondarrabi Zuri': 'cone-small',
+  'Hondarrabi Beltza': 'cone-small',
+  'Obaideh': 'cone-large',
+  'Merwah': 'cone-large',
+};
+
+/// The per-grape portrait table (0.9.47): every grape resolves to a stem.
+/// Flagships by name; GODFORSAKEN to the shared gnarl; everyone else to an
+/// archetype master in the grape's own hue — the same green/red/gold rule as
+/// `GrapeArt.key` on the Swift side, mirrored here because this table is
+/// what replaces that key's job for the long tail.
+function buildGrapePortraits(entries: readonly WineEntry[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  const missing: string[] = [];
+  const named = new Set<string>();
+
+  const hue = (g: Extract<WineEntry, { category: 'GRAPES' }>): string => {
+    if (g.grapeType !== 'white') return 'red';
+    const s = `${g.grapeStyle ?? ''} ${g.wineType ?? ''}`.toLowerCase();
+    return s.includes('sweet') ? 'gold' : 'green';
+  };
+
+  for (const g of entries) {
+    if (g.category !== 'GRAPES') continue;
+    const portrait = GRAPE_PORTRAITS[g.name];
+    if (portrait) {
+      out[g.id] = portrait;
+      named.add(g.name);
+      continue;
+    }
+    if (g.rarity === 'GODFORSAKEN') {
+      out[g.id] = 'arch-godforsaken';
+      continue;
+    }
+    // Default for a grape no reference describes: the average shape (a
+    // shouldered cone), berry scale from body. A first pass, refined by
+    // adding rows to GRAPE_CLUSTERS — never by editing this fallback.
+    const cluster =
+      GRAPE_CLUSTERS[g.name] ??
+      `cone-${g.grapeBodyClass === 'Full' || g.grapeBodyClass === 'Medium-Full' ? 'large' : 'small'}`;
+    out[g.id] = `arch-${cluster}-${hue(g)}`;
+  }
+
+  const catalog = new Set(
+    entries.filter((e) => e.category === 'GRAPES').map((e) => e.name),
+  );
+  for (const name of Object.keys(GRAPE_PORTRAITS)) {
+    if (!catalog.has(name)) missing.push(`${name} (portrait, not in catalog)`);
+  }
+  for (const name of Object.keys(GRAPE_CLUSTERS)) {
+    if (!catalog.has(name)) missing.push(`${name} (cluster, not in catalog)`);
+    if (named.has(name)) missing.push(`${name} (in both portrait and cluster tables)`);
+  }
+  if (missing.length > 0) {
+    throw new Error(`grape portrait tables disagree with the catalog: ${missing.join(', ')}`);
   }
   return out;
 }
@@ -999,6 +1236,7 @@ function buildIconManifest(entries: readonly WineEntry[]) {
     flavorSubclassIcons,
     flavorArt: FLAVOR_ART,
     grapeArt: buildGrapeArt(),
+    grapePortraits: buildGrapePortraits(entries),
     styleArt: STYLE_ART,
     countryShapeIcons: shapeIcons,
     styleClassBg: STYLE_CLASS_BG,
@@ -1747,7 +1985,7 @@ function assertAssetsExist(icons: ReturnType<typeof buildIconManifest>): number 
   // The three portrait tables ship bare stems rather than `art:` ids — the well
   // loads them through the same `PixelArtLoader`, so they resolve the same way,
   // but the walk above cannot tell one from a caption. Named explicitly.
-  for (const table of ['flavorArt', 'grapeArt', 'styleArt'] as const) {
+  for (const table of ['flavorArt', 'grapeArt', 'grapePortraits', 'styleArt'] as const) {
     for (const stem of [...new Set(Object.values(icons[table]))].sort()) {
       want(artFile(stem), `${table}: ${stem}`, `${stem}.png in one of ${ART_DIRS.join(', ')}`);
     }
