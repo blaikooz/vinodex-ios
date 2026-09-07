@@ -190,17 +190,18 @@ echo "failed: $failed"
 # Flags are pixel-art PNGs copied rather than rendered. Only the countries
 # present in the current selection ship.
 #
-# **The shipped set is first-party as of 0.9.4 (auditS H2, closed).** Through
-# 0.9.3 this block copied R74n's PixelFlags out of shared/pixelflags
-# (licenses/LICENSE-r74n.txt: non-commercial without explicit permission;
-# permission was requested 2026-08-06 and the swap stopped waiting on the
-# answer). The source is now art/flags/<slug>.png — drawn in code from the
-# official flag constructions by scripts/generate-flag-art.py (2026-08-05,
-# same slugs, same 32x18 canvas), exactly the flip that script's header
-# promised. The manifest still names which countries ship and their slugs;
-# only where the pixels come from changed. shared/pixelflags stays in the
-# cross-repo master untouched — the web app still reads it, and this repo's
-# mirror copy rides the sync ceremony either way.
+# **The shipped set is R74n's PixelFlags again as of 0.9.46.** Through 0.9.3
+# this block copied R74n's pack out of shared/pixelflags
+# (licenses/LICENSE-r74n.txt: non-commercial without explicit permission);
+# 0.9.4 flipped to the first-party standby in art/flags while the 2026-08-06
+# permission request stood unanswered (auditS H2). The R74n creators granted
+# permission on 2026-09-07, asking that credit be provided — see
+# ATTRIBUTION.md and the credit line on the FIRMWARE screen — so this block
+# flips back to the manifest relpaths into shared/pixelflags. The one
+# non-R74n entry rides the same path: Various points at FirstParty/, the
+# first-party pennant R74n has no counterpart for. art/flags stays the
+# complete standby set (scripts/generate-flag-art.py, same slugs, same 32x18
+# canvas) should the arrangement ever change again.
 # ---------------------------------------------------------------------------
 
 # Flags sit beside Icons under Resources/, so the default run writes to the
@@ -216,14 +217,14 @@ fi
 # Pixelflags live at shared/pixelflags since 0.6.5 (batch 4, phase 1). They sit
 # in the cross-repo master rather than in this repo's art/ tree because they are
 # the one art asset BOTH apps consume — here, and the web app's flagImages.ts —
-# and art/ is iOS-only. The master is HGapps\shared; this repo's copy arrives
-# via sync-shared.ps1, so the flags ride the same master->mirror path as the
+# and art/ is iOS-only. The master is HGapps/shared; this repo's copy arrives
+# via sync-shared.sh, so the flags ride the same master->mirror path as the
 # data. (The old shared/newicons/ nesting went away with the drawn-art masters,
 # which now live in art/.)
-FLAGART="${FLAGART:-$REPO_ROOT/art/flags}"
+PIXELFLAGS="${PIXELFLAGS:-$REPO_ROOT/shared/pixelflags}"
 mkdir -p "$FLAGDIR"
 
-if [ -d "$FLAGART" ]; then
+if [ -d "$PIXELFLAGS" ]; then
   copied=0
   while IFS=$'\t' read -r country relpath slug; do
     [ -z "$country" ] && continue
@@ -239,15 +240,15 @@ if [ -d "$FLAGART" ]; then
       failed=$((failed + 1))
       continue
     fi
-    # First-party source, keyed by the same slug the app asks for (0.9.4).
-    # The manifest's relpath still names the master copy in shared/pixelflags;
-    # it is reported on a miss so the two sets stay comparable.
-    src="$FLAGART/$slug.png"
+    # The manifest's relpath names the master copy in shared/pixelflags —
+    # R74n's pack, plus FirstParty/ for the entries R74n has no counterpart
+    # for (0.9.46; permission granted 2026-09-07, see ATTRIBUTION.md).
+    src="$PIXELFLAGS/$relpath"
     if [ -f "$src" ]; then
       cp "$src" "$FLAGDIR/$slug.png"
       copied=$((copied + 1))
     else
-      echo "  MISSING first-party flag $country ($slug.png; master relpath $relpath) — run scripts/generate-flag-art.py"
+      echo "  MISSING flag $country ($relpath) — run sync-shared.sh to refresh shared/pixelflags"
       failed=$((failed + 1))
     fi
   done < <(python3 -c "
@@ -260,11 +261,11 @@ for country, path in manifest.get('flags', {}).items():
 " "$MANIFEST")
   echo "copied $copied flags -> $FLAGDIR"
 elif [ "${SKIP_FLAGS:-0}" = "1" ]; then
-  echo "  first-party flag dir not found at $FLAGART — skipping flags (SKIP_FLAGS=1)"
+  echo "  pixelflags dir not found at $PIXELFLAGS — skipping flags (SKIP_FLAGS=1)"
 else
   # A silent skip that still exits 0 could ship a build with no flags (audit
   # L24). Fail unless the skip is explicit.
-  echo "  first-party flag dir not found at $FLAGART — run scripts/generate-flag-art.py, or set SKIP_FLAGS=1 to skip intentionally"
+  echo "  pixelflags dir not found at $PIXELFLAGS — run sync-shared.sh, or set SKIP_FLAGS=1 to skip intentionally"
   failed=$((failed + 1))
 fi
 

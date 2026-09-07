@@ -679,12 +679,13 @@ const DEFAULT_SOILS = ['Alluvial', 'Clay', 'Limestone'];
 /// that root and are shared with the web consumer, so they do not change when
 /// the root moves.
 ///
-/// R74n's pack is non-commercial without permission (auditS H2), so a
-/// first-party standby set exists at `art/flags/<slug>.png` (drawn by
-/// `scripts/generate-flag-art.py`, named by the `flagSlug()` values below).
-/// Development builds still ship the R74n pack — permission for the paid
-/// release has been requested from R74n (2026-08-06); if it is refused,
-/// `rasterize-icons.sh` flips its flag source to the standby set.
+/// The bundled set is R74n's pack again as of 0.9.46: the creators granted
+/// permission on 2026-09-07, asking that credit be provided (ATTRIBUTION.md;
+/// the FIRMWARE screen carries the in-app credit line). The first-party
+/// standby set at `art/flags/<slug>.png` (drawn by
+/// `scripts/generate-flag-art.py`, named by the `flagSlug()` values below)
+/// shipped from 0.9.4 through 0.9.45 while the 2026-08-06 permission request
+/// stood open, and stays complete should the arrangement change again.
 ///
 /// Originally just the countries that appeared as a grape/region `origin` in
 /// the starter selection. Now also covers every country the continent info

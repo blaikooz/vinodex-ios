@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Draws the 34 bundled pixel flags as first-party art -> art/flags/<slug>.png.
 
-THE SHIPPED SET as of 0.9.4: rasterize-icons.sh copies these into the bundle
-(the swap its flag block documents; auditS H2 closed). The R74n PixelFlags
-copies stay only in the cross-repo shared/pixelflags master for the web app;
-this repo's bundle no longer ships them, so the paid release no longer waits
-on the 2026-08-06 permission request.
+THE STANDBY SET as of 0.9.46: these shipped as the bundle from 0.9.4 through
+0.9.45 while the 2026-08-06 permission request stood open (auditS H2). The
+R74n creators granted permission on 2026-09-07 with the ask that credit be
+provided (see ATTRIBUTION.md), so rasterize-icons.sh copies the R74n set out
+of shared/pixelflags again and this set stays complete in reserve.
 
 Written 2026-08-05 so the shipped set can drop the R74n copies before any
 paid release:
