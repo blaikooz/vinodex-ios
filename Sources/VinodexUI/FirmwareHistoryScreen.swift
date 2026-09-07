@@ -53,6 +53,7 @@ public struct FirmwareHistoryScreen: View {
                         ForEach(catalog.releases) { release in
                             entry(release)
                         }
+                        credit
                     }
                     .padding(18)
                 }
@@ -97,6 +98,19 @@ public struct FirmwareHistoryScreen: View {
         .overlay(
             RoundedRectangle(cornerRadius: 8).strokeBorder(lcd.accent.opacity(0.5), lineWidth: 2)
         )
+    }
+
+    /// The credit line (0.9.46). The bundled pixel flags are R74n's, restored
+    /// by the collective's kind permission (2026-09-07) with the ask that
+    /// credit be provided — this line, at the foot of the device's own version
+    /// record, is where. The provenance record is ATTRIBUTION.md in the repo.
+    private var credit: some View {
+        Text("PIXEL FLAGS BY R74N (R74N.COM)")
+            .font(DexFont.retro(10))
+            .tracking(1)
+            .foregroundStyle(lcd.subtext)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.top, 4)
     }
 
     private func entry(_ release: FirmwareRelease) -> some View {
