@@ -1107,7 +1107,7 @@ export const COUNTRIES: CountryGateEntry[] = [
     details: {
       origin: 'Croatia',
       classification: 'COUNTRY',
-      keyRegions: ['Dalmatia', 'Istria'],
+      keyRegions: ['Dalmatia', 'Istria', 'Slavonia'],
       notableGrapes: ['Zinfandel', 'Babić']
     }
   },
@@ -1207,6 +1207,51 @@ export const COUNTRIES: CountryGateEntry[] = [
       classification: 'COUNTRY',
       keyRegions: ['Bekaa Valley', 'Batroun'],
       notableGrapes: ['Obaideh', 'Merwah', 'Cinsault']
+    }
+  },
+  {
+    id: 'C030',
+    name: 'Moldova',
+    description: 'Moldova has more vineyard per person than any country on earth, and beneath it the largest wine cellars in existence: the galleries of Mile\u0219tii Mici and Cricova run for hundreds of kilometres through old limestone mines. Purcari\u2019s dark Negru blend won gold in Paris in 1878; today the Feteasc\u0103 family and Rar\u0103 Neagr\u0103 carry a native revival out from under the Soviet bulk-wine decades.',
+    category: 'COUNTRY_GATE',
+    color: '#1e40af',
+    icon: 'flag',
+    tags: ['DOP', 'IGP', 'COUNTRY'],
+    details: {
+      origin: 'Moldova',
+      classification: 'COUNTRY',
+      keyRegions: ['Codru', '\u0218tefan Vod\u0103'],
+      notableGrapes: ['Feteasc\u0103 Alb\u0103', 'Feteasc\u0103 Neagr\u0103', 'Rkatsiteli']
+    }
+  },
+  {
+    id: 'C031',
+    name: 'Armenia',
+    description: 'Armenia holds the oldest winery ever found: a complete press, jars and fermentation vats some 6,100 years old in the Areni-1 cave of Vayots Dzor. A century in brandy\u2019s shadow ended in the 2010s, and now high-altitude, ungrafted Areni and golden Voskehat ferment in buried clay karas the way the region always did, at vineyards above 1,400 metres.',
+    category: 'COUNTRY_GATE',
+    color: '#c2410c',
+    icon: 'flag',
+    tags: ['GI', 'COUNTRY'],
+    details: {
+      origin: 'Armenia',
+      classification: 'COUNTRY',
+      keyRegions: ['Vayots Dzor', 'Aragatsotn'],
+      notableGrapes: ['Areni', 'Voskehat', 'Rkatsiteli']
+    }
+  },
+  {
+    id: 'C032',
+    name: 'Cyprus',
+    description: 'Cyprus makes the oldest named wine still in production: Commandaria, the sun-dried amber sweet praised at Richard the Lionheart\u2019s wedding in 1191 and named for the Crusader commandery at Kolossi. Phylloxera never reached the island, so Xynisteri and Mavro still grow on their own roots, climbing the Troodos to some of Europe\u2019s highest vineyards.',
+    category: 'COUNTRY_GATE',
+    color: '#a16207',
+    icon: 'flag',
+    tags: ['PDO', 'PGI', 'COUNTRY'],
+    details: {
+      origin: 'Cyprus',
+      classification: 'COUNTRY',
+      keyRegions: ['Commandaria', 'Pitsilia'],
+      notableGrapes: ['Xynisteri', 'Mavro']
     }
   }
 ];

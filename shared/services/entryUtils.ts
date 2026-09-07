@@ -145,6 +145,13 @@ const STYLE_NAME_COLOR_OVERRIDES: Record<string, StyleColorType> = {
   'ice wine': 'WHITE',
   'botrytis wine': 'WHITE',
   'qvevri amber': 'ORANGE',
+  // Batch B (0.9.49): the amber and oxidative styles drink from the white
+  // side of the cellar even when, like Commandaria, red grapes join in.
+  'vin jaune': 'WHITE',
+  'tokaji aszu': 'WHITE',
+  'retsina': 'WHITE',
+  'marsala': 'WHITE',
+  'commandaria': 'WHITE',
 };
 
 export const getColorType = (name: string): StyleColorType => {
