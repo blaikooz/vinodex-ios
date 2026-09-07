@@ -883,28 +883,28 @@ const GRAPE_CLUSTERS: Record<string, string> = {
   'Torrontés': 'loose-large',
   'Albariño': 'pinecone-small',
   'Grüner Veltliner': 'pinecone-small',
-  'Vermentino': 'pyramid-large',
+  'Vermentino': 'cone-large',
   'Verdejo': 'pinecone-small',
   'Roussanne': 'pinecone-small',
   'Marsanne': 'cone-large',
-  'Trebbiano': 'pyramid-small',
+  'Trebbiano': 'cone-small',
   'Fiano': 'pinecone-small',
   'Aglianico': 'cone-small',
   "Nero d'Avola": 'cone-small',
-  'Tannat': 'pyramid-large',
+  'Tannat': 'cone-large',
   'Saperavi': 'cone-small',
-  'Rkatsiteli': 'pyramid-small',
-  'Dolcetto': 'pyramid-small',
+  'Rkatsiteli': 'cone-small',
+  'Dolcetto': 'cone-small',
   'Pinotage': 'pinecone-small',
   'Montepulciano': 'cone-large',
-  'Corvina': 'pyramid-small',
+  'Corvina': 'cone-small',
   'Rondinella': 'pinecone-small',
   'Pinot Blanc': 'pinecone-small',
   'Pinot Meunier': 'pinecone-small',
   'Petite Sirah': 'pinecone-small',
   'Palomino': 'loose-large',
   'Baga': 'pinecone-small',
-  'Teroldego': 'pyramid-small',
+  'Teroldego': 'cone-small',
   'Lagrein': 'cone-large',
   'Aligoté': 'pinecone-small',
   'Melon de Bourgogne': 'pinecone-small',
@@ -922,7 +922,7 @@ const GRAPE_CLUSTERS: Record<string, string> = {
   'Arinto': 'cone-small',
   'Zweigelt': 'cone-large',
   'Blaufränkisch': 'cone-large',
-  'Nerello Mascalese': 'pyramid-large',
+  'Nerello Mascalese': 'cone-large',
   'Friulano': 'loose-small',
   'Moschofilero': 'cone-small',
   'Pedro Ximénez': 'cone-large',
@@ -930,13 +930,13 @@ const GRAPE_CLUSTERS: Record<string, string> = {
   'Savagnin': 'pinecone-small',
   'Touriga Franca': 'cone-small',
   'Frappato': 'cone-small',
-  'Garganega': 'pyramid-large',
+  'Garganega': 'loose-large',
   'Graciano': 'pinecone-small',
   'Greco': 'pinecone-small',
   'Grillo': 'loose-small',
-  'Hárslevelű': 'pyramid-small',
+  'Hárslevelű': 'loose-small',
   'Lambrusco': 'loose-large',
-  'Loureiro': 'pyramid-small',
+  'Loureiro': 'cone-small',
   'Negroamaro': 'cone-large',
   'Poulsard': 'loose-large',
   'Trousseau': 'pinecone-small',
@@ -947,7 +947,7 @@ const GRAPE_CLUSTERS: Record<string, string> = {
   'Bourboulenc': 'cone-large',
   'Grignolino': 'loose-small',
   'Pignoletto': 'pinecone-small',
-  'Schioppettino': 'pyramid-small',
+  'Schioppettino': 'cone-small',
   'Carricante': 'cone-small',
   'Xarel·lo': 'cone-small',
   'Bobal': 'cone-large',
@@ -955,10 +955,10 @@ const GRAPE_CLUSTERS: Record<string, string> = {
   'Trepat': 'cone-large',
   'Grenache Blanc': 'cone-large',
   'Colombard': 'cone-small',
-  'Mondeuse': 'pyramid-small',
+  'Mondeuse': 'cone-small',
   'Négrette': 'cone-small',
   'Jacquère': 'cone-large',
-  'Cortese': 'pyramid-small',
+  'Cortese': 'cone-small',
   'Arneis': 'cone-small',
   'Pecorino': 'pinecone-small',
   'Vernaccia': 'cone-small',
@@ -972,7 +972,7 @@ const GRAPE_CLUSTERS: Record<string, string> = {
   'Treixadura': 'cone-small',
   'Alicante Bouschet': 'cone-large',
   'Castelão': 'cone-small',
-  'Croatina': 'pyramid-large',
+  'Croatina': 'cone-large',
   'St. Laurent': 'pinecone-small',
   'País': 'loose-large',
   'Plavac Mali': 'pinecone-small',
@@ -988,7 +988,7 @@ const GRAPE_CLUSTERS: Record<string, string> = {
   'Corvinone': 'loose-large',
   'Canaiolo': 'cone-large',
   'Colorino': 'pinecone-small',
-  'Freisa': 'pyramid-small',
+  'Freisa': 'cone-small',
   'Grolleau': 'cone-large',
   'Negramoll': 'cone-large',
   'Nerello Cappuccio': 'cone-small',
@@ -1016,6 +1016,32 @@ const GRAPE_CLUSTERS: Record<string, string> = {
   'Hondarrabi Beltza': 'cone-small',
   'Obaideh': 'cone-large',
   'Merwah': 'cone-large',
+  'Marselan': 'cone-small',
+  'Arinto dos Açores': 'cone-small',
+  'Malvasia de São Jorge': 'cone-large',
+};
+
+/// Berry color exceptions (0.9.48, sommbot A3), keyed like GRAPE_CLUSTERS
+/// and validated the same way. Defaults live in `hue()` inside
+/// `buildGrapePortraits`: dark-skinned -> 'noir', white -> 'green'. Values
+/// name ARCH_HUES variants in import-grape-art.py. The pale-red trio is
+/// interim: their on-vine color is unverified (sommbot A6), so they keep
+/// the old translucent red until a reference settles them.
+const GRAPE_BERRY_HUES: Record<string, string> = {
+  'Semillon': 'gold',
+  'Ribolla Gialla': 'gold',
+  'Garganega': 'gold',
+  'Chasselas': 'gold',
+  'Vidal': 'gold',
+  'Koshu': 'gris',
+  'Moschofilero': 'gris',
+  'Roussanne': 'copper',
+  'Alicante Bouschet': 'tinto',
+  'Saperavi': 'tinto',
+  'Vinhão': 'tinto',
+  'Grignolino': 'red',
+  'Trepat': 'red',
+  'Espadeiro': 'red',
 };
 
 /// The per-grape portrait table (0.9.47): every grape resolves to a stem.
@@ -1028,11 +1054,13 @@ function buildGrapePortraits(entries: readonly WineEntry[]): Record<string, stri
   const missing: string[] = [];
   const named = new Set<string>();
 
-  const hue = (g: Extract<WineEntry, { category: 'GRAPES' }>): string => {
-    if (g.grapeType !== 'white') return 'red';
-    const s = `${g.grapeStyle ?? ''} ${g.wineType ?? ''}`.toLowerCase();
-    return s.includes('sweet') ? 'gold' : 'green';
-  };
+  // Berry color truth (0.9.48, sommbot A1-A3). The old rule painted dark
+  // grapes mid-red and gilded whites whose WINE is sweet — both wine
+  // language wearing a fruit costume. Mature dark-skinned vinifera hangs
+  // blue-black under bloom, so noir is the dark default; gold now marks
+  // fruit that genuinely hangs golden, via the exception table.
+  const hue = (g: Extract<WineEntry, { category: 'GRAPES' }>): string =>
+    GRAPE_BERRY_HUES[g.name] ?? (g.grapeType !== 'white' ? 'noir' : 'green');
 
   for (const g of entries) {
     if (g.category !== 'GRAPES') continue;
@@ -1064,6 +1092,10 @@ function buildGrapePortraits(entries: readonly WineEntry[]): Record<string, stri
   for (const name of Object.keys(GRAPE_CLUSTERS)) {
     if (!catalog.has(name)) missing.push(`${name} (cluster, not in catalog)`);
     if (named.has(name)) missing.push(`${name} (in both portrait and cluster tables)`);
+  }
+  for (const name of Object.keys(GRAPE_BERRY_HUES)) {
+    if (!catalog.has(name)) missing.push(`${name} (berry hue, not in catalog)`);
+    if (named.has(name)) missing.push(`${name} (berry hue row is dead: grape has a portrait)`);
   }
   if (missing.length > 0) {
     throw new Error(`grape portrait tables disagree with the catalog: ${missing.join(', ')}`);
