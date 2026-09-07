@@ -61,6 +61,19 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.9.48",
+  date: "2026-09-07",
+  headline: "TRUE TO THE VINE",
+  notes: [
+    "Dark grapes now hang blue-black under bloom, the way real fruit ripens: no wine grape has red berries.",
+    "Golden-fruited whites go gold on the vine's own evidence: Semillon, Ribolla Gialla, Garganega and Chasselas.",
+    "Pedro Ximenez turns green: its amber comes from the drying yard, not the vine.",
+    "Koshu and Moschofilero blush their true grey-pink, Roussanne turns russet, and the three dyer grapes go teinturier dark.",
+    "The triangle bunches are retired: sixteen grapes move to shapes the ampelographies actually describe.",
+  ],
+};
+
+const PREVIOUS_0947: FirmwareRelease = {
   version: "0.9.47",
   date: "2026-09-07",
   headline: "EVERY GRAPE ITS FACE",
@@ -352,6 +365,7 @@ const PREVIOUS_0892: FirmwareRelease = {
 };
 
 const PREVIOUS: FirmwareRelease[] = [
+  PREVIOUS_0947,
   PREVIOUS_0946,
   PREVIOUS_0945,
   PREVIOUS_0944,

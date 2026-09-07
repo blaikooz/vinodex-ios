@@ -143,17 +143,28 @@ ARCH_SOURCES = {
     "archpineconelarge.png": "pinecone-large",
     "archconesmall.png": "cone-small",
     "archconelarge.png": "cone-large",
-    "archpyramidsmall.png": "pyramid-small",
-    "archpyramidlarge.png": "pyramid-large",
+    # The two pyramid masters were retired by the 0.9.48 truth pass: every
+    # grape they served is an elongated winged cone in the references, never
+    # a broad triangle. Their slots return as longcone-small/-large when the
+    # replacement sheet lands (sommbot B3).
     "archloosesmall.png": "loose-small",
     "archlooselarge.png": "loose-large",
 }
 
-# hue, saturation scale, value scale per variant. Red passes through.
+# hue, saturation scale, value scale per variant. Red passes through — since
+# the 0.9.48 truth pass it survives only as the interim pale-red for the
+# three unverified grapes (sommbot A2); noir is the dark-skinned default,
+# because no mature wine grape actually hangs mid-red: dark vinifera is
+# blue-black under bloom (OIV 225). tinto is the teinturier deep; gris the
+# pink-skinned whites; copper is Roussanne's russet (roux).
 ARCH_HUES = {
     "red": None,
     "green": (0.24, 0.95, 1.0),
     "gold": (0.115, 1.05, 1.0),
+    "noir": (0.72, 0.85, 0.60),
+    "tinto": (0.76, 1.00, 0.42),
+    "gris": (0.93, 0.35, 1.00),
+    "copper": (0.055, 0.70, 0.92),
 }
 
 
@@ -179,7 +190,9 @@ def berry_hue_shift(img, variant):
             if v < 0.22 or s < 0.18:
                 continue  # outline and glints
             if hh <= 0.09 or hh >= 0.85:  # the red masters' berry range
-                rr, gg, bb = colorsys.hsv_to_rgb(th, min(1.0, s * ss), min(1.0, v * vs))
+                # Floor the output value so the noir/tinto berries stay
+                # separable from the near-black cel outline (sommbot A2).
+                rr, gg, bb = colorsys.hsv_to_rgb(th, min(1.0, s * ss), max(0.16, min(1.0, v * vs)))
                 px[x, y] = (int(rr * 255), int(gg * 255), int(bb * 255), a)
     return img
 
@@ -218,7 +231,7 @@ def main():
             missing.append(name)
             continue
         base = strip_background(Image.open(path))
-        for variant in ("red", "green", "gold"):
+        for variant in ARCH_HUES:
             out = os.path.join(DST, f"arch-{cluster}-{variant}.png")
             save_stable(quantize_stable(berry_hue_shift(base, variant)), out, optimize=True)
             converted += 1
