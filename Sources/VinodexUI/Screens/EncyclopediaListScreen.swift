@@ -59,12 +59,11 @@ public struct EncyclopediaListScreen: View {
         )
     }
 
-    /// Identity for the search bar within the scroll target layout.
-    ///
-    /// Prefixed so it can never collide with an entry id, since both flow
-    /// through the same `String?` anchor.
+    /// Retired scroll-anchor identities (0.9.51): the bar and filter are
+    /// pinned above the scroll view now. Kept only so a stored anchor from an
+    /// older session still decodes; `scrollPosition(id:)` no-ops on an id the
+    /// layout no longer carries.
     static let searchBarAnchor = "__searchbar__"
-    /// Likewise for the chip dropdown (0.6.9, I3).
     static let chipBarAnchor = "__chipbar__"
 
     /// Where the list was scrolled to, held in the same store as the query so
@@ -329,6 +328,17 @@ public struct EncyclopediaListScreen: View {
             ZStack {
                 DexScreenBackground()
 
+                VStack(spacing: 8) {
+                // **The search bar is pinned** (0.9.51, maintainer order): it
+                // used to scroll away with the list, and the filter lived as
+                // its own section below it. Both now sit above the scroll
+                // view — the bar always visible, the filter behind an icon at
+                // its far right — so a reader deep in 200 rows can search or
+                // re-filter without a climb back to the top. The old scroll
+                // anchors for the bar (`searchBarAnchor`/`chipBarAnchor`) are
+                // retired; a stored anchor naming them simply no-ops.
+                pinnedHeader
+
                 ScrollView {
                     // Lazy, not a plain VStack. Master search selects every
                     // category, so a plain stack built and measured all 284 rows
@@ -337,25 +347,6 @@ public struct EncyclopediaListScreen: View {
                     // between tapping SEARCH and the list appearing. Only the
                     // visible handful is built now.
                     LazyVStack(spacing: 8) {
-                        if showsSearch {
-                            searchBar
-                                // Explicitly identified so it is a legal scroll
-                                // target: `scrollPosition(id:)` can only address
-                                // views the target layout has ids for, and
-                                // without this the search bar is a hole at the
-                                // top of the list that the anchor cannot name.
-                                .id(Self.searchBarAnchor)
-                        }
-
-                        if !chipFacets.isEmpty {
-                            chipDropdown.id(Self.chipBarAnchor)
-                            if showsChips {
-                                ForEach(chipFacets) { facet in
-                                    chipRow(facet).id("__chips__" + facet.rawValue)
-                                }
-                            }
-                        }
-
                         if rows.isEmpty {
                             // The query no longer decides whether an empty list
                             // is a fault or an answer — `db.dataState` does. The
@@ -416,8 +407,91 @@ public struct EncyclopediaListScreen: View {
                 // That rebuild is exactly what happens on the way back from an
                 // entry, which is the whole point.
                 .scrollPosition(id: anchorBinding)
+                }
             }
         }
+    }
+
+    /// The always-visible strip above the list (0.9.51): search bar with the
+    /// filter behind an icon at its far right, and the facet rows unfolding
+    /// beneath the bar when the icon is open. Replaces the in-scroll FILTER
+    /// section.
+    private var pinnedHeader: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                if showsSearch {
+                    searchBar
+                }
+                if !chipFacets.isEmpty {
+                    filterIconButton
+                }
+            }
+
+            if showsChips, !chipFacets.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    if chips.count > 0 {
+                        Button {
+                            Haptics.select()
+                            withAnimation(.easeOut(duration: 0.2)) { chips.clear() }
+                        } label: {
+                            Text("RESET \(chips.count) ON")
+                                .font(DexFont.retro(10))
+                                .tracking(1)
+                                .foregroundStyle(Dex.red500)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 5)
+                                        .strokeBorder(Dex.red500.opacity(0.55), lineWidth: 2)
+                                )
+                        }
+                        .buttonStyle(DexPressStyle(scale: 0.97))
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                    ForEach(chipFacets) { facet in
+                        chipRow(facet)
+                    }
+                }
+                .transition(.opacity)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.top, 8)
+    }
+
+    /// The far-right filter toggle: the old FILTER row compressed to an icon
+    /// with its active-count badge. The options open under the bar, pinned
+    /// with it, rather than as a section that scrolls away.
+    private var filterIconButton: some View {
+        Button {
+            Haptics.select()
+            withAnimation(.easeOut(duration: 0.2)) { showsChips.toggle() }
+        } label: {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: "slider.horizontal.3")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(showsChips ? (lcd.isLight ? .white : .black) : lcd.accent)
+                    .frame(width: 44, height: 44)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(showsChips ? AnyShapeStyle(lcd.accent) : AnyShapeStyle(lcd.surface))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .strokeBorder(lcd.accent.opacity(0.7), lineWidth: 2)
+                    )
+                if chips.count > 0 {
+                    Text("\(chips.count)")
+                        .font(DexFont.retro(9))
+                        .foregroundStyle(lcd.isLight ? .white : .black)
+                        .padding(4)
+                        .background(Circle().fill(Dex.red500))
+                        .offset(x: 5, y: -5)
+                }
+            }
+        }
+        .buttonStyle(DexPressStyle(scale: 0.96))
+        .accessibilityLabel("Filter, \(chips.count) active, \(showsChips ? "expanded" : "collapsed")")
     }
 
     private func filterBanner(_ filter: EntryFilter) -> some View {
@@ -503,66 +577,8 @@ public struct EncyclopediaListScreen: View {
     /// uses, so the control reads the same in both places. Folded by default:
     /// the list is the subject, and three rows of chips above it unasked-for
     /// would bury the first result.
-    private var chipDropdown: some View {
-        let active = chips.count
-
-        return Button {
-            Haptics.select()
-            withAnimation(.easeOut(duration: 0.2)) { showsChips.toggle() }
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(lcd.accent)
-                Text("FILTER")
-                    .font(DexFont.retro(12))
-                    .tracking(1)
-                    .foregroundStyle(lcd.text)
-                if active > 0 {
-                    Text("\(active) ON")
-                        .font(DexFont.retro(10))
-                        .foregroundStyle(lcd.isLight ? .white : .black)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Capsule().fill(lcd.accent))
-                }
-                Spacer(minLength: 0)
-                if active > 0 {
-                    // Reachable with the rows folded away, which is the state a
-                    // filtered list is most likely to be left in.
-                    Text("RESET")
-                        .font(DexFont.retro(10))
-                        .tracking(1)
-                        .foregroundStyle(Dex.red500)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 5)
-                                .strokeBorder(Dex.red500.opacity(0.55), lineWidth: 2)
-                        )
-                        // Its own target inside the header's, so tapping RESET
-                        // clears rather than folding.
-                        .onTapGesture {
-                            Haptics.select()
-                            chips.clear()
-                        }
-                }
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(lcd.subtext)
-                    .rotationEffect(.degrees(showsChips ? 180 : 0))
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity)
-            .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
-            .overlay(
-                RoundedRectangle(cornerRadius: 6).strokeBorder(lcd.surfaceEdge, lineWidth: 2)
-            )
-        }
-        .buttonStyle(DexPressStyle(scale: 0.98))
-        .accessibilityLabel("Filter, \(active) active, \(showsChips ? "expanded" : "collapsed")")
-    }
+    // chipDropdown (the in-scroll FILTER row) retired 0.9.51 — the pinned
+    // header's `filterIconButton` is its successor.
 
     private func chipRow(_ facet: ChipFacet) -> some View {
         VStack(alignment: .leading, spacing: 8) {

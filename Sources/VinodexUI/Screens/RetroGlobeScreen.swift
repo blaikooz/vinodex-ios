@@ -97,7 +97,6 @@ public struct RetroGlobeScreen: View {
                         tint: UIColor(globeTint),
                         invertsTexture: lcd.invertsGlobeTexture
                     )
-                        .gesture(dragGesture)
                         // The scene's lighting, emission and tint are
                         // baked in `buildScene`, which only runs in
                         // `makeUIView` — so a mode or skin switch has to
@@ -105,6 +104,18 @@ public struct RetroGlobeScreen: View {
                         // costs one rebuild per toggle rather than one per
                         // render.
                         .id("\(lcd.rawValue)|\(skin.rawValue)")
+
+                    // The drag rides an explicit clear hit-shape rather than
+                    // the representable (0.9.51 fix): the SCNView disables its
+                    // own interaction on purpose, and the iOS 18 runtime
+                    // stopped routing SwiftUI gestures through a
+                    // non-interactive representable — the globe froze with
+                    // zero code changed. A shape SwiftUI owns cannot be
+                    // opted out from under us. Markers sit above and keep
+                    // hit priority.
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .gesture(dragGesture)
 
                     markerLayer
                 }

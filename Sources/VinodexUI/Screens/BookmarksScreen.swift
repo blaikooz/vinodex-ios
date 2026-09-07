@@ -88,7 +88,7 @@ public struct BookmarksScreen: View {
     private var items: [SavedItem] {
         switch shelf {
         case .saved: bookmarks.saved(in: db)
-        case .wantToTry, .tried: bookmarks.entries(on: shelf, in: db).map { .entry($0) }
+        case .wantToTry, .tried, .scanned: bookmarks.entries(on: shelf, in: db).map { .entry($0) }
         }
     }
 
@@ -97,6 +97,7 @@ public struct BookmarksScreen: View {
         case .saved: "SAVED"
         case .wantToTry: "WANT"
         case .tried: "TRIED"
+        case .scanned: "SCANNED"
         }
     }
 
@@ -641,6 +642,8 @@ public struct BookmarksScreen: View {
             ("plus.circle", "NOTHING ON THE WISHLIST", "Tap WANT on a grape or style you're curious about.")
         case .tried:
             ("checkmark.circle", "NOTHING TRIED YET", "Tap TRIED on a grape or style you've drunk — then rate it.")
+        case .scanned:
+            ("barcode.viewfinder", "NOTHING SCANNED YET", "Point the Label Reader at a bottle and its matches log here.")
         }
 
         return VStack(spacing: 12) {

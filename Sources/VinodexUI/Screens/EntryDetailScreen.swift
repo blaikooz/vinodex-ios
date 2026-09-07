@@ -160,6 +160,12 @@ public struct EntryDetailScreen: View {
                 if entry.isTastable, bookmarks.contains(entry.id, on: .tried) {
                     myTasting
                 }
+                // **SCANNED** (0.9.51): the label reader's mark on the page.
+                // An event record, not a tasting claim — see
+                // `BookmarkStore.recordScanned`.
+                if bookmarks.contains(entry.id, on: .scanned) {
+                    scannedSection
+                }
                 // Wrapped in a real container before being identified: the
                 // builder returns a tuple of sections, and putting `.id()`
                 // straight on that would collapse N stack children into one
@@ -333,6 +339,23 @@ public struct EntryDetailScreen: View {
     /// to change them. Five interactive-sized stars, deliberately unlike the
     /// rarity row's three small read-only ones — two star rows on one screen
     /// must not read as the same instrument.
+    /// The label reader's mark (0.9.51): this wine matched a real bottle
+    /// under the scanner. Sits with MY RATING because both are the user's
+    /// own history on the page, not the catalog's knowledge.
+    private var scannedSection: some View {
+        DexSection("SCANNED", symbol: "viewfinder") {
+            HStack(spacing: 10) {
+                Image(systemName: "barcode.viewfinder")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(lcd.accent)
+                Text("This wine matched a label under your scanner.")
+                    .font(DexFont.mono(15))
+                    .foregroundStyle(lcd.subtext)
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
     private var myTasting: some View {
         DexSection("MY RATING", symbol: "star.fill") {
             let rating = bookmarks.rating(for: entry.id)

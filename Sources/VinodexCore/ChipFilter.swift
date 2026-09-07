@@ -144,6 +144,7 @@ public extension Shelf {
         case .saved: "SAVED"
         case .wantToTry: "WANTED"
         case .tried: "TRIED"
+        case .scanned: "SCANNED"
         }
     }
 }

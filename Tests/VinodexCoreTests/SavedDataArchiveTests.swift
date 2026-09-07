@@ -26,7 +26,8 @@ struct SavedDataArchiveTests {
     /// rather than a silent one.
     @Test("the registry holds every key exactly once")
     func registryIsComplete() {
-        #expect(SavedDataKey.allCases.count == 20)
+        // 21 since 0.9.51: the scanned shelf joined the registry.
+        #expect(SavedDataKey.allCases.count == 21)
         let raws = SavedDataKey.allCases.map(\.rawValue)
         #expect(Set(raws).count == raws.count, "duplicate key string: \(raws)")
         #expect(raws.allSatisfy { !$0.isEmpty })
@@ -115,10 +116,12 @@ struct SavedDataArchiveTests {
         // the only proof that matters is what the app would see next launch.
         let target = makeDefaults()
         let written = SavedDataArchiver.apply(restored, to: target)
-        // 20 keys, less the two entitlement keys `apply` refuses, less the
+        // 21 keys, less the two entitlement keys `apply` refuses, less the
         // four this device never set (uiScale, lcdMode, chassisSkin,
-        // keepAwakeEnabled) — those are removed rather than written.
-        #expect(written.count == 14, "got \(written.map(\.rawValue))")
+        // keepAwakeEnabled) — those are removed rather than written. The
+        // scanned shelf counts even when empty: export reads it as [] and
+        // apply writes what export read.
+        #expect(written.count == 15, "got \(written.map(\.rawValue))")
 
         let restoredBookmarks = BookmarkStore(defaults: target)
         #expect(restoredBookmarks.contains("G001"))
@@ -210,7 +213,7 @@ struct SavedDataArchiveTests {
         // one — so a device that never opened settings restores fewer keys
         // than the registry holds, and the count the UI reports is honest
         // rather than always twenty.
-        #expect(written.count == 8, "got \(written.map(\.rawValue))")
+        #expect(written.count == 9, "got \(written.map(\.rawValue))")
     }
 
     // MARK: - What the reader refuses
