@@ -9,22 +9,23 @@ import VinodexCore
 /// loader repaints it, which is how a new tier gets a leaf without a new
 /// sprite drop.
 ///
-/// The leaf is found positionally, not by hue alone: gold berries and amber
+/// The leaf is found per sprite, not by hue alone: gold berries and amber
 /// flecks share the leaf's yellow band, so a hue test by itself would repaint
-/// fruit. Every bunch is the same drawing recoloured, so the leaf occupies
-/// the same corner of every sprite — the mask is computed once from the
-/// reference sprite's yellow pixels and reused (scaled) across the set.
+/// fruit. Until 0.9.47 the mask was computed once, positionally, from a single
+/// reference sprite — sound while every bunch was the same drawing, and the
+/// silent breaker of every new drawing (the icon campaign's day-one gate).
+/// Now each sprite grows its own mask from its own yellow pixels, resolved by
+/// connected components: the cel outline separates every berry into its own
+/// small blob, so the leaf is reliably the *largest, top-weighted* yellow
+/// component even on gold-berried sprites, and split lobes are unioned back
+/// in by bounding-box overlap.
 @MainActor
 final class GrapeSpriteLoader {
     static let shared = GrapeSpriteLoader()
 
-    /// The sprite whose yellow pixels define the leaf region. Any unblended
-    /// bunch would do; medium is the middle of the set.
-    private static let maskReference = "green-medium-rare"
-
     private var cache: [String: UIImage] = [:]
-    /// Leaf pixels of the reference sprite, in unit coordinates, dilated.
-    private var unitMask: [(x: CGFloat, y: CGFloat)]?
+    /// Leaf pixels per sprite stem, in unit coordinates.
+    private var masks: [String: [(x: CGFloat, y: CGFloat)]] = [:]
 
     private init() {}
 
@@ -32,17 +33,17 @@ final class GrapeSpriteLoader {
         let key = "\(stem)|\(rarity.rawValue)"
         if let hit = cache[key] { return hit }
         guard let base = PixelArtLoader.shared.image(stem) else { return nil }
-        let recolored = recolor(base, to: GrapeArt.leafHex(rarity: rarity)) ?? base
+        let recolored = recolor(base, stem: stem, to: GrapeArt.leafHex(rarity: rarity)) ?? base
         cache[key] = recolored
         return recolored
     }
 
     // MARK: Recolouring
 
-    private func recolor(_ image: UIImage, to hex: String) -> UIImage? {
+    private func recolor(_ image: UIImage, stem: String, to hex: String) -> UIImage? {
         guard let cg = image.cgImage else { return nil }
         let w = cg.width, h = cg.height
-        guard w > 0, h > 0, let mask = leafMask() else { return nil }
+        guard w > 0, h > 0, let mask = leafMask(stem: stem, cg: cg) else { return nil }
 
         let target = rgb(of: hex)
         var data = [UInt8](repeating: 0, count: w * h * 4)
@@ -82,11 +83,16 @@ final class GrapeSpriteLoader {
         return UIImage(cgImage: outCG, scale: image.scale, orientation: .up)
     }
 
-    /// Yellow pixels of the reference sprite, unit-normalised. Computed once.
-    private func leafMask() -> [(x: CGFloat, y: CGFloat)]? {
-        if let unitMask { return unitMask }
-        guard let image = PixelArtLoader.shared.image(Self.maskReference),
-              let cg = image.cgImage else { return nil }
+    /// This sprite's leaf pixels, unit-normalised. Computed once per stem.
+    ///
+    /// Yellow-band pixels are grouped into 4-connected components; the leaf
+    /// is the component with the best area-times-height score (a component
+    /// whose centroid sits in the lower 55% is discounted 4x, which is what
+    /// keeps a big gold berry from beating a modest leaf), plus any other
+    /// band component overlapping the winner's slightly inflated box — a
+    /// leaf split into lobes by a drawn vein or the stem crossing it.
+    private func leafMask(stem: String, cg: CGImage) -> [(x: CGFloat, y: CGFloat)]? {
+        if let hit = masks[stem] { return hit }
         let w = cg.width, h = cg.height
         var data = [UInt8](repeating: 0, count: w * h * 4)
         guard let ctx = CGContext(
@@ -97,20 +103,64 @@ final class GrapeSpriteLoader {
         ) else { return nil }
         ctx.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
 
-        var mask: [(CGFloat, CGFloat)] = []
+        // The band, as pixel indices.
+        var band = [Bool](repeating: false, count: w * h)
         for y in 0..<h {
             for x in 0..<w {
                 let i = (y * w + x) * 4
                 let a = data[i + 3]
                 guard a > 40 else { continue }
                 let (hue, sat, val) = hsv(r: data[i], g: data[i + 1], b: data[i + 2], a: a)
-                // The reference leaf's yellow band.
-                if hue >= 0.09, hue <= 0.16, sat > 0.5, val > 0.4 {
-                    mask.append((CGFloat(x) / CGFloat(w - 1), CGFloat(y) / CGFloat(h - 1)))
+                if hue >= 0.08, hue <= 0.17, sat > 0.45, val > 0.35 {
+                    band[y * w + x] = true
                 }
             }
         }
-        unitMask = mask
+
+        // Components.
+        struct Comp { var px: [Int] = []; var minX = Int.max; var maxX = -1; var minY = Int.max; var maxY = -1; var sumY = 0 }
+        var visited = [Bool](repeating: false, count: w * h)
+        var comps: [Comp] = []
+        for start in 0..<(w * h) where band[start] && !visited[start] {
+            var comp = Comp()
+            var stack = [start]
+            visited[start] = true
+            while let p = stack.popLast() {
+                comp.px.append(p)
+                let x = p % w, y = p / w
+                comp.minX = min(comp.minX, x); comp.maxX = max(comp.maxX, x)
+                comp.minY = min(comp.minY, y); comp.maxY = max(comp.maxY, y)
+                comp.sumY += y
+                for n in [p - 1, p + 1, p - w, p + w] {
+                    guard n >= 0, n < w * h, band[n], !visited[n] else { continue }
+                    // Row wrap guard for the horizontal neighbours.
+                    if abs((n % w) - x) > 1 { continue }
+                    visited[n] = true
+                    stack.append(n)
+                }
+            }
+            comps.append(comp)
+        }
+        guard !comps.isEmpty else { masks[stem] = []; return [] }
+
+        func score(_ c: Comp) -> Double {
+            let centroidY = Double(c.sumY) / Double(max(c.px.count, 1)) / Double(max(h - 1, 1))
+            return Double(c.px.count) * (centroidY < 0.45 ? 1.0 : 0.25)
+        }
+        let winner = comps.max(by: { score($0) < score($1) })!
+        let inflate = max(3, w / 40)
+        let keep = comps.filter { c in
+            c.minX <= winner.maxX + inflate && c.maxX >= winner.minX - inflate &&
+            c.minY <= winner.maxY + inflate && c.maxY >= winner.minY - inflate
+        }
+
+        var mask: [(x: CGFloat, y: CGFloat)] = []
+        for c in keep {
+            for p in c.px {
+                mask.append((CGFloat(p % w) / CGFloat(w - 1), CGFloat(p / w) / CGFloat(h - 1)))
+            }
+        }
+        masks[stem] = mask
         return mask
     }
 

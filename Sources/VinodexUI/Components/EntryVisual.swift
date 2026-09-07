@@ -99,10 +99,13 @@ struct EntryVisual {
             // rarity absent from the generated table leaves the hairline it
             // always had instead of inventing a colour.
             ringColor: db.palette.rarityChips[g.rarity.rawValue].map { Color(dexHex: $0.border) },
-            // The bunch sprite (0.5.4): colour, depth, blend and leaf derived
-            // from the grape itself — see `GrapeArt`. The tasting-note glyph
-            // above stays resolved as the fallback.
-            artName: db.icons.grapeArtStem(forKey: GrapeArt.key(for: g))
+            // The per-grape portrait first (0.9.47, the icon campaign) —
+            // flagships drawn as themselves, the long tail by cluster-shape
+            // archetype — then the 0.5.4 colour-key sprite for anything the
+            // portrait table does not name. The tasting-note glyph above
+            // stays resolved as the last fallback.
+            artName: db.icons.grapePortraitStem(forGrapeID: g.common.id)
+                ?? db.icons.grapeArtStem(forKey: GrapeArt.key(for: g))
         )
     }
 

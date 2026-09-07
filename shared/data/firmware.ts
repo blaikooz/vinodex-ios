@@ -61,6 +61,20 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.9.47",
+  date: "2026-09-07",
+  headline: "EVERY GRAPE ITS FACE",
+  notes: [
+    "Twenty-three grapes are drawn as themselves at last, from Pinot Noir's tight pinecone to Nebbiolo's fog-dusted pyramid.",
+    "Every other grape wears a real cluster shape from the ampelography books instead of the one shared bunch.",
+    "The GODFORSAKEN eighteen share a gnarled bunch with a withered raisin, as is their right.",
+    "Cava, Madeira and Cremant sit for real portraits, retiring their borrowed champagne flutes.",
+    "Ten flavours that shared a picture get their own: every flavour in the book is now illustrated.",
+    "The gris family's leaf obeys the seasons again, so its rarity colour reads true.",
+  ],
+};
+
+const PREVIOUS_0946: FirmwareRelease = {
   version: "0.9.46",
   date: "2026-09-07",
   headline: "THE FLAGS COME HOME",
@@ -338,6 +352,7 @@ const PREVIOUS_0892: FirmwareRelease = {
 };
 
 const PREVIOUS: FirmwareRelease[] = [
+  PREVIOUS_0946,
   PREVIOUS_0945,
   PREVIOUS_0944,
   PREVIOUS_0943,
