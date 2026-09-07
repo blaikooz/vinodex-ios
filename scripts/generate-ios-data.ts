@@ -1111,7 +1111,9 @@ function buildGrapePortraits(entries: readonly WineEntry[]): Record<string, stri
       continue;
     }
     if (g.rarity === 'GODFORSAKEN') {
-      out[g.id] = 'arch-godforsaken';
+      // The gnarl in the grape's own berry hue (0.9.50): one neutral red
+      // gnarl put red fruit on the tier's white grapes.
+      out[g.id] = `arch-godforsaken-${hue(g)}`;
       continue;
     }
     // Default for a grape no reference describes: the average shape (a

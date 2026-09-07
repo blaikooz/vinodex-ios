@@ -103,9 +103,9 @@ SOURCE_TO_STEM = {
     "touriganacional.png": "touriganacional",
     "assyrtiko.png": "assyrtiko",
     "furmint.png": "furmint",
-    # The GODFORSAKEN tier's shared gnarl. The eight archetype masters are
-    # handled separately (ARCH_SOURCES): each yields three hue variants.
-    "archgodforsaken.png": "arch-godforsaken",
+    # The GODFORSAKEN gnarl moved to ARCH_SOURCES in 0.9.50: it rendered
+    # its neutral mid-red for every member, which put red bunches on the
+    # tier's eight white grapes. It hue-shifts like any other master now.
     "redlightcommon.png": "red-light-common",
     "redlightrare.png": "red-light-rare",
     "redlightnoble.png": "red-light-noble",
@@ -132,7 +132,122 @@ SOURCE_TO_STEM = {
 }
 
 # Copied through untouched, for the reason given in art_common.copy_master.
+# Unmarked (no sentinel leaf), so the runtime re-ink skips them and their
+# drawn leaf stands — they are dead fallbacks since every grape gained a
+# portrait in 0.9.47.
 MASTERS = {"gold-full-rare", "gold-light-rare", "gold-medium-rare"}
+
+# --- The sentinel leaf (0.9.50) -------------------------------------------
+#
+# Runtime leaf detection by yellow-band heuristics broke the moment berries
+# shared the band: Riesling's golden bunch unioned into an 81%-of-sprite
+# "leaf" and NOBLE re-inked the whole thing purple. The fix moves the
+# decision here, where it runs once and can be eyeballed: each sprite's
+# leaf pixels are re-hued to a SENTINEL no berry uses (teal, hue 0.47,
+# shading kept), and `GrapeSpriteLoader` simply repaints that band. A
+# sprite that ships unmarked keeps its drawn leaf at every rarity, which
+# degrades honestly.
+SENTINEL_HUE = 0.47
+
+# Hand-verified leaf boxes (x0, y0, x1, y1 in source pixels) for the
+# sprites whose berries live in the leaf's own band — auto-detection is
+# ambiguous there by construction. Within the box, leaf pixels are the
+# ORANGE side of the band (h <= 0.125); the yellower berries stay fruit.
+LEAF_BBOX = {
+    "riesling": (42, 4, 100, 62),
+    "chardonnay": (48, 8, 113, 60),
+    "muscatblanc": (0, 6, 52, 58),
+}
+# Auto-detected masks above this share of opaque pixels fail the import:
+# it means a bunch got captured and the stem needs a LEAF_BBOX row.
+MASK_CAP = 0.32
+
+
+def _leaf_pixels_auto(img):
+    """The old runtime heuristic, run offline: yellow-band components,
+    top-weighted largest wins, smaller lobes within its box join it."""
+    px = img.load()
+    w, h = img.size
+    band = set()
+    opaque = 0
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a <= 40:
+                continue
+            opaque += 1
+            hh, ss, vv = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+            if 0.08 <= hh <= 0.17 and ss > 0.45 and vv > 0.35:
+                band.add((x, y))
+    if not band:
+        return set(), opaque
+    seen = set()
+    comps = []
+    for p in band:
+        if p in seen:
+            continue
+        stack = [p]
+        seen.add(p)
+        comp = []
+        while stack:
+            c = stack.pop()
+            comp.append(c)
+            for n in ((c[0] - 1, c[1]), (c[0] + 1, c[1]), (c[0], c[1] - 1), (c[0], c[1] + 1)):
+                if n in band and n not in seen:
+                    seen.add(n)
+                    stack.append(n)
+        comps.append(comp)
+
+    def score(c):
+        cy = sum(p[1] for p in c) / len(c) / max(h - 1, 1)
+        return len(c) * (1.0 if cy < 0.40 else 0.1)
+
+    win = max(comps, key=score)
+    xs = [p[0] for p in win]
+    ys = [p[1] for p in win]
+    infl = max(3, w // 40)
+    x0, x1, y0, y1 = min(xs) - infl, max(xs) + infl, min(ys) - infl, max(ys) + infl
+    out = set()
+    for c in comps:
+        if len(c) > len(win):
+            continue
+        cxs = [p[0] for p in c]
+        cys = [p[1] for p in c]
+        if min(cxs) <= x1 and max(cxs) >= x0 and min(cys) <= y1 and max(cys) >= y0:
+            out.update(c)
+    return out, opaque
+
+
+def mark_leaf(img, stem):
+    """Re-hue the sprite's leaf to the sentinel. Manual box first; auto
+    detection with a hard size cap otherwise."""
+    img = img.convert("RGBA")
+    px = img.load()
+    w, h = img.size
+    if stem in LEAF_BBOX:
+        bx0, by0, bx1, by1 = LEAF_BBOX[stem]
+        leaf = set()
+        for y in range(max(0, by0), min(h, by1)):
+            for x in range(max(0, bx0), min(w, bx1)):
+                r, g, b, a = px[x, y]
+                if a <= 40:
+                    continue
+                hh, ss, vv = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+                if 0.05 <= hh <= 0.125 and ss > 0.4 and vv > 0.3:
+                    leaf.add((x, y))
+    else:
+        leaf, opaque = _leaf_pixels_auto(img)
+        if opaque and len(leaf) / opaque > MASK_CAP:
+            sys.exit(
+                f"{stem}: auto leaf mask covers {len(leaf) / opaque:.0%} of the "
+                f"sprite — berries captured; add a LEAF_BBOX row"
+            )
+    for (x, y) in leaf:
+        r, g, b, a = px[x, y]
+        hh, ss, vv = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+        rr, gg, bb = colorsys.hsv_to_rgb(SENTINEL_HUE, ss, vv)
+        px[x, y] = (int(rr * 255), int(gg * 255), int(bb * 255), a)
+    return img
 
 # The sheet-D cluster archetypes (0.9.47): drawn once in a neutral mid-red,
 # multiplied here into the three catalog hues. The berry pixels are
@@ -149,6 +264,9 @@ ARCH_SOURCES = {
     # replacement sheet lands (sommbot B3).
     "archloosesmall.png": "loose-small",
     "archlooselarge.png": "loose-large",
+    # The gnarl, hue-shifted like the rest since 0.9.50 so white
+    # GODFORSAKEN grapes stop wearing red fruit.
+    "archgodforsaken.png": "godforsaken",
 }
 
 # hue, saturation scale, value scale per variant. Red passes through — since
@@ -185,8 +303,10 @@ def berry_hue_shift(img, variant):
             if a == 0:
                 continue
             hh, s, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+            if 0.40 <= hh <= 0.54:
+                continue  # the sentinel leaf survives every variant
             if 0.08 <= hh <= 0.17 and s > 0.45:
-                continue  # the leaf stays yellow for the runtime re-ink
+                continue  # stem browns and any unmarked leaf pixels
             if v < 0.22 or s < 0.18:
                 continue  # outline and glints
             if hh <= 0.09 or hh >= 0.85:  # the red masters' berry range
@@ -215,7 +335,7 @@ def main():
         if stem in MASTERS:
             copy_master(path, out)
         else:
-            img = strip_background(Image.open(path))
+            img = mark_leaf(strip_background(Image.open(path)), stem)
             if stem.startswith("red-light") or stem.startswith("red-medium"):
                 img = darken_reds(img)
             # See art_common (0.8.0, A0b): pinned quantise, and a run
@@ -230,7 +350,7 @@ def main():
         if not os.path.exists(path):
             missing.append(name)
             continue
-        base = strip_background(Image.open(path))
+        base = mark_leaf(strip_background(Image.open(path)), f"arch-{cluster}")
         for variant in ARCH_HUES:
             out = os.path.join(DST, f"arch-{cluster}-{variant}.png")
             save_stable(quantize_stable(berry_hue_shift(base, variant)), out, optimize=True)
