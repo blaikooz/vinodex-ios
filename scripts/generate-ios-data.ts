@@ -608,6 +608,12 @@ const COUNTRY_SHAPE_ICONS: Record<string, string> = {
   // Thracian Lowlands and Struma Valley gave the coverage gate a reason
   // to demand it.
   bulgaria: 'art:outline-bulgaria',
+  // Batch B (0.9.49): ring-rasterised on the Bulgaria precedent, drawn the
+  // day Codru, Vayots Dzor and Commandaria gave the coverage gate a reason
+  // to demand them.
+  moldova: 'art:outline-moldova',
+  armenia: 'art:outline-armenia',
+  cyprus: 'art:outline-cyprus',
 };
 
 /// Icon-well background per style classification.
@@ -741,6 +747,12 @@ const FLAG_PATHS: Record<string, string> = {
   Japan: 'Asia/japan/japan.png',
   China: 'Asia/china/china.png',
   India: 'Asia/india/india.png',
+  // Batch B (0.9.49): the pack files Armenia and Cyprus under Asia the way it
+  // files Georgia under Europe — the relpath is the pack's, the continent
+  // roster is ours (all three sit in CONT_EUROPE beside Georgia).
+  Moldova: 'Europe/moldova/moldova.png',
+  Armenia: 'Asia/armenia/armenia.png',
+  Cyprus: 'Asia/cyprus/cyprus.png',
 };
 
 // Full-colour pixel-art portraits for styles (0.5.6), keyed by normalised
@@ -1019,6 +1031,29 @@ const GRAPE_CLUSTERS: Record<string, string> = {
   'Marselan': 'cone-small',
   'Arinto dos Açores': 'cone-small',
   'Malvasia de São Jorge': 'cone-large',
+  // Batch B (0.9.49): G189–G208. Same sources and the same humility — the
+  // Caucasus and Cyprus rows lean on thinner references than the rest and are
+  // flagged UNCERTAIN in the batch report.
+  'Savatiano': 'cone-large',
+  'Malagousia': 'loose-large',
+  'Mavrodaphne': 'cone-small',
+  'Encruzado': 'pinecone-small',
+  'Fernão Pires': 'cone-large',
+  'Altesse': 'pinecone-small',
+  'Petite Arvine': 'pinecone-small',
+  'Kadarka': 'cone-small',
+  'Welschriesling': 'pinecone-small',
+  'Dornfelder': 'loose-large',
+  'Scheurebe': 'cone-small',
+  'Bacchus': 'cone-small',
+  'Areni': 'cone-large',
+  'Voskehat': 'cone-large',
+  'Fetească Albă': 'pinecone-small',
+  'Fetească Neagră': 'cone-small',
+  'Xynisteri': 'cone-large',
+  'Mavro': 'loose-large',
+  'Gaglioppo': 'cone-large',
+  'Nosiola': 'cone-small',
 };
 
 /// Berry color exceptions (0.9.48, sommbot A3), keyed like GRAPE_CLUSTERS
@@ -1042,6 +1077,11 @@ const GRAPE_BERRY_HUES: Record<string, string> = {
   'Grignolino': 'red',
   'Trepat': 'red',
   'Espadeiro': 'red',
+  // Batch B (0.9.49): Altesse ripens to the russet its Roussette name
+  // describes, the same reasoning that put Roussanne on copper; Voskehat is
+  // named for it — "golden berry".
+  'Altesse': 'copper',
+  'Voskehat': 'gold',
 };
 
 /// The per-grape portrait table (0.9.47): every grape resolves to a stem.

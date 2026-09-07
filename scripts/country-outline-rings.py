@@ -78,6 +78,11 @@ FILENAME = {
     "argentina": "argentina.png",
     "chile": "chile.png",
     "uruguay": "uruguay.png",
+    # Batch B (0.9.49): three new wine countries, ring-rasterised on the
+    # Bulgaria precedent until an artist draws them.
+    "moldova": "moldova.png",
+    "armenia": "armenia.png",
+    "cyprus": "cyprus.png",
     "new-zealand": "new zealand.png",
     "australia": "australia.png",
     "japan": "japan.png",
@@ -441,5 +446,35 @@ RINGS = {
         (73.20, 16.50), (72.85, 19.10), (72.65, 21.25), (70.10, 20.90),
         (68.95, 23.60), (68.20, 23.85), (70.10, 25.10), (71.10, 27.85),
         (73.90, 30.10), (75.30, 32.30),
+    ]],
+    # The leaf between two rivers: the Prut draws the whole west edge and the
+    # Dniester the east, with Transnistria's sliver kept inside the ring —
+    # the country page maps the state, not the frozen conflict. The southern
+    # tip at Giurgiulești is where Moldova touches the Danube for 400 metres.
+    "moldova": [[
+        (26.62, 48.26), (27.10, 48.42), (27.60, 48.47), (28.20, 48.32), (28.85, 48.10),
+        (29.20, 47.85), (29.15, 47.55), (29.55, 47.32), (29.90, 47.02), (30.13, 46.42),
+        (29.90, 46.35), (29.65, 46.40), (29.20, 46.52), (28.95, 46.25), (28.75, 45.95),
+        (28.50, 45.60), (28.21, 45.47), (28.10, 45.85), (28.22, 46.30), (28.10, 46.80),
+        (27.75, 47.15), (27.30, 47.70), (27.00, 47.95), (26.80, 48.10),
+    ]],
+    # A fist with the Syunik finger pointing southeast to Meghri; the deep
+    # western notch is Nakhchivan's border, not a drawing error. Ararat itself
+    # stands just across the Turkish line, which is the country's oldest grief.
+    "armenia": [[
+        (43.45, 41.11), (44.05, 41.20), (44.60, 41.22), (45.00, 41.29), (45.55, 41.19),
+        (45.35, 40.90), (45.60, 40.60), (45.95, 40.28), (45.55, 39.98), (46.20, 39.62),
+        (46.50, 39.35), (46.63, 38.98), (46.20, 38.88), (45.95, 39.20), (45.45, 39.50),
+        (45.15, 39.58), (44.80, 39.70), (44.40, 39.98), (44.05, 40.02), (43.66, 40.11),
+        (43.55, 40.48), (43.45, 40.80),
+    ]],
+    # The island: Akamas points west, Akrotiri hangs south, and the Karpaz
+    # panhandle runs away northeast — the handle of the frying pan every
+    # schoolbook compares it to.
+    "cyprus": [[
+        (32.27, 35.10), (32.55, 35.18), (32.92, 35.40), (33.30, 35.36), (33.70, 35.36),
+        (34.05, 35.45), (34.35, 35.56), (34.60, 35.69), (34.42, 35.50), (34.05, 35.28),
+        (33.95, 35.12), (34.08, 34.96), (33.65, 34.90), (33.30, 34.72), (33.02, 34.64),
+        (32.94, 34.56), (32.75, 34.66), (32.42, 34.75), (32.32, 34.90),
     ]],
 }

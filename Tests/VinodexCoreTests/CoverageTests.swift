@@ -55,8 +55,15 @@ struct CoverageTests {
         // (Mavrud, Melnik, Obaideh, Merwah, Zelen, Pinela, Chasselas,
         // Malvazija Istarska, Teran, Fetească Regală). Regions and styles
         // untouched: every new grape points at a home 0.9.42 already built.
-        #expect(db.entries(in: .grapes).count == 187)
-        #expect(db.entries(in: .regions).count == 139)
+        // Batch B (sommbot, 2026-09-07): +20 grapes (G189–G208), +13 regions
+        // (R140–R152) and three new countries — Moldova, Armenia, Cyprus, each
+        // with two regions, a gate blurb, a pixel flag and a ring-rasterised
+        // outline on the Bulgaria precedent. The grapes fill the seams the
+        // maintainer named: Greece beyond four, Portugal's whites, Savoie and
+        // the Valais, the German crossings, the Caucasus, the Fetească pair,
+        // Cyprus's Commandaria duo, and Italy's Gaglioppo and Nosiola.
+        #expect(db.entries(in: .grapes).count == 207)
+        #expect(db.entries(in: .regions).count == 152)
         // 31 since 0.6.x: Medium-Full Red removed, its grapes now Full-Body.
         // 33 since 0.7.9 (G): Madeira and Cava; 31 through 0.9.42's removal;
         // **33 again since 0.9.45**: the maintainer reversed the removal
@@ -65,7 +72,11 @@ struct CoverageTests {
         // both came back off the shelf on the maintainer's ruling; their exam
         // questions re-point at R081 Madeira and R102 Penedès, so the paper
         // still teaches both wines from the places that make them.
-        #expect(db.entries(in: .styles).count == 33)
+        // 39 since Batch B (0.9.49): the styles a wine encyclopedia was
+        // missing — Vin Jaune, Tokaji Aszú, Retsina, Passito, Marsala and
+        // Commandaria (S035–S040). All six wear the class glyph, portrait-less
+        // on the GSM Blend precedent, until the artist's next drop.
+        #expect(db.entries(in: .styles).count == 39)
         #expect(db.entries(in: .continents).count == 6)
     }
 
@@ -111,7 +122,10 @@ struct CoverageTests {
         // closing every native variety the 0.9.42 regions pointed at.
         // Flavours unchanged at 106 for the seventh data batch running —
         // all 30 new tasting notes drawn from the existing vocabulary.
-        #expect(stats.total == 471)
+        // 510 since Batch B (0.9.49): +20 grapes, +13 regions, +6 styles.
+        // Flavours unchanged at 106 for the eighth data batch running —
+        // all 60 new tasting notes drawn from the existing vocabulary.
+        #expect(stats.total == 510)
         // 26 since 0.7.3c: Brazil is the first *new* origin since Mexico. The
         // count is distinct region origins, so the coming-soon gates still do
         // not count and adding a country without a region would not move it.
@@ -124,7 +138,11 @@ struct CoverageTests {
         //
         // 30 since 0.9.42: the four coming-soon countries each grew real
         // regions, so the distinct-region-origin rule finally counts them.
-        #expect(stats.countries == 30)
+        //
+        // 33 since Batch B (0.9.49): Moldova, Armenia and Cyprus arrive with
+        // two regions each, so the rule counts them the day they land rather
+        // than waiting out a coming-soon phase.
+        #expect(stats.countries == 33)
         #expect(stats.categoryLines.count == 6)
     }
 
@@ -297,7 +315,11 @@ struct CoverageTests {
         // "Medium"; Zelen and Fetească Regală authored "Light-Medium", which
         // rounds to the same bar), +1 Medium-Full (Obaideh) and +1 Full
         // (Mavrud).
-        #expect(counts == [2: 44, 3: 87, 4: 18, 5: 38])
+        // Batch B (2026-09-07): +3 Light (Welschriesling, Fetească Albă,
+        // Nosiola), +13 Medium (nine authored "Medium", plus Kadarka,
+        // Bacchus, Xynisteri and Mavro at "Light-Medium"), +3 Medium-Full
+        // (Malagousia, Encruzado, Fetească Neagră) and +1 Full (Mavrodaphne).
+        #expect(counts == [2: 47, 3: 100, 4: 21, 5: 39])
 
         // Chardonnay is authored `body: "Medium-Full"` and drew a full bar.
         // (`grapeBodyClass` still reads "Full" for it — that is a *different*
@@ -454,7 +476,14 @@ struct CoverageTests {
         #expect(art != nil, "manifest lost its styleArt table")
         guard let art else { return }
 
-        let portraitless: Set<String> = ["gsm blend"]
+        // Batch B (0.9.49) ships its six styles portrait-less on the GSM
+        // Blend precedent: they wear the class glyph until the artist's next
+        // drop. Listed here so the day one gains a portrait fails loudly —
+        // that is the pleasant failure, and the fix is deleting its row.
+        let portraitless: Set<String> = [
+            "gsm blend",
+            "vin jaune", "tokaji aszu", "retsina", "passito", "marsala", "commandaria",
+        ]
 
         let names = Set(db.entries(in: .styles).map { TextNormalize.label($0.name) })
         for key in art.keys {
@@ -576,7 +605,11 @@ struct CoverageTests {
     /// entries — counted in the title because the number is the only thing
     /// here that says a row was added or removed rather than edited, and a
     /// silent extra row is how a wrong one would arrive unnoticed.
-    @Test("all seventeen colour overrides resolve, and each names a real style")
+    /// **Seventeen again since 0.9.45** (the pair restored), and
+    /// **twenty-two since Batch B (0.9.49)**: Vin Jaune, Tokaji Aszú,
+    /// Retsina, Marsala and Commandaria, all white on the Sherry/Madeira
+    /// reasoning recorded in the table itself.
+    @Test("all twenty-two colour overrides resolve, and each names a real style")
     func colorOverridesResolve() {
         let styleNames = Set(db.entries(in: .styles).map {
             TextNormalize.label($0.name).trimmingCharacters(in: .whitespaces)
@@ -584,7 +617,7 @@ struct CoverageTests {
         // The title states a number, so something has to hold it to it. It said
         // "sixteen" through the whole of 0.8.2's authoring while the table had
         // seventeen rows, because nothing here ever read the count.
-        #expect(EntryDisplay.colorOverrides.count == 17)
+        #expect(EntryDisplay.colorOverrides.count == 22)
         for (key, expected) in EntryDisplay.colorOverrides {
             #expect(
                 EntryDisplay.colorType(name: key) == expected,

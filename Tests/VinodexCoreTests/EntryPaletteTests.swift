@@ -50,8 +50,12 @@ struct EntryPaletteTests {
             guard case .grape(let g) = entry else { continue }
             let style = g.grapeStyle.isEmpty ? (g.wineType ?? "") : g.grapeStyle
             #expect(
+                // "Fortified Wine" joined the exceptions with Batch B's
+                // Mavrodaphne (0.9.49): like Madeira it is an authored style
+                // with no body-and-colour tone of its own, so the keyword
+                // fallback is the honest answer.
                 EntryPalette.styleToneKey(for: style) != nil
-                    || ["Sparkling Red", "Madeira"].contains(style),
+                    || ["Sparkling Red", "Madeira", "Fortified Wine"].contains(style),
                 "\(g.common.name): style \"\(style)\" matches no tone key"
             )
         }

@@ -61,6 +61,18 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.9.49",
+  date: "2026-09-07",
+  headline: "NEW SHELVES",
+  notes: [
+    "Twenty grapes join the shelf, from Greece's Malagousia to Armenia's Areni and the two Fetescas of Romania.",
+    "Six styles open their pages: Vin Jaune, Tokaji Aszu, Retsina, Passito, Marsala and Commandaria.",
+    "Moldova, Armenia and Cyprus raise their flags, outlines drawn, with thirteen new regions from Eger to Patagonia.",
+    "510 entries: 207 grapes, 152 regions, 39 styles, 106 flavours, 33 countries.",
+  ],
+};
+
+const PREVIOUS_0948: FirmwareRelease = {
   version: "0.9.48",
   date: "2026-09-07",
   headline: "TRUE TO THE VINE",
@@ -365,6 +377,7 @@ const PREVIOUS_0892: FirmwareRelease = {
 };
 
 const PREVIOUS: FirmwareRelease[] = [
+  PREVIOUS_0948,
   PREVIOUS_0947,
   PREVIOUS_0946,
   PREVIOUS_0945,

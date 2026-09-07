@@ -120,6 +120,18 @@ public enum EntryDisplay {
         "ice wine": .white,
         "botrytis wine": .white,
         "qvevri amber": .orange,
+        // **Batch B (0.9.49)**, transcribed with the styles themselves: the
+        // oxidative and amber styles drink from the white side of the cellar
+        // on the Sherry/Madeira reasoning above — even Commandaria, where
+        // Mavro is a black grape, is classed an amber sweet white however the
+        // cask was filled. Passito stays off the table on purpose: red
+        // Recioto and white Vin Santo are both passiti, so DUAL is its truth
+        // rather than a missing row.
+        "vin jaune": .white,
+        "tokaji aszu": .white,
+        "retsina": .white,
+        "marsala": .white,
+        "commandaria": .white,
     ]
 
     /// `\b` semantics: a hit only counts when neither edge abuts a word

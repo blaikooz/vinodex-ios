@@ -31,6 +31,11 @@ FILL = {
     "bulgaria": "#3E8E5A",
     "croatia": "#2E62B0",
     "czechia": "#2E62B0",
+    # Batch B (0.9.49): Moldova's yellow centre band, Armenia's orange, and
+    # for Cyprus the copper the flag itself paints the island in.
+    "moldova": "#CDA221",
+    "armenia": "#D97E23",
+    "cyprus": "#B4682B",
     "france": "#2E5AA8",
     "georgia": "#C8342E",
     "germany": "#D9A420",
