@@ -9,16 +9,15 @@ import VinodexCore
 /// loader repaints it, which is how a new tier gets a leaf without a new
 /// sprite drop.
 ///
-/// The leaf is found per sprite, not by hue alone: gold berries and amber
-/// flecks share the leaf's yellow band, so a hue test by itself would repaint
-/// fruit. Until 0.9.47 the mask was computed once, positionally, from a single
-/// reference sprite — sound while every bunch was the same drawing, and the
-/// silent breaker of every new drawing (the icon campaign's day-one gate).
-/// Now each sprite grows its own mask from its own yellow pixels, resolved by
-/// connected components: the cel outline separates every berry into its own
-/// small blob, so the leaf is reliably the *largest, top-weighted* yellow
-/// component even on gold-berried sprites, and split lobes are unioned back
-/// in by bounding-box overlap.
+/// The leaf is found by SENTINEL hue since 0.9.50. Every prior scheme —
+/// one positional mask (broken by new drawings), then per-sprite yellow-band
+/// components (broken by golden berries: Riesling's bunch unioned into an
+/// 81% "leaf" and NOBLE painted it purple) — failed because a yellow leaf
+/// and golden fruit are genuinely inseparable by hue at runtime. So the
+/// importer now decides once, offline, with hand-verified boxes for the
+/// ambiguous sprites, and re-hues the leaf to a teal no berry uses
+/// (import-grape-art.py, SENTINEL_HUE). This loader just repaints that
+/// band. An unmarked sprite keeps its drawn leaf at every rarity.
 @MainActor
 final class GrapeSpriteLoader {
     static let shared = GrapeSpriteLoader()
@@ -68,7 +67,7 @@ final class GrapeSpriteLoader {
                     let a = data[i + 3]
                     guard a > 0 else { continue }
                     let (hue, sat, val) = hsv(r: data[i], g: data[i + 1], b: data[i + 2], a: a)
-                    guard sat > 0.3, val > 0.1, hue >= 0.05, hue <= 0.45 else { continue }
+                    guard sat > 0.2, val > 0.1, hue >= 0.40, hue <= 0.54 else { continue }
                     // Keep the pixel's shading (value), take the target's hue
                     // and saturation — the leaf stays drawn, only re-inked.
                     let out = rgbFrom(h: target.h, s: target.s, v: val)
@@ -83,14 +82,7 @@ final class GrapeSpriteLoader {
         return UIImage(cgImage: outCG, scale: image.scale, orientation: .up)
     }
 
-    /// This sprite's leaf pixels, unit-normalised. Computed once per stem.
-    ///
-    /// Yellow-band pixels are grouped into 4-connected components; the leaf
-    /// is the component with the best area-times-height score (a component
-    /// whose centroid sits in the lower 55% is discounted 4x, which is what
-    /// keeps a big gold berry from beating a modest leaf), plus any other
-    /// band component overlapping the winner's slightly inflated box — a
-    /// leaf split into lobes by a drawn vein or the stem crossing it.
+    /// This sprite's sentinel-leaf pixels, unit-normalised. Once per stem.
     private func leafMask(stem: String, cg: CGImage) -> [(x: CGFloat, y: CGFloat)]? {
         if let hit = masks[stem] { return hit }
         let w = cg.width, h = cg.height
@@ -103,61 +95,16 @@ final class GrapeSpriteLoader {
         ) else { return nil }
         ctx.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
 
-        // The band, as pixel indices.
-        var band = [Bool](repeating: false, count: w * h)
+        var mask: [(x: CGFloat, y: CGFloat)] = []
         for y in 0..<h {
             for x in 0..<w {
                 let i = (y * w + x) * 4
                 let a = data[i + 3]
                 guard a > 40 else { continue }
-                let (hue, sat, val) = hsv(r: data[i], g: data[i + 1], b: data[i + 2], a: a)
-                if hue >= 0.08, hue <= 0.17, sat > 0.45, val > 0.35 {
-                    band[y * w + x] = true
+                let (hue, sat, _) = hsv(r: data[i], g: data[i + 1], b: data[i + 2], a: a)
+                if hue >= 0.40, hue <= 0.54, sat > 0.2 {
+                    mask.append((CGFloat(x) / CGFloat(w - 1), CGFloat(y) / CGFloat(h - 1)))
                 }
-            }
-        }
-
-        // Components.
-        struct Comp { var px: [Int] = []; var minX = Int.max; var maxX = -1; var minY = Int.max; var maxY = -1; var sumY = 0 }
-        var visited = [Bool](repeating: false, count: w * h)
-        var comps: [Comp] = []
-        for start in 0..<(w * h) where band[start] && !visited[start] {
-            var comp = Comp()
-            var stack = [start]
-            visited[start] = true
-            while let p = stack.popLast() {
-                comp.px.append(p)
-                let x = p % w, y = p / w
-                comp.minX = min(comp.minX, x); comp.maxX = max(comp.maxX, x)
-                comp.minY = min(comp.minY, y); comp.maxY = max(comp.maxY, y)
-                comp.sumY += y
-                for n in [p - 1, p + 1, p - w, p + w] {
-                    guard n >= 0, n < w * h, band[n], !visited[n] else { continue }
-                    // Row wrap guard for the horizontal neighbours.
-                    if abs((n % w) - x) > 1 { continue }
-                    visited[n] = true
-                    stack.append(n)
-                }
-            }
-            comps.append(comp)
-        }
-        guard !comps.isEmpty else { masks[stem] = []; return [] }
-
-        func score(_ c: Comp) -> Double {
-            let centroidY = Double(c.sumY) / Double(max(c.px.count, 1)) / Double(max(h - 1, 1))
-            return Double(c.px.count) * (centroidY < 0.45 ? 1.0 : 0.25)
-        }
-        let winner = comps.max(by: { score($0) < score($1) })!
-        let inflate = max(3, w / 40)
-        let keep = comps.filter { c in
-            c.minX <= winner.maxX + inflate && c.maxX >= winner.minX - inflate &&
-            c.minY <= winner.maxY + inflate && c.maxY >= winner.minY - inflate
-        }
-
-        var mask: [(x: CGFloat, y: CGFloat)] = []
-        for c in keep {
-            for p in c.px {
-                mask.append((CGFloat(p % w) / CGFloat(w - 1), CGFloat(p / w) / CGFloat(h - 1)))
             }
         }
         masks[stem] = mask
