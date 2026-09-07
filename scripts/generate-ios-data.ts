@@ -1028,7 +1028,7 @@ function buildGrapePortraits(entries: readonly WineEntry[]): Record<string, stri
   const missing: string[] = [];
   const named = new Set<string>();
 
-  const hue = (g: WineEntry): string => {
+  const hue = (g: Extract<WineEntry, { category: 'GRAPES' }>): string => {
     if (g.grapeType !== 'white') return 'red';
     const s = `${g.grapeStyle ?? ''} ${g.wineType ?? ''}`.toLowerCase();
     return s.includes('sweet') ? 'gold' : 'green';
