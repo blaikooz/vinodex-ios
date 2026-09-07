@@ -57,7 +57,10 @@ struct ExamTests {
     /// catching.
     @Test("the shipped cell floor matches the live pools")
     func minCellCountMatchesTheBank() {
-        #expect(Self.catalog.minCellCount == 6)
+        // 7 since v0.9.51: the top-up lifted the two last 6-cells
+        // (SWEET_WINE/advanced, HISTORY/intermediate), and the bank's claim
+        // about itself rises with the fact.
+        #expect(Self.catalog.minCellCount == 7)
         for tier in ExamTier.allCases {
             #expect(
                 Self.catalog.thinnestCell(tier: tier) >= Self.catalog.minCellCount,

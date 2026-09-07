@@ -333,7 +333,12 @@ struct CoverageTests {
         // Nosiola), +13 Medium (nine authored "Medium", plus Kadarka,
         // Bacchus, Xynisteri and Mavro at "Light-Medium"), +3 Medium-Full
         // (Malagousia, Encruzado, Fetească Neagră) and +1 Full (Mavrodaphne).
-        #expect(counts == [2: 47, 3: 100, 4: 21, 5: 39])
+        // v0.9.51: +2 Light (Verdeca, Emir), +9 Medium (Marquette,
+        // Chambourcin, Limnio, Petit Manseng and Narince authored "Medium";
+        // Roditis, Rară Neagră, Erbaluce at "Light-Medium"; Öküzgözü
+        // "Medium"), +2 Medium-Full (Maratheftiko, Pallagrello Bianco) and
+        // +1 Full (Boğazkere).
+        #expect(counts == [2: 49, 3: 109, 4: 23, 5: 40])
 
         // Chardonnay is authored `body: "Medium-Full"` and drew a full bar.
         // (`grapeBodyClass` still reads "Full" for it — that is a *different*

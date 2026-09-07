@@ -71,9 +71,10 @@ struct GrapeLineageTests {
     /// The three who join the graph earn it: Marquette and Chambourcin carry
     /// documented breeding-program pedigrees to external ancestors (MN 1094 ×
     /// Ravat 262, the Pinot Noir grandparent in the note; Seyve Villard
-    /// 12-417 × Chancellor), and Petit Manseng holds a first-degree line to
-    /// Gros Manseng — kept as a name, since the family's internal pedigree
-    /// is unresolved.
+    /// 12-417 × Chancellor), and Petit Manseng wires a marker-supported
+    /// parent edge to G084 Savagnin plus a first-degree line to Gros Manseng
+    /// — the latter kept as a name, since the family's internal pedigree is
+    /// unresolved.
     @Test("the authored lineage covers what 0.8.2 ships")
     func coverageIsPinned() {
         let all = grapes()
@@ -88,7 +89,7 @@ struct GrapeLineageTests {
         // count above by itself.
         let statedOnly = all.filter { $0.lineage?.parentageUnknown == true && $0.lineage?.isEmpty == true }
         #expect(statedOnly.count == 91, "blocks that state an absence and author no edge")
-        #expect(all.filter { $0.lineage?.parentageUnknown == true }.count == 110, "grapes stating unknown parentage")
+        #expect(all.filter { $0.lineage?.parentageUnknown == true }.count == 109, "grapes stating unknown parentage")
     }
 
     /// Every ref resolves, and resolves to the right *kind* of thing.
@@ -491,14 +492,14 @@ struct GrapeLineageTests {
         let decoded = try JSONDecoder().decode(GrapeLineage.self, from: Data(json.utf8))
         #expect(decoded.parents.count == 1)
         #expect(decoded.parentageUnknown == false)
-        // And the shipped catalog is the real proof: 193 blocks decoded
-        // (173 + Batch B's twenty), of which 95 omit the key entirely and
-        // still arrived intact — Batch B's five drawn-graph joiners
-        // (Dornfelder, Scheurebe, Bacchus, Gaglioppo, Nosiola) land on
-        // that side of the split.
+        // And the shipped catalog is the real proof: 207 blocks decoded
+        // (193 + v0.9.51's fourteen), of which 98 omit the key entirely and
+        // still arrived intact — the pass's three drawn-graph joiners
+        // (Marquette, Chambourcin, Petit Manseng) land on that side of
+        // the split.
         let blocks = grapes().compactMap(\.lineage)
-        #expect(blocks.count == 193)
-        #expect(blocks.filter { !$0.parentageUnknown }.count == 95, "blocks predating the key")
+        #expect(blocks.count == 207)
+        #expect(blocks.filter { !$0.parentageUnknown }.count == 98, "blocks predating the key")
     }
 
     /// A minimal grape, for the two fixtures above.
