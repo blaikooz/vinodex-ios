@@ -495,13 +495,12 @@ struct CoverageTests {
         #expect(art != nil, "manifest lost its styleArt table")
         guard let art else { return }
 
-        // Batch B (0.9.49) ships its six styles portrait-less on the GSM
-        // Blend precedent: they wear the class glyph until the artist's next
-        // drop. Listed here so the day one gains a portrait fails loudly —
-        // that is the pleasant failure, and the fix is deleting its row.
+        // Batch B's six styles sat for real portraits on the maintainer's
+        // 0.9.51 G sheet — the pleasant failure this pin exists for, rows
+        // deleted as it instructs. GSM Blend stays deliberately
+        // portrait-less (0.6.4, D1).
         let portraitless: Set<String> = [
             "gsm blend",
-            "vin jaune", "tokaji aszu", "retsina", "passito", "marsala", "commandaria",
         ]
 
         let names = Set(db.entries(in: .styles).map { TextNormalize.label($0.name) })
