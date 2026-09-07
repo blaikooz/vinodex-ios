@@ -36,6 +36,9 @@ FILL = {
     "moldova": "#CDA221",
     "armenia": "#D97E23",
     "cyprus": "#B4682B",
+    # v0.9.51: the crescent-and-star red, in the same muted register the
+    # other flag-derived fills use.
+    "turkey": "#C8342E",
     "france": "#2E5AA8",
     "georgia": "#C8342E",
     "germany": "#D9A420",

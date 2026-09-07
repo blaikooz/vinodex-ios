@@ -33,12 +33,16 @@ struct ExamTests {
     ///
     /// **420 since 0.7.9 (G)**: sommbot's P1/P2 batch added 13 questions
     /// alongside the eight new entries — Madeira, Cava and the six grapes.
+    ///
+    /// **436 since v0.9.51**: sixteen questions so the paper teaches Batch B's
+    /// styles (Vin Jaune, Tokaji Aszú, Marsala, Commandaria) and the countries
+    /// the atlas grew — Moldova, Armenia, Cyprus and the newly opened Turkey.
     @Test("the bank holds the questions it was authored to")
     func bankSize() {
-        #expect(Self.catalog.questions.count == 420, "the exam bank changed size")
-        #expect(Self.catalog.count(tier: .beginner) == 144)
-        #expect(Self.catalog.count(tier: .intermediate) == 151)
-        #expect(Self.catalog.count(tier: .advanced) == 125)
+        #expect(Self.catalog.questions.count == 436, "the exam bank changed size")
+        #expect(Self.catalog.count(tier: .beginner) == 150)
+        #expect(Self.catalog.count(tier: .intermediate) == 157)
+        #expect(Self.catalog.count(tier: .advanced) == 129)
     }
 
     @Test("every question id is unique")
@@ -80,9 +84,10 @@ struct ExamTests {
         for q in Self.catalog.questions { counts[q.format, default: 0] += 1 }
         // 0.7.9 (G): the 13 new questions are 12 multiple-choice and one
         // true/false; the other five formats are untouched, which is why only
-        // two rows move.
-        #expect(counts[.multipleChoice] == 246)
-        #expect(counts[.trueFalse] == 64)
+        // two rows move. v0.9.51 repeats the shape: fifteen multiple-choice
+        // and one true/false, same two rows.
+        #expect(counts[.multipleChoice] == 261)
+        #expect(counts[.trueFalse] == 65)
         #expect(counts[.selectAll] == 37)
         #expect(counts[.aromaIdentification] == 23)
         #expect(counts[.matching] == 21)

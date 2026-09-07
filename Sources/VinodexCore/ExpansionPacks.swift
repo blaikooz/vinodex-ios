@@ -260,6 +260,16 @@ public enum ExpansionPacks: Sendable {
     /// else moves — `FREE_COMMON_ORIGINS` gates COMMON grapes and G076 is
     /// UNCOMMON, `stats.countries` stays 26 because Slovenia has no region
     /// entry, and `ExpansionPacks.all.count` is still 12.
+    ///
+    /// **v0.9.51 (the maintainer's atlas ruling, 2026-09-07): the pack-less
+    /// European countries all land here** — Bulgaria, Croatia, Romania, the
+    /// United Kingdom, Moldova, Armenia and Cyprus. The Caucasus carve-out is
+    /// deliberate and written down where it will be seen: *Caucasus to OLD
+    /// WORLD, everything else in Asia to ASIA* — Georgia has sat here since
+    /// the pack was named ("it is where wine was first made") and Armenia
+    /// joins it on the same reasoning rather than drifting east to the ASIA
+    /// pack. Every name below resolves today; `atlasCountriesResolve` is the
+    /// gate that keeps it true.
     public static let oldWorld = ExpansionPack(
         id: "old-world",
         kind: .atlas,
@@ -269,6 +279,8 @@ public enum ExpansionPacks: Sendable {
         contents: .countries([
             "France", "Italy", "Spain", "Portugal", "Germany",
             "Austria", "Greece", "Hungary", "Switzerland", "Georgia", "Slovenia",
+            "Bulgaria", "Croatia", "Romania", "United Kingdom",
+            "Moldova", "Armenia", "Cyprus",
         ])
     )
 
@@ -291,7 +303,35 @@ public enum ExpansionPacks: Sendable {
         ])
     )
 
-    /// B3. Every grape at the bottom rung of the rarity ladder.
+    /// B3. Asia at last — the third atlas pack, landed with Turkey (v0.9.51)
+    /// to the 2026-08-19 handoff design (`data-review/DEXBOT-HANDOFF-asia-pack.md`).
+    ///
+    /// **The title is deliberately broader than the contents, and it must not
+    /// be "tidied" later.** `atlasCountriesResolve` asserts every named country
+    /// is a real origin in the catalog, so this list cannot be future-proofed —
+    /// naming Israel today would fail the suite. The forward-proofing lives in
+    /// the name and blurb instead: "Anatolia, the Levant and the Far East"
+    /// already covers whatever Asian country lands next, so growth is a
+    /// one-line contents addition rather than a fourth pack.
+    ///
+    /// **The carve-out, at the definition site as the handoff demanded:
+    /// Caucasus to OLD WORLD, everything else in Asia to ASIA.** Georgia and
+    /// Armenia are Old World by that rule; Lebanon and Turkey are the Levant
+    /// and Anatolia the blurb was written for. Data landed before this list,
+    /// the right way round — Turkey's grapes and regions are in the same batch,
+    /// ahead of this line.
+    public static let asia = ExpansionPack(
+        id: "asia",
+        kind: .atlas,
+        title: "ASIA",
+        blurb: "Anatolia, the Levant and the Far East.",
+        symbol: "sunrise.fill",
+        contents: .countries([
+            "Japan", "China", "India", "Lebanon", "Turkey",
+        ])
+    )
+
+    /// B4. Every grape at the bottom rung of the rarity ladder.
     ///
     /// Defined by rarity rather than by a list of names, so a data batch that
     /// promotes or demotes a variety moves it in and out of the pack on its own.
@@ -382,7 +422,7 @@ public enum ExpansionPacks: Sendable {
 
     // MARK: The shelves
 
-    public static let atlas: [ExpansionPack] = [oldWorld, newWorld, godforsaken]
+    public static let atlas: [ExpansionPack] = [oldWorld, newWorld, asia, godforsaken]
 
     public static let device: [ExpansionPack] = [
         classicDevices, wineDevices, vesselDevices,

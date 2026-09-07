@@ -482,7 +482,7 @@ public struct EncyclopediaListScreen: View {
                     )
                 if chips.count > 0 {
                     Text("\(chips.count)")
-                        .font(DexFont.retro(9))
+                        .font(DexFont.retro(10))
                         .foregroundStyle(lcd.isLight ? .white : .black)
                         .padding(4)
                         .background(Circle().fill(Dex.red500))

@@ -614,6 +614,9 @@ const COUNTRY_SHAPE_ICONS: Record<string, string> = {
   moldova: 'art:outline-moldova',
   armenia: 'art:outline-armenia',
   cyprus: 'art:outline-cyprus',
+  // v0.9.51: ring-rasterised on the same precedent, drawn the day Cappadocia
+  // and Elazığ gave the coverage gate a reason to demand it.
+  turkey: 'art:outline-turkey',
 };
 
 /// Icon-well background per style classification.
@@ -753,6 +756,9 @@ const FLAG_PATHS: Record<string, string> = {
   Moldova: 'Europe/moldova/moldova.png',
   Armenia: 'Asia/armenia/armenia.png',
   Cyprus: 'Asia/cyprus/cyprus.png',
+  // v0.9.51: Turkey opens with the full batch — gate, gradient, outline,
+  // natives and two regions in the same commit.
+  Turkey: 'Asia/turkey/turkey.png',
 };
 
 // Full-colour pixel-art portraits for styles (0.5.6), keyed by normalised
@@ -1054,6 +1060,26 @@ const GRAPE_CLUSTERS: Record<string, string> = {
   'Mavro': 'loose-large',
   'Gaglioppo': 'cone-large',
   'Nosiola': 'cone-small',
+  // v0.9.51 final data pass: G209–G222. Hybrid rows from breeder literature
+  // (U Minnesota's release notes describe Marquette's small, moderately loose
+  // clusters; Chambourcin's big loose bunches are its trademark); Maratheftiko
+  // and Rară Neagră are loose by their own biology — female flowers and the
+  // straggly winged bunch respectively. The Anatolian rows lean on producer
+  // and institute literature and are flagged UNCERTAIN in the batch report.
+  'Marquette': 'loose-small',
+  'Chambourcin': 'loose-large',
+  'Roditis': 'cone-large',
+  'Limnio': 'cone-small',
+  'Maratheftiko': 'loose-large',
+  'Rară Neagră': 'loose-large',
+  'Erbaluce': 'cone-small',
+  'Verdeca': 'cone-small',
+  'Pallagrello Bianco': 'pinecone-small',
+  'Petit Manseng': 'loose-small',
+  'Öküzgözü': 'cone-large',
+  'Boğazkere': 'cone-small',
+  'Narince': 'cone-large',
+  'Emir': 'cone-small',
 };
 
 /// Berry color exceptions (0.9.48, sommbot A3), keyed like GRAPE_CLUSTERS
@@ -1074,14 +1100,28 @@ const GRAPE_BERRY_HUES: Record<string, string> = {
   'Alicante Bouschet': 'tinto',
   'Saperavi': 'tinto',
   'Vinhão': 'tinto',
+  // v0.9.51: the pale-red trio verified against the registers (sommbot's
+  // held rows, resolved with sources in data-review/FINDINGS.md). Grignolino
+  // keeps red — Registro Nazionale scheda 100 describes the berry itself as
+  // uneven ashen reddish-violet. Trepat and Espadeiro fell back to noir: the
+  // Spanish ficha's amoratado oscuro and Vine to Wine Circle's negro-azul
+  // say the berries hang dark and only the WINE is pale. Colorino stays on
+  // default noir, not tinto — scheda 067 says succo incolore, so it is no
+  // teinturier despite the name.
   'Grignolino': 'red',
-  'Trepat': 'red',
-  'Espadeiro': 'red',
   // Batch B (0.9.49): Altesse ripens to the russet its Roussette name
   // describes, the same reasoning that put Roussanne on copper; Voskehat is
   // named for it — "golden berry".
   'Altesse': 'copper',
   'Voskehat': 'gold',
+  // v0.9.51: of the six gold candidates only Catarratto earned the row —
+  // scheda 058's buccia giallo-dorata is uniform gilding, where the others'
+  // is sun-side blush or unsourced. Roditis is ROSE on its VIVC passport
+  // (10141) and Erbaluce's scheda 078 reads giallo-ambrato with a rosy sun
+  // side, the same reasoning as Altesse's copper.
+  'Catarratto': 'gold',
+  'Roditis': 'gris',
+  'Erbaluce': 'copper',
 };
 
 /// The per-grape portrait table (0.9.47): every grape resolves to a stem.
