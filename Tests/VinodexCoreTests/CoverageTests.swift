@@ -387,6 +387,13 @@ struct CoverageTests {
     /// must *not* fall back to naming grapes — the wine framing ("carried here
     /// by Barbera…") described the database, not the flavour, and the grapes
     /// already appear in NOTABLE GRAPES.
+    ///
+    /// Since 0.9.53 (sommbot) the blurbs are authored per flavour in
+    /// FLAVOR_DESCRIPTIONS (shared master constants.ts), and each one *does*
+    /// name a carrier grape deliberately, as an example closing an
+    /// encyclopedic entry — that is authored copy about the flavour, not the
+    /// template fallback G1 banned, so the pin here stays on the template
+    /// phrase and on distinctness rather than on grape names.
     @Test("flavor descriptions are distinct and about the flavor itself")
     func flavorDescriptions() {
         let flavors = db.entries(in: .flavors)
