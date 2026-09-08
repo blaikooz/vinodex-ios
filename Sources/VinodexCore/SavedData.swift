@@ -26,6 +26,7 @@ public enum SavedDataKey: String, CaseIterable, Sendable {
     case savedShelf          = "bookmarkedEntryIDs"
     case wantToTryShelf      = "wantToTryEntryIDs"
     case triedShelf          = "triedEntryIDs"
+    case scannedShelf        = "scannedEntryIDs"
     case triedRatings        = "triedRatings"
     // Trail — RecentlyViewed.swift
     case recentlyViewed      = "recentlyViewedEntryIDs"

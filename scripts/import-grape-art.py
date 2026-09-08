@@ -267,6 +267,14 @@ ARCH_SOURCES = {
     # The gnarl, hue-shifted like the rest since 0.9.50 so white
     # GODFORSAKEN grapes stop wearing red fruit.
     "archgodforsaken.png": "godforsaken",
+    # The H sheet (0.9.51): the elongated winged cone the ex-pyramid
+    # sixteen actually are, plus the three truth-variation masters from
+    # sommbot's plan (extreme cylinder, tannic tiny-tight, OIV oval).
+    "archlongconesmall.png": "longcone-small",
+    "archlongconelarge.png": "longcone-large",
+    "archlongcylindersmall.png": "longcylinder-small",
+    "archtighttinysmall.png": "tighttiny-small",
+    "archconeovalsmall.png": "coneoval-small",
 }
 
 # hue, saturation scale, value scale per variant. Red passes through — since

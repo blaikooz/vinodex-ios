@@ -96,10 +96,11 @@ struct FilterTests {
         #expect(europe.count >= 4, "expected several European regions, got \(europe.count)")
 
         // Hebei, Shandong, Yamagata and Guerrouane joined in the 0.6 boost;
-        // Lebanon's pair and Morocco's Zenata arrived with 0.9.42's.
+        // Lebanon's pair and Morocco's Zenata arrived with 0.9.42's;
+        // Turkey's pair opened with v0.9.51.
         let asia = db.regions(in: .asia)
         #expect(
-            asia.map(\.name) == ["Batroun", "Bekaa Valley", "Hebei", "Helan Mountain", "Nandi Hills", "Nashik", "Shandong", "Shangri-La", "Yamagata", "Yamanashi"],
+            asia.map(\.name) == ["Batroun", "Bekaa Valley", "Cappadocia", "Elazığ", "Hebei", "Helan Mountain", "Nandi Hills", "Nashik", "Shandong", "Shangri-La", "Yamagata", "Yamanashi"],
             "got \(asia.map(\.name))"
         )
 

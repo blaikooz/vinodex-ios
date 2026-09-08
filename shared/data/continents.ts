@@ -54,7 +54,7 @@ const CONTINENTS_BASE: ContinentEntry[] = [
     icon: "globe",
     tags: ["Continent"],
     details: {
-      keyRegions: ["China", "Japan", "India", "Lebanon"]
+      keyRegions: ["China", "Japan", "India", "Lebanon", "Turkey"]
     }
   },
   {

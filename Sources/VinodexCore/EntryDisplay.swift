@@ -286,10 +286,19 @@ public enum EntryDisplay {
         // hold; `DO` is the one above it, which only Vale dos Vinhedos and a
         // handful of others have reached.
         case ("IP", _):    return "Indicação de Procedência"
+        // Turkey (v0.9.51). Cappadocia carries no registered wine GI —
+        // Türk Patent's registered designations are grape-scoped (Elazığ
+        // Öküzgözü, Diyarbakır Boğazkere) — so the region is honest about
+        // being a tradition rather than an appellation.
+        case ("TRADITIONAL REGION", _): return "Traditional wine region, no registered appellation"
 
-        // The genuinely ambiguous one: same abbreviation, three languages.
+        // The genuinely ambiguous one: same abbreviation, now four languages.
         case ("DOC", "italy"):    return "Denominazione di Origine Controllata"
         case ("DOC", "portugal"): return "Denominação de Origem Controlada"
+        // Romania (v0.9.51, Cotnari): the fourth language on the same
+        // abbreviation — R094 Dealu Mare had been falling through to the
+        // Spanish spelling since 0.6.
+        case ("DOC", "romania"):  return "Denumire de Origine Controlată"
         case ("DOC", _):          return "Denominación de Origen Controlada"
 
         default: return system

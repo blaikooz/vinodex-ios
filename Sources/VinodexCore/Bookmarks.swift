@@ -9,6 +9,10 @@ public enum Shelf: String, CaseIterable, Sendable {
     case saved
     case wantToTry
     case tried
+    /// The label reader's log (0.9.51): every wine a scan matched, newest
+    /// first. Independent of the tasting shelves — scanning a label is not a
+    /// claim about drinking — so none of the coupling rules touch it.
+    case scanned
 
     /// Per-shelf defaults key. Saved keeps the original key so bookmarks made
     /// before shelves existed survive the upgrade.
@@ -17,6 +21,7 @@ public enum Shelf: String, CaseIterable, Sendable {
         case .saved: SavedDataKey.savedShelf.rawValue
         case .wantToTry: SavedDataKey.wantToTryShelf.rawValue
         case .tried: SavedDataKey.triedShelf.rawValue
+        case .scanned: SavedDataKey.scannedShelf.rawValue
         }
     }
 }
@@ -88,6 +93,7 @@ public final class BookmarkStore {
     private(set) public var ids: [String]
     private var wantIDs: [String]
     private var triedIDs: [String]
+    private var scannedIDs: [String]
     private var ratings: [String: TriedRating]
     /// Entry id to the day it joined the tried shelf. See `triedDaysKey`.
     private var triedDays: [String: Int]
@@ -98,6 +104,7 @@ public final class BookmarkStore {
         ids = []
         wantIDs = []
         triedIDs = []
+        scannedIDs = []
         ratings = [:]
         triedDays = [:]
         reload()
@@ -119,6 +126,7 @@ public final class BookmarkStore {
         ids = defaults.stringArray(forKey: Shelf.saved.storageKey) ?? []
         wantIDs = defaults.stringArray(forKey: Shelf.wantToTry.storageKey) ?? []
         triedIDs = defaults.stringArray(forKey: Shelf.tried.storageKey) ?? []
+        scannedIDs = defaults.stringArray(forKey: Shelf.scanned.storageKey) ?? []
         if let data = defaults.data(forKey: Self.ratingsKey),
            let decoded = try? JSONDecoder().decode([String: TriedRating].self, from: data) {
             ratings = decoded
@@ -176,6 +184,7 @@ public final class BookmarkStore {
         case .saved: ids
         case .wantToTry: wantIDs
         case .tried: triedIDs
+        case .scanned: scannedIDs
         }
     }
 
@@ -326,6 +335,16 @@ public final class BookmarkStore {
         persistRatings()
     }
 
+    /// The label reader's writer (0.9.51): every entry a scan matched joins
+    /// the scanned shelf, newest first, once each. Not `toggle` — a scan is
+    /// an event log, and re-scanning a label must not un-log it.
+    public func recordScanned(ids newIDs: [String]) {
+        let fresh = newIDs.filter { !scannedIDs.contains($0) }
+        guard !fresh.isEmpty else { return }
+        scannedIDs.insert(contentsOf: fresh, at: 0)
+        persist(.scanned)
+    }
+
     // MARK: Persistence
 
     private func setIDs(_ new: [String], on shelf: Shelf) {
@@ -333,6 +352,7 @@ public final class BookmarkStore {
         case .saved: ids = new
         case .wantToTry: wantIDs = new
         case .tried: triedIDs = new
+        case .scanned: scannedIDs = new
         }
         persist(shelf)
     }

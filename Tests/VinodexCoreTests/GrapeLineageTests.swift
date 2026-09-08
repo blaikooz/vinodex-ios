@@ -62,12 +62,25 @@ struct GrapeLineageTests {
     /// Mantonico Bianco, Nosiola holds a first-degree line to Rèze, and
     /// Fetească Albă arrives to claim the mother edge G188 had authored
     /// by name — the rewire to id is this batch's one lineage *edit*.
+    /// **v0.9.51 (sommbot, 2026-09-07).** 193 → 207 blocks, 128 → 131
+    /// connected, and again the seam-batch shape: eleven of the fourteen are
+    /// `parentageUnknown` statements (the Anatolian natives, the Greek and
+    /// Cypriot ones, and the Italians all sit on empty passports, with the
+    /// lore — Aristotle's Limnia, the Pallagrello Nero name-share, the
+    /// two-bank Rară Neagră/Băbească identity — in notes rather than edges).
+    /// The three who join the graph earn it: Marquette and Chambourcin carry
+    /// documented breeding-program pedigrees to external ancestors (MN 1094 ×
+    /// Ravat 262, the Pinot Noir grandparent in the note; Seyve Villard
+    /// 12-417 × Chancellor), and Petit Manseng wires a marker-supported
+    /// parent edge to G084 Savagnin plus a first-degree line to Gros Manseng
+    /// — the latter kept as a name, since the family's internal pedigree is
+    /// unresolved.
     @Test("the authored lineage covers what 0.8.2 ships")
     func coverageIsPinned() {
         let all = grapes()
-        #expect(all.count == 207)
-        #expect(all.filter { $0.lineage != nil }.count == 193, "grapes carrying an authored lineage")
-        #expect(db.lineage.connectedIDs.count == 128, "grapes in at least one relationship")
+        #expect(all.count == 221)
+        #expect(all.filter { $0.lineage != nil }.count == 207, "grapes carrying an authored lineage")
+        #expect(db.lineage.connectedIDs.count == 131, "grapes in at least one relationship")
         // **Pinned as a distribution, not a single number** — the two counts
         // above can both be right while the split between "has edges" and
         // "states an absence" is wrong, and that split is what decides which of
@@ -75,8 +88,8 @@ struct GrapeLineageTests {
         // every unrecorded statement into a phantom edge would not move either
         // count above by itself.
         let statedOnly = all.filter { $0.lineage?.parentageUnknown == true && $0.lineage?.isEmpty == true }
-        #expect(statedOnly.count == 80, "blocks that state an absence and author no edge")
-        #expect(all.filter { $0.lineage?.parentageUnknown == true }.count == 98, "grapes stating unknown parentage")
+        #expect(statedOnly.count == 91, "blocks that state an absence and author no edge")
+        #expect(all.filter { $0.lineage?.parentageUnknown == true }.count == 109, "grapes stating unknown parentage")
     }
 
     /// Every ref resolves, and resolves to the right *kind* of thing.
@@ -479,14 +492,14 @@ struct GrapeLineageTests {
         let decoded = try JSONDecoder().decode(GrapeLineage.self, from: Data(json.utf8))
         #expect(decoded.parents.count == 1)
         #expect(decoded.parentageUnknown == false)
-        // And the shipped catalog is the real proof: 193 blocks decoded
-        // (173 + Batch B's twenty), of which 95 omit the key entirely and
-        // still arrived intact — Batch B's five drawn-graph joiners
-        // (Dornfelder, Scheurebe, Bacchus, Gaglioppo, Nosiola) land on
-        // that side of the split.
+        // And the shipped catalog is the real proof: 207 blocks decoded
+        // (193 + v0.9.51's fourteen), of which 98 omit the key entirely and
+        // still arrived intact — the pass's three drawn-graph joiners
+        // (Marquette, Chambourcin, Petit Manseng) land on that side of
+        // the split.
         let blocks = grapes().compactMap(\.lineage)
-        #expect(blocks.count == 193)
-        #expect(blocks.filter { !$0.parentageUnknown }.count == 95, "blocks predating the key")
+        #expect(blocks.count == 207)
+        #expect(blocks.filter { !$0.parentageUnknown }.count == 98, "blocks predating the key")
     }
 
     /// A minimal grape, for the two fixtures above.

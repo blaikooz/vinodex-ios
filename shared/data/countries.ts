@@ -829,7 +829,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C006',
     name: 'Hungary',
-    description: 'Tokaj was the first wine region anywhere to be classified by vineyard, in 1730 — ahead of Bordeaux by well over a century. Its Aszu wines are made from Furmint berries shrivelled by botrytis, kneaded to a paste and measured out in puttonyos; the same grape vinified bone dry is the region’s current cause. Further west, Kekfrankos carries the reds, including the blends sold as Bull’s Blood.',
+    description: 'Tokaj was the first wine region anywhere to be classified by vineyard, in 1730 — ahead of Bordeaux by well over a century. Its Aszu wines are made from Furmint berries shrivelled by botrytis, kneaded to a paste and measured out in puttonyos; the same grape vinified bone dry is the region’s current cause. Further west, Kadarka and Kekfrankos carry the reds, including the blends sold as Bull’s Blood.',
     category: 'COUNTRY_GATE',
     color: '#365314',
     icon: 'flag',
@@ -868,7 +868,7 @@ export const COUNTRIES: CountryGateEntry[] = [
       origin: 'Switzerland',
       classification: 'COUNTRY',
       keyRegions: ['Valais', 'Lavaux'],
-      notableGrapes: ['Pinot Noir', 'Gamay', 'Merlot']
+      notableGrapes: ['Chasselas', 'Pinot Noir', 'Gamay']
     }
   },
   {
@@ -883,7 +883,7 @@ export const COUNTRIES: CountryGateEntry[] = [
       origin: 'Romania',
       classification: 'COUNTRY',
       keyRegions: ['Dealu Mare', 'Târnave'],
-      notableGrapes: ['Cabernet Sauvignon', 'Merlot', 'Pinot Noir']
+      notableGrapes: ['Fetească Neagră', 'Fetească Albă', 'Fetească Regală']
     }
   },
   {
@@ -919,7 +919,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C012',
     name: 'USA',
-    description: 'The United States is the world’s fourth-largest producer, and California accounts for the overwhelming majority of it. Napa built its name on Cabernet Sauvignon and Sonoma on Pinot Noir and Chardonnay; Oregon’s Willamette Valley and New York’s Finger Lakes are the cool-climate counterweights, and Washington’s Columbia Valley the high-desert one. An AVA delimits a place and nothing else — it sets no rules about grape, yield or method.',
+    description: 'The United States is the world’s fourth-largest producer, and California accounts for the overwhelming majority of it. Napa built its name on Cabernet Sauvignon and Sonoma on Pinot Noir and Chardonnay; Oregon’s Willamette Valley and New York’s Finger Lakes are the cool-climate counterweights, Washington’s Columbia Valley the high-desert one, and the Upper Midwest grows its own bred-in-Minnesota hybrids like Marquette where vinifera cannot survive the winter. An AVA delimits a place and nothing else — it sets no rules about grape, yield or method.',
     category: 'COUNTRY_GATE',
     color: '#1e1b4b',
     icon: 'flag',
@@ -1152,7 +1152,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C025',
     name: 'United Kingdom',
-    description: 'England\'s chalk downs share their geology with Champagne, and a warming climate has turned that from trivia into a sparkling-wine industry the French now invest in. Sussex and Kent lead with traditional-method fizz from Chardonnay, Pinot Noir and Pinot Meunier.',
+    description: 'England\'s chalk downs share their geology with Champagne, and a warming climate has turned that from trivia into a sparkling-wine industry the French now invest in. Sussex and Kent lead with traditional-method fizz from Chardonnay, Pinot Noir and Pinot Meunier, while Bacchus has become the signature still white.',
     category: 'COUNTRY_GATE',
     color: '#1e3a8a',
     icon: 'flag',
@@ -1197,7 +1197,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'C028',
     name: 'Lebanon',
-    description: 'Lebanese wine has survived every century thrown at it: the Bekaa Valley has grown vines for five thousand years, and Chateau Musar\'s cedar-scented reds became a cult through a civil war. High-altitude Cinsault and Cabernet under relentless mountain sun.',
+    description: 'Lebanese wine has survived every century thrown at it: the Bekaa Valley has grown vines for five thousand years, and Chateau Musar\'s cedar-scented reds became a cult through a civil war. High-altitude Cinsault and Cabernet under relentless mountain sun, with the ancient native whites Obaideh and Merwah holding the heights.',
     category: 'COUNTRY_GATE',
     color: '#7f1d1d',
     icon: 'flag',
@@ -1221,7 +1221,7 @@ export const COUNTRIES: CountryGateEntry[] = [
       origin: 'Moldova',
       classification: 'COUNTRY',
       keyRegions: ['Codru', '\u0218tefan Vod\u0103'],
-      notableGrapes: ['Feteasc\u0103 Alb\u0103', 'Feteasc\u0103 Neagr\u0103', 'Rkatsiteli']
+      notableGrapes: ['Feteasc\u0103 Alb\u0103', 'Feteasc\u0103 Neagr\u0103', 'Rar\u0103 Neagr\u0103']
     }
   },
   {
@@ -1251,7 +1251,22 @@ export const COUNTRIES: CountryGateEntry[] = [
       origin: 'Cyprus',
       classification: 'COUNTRY',
       keyRegions: ['Commandaria', 'Pitsilia'],
-      notableGrapes: ['Xynisteri', 'Mavro']
+      notableGrapes: ['Xynisteri', 'Mavro', 'Maratheftiko']
+    }
+  },
+  {
+    id: 'C033',
+    name: 'Turkey',
+    description: 'Anatolia has grown vines for eight thousand years and still holds one of the largest vineyard areas on earth, though most of it is eaten or dried rather than fermented. The wine that is made leans on natives with real character: Öküzgözü bright and cherried, Boğazkere ferociously tannic — the two blended are the country\'s classic red — Narince\'s quince-scented whites from Tokat, and Emir own-rooted in Cappadocia\'s volcanic tuff. Producers work under registered geographical indications rather than a European appellation law.',
+    category: 'COUNTRY_GATE',
+    color: '#b91c1c',
+    icon: 'flag',
+    tags: ['GI', 'COUNTRY'],
+    details: {
+      origin: 'Turkey',
+      classification: 'COUNTRY',
+      keyRegions: ['Cappadocia', 'Elazığ'],
+      notableGrapes: ['Öküzgözü', 'Boğazkere', 'Narince']
     }
   }
 ];

@@ -72,7 +72,10 @@ struct CartridgeArtTests {
             #expect(entitlement != nil, "'\(id)' does not decode")
             #expect(entitlement?.isRetired == false, "'\(id)' is retired but counted as sellable")
         }
-        #expect(Self.sellableIDs.count == 17)
+        // 18 since v0.9.51: the ASIA atlas pack joined the shelf. It has no
+        // drawn cartridge yet and falls back to the code-drawn PackCartridge,
+        // which is why `CartridgeArt.stems.count` below stays 17.
+        #expect(Self.sellableIDs.count == 18)
     }
 
     @Test("every mapped stem has a file behind it")

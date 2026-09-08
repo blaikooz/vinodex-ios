@@ -90,16 +90,20 @@ struct ExpansionPackTests {
         }
     }
 
-    /// Old World and New World must not overlap: a country in both would be
-    /// double-sold, and the shelf's two headline cartridges would disagree about
-    /// where France is.
-    @Test("the two atlas hemispheres are disjoint")
+    /// The three country packs must not overlap: a country in two would be
+    /// double-sold, and the shelf's headline cartridges would disagree about
+    /// where France — or, since v0.9.51, where Lebanon — is.
+    @Test("the three country atlases are pairwise disjoint")
     func hemispheresAreDisjoint() {
         let old = Set(ExpansionPacks.oldWorld.entries(in: db).map(\.id))
         let new = Set(ExpansionPacks.newWorld.entries(in: db).map(\.id))
+        let asia = Set(ExpansionPacks.asia.entries(in: db).map(\.id))
         #expect(old.intersection(new).isEmpty)
+        #expect(old.intersection(asia).isEmpty)
+        #expect(new.intersection(asia).isEmpty)
         #expect(!old.isEmpty)
         #expect(!new.isEmpty)
+        #expect(!asia.isEmpty)
     }
 
     /// GODFORSAKEN is defined by rarity, not by a name list, so what it holds is
@@ -136,7 +140,8 @@ struct ExpansionPackTests {
             #expect(entitlement.id == "pack:" + pack.id)
             #expect(Entitlement(id: entitlement.id) == entitlement)
         }
-        #expect(ExpansionPacks.all.count == 12)
+        // 13 since v0.9.51: the ASIA atlas pack landed with Turkey.
+        #expect(ExpansionPacks.all.count == 13)
     }
 
     @Test("every pack is labelled")

@@ -4527,6 +4527,180 @@ export const EXAM_QUESTIONS: ExamQuestion[] = [
     source: 'Consejo Regulador DO Cava',
     entryRefs: ['S034', 'R102'],
   },
+
+  // --------------------------------------------------------------------------
+  // 0.9.51 top-up. The paper catches up with Batch B's styles (Vin Jaune,
+  // Tokaji Aszú, Marsala, Commandaria) and with the countries the atlas grew:
+  // Moldova, Armenia, Cyprus and the newly opened Turkey. Two of the additions
+  // deliberately land in the old floor cells — SWEET_WINE/advanced and
+  // HISTORY/intermediate, both sitting at 6 since 0.7.6.
+  // --------------------------------------------------------------------------
+  {
+    id: 'EXQ-STY-028', tier: 'beginner', category: 'STYLES', format: 'multipleChoice',
+    prompt: 'Vin Jaune, the Jura\'s "yellow wine", is made from which grape?',
+    options: ['Chardonnay', 'Savagnin', 'Poulsard', 'Trousseau'],
+    answerIndex: 1,
+    explanation: 'Vin Jaune is Savagnin only, aged for over six years in barrels that are never topped up while a veil of yeast protects and transforms the wine. Poulsard and Trousseau are the Jura\'s reds, and Chardonnay makes the region\'s conventional whites.',
+    entryRefs: ['S035', 'G084', 'R012'],
+  },
+  {
+    id: 'EXQ-WMK-027', tier: 'intermediate', category: 'WINEMAKING', format: 'multipleChoice',
+    prompt: 'Vin Jaune and Fino Sherry share a defining production feature. Which?',
+    options: [
+      'Fortification with grape spirit',
+      'Ageing under a film of living yeast',
+      'Deliberate heating during maturation',
+      'A second fermentation in bottle',
+    ],
+    answerIndex: 1,
+    explanation: 'Both age under a yeast veil, called voile in the Jura and flor in Jerez, which shields the wine from oxygen while feeding it the nutty, saline sotolon character. The decisive difference is that Sherry is fortified and Vin Jaune never is.',
+    entryRefs: ['S035'],
+  },
+  {
+    id: 'EXQ-STY-029', tier: 'advanced', category: 'STYLES', format: 'multipleChoice',
+    prompt: 'Vin Jaune is bottled in a 62 cl clavelin. What does that odd size commemorate?',
+    options: [
+      'A medieval Jura tax measure',
+      'What remains of a litre after six years of evaporation in cask',
+      'The volume of the original royal bottle mould',
+      'A limit set by the AOC to ration production',
+    ],
+    answerIndex: 1,
+    explanation: 'The clavelin holds what is said to survive of a litre after the legally required six years and three months under voile: the rest has gone to the angels. The story is tidy enough to be suspect, but it is the appellation\'s own telling and the bottle is legally reserved for Vin Jaune.',
+    source: 'INAO cahier des charges, Arbois and Cotes du Jura',
+    entryRefs: ['S035', 'R012'],
+  },
+  {
+    id: 'EXQ-SWT-022', tier: 'beginner', category: 'SWEET_WINE', format: 'multipleChoice',
+    prompt: 'Tokaji Aszu owes its sweetness to:',
+    options: [
+      'Grapes frozen on the vine',
+      'Botrytised berries picked one by one and steeped in base wine',
+      'Boiling the must down to a syrup',
+      'Adding grape spirit to stop fermentation',
+    ],
+    answerIndex: 1,
+    explanation: 'Aszu means the shrivelled, botrytis-affected berries, gathered individually and soaked in fermenting must or wine. Freezing describes ice wine, boiled must is the ancient sapa, and stopping fermentation with spirit is the fortified sweet route of Port and Commandaria\'s neighbours.',
+    entryRefs: ['S036', 'R049', 'G040'],
+  },
+  {
+    id: 'EXQ-SWT-023', tier: 'advanced', category: 'SWEET_WINE', format: 'multipleChoice',
+    prompt: 'Grasa de Cotnari is the honeyed heart of which country\'s historic botrytis wine?',
+    options: ['Hungary', 'Romania', 'Moldova', 'Bulgaria'],
+    answerIndex: 1,
+    explanation: 'Cotnari, on limestone hills in Romania\'s northeast, has made golden botrytis sweets since the fifteenth-century court of Stephen the Great, from Grasa de Cotnari with Feteasca Alba and Tamaioasa. The same Grasa is the parent the traditional account gives Feteasca Regala, which is why the name appears in the catalog\'s lineage notes.',
+    entryRefs: ['R154', 'G203', 'G188'],
+  },
+  {
+    id: 'EXQ-FOR-028', tier: 'beginner', category: 'FORTIFIED', format: 'multipleChoice',
+    prompt: 'Commandaria, the amber sweet wine of Cyprus, is made from which pair of grapes?',
+    options: [
+      'Xynisteri and Mavro',
+      'Assyrtiko and Agiorgitiko',
+      'Muscat and Grenache',
+      'Palomino and Pedro Ximenez',
+    ],
+    answerIndex: 0,
+    explanation: 'The white Xynisteri and black Mavro are sun-dried on mats until their sugars concentrate, then pressed and slowly fermented. Both grow ungrafted on an island phylloxera never reached, in the fourteen delimited villages on the south slopes of the Troodos.',
+    entryRefs: ['S040', 'G205', 'G206', 'R151'],
+  },
+  {
+    id: 'EXQ-HIS-021', tier: 'intermediate', category: 'HISTORY', format: 'trueFalse',
+    prompt: 'Commandaria takes its name from a Crusader commandery and is arguably the oldest named wine still in production.',
+    answer: true,
+    explanation: 'The Knights of St John ran the wine from their Grande Commanderie at Kolossi from the thirteenth century, and the sweet wine of those villages was already praised at Richard the Lionheart\'s wedding in 1191. The style has been made without interruption since, which is the basis of the "oldest named wine" claim.',
+    entryRefs: ['S040', 'R151'],
+  },
+  {
+    id: 'EXQ-FOR-029', tier: 'intermediate', category: 'FORTIFIED', format: 'multipleChoice',
+    prompt: 'Which category of Marsala must be aged at least five years and may not be sweetened at all?',
+    options: ['Fine', 'Superiore', 'Vergine', 'Rubino'],
+    answerIndex: 2,
+    explanation: 'Vergine is Marsala\'s driest and most austere face: a minimum of five years in wood and no concentrated or cooked must added, so the wine stands on fortification and age alone. Fine and Superiore are the younger tiers and may be sweetened to style.',
+    source: 'Disciplinare DOC Marsala',
+    entryRefs: ['S039', 'R024'],
+  },
+  {
+    id: 'EXQ-FOR-030', tier: 'advanced', category: 'FORTIFIED', format: 'multipleChoice',
+    prompt: 'Gold and amber Marsala are built chiefly on which Sicilian white grapes?',
+    options: [
+      'Grillo and Catarratto',
+      'Carricante and Nerello Mascalese',
+      'Trebbiano and Malvasia',
+      'Fiano and Greco',
+    ],
+    answerIndex: 0,
+    explanation: 'Grillo, bred for the Marsala trade, and the widely planted Catarratto carry the oro and ambra styles, with Inzolia permitted alongside. Ruby Marsala uses the island\'s red varieties instead, and Carricante with Nerello is Etna\'s pairing, not Marsala\'s.',
+    source: 'Disciplinare DOC Marsala',
+    entryRefs: ['S039', 'G090', 'G140'],
+  },
+  {
+    id: 'EXQ-CTY-032', tier: 'beginner', category: 'COUNTRIES', format: 'multipleChoice',
+    prompt: 'Okuzgozu and Bogazkere, blended into a classic two-grape red, are natives of which country?',
+    options: ['Greece', 'Georgia', 'Turkey', 'Lebanon'],
+    answerIndex: 2,
+    explanation: 'Both come from eastern Anatolia: bright, cherried Okuzgozu from Elazig above the Euphrates and ferociously tannic Bogazkere from Diyarbakir. Blended, they are Turkey\'s answer to the idea that structure and drinkability must come from different bottles.',
+    entryRefs: ['G219', 'G220', 'R157'],
+  },
+  {
+    id: 'EXQ-CTY-033', tier: 'intermediate', category: 'COUNTRIES', format: 'multipleChoice',
+    prompt: 'The largest wine cellars in existence, with galleries running for hundreds of kilometres, are in:',
+    options: ['France', 'Georgia', 'Moldova', 'Spain'],
+    answerIndex: 2,
+    explanation: 'Milestii Mici and Cricova tunnel through old limestone mines outside Chisinau, storing millions of bottles along named underground streets. Moldova also has more vineyard per person than any other country, a legacy of its role as the Soviet Union\'s vineyard.',
+    entryRefs: ['R147'],
+  },
+  {
+    id: 'EXQ-CTY-034', tier: 'beginner', category: 'COUNTRIES', format: 'multipleChoice',
+    prompt: 'The world\'s oldest known winery, some 6,100 years old, was found in a cave in:',
+    options: ['Georgia', 'Armenia', 'Greece', 'Lebanon'],
+    answerIndex: 1,
+    explanation: 'The Areni-1 cave in Vayots Dzor held a complete winery: press, fermentation vats and jars. Georgia holds the older chemical evidence of wine itself, which is why the two countries share the deep-history story without contradiction, and the Areni grape still grows around the cave.',
+    entryRefs: ['G201', 'R149'],
+  },
+  {
+    id: 'EXQ-GRP-038', tier: 'intermediate', category: 'GRAPES', format: 'multipleChoice',
+    prompt: 'Marquette, bred to survive Upper Midwest winters, has which famous variety one generation behind it?',
+    options: ['Cabernet Sauvignon', 'Pinot Noir', 'Syrah', 'Riesling'],
+    answerIndex: 1,
+    explanation: 'Marquette is a French-American hybrid released by the University of Minnesota in 2006, and one of its parents is a Pinot Noir seedling. The result is a cold-hardy red with a little of its grandparent\'s cherry elegance, in places where vinifera itself cannot survive the winter.',
+    entryRefs: ['G209'],
+  },
+  {
+    id: 'EXQ-GRP-039', tier: 'intermediate', category: 'GRAPES', format: 'multipleChoice',
+    prompt: 'Sweet Jurancon from Petit Manseng is concentrated by:',
+    options: [
+      'Noble rot on the vine',
+      'Drying the berries on the vine in the autumn wind',
+      'Freezing the grapes before pressing',
+      'Adding spirit during fermentation',
+    ],
+    answerIndex: 1,
+    explanation: 'Passerillage: the small, thick-skinned berries hang into November while the Pyrenean foehn shrivels them, concentrating sugar without botrytis. That keeps Jurancon\'s acidity electric where rot-derived sweets turn honeyed, and it is the reason the wines age so well.',
+    entryRefs: ['G218', 'R155'],
+  },
+  {
+    id: 'EXQ-REG-035', tier: 'beginner', category: 'REGIONS', format: 'multipleChoice',
+    prompt: 'Cappadocia\'s vineyards grow ungrafted on their own roots because:',
+    options: [
+      'Turkish law forbids grafting',
+      'The volcanic soil and dry cold kept phylloxera away',
+      'The vines are too young to need rootstocks',
+      'Grafted vines cannot survive at altitude',
+    ],
+    answerIndex: 1,
+    explanation: 'The high tuff plateau never suffered the phylloxera collapse, so Emir and its neighbours still grow own-rooted, as Cypriot and some Greek island vineyards do. The same soft volcanic rock gives the region its carved cave cellars.',
+    entryRefs: ['R156', 'G222'],
+  },
+  {
+    id: 'EXQ-REG-036', tier: 'advanced', category: 'REGIONS', format: 'multipleChoice',
+    prompt: 'In Styria, the local name Morillon refers to which variety?',
+    options: ['Chardonnay', 'Sauvignon Blanc', 'Welschriesling', 'Pinot Blanc'],
+    answerIndex: 0,
+    explanation: 'Styrian growers have called Chardonnay Morillon since the nineteenth century, and the name survives on labels inside the region\'s three DACs, in force since the 2018 vintage. Sauvignon Blanc is the region\'s flagship but travels under its own name.',
+    source: 'Osterreich Wein Marketing, Steiermark DAC regulations',
+    entryRefs: ['R153', 'G003'],
+  },
 ];
 
 // ============================================================================
@@ -4539,9 +4713,9 @@ export const EXAM_QUESTIONS: ExamQuestion[] = [
  * update it deliberately when questions are added.
  */
 export const EXAM_AUTHORED_TIER_COUNTS: Record<ExamTier, number> = {
-  beginner: 144,
-  intermediate: 151,
-  advanced: 125,
+  beginner: 150,
+  intermediate: 157,
+  advanced: 129,
 };
 
 /**
@@ -4557,6 +4731,12 @@ export const EXAM_AUTHORED_TIER_COUNTS: Record<ExamTier, number> = {
  * sourcing rather than on ideas — Sauternes and BA/TBA must weights, and New
  * World wine history — and padding either to move this constant would buy an
  * exam nothing. See data-review/CANDIDATES.md.
+ *
+ * **7 since the 0.9.51 top-up.** The batch put one sourced question into each
+ * of the two last floor cells (Cotnari's Grasă into SWEET_WINE/advanced,
+ * Commandaria's commandery into HISTORY/intermediate), and with both lifted no
+ * cell in the 16x3 grid holds fewer than 7 — verified against the generated
+ * bank, not assumed. A balanced paper may now draw one more per category.
  */
-export const EXAM_MIN_CELL_COUNT = 6;
+export const EXAM_MIN_CELL_COUNT = 7;
 

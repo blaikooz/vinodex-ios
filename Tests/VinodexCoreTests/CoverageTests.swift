@@ -62,8 +62,17 @@ struct CoverageTests {
         // maintainer named: Greece beyond four, Portugal's whites, Savoie and
         // the Valais, the German crossings, the Caucasus, the Fetească pair,
         // Cyprus's Commandaria duo, and Italy's Gaglioppo and Nosiola.
-        #expect(db.entries(in: .grapes).count == 207)
-        #expect(db.entries(in: .regions).count == 152)
+        // v0.9.51 final data pass (sommbot, 2026-09-07, all rulings landed):
+        // +14 grapes (G209–G222) — the maintainer's hybrids ruling admits
+        // Marquette and Chambourcin as honestly labelled French-American
+        // hybrids on the Vidal precedent; the eight staged grapes land
+        // (Roditis, Limnio, Maratheftiko, Rară Neagră, Erbaluce, Verdeca,
+        // Pallagrello Bianco, Petit Manseng); and Turkey opens with four
+        // natives (Öküzgözü, Boğazkere, Narince, Emir). +5 regions (R153–
+        // R157): Styria, Cotnari, Jurançon, and Turkey's Cappadocia and
+        // Elazığ.
+        #expect(db.entries(in: .grapes).count == 221)
+        #expect(db.entries(in: .regions).count == 157)
         // 31 since 0.6.x: Medium-Full Red removed, its grapes now Full-Body.
         // 33 since 0.7.9 (G): Madeira and Cava; 31 through 0.9.42's removal;
         // **33 again since 0.9.45**: the maintainer reversed the removal
@@ -125,7 +134,10 @@ struct CoverageTests {
         // 510 since Batch B (0.9.49): +20 grapes, +13 regions, +6 styles.
         // Flavours unchanged at 106 for the eighth data batch running —
         // all 60 new tasting notes drawn from the existing vocabulary.
-        #expect(stats.total == 510)
+        // 529 since v0.9.51: +14 grapes and +5 regions, the final data pass
+        // before external testers. Flavours unchanged at 106 for the ninth
+        // batch running — all 42 new tasting notes reuse the vocabulary.
+        #expect(stats.total == 529)
         // 26 since 0.7.3c: Brazil is the first *new* origin since Mexico. The
         // count is distinct region origins, so the coming-soon gates still do
         // not count and adding a country without a region would not move it.
@@ -142,7 +154,9 @@ struct CoverageTests {
         // 33 since Batch B (0.9.49): Moldova, Armenia and Cyprus arrive with
         // two regions each, so the rule counts them the day they land rather
         // than waiting out a coming-soon phase.
-        #expect(stats.countries == 33)
+        // 34 since v0.9.51: Turkey opens the same way, with Cappadocia and
+        // Elazığ in the same commit as its gate.
+        #expect(stats.countries == 34)
         #expect(stats.categoryLines.count == 6)
     }
 
@@ -319,7 +333,12 @@ struct CoverageTests {
         // Nosiola), +13 Medium (nine authored "Medium", plus Kadarka,
         // Bacchus, Xynisteri and Mavro at "Light-Medium"), +3 Medium-Full
         // (Malagousia, Encruzado, Fetească Neagră) and +1 Full (Mavrodaphne).
-        #expect(counts == [2: 47, 3: 100, 4: 21, 5: 39])
+        // v0.9.51: +2 Light (Verdeca, Emir), +9 Medium (Marquette,
+        // Chambourcin, Limnio, Petit Manseng and Narince authored "Medium";
+        // Roditis, Rară Neagră, Erbaluce at "Light-Medium"; Öküzgözü
+        // "Medium"), +2 Medium-Full (Maratheftiko, Pallagrello Bianco) and
+        // +1 Full (Boğazkere).
+        #expect(counts == [2: 49, 3: 109, 4: 23, 5: 40])
 
         // Chardonnay is authored `body: "Medium-Full"` and drew a full bar.
         // (`grapeBodyClass` still reads "Full" for it — that is a *different*
@@ -476,13 +495,12 @@ struct CoverageTests {
         #expect(art != nil, "manifest lost its styleArt table")
         guard let art else { return }
 
-        // Batch B (0.9.49) ships its six styles portrait-less on the GSM
-        // Blend precedent: they wear the class glyph until the artist's next
-        // drop. Listed here so the day one gains a portrait fails loudly —
-        // that is the pleasant failure, and the fix is deleting its row.
+        // Batch B's six styles sat for real portraits on the maintainer's
+        // 0.9.51 G sheet — the pleasant failure this pin exists for, rows
+        // deleted as it instructs. GSM Blend stays deliberately
+        // portrait-less (0.6.4, D1).
         let portraitless: Set<String> = [
             "gsm blend",
-            "vin jaune", "tokaji aszu", "retsina", "passito", "marsala", "commandaria",
         ]
 
         let names = Set(db.entries(in: .styles).map { TextNormalize.label($0.name) })

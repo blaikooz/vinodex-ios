@@ -42,6 +42,7 @@ const FLAG_GRADIENTS: FlagGradient[] = [
   { key: 'moldova', label: 'Moldova', gradient: 'linear-gradient(90deg,#1d4ed8 33%,#facc15 33% 66%,#dc2626 66%)' },
   { key: 'armenia', label: 'Armenia', gradient: 'linear-gradient(180deg,#dc2626 33%,#1d4ed8 33% 66%,#f59e0b 66%)' },
   { key: 'cyprus', label: 'Cyprus', gradient: 'linear-gradient(90deg,#f8fafc 38%,#b45309 38% 62%,#f8fafc 62%)' },
+  { key: 'turkey', label: 'Turkey', gradient: 'radial-gradient(circle at 40% 50%,#f8fafc 0 16%,#dc2626 16%)' },
   { key: 'various', label: 'Various', gradient: 'linear-gradient(90deg,#0f766e 0 25%,#1d4ed8 25% 50%,#7c3aed 50% 75%,#f59e0b 75% 100%)' },
 ];
 

@@ -136,6 +136,12 @@ public final class LabelReaderViewModel {
 
         phase = .result(reading)
         persist(reading)
+        // **The scanned shelf** (0.9.51): every wine this scan matched joins
+        // the log the moment the result lands — an event record, not a
+        // tasting claim, which is why it writes here rather than behind the
+        // I DRANK THIS confirm. Restored readings (`restore()`) deliberately
+        // do not re-record: the scan that produced them already did.
+        BookmarkStore.shared.recordScanned(ids: reading.triedCandidateIDs)
     }
 
     /// Shows a stage and holds it long enough to be read.

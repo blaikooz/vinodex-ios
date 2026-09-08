@@ -217,13 +217,13 @@ struct ShelfFilterTests {
         ChipOption(facet: .shelf, value: shelf.rawValue, label: shelf.chipLabel)
     }
 
-    @Test("all three shelves are offered, always")
+    @Test("all four shelves are offered, always")
     func everyShelfHasAChip() {
         let options = ChipFilter.options(for: .shelf)
         #expect(options.count == Shelf.allCases.count)
         #expect(Set(options.map(\.value)) == Set(Shelf.allCases.map(\.rawValue)))
         // The labels are the wording, not the storage. `wantToTry` is a key.
-        #expect(options.map(\.label) == ["SAVED", "WANTED", "TRIED"])
+        #expect(options.map(\.label) == ["SAVED", "WANTED", "TRIED", "SCANNED"])
     }
 
     @Test("a lit shelf chip selects exactly that shelf")
