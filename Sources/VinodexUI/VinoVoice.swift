@@ -52,16 +52,21 @@ public final class VinoVoice: NSObject, AVSpeechSynthesizerDelegate {
     /// no download, no per-device drift. The ladder below it survives for
     /// non-English devices:
     ///
-    /// 1. **Reed** (en-US Eloquence, always on-device).
-    /// 2. **Fred** — the old robot, likewise always present.
-    /// 3. Any male voice for the player's own language.
-    /// 4. The system default (nil), which never fails.
+    /// 1. **Reed** (en-US Eloquence) — on every real iOS 17+ device.
+    /// 2. **Daniel** (en-GB) then **Ralph** (en-US) — the natural male
+    ///    voices the SIMULATOR runtime actually ships; an in-sim query
+    ///    (2026-09-08) proved Eloquence is absent there, which is how the
+    ///    robot kept talking after the Reed ruling.
+    /// 3. Any male voice for the player's own language, then the system
+    ///    default (nil), which never fails. Fred is deliberately no rung:
+    ///    the maintainer retired the robot delivery.
     static let vinobotVoice: AVSpeechSynthesisVoice? = {
-        if let reed = AVSpeechSynthesisVoice(identifier: "com.apple.eloquence.en-US.Reed") {
-            return reed
-        }
-        if let fred = AVSpeechSynthesisVoice(identifier: "com.apple.speech.synthesis.voice.Fred") {
-            return fred
+        for id in [
+            "com.apple.eloquence.en-US.Reed",
+            "com.apple.voice.super-compact.en-GB.Daniel",
+            "com.apple.speech.synthesis.voice.Ralph",
+        ] {
+            if let voice = AVSpeechSynthesisVoice(identifier: id) { return voice }
         }
         let language = AVSpeechSynthesisVoice.currentLanguageCode()
         return AVSpeechSynthesisVoice.speechVoices().first {

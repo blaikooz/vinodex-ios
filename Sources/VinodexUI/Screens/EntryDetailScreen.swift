@@ -743,13 +743,17 @@ public struct EntryDetailScreen: View {
                     Haptics.select()
                     vinoVoice.speak(entry.entryDescription)
                 } label: {
-                    Image(systemName: vinoVoice.speaking
-                        ? "speaker.wave.2.fill"
-                        : "speaker.wave.2")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundStyle(vinoVoice.speaking
+                    // The drawn sound faces (0.9.53, maintainer order) —
+                    // the settings toggle's own art; SF stays the loader's
+                    // silent fallback.
+                    DexChromeGlyph(
+                        vinoVoice.speaking ? "sounds-on" : "sounds",
+                        symbol: vinoVoice.speaking ? "speaker.wave.2.fill" : "speaker.wave.2",
+                        size: 22,
+                        tint: vinoVoice.speaking
                             ? (lcd.isLight ? .white : .black)
-                            : lcd.accent)
+                            : lcd.accent
+                    )
                         .frame(width: 44, height: 44)
                         .background(
                             RoundedRectangle(cornerRadius: 8)
