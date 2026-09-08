@@ -46,7 +46,10 @@ DST = output_dir(ROOT, "StyleArt")
 # `mediumbodywhite` left this set in the testing merge: the 0.6.5 newpass
 # batch delivered a real raw master for it (art/icons/entries/styles), so it goes
 # through the normal strip/quantise pass like any other style now.
-MASTERS = {"sweetwhite"}
+# Emptied by the 0.9.53 S-sheet repass: sweetwhite was a hand-tuned
+# master copied verbatim; its regenerated tile is keyed like every
+# other and rides the normal strip path.
+MASTERS: set[str] = set()
 
 
 def main():
