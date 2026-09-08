@@ -53,9 +53,11 @@ public final class VinoVoice: NSObject, AVSpeechSynthesizerDelegate {
     ///
     /// 1. Tom at enhanced (or better) quality, any English variant.
     /// 2. Any Tom the device does have (the compact build).
-    /// 3. **Fred** — the previous ruling's robot, always on-device.
-    /// 4. Any male voice for the player's own language.
-    /// 5. The system default (nil), which never fails.
+    /// 3. **Reed** — a male Eloquence voice in every default install, so a
+    ///    fresh device narrates reasonably instead of dropping to the robot.
+    /// 4. **Fred** — the previous ruling's robot, always on-device.
+    /// 5. Any male voice for the player's own language.
+    /// 6. The system default (nil), which never fails.
     static let vinobotVoice: AVSpeechSynthesisVoice? = {
         let voices = AVSpeechSynthesisVoice.speechVoices()
         let toms = voices.filter {
@@ -66,6 +68,9 @@ public final class VinoVoice: NSObject, AVSpeechSynthesizerDelegate {
         }
         if let tom = toms.first {
             return tom
+        }
+        if let reed = AVSpeechSynthesisVoice(identifier: "com.apple.eloquence.en-US.Reed") {
+            return reed
         }
         if let fred = AVSpeechSynthesisVoice(identifier: "com.apple.speech.synthesis.voice.Fred") {
             return fred
