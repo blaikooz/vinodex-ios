@@ -45,30 +45,18 @@ public final class VinoVoice: NSObject, AVSpeechSynthesizerDelegate {
         speaking = true
     }
 
-    /// The reading voice, chosen once. **Tom (Enhanced)** by maintainer
-    /// order (2026-09-08) — a natural narrator for the INFO read-alouds.
-    /// Enhanced voices only exist on a device after the user downloads them
-    /// (Settings > Accessibility > Spoken Content), so the ladder degrades
-    /// honestly:
+    /// The reading voice, chosen once. **Reed** by maintainer order
+    /// (2026-09-08, superseding the same day's Tom ruling): a male
+    /// Eloquence voice that ships in EVERY default install, so the narrator
+    /// is identical on a fresh tester's phone, the sim, and this device —
+    /// no download, no per-device drift. The ladder below it survives for
+    /// non-English devices:
     ///
-    /// 1. Tom at enhanced (or better) quality, any English variant.
-    /// 2. Any Tom the device does have (the compact build).
-    /// 3. **Reed** — a male Eloquence voice in every default install, so a
-    ///    fresh device narrates reasonably instead of dropping to the robot.
-    /// 4. **Fred** — the previous ruling's robot, always on-device.
-    /// 5. Any male voice for the player's own language.
-    /// 6. The system default (nil), which never fails.
+    /// 1. **Reed** (en-US Eloquence, always on-device).
+    /// 2. **Fred** — the old robot, likewise always present.
+    /// 3. Any male voice for the player's own language.
+    /// 4. The system default (nil), which never fails.
     static let vinobotVoice: AVSpeechSynthesisVoice? = {
-        let voices = AVSpeechSynthesisVoice.speechVoices()
-        let toms = voices.filter {
-            $0.name.contains("Tom") && $0.language.hasPrefix("en")
-        }
-        if let enhanced = toms.first(where: { $0.quality != .default }) {
-            return enhanced
-        }
-        if let tom = toms.first {
-            return tom
-        }
         if let reed = AVSpeechSynthesisVoice(identifier: "com.apple.eloquence.en-US.Reed") {
             return reed
         }
@@ -76,7 +64,7 @@ public final class VinoVoice: NSObject, AVSpeechSynthesizerDelegate {
             return fred
         }
         let language = AVSpeechSynthesisVoice.currentLanguageCode()
-        return voices.first {
+        return AVSpeechSynthesisVoice.speechVoices().first {
             $0.language.hasPrefix(language.prefix(2)) && $0.gender == .male
         }
     }()
