@@ -269,7 +269,9 @@ public struct BookmarksScreen: View {
                     Haptics.select()
                     withAnimation(DexMotion.overlay) { shelfRaw = option.rawValue }
                 } label: {
-                    Text("\(title(of: option)) \(count(of: option))")
+                    // Counts left the tabs 0.9.53 (maintainer order): four
+                    // labels breathe better than four labels doing arithmetic.
+                    Text(title(of: option))
                         .font(DexFont.retro(11))
                         .tracking(1)
                         .lineLimit(1)

@@ -170,38 +170,18 @@ public struct ChipFilterScreen: View {
         ZStack {
             DexScreenBackground()
 
+            VStack(spacing: 8) {
+            // MASTER SEARCH wears the same pinned header the list screens
+            // gained in 0.9.51 (0.9.53, maintainer order): the bar always
+            // visible, the six facets behind the slider icon at its right.
+            // The old in-scroll FILTER row, and the EVERYTHING/MATCHES
+            // header below it, are retired; stored anchors naming their old
+            // scroll ids simply no-op.
+            pinnedHeader
+
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
                     summary.id("__summary__")
-
-                    // Guarded on the *chips*, not just the text, which is the
-                    // one way this differs from `EncyclopediaListScreen`'s
-                    // `search.isEmpty`. `query` is session-local and so is
-                    // almost always empty on arrival, but `filter` is restored
-                    // from `ScreenStateStore` — and a keyboard thrown up over a
-                    // filter you spent six taps building, on the way back from
-                    // one of its own results, is the opposite of what L35 asked
-                    // for. Both are checked: either one being non-empty means
-                    // you came back to read something rather than to type.
-                    DexSearchBar(
-                        text: $query,
-                        placeholder: "SEARCH MATCHES…",
-                        focusesOnAppear: focusesSearchOnAppear && filter.isEmpty && query.isEmpty
-                    )
-                    .id("__search__")
-
-                    chipDropdown.id("__filters__")
-
-                    // Folded away by default (v0.5.9, E1): six facet rows are
-                    // a screen and a half of controls, and they buried the
-                    // results they drive.
-                    if showsChips {
-                        ForEach(ChipFacet.allCases) { facet in
-                            facetRow(facet).id(facet.rawValue)
-                        }
-                    }
-
-                    resultsHeader.id("__results__")
 
                     if results.isEmpty && countryResults.isEmpty {
                         // "NOTHING MATCHES" blames the chips. On a database
@@ -230,6 +210,7 @@ public struct ChipFilterScreen: View {
             }
             .contentMargins(10, for: .scrollContent)
             .scrollPosition(id: anchorBinding)
+            }
         }
         // A chip tap is a discrete act, so it re-costs immediately; typing is a
         // burst, so it is debounced — `task(id:)` cancels the pending run on the
@@ -252,6 +233,96 @@ public struct ChipFilterScreen: View {
     // MARK: Summary
 
     /// The running total, and the way out of a filter that has gone too far.
+    private var pinnedHeader: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                // L35's guard, restated for the pinned bar: focus only on a
+                // fresh arrival — a restored filter or query means the user
+                // came back to read, not to type.
+                DexSearchBar(
+                    text: $query,
+                    placeholder: "SEARCH MATCHES…",
+                    focusesOnAppear: focusesSearchOnAppear && filter.isEmpty && query.isEmpty
+                )
+                filterIconButton
+            }
+
+            if showsChips {
+                // Six facets are a screen and a half of controls (v0.5.9,
+                // E1's reason for folding them away) — open, they scroll in
+                // their own well under the bar rather than pushing the
+                // results off the device.
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 10) {
+                        if filter.count > 0 {
+                            Button {
+                                Haptics.select()
+                                withAnimation(.easeOut(duration: 0.2)) { filter.clear() }
+                            } label: {
+                                Text("RESET \(filter.count) ON")
+                                    .font(DexFont.retro(10))
+                                    .tracking(1)
+                                    .foregroundStyle(Dex.red500)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 5)
+                                            .strokeBorder(Dex.red500.opacity(0.55), lineWidth: 2)
+                                    )
+                            }
+                            .buttonStyle(DexPressStyle(scale: 0.97))
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                        }
+                        ForEach(ChipFacet.allCases) { facet in
+                            facetRow(facet)
+                        }
+                    }
+                }
+                .frame(maxHeight: 330)
+                .transition(.opacity)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.top, 8)
+    }
+
+    /// The list screens' slider-icon filter toggle, with the drawn settings
+    /// sliders face (0.8.93's SETTINGS tile art — "adjust what you see" is
+    /// this control's exact job here too).
+    private var filterIconButton: some View {
+        Button {
+            Haptics.select()
+            withAnimation(.easeOut(duration: 0.2)) { showsChips.toggle() }
+        } label: {
+            ZStack(alignment: .topTrailing) {
+                DexChromeGlyph(
+                    "settings", symbol: "slider.horizontal.3",
+                    size: 20,
+                    tint: showsChips ? (lcd.isLight ? .white : .black) : lcd.accent
+                )
+                .frame(width: 44, height: 44)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(showsChips ? AnyShapeStyle(lcd.accent) : AnyShapeStyle(lcd.surface))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .strokeBorder(lcd.accent.opacity(0.7), lineWidth: 2)
+                )
+                if filter.count > 0 {
+                    Text("\(filter.count)")
+                        .font(DexFont.retro(10))
+                        .foregroundStyle(lcd.isLight ? .white : .black)
+                        .padding(4)
+                        .background(Circle().fill(Dex.red500))
+                        .offset(x: 5, y: -5)
+                }
+            }
+        }
+        .buttonStyle(DexPressStyle(scale: 0.96))
+        .accessibilityLabel("Filter, \(filter.count) active, \(showsChips ? "expanded" : "collapsed")")
+    }
+
     private var summary: some View {
         HStack(spacing: 12) {
             // The numbered stack (0.8.93, item 8 — revising 0.8.92's sliders,
@@ -313,64 +384,8 @@ public struct ChipFilterScreen: View {
     /// The way into the chips (v0.5.9, E1): a dropdown header that unfolds
     /// the facet rows in place. The active count rides on the button so a
     /// collapsed filter is still legible at a glance.
-    private var chipDropdown: some View {
-        Button {
-            Haptics.select()
-            withAnimation(.easeOut(duration: 0.2)) { showsChips.toggle() }
-        } label: {
-            HStack(spacing: 10) {
-                // The settings sliders (0.8.93, item 8 — was the painted cog
-                // from 0.8.9a's A7). The sliders face is the SETTINGS tile's
-                // own, and "adjust what you see" is this row's exact job; the
-                // cog now reads as a place, and this is a control. The SF
-                // bars stay as the fallback rather than being deleted:
-                // `PixelArtLoader` answers nil in silence for a stem it
-                // cannot find, so the symbol is what stands between a missing
-                // asset and an empty row.
-                DexChromeGlyph(
-                    "settings", symbol: "slider.horizontal.3",
-                    size: 16, tint: lcd.accent
-                )
-                // Guarded (0.7.1, A4): with a filter on, the row needed
-                // 334pt of a 311pt width — glyph, label, the "n ON" badge and
-                // the chevron — and the label wrapped to two lines the moment
-                // a chip was lit. It read correctly at rest, which is why it
-                // stood. `layoutPriority` on the badge below decides which of
-                // the two gives. One word since 0.8.92 (item 11), which also
-                // buys the badge back most of the 23pt it was short.
-                Text("FILTER")
-                    .font(DexFont.retro(12))
-                    .tracking(1)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                    .foregroundStyle(lcd.text)
-                if filter.count > 0 {
-                    Text("\(filter.count) ON")
-                        .font(DexFont.retro(10))
-                        .foregroundStyle(chipInk)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Capsule().fill(lcd.accent))
-                }
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(lcd.subtext)
-                    .rotationEffect(.degrees(showsChips ? 180 : 0))
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity)
-            .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
-            .overlay(
-                RoundedRectangle(cornerRadius: 6).strokeBorder(lcd.surfaceEdge, lineWidth: 2)
-            )
-        }
-        .buttonStyle(DexPressStyle(scale: 0.98))
-        .accessibilityLabel(
-            "Filter chips, \(filter.count) active, \(showsChips ? "expanded" : "collapsed")"
-        )
-    }
+    // chipDropdown retired 0.9.53 — the pinned header's filterIconButton
+    // is its successor.
 
     private func facetRow(_ facet: ChipFacet) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -450,16 +465,8 @@ public struct ChipFilterScreen: View {
 
     // MARK: Results
 
-    private var resultsHeader: some View {
-        Text(filter.isEmpty ? "EVERYTHING" : "MATCHES")
-            .font(DexFont.retro(14))
-            .tracking(2)
-            .foregroundStyle(lcd.accent)
-            .padding(.top, 6)
-            .padding(.bottom, 5)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .overlay(alignment: .bottom) { lcd.accent.opacity(0.45).frame(height: 2) }
-    }
+    // resultsHeader (EVERYTHING/MATCHES) retired 0.9.53 by maintainer
+    // order — the results simply begin.
 
     /// A country as a result row: flag, name, chevron — the same furniture
     /// the country lists elsewhere use, opening the same page.

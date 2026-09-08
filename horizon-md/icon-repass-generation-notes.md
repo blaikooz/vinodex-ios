@@ -15,17 +15,21 @@ Where the two differ, this file wins.
 | FlavorArt (P1) | F1–F9 | 94 | **sliced + imported** in 0.9.52 |
 | ClassArt (P2) | C1–C5 | 64 | **sliced + imported** in 0.9.52 |
 | StyleArt (P4) | S1–S3 | 29 | **in `art/inbox/`, not yet sliced** |
+| Body + regions | X1 | 7 | **in `art/inbox/`, not yet sliced** |
 
-`art/inbox/` currently holds three files:
+`art/inbox/` currently holds four files:
 
 ```
 sheet-s1-still.png          4714 x 3001   5 cols x 2 rows   10 tiles
 sheet-s2-sparkling.png      5070 x 3150   5 cols x 2 rows   10 tiles
 sheet-s3-fortified.png      2840 x 4106   3 cols x 3 rows    9 tiles
+sheet-x1-body-regions.png   1717 x  608   row of 2 + row of 5   7 tiles
 ```
 
-Slice target for all three: **332 px tile height**, dest `entries/styles`,
+S1–S3: slice target **332 px tile height**, dest `entries/styles`,
 importer `scripts/import-style-art.py`.
+
+X1 is a **mixed-destination sheet** — see §3 for the split.
 
 ---
 
@@ -69,6 +73,40 @@ port             sherry           fortifiedwine
 dessertwine      icewine          lateharvest
 botrytiswine     bordeauxblend    supertuscan
 ```
+
+### X1 — `sheet-x1-body-regions.png` — mixed destinations
+
+Two rows, two destinations. Per-tile dest, like C4/C5.
+
+```
+row 1 (2 tiles)  ->  entries/body        medium.png   full.png
+row 2 (5 tiles)  ->  entries/countries   bulgaria.png moldova.png armenia.png
+                                         cyprus.png   turkey.png
+```
+
+All seven overwrite files that already exist.
+
+**Slice targets — match the neighbours, not the numbers in the brief.**
+The request said ~170 px for the body pair and ~300 px for the maps. The body figure
+is right; the map figure is not what the existing set uses:
+
+```
+entries/body       light.png  99 x 170     <- repassed in 0.9.52, the reference
+                   medium.png 190 x 165    <- being replaced
+                   full.png   136 x 170    <- being replaced
+entries/countries  bulgaria   220 x 142    <- the 46 existing countries sit at
+                   turkey     220 x 100       ~220 px on the long axis
+                   cyprus     220 x 134
+```
+
+So: **body 170 px tall, countries ~220 px on the long axis.** The five maps were
+composed into the sheet at 300 px long-axis, which per-tile normalisation will bring
+down; nothing needs regenerating either way.
+
+The two body tiles were scaled together, not independently — both glasses are drawn
+the same size, and `full`'s bounding box is taller only because the stone sits above
+the rim. Normalising each bbox to 170 on its own would have shrunk the glass in `full`
+relative to `medium`.
 
 <details>
 <summary>Already-imported sheets, for the record</summary>
@@ -170,6 +208,44 @@ yellow is purely cosmetic — it reads as autumnal, which suits `lateharvest` an
 
 Nothing breaks either way. If you'd rather they were green, they're a hand-tint, not a
 regeneration.
+
+---
+
+## 5a. The five country maps were not drawn by the image model
+
+This is the one place the pipeline differs from every other sheet, and it matters for
+how you treat the result.
+
+The brief asked for "accurate coastline and borders". Image models do not produce
+accurate country silhouettes — they produce plausible blobs, and the failure is
+invisible until someone who knows the coastline looks at it. Cyprus's Karpaz panhandle
+and Turkey's East Thrace across the Marmara are exactly the details that get smoothed
+away.
+
+So these five were **rendered from real boundary data** instead:
+
+- Source: Natural Earth 1:10m `ne_10m_admin_0_countries` (public domain).
+- Projection: equirectangular with a `cos(mean latitude)` correction, so each country
+  is drawn at its own latitude without east–west stretch.
+- Rasterised at 8x and max-pooled down to an 80 px logical grid, then nearest-neighbour
+  upscaled. Max-pooling rather than area-averaging is what preserves thin capes — it is
+  the reason the Karpaz panhandle survives at this pixel size.
+- 1 logical-pixel dilation for the near-black outline, flat single fill inside.
+- Enclosed gaps smaller than 4 logical px are filled before outlining. At 80 px the
+  Sea of Marmara is a real 14 px hole and stays (so Thrace reads as separate); the
+  1–2 px specks that a sub-pixel strait would otherwise leave behind are noise and go.
+
+Cyprus is the union of five Natural Earth admin-0 entries — `Cyprus`,
+`Northern Cyprus`, `Cyprus No Mans Area`, `Dhekelia Sovereign Base Area`,
+`Akrotiri Sovereign Base Area` — which is what produces one whole island rather than a
+partitioned one.
+
+Fills: Bulgaria `#4A963E`, Moldova `#E2BE3A`, Armenia `#E2802C`, Cyprus `#926036`,
+Turkey `#C63634`. Outline `#1A1420` throughout.
+
+The generator is `maps.py` in the browser session's scratch. If any other country in
+`entries/countries` ever needs the same treatment, it is a one-line addition to `SPEC`
+— no image model, no download, no QA pass on the silhouette.
 
 ---
 
