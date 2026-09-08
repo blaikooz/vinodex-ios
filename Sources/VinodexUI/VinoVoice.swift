@@ -45,21 +45,33 @@ public final class VinoVoice: NSObject, AVSpeechSynthesizerDelegate {
         speaking = true
     }
 
-    /// The robot's voice, chosen once (maintainer ruling: male and robotic
-    /// if the OS has one). Three rungs, best first:
+    /// The reading voice, chosen once. **Tom (Enhanced)** by maintainer
+    /// order (2026-09-08) — a natural narrator for the INFO read-alouds.
+    /// Enhanced voices only exist on a device after the user downloads them
+    /// (Settings > Accessibility > Spoken Content), so the ladder degrades
+    /// honestly:
     ///
-    /// 1. **Fred** — the vintage Apple synthesizer voice, male and
-    ///    genuinely robotic; it has shipped on-device for decades and is
-    ///    the sound VINOBOT was always going to have.
-    /// 2. Any male voice for the player's own language, so a device set to
-    ///    French gets a French-speaking robot rather than an anglophone.
-    /// 3. The system default (nil), which never fails.
+    /// 1. Tom at enhanced (or better) quality, any English variant.
+    /// 2. Any Tom the device does have (the compact build).
+    /// 3. **Fred** — the previous ruling's robot, always on-device.
+    /// 4. Any male voice for the player's own language.
+    /// 5. The system default (nil), which never fails.
     static let vinobotVoice: AVSpeechSynthesisVoice? = {
+        let voices = AVSpeechSynthesisVoice.speechVoices()
+        let toms = voices.filter {
+            $0.name.contains("Tom") && $0.language.hasPrefix("en")
+        }
+        if let enhanced = toms.first(where: { $0.quality != .default }) {
+            return enhanced
+        }
+        if let tom = toms.first {
+            return tom
+        }
         if let fred = AVSpeechSynthesisVoice(identifier: "com.apple.speech.synthesis.voice.Fred") {
             return fred
         }
         let language = AVSpeechSynthesisVoice.currentLanguageCode()
-        return AVSpeechSynthesisVoice.speechVoices().first {
+        return voices.first {
             $0.language.hasPrefix(language.prefix(2)) && $0.gender == .male
         }
     }()
