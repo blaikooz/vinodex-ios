@@ -747,7 +747,7 @@ public struct EntryDetailScreen: View {
                     // the settings toggle's own art; SF stays the loader's
                     // silent fallback.
                     DexChromeGlyph(
-                        vinoVoice.speaking ? "sounds-on" : "sounds",
+                        "sounds-on",
                         symbol: vinoVoice.speaking ? "speaker.wave.2.fill" : "speaker.wave.2",
                         size: 22,
                         tint: vinoVoice.speaking
