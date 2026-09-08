@@ -462,13 +462,13 @@ const FLAVOR_ART: Record<string, string> = {
 // branches on the prefix in `DexIcon`; these ids never reach the Iconify
 // rasteriser (`unique` excludes them below).
 //
-// Light-Medium and Medium-Full keep their tinted glyphs — the drawn set
-// covers only the three anchor weights so far.
+// All five weights drawn since 0.9.53's X2 sheet: one smithy scale from
+// feather to anvil, no tinted glyphs left in the row.
 const BODY_ICONS: Record<string, string> = {
   Light: 'art:body-light',
-  'Light-Medium': 'game-icons:weight-scale',
+  'Light-Medium': 'art:body-light-medium',
   Medium: 'art:body-medium',
-  'Medium-Full': 'game-icons:weight-lifting-up',
+  'Medium-Full': 'art:body-medium-full',
   Full: 'art:body-full',
 };
 

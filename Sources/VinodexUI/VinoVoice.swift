@@ -45,18 +45,28 @@ public final class VinoVoice: NSObject, AVSpeechSynthesizerDelegate {
         speaking = true
     }
 
-    /// The robot's voice, chosen once (maintainer ruling: male and robotic
-    /// if the OS has one). Three rungs, best first:
+    /// The reading voice, chosen once. **Reed** by maintainer order
+    /// (2026-09-08, superseding the same day's Tom ruling): a male
+    /// Eloquence voice that ships in EVERY default install, so the narrator
+    /// is identical on a fresh tester's phone, the sim, and this device —
+    /// no download, no per-device drift. The ladder below it survives for
+    /// non-English devices:
     ///
-    /// 1. **Fred** — the vintage Apple synthesizer voice, male and
-    ///    genuinely robotic; it has shipped on-device for decades and is
-    ///    the sound VINOBOT was always going to have.
-    /// 2. Any male voice for the player's own language, so a device set to
-    ///    French gets a French-speaking robot rather than an anglophone.
-    /// 3. The system default (nil), which never fails.
+    /// 1. **Reed** (en-US Eloquence) — on every real iOS 17+ device.
+    /// 2. **Daniel** (en-GB) then **Ralph** (en-US) — the natural male
+    ///    voices the SIMULATOR runtime actually ships; an in-sim query
+    ///    (2026-09-08) proved Eloquence is absent there, which is how the
+    ///    robot kept talking after the Reed ruling.
+    /// 3. Any male voice for the player's own language, then the system
+    ///    default (nil), which never fails. Fred is deliberately no rung:
+    ///    the maintainer retired the robot delivery.
     static let vinobotVoice: AVSpeechSynthesisVoice? = {
-        if let fred = AVSpeechSynthesisVoice(identifier: "com.apple.speech.synthesis.voice.Fred") {
-            return fred
+        for id in [
+            "com.apple.eloquence.en-US.Reed",
+            "com.apple.voice.super-compact.en-GB.Daniel",
+            "com.apple.speech.synthesis.voice.Ralph",
+        ] {
+            if let voice = AVSpeechSynthesisVoice(identifier: id) { return voice }
         }
         let language = AVSpeechSynthesisVoice.currentLanguageCode()
         return AVSpeechSynthesisVoice.speechVoices().first {

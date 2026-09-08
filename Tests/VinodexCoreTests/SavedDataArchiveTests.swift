@@ -26,8 +26,8 @@ struct SavedDataArchiveTests {
     /// rather than a silent one.
     @Test("the registry holds every key exactly once")
     func registryIsComplete() {
-        // 21 since 0.9.51: the scanned shelf joined the registry.
-        #expect(SavedDataKey.allCases.count == 21)
+        // 22 since 0.9.53: the scan journal joined the scanned shelf.
+        #expect(SavedDataKey.allCases.count == 22)
         let raws = SavedDataKey.allCases.map(\.rawValue)
         #expect(Set(raws).count == raws.count, "duplicate key string: \(raws)")
         #expect(raws.allSatisfy { !$0.isEmpty })

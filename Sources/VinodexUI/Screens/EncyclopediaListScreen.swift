@@ -468,9 +468,13 @@ public struct EncyclopediaListScreen: View {
             withAnimation(.easeOut(duration: 0.2)) { showsChips.toggle() }
         } label: {
             ZStack(alignment: .topTrailing) {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(showsChips ? (lcd.isLight ? .white : .black) : lcd.accent)
+                // The drawn settings-sliders face (0.9.53, maintainer
+                // order) — the SF bars stay as the loader's silent fallback.
+                DexChromeGlyph(
+                    "settings", symbol: "slider.horizontal.3",
+                    size: 20,
+                    tint: showsChips ? (lcd.isLight ? .white : .black) : lcd.accent
+                )
                     .frame(width: 44, height: 44)
                     .background(
                         RoundedRectangle(cornerRadius: 8)

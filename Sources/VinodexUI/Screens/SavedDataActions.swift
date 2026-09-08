@@ -70,6 +70,7 @@ enum SavedDataReset {
         // a fresh start with the guided first find already spent, on the one run
         // where it is the whole point.
         CoachmarkEngine.shared.reset()
+        ScanRecordStore.shared.reset()
         VinoPresenter.shared.clear()
         // Clearing the preference is not the same as cancelling what it already
         // scheduled: a wiped device with a week of pending reminders would keep
@@ -200,6 +201,7 @@ enum SavedDataRestore {
         }
 
         BookmarkStore.shared.reload()
+        ScanRecordStore.shared.reload()
         RecentlyViewedStore.shared.reload()
         QuizProgress.shared.reload()
         StreakStore.shared.reload()

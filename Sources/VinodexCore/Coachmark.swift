@@ -281,10 +281,9 @@ public enum CoachmarkWalkthrough {
             id: "vinobot",
             target: .vinobotPanel,
             advancesOn: .acknowledged,
-            // Was the INSIGHT panel until the 0.9.45 pass; the maintainer
-            // repointed the step at VINOBOT's own section, which sits right
-            // under INFO where the fresh TRIED press left the reader.
-            line: "Found me, {name}? That panel is my take on this grape, and the speaker reads it aloud.",
+            // Was the INSIGHT panel until 0.9.45, then his own take section;
+            // since 0.9.53 he lives inside INFO and reads the page itself.
+            line: "Found me, {name}? Press the speaker and I will read this page to you.",
             expression: .goodjob
         ),
         CoachmarkStep(

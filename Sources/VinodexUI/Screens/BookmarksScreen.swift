@@ -88,7 +88,10 @@ public struct BookmarksScreen: View {
     private var items: [SavedItem] {
         switch shelf {
         case .saved: bookmarks.saved(in: db)
-        case .wantToTry, .tried, .scanned: bookmarks.entries(on: shelf, in: db).map { .entry($0) }
+        case .wantToTry, .tried: bookmarks.entries(on: shelf, in: db).map { .entry($0) }
+        // SCANNED renders the bottle journal, not entry rows — see the
+        // dedicated branch in `body` (0.9.53).
+        case .scanned: []
         }
     }
 
@@ -144,7 +147,18 @@ public struct BookmarksScreen: View {
                     }
                     .id(Self.profileAnchor)
 
-                    if items.isEmpty {
+                    if shelf == .scanned {
+                        // The bottle journal (0.9.53): each scan is its own
+                        // card — the label's fields as the reader read them,
+                        // with the matched catalog entries as doors.
+                        if scans.records.isEmpty {
+                            emptyState
+                        } else {
+                            ForEach(scans.records) { record in
+                                scanCard(record)
+                            }
+                        }
+                    } else if items.isEmpty {
                         emptyState
                     } else {
                         ForEach(items) { item in
@@ -255,7 +269,9 @@ public struct BookmarksScreen: View {
                     Haptics.select()
                     withAnimation(DexMotion.overlay) { shelfRaw = option.rawValue }
                 } label: {
-                    Text("\(title(of: option)) \(count(of: option))")
+                    // Counts left the tabs 0.9.53 (maintainer order): four
+                    // labels breathe better than four labels doing arithmetic.
+                    Text(title(of: option))
                         .font(DexFont.retro(11))
                         .tracking(1)
                         .lineLimit(1)
@@ -632,6 +648,86 @@ public struct BookmarksScreen: View {
         }
         .buttonStyle(DexPressStyle(scale: 0.9))
         .accessibilityLabel("Remove \(item.displayName) from \(title(of: shelf).lowercased())")
+    }
+
+    /// The bottle journal behind the SCANNED tab.
+    @State private var scans = ScanRecordStore.shared
+
+    private func scanCard(_ record: ScanRecord) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Image(systemName: "barcode.viewfinder")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(lcd.accent)
+                Text(record.displayName.uppercased())
+                    .font(DexFont.retro(11))
+                    .tracking(1)
+                    .foregroundStyle(lcd.text)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.7)
+                Spacer(minLength: 4)
+                Button {
+                    Haptics.select()
+                    withAnimation(.easeOut(duration: 0.2)) { scans.remove(id: record.id) }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(lcd.subtext)
+                }
+                .buttonStyle(DexPressStyle(scale: 0.9))
+                .accessibilityLabel("Remove \(record.displayName) from the scan journal")
+            }
+
+            // The label's own facts, only the ones the reader actually read.
+            let meta = [
+                record.producer == record.displayName ? nil : record.producer,
+                record.vintage,
+                record.region,
+                record.country,
+            ].compactMap(\.self).joined(separator: " \u{00B7} ")
+            if !meta.isEmpty {
+                Text(meta)
+                    .font(DexFont.mono(14))
+                    .foregroundStyle(lcd.bodyText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Text("SCANNED \(record.scannedAt.formatted(.dateTime.day().month(.abbreviated).year()).uppercased())")
+                .font(DexFont.retro(10))
+                .tracking(1)
+                .foregroundStyle(lcd.subtext)
+
+            let matches = record.matchedEntryIDs.compactMap { db.entry(id: $0) }
+            if !matches.isEmpty {
+                ChipFlow(spacing: 6) {
+                    ForEach(matches, id: \.id) { entry in
+                        Button {
+                            Haptics.select()
+                            onSelect(entry)
+                        } label: {
+                            Text(entry.name)
+                                .font(DexFont.retro(10))
+                                .tracking(0.5)
+                                .foregroundStyle(lcd.accent)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 5)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 5)
+                                        .strokeBorder(lcd.accent.opacity(0.55), lineWidth: 1.5)
+                                )
+                        }
+                        .buttonStyle(DexPressStyle(scale: 0.96))
+                    }
+                }
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .strokeBorder(lcd.surfaceEdge, lineWidth: 1)
+        )
+        .id(record.id)
     }
 
     private var emptyState: some View {

@@ -105,7 +105,11 @@ SOURCE_FOR = {
     "color-orange": "color/orange.png",
     "color-dual": "color/dual.png",
     "body-light": "body/light.png",
+    # The two mid-weights joined in 0.9.53's X2 sheet — the full five-step
+    # smithy scale (feather, feather in pan, scale, hammer, anvil).
+    "body-light-medium": "body/lightmedium.png",
     "body-medium": "body/medium.png",
+    "body-medium-full": "body/mediumfull.png",
     "body-full": "body/full.png",
     "climate-maritime": "climate/maritime.png",
     "climate-continental": "climate/continental.png",
