@@ -138,10 +138,9 @@ struct EntryDetailSections: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 9)
             .background(Color(dexHex: colors.bg))
-            .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .strokeBorder(Color(dexHex: colors.border), lineWidth: 1)
-            )
+            // Border outline removed 0.9.53 (maintainer order): the plate's
+            // own fill and inked text carry the climate colours; the green
+            // ring read as a stray selection state.
             .modifier(TileLink(destination: destination, onOpen: onOpenRoute))
         }
     }

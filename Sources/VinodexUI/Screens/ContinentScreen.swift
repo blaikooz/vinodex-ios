@@ -111,18 +111,23 @@ public struct ContinentScreen: View {
 
     private var infoSection: some View {
         DexSection("INFO", symbol: "book") {
-            Text(continent.common.description)
-                .font(DexFont.mono(21))
-                .foregroundStyle(lcd.bodyText)
-                .lineSpacing(2)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 14)
-                .padding(.vertical, 10)
-                .background(alignment: .leading) {
-                    lcd.accent.frame(width: 4)
-                }
-                .background(lcd.accent.opacity(0.06))
+            VStack(alignment: .leading, spacing: 10) {
+                Text(continent.common.description)
+                    .font(DexFont.mono(21))
+                    .foregroundStyle(lcd.bodyText)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                ReadAloudButton(text: continent.common.description)
+            }
+            .padding(.leading, 14)
+            .padding(.trailing, 10)
+            .padding(.vertical, 10)
+            .background(alignment: .leading) {
+                lcd.accent.frame(width: 4)
+            }
+            .background(lcd.accent.opacity(0.06))
         }
     }
 
