@@ -61,6 +61,17 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.9.52",
+  date: "2026-09-07",
+  headline: "THE GREAT REPASS",
+  notes: [
+    "One hundred and fifty-eight icons regenerated on the key: every flavour portrait, every taxonomy face, every soil, climate and continent.",
+    "The white halos that haunted the early art are gone; whites now live inside their outlines, where they belong.",
+    "The florals led the way; the citrus, berries, spices, minerals and earths follow in the same hand.",
+  ],
+};
+
+const PREVIOUS_0951: FirmwareRelease = {
   version: "0.9.51",
   date: "2026-09-07",
   headline: "THE FINAL POUR",
@@ -403,6 +414,7 @@ const PREVIOUS_0892: FirmwareRelease = {
 };
 
 const PREVIOUS: FirmwareRelease[] = [
+  PREVIOUS_0951,
   PREVIOUS_0950,
   PREVIOUS_0949,
   PREVIOUS_0948,
