@@ -37,6 +37,8 @@ public struct SavedDataArchive: Codable, Sendable, Equatable {
     public var triedShelf: [String]
     /// Optional so archives exported before 0.9.51 still decode.
     public var scannedShelf: [String]?
+    /// The label reader's bottle journal (0.9.53). Optional likewise.
+    public var scanRecords: [ScanRecord]?
     public var triedRatings: [String: TriedRating]
     public var recentlyViewed: [String]
     public var quizTierUnlocked: String?
@@ -117,7 +119,7 @@ public enum SavedDataArchiver {
             appVersion: AppVersion.fallback,
             exportedDay: day,
             savedShelf: [], wantToTryShelf: [], triedShelf: [], scannedShelf: nil,
-            triedRatings: [:],
+            scanRecords: nil, triedRatings: [:],
             recentlyViewed: [], quizTierUnlocked: nil,
             dailyStreak: 0, dailyBestStreak: 0, dailyLastDay: nil, revealCursor: 0,
             starterTierOnly: false, grantedEntitlements: [],
@@ -133,6 +135,9 @@ public enum SavedDataArchiver {
             case .wantToTryShelf:      archive.wantToTryShelf = defaults.stringArray(forKey: name) ?? []
             case .triedShelf:          archive.triedShelf = defaults.stringArray(forKey: name) ?? []
             case .scannedShelf:        archive.scannedShelf = defaults.stringArray(forKey: name) ?? []
+            case .scanRecords:
+                archive.scanRecords = defaults.data(forKey: name)
+                    .flatMap { try? JSONDecoder().decode([ScanRecord].self, from: $0) }
             case .triedRatings:
                 archive.triedRatings = defaults.data(forKey: name)
                     .flatMap { try? JSONDecoder().decode([String: TriedRating].self, from: $0) } ?? [:]
@@ -191,6 +196,7 @@ public enum SavedDataArchiver {
             case .wantToTryShelf:      put(key, archive.wantToTryShelf)
             case .triedShelf:          put(key, archive.triedShelf)
             case .scannedShelf:        put(key, archive.scannedShelf)
+            case .scanRecords:         put(key, archive.scanRecords.flatMap { try? JSONEncoder().encode($0) })
             case .triedRatings:        put(key, try? JSONEncoder().encode(archive.triedRatings))
             case .recentlyViewed:      put(key, archive.recentlyViewed)
             case .quizTierUnlocked:    put(key, archive.quizTierUnlocked)

@@ -50,13 +50,89 @@ public struct FirmwareHistoryScreen: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
                         installed
-                        ForEach(catalog.releases) { release in
-                            entry(release)
+                        // The newest release stays open — it is what this
+                        // build is — and everything older folds into minor
+                        // families (0.9.X, 0.8.X …) that expand on tap
+                        // (0.9.53, maintainer order). Thirty-plus entries
+                        // had become a scroll of history before the reader
+                        // reached the credit.
+                        if let current = catalog.releases.first {
+                            entry(current)
+                        }
+                        ForEach(families, id: \.name) { family in
+                            familySection(family)
                         }
                         credit
                     }
                     .padding(18)
                 }
+            }
+        }
+    }
+
+    /// One collapsed minor family (0.8.X …) of the history.
+    private struct Family {
+        let name: String
+        let releases: [FirmwareRelease]
+    }
+
+    /// Which families are open. Session state, like a scroll position.
+    @State private var expandedFamilies: Set<String> = []
+
+    /// Everything after the newest release, grouped by minor version in the
+    /// order the (newest-first) list already has.
+    private var families: [Family] {
+        var out: [Family] = []
+        for release in catalog.releases.dropFirst() {
+            let name = release.version.split(separator: ".").prefix(2).joined(separator: ".")
+            if let last = out.indices.last, out[last].name == name {
+                out[last] = Family(name: name, releases: out[last].releases + [release])
+            } else {
+                out.append(Family(name: name, releases: [release]))
+            }
+        }
+        return out
+    }
+
+    @ViewBuilder
+    private func familySection(_ family: Family) -> some View {
+        let open = expandedFamilies.contains(family.name)
+        Button {
+            Haptics.select()
+            withAnimation(.easeOut(duration: 0.2)) {
+                if open { expandedFamilies.remove(family.name) }
+                else { expandedFamilies.insert(family.name) }
+            }
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(lcd.accent)
+                    .rotationEffect(.degrees(open ? 90 : 0))
+                Text("\(family.name.uppercased()).X")
+                    .font(DexFont.retro(12))
+                    .tracking(1.5)
+                    .foregroundStyle(lcd.text)
+                Text("\(family.releases.count) RELEASES")
+                    .font(DexFont.retro(10))
+                    .tracking(1)
+                    .foregroundStyle(lcd.subtext)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .strokeBorder(lcd.surfaceEdge, lineWidth: 1)
+            )
+        }
+        .buttonStyle(DexPressStyle(scale: 0.98))
+        .accessibilityLabel("Firmware \(family.name) family, \(family.releases.count) releases, \(open ? "expanded" : "collapsed")")
+
+        if open {
+            ForEach(family.releases) { release in
+                entry(release)
             }
         }
     }

@@ -142,6 +142,10 @@ public final class LabelReaderViewModel {
         // I DRANK THIS confirm. Restored readings (`restore()`) deliberately
         // do not re-record: the scan that produced them already did.
         BookmarkStore.shared.recordScanned(ids: reading.triedCandidateIDs)
+        // And the bottle journal (0.9.53): the real bottle's fields, kept
+        // alongside the shelf's catalog links. Restored readings do not
+        // re-journal for the same reason they do not re-shelve.
+        ScanRecordStore.shared.record(reading)
     }
 
     /// Shows a stage and holds it long enough to be read.

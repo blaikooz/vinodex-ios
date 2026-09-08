@@ -147,16 +147,17 @@ public struct EntryDetailScreen: View {
                 // sentence. It now names the grapes the flavour derives from,
                 // which is worth showing.
                 if !entry.entryDescription.isEmpty {
-                    infoSection.id(Anchor.info)
+                    // INFO carries VINOBOT since the 0.9.53 pass (maintainer
+                    // order): his face and speaker moved in here and the
+                    // separate take section left the page — the walkthrough's
+                    // fourth step lights this panel now.
+                    infoSection.id(Anchor.info).coachmarkTarget(.vinobotPanel)
                 }
                 // **VINOBOT'S TAKE (rework V3).** One line in his voice —
                 // authored for the flagships, composed from this entry's own
                 // fields for everyone else (`VinoTake`, gated over the whole
                 // catalog by `VinoTakeTests`). Tapping the row visits him.
-                // Directly under INFO by the maintainer's checkpoint ruling.
-                // The walkthrough's fourth step lights it (0.9.45 pass,
-                // repointed here from INSIGHT).
-                vinoTakeSection.id(Anchor.vinobot).coachmarkTarget(.vinobotPanel)
+
                 if entry.isTastable, bookmarks.contains(entry.id, on: .tried) {
                     myTasting
                 }
@@ -214,7 +215,7 @@ public struct EntryDetailScreen: View {
         .onChange(of: coachmarks.current?.id) { _, stepID in
             if stepID == "vinobot" {
                 withAnimation(.easeInOut(duration: 0.45)) {
-                    screens.setAnchor(Anchor.vinobot, for: screenKey)
+                    screens.setAnchor(Anchor.info, for: screenKey)
                 }
             }
         }
@@ -656,63 +657,9 @@ public struct EntryDetailScreen: View {
     /// The reader behind the take row's speaker button.
     @State private var vinoVoice = VinoVoice.shared
 
-    /// His face, his line, and a door to his page. Continents compose no
-    /// take and render nothing — the section is its own guard.
-    @ViewBuilder
-    private var vinoTakeSection: some View {
-        if let take = VinoTake.compose(for: entry, in: db) {
-            DexSection("VINOBOT", symbol: "graduationcap.fill") {
-                HStack(alignment: .top, spacing: 10) {
-                    DexChromeGlyph(
-                        VinoExpression.thinking.artStem,
-                        symbol: "graduationcap.fill",
-                        size: 34,
-                        tint: lcd.accent
-                    )
-                    Text(take)
-                        .font(DexFont.mono(18))
-                        .foregroundStyle(lcd.bodyText)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 4)
-                    VStack(spacing: 10) {
-                        // He reads his own entry aloud (checkpoint V3,
-                        // round three) — the system synthesizer, offline,
-                        // summoned by tap so QUIET does not gate it. An
-                        // inner Button wins the hit test over the row's
-                        // TileLink, so speaking never navigates.
-                        Button {
-                            Haptics.select()
-                            vinoVoice.speak(take)
-                        } label: {
-                            Image(systemName: vinoVoice.speaking
-                                ? "speaker.wave.2.fill"
-                                : "speaker.wave.2")
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundStyle(vinoVoice.speaking ? lcd.accent : lcd.subtext)
-                        }
-                        .buttonStyle(DexPressStyle(scale: 0.9))
-                        .accessibilityLabel(vinoVoice.speaking
-                            ? "Stop Vinobot reading"
-                            : "Have Vinobot read this aloud")
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(lcd.subtext)
-                    }
-                }
-                .padding(10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .strokeBorder(lcd.surfaceEdge, lineWidth: 1)
-                )
-                // The house tap idiom, exactly as `attributeBar` wears it —
-                // the whole row is the door to his page.
-                .modifier(TileLink(destination: .profVino, onOpen: onOpenRoute))
-            }
-        }
-    }
+    // vinoTakeSection retired 0.9.53: VINOBOT lives in INFO now (his
+    // face, the door to his page, and the speaker that reads the page's
+    // own text). VinoTake stays in Core for his own screen's future use.
 
     @ViewBuilder
     private var insightSection: some View {
@@ -781,19 +728,50 @@ public struct EntryDetailScreen: View {
 
     private var infoSection: some View {
         DexSection("INFO", symbol: "book") {
-            Text(entry.entryDescription)
-                .font(DexFont.mono(18))
-                .foregroundStyle(lcd.bodyText)
-                .lineSpacing(2)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 14)
-                .padding(.vertical, 10)
-                .background(alignment: .leading) {
-                    // The reference marks body copy with a left accent rule.
-                    lcd.accent.frame(width: 4)
+            // VINOBOT presents the page (0.9.53, maintainer order): his face
+            // is the door to his own screen, and the speaker reads the
+            // original info text aloud in his voice — the take section this
+            // replaces read only his one-liner.
+            HStack(alignment: .top, spacing: 10) {
+                DexChromeGlyph(
+                    VinoExpression.thinking.artStem,
+                    symbol: "graduationcap.fill",
+                    size: 34,
+                    tint: lcd.accent
+                )
+                .modifier(TileLink(destination: .profVino, onOpen: onOpenRoute))
+                .accessibilityLabel("Open Vinobot's page")
+
+                Text(entry.entryDescription)
+                    .font(DexFont.mono(18))
+                    .foregroundStyle(lcd.bodyText)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Button {
+                    Haptics.select()
+                    vinoVoice.speak(entry.entryDescription)
+                } label: {
+                    Image(systemName: vinoVoice.speaking
+                        ? "speaker.wave.2.fill"
+                        : "speaker.wave.2")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(vinoVoice.speaking ? lcd.accent : lcd.subtext)
                 }
-                .background(lcd.accent.opacity(0.06))
+                .buttonStyle(DexPressStyle(scale: 0.9))
+                .accessibilityLabel(vinoVoice.speaking
+                    ? "Stop Vinobot reading"
+                    : "Have Vinobot read this aloud")
+            }
+            .padding(.leading, 14)
+            .padding(.trailing, 10)
+            .padding(.vertical, 10)
+            .background(alignment: .leading) {
+                // The reference marks body copy with a left accent rule.
+                lcd.accent.frame(width: 4)
+            }
+            .background(lcd.accent.opacity(0.06))
         }
     }
 
