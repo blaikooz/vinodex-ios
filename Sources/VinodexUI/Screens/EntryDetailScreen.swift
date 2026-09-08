@@ -728,20 +728,10 @@ public struct EntryDetailScreen: View {
 
     private var infoSection: some View {
         DexSection("INFO", symbol: "book") {
-            // VINOBOT presents the page (0.9.53, maintainer order): his face
-            // is the door to his own screen, and the speaker reads the
-            // original info text aloud in his voice — the take section this
-            // replaces read only his one-liner.
-            HStack(alignment: .top, spacing: 10) {
-                DexChromeGlyph(
-                    VinoExpression.thinking.artStem,
-                    symbol: "graduationcap.fill",
-                    size: 34,
-                    tint: lcd.accent
-                )
-                .modifier(TileLink(destination: .profVino, onOpen: onOpenRoute))
-                .accessibilityLabel("Open Vinobot's page")
-
+            // The page reads itself aloud (0.9.53; face removed same day by
+            // maintainer order — the speaker alone carries VINOBOT's voice
+            // here, large enough to be the section's visible control).
+            HStack(alignment: .top, spacing: 12) {
                 Text(entry.entryDescription)
                     .font(DexFont.mono(18))
                     .foregroundStyle(lcd.bodyText)
@@ -756,10 +746,21 @@ public struct EntryDetailScreen: View {
                     Image(systemName: vinoVoice.speaking
                         ? "speaker.wave.2.fill"
                         : "speaker.wave.2")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(vinoVoice.speaking ? lcd.accent : lcd.subtext)
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(vinoVoice.speaking
+                            ? (lcd.isLight ? .white : .black)
+                            : lcd.accent)
+                        .frame(width: 44, height: 44)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(vinoVoice.speaking ? AnyShapeStyle(lcd.accent) : AnyShapeStyle(lcd.surface))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .strokeBorder(lcd.accent.opacity(0.7), lineWidth: 2)
+                        )
                 }
-                .buttonStyle(DexPressStyle(scale: 0.9))
+                .buttonStyle(DexPressStyle(scale: 0.94))
                 .accessibilityLabel(vinoVoice.speaking
                     ? "Stop Vinobot reading"
                     : "Have Vinobot read this aloud")
