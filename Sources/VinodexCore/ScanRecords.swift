@@ -24,6 +24,8 @@ public struct ScanRecord: Codable, Sendable, Identifiable, Equatable {
     public let vintage: String?
     public let region: String?
     public let country: String?
+    /// The label's importer line (0.9.54). Optional for older records.
+    public let importer: String?
     /// The tastable entries the scan matched, in the reading's order.
     public let matchedEntryIDs: [String]
 
@@ -35,6 +37,7 @@ public struct ScanRecord: Codable, Sendable, Identifiable, Equatable {
         vintage: String?,
         region: String?,
         country: String?,
+        importer: String? = nil,
         matchedEntryIDs: [String]
     ) {
         self.id = id
@@ -44,6 +47,7 @@ public struct ScanRecord: Codable, Sendable, Identifiable, Equatable {
         self.vintage = vintage
         self.region = region
         self.country = country
+        self.importer = importer
         self.matchedEntryIDs = matchedEntryIDs
     }
 
@@ -72,6 +76,7 @@ public struct ScanRecord: Codable, Sendable, Identifiable, Equatable {
             vintage: vintage,
             region: region,
             country: country,
+            importer: reading.importer,
             matchedEntryIDs: matched
         )
     }

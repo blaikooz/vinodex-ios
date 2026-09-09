@@ -434,6 +434,17 @@ public struct DeviceChassis<Content: View>: View {
             // writes. See `ChassisFlipRouter`. (AUDIT **M21**)
             .onAppear { ChassisFlipRouter.shared.handler = { isFlipped = true } }
             .onDisappear { ChassisFlipRouter.shared.handler = nil }
+            // **The iPad clamp** (0.9.54, release-readiness A3/A4). The
+            // chassis is a handheld: fixed 74pt button bundles, a 264pt
+            // marquee, furniture positioned in points. Unclamped it
+            // stretched edge-to-edge on a 13" iPad — controls stranded at
+            // opposite ends of 1024pt — which was the audit's most likely
+            // App Review rejection. Capped at a phone-plus width and
+            // centered, the device reads as itself on any window size,
+            // which also survives iPadOS 26's resizable windowing (where
+            // UIRequiresFullScreen no longer pins anything). The skin's
+            // underlay fills the surround below.
+            .frame(maxWidth: 440, maxHeight: .infinity)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
         }

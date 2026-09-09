@@ -115,12 +115,20 @@ public final class LabelRecognitionService: Sendable {
             region: place.region
         )
 
+        // The trade lines (0.9.54): anchored printed-label facts — importer
+        // and bottler exist on the label and nowhere else, so they are
+        // extracted here and carried on both readings below.
+        let importer = LabelTextScan.importerLine(in: strings)
+        let bottler = LabelTextScan.bottlerLine(in: strings)
+
         let reading = LabelReading(
             recognizedText: strings.map { LabelTextScan.tidy($0.text) }.filter { !$0.isEmpty },
             matches: matches,
             grapeIDs: grapes.map(\.id),
             styleIDs: styles.map(\.id),
-            providerName: providerName
+            providerName: providerName,
+            importer: importer,
+            bottler: bottler
         )
 
         guard !reading.isConfident else { return reading }
@@ -135,7 +143,9 @@ public final class LabelRecognitionService: Sendable {
             styleIDs: reading.styleIDs,
             suggestedCountries: countries,
             suggestedRegionIDs: regionIDs,
-            providerName: providerName
+            providerName: providerName,
+            importer: importer,
+            bottler: bottler
         )
     }
 

@@ -405,6 +405,16 @@ public struct LabelReaderView: View {
                 ForEach(reading.matches) { match in
                     row(match)
                 }
+                // The trade lines (0.9.54, maintainer order): importer and
+                // bottler read straight off the label — printed facts no
+                // catalog holds, so they render as flat rows in the same
+                // ledger.
+                if let importer = reading.importer {
+                    tradeRow("IMPORTER", importer)
+                }
+                if let bottler = reading.bottler {
+                    tradeRow("BOTTLER", bottler)
+                }
             }
 
             confidenceBar(reading.score)
@@ -415,6 +425,24 @@ public struct LabelReaderView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 8).strokeBorder(lcd.accent.opacity(0.45), lineWidth: 2)
         )
+    }
+
+    /// A printed-label fact with no catalog entity behind it — importer and
+    /// bottler render like match rows but never link anywhere.
+    private func tradeRow(_ title: String, _ value: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Text(title)
+                .font(DexFont.retro(10))
+                .tracking(1)
+                .foregroundStyle(lcd.subtext)
+                .frame(width: 92, alignment: .leading)
+            Text(value)
+                .font(DexFont.mono(16))
+                .foregroundStyle(lcd.text)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 
     /// One resolved field. Tappable when it resolves to an entry the user can

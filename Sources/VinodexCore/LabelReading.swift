@@ -297,6 +297,11 @@ public struct LabelReading: Codable, Sendable, Hashable {
     public let suggestedRegionIDs: [String]
     /// Which provider produced `recognizedText`, for diagnostics.
     public let providerName: String
+    /// The trade lines (0.9.54): printed-label facts extracted by anchor —
+    /// see `LabelTextScan.importerLine`/`bottlerLine`. Optional so stored
+    /// readings from older builds still decode.
+    public let importer: String?
+    public let bottler: String?
 
     public init(
         recognizedText: [String],
@@ -305,7 +310,9 @@ public struct LabelReading: Codable, Sendable, Hashable {
         styleIDs: [String] = [],
         suggestedCountries: [String] = [],
         suggestedRegionIDs: [String] = [],
-        providerName: String = ""
+        providerName: String = "",
+        importer: String? = nil,
+        bottler: String? = nil
     ) {
         self.recognizedText = recognizedText
         self.matches = matches
@@ -314,6 +321,8 @@ public struct LabelReading: Codable, Sendable, Hashable {
         self.suggestedCountries = suggestedCountries
         self.suggestedRegionIDs = suggestedRegionIDs
         self.providerName = providerName
+        self.importer = importer
+        self.bottler = bottler
     }
 
     public func match(_ field: LabelField) -> LabelMatch? {
