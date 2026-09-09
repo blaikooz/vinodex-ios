@@ -39,6 +39,12 @@ public struct SavedDataArchive: Codable, Sendable, Equatable {
     public var scannedShelf: [String]?
     /// The label reader's bottle journal (0.9.53). Optional likewise.
     public var scanRecords: [ScanRecord]?
+    /// The opaque lane (0.9.54, release-readiness B1): the twenty-five
+    /// store-shaped keys (`SavedDataKey.opaque`) round-trip here as
+    /// plist-coded blobs, keyed by raw key name. Each value is wrapped in a
+    /// one-element array before coding because a bare scalar is not a legal
+    /// plist root. Optional so pre-0.9.54 archives decode.
+    public var extraState: [String: Data]?
     public var triedRatings: [String: TriedRating]
     public var recentlyViewed: [String]
     public var quizTierUnlocked: String?
@@ -119,7 +125,7 @@ public enum SavedDataArchiver {
             appVersion: AppVersion.fallback,
             exportedDay: day,
             savedShelf: [], wantToTryShelf: [], triedShelf: [], scannedShelf: nil,
-            scanRecords: nil, triedRatings: [:],
+            scanRecords: nil, extraState: nil, triedRatings: [:],
             recentlyViewed: [], quizTierUnlocked: nil,
             dailyStreak: 0, dailyBestStreak: 0, dailyLastDay: nil, revealCursor: 0,
             starterTierOnly: false, grantedEntitlements: [],
@@ -138,6 +144,23 @@ public enum SavedDataArchiver {
             case .scanRecords:
                 archive.scanRecords = defaults.data(forKey: name)
                     .flatMap { try? JSONDecoder().decode([ScanRecord].self, from: $0) }
+            // The opaque lane (0.9.54): value shapes belong to their stores,
+            // so they travel as wrapped plist blobs. Absent stays absent.
+            case .examResults, .examBestPassStreak, .quizTiersCompleted,
+                 .triedEntryDays, .customDevices, .backPlateStampOffsets,
+                 .marqueeQuickPins, .passportSeenBadges, .passportSeenBadgesSeeded,
+                 .passportSeenTierRank, .passportSeenTierSeeded, .toolIntrosSeen,
+                 .firstTimeTriggersSeen, .firstTimeTriggersSeeded, .vinoSilenced,
+                 .vinoMomentLastDay, .vinoMomentStreakMarks, .coachmarkReached,
+                 .coachmarkOffered, .coachmarkCompleted, .dailyRemindersEnabled,
+                 .inputRVector, .inputGVector, .inputBVector, .inputAVector:
+                if let value = defaults.object(forKey: name),
+                   let data = try? PropertyListSerialization.data(
+                       fromPropertyList: [value], format: .binary, options: 0
+                   ) {
+                    if archive.extraState == nil { archive.extraState = [:] }
+                    archive.extraState?[name] = data
+                }
             case .triedRatings:
                 archive.triedRatings = defaults.data(forKey: name)
                     .flatMap { try? JSONDecoder().decode([String: TriedRating].self, from: $0) } ?? [:]
@@ -197,6 +220,20 @@ public enum SavedDataArchiver {
             case .triedShelf:          put(key, archive.triedShelf)
             case .scannedShelf:        put(key, archive.scannedShelf)
             case .scanRecords:         put(key, archive.scanRecords.flatMap { try? JSONEncoder().encode($0) })
+            // The opaque lane, unwrapped. A blob that fails to decode is
+            // treated as absent rather than half-written.
+            case .examResults, .examBestPassStreak, .quizTiersCompleted,
+                 .triedEntryDays, .customDevices, .backPlateStampOffsets,
+                 .marqueeQuickPins, .passportSeenBadges, .passportSeenBadgesSeeded,
+                 .passportSeenTierRank, .passportSeenTierSeeded, .toolIntrosSeen,
+                 .firstTimeTriggersSeen, .firstTimeTriggersSeeded, .vinoSilenced,
+                 .vinoMomentLastDay, .vinoMomentStreakMarks, .coachmarkReached,
+                 .coachmarkOffered, .coachmarkCompleted, .dailyRemindersEnabled,
+                 .inputRVector, .inputGVector, .inputBVector, .inputAVector:
+                let value = archive.extraState?[key.rawValue]
+                    .flatMap { try? PropertyListSerialization.propertyList(from: $0, options: [], format: nil) }
+                    .flatMap { ($0 as? [Any])?.first }
+                put(key, value)
             case .triedRatings:        put(key, try? JSONEncoder().encode(archive.triedRatings))
             case .recentlyViewed:      put(key, archive.recentlyViewed)
             case .quizTierUnlocked:    put(key, archive.quizTierUnlocked)
