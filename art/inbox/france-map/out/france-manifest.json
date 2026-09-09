@@ -1,0 +1,487 @@
+{
+ "generator": "france_map.py",
+ "projection": {
+  "kind": "equirectangular",
+  "x_factor": 0.68760106,
+  "origin": [
+   -3.52932,
+   -51.087541
+  ],
+  "scale": 15.639696,
+  "note": "canvas_x = (lon*x_factor - origin[0])*scale + 2 ; canvas_y = (-lat - origin[1])*scale + 2"
+ },
+ "base": {
+  "canvas": [
+   162,
+   156
+  ],
+  "export_scale": 5,
+  "unassigned": "#CEC6BA",
+  "outline": "#1A1420"
+ },
+ "marker_clearance": {
+  "12": [
+   [
+    "languedoc",
+    "roussillon",
+    8.2
+   ]
+  ],
+  "10": [
+   [
+    "languedoc",
+    "roussillon",
+    8.2
+   ]
+  ],
+  "8": []
+ },
+ "splits": [
+  {
+   "north": "beaujolais",
+   "south": "rhone",
+   "lat": 45.62
+  }
+ ],
+ "regions": {
+  "bordeaux": {
+   "button": [
+    0.3086,
+    0.6346
+   ],
+   "clearance_px": 6.7,
+   "area_px": 221,
+   "fill": "#8E2F45",
+   "departements": [
+    "Gironde"
+   ],
+   "detail": {
+    "canvas": [
+     50,
+     62
+    ],
+    "bounds_projected": [
+     [
+      -0.866628,
+      -45.57331
+     ],
+     [
+      0.221524,
+      -44.197959
+     ]
+    ],
+    "scale": 42.171053
+   }
+  },
+  "southwest": {
+   "button": [
+    0.4321,
+    0.7051
+   ],
+   "clearance_px": 13.9,
+   "area_px": 1552,
+   "fill": "#C9A24C",
+   "departements": [
+    "Dordogne",
+    "Lot",
+    "Lot-et-Garonne",
+    "Tarn",
+    "Tarn-et-Garonne",
+    "Gers",
+    "Landes",
+    "Pyrénées-Atlantiques",
+    "Hautes-Pyrénées",
+    "Aveyron",
+    "Ariège",
+    "Haute-Garonne"
+   ],
+   "detail": {
+    "canvas": [
+     62,
+     55
+    ],
+    "bounds_projected": [
+     [
+      -1.235737,
+      -45.710337
+     ],
+     [
+      2.370516,
+      -42.567646
+     ]
+    ],
+    "scale": 16.083172
+   }
+  },
+  "loire": {
+   "button": [
+    0.4691,
+    0.3974
+   ],
+   "clearance_px": 13.0,
+   "area_px": 1201,
+   "fill": "#6E9464",
+   "departements": [
+    "Loire-Atlantique",
+    "Maine-et-Loire",
+    "Indre-et-Loire",
+    "Loir-et-Cher",
+    "Loiret",
+    "Cher",
+    "Nièvre",
+    "Indre"
+   ],
+   "detail": {
+    "canvas": [
+     62,
+     29
+    ],
+    "bounds_projected": [
+     [
+      -1.757774,
+      -48.339069
+     ],
+     [
+      2.904463,
+      -46.350939
+     ]
+    ],
+    "scale": 12.440382
+   }
+  },
+  "burgundy": {
+   "button": [
+    0.6667,
+    0.391
+   ],
+   "clearance_px": 7.0,
+   "area_px": 521,
+   "fill": "#A6631F",
+   "departements": [
+    "Côte-d'Or",
+    "Saône-et-Loire",
+    "Yonne"
+   ],
+   "detail": {
+    "canvas": [
+     52,
+     62
+    ],
+    "bounds_projected": [
+     [
+      1.946513,
+      -48.411744
+     ],
+     [
+      3.796736,
+      -46.171752
+     ]
+    ],
+    "scale": 25.89295
+   }
+  },
+  "beaujolais": {
+   "button": [
+    0.6481,
+    0.5192
+   ],
+   "clearance_px": 3.6,
+   "area_px": 79,
+   "fill": "#D0577A",
+   "departements": [
+    "Rhône"
+   ],
+   "detail": {
+    "canvas": [
+     46,
+     62
+    ],
+    "bounds_projected": [
+     [
+      2.924119,
+      -46.299193
+     ],
+     [
+      3.545891,
+      -45.444457
+     ]
+    ],
+    "scale": 67.85721
+   }
+  },
+  "champagne": {
+   "button": [
+    0.6296,
+    0.2436
+   ],
+   "clearance_px": 9.0,
+   "area_px": 631,
+   "fill": "#E4D08A",
+   "departements": [
+    "Marne",
+    "Aube",
+    "Aisne",
+    "Haute-Marne"
+   ],
+   "detail": {
+    "canvas": [
+     51,
+     62
+    ],
+    "bounds_projected": [
+     [
+      2.038221,
+      -50.060099
+     ],
+     [
+      4.055347,
+      -47.588307
+     ]
+    ],
+    "scale": 23.464758
+   }
+  },
+  "alsace": {
+   "button": [
+    0.8519,
+    0.2436
+   ],
+   "clearance_px": 4.0,
+   "area_px": 212,
+   "fill": "#3E8C8A",
+   "departements": [
+    "Bas-Rhin",
+    "Haute-Rhin"
+   ],
+   "detail": {
+    "canvas": [
+     36,
+     62
+    ],
+    "bounds_projected": [
+     [
+      4.723079,
+      -49.065683
+     ],
+     [
+      5.638538,
+      -47.416797
+     ]
+    ],
+    "scale": 35.175264
+   }
+  },
+  "jura": {
+   "button": [
+    0.7346,
+    0.4487
+   ],
+   "clearance_px": 4.1,
+   "area_px": 119,
+   "fill": "#8A7BB0",
+   "departements": [
+    "Jura"
+   ],
+   "detail": {
+    "canvas": [
+     41,
+     62
+    ],
+    "bounds_projected": [
+     [
+      3.610011,
+      -47.292215
+     ],
+     [
+      4.267696,
+      -46.260686
+     ]
+    ],
+    "scale": 56.227212
+   }
+  },
+  "savoie": {
+   "button": [
+    0.7716,
+    0.5385
+   ],
+   "clearance_px": 6.1,
+   "area_px": 259,
+   "fill": "#7FA8C9",
+   "departements": [
+    "Savoie",
+    "Haute-Savoie"
+   ],
+   "detail": {
+    "canvas": [
+     48,
+     62
+    ],
+    "bounds_projected": [
+     [
+      3.8509,
+      -46.457372
+     ],
+     [
+      4.92369,
+      -45.053585
+     ]
+    ],
+    "scale": 41.316809
+   }
+  },
+  "rhone": {
+   "button": [
+    0.6667,
+    0.6667
+   ],
+   "clearance_px": 9.1,
+   "area_px": 464,
+   "fill": "#A8412C",
+   "departements": [
+    "Ardèche",
+    "Drôme",
+    "Vaucluse",
+    "Gard"
+   ],
+   "detail": {
+    "canvas": [
+     57,
+     62
+    ],
+    "bounds_projected": [
+     [
+      2.25956,
+      -45.365707
+     ],
+     [
+      4.009145,
+      -43.459906
+     ]
+    ],
+    "scale": 30.433398
+   }
+  },
+  "provence": {
+   "button": [
+    0.7778,
+    0.7244
+   ],
+   "clearance_px": 8.5,
+   "area_px": 481,
+   "fill": "#D98F7A",
+   "departements": [
+    "Var",
+    "Bouches-du-Rhône",
+    "Alpes-de-Haute-Provence",
+    "Alpes-Maritimes"
+   ],
+   "detail": {
+    "canvas": [
+     62,
+     45
+    ],
+    "bounds_projected": [
+     [
+      2.891983,
+      -44.660923
+     ],
+     [
+      5.288967,
+      -42.987128
+     ]
+    ],
+    "scale": 24.19708
+   }
+  },
+  "languedoc": {
+   "button": [
+    0.5123,
+    0.8077
+   ],
+   "clearance_px": 5.0,
+   "area_px": 243,
+   "fill": "#8C8F3E",
+   "departements": [
+    "Hérault",
+    "Aude"
+   ],
+   "detail": {
+    "canvas": [
+     62,
+     49
+    ],
+    "bounds_projected": [
+     [
+      1.166526,
+      -43.970652
+     ],
+     [
+      2.874654,
+      -42.652161
+     ]
+    ],
+    "scale": 33.95531
+   }
+  },
+  "roussillon": {
+   "button": [
+    0.5247,
+    0.859
+   ],
+   "clearance_px": 4.0,
+   "area_px": 94,
+   "fill": "#5F5B8C",
+   "departements": [
+    "Pyrénées-Orientales"
+   ],
+   "detail": {
+    "canvas": [
+     62,
+     38
+    ],
+    "bounds_projected": [
+     [
+      1.173739,
+      -42.9138
+     ],
+     [
+      2.187651,
+      -42.325661
+     ]
+    ],
+    "scale": 57.204189
+   }
+  },
+  "corsica": {
+   "button": [
+    0.9506,
+    0.891
+   ],
+   "clearance_px": 5.8,
+   "area_px": 205,
+   "fill": "#4E7A4A",
+   "departements": [
+    "Corse-du-Sud",
+    "Haute-Corse"
+   ],
+   "detail": {
+    "canvas": [
+     28,
+     62
+    ],
+    "bounds_projected": [
+     [
+      5.875728,
+      -43.017401
+     ],
+     [
+      6.573178,
+      -41.365912
+     ]
+    ],
+    "scale": 35.119822
+   }
+  }
+ }
+}

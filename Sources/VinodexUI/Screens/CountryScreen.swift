@@ -13,6 +13,10 @@ public struct CountryScreen: View {
     let country: String
     let onSelectRegion: (WineEntry) -> Void
     let onSelectState: (String) -> Void
+    /// Opens the painted region map, on the one country that has one
+    /// (0.9.55, a test). Nil everywhere else, and nil is what makes the
+    /// outline behave exactly as it always has — see the note at its use.
+    let onOpenRegionMap: (() -> Void)?
 
     @State private var access = AccessStore.shared
     @State private var bookmarks = BookmarkStore.shared
@@ -105,12 +109,14 @@ public struct CountryScreen: View {
         db: WineDatabase = .shared,
         country: String,
         onSelectRegion: @escaping (WineEntry) -> Void,
-        onSelectState: @escaping (String) -> Void = { _ in }
+        onSelectState: @escaping (String) -> Void = { _ in },
+        onOpenRegionMap: (() -> Void)? = nil
     ) {
         self.db = db
         self.country = country
         self.onSelectRegion = onSelectRegion
         self.onSelectState = onSelectState
+        self.onOpenRegionMap = onOpenRegionMap
 
         // Everything below reads the *parameter*, not `self.db`: `self` is not
         // fully initialised yet, so the property cannot be read here even
@@ -401,8 +407,34 @@ public struct CountryScreen: View {
                 }
                 // One red dot per region, geographically placed where the
                 // data carries a `mapPosition` (0.6.x) — see `CountryOutlineMap`.
-                CountryOutlineMap(country: country, regions: all)
+                //
+                // **France's outline is a door (0.9.55, a TEST).** The art,
+                // the dots and the placement are all untouched — the drop's
+                // §6 is explicit that this must not supersede the hand-drawn
+                // outline system. What changes is that on the one country
+                // with a painted region map, tapping the outline opens it.
+                // Every other country's outline behaves exactly as before,
+                // and so does France's if the map fails to load.
+                if country.caseInsensitiveCompare("France") == .orderedSame,
+                   onOpenRegionMap != nil {
+                    Button {
+                        Haptics.screenTap()
+                        onOpenRegionMap?()
+                    } label: {
+                        VStack(spacing: 4) {
+                            CountryOutlineMap(country: country, regions: all)
+                            Text("TAP FOR THE REGION MAP")
+                                .font(DexFont.retro(10))
+                                .tracking(1)
+                                .foregroundStyle(lcd.accent)
+                        }
+                    }
+                    .buttonStyle(DexPressStyle(scale: 0.98))
                     .padding(.bottom, 6)
+                } else {
+                    CountryOutlineMap(country: country, regions: all)
+                        .padding(.bottom, 6)
+                }
                 ForEach(shown) { entry in
                     EntryTileView(
                         entry: entry,

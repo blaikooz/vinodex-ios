@@ -338,6 +338,12 @@ public enum DexRoute: Hashable, Sendable {
     /// `.deviceWorkshop` is — on the button that pushes it, not here. Routes in
     /// this app are destinations rather than gates.
     case lineage(entryID: String)
+    /// **The France region map** (0.9.55) — a TEST, reached by tapping the
+    /// country outline on France's page. Carries no country name because
+    /// exactly one country has this map; when a second gets one, this takes
+    /// a `country:` parameter and the screen takes a manifest name. See
+    /// `FranceMap`.
+    case franceMap
     /// The continent info screen — INFO blurb plus a COUNTRIES list, each
     /// linking to that country's regions. Reached from the globe markers.
     case continent(entryID: String)
@@ -486,6 +492,10 @@ public enum DexRoute: Hashable, Sendable {
         // fourteen characters where "GRAPE LINEAGE" plus a name never would.
         case .lineage:
             "LINEAGE"
+        // Fits the marquee's fourteen characters, and names the country
+        // rather than the mechanism — the screen's own heading says MAP.
+        case .franceMap:
+            "FRANCE"
         case .continent:
             "CONTINENT SCAN"
         // **PACKS, not SHOP** (0.8.4, C1). C asks for a route "distinct from
@@ -646,6 +656,10 @@ public enum DexRoute: Hashable, Sendable {
         // SF Symbols 2 / iOS 14, well under the iOS 17 floor.
         case .lineage:
             "arrow.triangle.branch"
+        // A folded map, distinct from `.globe`'s sphere and `.country`'s pin:
+        // this screen is a drawn map of one country (K2, rule 3).
+        case .franceMap:
+            "map.fill"
         // Not the globe: the globe screen is the globe, and a continent page is
         // one continent (K2, rule 3).
         case .continent:
@@ -733,6 +747,9 @@ public enum DexRoute: Hashable, Sendable {
         case .state: "marquee-countryscan"
         case .continent: "marquee-continentscan"
         case .lineage: "marquee-lineage"
+        // Borrows the country-scan glyph: this is a country's page seen a
+        // second way, and art may repeat where `marqueeSymbol` may not.
+        case .franceMap: "marquee-countryscan"
         // The six TOOLS tiles, in the order the shelf draws them.
         case .scanner: "marquee-blindtasting"
         case .labelReader: "marquee-labelscanner"

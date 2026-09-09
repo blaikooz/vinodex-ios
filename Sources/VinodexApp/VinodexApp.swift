@@ -663,6 +663,10 @@ struct RootView: View {
         case "shelves":  return [.bookmarks]
         case "settings": return [.settings]
         case "firmware": return [.firmwareHistory]
+        // The France region map, and the country page it is reached from —
+        // the second so the door itself can be looked at, not just the room.
+        case "france":   return [.franceMap]
+        case "country":  return [.country(name: "France")]
         default:         return nil
         }
     }
@@ -1067,7 +1071,12 @@ struct RootView: View {
             CountryScreen(
                 country: name,
                 onSelectRegion: { open($0) },
-                onSelectState: { push(.state(name: $0)) }
+                onSelectState: { push(.state(name: $0)) },
+                // Offered only where a painted map exists (0.9.55, a test).
+                // The screen itself decides whether to draw the door, so a
+                // second country getting a map is a change there and here,
+                // not a change to the outline component.
+                onOpenRegionMap: { push(.franceMap) }
             )
 
         case .state(let name):
@@ -1238,6 +1247,11 @@ struct RootView: View {
             } else {
                 notFound
             }
+
+        // The France region map (0.9.55) — a test. Reached by tapping the
+        // country outline on France's page; see `FranceMapScreen`.
+        case .franceMap:
+            FranceMapScreen { open($0) }
 
         case .continent(let id):
             if let entry = db.entry(id: id), case .continent(let c) = entry {
