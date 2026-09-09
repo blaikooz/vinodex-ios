@@ -448,9 +448,21 @@ public struct DeviceChassis<Content: View>: View {
             // and the 13" iPad stretched the chassis to 1366pt with the
             // orb/LED strip stranded at the screen's own top edge). 440x956
             // is the iPhone Pro Max footprint — on anything phone-sized the
-            // caps never bind, and on an iPad the whole composition, island
-            // strip included, floats centered as one handheld.
+            // caps never bind, so a phone renders exactly as it always has.
             .frame(maxWidth: 440, maxHeight: 956)
+            // On an iPad the clamped handheld then SCALES to fill the screen
+            // in proportion (maintainer order, 2026-09-09, superseding the
+            // floating-at-phone-size cut): the same 440x956 composition blown
+            // up like a handheld under a magnifier, letterboxed on one axis
+            // only where the aspect demands. A transform rather than a
+            // relayout, so every point-tuned part — 74pt bundles, the 264pt
+            // marquee, the island strip — keeps its proportions, and the
+            // slight softness of scaled type reads in-character for a device
+            // whose art is pixels anyway. `max(1, ...)` pins phones to 1.
+            .scaleEffect(max(1, min(
+                (geo.size.width + geo.safeAreaInsets.leading + geo.safeAreaInsets.trailing) / 440,
+                (geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom) / 956
+            )))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
         }
