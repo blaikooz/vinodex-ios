@@ -85,7 +85,11 @@ struct CoverageTests {
         // missing — Vin Jaune, Tokaji Aszú, Retsina, Passito, Marsala and
         // Commandaria (S035–S040). All six wear the class glyph, portrait-less
         // on the GSM Blend precedent, until the artist's next drop.
-        #expect(db.entries(in: .styles).count == 39)
+        // 40 since the v0.9.54 readiness batch (sommbot): S041 Vinho Verde,
+        // the maintainer's ruling — the DOC already had a region (R037) and
+        // an exam question; the *style* joins on the Vin Jaune pattern,
+        // portrait-less, anchored to R037 and its four Minho varieties.
+        #expect(db.entries(in: .styles).count == 40)
         #expect(db.entries(in: .continents).count == 6)
     }
 
@@ -137,7 +141,9 @@ struct CoverageTests {
         // 529 since v0.9.51: +14 grapes and +5 regions, the final data pass
         // before external testers. Flavours unchanged at 106 for the ninth
         // batch running — all 42 new tasting notes reuse the vocabulary.
-        #expect(stats.total == 529)
+        // 530 since the v0.9.54 readiness batch: +1 style, S041 Vinho Verde.
+        // Flavours unchanged at 106 for the tenth batch running.
+        #expect(stats.total == 530)
         // 26 since 0.7.3c: Brazil is the first *new* origin since Mexico. The
         // count is distinct region origins, so the coming-soon gates still do
         // not count and adding a country without a region would not move it.
@@ -505,9 +511,12 @@ struct CoverageTests {
         // Batch B's six styles sat for real portraits on the maintainer's
         // 0.9.51 G sheet — the pleasant failure this pin exists for, rows
         // deleted as it instructs. GSM Blend stays deliberately
-        // portrait-less (0.6.4, D1).
+        // portrait-less (0.6.4, D1). Vinho Verde (S041, the v0.9.54 readiness
+        // batch) ships portrait-less on the Batch B precedent and sits for
+        // the artist's next drop — delete its row here the day art lands.
         let portraitless: Set<String> = [
             "gsm blend",
+            "vinho verde",
         ]
 
         let names = Set(db.entries(in: .styles).map { TextNormalize.label($0.name) })

@@ -110,8 +110,21 @@ const record = (bucket, name, from) => {
 
 const SKIP_GRAPES = new Set(['various']);
 
+// **Authored off-catalog places, not danglers** (v0.9.54 readiness, B5).
+// Marquette, Limnio and Narince honestly grow where the catalog has no region
+// — Minnesota/Wisconsin cold-climate viticulture, Lemnos/Halkidiki, Tokat —
+// and the maintainer ruled those references stay plain text rather than the
+// catalog inventing entries to satisfy this gate (the fold-rule cousin: a
+// reference is not an argument for an entry). The app renders an unresolved
+// keyRegion as a flat, untappable row, which is the intended treatment.
+// Anything NOT on this list is still a defect; grow it only with a ruling.
+const FREE_TEXT_REGIONS = new Set(
+  ['Minnesota', 'Wisconsin', 'Lemnos', 'Halkidiki', 'Tokat'].map(norm),
+);
+
 for (const g of grapes) {
   for (const r of g.details?.keyRegions ?? []) {
+    if (FREE_TEXT_REGIONS.has(norm(r))) continue;
     if (!regionKeys.has(norm(r))) record(missing.regions, r, `grape ${g.name}`);
   }
   for (const t of [g.wineType, g.grapeStyle].filter(Boolean)) {
