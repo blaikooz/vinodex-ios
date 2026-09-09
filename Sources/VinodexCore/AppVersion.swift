@@ -455,7 +455,13 @@ public enum AppVersion {
     /// the smaller of the two liabilities, it fails loudly in the test below
     /// rather than silently on the back plate, and there is a note in
     /// `KNOWN-ISSUES.md` pointing here.
-    static let placeholders: Set<String> = ["1.0", "1.0.0", "1"]
+    // Emptied 0.9.54 (release-readiness A2): the denylist guarded against
+    // xtool's stamped "1.0.0" placeholder, and xtool is two build systems
+    // ago — left armed, it would have made the real 1.0 release misreport
+    // itself as the firmware fallback everywhere. CI now asserts the
+    // marketing version equals the firmware head instead, which guards the
+    // same drift without a tripwire on the 1.0 milestone.
+    static let placeholders: Set<String> = []
 
     /// The version to report given whatever the bundle carries.
     ///

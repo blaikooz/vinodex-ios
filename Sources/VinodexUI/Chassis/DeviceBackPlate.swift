@@ -107,7 +107,10 @@ struct DeviceBackPlate: View {
                 .padding(.leading, 30)
                 .padding(.bottom, 96)
                 .allowsHitTesting(false)
-            PlateDecal(.priceTag, width: 96) { RippedPriceTag() }
+            // The ripped price-tag decal was removed 0.9.54 (release
+            // readiness B2): a hard-currency string in an app with no IAP is
+            // 3.1.1 pattern-match bait. `RippedPriceTag` stays below, dormant,
+            // for a post-StoreKit return.
                 .rotationEffect(.degrees(8))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                 .padding(.trailing, 34)

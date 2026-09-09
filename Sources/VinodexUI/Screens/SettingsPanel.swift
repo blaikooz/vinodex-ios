@@ -516,7 +516,7 @@ public struct SettingsSectionPanel: View {
             } else if confirmingWipe {
                 DexAlert(
                     title: "CLEAR SAVED DATA?",
-                    message: "Everything stored on this device — bookmarks, recents, tastings and ratings, quiz progress, streak, profile, purchases and appearance — goes back to a fresh install. This cannot be undone. The app will close; open it again for the fresh start.",
+                    message: "Everything stored on this device — bookmarks, recents, tastings and ratings, quiz progress, streak, profile, unlocks and appearance — goes back to a fresh install. This cannot be undone. The app will close; open it again for the fresh start.",
                     confirmLabel: "ERASE",
                     destructive: true,
                     onConfirm: {
@@ -2198,7 +2198,7 @@ public struct SettingsSectionPanel: View {
                 }
                 .buttonStyle(DexPressStyle(scale: 0.98))
 
-                Text("A backup is one file holding your shelves, tastings, progress and settings. Keep it somewhere off the phone: reinstalling, or a change to the app's identity on a future release, leaves everything on this page behind. Purchases are not in it — those come back from the store, never from a file.")
+                Text("A backup is one file holding your shelves, tastings, progress and settings. Keep it somewhere off the phone: reinstalling, or a change to the app's identity on a future release, leaves everything on this page behind. Unlocks are not in it — those are restored by the app itself, never from a file.")
                     .font(DexFont.mono(17))
                     .foregroundStyle(lcd.subtext)
                     .fixedSize(horizontal: false, vertical: true)
@@ -2227,7 +2227,7 @@ public struct SettingsSectionPanel: View {
                 // clause is **M35**'s: there is a BACK UP button directly above
                 // this one now, so the sentence that says what is about to go
                 // can also say what saves it.
-                Text("Erases bookmarks, tastings and ratings, quiz and game scores, the daily streak, name and photo, purchases, skin, screen and text settings. The encyclopedia itself is untouched. Back up first if you want any of it again.")
+                Text("Erases bookmarks, tastings and ratings, quiz and game scores, the daily streak, name and photo, unlocks, skin, screen and text settings. The encyclopedia itself is untouched. Back up first if you want any of it again.")
                     .font(DexFont.mono(17))
                     .foregroundStyle(lcd.subtext)
                     .fixedSize(horizontal: false, vertical: true)

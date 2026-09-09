@@ -63,12 +63,16 @@ struct AppVersionTests {
     /// It also could not have caught it: `Bundle.main` on Linux carries no
     /// Info.plist, so the branch that mattered was never reached. Hence
     /// `resolve(bundled:)` taking the value as an argument.
-    @Test("xtool's stamped placeholder does not win over the fallback")
-    func placeholdersLose() {
-        for placeholder in ["1.0", "1.0.0", "1"] {
+    @Test("a genuine 1.0 wins — the placeholder denylist is retired")
+    func onePointZeroIsReal() {
+        // Reversed in 0.9.54 (release-readiness A2): the denylist guarded
+        // against xtool's stamped "1.0.0", and armed it would have made the
+        // real 1.0 release misreport itself as the firmware fallback
+        // everywhere. xtool is gone; a bundled version is a real version.
+        for version in ["1.0", "1.0.0", "1"] {
             #expect(
-                AppVersion.resolve(bundled: placeholder) == AppVersion.fallback,
-                "\(placeholder) is a build-tool default and must not reach the back plate"
+                AppVersion.resolve(bundled: version) == version,
+                "\(version) is a genuine declared version and must win"
             )
         }
     }
