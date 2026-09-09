@@ -444,25 +444,28 @@ public struct DeviceChassis<Content: View>: View {
             // which also survives iPadOS 26's resizable windowing (where
             // UIRequiresFullScreen no longer pins anything). The skin's
             // underlay fills the surround below.
-            // Height too, not width alone (the first cut clamped only width,
-            // and the 13" iPad stretched the chassis to 1366pt with the
-            // orb/LED strip stranded at the screen's own top edge). 440x956
-            // is the iPhone Pro Max footprint — on anything phone-sized the
-            // caps never bind, so a phone renders exactly as it always has.
-            .frame(maxWidth: 440, maxHeight: 956)
-            // On an iPad the clamped handheld then SCALES to fill the screen
-            // in proportion (maintainer order, 2026-09-09, superseding the
-            // floating-at-phone-size cut): the same 440x956 composition blown
-            // up like a handheld under a magnifier, letterboxed on one axis
-            // only where the aspect demands. A transform rather than a
-            // relayout, so every point-tuned part — 74pt bundles, the 264pt
-            // marquee, the island strip — keeps its proportions, and the
-            // slight softness of scaled type reads in-character for a device
-            // whose art is pixels anyway. `max(1, ...)` pins phones to 1.
-            .scaleEffect(max(1, min(
-                (geo.size.width + geo.safeAreaInsets.leading + geo.safeAreaInsets.trailing) / 440,
-                (geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom) / 956
-            )))
+            // **The iPad fills the whole screen** (maintainer orders,
+            // 2026-09-09, three cuts refined in one sitting: clamp-and-float
+            // → scale-in-proportion → fill both axes). The chassis lays out
+            // at the screen's own aspect but never at more than phone
+            // magnification: the scale factor is how far the screen outgrows
+            // the 440x956 Pro Max footprint, the layout box is the physical
+            // screen divided back down by it, and the scale-up then lands the
+            // composition edge-to-edge with no letterbox at all. The chassis
+            // was width-flexible before the clamp ever existed; what A3
+            // actually objected to was 1024 layout points at scale 1 —
+            // controls small and stranded — and dividing by the scale is
+            // what keeps the layout near handheld proportions (a 13" iPad
+            // lays out at ~717x956, scaled 1.43x). On any phone the scale
+            // pins to 1 and the box is the screen itself: byte-identical to
+            // the pre-clamp layout.
+            .frame(
+                width: (geo.size.width + geo.safeAreaInsets.leading + geo.safeAreaInsets.trailing)
+                    / chassisScale(geo),
+                height: (geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom)
+                    / chassisScale(geo)
+            )
+            .scaleEffect(chassisScale(geo))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
         }
@@ -512,6 +515,16 @@ public struct DeviceChassis<Content: View>: View {
         .onChange(of: idle.activityTick) { _, _ in
             noteActivity()
         }
+    }
+
+    /// How far the physical screen outgrows the 440x956 phone footprint —
+    /// 1 on every phone, ~1.43 on a 13" iPad. See the note at the body's
+    /// frame/scaleEffect pair for what it buys.
+    private func chassisScale(_ geo: GeometryProxy) -> CGFloat {
+        max(1, min(
+            (geo.size.width + geo.safeAreaInsets.leading + geo.safeAreaInsets.trailing) / 440,
+            (geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom) / 956
+        ))
     }
 
     /// What a script run belongs to. Off the main screen there is nothing to
