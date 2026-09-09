@@ -22,15 +22,20 @@ struct DexToggle: View {
     let isOn: Bool
     /// Lit colour of the track and the throw's inset when engaged.
     var tint: Color = Dex.yellow
+    /// What VoiceOver calls this switch (release-readiness B4). The drawn
+    /// face has no text to lift, so an unlabeled toggle reads as "button" —
+    /// six identical buttons on one panel. Callers pass the row's own title.
+    var label: String = ""
     let action: () -> Void
 
     /// The eight stored settings, as one model (arch **A17**).
     var settings: AppSettings = .shared
     private var lcd: LcdMode { settings.lcdMode }
 
-    init(isOn: Bool, tint: Color = Dex.yellow, action: @escaping () -> Void) {
+    init(isOn: Bool, tint: Color = Dex.yellow, label: String = "", action: @escaping () -> Void) {
         self.isOn = isOn
         self.tint = tint
+        self.label = label
         self.action = action
     }
 
@@ -98,7 +103,12 @@ struct DexToggle: View {
             .animation(DexMotion.settle, value: isOn)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(isOn ? "On" : "Off")
+        // Label and value split properly (B4): the state was the *label*
+        // before, so VoiceOver announced "On, button" with no clue which
+        // switch — and the state belongs in the value slot anyway, where a
+        // toggle's flip is announced as a change.
+        .accessibilityLabel(label)
+        .accessibilityValue(isOn ? "On" : "Off")
     }
 }
 

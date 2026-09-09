@@ -69,6 +69,14 @@ private enum Board {
 /// `DataWave`'s note in `SettingsPanel`).
 struct InternalsView: View {
     var body: some View {
+        internals
+            // A painted circuit board — decoration, not information; without
+            // the pin the Canvas surfaces as one unlabeled element in the
+            // VoiceOver walk (release-readiness B4).
+            .accessibilityHidden(true)
+    }
+
+    private var internals: some View {
         Canvas { context, size in
             guard size.width > 1, size.height > 1 else { return }
             let w = size.width

@@ -811,7 +811,7 @@ public struct SettingsSectionPanel: View {
                         ? "\(browsableCount) of \(totalCount) entries browsable"
                         : "All \(totalCount) entries browsable"
                 ) {
-                    DexToggle(isOn: access.starterOnly) { access.starterOnly.toggle() }
+                    DexToggle(isOn: access.starterOnly, label: "Free tier") { access.starterOnly.toggle() }
                 }
 
                 Text("Off means everything is open regardless of what you own — turn it on to test the locked experience.")
@@ -841,7 +841,8 @@ public struct SettingsSectionPanel: View {
                         // harness exists to make visible.
                         DexToggle(
                             isOn: access.granted.contains(item.entitlement),
-                            tint: Dex.green
+                            tint: Dex.green,
+                            label: item.title
                         ) {
                             access.toggle(item.entitlement)
                         }
@@ -1056,7 +1057,7 @@ public struct SettingsSectionPanel: View {
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(lcd.subtext)
                 } else {
-                    DexToggle(isOn: notifications.isOn, tint: Dex.green) {
+                    DexToggle(isOn: notifications.isOn, tint: Dex.green, label: "Daily reminder") {
                         Haptics.screenTap()
                         if notifications.isOn {
                             notifications.disable()
@@ -1983,7 +1984,7 @@ public struct SettingsSectionPanel: View {
                         ? "Every chassis button clicks in your hand."
                         : "The buttons are silent to the hand."
                 ) {
-                    DexToggle(isOn: settings.hapticsEnabled, tint: Dex.green) { settings.hapticsEnabled.toggle() }
+                    DexToggle(isOn: settings.hapticsEnabled, tint: Dex.green, label: "Haptics") { settings.hapticsEnabled.toggle() }
                 }
             }
         }
@@ -2006,7 +2007,7 @@ public struct SettingsSectionPanel: View {
                         ? "Clicks, pings and stings from the SFX pack."
                         : "The device is silent to the ear."
                 ) {
-                    DexToggle(isOn: settings.soundsEnabled, tint: Dex.green) { settings.soundsEnabled.toggle() }
+                    DexToggle(isOn: settings.soundsEnabled, tint: Dex.green, label: "Sounds") { settings.soundsEnabled.toggle() }
                 }
                 Text("The ring/silent switch always wins — sounds never interrupt your music.")
                     .font(DexFont.mono(17))
@@ -2070,7 +2071,7 @@ public struct SettingsSectionPanel: View {
                         ? "The screen stays on while the app is open."
                         : "The screen locks on your usual schedule."
                 ) {
-                    DexToggle(isOn: settings.keepAwakeEnabled, tint: Dex.green) {
+                    DexToggle(isOn: settings.keepAwakeEnabled, tint: Dex.green, label: "Keep awake") {
                         settings.keepAwakeEnabled.toggle()
                         // Applied now rather than at the next launch — a
                         // setting whose effect you cannot observe reads as

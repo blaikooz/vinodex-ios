@@ -2181,6 +2181,10 @@ private struct ChassisShell: View {
                 PaperGrain(color: sketch.grain)
             }
         }
+        // Paint, pattern and grain — nothing here means anything to a screen
+        // reader, and an Image without the pin can surface as an unlabeled
+        // element in the VoiceOver walk (release-readiness B4).
+        .accessibilityHidden(true)
     }
 }
 
