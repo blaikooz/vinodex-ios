@@ -281,6 +281,11 @@ public struct SettingsSectionPanel: View {
     /// Opens the DEV panel. DEV lost its tile on the settings grid — it is
     /// developer plumbing, not a setting — and lives behind a button at the
     /// bottom of SETTINGS instead. A route push, so Back still works.
+    ///
+    /// **DORMANT (0.9.4 shop-hiding; pinned 0.9.54, B9).** No body code calls
+    /// this — the DEV door came off with the storefront. Kept wired so the
+    /// cheat-reveal day needs one button, not an archaeology dig; a call site
+    /// added here is a deliberate re-exposure, not a cleanup.
     let onDev: () -> Void
     /// The DEVICE section's doors (0.7.3, A2–A4; `onFirmwareHistory` left with
     /// its row for the System grid in 0.8.92, item 2 — see
@@ -289,6 +294,8 @@ public struct SettingsSectionPanel: View {
     /// Route pushes rather than local state, for the same reason `onDev` is: the
     /// chassis Back button has to return to the System panel rather than drop
     /// the user out of settings entirely.
+    ///
+    /// **DORMANT** — same standing as `onDev` above; no body code calls it.
     let onCheatConsole: () -> Void
     /// The contact screen (0.8.91, F1). A route push like its neighbours, so
     /// Back returns to SYSTEM rather than dropping out of settings.
@@ -299,6 +306,9 @@ public struct SettingsSectionPanel: View {
     let onWalkthrough: () -> Void
     /// Starts the attract loop. Not a route — demo mode drives the *whole* route
     /// stack, so it is the app's business rather than a screen to push.
+    ///
+    /// **DORMANT** — same standing as `onDev` above; no body code calls it
+    /// (and `VinodexApp.startDemo` behind it is therefore unreachable too).
     let onDemoMode: () -> Void
     /// CUSTOMIZE's door to the builder (0.7.3, A1). A route push like the two
     /// above, so the chassis Back button returns here rather than dropping out
@@ -1909,6 +1919,12 @@ public struct SettingsSectionPanel: View {
     /// takes. It grants and then *continues* into the workshop rather than
     /// stopping at "unlocked!", which is the correction `RootView`'s own paywall
     /// note records for the entry gate.
+    /// **DORMANT (release-readiness B9).** Nothing in `body` renders this
+    /// section since the 0.9.4 shop-hiding — it is the shop-priced door to
+    /// the 897-line `DeviceWorkshopScreen`, and both wait with the
+    /// storefront. Referencing it again is a paywall decision (it leads with
+    /// UNLOCK), not a layout tweak: see the shop-hiding phase notes before
+    /// wiring it back.
     private var deviceWorkshop: some View {
         let owned = access.isUnlocked(.workshop)
         return settingsSection("DEVICE WORKSHOP") {

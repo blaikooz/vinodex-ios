@@ -3,7 +3,7 @@ import Observation
 
 /// **The guided run through the discovery loop** (0.8.9d, F1/G1/G2).
 ///
-/// ## What this is, and what the twelve-step tour is
+/// ## What this is, and what the eleven-step tour is
 ///
 /// The app already has a tutorial. 0.7.6's F1 moved it into SETTINGS > DEVICE
 /// and 0.8.8's D2 rebuilt it, and spec §G2 asks for a skippable, resumable,
@@ -34,7 +34,7 @@ import Observation
 ///   main menu), the shop, the workshop. None of that can be taught by following
 ///   a user, because reaching it means driving.
 /// - **This** teaches the *loop* — six things the user does with their own
-///   thumb. Three of the tour's twelve steps (`screen`, `entry`, `passport`) are
+///   thumb. Three of the tour's eleven steps (`screen`, `entry`, `passport`) are
 ///   about exactly this material, and they are the three that most want doing
 ///   rather than reading.
 ///
@@ -44,7 +44,7 @@ import Observation
 /// come with you. The stated cost, in 0.7.6 F1's manner rather than hidden: a
 /// player who wants only the live half has to press NEXT to the end of the tour
 /// to reach the offer. That is the price of not putting a second tutorial in the
-/// menu, and the tour is twelve short pages.
+/// menu, and the tour is eleven short pages.
 ///
 /// ## Where §F1 and §G2 disagree, and which wins
 ///

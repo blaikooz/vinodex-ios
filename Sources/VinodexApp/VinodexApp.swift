@@ -619,6 +619,11 @@ struct RootView: View {
 
     /// Start the attract loop from the System panel.
     ///
+    /// **DORMANT (release-readiness B9).** Its only callers are the
+    /// `onDemoMode` closures handed to `SettingsPanel`, and no panel body
+    /// invokes that since the 0.9.4 shop-hiding — see the DORMANT notes on
+    /// the panel's callbacks. Kept for the cheat-reveal day.
+    ///
     /// Goes Home first: the demo drives the whole route stack, and starting it
     /// from three screens deep would leave those screens underneath it for Back
     /// to walk out through once it stopped.

@@ -67,7 +67,7 @@ const CURRENT: FirmwareRelease = {
   notes: [
     "Every info section reads itself aloud at a tap, in a real narrator's voice: grapes, regions, styles, flavours, countries and continents.",
     "All one hundred and six flavours carry unique authored entries: what each is, how it reaches the wine, and one grape that carries it.",
-    "The last twenty-nine styles sit for portraits, so every bottle on the shelf has its picture.",
+    "The last twenty-nine styles sit for portraits: thirty-eight of thirty-nine bottles pictured, with GSM Blend abstaining by design.",
     "The label reader keeps a bottle journal: producer, vintage and place, logged as cards on your SCANNED shelf.",
     "Body weighs in on a smithy scale: feather, laden pan, balance, hammer and anvil.",
     "Bulgaria, Moldova, Armenia, Cyprus and Turkey trade rough outlines for true coastlines drawn from real map data.",
