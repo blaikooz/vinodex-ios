@@ -19,10 +19,12 @@ public final class LabelRecognitionService: Sendable {
 
     private let db: WineDatabase
     private let index: LabelIndex
+    private let lwin: LWINIndex
 
-    public init(db: WineDatabase = .shared) {
+    public init(db: WineDatabase = .shared, lwin: LWINIndex = .shared) {
         self.db = db
         self.index = LabelIndex(db: db)
+        self.lwin = lwin
     }
 
     // MARK: - The read
@@ -121,6 +123,15 @@ public final class LabelRecognitionService: Sendable {
         let importer = LabelTextScan.importerLine(in: strings)
         let bottler = LabelTextScan.bottlerLine(in: strings)
 
+        // The bottle itself (0.9.54): the LWIN database's opinion of which
+        // actual wine this is. Loads its 185k-record index lazily on the
+        // first read — this method already runs off the main actor, which is
+        // the contract that load leans on. `[]` when nothing clears the
+        // index's floor; both readings below carry the same answer, because
+        // an unconfident *catalog* reading can still be a confidently
+        // identified bottle.
+        let lwinMatches = lwin.matches(for: strings, limit: Self.lwinMatchLimit)
+
         let reading = LabelReading(
             recognizedText: strings.map { LabelTextScan.tidy($0.text) }.filter { !$0.isEmpty },
             matches: matches,
@@ -128,7 +139,8 @@ public final class LabelRecognitionService: Sendable {
             styleIDs: styles.map(\.id),
             providerName: providerName,
             importer: importer,
-            bottler: bottler
+            bottler: bottler,
+            lwinMatches: lwinMatches
         )
 
         guard !reading.isConfident else { return reading }
@@ -145,9 +157,14 @@ public final class LabelRecognitionService: Sendable {
             suggestedRegionIDs: regionIDs,
             providerName: providerName,
             importer: importer,
-            bottler: bottler
+            bottler: bottler,
+            lwinMatches: lwinMatches
         )
     }
+
+    /// How many LWIN candidates a reading carries. Five, matching
+    /// `suggestionLimit` — a results screen is a shortlist, not a listing.
+    private static let lwinMatchLimit = 5
 
     // MARK: - Field resolution
 

@@ -73,6 +73,9 @@ let package = Package(
                 .copy("Resources/exam.json"),
                 .copy("Resources/firmware.json"),
                 .copy("Resources/icons.json"),
+                // The LWIN bottle-identification index (0.9.54) — generated
+                // by scripts/generate-lwin-index.py, read by LWINIndex.
+                .copy("Resources/lwin.tsv"),
                 .copy("Resources/palette.json"),
                 .copy("Resources/schema.json"),
                 .copy("Resources/tiers.json"),

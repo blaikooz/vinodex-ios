@@ -302,6 +302,13 @@ public struct LabelReading: Codable, Sendable, Hashable {
     /// readings from older builds still decode.
     public let importer: String?
     public let bottler: String?
+    /// Bottles the LWIN database recognises in the text (0.9.54), best first.
+    /// Optional for the same decode reason as the trade lines; a reading made
+    /// by this build always carries an array, and `[]` is the honest answer
+    /// for a label the database does not know. Kept apart from `matches`:
+    /// these identify the *bottle*, not catalog entries, and they do not feed
+    /// `score` — see `LWINMatch`.
+    public let lwinMatches: [LWINMatch]?
 
     public init(
         recognizedText: [String],
@@ -312,7 +319,8 @@ public struct LabelReading: Codable, Sendable, Hashable {
         suggestedRegionIDs: [String] = [],
         providerName: String = "",
         importer: String? = nil,
-        bottler: String? = nil
+        bottler: String? = nil,
+        lwinMatches: [LWINMatch]? = nil
     ) {
         self.recognizedText = recognizedText
         self.matches = matches
@@ -323,6 +331,7 @@ public struct LabelReading: Codable, Sendable, Hashable {
         self.providerName = providerName
         self.importer = importer
         self.bottler = bottler
+        self.lwinMatches = lwinMatches
     }
 
     public func match(_ field: LabelField) -> LabelMatch? {
