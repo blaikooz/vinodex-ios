@@ -101,4 +101,7 @@ public enum SavedDataKey: String, CaseIterable, Sendable {
     case hapticsEnabled      = "hapticsEnabled"
     case soundsEnabled       = "soundsEnabled"
     case keepAwakeEnabled    = "keepAwakeEnabled"
+    /// The chosen narrator voice identifier (0.9.54). Absent = AUTOMATIC —
+    /// the ladder in `NarratorPreference` picks the best installed voice.
+    case narratorVoice       = "narratorVoice"
 }

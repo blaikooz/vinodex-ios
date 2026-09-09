@@ -27,6 +27,10 @@ public enum SettingsDefault {
     public static let keepAwakeEnabled = true
     /// Empty means "not set" — the profile header draws TASTER instead.
     public static let displayName = ""
+    /// Empty means AUTOMATIC — `NarratorPreference` picks the best installed
+    /// voice. See the note on `AppSettings.narratorVoice` for why empty is
+    /// stored as an absent key.
+    public static let narratorVoice = NarratorPreference.automatic
 }
 
 /// Every setting the user can turn, as one observable model (arch **A17**).
@@ -154,6 +158,24 @@ public final class AppSettings {
         }
     }
 
+    /// The narrator voice identifier, or empty for AUTOMATIC (0.9.54).
+    ///
+    /// AUTOMATIC is stored by *removing* the key, not by writing `""` — the
+    /// same absent-means-default discipline the three booleans keep, so a
+    /// fresh install, a wipe, and an explicit return to AUTOMATIC are the
+    /// same state, and `SavedDataArchiver.export` records nothing for a
+    /// device that never chose.
+    public var narratorVoice: String {
+        didSet {
+            guard !isAdopting, narratorVoice != oldValue else { return }
+            if narratorVoice.isEmpty {
+                defaults.removeObject(forKey: SavedDataKey.narratorVoice.rawValue)
+            } else {
+                defaults.set(narratorVoice, forKey: SavedDataKey.narratorVoice.rawValue)
+            }
+        }
+    }
+
     // MARK: Profile
 
     /// The name on the passport and the bookmarks header. Stored here rather
@@ -177,6 +199,7 @@ public final class AppSettings {
         self.soundsEnabled = stored.soundsEnabled
         self.keepAwakeEnabled = stored.keepAwakeEnabled
         self.displayName = stored.displayName
+        self.narratorVoice = stored.narratorVoice
     }
 
     /// Re-reads every key — the seventh instance of the trap **M35** recorded.
@@ -203,6 +226,7 @@ public final class AppSettings {
             soundsEnabled = stored.soundsEnabled
             keepAwakeEnabled = stored.keepAwakeEnabled
             displayName = stored.displayName
+            narratorVoice = stored.narratorVoice
         }
     }
 
@@ -263,6 +287,7 @@ public final class AppSettings {
         let soundsEnabled: Bool
         let keepAwakeEnabled: Bool
         let displayName: String
+        let narratorVoice: String
 
         init(reading defaults: UserDefaults) {
             textScale = TextScale.current(in: defaults)
@@ -277,6 +302,8 @@ public final class AppSettings {
                                          default: SettingsDefault.keepAwakeEnabled)
             displayName = defaults.string(forKey: SavedDataKey.displayName.rawValue)
                 ?? SettingsDefault.displayName
+            narratorVoice = defaults.string(forKey: SavedDataKey.narratorVoice.rawValue)
+                ?? SettingsDefault.narratorVoice
         }
 
         /// A stored flag, or `fallback` when the key has never been written.

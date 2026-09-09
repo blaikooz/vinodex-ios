@@ -30,8 +30,9 @@ struct SavedDataArchiveTests {
         // had grown up outside the registry — exam history, custom devices,
         // the tried-day log, the walkthrough and passport ledgers — joined
         // it through the opaque archive lane, so backup/restore finally
-        // carries everything the app remembers.
-        #expect(SavedDataKey.allCases.count == 47)
+        // carries everything the app remembers. 48 in the same release:
+        // `narratorVoice`, the NARRATOR picker's chosen reading voice.
+        #expect(SavedDataKey.allCases.count == 48)
         let raws = SavedDataKey.allCases.map(\.rawValue)
         #expect(Set(raws).count == raws.count, "duplicate key string: \(raws)")
         #expect(raws.allSatisfy { !$0.isEmpty })
@@ -346,5 +347,40 @@ struct OpaqueArchiveLaneTests {
         #expect(target.bool(forKey: SavedDataKey.vinoSilenced.rawValue))
         #expect(target.object(forKey: SavedDataKey.vinoMomentLastDay.rawValue) == nil,
                 "an absent opaque key must be removed on apply, not left stale")
+    }
+}
+
+/// The narrator key (0.9.54) — a plain string setting, but with the
+/// absent-means-AUTOMATIC discipline the boolean settings keep, so it earns
+/// the same two proofs: the value travels, and absence travels too.
+@Suite("Narrator voice archiving")
+struct NarratorArchiveTests {
+    private func makeDefaults() -> UserDefaults {
+        let name = "narrator-\(UUID().uuidString)"
+        let d = UserDefaults(suiteName: name)!
+        d.removePersistentDomain(forName: name)
+        return d
+    }
+
+    @Test("a chosen narrator rides the archive; automatic stays absent")
+    func narratorRoundTrip() {
+        let source = makeDefaults()
+        source.set("com.apple.voice.enhanced.en-US.Tom", forKey: SavedDataKey.narratorVoice.rawValue)
+
+        let archive = SavedDataArchiver.export(from: source)
+        #expect(archive.narratorVoice == "com.apple.voice.enhanced.en-US.Tom")
+
+        let target = makeDefaults()
+        let written = SavedDataArchiver.apply(archive, to: target)
+        #expect(written.contains(.narratorVoice))
+        #expect(target.string(forKey: SavedDataKey.narratorVoice.rawValue)
+                == "com.apple.voice.enhanced.en-US.Tom")
+
+        // An AUTOMATIC device exports no key, and restoring its archive onto
+        // a device that HAD a pick returns that device to AUTOMATIC.
+        let automatic = SavedDataArchiver.export(from: makeDefaults())
+        #expect(automatic.narratorVoice == nil)
+        _ = SavedDataArchiver.apply(automatic, to: target)
+        #expect(target.object(forKey: SavedDataKey.narratorVoice.rawValue) == nil)
     }
 }

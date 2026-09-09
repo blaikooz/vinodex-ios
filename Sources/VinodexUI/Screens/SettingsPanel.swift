@@ -375,6 +375,11 @@ public struct SettingsSectionPanel: View {
     /// makes it findable without being imposed: the row says what it is, the
     /// prompt says what it will do, and NOT NOW costs one tap.
     @State private var offeringTour = false
+
+    /// Whether the NARRATOR voice list is unfolded (0.9.54). Folded by
+    /// default: the row states the current voice, and most visits to this
+    /// panel are not visits to change it.
+    @State private var narratorListOpen = false
     /// BACK UP / RESTORE (AUDIT **M35**). The archive is written to a temp file
     /// and handed to `ShareLink`; the URL is held so the button can be built
     /// before the user taps anything, since `ShareLink` wants its item up front.
@@ -2010,6 +2015,42 @@ public struct SettingsSectionPanel: View {
             }
         }
 
+        // **NARRATOR** (0.9.54, maintainer ask). The READ ALOUD voice, made a
+        // setting. Siri's own voice is not exposed to apps, so this is the
+        // approved substitute: AUTOMATIC prefers the best voice actually
+        // installed (a downloaded Enhanced/Premium beats the built-ins), and
+        // the list beneath lets the player pick any installed English voice
+        // outright. Tapping a voice auditions it — a voice chosen unheard is
+        // a setting chosen blind.
+        settingsSection("NARRATOR") {
+            VStack(alignment: .leading, spacing: 10) {
+                Button {
+                    Haptics.screenTap()
+                    narratorListOpen.toggle()
+                } label: {
+                    settingRow(
+                        symbol: "person.wave.2.fill",
+                        art: UIGlyph.soundsOn.artStem,
+                        tint: Dex.green,
+                        title: "NARRATOR",
+                        detail: narratorDetail
+                    ) {
+                        Image(systemName: narratorListOpen ? "chevron.down" : "chevron.right")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(lcd.subtext)
+                    }
+                }
+                .buttonStyle(DexPressStyle(scale: 0.98))
+                if narratorListOpen {
+                    narratorVoiceList
+                }
+                Text("Deeper voices live in iOS Settings ▸ Accessibility ▸ Spoken Content ▸ Voices — download one there and it appears here, and AUTOMATIC reaches for the best you have.")
+                    .font(DexFont.mono(17))
+                    .foregroundStyle(lcd.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+
         // The third row beside HAPTICS and SOUNDS, and the same shape: a device
         // behaviour the app used to simply assert. Keeping the screen alive for
         // the whole life of the process is defensible for a book you read with
@@ -2480,6 +2521,83 @@ public struct SettingsSectionPanel: View {
     /// The shared three-column layout both cosmetic pickers use.
     private var pickerColumns: [GridItem] {
         Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
+    }
+
+    /// The NARRATOR row's one-line state: who is reading, and on whose
+    /// authority. A pick that has been deleted from the device says so
+    /// rather than pretending — `NarratorPreference.choose` has already
+    /// fallen back to AUTOMATIC for the actual audio.
+    private var narratorDetail: String {
+        if settings.narratorVoice.isEmpty {
+            if let name = NarratorOption.automaticChoiceName() {
+                return "Automatic — \(name) reads the entries."
+            }
+            return "Automatic — the system voice reads the entries."
+        }
+        if let option = NarratorOption.installed().first(where: { $0.id == settings.narratorVoice }) {
+            return "\(option.name) reads the entries."
+        }
+        return "Your chosen voice is gone from this device — Automatic reads instead."
+    }
+
+    /// The unfolded voice list: AUTOMATIC on top, then every installed
+    /// English voice, best quality first (`NarratorOption.installed`).
+    /// Selecting a row auditions it immediately.
+    private var narratorVoiceList: some View {
+        let options = NarratorOption.installed()
+        return VStack(spacing: 6) {
+            narratorRow(
+                title: "AUTOMATIC",
+                subtitle: "BEST INSTALLED",
+                selected: settings.narratorVoice.isEmpty
+            ) {
+                settings.narratorVoice = NarratorPreference.automatic
+            }
+            ForEach(options) { option in
+                narratorRow(
+                    title: option.name,
+                    subtitle: option.qualityLabel ?? option.language,
+                    selected: settings.narratorVoice == option.id
+                ) {
+                    settings.narratorVoice = option.id
+                }
+            }
+        }
+    }
+
+    private func narratorRow(
+        title: String,
+        subtitle: String,
+        selected: Bool,
+        choose: @escaping () -> Void
+    ) -> some View {
+        Button {
+            Haptics.select()
+            choose()
+            // The audition — `preview`, not `speak`: tapping through the
+            // list should switch voices mid-sentence, never toggle silence.
+            VinoVoice.shared.preview("A fine day for wine.")
+        } label: {
+            HStack(spacing: 8) {
+                Text(title)
+                    .font(DexFont.retro(12))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .foregroundStyle(selected ? lcd.onAccent : lcd.text)
+                Spacer(minLength: 8)
+                Text(subtitle)
+                    .font(DexFont.mono(15))
+                    .foregroundStyle(selected ? lcd.onAccent : lcd.subtext)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 13)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(selected ? lcd.accent : lcd.surface)
+            )
+        }
+        .buttonStyle(DexPressStyle(scale: 0.97))
     }
 
     private var textSize: some View {
