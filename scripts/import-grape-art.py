@@ -25,6 +25,7 @@ import sys
 from PIL import Image
 
 from art_common import (
+    assert_magenta_keyed,
     copy_master,
     output_dir,
     quantize_stable,
@@ -136,6 +137,26 @@ SOURCE_TO_STEM = {
 # drawn leaf stands — they are dead fallbacks since every grape gained a
 # portrait in 0.9.47.
 MASTERS = {"gold-full-rare", "gold-light-rare", "gold-medium-rare"}
+
+# TODO(icon-repass §3.4): the pre-0.9.47 white-ground bunch recolours, exempt
+# from `assert_magenta_keyed` by name. The repass plan retires these in place
+# rather than regenerating them — 16 are orphans nothing resolves and the rest
+# back a fallback grid unreachable without a data bug — so no keyed masters
+# will ever exist for them; the Day-1 `dehalo` pass in strip_background is the
+# only cleanup this set gets. Delete the rows here when the Day-2 grape
+# retirement lands. Everything NOT in this set (portraits, archetypes, the
+# 0.9.47 blend sheets, the golds via copy_master) is keyed and stays gated.
+WHITEGROUND_LEGACY = {
+    "greencommon.png",
+    "greenfullcommon.png", "greenfullnoble.png", "greenfullrare.png",
+    "greenlightnoble.png", "greenlightrare.png",
+    "greenmediumcommon.png", "greenmediumnoble.png", "greenmediumrare.png",
+    "redambermediumcommon.png", "redambermediumnoble.png", "redambermediumrare.png",
+    "redfullcommon.png", "redfullnoble.png", "redfullrare.png",
+    "redlightcommon.png", "redlightnoble.png", "redlightrare.png",
+    "redmediumcommon.png", "redmediumnoble.png", "redmediumrare.png",
+    "redpinkcommon.png", "redpinknoble.png", "redpinkrare.png",
+}
 
 # --- The sentinel leaf (0.9.50) -------------------------------------------
 #
@@ -343,7 +364,10 @@ def main():
         if stem in MASTERS:
             copy_master(path, out)
         else:
-            img = mark_leaf(strip_background(Image.open(path)), stem)
+            img = Image.open(path)
+            if name not in WHITEGROUND_LEGACY:
+                assert_magenta_keyed(img, path)
+            img = mark_leaf(strip_background(img), stem)
             if stem.startswith("red-light") or stem.startswith("red-medium"):
                 img = darken_reds(img)
             # See art_common (0.8.0, A0b): pinned quantise, and a run
@@ -358,7 +382,9 @@ def main():
         if not os.path.exists(path):
             missing.append(name)
             continue
-        base = mark_leaf(strip_background(Image.open(path)), f"arch-{cluster}")
+        base = Image.open(path)
+        assert_magenta_keyed(base, path)
+        base = mark_leaf(strip_background(base), f"arch-{cluster}")
         for variant in ARCH_HUES:
             out = os.path.join(DST, f"arch-{cluster}-{variant}.png")
             save_stable(quantize_stable(berry_hue_shift(base, variant)), out, optimize=True)

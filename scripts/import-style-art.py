@@ -24,6 +24,7 @@ import sys
 from PIL import Image
 
 from art_common import (
+    assert_magenta_keyed,
     copy_master,
     output_dir,
     quantize_stable,
@@ -71,10 +72,12 @@ def main():
         if stem in MASTERS:
             copy_master(path, out)
         else:
+            img = Image.open(path)
+            # All 29 styles regenerated on the key in the 0.9.53 S-sheet
+            # repass; a white-ground master here is a regression (0.9.54).
+            assert_magenta_keyed(img, path)
             # See art_common (0.8.0, A0b).
-            save_stable(
-                quantize_stable(strip_background(Image.open(path))), out, optimize=True
-            )
+            save_stable(quantize_stable(strip_background(img)), out, optimize=True)
         total_out += os.path.getsize(out)
 
     print(f"converted {len(stems) - len(missing)} styles -> {DST} ({total_out // 1024}KB)")

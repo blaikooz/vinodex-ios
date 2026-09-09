@@ -43,7 +43,7 @@ import sys
 
 from PIL import Image
 
-from art_common import output_dir, quantize_stable, save_stable, strip_background
+from art_common import assert_magenta_keyed, output_dir, quantize_stable, save_stable, strip_background
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -115,7 +115,12 @@ def main():
         if target is None:
             unmapped.append(stem)
             continue
-        img = strip_background(Image.open(os.path.join(src, stem + ".png")))
+        path = os.path.join(src, stem + ".png")
+        img = Image.open(path)
+        # Keyed by contract; gated since 0.9.54 (icon-repass Day 1) so a
+        # white-ground drop cannot slip onto the flood path silently.
+        assert_magenta_keyed(img, path)
+        img = strip_background(img)
         out = os.path.join(DST, target + ".png")
         # `quantize_stable` + `save_stable` since 0.8.0 (A0b): no library
         # default decides the palette, and a run whose pixels match writes
