@@ -365,6 +365,80 @@ public enum LabelTextScan {
             .map { tidy($0.element.text) }
     }
 
+    /// **The trade lines** (0.9.54): importer and bottler are printed-label
+    /// facts no database returns — US labels carry a mandated IMPORTED BY
+    /// line, and European labels state their bottling in the language of the
+    /// place. Anchored extraction is therefore both possible and precise:
+    /// find the anchor, return what follows it (or the line's own meaning,
+    /// for phrases like MIS EN BOUTEILLE AU CHATEAU that carry no name).
+    private static let importerAnchors = [
+        "IMPORTED AND BOTTLED BY", "SELECTED AND IMPORTED BY",
+        "IMPORTED EXCLUSIVELY BY", "IMPORTED BY", "IMPORTER:",
+    ]
+    private static let bottlerAnchors: [(String, String?)] = [
+        ("MIS EN BOUTEILLE AU CHATEAU", "Estate bottled (au chateau)"),
+        ("MIS EN BOUTEILLE AU DOMAINE", "Estate bottled (au domaine)"),
+        ("MIS EN BOUTEILLE A LA PROPRIETE", "Estate bottled (a la propriete)"),
+        ("IMBOTTIGLIATO ALL'ORIGINE", "Estate bottled (all'origine)"),
+        ("ERZEUGERABFULLUNG", "Estate bottled (Erzeugerabfullung)"),
+        ("ESTATE BOTTLED", "Estate bottled"),
+        ("IMBOTTIGLIATO DA", nil),
+        ("EMBOTELLADO POR", nil),
+        ("ENGARRAFADO POR", nil),
+        ("MIS EN BOUTEILLE PAR", nil),
+        ("BOTTLED BY", nil),
+    ]
+
+    /// The importer's name, from its anchor line (searching this line and,
+    /// when the anchor ends a line, the next one — labels break there often).
+    public static func importerLine(in strings: [RecognizedString]) -> String? {
+        anchoredValue(in: strings, anchors: importerAnchors.map { ($0, nil) })
+    }
+
+    /// The bottler line: a name after a "bottled by" anchor, or the estate
+    /// phrase's own meaning when the anchor is the whole statement.
+    public static func bottlerLine(in strings: [RecognizedString]) -> String? {
+        anchoredValue(in: strings, anchors: bottlerAnchors)
+    }
+
+    private static func anchoredValue(
+        in strings: [RecognizedString],
+        anchors: [(String, String?)]
+    ) -> String? {
+        let folded = strings.map { fold($0.text) }
+        for (index, line) in folded.enumerated() {
+            for (anchor, meaning) in anchors {
+                guard let range = line.range(of: anchor) else { continue }
+                let tail = String(line[range.upperBound...])
+                    .trimmingCharacters(in: CharacterSet(charactersIn: " :.,-"))
+                if tail.count >= 3 {
+                    // The original casing of the tail, from the raw line.
+                    let rawTail = String(strings[index].text.suffix(tail.count))
+                    return tidy(rawTail)
+                }
+                if index + 1 < strings.count {
+                    let next = tidy(strings[index + 1].text)
+                    let nextFolded = folded[index + 1]
+                    // The next line is the name unless it reads as another
+                    // anchor, a vintage or a volume.
+                    if next.count >= 3,
+                       nextFolded.contains(where: \.isLetter),
+                       !anchors.contains(where: { nextFolded.contains($0.0) }) {
+                        return next
+                    }
+                }
+                if let meaning { return meaning }
+            }
+        }
+        return nil
+    }
+
+    /// Uppercased, diacritic-folded copy for anchor matching.
+    private static func fold(_ text: String) -> String {
+        text.folding(options: [.diacriticInsensitive], locale: Locale(identifier: "en_US"))
+            .uppercased()
+    }
+
     /// Collapses the whitespace and newlines OCR sprinkles through a line,
     /// without touching case or accents — this string is shown to the user as
     /// the producer's name, so it must stay the name.

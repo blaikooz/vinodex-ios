@@ -605,3 +605,26 @@ struct LabelReaderTests {
         }
     }
 }
+
+// MARK: - The trade lines (0.9.54)
+
+@Suite("Label trade lines")
+struct LabelTradeLineTests {
+    private func rec(_ text: String) -> RecognizedString {
+        RecognizedString(text: text, confidence: 0.9, prominence: 0.5)
+    }
+
+    @Test("the importer follows its anchor, same line or next")
+    func importerAnchors() {
+        #expect(LabelTextScan.importerLine(in: [rec("IMPORTED BY WINEBOW INC, NEW YORK NY")])?.contains("WINEBOW") == true)
+        #expect(LabelTextScan.importerLine(in: [rec("SELECTED AND IMPORTED BY"), rec("Kermit Lynch Wine Merchant")]) == "Kermit Lynch Wine Merchant")
+        #expect(LabelTextScan.importerLine(in: [rec("GRAND VIN DE BORDEAUX")]) == nil)
+    }
+
+    @Test("estate phrases carry their own meaning; bottler names follow theirs")
+    func bottlerAnchors() {
+        #expect(LabelTextScan.bottlerLine(in: [rec("MIS EN BOUTEILLE AU CHÂTEAU")]) == "Estate bottled (au chateau)")
+        #expect(LabelTextScan.bottlerLine(in: [rec("EMBOTELLADO POR"), rec("Bodegas Muga S.A.")]) == "Bodegas Muga S.A.")
+        #expect(LabelTextScan.bottlerLine(in: [rec("750 ML")]) == nil)
+    }
+}

@@ -147,7 +147,7 @@ public struct WalkthroughScreen: View {
     /// as `VinoBubble` and `CoachmarkOverlay` — three surfaces, one speaker.
     ///
     /// The **title survives inside the bubble**, in the slot the other two use
-    /// for the chirp and the step count. A tour of twelve pages needs a heading
+    /// for the chirp and the step count. A tour of eleven pages needs a heading
     /// you can find your place by; what it did not need was a heading that was
     /// the only thing on the page with a voice.
     private var copy: some View {

@@ -434,6 +434,38 @@ public struct DeviceChassis<Content: View>: View {
             // writes. See `ChassisFlipRouter`. (AUDIT **M21**)
             .onAppear { ChassisFlipRouter.shared.handler = { isFlipped = true } }
             .onDisappear { ChassisFlipRouter.shared.handler = nil }
+            // **The iPad clamp** (0.9.54, release-readiness A3/A4). The
+            // chassis is a handheld: fixed 74pt button bundles, a 264pt
+            // marquee, furniture positioned in points. Unclamped it
+            // stretched edge-to-edge on a 13" iPad — controls stranded at
+            // opposite ends of 1024pt — which was the audit's most likely
+            // App Review rejection. Capped at a phone-plus width and
+            // centered, the device reads as itself on any window size,
+            // which also survives iPadOS 26's resizable windowing (where
+            // UIRequiresFullScreen no longer pins anything). The skin's
+            // underlay fills the surround below.
+            // **The iPad fills the whole screen** (maintainer orders,
+            // 2026-09-09, three cuts refined in one sitting: clamp-and-float
+            // → scale-in-proportion → fill both axes). The chassis lays out
+            // at the screen's own aspect but never at more than phone
+            // magnification: the scale factor is how far the screen outgrows
+            // the 440x956 Pro Max footprint, the layout box is the physical
+            // screen divided back down by it, and the scale-up then lands the
+            // composition edge-to-edge with no letterbox at all. The chassis
+            // was width-flexible before the clamp ever existed; what A3
+            // actually objected to was 1024 layout points at scale 1 —
+            // controls small and stranded — and dividing by the scale is
+            // what keeps the layout near handheld proportions (a 13" iPad
+            // lays out at ~717x956, scaled 1.43x). On any phone the scale
+            // pins to 1 and the box is the screen itself: byte-identical to
+            // the pre-clamp layout.
+            .frame(
+                width: (geo.size.width + geo.safeAreaInsets.leading + geo.safeAreaInsets.trailing)
+                    / chassisScale(geo),
+                height: (geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom)
+                    / chassisScale(geo)
+            )
+            .scaleEffect(chassisScale(geo))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
         }
@@ -483,6 +515,16 @@ public struct DeviceChassis<Content: View>: View {
         .onChange(of: idle.activityTick) { _, _ in
             noteActivity()
         }
+    }
+
+    /// How far the physical screen outgrows the 440x956 phone footprint —
+    /// 1 on every phone, ~1.43 on a 13" iPad. See the note at the body's
+    /// frame/scaleEffect pair for what it buys.
+    private func chassisScale(_ geo: GeometryProxy) -> CGFloat {
+        max(1, min(
+            (geo.size.width + geo.safeAreaInsets.leading + geo.safeAreaInsets.trailing) / 440,
+            (geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom) / 956
+        ))
     }
 
     /// What a script run belongs to. Off the main screen there is nothing to
@@ -2170,6 +2212,10 @@ private struct ChassisShell: View {
                 PaperGrain(color: sketch.grain)
             }
         }
+        // Paint, pattern and grain — nothing here means anything to a screen
+        // reader, and an Image without the pin can surface as an unlabeled
+        // element in the VoiceOver walk (release-readiness B4).
+        .accessibilityHidden(true)
     }
 }
 

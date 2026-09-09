@@ -8,12 +8,12 @@ import Foundation
 /// turns the subject into part of the recipient — is a bug that fails silently
 /// into somebody else's inbox. `SupportContactTests` is what makes that a check.
 ///
-/// **The address is a placeholder and is marked as one.** §F1 says
+/// **The address is the real support mailbox (0.9.54) and matches App Store Connect's support field.** §F1 says
 /// "temporary placeholder address" in as many words. It is a `let` here and
 /// nowhere else, so replacing it is one edit rather than a grep.
 public enum SupportContact: Sendable {
     /// The recipient. Temporary — see the type note.
-    public static let address = "hello@vinodex.com"
+    public static let address = "vinodex@substack.com"
 
     /// The one paragraph the screen shows.
     ///

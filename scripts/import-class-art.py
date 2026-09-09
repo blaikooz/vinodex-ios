@@ -27,6 +27,7 @@ import sys
 from PIL import Image
 
 from art_common import (
+    assert_magenta_keyed,
     output_dir,
     quantize_stable,
     resolve_source_dir,
@@ -264,7 +265,12 @@ def main():
         if path is None or not os.path.exists(path):
             missing.append(stem)
             continue
-        img = strip_background(Image.open(path))
+        img = Image.open(path)
+        # Every taxonomy master is keyed since the 0.9.52 C-sheet repass, and
+        # the outline silhouettes always were; a white-ground source here is a
+        # regression the audit's halo metric would only catch later (0.9.54).
+        assert_magenta_keyed(img, path)
+        img = strip_background(img)
         if outline:
             if stem[len(OUTLINE_PREFIX):] not in FILL:
                 missing.append(stem + " (no fill colour)")

@@ -281,6 +281,11 @@ public struct SettingsSectionPanel: View {
     /// Opens the DEV panel. DEV lost its tile on the settings grid — it is
     /// developer plumbing, not a setting — and lives behind a button at the
     /// bottom of SETTINGS instead. A route push, so Back still works.
+    ///
+    /// **DORMANT (0.9.4 shop-hiding; pinned 0.9.54, B9).** No body code calls
+    /// this — the DEV door came off with the storefront. Kept wired so the
+    /// cheat-reveal day needs one button, not an archaeology dig; a call site
+    /// added here is a deliberate re-exposure, not a cleanup.
     let onDev: () -> Void
     /// The DEVICE section's doors (0.7.3, A2–A4; `onFirmwareHistory` left with
     /// its row for the System grid in 0.8.92, item 2 — see
@@ -289,6 +294,8 @@ public struct SettingsSectionPanel: View {
     /// Route pushes rather than local state, for the same reason `onDev` is: the
     /// chassis Back button has to return to the System panel rather than drop
     /// the user out of settings entirely.
+    ///
+    /// **DORMANT** — same standing as `onDev` above; no body code calls it.
     let onCheatConsole: () -> Void
     /// The contact screen (0.8.91, F1). A route push like its neighbours, so
     /// Back returns to SYSTEM rather than dropping out of settings.
@@ -299,6 +306,9 @@ public struct SettingsSectionPanel: View {
     let onWalkthrough: () -> Void
     /// Starts the attract loop. Not a route — demo mode drives the *whole* route
     /// stack, so it is the app's business rather than a screen to push.
+    ///
+    /// **DORMANT** — same standing as `onDev` above; no body code calls it
+    /// (and `VinodexApp.startDemo` behind it is therefore unreachable too).
     let onDemoMode: () -> Void
     /// CUSTOMIZE's door to the builder (0.7.3, A1). A route push like the two
     /// above, so the chassis Back button returns here rather than dropping out
@@ -375,6 +385,11 @@ public struct SettingsSectionPanel: View {
     /// makes it findable without being imposed: the row says what it is, the
     /// prompt says what it will do, and NOT NOW costs one tap.
     @State private var offeringTour = false
+
+    /// Whether the NARRATOR voice list is unfolded (0.9.54). Folded by
+    /// default: the row states the current voice, and most visits to this
+    /// panel are not visits to change it.
+    @State private var narratorListOpen = false
     /// BACK UP / RESTORE (AUDIT **M35**). The archive is written to a temp file
     /// and handed to `ShareLink`; the URL is held so the button can be built
     /// before the user taps anything, since `ShareLink` wants its item up front.
@@ -516,7 +531,7 @@ public struct SettingsSectionPanel: View {
             } else if confirmingWipe {
                 DexAlert(
                     title: "CLEAR SAVED DATA?",
-                    message: "Everything stored on this device — bookmarks, recents, tastings and ratings, quiz progress, streak, profile, purchases and appearance — goes back to a fresh install. This cannot be undone. The app will close; open it again for the fresh start.",
+                    message: "Everything stored on this device — bookmarks, recents, tastings and ratings, quiz progress, streak, profile, unlocks and appearance — goes back to a fresh install. This cannot be undone. The app will close; open it again for the fresh start.",
                     confirmLabel: "ERASE",
                     destructive: true,
                     onConfirm: {
@@ -806,7 +821,7 @@ public struct SettingsSectionPanel: View {
                         ? "\(browsableCount) of \(totalCount) entries browsable"
                         : "All \(totalCount) entries browsable"
                 ) {
-                    DexToggle(isOn: access.starterOnly) { access.starterOnly.toggle() }
+                    DexToggle(isOn: access.starterOnly, label: "Free tier") { access.starterOnly.toggle() }
                 }
 
                 Text("Off means everything is open regardless of what you own — turn it on to test the locked experience.")
@@ -836,7 +851,8 @@ public struct SettingsSectionPanel: View {
                         // harness exists to make visible.
                         DexToggle(
                             isOn: access.granted.contains(item.entitlement),
-                            tint: Dex.green
+                            tint: Dex.green,
+                            label: item.title
                         ) {
                             access.toggle(item.entitlement)
                         }
@@ -1051,7 +1067,7 @@ public struct SettingsSectionPanel: View {
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(lcd.subtext)
                 } else {
-                    DexToggle(isOn: notifications.isOn, tint: Dex.green) {
+                    DexToggle(isOn: notifications.isOn, tint: Dex.green, label: "Daily reminder") {
                         Haptics.screenTap()
                         if notifications.isOn {
                             notifications.disable()
@@ -1903,6 +1919,12 @@ public struct SettingsSectionPanel: View {
     /// takes. It grants and then *continues* into the workshop rather than
     /// stopping at "unlocked!", which is the correction `RootView`'s own paywall
     /// note records for the entry gate.
+    /// **DORMANT (release-readiness B9).** Nothing in `body` renders this
+    /// section since the 0.9.4 shop-hiding — it is the shop-priced door to
+    /// the 897-line `DeviceWorkshopScreen`, and both wait with the
+    /// storefront. Referencing it again is a paywall decision (it leads with
+    /// UNLOCK), not a layout tweak: see the shop-hiding phase notes before
+    /// wiring it back.
     private var deviceWorkshop: some View {
         let owned = access.isUnlocked(.workshop)
         return settingsSection("DEVICE WORKSHOP") {
@@ -1978,7 +2000,7 @@ public struct SettingsSectionPanel: View {
                         ? "Every chassis button clicks in your hand."
                         : "The buttons are silent to the hand."
                 ) {
-                    DexToggle(isOn: settings.hapticsEnabled, tint: Dex.green) { settings.hapticsEnabled.toggle() }
+                    DexToggle(isOn: settings.hapticsEnabled, tint: Dex.green, label: "Haptics") { settings.hapticsEnabled.toggle() }
                 }
             }
         }
@@ -2001,9 +2023,45 @@ public struct SettingsSectionPanel: View {
                         ? "Clicks, pings and stings from the SFX pack."
                         : "The device is silent to the ear."
                 ) {
-                    DexToggle(isOn: settings.soundsEnabled, tint: Dex.green) { settings.soundsEnabled.toggle() }
+                    DexToggle(isOn: settings.soundsEnabled, tint: Dex.green, label: "Sounds") { settings.soundsEnabled.toggle() }
                 }
                 Text("The ring/silent switch always wins — sounds never interrupt your music.")
+                    .font(DexFont.mono(17))
+                    .foregroundStyle(lcd.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+
+        // **NARRATOR** (0.9.54, maintainer ask). The READ ALOUD voice, made a
+        // setting. Siri's own voice is not exposed to apps, so this is the
+        // approved substitute: AUTOMATIC prefers the best voice actually
+        // installed (a downloaded Enhanced/Premium beats the built-ins), and
+        // the list beneath lets the player pick any installed English voice
+        // outright. Tapping a voice auditions it — a voice chosen unheard is
+        // a setting chosen blind.
+        settingsSection("NARRATOR") {
+            VStack(alignment: .leading, spacing: 10) {
+                Button {
+                    Haptics.screenTap()
+                    narratorListOpen.toggle()
+                } label: {
+                    settingRow(
+                        symbol: "person.wave.2.fill",
+                        art: UIGlyph.soundsOn.artStem,
+                        tint: Dex.green,
+                        title: "NARRATOR",
+                        detail: narratorDetail
+                    ) {
+                        Image(systemName: narratorListOpen ? "chevron.down" : "chevron.right")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(lcd.subtext)
+                    }
+                }
+                .buttonStyle(DexPressStyle(scale: 0.98))
+                if narratorListOpen {
+                    narratorVoiceList
+                }
+                Text("Deeper voices live in iOS Settings ▸ Accessibility ▸ Spoken Content ▸ Voices — download one there and it appears here, and AUTOMATIC reaches for the best you have.")
                     .font(DexFont.mono(17))
                     .foregroundStyle(lcd.subtext)
                     .fixedSize(horizontal: false, vertical: true)
@@ -2029,7 +2087,7 @@ public struct SettingsSectionPanel: View {
                         ? "The screen stays on while the app is open."
                         : "The screen locks on your usual schedule."
                 ) {
-                    DexToggle(isOn: settings.keepAwakeEnabled, tint: Dex.green) {
+                    DexToggle(isOn: settings.keepAwakeEnabled, tint: Dex.green, label: "Keep awake") {
                         settings.keepAwakeEnabled.toggle()
                         // Applied now rather than at the next launch — a
                         // setting whose effect you cannot observe reads as
@@ -2198,7 +2256,7 @@ public struct SettingsSectionPanel: View {
                 }
                 .buttonStyle(DexPressStyle(scale: 0.98))
 
-                Text("A backup is one file holding your shelves, tastings, progress and settings. Keep it somewhere off the phone: reinstalling, or a change to the app's identity on a future release, leaves everything on this page behind. Purchases are not in it — those come back from the store, never from a file.")
+                Text("A backup is one file holding your shelves, tastings, progress and settings. Keep it somewhere off the phone: reinstalling, or a change to the app's identity on a future release, leaves everything on this page behind. Unlocks are not in it — those are restored by the app itself, never from a file.")
                     .font(DexFont.mono(17))
                     .foregroundStyle(lcd.subtext)
                     .fixedSize(horizontal: false, vertical: true)
@@ -2227,7 +2285,7 @@ public struct SettingsSectionPanel: View {
                 // clause is **M35**'s: there is a BACK UP button directly above
                 // this one now, so the sentence that says what is about to go
                 // can also say what saves it.
-                Text("Erases bookmarks, tastings and ratings, quiz and game scores, the daily streak, name and photo, purchases, skin, screen and text settings. The encyclopedia itself is untouched. Back up first if you want any of it again.")
+                Text("Erases bookmarks, tastings and ratings, quiz and game scores, the daily streak, name and photo, unlocks, skin, screen and text settings. The encyclopedia itself is untouched. Back up first if you want any of it again.")
                     .font(DexFont.mono(17))
                     .foregroundStyle(lcd.subtext)
                     .fixedSize(horizontal: false, vertical: true)
@@ -2480,6 +2538,83 @@ public struct SettingsSectionPanel: View {
     /// The shared three-column layout both cosmetic pickers use.
     private var pickerColumns: [GridItem] {
         Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
+    }
+
+    /// The NARRATOR row's one-line state: who is reading, and on whose
+    /// authority. A pick that has been deleted from the device says so
+    /// rather than pretending — `NarratorPreference.choose` has already
+    /// fallen back to AUTOMATIC for the actual audio.
+    private var narratorDetail: String {
+        if settings.narratorVoice.isEmpty {
+            if let name = NarratorOption.automaticChoiceName() {
+                return "Automatic — \(name) reads the entries."
+            }
+            return "Automatic — the system voice reads the entries."
+        }
+        if let option = NarratorOption.installed().first(where: { $0.id == settings.narratorVoice }) {
+            return "\(option.name) reads the entries."
+        }
+        return "Your chosen voice is gone from this device — Automatic reads instead."
+    }
+
+    /// The unfolded voice list: AUTOMATIC on top, then every installed
+    /// English voice, best quality first (`NarratorOption.installed`).
+    /// Selecting a row auditions it immediately.
+    private var narratorVoiceList: some View {
+        let options = NarratorOption.installed()
+        return VStack(spacing: 6) {
+            narratorRow(
+                title: "AUTOMATIC",
+                subtitle: "BEST INSTALLED",
+                selected: settings.narratorVoice.isEmpty
+            ) {
+                settings.narratorVoice = NarratorPreference.automatic
+            }
+            ForEach(options) { option in
+                narratorRow(
+                    title: option.name,
+                    subtitle: option.qualityLabel ?? option.language,
+                    selected: settings.narratorVoice == option.id
+                ) {
+                    settings.narratorVoice = option.id
+                }
+            }
+        }
+    }
+
+    private func narratorRow(
+        title: String,
+        subtitle: String,
+        selected: Bool,
+        choose: @escaping () -> Void
+    ) -> some View {
+        Button {
+            Haptics.select()
+            choose()
+            // The audition — `preview`, not `speak`: tapping through the
+            // list should switch voices mid-sentence, never toggle silence.
+            VinoVoice.shared.preview("A fine day for wine.")
+        } label: {
+            HStack(spacing: 8) {
+                Text(title)
+                    .font(DexFont.retro(12))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .foregroundStyle(selected ? lcd.onAccent : lcd.text)
+                Spacer(minLength: 8)
+                Text(subtitle)
+                    .font(DexFont.mono(15))
+                    .foregroundStyle(selected ? lcd.onAccent : lcd.subtext)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 13)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(selected ? lcd.accent : lcd.surface)
+            )
+        }
+        .buttonStyle(DexPressStyle(scale: 0.97))
     }
 
     private var textSize: some View {

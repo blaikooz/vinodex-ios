@@ -79,7 +79,7 @@ from collections import deque
 
 from PIL import Image
 
-from art_common import output_dir, quantize_stable, save_stable, strip_background
+from art_common import assert_magenta_keyed, output_dir, quantize_stable, save_stable, strip_background
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -429,7 +429,12 @@ def main():
     # processed set.
     processed = {}
     for stem in stems:
-        img = strip_background(Image.open(os.path.join(src, stem + ".png")))
+        path = os.path.join(src, stem + ".png")
+        img = Image.open(path)
+        # Keyed by contract (the cast shadow is the key at half value); gated
+        # since 0.9.54 so a white-ground drop cannot slip onto the flood path.
+        assert_magenta_keyed(img, path)
+        img = strip_background(img)
         img = img.convert("RGBA")
         img, cleared = strip_key_shadow(img)
         total_shadow += cleared

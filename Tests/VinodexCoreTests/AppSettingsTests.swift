@@ -85,7 +85,7 @@ struct AppSettingsTests {
     /// proves each `storageKey` resolves to its registry case; this pins what
     /// the case *is*, because renaming a `SavedDataKey` raw value orphans the
     /// stored data exactly as renaming an enum's would.
-    @Test("the eight settings keys are the stored bytes")
+    @Test("the nine settings keys are the stored bytes")
     func storageKeysAreStable() {
         #expect(SavedDataKey.textScale.rawValue == "textScale")
         #expect(SavedDataKey.uiScale.rawValue == "uiScale")
@@ -94,9 +94,29 @@ struct AppSettingsTests {
         #expect(SavedDataKey.hapticsEnabled.rawValue == "hapticsEnabled")
         #expect(SavedDataKey.soundsEnabled.rawValue == "soundsEnabled")
         #expect(SavedDataKey.keepAwakeEnabled.rawValue == "keepAwakeEnabled")
+        #expect(SavedDataKey.narratorVoice.rawValue == "narratorVoice")
         // Not "displayName" — the key predates the registry, and "fixing" the
         // mismatch is precisely the rename this test exists to catch.
         #expect(SavedDataKey.displayName.rawValue == "userDisplayName")
+    }
+
+    /// The narrator setting's one behavioural quirk (0.9.54): AUTOMATIC is
+    /// stored by *removing* the key — see `AppSettings.narratorVoice` — so a
+    /// device that never chose and a device that chose then went back read
+    /// identically, and `SavedDataArchiver.export` records neither.
+    @Test("returning the narrator to automatic removes the key")
+    func narratorAutomaticRemovesKey() {
+        let d = makeDefaults()
+        let settings = AppSettings(defaults: d)
+        settings.narratorVoice = "com.apple.voice.enhanced.en-US.Tom"
+        #expect(d.string(forKey: SavedDataKey.narratorVoice.rawValue)
+                == "com.apple.voice.enhanced.en-US.Tom")
+        settings.narratorVoice = NarratorPreference.automatic
+        #expect(d.object(forKey: SavedDataKey.narratorVoice.rawValue) == nil)
+        // And a reload adopts a stored pick without writing it back.
+        d.set("com.apple.voice.premium.en-US.Ava", forKey: SavedDataKey.narratorVoice.rawValue)
+        settings.reload()
+        #expect(settings.narratorVoice == "com.apple.voice.premium.en-US.Ava")
     }
 
     /// The round trip a device actually performs: every choice a user can

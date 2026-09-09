@@ -21,6 +21,23 @@ magenta key (path 1).
 
 Used by import-flavor-art.py, import-grape-art.py and import-style-art.py.
 
+The 0.9.54 Day-1 icon-repass pass (icon-repass-plan.md §5) adds two edge
+passes and a gate:
+
+  * `snap_key_fringe` — path 1 leaves anti-aliased key/outline blends as
+    opaque magenta-tinted edge pixels (the whiteground audit's side finding:
+    glyph-cog's (174,6,172) rim and friends). One edge pass clears them,
+    using the same key-blend test the campaign slicer already snapped new
+    crops with.
+  * `dehalo` — path 2's border flood clears only pixels with every channel
+    >= 240, so the 200-239 white/ground AA band survives as a 1px near-white
+    halo hugging the silhouette. One guarded erosion removes it; the
+    thin-component guard is what keeps genuine white subjects (Chalk's
+    sticks, White Blossom's petals) untouched.
+  * `assert_magenta_keyed` — the importers refuse a white-ground master
+    outright, so the root cause the audit documents cannot re-enter the
+    bundle silently. The named exemptions live in the importers, not here.
+
 Also holds `resolve_source_dir()`, the one place that knows where the drawn-art
 sources live. Four copies of that lookup are how the path assumption drifted
 away from the tree in the first place (AUDIT H12).
@@ -208,6 +225,165 @@ def _is_magenta(px):
     return a > 0 and r >= 200 and b >= 200 and g <= 80
 
 
+# The near-white floor for the de-halo erode. Deliberately above the flood's
+# WHITE_FLOOR band's bottom: the halo the audit measured is the 230-255 rim
+# (min(r,g,b) >= 230 is the audit's own metric), and reaching lower would put
+# genuinely shaded edge pixels in play.
+HALO_FLOOR = 230
+
+# The key-blend test the campaign slicer (slice-sheets.py) snaps new crops
+# with: strong red AND blue with green far below both is magenta ground
+# bleeding into the outline, never a shipped palette colour (measured across
+# every campaign sheet without an incident — icon-repass-plan.md §5).
+FRINGE_RB_FLOOR = 120
+FRINGE_G_RATIO = 0.35
+
+
+def _is_key_fringe(px):
+    r, g, b, a = px
+    return (
+        a > 0
+        and r > FRINGE_RB_FLOOR
+        and b > FRINGE_RB_FLOOR
+        and g < min(r, b) * FRINGE_G_RATIO
+    )
+
+
+def magenta_coverage(img):
+    """(key pixel count, canvas area), by the exact test `strip_background`
+    gates its path choice on — so callers asking "would this take path 1"
+    and the strip itself can never disagree."""
+    rgba = img.convert("RGBA")
+    px = rgba.load()
+    w, h = rgba.size
+    count = 0
+    for y in range(h):
+        for x in range(w):
+            if _is_magenta(px[x, y]):
+                count += 1
+    return count, w * h
+
+
+def assert_magenta_keyed(img, name):
+    """Refuse a white-ground master, loudly and by name.
+
+    The whiteground audit's root cause was 310 sources generated on a white
+    ground, each silently taking the flood-fill fallback and shipping a 1px
+    near-white halo. Post-repass, every master an importer ingests is drawn
+    on the magenta key `#EE03E1`; this makes that a contract rather than a
+    campaign: a source whose key covers less than the 1% gate (the same gate
+    `strip_background` switches paths on) exits nonzero with the filename,
+    so a white-ground regeneration can never be imported by accident.
+
+    Importers that legitimately ingest non-keyed masters exempt themselves
+    explicitly at their call site, with the reason — never by skipping the
+    call in silence.
+    """
+    count, area = magenta_coverage(img)
+    if count <= area // 100:
+        sys.exit(
+            f"{name}: magenta key #EE03E1 covers {100.0 * count / area:.2f}% of "
+            "pixels (gate: >=1%) — this master looks white-ground. Regenerate it "
+            "on the flat magenta key (icon-repass-plan.md §2), or exempt it by "
+            "name at the importer's call site if it is deliberate."
+        )
+
+
+def snap_key_fringe(img):
+    """Clear the magenta AA fringe on keyed art — path 1's edge pass.
+
+    One iteration over opaque pixels 4-adjacent to transparency: a pixel that
+    passes `_is_key_fringe` there is key bleed into the cel outline, not art,
+    and goes transparent. This is the fringe-snap the campaign slicer already
+    performs on new crops, moved to import time so the pre-campaign keyed
+    chrome cleans up on re-import with no art touched (plan §5, side finding).
+
+    Single pass by design — the candidates are collected before anything is
+    cleared, so the snap cannot eat inward through its own writes.
+    """
+    px = img.load()
+    w, h = img.size
+    doomed = []
+    for y in range(h):
+        for x in range(w):
+            if not _is_key_fringe(px[x, y]):
+                continue
+            for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                if 0 <= nx < w and 0 <= ny < h and px[nx, ny][3] == 0:
+                    doomed.append((x, y))
+                    break
+    for x, y in doomed:
+        r, g, b, _ = px[x, y]
+        px[x, y] = (r, g, b, 0)
+    return img, len(doomed)
+
+
+def dehalo(img):
+    """Erode the 1px white halo on white-ground art — path 2's edge pass.
+
+    The border flood clears only pixels with every channel >= WHITE_FLOOR;
+    the white/outline AA band below that survives as a near-white ring hugging
+    the whole silhouette (measured at 0.16-0.26 of the edge across the
+    white-ground sets — whiteground-audit.md). One conservative erosion:
+
+      * a candidate is opaque, near-white (min(r,g,b) >= HALO_FLOOR), and
+        4-adjacent to transparency;
+      * the **thin-component guard**: a candidate is cleared only when every
+        pixel of its near-white connected component sits within 1px of
+        transparency. A halo is a 1px string along the silhouette; a chalk
+        stick or a petal is a blob with an interior, and the guard leaves
+        blobs alone (plan §5 calls this a requirement, not polish);
+      * one pass, candidates collected before clearing — genuine white art
+        can lose at most nothing, and even a guard failure could cost one
+        edge pixel, never a cascade.
+    """
+    px = img.load()
+    w, h = img.size
+
+    def near_white(x, y):
+        r, g, b, a = px[x, y]
+        return a > 0 and min(r, g, b) >= HALO_FLOOR
+
+    def borders_transparency(x, y, diagonal):
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                if dx == 0 and dy == 0:
+                    continue
+                if not diagonal and dx != 0 and dy != 0:
+                    continue
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < w and 0 <= ny < h and px[nx, ny][3] == 0:
+                    return True
+        return False
+
+    seen = set()
+    doomed = []
+    for sy in range(h):
+        for sx in range(w):
+            if (sx, sy) in seen or not near_white(sx, sy):
+                continue
+            # Flood the whole near-white component before judging any of it.
+            component = []
+            stack = [(sx, sy)]
+            seen.add((sx, sy))
+            while stack:
+                cx, cy = stack.pop()
+                component.append((cx, cy))
+                for nx, ny in ((cx + 1, cy), (cx - 1, cy), (cx, cy + 1), (cx, cy - 1)):
+                    if 0 <= nx < w and 0 <= ny < h and (nx, ny) not in seen and near_white(nx, ny):
+                        seen.add((nx, ny))
+                        stack.append((nx, ny))
+            if not all(borders_transparency(x, y, diagonal=True) for x, y in component):
+                continue  # a blob with interior is subject, not halo
+            doomed.extend(
+                (x, y) for x, y in component if borders_transparency(x, y, diagonal=False)
+            )
+    for x, y in doomed:
+        r, g, b, _ = px[x, y]
+        px[x, y] = (r, g, b, 0)
+    return img, len(doomed)
+
+
 def strip_background(img):
     img = img.convert("RGBA")
     px = img.load()
@@ -219,6 +395,10 @@ def strip_background(img):
         for x, y in keyed:
             r, g, b, _ = px[x, y]
             px[x, y] = (r, g, b, 0)
+        # The AA blends of key and outline fall below `_is_magenta`'s
+        # thresholds and would survive as an opaque magenta-tinted rim
+        # (0.9.54, icon-repass Day 1). See `snap_key_fringe`.
+        img, _ = snap_key_fringe(img)
         return img
 
     # --- Path 2: border-connected white background --------------------------
@@ -248,4 +428,8 @@ def strip_background(img):
         r, g, b, _ = px[x, y]
         px[x, y] = (r, g, b, 0)
 
+    # The 200-239 white/AA band fails `is_white` and would survive as the 1px
+    # halo the whiteground audit measured (0.9.54, icon-repass Day 1). See
+    # `dehalo` — guarded, so interior white subjects stay whole.
+    img, _ = dehalo(img)
     return img

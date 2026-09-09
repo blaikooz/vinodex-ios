@@ -37,10 +37,16 @@ struct ExamTests {
     /// **436 since v0.9.51**: sixteen questions so the paper teaches Batch B's
     /// styles (Vin Jaune, Tokaji Aszú, Marsala, Commandaria) and the countries
     /// the atlas grew — Moldova, Armenia, Cyprus and the newly opened Turkey.
+    ///
+    /// **437 since the v0.9.54 readiness batch**: one beginner question so the
+    /// paper teaches S041 Vinho Verde the day the style lands, on the Batch B
+    /// pattern. The same batch re-anchored thirty existing questions (aroma
+    /// noteKeys now carry their FLAVOR ids; the Cava questions written while
+    /// S034 was retired point at the style again) without adding any.
     @Test("the bank holds the questions it was authored to")
     func bankSize() {
-        #expect(Self.catalog.questions.count == 436, "the exam bank changed size")
-        #expect(Self.catalog.count(tier: .beginner) == 150)
+        #expect(Self.catalog.questions.count == 437, "the exam bank changed size")
+        #expect(Self.catalog.count(tier: .beginner) == 151)
         #expect(Self.catalog.count(tier: .intermediate) == 157)
         #expect(Self.catalog.count(tier: .advanced) == 129)
     }
@@ -88,8 +94,9 @@ struct ExamTests {
         // 0.7.9 (G): the 13 new questions are 12 multiple-choice and one
         // true/false; the other five formats are untouched, which is why only
         // two rows move. v0.9.51 repeats the shape: fifteen multiple-choice
-        // and one true/false, same two rows.
-        #expect(counts[.multipleChoice] == 261)
+        // and one true/false, same two rows. The v0.9.54 readiness batch adds
+        // exactly one multiple-choice (Vinho Verde), so one row moves.
+        #expect(counts[.multipleChoice] == 262)
         #expect(counts[.trueFalse] == 65)
         #expect(counts[.selectAll] == 37)
         #expect(counts[.aromaIdentification] == 23)

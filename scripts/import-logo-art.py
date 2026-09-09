@@ -45,6 +45,12 @@ REPO = Path(__file__).resolve().parent.parent
 # The master's folder name is an artist's filing convention and is not a name
 # this project uses for anything: no type, comment, string or shipped file
 # repeats it. The output below is the naming the app knows.
+#
+# **Exempt from `assert_magenta_keyed`, deliberately** (0.9.54, icon-repass
+# Day 1): this master is not keyed art — it is a clean-alpha render whose
+# glyph face IS white (the audit scores its edge 1.000 white by design), it
+# never goes through `strip_background`, and the split below reads luminance,
+# not a key. The white-ground gate has nothing to protect here.
 MASTER = REPO / "art" / "icons" / "chrome" / "logo" / "vinodex-dvd-icon.png"
 # Through `art_common.output_dir` rather than a literal path so `ART_OUT`
 # redirects it, which is what lets `scripts/verify-art.py` re-run this importer

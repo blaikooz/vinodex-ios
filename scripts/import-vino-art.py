@@ -41,7 +41,7 @@ import sys
 
 from PIL import Image
 
-from art_common import output_dir, quantize_stable, save_stable, strip_background
+from art_common import magenta_coverage, output_dir, quantize_stable, save_stable, strip_background
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -78,7 +78,32 @@ def main():
     os.makedirs(DST, exist_ok=True)
     total_out = 0
     for stem in stems:
-        img = strip_background(Image.open(os.path.join(src, stem + ".png")))
+        path = os.path.join(src, stem + ".png")
+        img = Image.open(path)
+        # **Exempt from `assert_magenta_keyed`, deliberately** (0.9.54,
+        # icon-repass Day 1): these six arrived pre-cut with a real alpha
+        # channel and no key, as the module note explains, so the white-ground
+        # gate every other importer carries would refuse the whole set.
+        #
+        # What is asserted instead is the inverse — the latent trap the
+        # whiteground audit measured: the faces carry 0.3-0.5% embedded
+        # magenta-passing pixels, *under* strip_background's 1% gate. A future
+        # touch that nudges past it (a tighter crop, a magenta-ish edit) would
+        # silently flip them onto the chroma-key path, which punches holes
+        # wherever those in-art pixels sit. Fail loudly instead, per
+        # icon-repass-plan.md §6.2. TODO(icon-repass §3.5): the optional V1
+        # sheet re-exports the set on a clean key; when it lands, replace this
+        # guard with the standard assert_magenta_keyed.
+        count, area = magenta_coverage(img)
+        if count > area // 100:
+            sys.exit(
+                f"{path}: magenta-passing pixels now cover {100.0 * count / area:.2f}% "
+                "of the canvas — over strip_background's 1% key gate. This source is "
+                "pre-cut art with embedded magenta, and the key path would punch holes "
+                "in it. Re-export the face on a clean key (icon-repass-plan.md §3.5) "
+                "before importing."
+            )
+        img = strip_background(img)
         out = os.path.join(DST, PREFIX + stem + ".png")
         save_stable(quantize_stable(img), out, optimize=True)
         total_out += os.path.getsize(out)

@@ -433,6 +433,9 @@ public struct MainMenuScreen: View {
             .shadow(color: mode.controlAccent.bright.opacity(0.4), radius: 7)
         }
         .buttonStyle(DexPressStyle(scale: 0.95))
+        // The dial's centre is the one main-menu control whose face is pure
+        // drawing — no text for VoiceOver to lift (release-readiness B4).
+        .accessibilityLabel("SEARCH")
     }
 }
 

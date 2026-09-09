@@ -39,7 +39,7 @@ import sys
 
 from PIL import Image
 
-from art_common import output_dir, quantize_stable, save_stable, strip_background
+from art_common import assert_magenta_keyed, output_dir, quantize_stable, save_stable, strip_background
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -73,7 +73,12 @@ def main():
     os.makedirs(DST, exist_ok=True)
     total_out = 0
     for stem in stems:
-        img = strip_background(Image.open(os.path.join(src, stem + ".png")))
+        path = os.path.join(src, stem + ".png")
+        img = Image.open(path)
+        # Every face is drawn on the magenta key; a white-ground drop would
+        # silently take the halo-prone flood path (0.9.54, icon-repass Day 1).
+        assert_magenta_keyed(img, path)
+        img = strip_background(img)
         out = os.path.join(DST, stem + ".png")
         # `quantize_stable` + `save_stable` since 0.8.0 (A0b): no library
         # default decides the palette, and a run whose pixels match writes

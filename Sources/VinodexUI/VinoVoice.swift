@@ -1,6 +1,7 @@
 #if canImport(SwiftUI) && canImport(UIKit)
 import AVFoundation
 import Observation
+import VinodexCore
 
 /// **Vinobot's literal voice** (checkpoint V3, round three): the system
 /// speech synthesizer reading his take aloud on an entry page.
@@ -37,42 +38,47 @@ public final class VinoVoice: NSObject, AVSpeechSynthesizerDelegate {
             stop()
             return
         }
+        startUtterance(text)
+    }
+
+    /// The picker's audition: always (re)starts, never toggles off — tapping
+    /// a second voice while the first is still talking should switch, not
+    /// silence.
+    public func preview(_ text: String) {
+        if speaking { synthesizer.stopSpeaking(at: .immediate) }
+        startUtterance(text)
+    }
+
+    private func startUtterance(_ text: String) {
         let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = Self.vinobotVoice
+        utterance.voice = Self.narratorVoice()
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.92
         utterance.pitchMultiplier = 1.02
         synthesizer.speak(utterance)
         speaking = true
     }
 
-    /// The reading voice, chosen once. **Reed** by maintainer order
-    /// (2026-09-08, superseding the same day's Tom ruling): a male
-    /// Eloquence voice that ships in EVERY default install, so the narrator
-    /// is identical on a fresh tester's phone, the sim, and this device —
-    /// no download, no per-device drift. The ladder below it survives for
-    /// non-English devices:
+    /// The reading voice, resolved **per utterance** since 0.9.54 — the
+    /// NARRATOR picker can change it mid-session, and Spoken Content
+    /// downloads can land while the app is open.
     ///
-    /// 1. **Reed** (en-US Eloquence) — on every real iOS 17+ device.
-    /// 2. **Daniel** (en-GB) then **Ralph** (en-US) — the natural male
-    ///    voices the SIMULATOR runtime actually ships; an in-sim query
-    ///    (2026-09-08) proved Eloquence is absent there, which is how the
-    ///    robot kept talking after the Reed ruling.
-    /// 3. Any male voice for the player's own language, then the system
-    ///    default (nil), which never fails. Fred is deliberately no rung:
-    ///    the maintainer retired the robot delivery.
-    static let vinobotVoice: AVSpeechSynthesisVoice? = {
-        for id in [
-            "com.apple.eloquence.en-US.Reed",
-            "com.apple.voice.super-compact.en-GB.Daniel",
-            "com.apple.speech.synthesis.voice.Ralph",
-        ] {
-            if let voice = AVSpeechSynthesisVoice(identifier: id) { return voice }
-        }
-        let language = AVSpeechSynthesisVoice.currentLanguageCode()
-        return AVSpeechSynthesisVoice.speechVoices().first {
-            $0.language.hasPrefix(language.prefix(2)) && $0.gender == .male
-        }
-    }()
+    /// The rule lives in `NarratorPreference` (Core, testable): an explicit
+    /// pick that is still installed wins; otherwise the best downloaded
+    /// English voice (Premium over Enhanced — the maintainer's
+    /// highest-quality-installed ruling, 2026-09-08, standing in for the
+    /// unreachable Siri voice); otherwise the 0.9.53 ladder — Reed
+    /// (en-US Eloquence, every real device), Daniel then Ralph (what the
+    /// simulator runtime actually ships), male-in-language, then nil, which
+    /// never fails. Fred is deliberately no rung: the maintainer retired the
+    /// robot delivery.
+    static func narratorVoice() -> AVSpeechSynthesisVoice? {
+        let chosen = NarratorPreference.choose(
+            from: AVSpeechSynthesisVoice.speechVoices().map(NarratorCandidate.init),
+            preferredID: AppSettings.shared.narratorVoice,
+            languageCode: AVSpeechSynthesisVoice.currentLanguageCode()
+        )
+        return chosen.flatMap(AVSpeechSynthesisVoice.init(identifier:))
+    }
 
     public func stop() {
         synthesizer.stopSpeaking(at: .immediate)
@@ -93,6 +99,85 @@ public final class VinoVoice: NSObject, AVSpeechSynthesizerDelegate {
         didCancel utterance: AVSpeechUtterance
     ) {
         Task { @MainActor in self.speaking = false }
+    }
+}
+
+extension NarratorCandidate {
+    /// The live inventory, flattened to what the choosing rule compares.
+    init(_ voice: AVSpeechSynthesisVoice) {
+        let quality: Int
+        switch voice.quality {
+        case .premium: quality = 3
+        case .enhanced: quality = 2
+        default: quality = 1
+        }
+        self.init(
+            id: voice.identifier,
+            language: voice.language,
+            quality: quality,
+            isMale: voice.gender == .male
+        )
+    }
+}
+
+/// One row of the SETTINGS ▸ NARRATOR picker — the installed inventory,
+/// pre-shaped so the panel never touches `AVFoundation` itself.
+public struct NarratorOption: Identifiable, Sendable, Equatable {
+    public let id: String
+    public let name: String
+    /// "EN-US", "EN-GB", … — the label the row wears beside the name.
+    public let language: String
+    /// "ENHANCED" or "PREMIUM" for downloaded voices; nil for the built-ins.
+    public let qualityLabel: String?
+
+    /// The pickable voices: English first (the catalog's language), best
+    /// quality at the top so a downloaded voice is the first thing seen,
+    /// then name order. Novelty voices (Bells, Zarvox and their circus —
+    /// `isNoveltyVoice`) are left out; a wine encyclopedia read by Bubbles
+    /// is a screenshot, not a setting.
+    @MainActor
+    public static func installed() -> [NarratorOption] {
+        AVSpeechSynthesisVoice.speechVoices()
+            .filter { $0.language.hasPrefix("en") && !$0.isNoveltyVoice }
+            .sorted { a, b in
+                if a.quality.rawValue != b.quality.rawValue {
+                    return a.quality.rawValue > b.quality.rawValue
+                }
+                if a.name != b.name { return a.name < b.name }
+                return a.identifier < b.identifier
+            }
+            .map { voice in
+                let quality: String?
+                switch voice.quality {
+                case .premium: quality = "PREMIUM"
+                case .enhanced: quality = "ENHANCED"
+                default: quality = nil
+                }
+                return NarratorOption(
+                    id: voice.identifier,
+                    name: voice.name.uppercased(),
+                    language: voice.language.uppercased(),
+                    qualityLabel: quality
+                )
+            }
+    }
+
+    /// What the NARRATOR row says when AUTOMATIC is in charge: the voice the
+    /// ladder would pick right now, by name.
+    @MainActor
+    public static func automaticChoiceName() -> String? {
+        VinoVoice.narratorVoice()?.name.uppercased()
+    }
+}
+
+private extension AVSpeechSynthesisVoice {
+    /// The legacy MacinTalk novelty set shares one identifier prefix and a
+    /// `.default` quality; the real voices live elsewhere. Eloquence's Ralph
+    /// (a ladder rung) is NOT under this prefix, so the filter cannot cost
+    /// him — see `NarratorPreference.ladder`.
+    var isNoveltyVoice: Bool {
+        identifier.hasPrefix("com.apple.speech.synthesis.voice.")
+            && identifier != "com.apple.speech.synthesis.voice.Ralph"
     }
 }
 #endif

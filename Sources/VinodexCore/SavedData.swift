@@ -48,7 +48,60 @@ public enum SavedDataKey: String, CaseIterable, Sendable {
     case uiScale             = "uiScale"
     case lcdMode             = "lcdMode"
     case chassisSkin         = "chassisSkin"
+
+    // MARK: The 0.9.54 registration (release-readiness B1)
+    //
+    // Twenty-five keys had grown up outside this registry — exam history,
+    // custom device builds, the tried-day log, quiz completions, passport
+    // and walkthrough ledgers among them — and the backup/restore that is
+    // the advertised migration path silently dropped every one. They are
+    // archived through the OPAQUE lane (`SavedDataKey.opaque` below): each
+    // value round-trips as a plist-coded blob, because its shape belongs to
+    // its store and restating twenty-five schemas here would be the drift
+    // this file exists to prevent.
+    case examResults             = "examResults"
+    case examBestPassStreak      = "examBestPassStreak"
+    case quizTiersCompleted      = "quizTiersCompleted"
+    case triedEntryDays          = "triedEntryDays"
+    case customDevices           = "customDevices"
+    case backPlateStampOffsets   = "backPlateStampOffsets"
+    case marqueeQuickPins        = "marqueeQuickPins"
+    case passportSeenBadges      = "passportSeenBadges"
+    case passportSeenBadgesSeeded = "passportSeenBadgesSeeded"
+    case passportSeenTierRank    = "passportSeenTierRank"
+    case passportSeenTierSeeded  = "passportSeenTierSeeded"
+    case toolIntrosSeen          = "toolIntrosSeen"
+    case firstTimeTriggersSeen   = "firstTimeTriggersSeen"
+    case firstTimeTriggersSeeded = "firstTimeTriggersSeeded"
+    case vinoSilenced            = "vinoSilenced"
+    case vinoMomentLastDay       = "vinoMomentLastDay"
+    case vinoMomentStreakMarks   = "vinoMomentStreakMarks"
+    case coachmarkReached        = "coachmarkReached"
+    case coachmarkOffered        = "coachmarkOffered"
+    case coachmarkCompleted      = "coachmarkCompleted"
+    case dailyRemindersEnabled   = "dailyRemindersEnabled"
+    case inputRVector            = "inputRVector"
+    case inputGVector            = "inputGVector"
+    case inputBVector            = "inputBVector"
+    case inputAVector            = "inputAVector"
+
+    /// The keys archived as opaque plist blobs — see the 0.9.54 block above.
+    /// A key here still gets its own `export`/`apply` arm (the exhaustive
+    /// switches demand it); the arm routes through the shared blob coder.
+    public static let opaque: Set<SavedDataKey> = [
+        .examResults, .examBestPassStreak, .quizTiersCompleted,
+        .triedEntryDays, .customDevices, .backPlateStampOffsets,
+        .marqueeQuickPins, .passportSeenBadges, .passportSeenBadgesSeeded,
+        .passportSeenTierRank, .passportSeenTierSeeded, .toolIntrosSeen,
+        .firstTimeTriggersSeen, .firstTimeTriggersSeeded, .vinoSilenced,
+        .vinoMomentLastDay, .vinoMomentStreakMarks, .coachmarkReached,
+        .coachmarkOffered, .coachmarkCompleted, .dailyRemindersEnabled,
+        .inputRVector, .inputGVector, .inputBVector, .inputAVector,
+    ]
     case hapticsEnabled      = "hapticsEnabled"
     case soundsEnabled       = "soundsEnabled"
     case keepAwakeEnabled    = "keepAwakeEnabled"
+    /// The chosen narrator voice identifier (0.9.54). Absent = AUTOMATIC —
+    /// the ladder in `NarratorPreference` picks the best installed voice.
+    case narratorVoice       = "narratorVoice"
 }

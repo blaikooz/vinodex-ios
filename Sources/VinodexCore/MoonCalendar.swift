@@ -40,7 +40,7 @@ public enum MoonDay: String, Codable, Sendable, CaseIterable, Identifiable {
 
     /// The headline answer, which is the whole reason anyone opens this screen.
     public var verdict: String {
-        isGoodForDrinking ? "GOOD DAY TO DRINK" : "MAYBE NOT TODAY"
+        isGoodForDrinking ? "A FINE DAY FOR WINE" : "THE VINES REST TODAY"
     }
 
     /// What the day is said to favour.

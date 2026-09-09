@@ -788,8 +788,11 @@ nothing on 17 — use a `GeometryReader`.
 `com.example.Vinodex` install only crosses over via BACK UP / RESTORE — see
 "Changing the bundle ID is a one-way door" above.
 
-**`VinodexUI` and `VinodexApp` have no test coverage.** The test target depends
-on `VinodexCore` only, so every UI change is verified by eye on the device.
+**`VinodexApp` has no test coverage, and `VinodexUI`'s is thin.**
+`Tests/VinodexUITests` exists now (footer caps, icon resolution, the theme
+matrix — a dozen-plus tests, macOS-runnable slices only), but the screens
+themselves compile solely for iOS, so UI changes are still verified by eye
+on the device.
 
 ### Fixed, kept as precedent
 
@@ -821,7 +824,7 @@ a subdirectory. It owns everything it needs:
 |---|---|
 | `Sources/`, `Tests/`, `Package.swift`, `xtool.yml` | the app |
 | `shared/` | data + colour tables, pure TS, zero dependencies |
-| `shared/pixelflags/` | pixel-art flags — the one art asset both repos consume, so it lives in the cross-repo master (`HGapps\shared`, mirrored by `sync-shared.ps1`) rather than in `art/`. Source for `Sources/VinodexUI/Resources/Flags`. The pack is R74n's: credited in NOTICE.md, non-commercial without permission (auditS H2) — fine for dev builds; permission has been requested from R74n, and a first-party standby set sits at `art/flags/` for the paid release |
+| `shared/pixelflags/` | pixel-art flags — the one art asset both repos consume, so it lives in the cross-repo master (`HGapps\shared`, mirrored by `sync-shared.ps1`) rather than in `art/`. Source for `Sources/VinodexUI/Resources/Flags`. The pack is R74n's: credited in NOTICE.md and ATTRIBUTION.md; **permission granted 2026-09-07** ("for now please provide credit somewhere" — NOTICE.md records it), which is why v0.9.46 brought the flags home. The first-party standby set at `art/flags/` stays as insurance |
 | `art/` | drawn icon source art + audio masters + the standby code-drawn flag set (`art/flags/`, from `scripts/generate-flag-art.py`), one folder per use |
 | `scripts/` | `generate-ios-data.ts`, `rasterize-icons.sh`, `generate-flag-art.py`, the five art importers, `verify-art.py` |
 

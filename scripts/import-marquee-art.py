@@ -64,7 +64,7 @@ import sys
 
 from PIL import Image
 
-from art_common import output_dir, quantize_stable, save_stable
+from art_common import assert_magenta_keyed, output_dir, quantize_stable, save_stable
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -135,7 +135,14 @@ def main():
     total_out = 0
     total_solid = 0
     for stem in stems:
-        img, solid = key_to_alpha(Image.open(os.path.join(src, stem + ".png")))
+        path = os.path.join(src, stem + ".png")
+        img = Image.open(path)
+        # This importer never calls strip_background, but the key contract is
+        # the same — and stronger here: `key_to_alpha` reads the green channel
+        # as the key-to-ink axis, so a white-ground glyph (g=250 everywhere)
+        # would import as a solid ink rectangle. Gated since 0.9.54.
+        assert_magenta_keyed(img, path)
+        img, solid = key_to_alpha(img)
         total_solid += solid
         out = os.path.join(DST, PREFIX + stem + ".png")
         # `quantize_stable` + `save_stable` since 0.8.0 (A0b): no library

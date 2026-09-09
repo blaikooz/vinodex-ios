@@ -249,6 +249,15 @@ public struct LabelReaderView: View {
             case .unrecognized: noMatchCard(reading)
             }
 
+            // **THE BOTTLE** (0.9.54): the LWIN identification, when the
+            // bundled trade database recognised the label. Below the outcome
+            // card on every path — on a confident read it names the estate the
+            // catalog's style entry cannot, and on a failed one it is often
+            // the only line that says what the bottle actually is.
+            if let matches = reading.lwinMatches, !matches.isEmpty {
+                lwinSection(matches)
+            }
+
             if !reading.grapeIDs.isEmpty {
                 entrySection("POSSIBLE GRAPES", symbol: "circle.grid.3x3.fill", ids: reading.grapeIDs)
             }
@@ -405,6 +414,16 @@ public struct LabelReaderView: View {
                 ForEach(reading.matches) { match in
                     row(match)
                 }
+                // The trade lines (0.9.54, maintainer order): importer and
+                // bottler read straight off the label — printed facts no
+                // catalog holds, so they render as flat rows in the same
+                // ledger.
+                if let importer = reading.importer {
+                    tradeRow("IMPORTER", importer)
+                }
+                if let bottler = reading.bottler {
+                    tradeRow("BOTTLER", bottler)
+                }
             }
 
             confidenceBar(reading.score)
@@ -415,6 +434,24 @@ public struct LabelReaderView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 8).strokeBorder(lcd.accent.opacity(0.45), lineWidth: 2)
         )
+    }
+
+    /// A printed-label fact with no catalog entity behind it — importer and
+    /// bottler render like match rows but never link anywhere.
+    private func tradeRow(_ title: String, _ value: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Text(title)
+                .font(DexFont.retro(10))
+                .tracking(1)
+                .foregroundStyle(lcd.subtext)
+                .frame(width: 92, alignment: .leading)
+            Text(value)
+                .font(DexFont.mono(16))
+                .foregroundStyle(lcd.text)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 
     /// One resolved field. Tappable when it resolves to an entry the user can
@@ -592,6 +629,60 @@ public struct LabelReaderView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 8).strokeBorder(tint.opacity(0.5), lineWidth: 2)
         )
+    }
+
+    /// The trade's answer to "which bottle is this" — up to three LWIN
+    /// records, best first. Flat rows, not links: LWIN names producers and
+    /// bottlings, which have no catalog entity to open (see
+    /// `LabelField.producer`), so these are identification, and the entry
+    /// links around them remain the encyclopedia's half of the answer.
+    private func lwinSection(_ matches: [LWINMatch]) -> some View {
+        section("THE BOTTLE", symbol: "seal.fill") {
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(matches.prefix(3)) { match in
+                    lwinRow(match, leading: match.id == matches.first?.id)
+                }
+                Text("Matched against the LWIN database — 185,000 wines the trade indexes, carried on the device.")
+                    .font(DexFont.mono(13))
+                    .foregroundStyle(lcd.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func lwinRow(_ match: LWINMatch, leading: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(match.producer.uppercased())
+                .font(DexFont.retro(leading ? 13 : 11))
+                .foregroundStyle(leading ? lcd.text : lcd.subtext)
+                .fixedSize(horizontal: false, vertical: true)
+            if !match.wine.isEmpty {
+                Text(match.wine)
+                    .font(DexFont.mono(leading ? 17 : 15))
+                    .foregroundStyle(leading ? lcd.text : lcd.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            let place = [match.region, match.country].compactMap(\.self).joined(separator: " \u{00B7} ")
+            let kind = [match.colour, match.wineType].compactMap(\.self).joined(separator: " ")
+            if !place.isEmpty || !kind.isEmpty {
+                Text([place, kind].filter { !$0.isEmpty }.joined(separator: " \u{00B7} ").uppercased())
+                    .font(DexFont.mono(13))
+                    .foregroundStyle(lcd.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(leading ? lcd.accent.opacity(0.12) : lcd.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .strokeBorder(leading ? lcd.accent.opacity(0.5) : lcd.surfaceEdge, lineWidth: 1)
+        )
+        .accessibilityElement(children: .combine)
     }
 
     @ViewBuilder

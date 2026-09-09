@@ -22,6 +22,150 @@ commit bodies and were reconstructed from the commit subject, the diffstat and
 the version-annotated doc comments throughout `Sources/`. Nothing in them is
 invented — where the record is thin the entry is short.
 
+**Backfilled a second time on 2026-09-09** (release-readiness **B8**): the
+Mac-era sprint from 0.9.3 to 0.9.53 shipped thirteen tags in nine days and this
+file learned about none of them until now. These entries are condensed from the
+annotated tags and the in-app firmware changelog (`shared/data/firmware.ts`),
+which was kept current throughout and remains the richer record. Two versions
+have no tag of their own: 0.9.46 rode inside the v0.9.47 dispatch, and 0.9.51
+inside v0.9.52.
+
+## [0.9.53] — 2026-09-08 · READ ALL ABOUT IT
+
+### Added
+- **Universal READ ALOUD** — every info section (grapes, regions, styles,
+  flavours, countries, continents) reads itself at a tap via a shared
+  full-width button; Reed (Eloquence) on device, Daniel on the simulator,
+  which ships no Eloquence voices.
+- **The bottle journal** (`ScanRecordStore`) — the label reader logs producer,
+  wine, vintage and place as cards on the SCANNED shelf.
+- All 106 flavours carry unique authored blurbs; the last 29 styles sit for
+  portraits (38 of 39 pictured — GSM Blend abstains by design).
+- Body on a smithy scale: feather, laden pan, balance, hammer and anvil.
+
+### Changed
+- Natural-Earth coastlines for Bulgaria, Moldova, Armenia, Cyprus, Turkey;
+  master search pins its bar; firmware history folds into families.
+
+### Fixed
+- Plum portraits redone, Cava's white ghost removed, Cru Beaujolais pours
+  red, icon row-crop scale bug (107 sources tight-recropped).
+
+## [0.9.52] — 2026-09-07 · THE GREAT REPASS
+
+### Changed
+- **158 icons regenerated on the magenta key** — every flavour portrait,
+  taxonomy face, soil, climate and continent; the white halos that haunted
+  the early art are gone. This was the first external-tester build.
+
+## [0.9.51] — 2026-09-07 · THE FINAL POUR *(shipped inside v0.9.52)*
+
+### Added
+- Fourteen grapes (Areni kin to Öküzgözü) with the hybrids policy; Turkey
+  with Cappadocia and Elazığ and a new ASIA cartridge; the SCANNED shelf;
+  five cluster masters moving sixteen grapes to true silhouettes; sixteen
+  exam questions. 529 entries: 221 grapes, 157 regions, 39 styles, 34
+  countries.
+
+### Fixed
+- The globe turns again on iOS 18 (hit-shape fix).
+
+## [0.9.50] — 2026-09-07 · HONEST LEAVES
+
+### Fixed
+- **Riesling wears gold again** — the import pipeline marks each sprite's
+  leaf with a sentinel teal at import time, so the runtime rarity ink paints
+  only the leaf and never a golden bunch mistaken for one.
+
+## [0.9.49] — 2026-09-07 · NEW SHELVES
+
+### Added
+- Batch B: twenty grapes (Malagousia to the two Fetească of Romania), six portrait-less
+  styles (Vin Jaune, Tokaji Aszú, Retsina, Passito, Marsala, Commandaria),
+  Moldova/Armenia/Cyprus with outlines, thirteen regions. 510 entries.
+
+## [0.9.48] — 2026-09-07 · TRUE TO THE VINE
+
+### Changed
+- **Berry truth** — dark grapes hang blue-black under bloom (no wine grape
+  has red berries); golden whites go gold on the vine's evidence; Pedro
+  Ximénez turns green; the dyer grapes go teinturier dark. The triangle
+  bunches are retired for shapes the ampelographies describe.
+
+## [0.9.47] — 2026-09-07 · EVERY GRAPE ITS FACE
+
+### Added
+- Twenty-three flagship grape portraits; every other grape wears a real
+  cluster archetype with per-grape hue shifts; the GODFORSAKEN gnarl; real
+  Cava/Madeira/Crémant portraits; the last ten shared flavour pictures split.
+
+## [0.9.46] — 2026-09-07 · THE FLAGS COME HOME *(shipped inside v0.9.47)*
+
+### Changed
+- **The R74n pixel flags return, by the collective's kind permission** —
+  credit flies in-app and in ATTRIBUTION.md; the first-party standby set
+  stays at `art/flags/`.
+
+## [0.9.45] — 2026-09-01 · MEET VINOBOT
+
+### Added
+- The professor is a robot named VINOBOT: conversational page, replayable
+  tips, MY PICKS, STUDY, exam certificates, a daily greeting, and VINOBOT'S
+  TAKE on every entry — read aloud on request.
+- Ten grapes (Mavrud, Melnik, Zelen, Teran, Chasselas and five more).
+
+### Changed
+- Walkthrough gains NEXT/QUIT and starts on Pinot Noir; CLEAR SAVED DATA
+  exits after wiping so the next launch is a true fresh start.
+
+### Fixed
+- Madeira and Cava, struck off in error in 0.9.42, reinstated.
+
+## [0.9.44] — 2026-09-01 · TRUE COLOURS
+
+### Fixed
+- The moon dial's day/verdict faces, the four STORED DATA button faces and
+  the photo badge draw their art in full colour; blends fly a Various
+  pennant instead of a grey blank. The in-app firmware history caught up.
+
+## [0.9.43] — 2026-08-31 · THE ICON DROP
+
+### Added
+- Fifteen drawn masters across eleven surfaces — the Apple-logo stand-in
+  retired, marquee glyphs a quarter larger in the panel's own ink.
+
+## [0.9.42] — 2026-08-31 · NEW WORLDS
+
+### Added
+- Fifteen regions; Bulgaria, Lebanon, Slovenia and the UK open; Bulgaria's
+  outline. 459 entries.
+
+### Changed
+- Madeira and Cava leave the style shelf (reversed in 0.9.45); scan-earned
+  ranks celebrate on the spot.
+
+## [0.9.41] — 2026-08-31 · SMALL STEPS
+
+### Changed
+- US region scans show STATE under COUNTRY; twelve emblem flags redrawn;
+  profiles start blank; Vino's page slims; the back plate is reached by
+  holding the orb.
+
+## [0.9.4] — 2026-08-31 · SHIP SHAPE
+
+### Changed
+- **The storefront comes off the shell until there is a till behind it** —
+  nothing on the device is for sale; the cheat console and dev panel leave
+  settings; continent pages list only countries with pages; every flag is
+  first-party pixel art (R74n unbundled, later re-permitted in 0.9.46).
+
+## [0.9.3] — 2026-08-31 · SHARED HARVEST
+
+### Added
+- All 177 grapes' characteristics bars authored by hand; Mallorca's Manto
+  Negro with its lineage; the shared-data mirror and master reconciled in
+  both directions. First release on the Mac-native build path (XcodeGen).
+
 ## [0.9.2] — 2026-08-13
 
 ### Changed

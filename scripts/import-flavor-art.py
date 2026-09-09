@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Imports the pixel-art flavour portraits into the app bundle.
 
-Sources are the hand-drawn PNGs in art/icons/entries/flavors. They ship
-on a near-white opaque ground, so this pass:
+Sources are the hand-drawn PNGs in art/icons/entries/flavors. Since the
+0.9.52 icon repass every one is drawn on the magenta key, and this pass:
 
-  1. removes the background via the shared pass in art_common.py — the
-     border-connected flood only, so interior/subject white survives
-     (0.5.7 item B2);
+  1. asserts the key is actually there (`assert_magenta_keyed`, 0.9.54 —
+     a white-ground master fails the import by name rather than silently
+     taking the halo-prone flood path) and removes the background via the
+     shared pass in art_common.py;
   2. palette-quantises (flat cel shading, so 256 colours is lossless in
      practice and the files drop to a fraction of the size);
   3. writes each as <stem>.png into Sources/VinodexUI/Resources/FlavorArt.
@@ -27,6 +28,7 @@ import sys
 from PIL import Image
 
 from art_common import (
+    assert_magenta_keyed,
     output_dir,
     quantize_stable,
     resolve_source_dir,
@@ -66,7 +68,9 @@ def main():
         if path is None:
             missing.append(stem)
             continue
-        img = strip_background(Image.open(path))
+        img = Image.open(path)
+        assert_magenta_keyed(img, path)
+        img = strip_background(img)
         out = os.path.join(DST, stem + ".png")
         # `quantize_stable` + `save_stable` since 0.8.0 (A0b): no library
         # default decides the palette, and a run whose pixels match writes

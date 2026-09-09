@@ -61,13 +61,29 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.9.54",
+  date: "2026-09-09",
+  headline: "FIT FOR THE SHELF",
+  notes: [
+    "The label reader knows the bottle itself: 185,000 wines from the trade's own LWIN index, carried on the device and matched with no network at all.",
+    "THE BOTTLE names producer and bottling on every scan, and the fine print joins it: importer and bottler lines read straight off the label.",
+    "SETTINGS gains a NARRATOR: pick any installed English voice and hear it answer, or let AUTOMATIC reach for the best voice you have downloaded.",
+    "On iPad the whole handheld fills the screen in proportion, edge to edge.",
+    "Vinho Verde pours as the fortieth style, and the atlas fills its blanks: every region names its soils, its climate and its appellations.",
+    "Forty grapes learn the other names they go by in the books, and every exam question anchors true.",
+    "BACK UP carries everything at last: exam history, custom devices, walkthrough progress and two dozen more ride the archive.",
+    "A fitting walk: VoiceOver speaks every control's name, the last icons lose their halos, and the moon says plainly: A FINE DAY FOR WINE.",
+  ],
+};
+
+const PREVIOUS_0953: FirmwareRelease = {
   version: "0.9.53",
   date: "2026-09-08",
   headline: "READ ALL ABOUT IT",
   notes: [
     "Every info section reads itself aloud at a tap, in a real narrator's voice: grapes, regions, styles, flavours, countries and continents.",
     "All one hundred and six flavours carry unique authored entries: what each is, how it reaches the wine, and one grape that carries it.",
-    "The last twenty-nine styles sit for portraits, so every bottle on the shelf has its picture.",
+    "The last twenty-nine styles sit for portraits: thirty-eight of thirty-nine bottles pictured, with GSM Blend abstaining by design.",
     "The label reader keeps a bottle journal: producer, vintage and place, logged as cards on your SCANNED shelf.",
     "Body weighs in on a smithy scale: feather, laden pan, balance, hammer and anvil.",
     "Bulgaria, Moldova, Armenia, Cyprus and Turkey trade rough outlines for true coastlines drawn from real map data.",
@@ -430,6 +446,7 @@ const PREVIOUS_0892: FirmwareRelease = {
 };
 
 const PREVIOUS: FirmwareRelease[] = [
+  PREVIOUS_0953,
   PREVIOUS_0952,
   PREVIOUS_0951,
   PREVIOUS_0950,

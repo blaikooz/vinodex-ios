@@ -107,12 +107,14 @@ struct DeviceBackPlate: View {
                 .padding(.leading, 30)
                 .padding(.bottom, 96)
                 .allowsHitTesting(false)
-            PlateDecal(.priceTag, width: 96) { RippedPriceTag() }
-                .rotationEffect(.degrees(8))
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .padding(.trailing, 34)
-                .padding(.top, 104)
-                .allowsHitTesting(false)
+            // The ripped price-tag decal was removed 0.9.54 (release
+            // readiness B2): a hard-currency string in an app with no IAP is
+            // 3.1.1 pattern-match bait. `RippedPriceTag` stays below, dormant,
+            // for a post-StoreKit return. (The first cut of the removal took
+            // the decal but left its modifier chain, which silently attached
+            // itself to the barcode above and dragged it to the tag's old
+            // top-trailing corner — the maintainer caught it on the iPad
+            // walk.)
 
             // **The two loose postage stamps are gone (0.8.7, A1).** 0.8.5's F1
             // read `stamp1.png` and `stamp2.png` as the plate's own franking and
