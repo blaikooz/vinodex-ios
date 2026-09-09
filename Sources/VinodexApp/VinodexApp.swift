@@ -508,6 +508,27 @@ struct RootView: View {
         .preferredColorScheme(.dark)
         .statusBarHidden()
         .onAppear {
+            // **Screenshot mode** (0.9.55, DEBUG only). `-vinodexScreenshot
+            // <name>` lands the app on one named screen with the boot
+            // sequence already finished, so the App Store images can be
+            // captured from the command line.
+            //
+            // Why it earns its place rather than being a hack: the store
+            // images have to be reshot every release, the simulator offers no
+            // way to tap, and the alternative is a hand-driven session per
+            // release — which is exactly the chore that leaves a listing
+            // showing a build from two months ago.
+            //
+            // `#if DEBUG` because this is a back door by construction: a
+            // shipped build must not be arguable onto an arbitrary screen at
+            // launch. Release builds do not compile these lines at all.
+            #if DEBUG
+            if let opening = Self.screenshotRoute() {
+                booting = false
+                path = opening
+            }
+            #endif
+
             // Before anything reads TEXT SIZE. A no-op on every launch after the
             // first, and on any device where the user has set it themselves.
             //
@@ -616,6 +637,36 @@ struct RootView: View {
     }
 
     // MARK: Demo mode (0.7.3, A2)
+
+    #if DEBUG
+    /// The screenshot vocabulary: `-vinodexScreenshot <name>` to a route
+    /// stack. Names belong to `scripts/shoot-store-screenshots.sh` rather
+    /// than to the app, so the script can be re-aimed without touching a
+    /// route. `detail:<id>` passes an entry id straight through, which is how
+    /// the shoot picks its grape without a case per variety.
+    static func screenshotRoute() -> [DexRoute]? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let flag = args.firstIndex(of: "-vinodexScreenshot"),
+              args.index(after: flag) < args.endIndex else { return nil }
+        let name = args[args.index(after: flag)]
+        if name.hasPrefix("detail:") {
+            return [.detail(entryID: String(name.dropFirst("detail:".count)))]
+        }
+        switch name {
+        case "menu":     return []
+        case "grapes":   return [.list(category: .grapes, filter: nil)]
+        case "globe":    return [.globe]
+        case "scanner":  return [.labelReader]
+        case "passport": return [.passport]
+        case "exam":     return [.wsetQuiz]
+        case "moon":     return [.moonDial]
+        case "shelves":  return [.bookmarks]
+        case "settings": return [.settings]
+        case "firmware": return [.firmwareHistory]
+        default:         return nil
+        }
+    }
+    #endif
 
     /// Start the attract loop from the System panel.
     ///
