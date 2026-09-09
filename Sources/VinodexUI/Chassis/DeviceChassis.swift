@@ -444,7 +444,13 @@ public struct DeviceChassis<Content: View>: View {
             // which also survives iPadOS 26's resizable windowing (where
             // UIRequiresFullScreen no longer pins anything). The skin's
             // underlay fills the surround below.
-            .frame(maxWidth: 440, maxHeight: .infinity)
+            // Height too, not width alone (the first cut clamped only width,
+            // and the 13" iPad stretched the chassis to 1366pt with the
+            // orb/LED strip stranded at the screen's own top edge). 440x956
+            // is the iPhone Pro Max footprint — on anything phone-sized the
+            // caps never bind, and on an iPad the whole composition, island
+            // strip included, floats centered as one handheld.
+            .frame(maxWidth: 440, maxHeight: 956)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
         }
