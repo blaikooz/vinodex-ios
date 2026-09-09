@@ -89,6 +89,30 @@ trademarks and statute-protected emblems that the app never uses; deleting
 that folder is tracked as auditS M5 and this inventory does not endorse
 redistributing it.
 
+## Wine index — LWIN by Liv-ex (bundled in-app, CC BY 4.0, modified)
+
+`Sources/VinodexCore/Resources/lwin.tsv` is a subset of the Liv-ex Wine
+Identification Number (LWIN) database, shipped so the label reader can
+identify a bottle entirely offline (0.9.54). Liv-ex publishes LWIN under
+the [Creative Commons Attribution 4.0 International
+licence](licenses/LICENSE-lwin.txt)
+([original](https://creativecommons.org/licenses/by/4.0/legalcode)), which
+permits redistribution — including in a commercial app — on the condition
+that the licensor is credited, the licence identified, and modifications
+stated.
+
+**The bundled file is modified.** Only `STATUS = Live` rows of
+`TYPE = Wine` or `Fortified Wine` are kept — spirits, beer, cider, sake and
+the combined and deleted records are dropped, taking 211,786 rows to
+184,968 — and the surviving fields (LWIN-7, display name, country, region,
+colour, category) are re-encoded into the packed format `LWINIndex` reads.
+No row's meaning was changed. See [ATTRIBUTION.md](ATTRIBUTION.md) and the
+header of `scripts/generate-lwin-index.py` for the full provenance,
+including the source hash and snapshot date.
+
+Credit: **wine index: LWIN by Liv-ex, CC BY 4.0, modified** — given here
+and in-app on the FIRMWARE screen.
+
 ## First-party assets (all rights reserved — see LICENSE)
 
 - **Drawn art** — the 254 assets regenerated from `art/` (the `art:*` glyph
