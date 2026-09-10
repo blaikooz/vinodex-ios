@@ -3,55 +3,65 @@ import SwiftUI
 import UIKit
 import VinodexCore
 
-/// **The France region map** (0.9.55) — a test of a richer country view.
+/// **A country's painted region map** (0.9.55) — a test of a richer country
+/// view. France and Italy have one; the roster is `RegionMap.mapped`.
 ///
-/// Fourteen wine regions painted onto a projected France, over a backdrop of
-/// sea, continental shelf and 107 neighbouring countries. Tap inside the
-/// country and it resolves to a region; the map shrinks to a band and the
-/// catalog entries behind that region arrive as full tiles.
+/// The country's wine regions painted onto its projected outline, over a
+/// backdrop of sea, continental shelf and neighbouring countries. Tap inside
+/// the country and it resolves to a region; the chosen area lifts off the map
+/// in place and its catalog entries arrive as full tiles beneath.
 ///
 /// ## Why the tap is a colour lookup and not fourteen buttons
 ///
 /// At phone width the base map is about 2.1pt per logical pixel, and **seven
-/// of the fourteen regions have a bounding box under Apple's 44pt minimum —
-/// Bordeaux among them, at 38pt**. Fourteen 44pt targets do not fit on a
-/// phone-width France, and France is nearly square, so a taller phone buys
-/// nothing. Buttons were never available here.
+/// of France's fourteen regions have a bounding box under Apple's 44pt
+/// minimum — Bordeaux among them, at 38pt**. Fourteen 44pt targets do not fit
+/// on a phone-width France, and France is nearly square, so a taller phone
+/// buys nothing. Italy is worse: it is long and thin, so fitting its length
+/// on screen leaves its regions narrower still. Buttons were never available.
 ///
 /// So the tap samples the pixel under the finger on the *interactive* layer
 /// and matches it against the manifest's fills. Three outcomes:
 ///
 /// - A fill matches. That is the region.
 /// - The pixel is transparent — the chroma key, which the interactive layer
-///   carries everywhere that is not France. The tap was in the sea or in a
-///   neighbouring country: **nothing happens.**
-/// - The pixel is stone or coastline ink: inside France, but on a département
-///   no wine region claims. Search outward for the nearest painted pixel.
+///   carries everywhere outside the country. The tap was in the sea or in a
+///   neighbour: **nothing happens.**
+/// - The pixel is stone or coastline ink: inside the country, but on an
+///   admin-1 unit no wine region claims. Search outward for the nearest
+///   painted pixel.
 ///
 /// **That outward search is the design, not a fallback.** There is no dead
-/// space *inside* France, and a small region's catchment is far larger than
-/// its footprint: a tap in the Charentes lands on Bordeaux, which is the
-/// right answer for someone who does not know why that part is grey. What
-/// the backdrop buys beyond atmosphere is the middle case — before it,
-/// everything outside France was the same key as the unassigned interior, so
-/// a tap in the Atlantic had to resolve to *something*, and answered with a
-/// region 135 pixels away.
-public struct FranceMapScreen: View {
+/// space *inside* the country, and a small region's catchment is far larger
+/// than its footprint: a tap in the Charentes lands on Bordeaux, which is the
+/// right answer for someone who does not know why that part is grey. What the
+/// backdrop buys beyond atmosphere is the middle case — before it, everything
+/// outside France was the same key as the unassigned interior, so a tap in
+/// the Atlantic had to resolve to *something*, and answered with a region 135
+/// pixels away.
+public struct RegionMapScreen: View {
     var settings: AppSettings = .shared
     private var lcd: LcdMode { settings.lcdMode }
 
     private let db: WineDatabase
+    /// The catalog's spelling — "France", "Italy".
+    let country: String
     @State private var access = AccessStore.shared
     @State private var bookmarks = BookmarkStore.shared
     /// The painted area under the last tap, or nil for the whole country.
     @State private var selected: String?
     let onSelectRegion: (WineEntry) -> Void
 
-    public init(db: WineDatabase = .shared, onSelectRegion: @escaping (WineEntry) -> Void) {
+    public init(
+        db: WineDatabase = .shared,
+        country: String,
+        onSelectRegion: @escaping (WineEntry) -> Void
+    ) {
         self.db = db
+        self.country = country
         self.onSelectRegion = onSelectRegion
         #if DEBUG
-        // `-vinodexScreenshot france:bordeaux` opens with a region already
+        // `-vinodexScreenshot map:france:bordeaux` opens with a region already
         // chosen. The simulator cannot be sent a tap, so without this the
         // panel — half the screen — could only ever be photographed empty.
         _selected = State(initialValue: Self.screenshotStem())
@@ -64,36 +74,39 @@ public struct FranceMapScreen: View {
         guard let flag = args.firstIndex(of: "-vinodexScreenshot"),
               args.index(after: flag) < args.endIndex else { return nil }
         let name = args[args.index(after: flag)]
-        guard name.hasPrefix("france:") else { return nil }
-        return String(name.dropFirst("france:".count))
+        // `map:italy:tuscany` — country and stem, so either map can be
+        // photographed with a region already chosen.
+        let parts = name.split(separator: ":")
+        guard parts.count == 3, parts[0] == "map" else { return nil }
+        return String(parts[2])
     }
     #endif
 
-    private var atlas: FranceAtlas? { FranceAtlas.shared }
+    private var atlas: RegionAtlas? { RegionAtlas.of(country) }
 
-    /// **One page, no scrolling — the map yields the room.**
-    ///
-    /// Untouched, the map has the whole page: it is what you came to tap, and
-    /// the world behind it is worth the space. Choosing a region shrinks it
-    /// to a band and gives the rest to full entry tiles, which are the tiles
-    /// every other list in the app uses and are three times the height of a
-    /// compact row. Four of them — `southwest`'s — plus a full-page map do
-    /// not fit a page that may not scroll, so something had to give, and the
-    /// maintainer's ruling is that it is the map.
+    /// **The map keeps its size; the tiles scroll under it.**
     public var body: some View {
         VStack(spacing: 10) {
             if let atlas {
+                // **The map keeps its size when a region is chosen**
+                // (maintainer order, reversing the shrink). It is what you
+                // came to tap and what you tap next, so it holds the top of
+                // the page at a fixed height and the tiles scroll underneath
+                // it. The page no longer fits on one screen with full tiles —
+                // four of Italy's are taller than the LCD on their own — so
+                // what "one page" now buys is that the *map* never scrolls
+                // away, which was the part that mattered.
                 mapCard(atlas)
-                    .frame(maxHeight: selected == nil ? .infinity : Self.bandHeight)
+                    .frame(height: Self.mapHeight)
                 if let stem = selected {
-                    tiles(atlas, stem: stem)
-                        .frame(maxHeight: .infinity, alignment: .top)
+                    ScrollView { tiles(atlas, stem: stem) }
                 } else {
-                    Text("Tap anywhere in France. Every tap lands on a region — the nearest one, if you miss the small ones. The sea and its neighbours are not France, and do nothing.")
+                    Text("Tap anywhere in \(country). Every tap lands on a region — the nearest one, if you miss the small ones. The sea and its neighbours do nothing.")
                         .font(DexFont.mono(16))
                         .foregroundStyle(lcd.subtext)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                    Spacer(minLength: 0)
                 }
             } else {
                 DexSectionEmpty(symbol: "map.slash", message: "MAP NOT INSTALLED")
@@ -104,10 +117,10 @@ public struct FranceMapScreen: View {
         .animation(DexMotion.settle, value: selected)
     }
 
-    /// What the map shrinks to once a region is chosen — enough that France
-    /// is still recognisable and still tappable, since choosing again without
-    /// going back is the whole point of probing a hit test.
-    private static let bandHeight: CGFloat = 210
+    /// The map's height, chosen and unchanging. Big enough that Italy's
+    /// narrow regions and France's small ones are still worth aiming at, and
+    /// the same before and after a choice so nothing moves under the finger.
+    private static let mapHeight: CGFloat = 340
     /// The box every detail drawing is fitted into. The renderer normalises
     /// each to a 310px long axis, but their aspects run from Loire's 310x145
     /// to Corsica's 140x310; fitting them all into one square is what makes
@@ -116,22 +129,25 @@ public struct FranceMapScreen: View {
 
     // MARK: The map
 
-    private func mapCard(_ atlas: FranceAtlas) -> some View {
+    private func mapCard(_ atlas: RegionAtlas) -> some View {
         VStack(spacing: 10) {
             GeometryReader { geo in
-                // **Sized by France, not by the canvas.** The canvas is
-                // mostly world — France is about a third of it — so
-                // aspect-fitting the whole thing would shrink France to a
-                // third of the screen and take every tap target with it.
-                // Instead the pair is scaled until France's own rect fills
-                // the width, and the sea and neighbours bleed off the edges
-                // under the clip below. See `FranceMap.franceRect`.
+                // **Sized by the country, not by the canvas.** The canvas is
+                // mostly world — the country is about a third of it — so
+                // aspect-fitting the whole thing would shrink it to a third
+                // of the screen and take every tap target with it. Instead
+                // the pair is scaled until the country's own rect fills the
+                // width, and the sea and neighbours bleed off the edges
+                // under the clip below. See `RegionMap.subjectRect`.
                 let art = atlas.baseSize
-                let fr = atlas.map.franceRect
+                let fr = atlas.map.subjectRect
                 let inset: CGFloat = 8
-                // France fills the width when there is height to spare, and
-                // fits the height when there is not. One `min` covers both
-                // because it is France's rect being fitted, never the canvas:
+                // The country fills the width when there is height to spare,
+                // and fits the height when there is not. One `min` covers
+                // both because it is the country's rect being fitted, never
+                // the canvas — and the two need opposite answers: France is
+                // nearly square so the width binds, Italy is long and thin so
+                // the height does.
                 // on the full page the width binds and the world fills the
                 // rest of the height, and in the shrunken band the height
                 // binds so the *whole* country stays on screen. That second
@@ -229,7 +245,7 @@ public struct FranceMapScreen: View {
     /// `EntryTileView` every list in the app uses, so a region reached from
     /// the map looks like a region reached any other way.
     @ViewBuilder
-    private func tiles(_ atlas: FranceAtlas, stem: String) -> some View {
+    private func tiles(_ atlas: RegionAtlas, stem: String) -> some View {
         let entries = atlas.map.regionIDs(for: stem).compactMap { db.entry(id: $0) }
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
@@ -291,23 +307,63 @@ public struct FranceMapScreen: View {
 /// The unpinned base map, sized for the REGIONS section of France's country
 /// page (0.9.55). Replaces the dotted outline there by maintainer order —
 /// the outline art itself and every other country's page are untouched.
-struct FranceMapThumb: View {
+struct RegionMapThumb: View {
     var settings: AppSettings = .shared
     private var lcd: LcdMode { settings.lcdMode }
+    let country: String
     let onOpen: () -> Void
 
+    /// A little more than the 132pt outline this replaces — the painted map
+    /// carries fourteen or twenty-one colours where the outline carried a
+    /// silhouette and some dots, so it earns the extra height — but nowhere
+    /// near enough to take over the page it sits on.
+    static let thumbHeight: CGFloat = 168
+
     var body: some View {
-        if let atlas = FranceAtlas.shared {
+        if let atlas = RegionAtlas.of(country) {
             Button {
                 Haptics.screenTap()
                 onOpen()
             } label: {
                 VStack(spacing: 4) {
-                    Image(uiImage: atlas.base)
-                        .interpolation(.none)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(maxWidth: .infinity)
+                    // **Cropped to the country, not the canvas.** The canvas
+                    // is mostly world now and the country is about a third of
+                    // it, so drawing the whole thing shrank France to a stamp
+                    // in a field of nothing — the interactive layer is keyed,
+                    // so that field is transparent and reads as wasted space.
+                    // Here the layer is scaled until the subject rect fills
+                    // the width and offset so it is what you see, which puts
+                    // the country back at roughly the size the dotted outline
+                    // it replaced used to be.
+                    GeometryReader { geo in
+                        let art = atlas.baseSize
+                        let r = atlas.map.subjectRect
+                        // Fitted, not filled. Letting the country fill the
+                        // width made this section 318pt tall for France and
+                        // 436pt for Italy — against the 132pt dotted outline
+                        // it replaced, which is a thumbnail becoming the page.
+                        // Fitting inside a capped height instead puts both
+                        // countries at a comparable size whatever their shape,
+                        // which is also what stops long thin Italy dwarfing
+                        // squat France on the two pages.
+                        let scale = min(
+                            geo.size.width / (CGFloat(r.w) * art.width),
+                            geo.size.height / (CGFloat(r.h) * art.height)
+                        )
+                        let w = art.width * scale
+                        let h = art.height * scale
+                        Image(uiImage: atlas.base)
+                            .interpolation(.none)
+                            .resizable()
+                            .frame(width: w, height: h)
+                            .offset(
+                                x: geo.size.width / 2 - CGFloat(r.x + r.w / 2) * w,
+                                y: geo.size.height / 2 - CGFloat(r.y + r.h / 2) * h
+                            )
+                    }
+                    .frame(height: Self.thumbHeight)
+                    .frame(maxWidth: .infinity)
+                    .clipped()
                     Text("TAP TO EXPLORE THE REGIONS")
                         .font(DexFont.retro(10))
                         .tracking(1)
@@ -326,10 +382,24 @@ struct FranceMapThumb: View {
 /// That is cheap once and wasteful on every re-render, and the view re-renders
 /// on every tap.
 @MainActor
-final class FranceAtlas {
-    static let shared = FranceAtlas()
+final class RegionAtlas {
+    /// One atlas per country, built once. The pixel table costs a pass over
+    /// six million pixels for Italy, which is cheap once and wasteful on
+    /// every re-render — and the view re-renders on every tap.
+    private static var cache: [String: RegionAtlas] = [:]
 
-    let map: FranceMap
+    static func of(_ country: String) -> RegionAtlas? {
+        guard let key = RegionMap.key(forCountry: country) else { return nil }
+        if let hit = cache[key] { return hit }
+        guard let built = RegionAtlas(key) else { return nil }
+        cache[key] = built
+        return built
+    }
+
+    /// The resource-directory name — `france`, `italy`.
+    let key: String
+
+    let map: RegionMap
     /// The interactive layer: France only, everything else keyed away. This
     /// is the one that gets sampled.
     let base: UIImage
@@ -365,13 +435,14 @@ final class FranceAtlas {
     private let w: Int, h: Int
     private var details: [String: UIImage] = [:]
 
-    private init?() {
-        guard let manifestURL = Self.url("france-manifest", "json"),
-              let indexURL = Self.url("france-region-index", "json"),
-              let baseURL = Self.url("france-regions", "png"),
+    private init?(_ key: String) {
+        self.key = key
+        guard let manifestURL = Self.url(key, "\(key)-manifest", "json"),
+              let indexURL = Self.url(key, "\(key)-region-index", "json"),
+              let baseURL = Self.url(key, "\(key)-regions", "png"),
               let manifest = try? Data(contentsOf: manifestURL),
               let index = try? Data(contentsOf: indexURL),
-              let map = try? FranceMap(manifest: manifest, index: index),
+              let map = try? RegionMap(manifest: manifest, index: index),
               let image = UIImage(contentsOfFile: baseURL.path),
               let cg = image.cgImage
         else { return nil }
@@ -379,7 +450,7 @@ final class FranceAtlas {
         self.map = map
         self.base = image
         self.baseSize = image.size
-        self.backdrop = Self.url("france-backdrop", "png")
+        self.backdrop = Self.url(key, "\(key)-backdrop", "png")
             .flatMap { UIImage(contentsOfFile: $0.path) }
 
         // Everything below works in locals and assigns at the end: the
@@ -397,14 +468,14 @@ final class FranceAtlas {
             ) else { return }
             ctx.draw(cg, in: CGRect(x: 0, y: 0, width: width, height: height))
         }
-        var lookup: [FranceMap.RGB: UInt8] = [:]
+        var lookup: [RegionMap.RGB: UInt8] = [:]
         for (i, region) in map.regions.enumerated() { lookup[region.fill] = UInt8(i) }
         for p in 0..<(width * height) {
             let o = p * 4
             // Transparent stays `outside`: the magenta key was stripped at
             // install, so alpha is exactly the coastline.
             guard raw[o + 3] > 0 else { continue }
-            let rgb = FranceMap.RGB(r: Int(raw[o]), g: Int(raw[o + 1]), b: Int(raw[o + 2]))
+            let rgb = RegionMap.RGB(r: Int(raw[o]), g: Int(raw[o + 1]), b: Int(raw[o + 2]))
             table[p] = lookup[rgb] ?? Self.unassigned
         }
         self.w = width
@@ -412,18 +483,19 @@ final class FranceAtlas {
         self.stems = table
     }
 
-    private static func url(_ name: String, _ ext: String) -> URL? {
+    private static func url(_ key: String, _ name: String, _ ext: String) -> URL? {
         // `Bundle.module` directly rather than through `DexAsset`: adding a
         // case there would enlist `DexAssetAudit` to police this directory,
         // and the drop's §6 is explicit that no gate should gain a new tree
         // to walk for a test. `Maps` is already declared and already owned by
         // another loader, so nothing here is unaccounted for.
-        Bundle.module.url(forResource: name, withExtension: ext, subdirectory: "Maps/france")
+        Bundle.module.url(forResource: name, withExtension: ext,
+                          subdirectory: "Maps/" + key)
     }
 
     func detail(_ stem: String) -> UIImage? {
         if let hit = details[stem] { return hit }
-        guard let url = Self.url("map-" + stem, "png"),
+        guard let url = Self.url(key, "map-" + stem, "png"),
               let art = UIImage(contentsOfFile: url.path) else { return nil }
         details[stem] = art
         return art

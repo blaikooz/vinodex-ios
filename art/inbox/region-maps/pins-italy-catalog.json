@@ -1,0 +1,149 @@
+[
+ {
+  "id": "R021",
+  "name": "Tuscany",
+  "lon": 11.331,
+  "lat": 43.318,
+  "expect": "tuscany"
+ },
+ {
+  "id": "R022",
+  "name": "Piedmont",
+  "lon": 8.035,
+  "lat": 44.7,
+  "expect": "piedmont"
+ },
+ {
+  "id": "R023",
+  "name": "Veneto",
+  "lon": 10.993,
+  "lat": 45.438,
+  "expect": "veneto"
+ },
+ {
+  "id": "R024",
+  "name": "Sicily",
+  "lon": 12.437,
+  "lat": 37.803,
+  "expect": "sicily"
+ },
+ {
+  "id": "R025",
+  "name": "Campania",
+  "lon": 14.79,
+  "lat": 40.914,
+  "expect": "campania"
+ },
+ {
+  "id": "R026",
+  "name": "Friuli-Venezia Giulia",
+  "lon": 13.236,
+  "lat": 46.063,
+  "expect": "friuli"
+ },
+ {
+  "id": "R027",
+  "name": "Alto Adige",
+  "lon": 11.354,
+  "lat": 46.499,
+  "expect": "altoadige"
+ },
+ {
+  "id": "R028",
+  "name": "Abruzzo",
+  "lon": 14.167,
+  "lat": 42.351,
+  "expect": "abruzzo"
+ },
+ {
+  "id": "R029",
+  "name": "Puglia",
+  "lon": 17.633,
+  "lat": 40.401,
+  "expect": "puglia"
+ },
+ {
+  "id": "R064",
+  "name": "Marche",
+  "lon": 13.244,
+  "lat": 43.524,
+  "expect": "marche"
+ },
+ {
+  "id": "R069",
+  "name": "Sardinia",
+  "lon": 9.113,
+  "lat": 39.216,
+  "expect": "sardinia"
+ },
+ {
+  "id": "R070",
+  "name": "Trentino",
+  "lon": 11.121,
+  "lat": 46.067,
+  "expect": "trentino"
+ },
+ {
+  "id": "R071",
+  "name": "Valpolicella",
+  "lon": 10.867,
+  "lat": 45.533,
+  "expect": "veneto"
+ },
+ {
+  "id": "R072",
+  "name": "Emilia-Romagna",
+  "lon": 11.343,
+  "lat": 44.494,
+  "expect": "emiliaromagna"
+ },
+ {
+  "id": "R073",
+  "name": "Etna",
+  "lon": 15.004,
+  "lat": 37.752,
+  "expect": "sicily"
+ },
+ {
+  "id": "R074",
+  "name": "Collio",
+  "lon": 13.499,
+  "lat": 45.952,
+  "expect": "friuli"
+ },
+ {
+  "id": "R100",
+  "name": "Umbria",
+  "lon": 12.646,
+  "lat": 42.889,
+  "expect": "umbria"
+ },
+ {
+  "id": "R109",
+  "name": "Lombardy",
+  "lon": 10.048,
+  "lat": 45.568,
+  "expect": "lombardy"
+ },
+ {
+  "id": "R110",
+  "name": "Lazio",
+  "lon": 12.68,
+  "lat": 41.809,
+  "expect": "lazio"
+ },
+ {
+  "id": "R111",
+  "name": "Calabria",
+  "lon": 17.07,
+  "lat": 39.383,
+  "expect": "calabria"
+ },
+ {
+  "id": "R112",
+  "name": "Basilicata",
+  "lon": 15.677,
+  "lat": 40.923,
+  "expect": "basilicata"
+ }
+]

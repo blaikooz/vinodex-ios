@@ -652,9 +652,16 @@ struct RootView: View {
         if name.hasPrefix("detail:") {
             return [.detail(entryID: String(name.dropFirst("detail:".count)))]
         }
-        // `france:<stem>` opens the map with that region already chosen —
-        // `FranceMapScreen` reads the stem for itself.
-        if name.hasPrefix("france:") { return [.franceMap] }
+        // `map:<country>` opens a region map; `map:<country>:<stem>` opens
+        // it with that region already chosen, which `RegionMapScreen` reads
+        // for itself. The simulator cannot be sent a tap, so without the
+        // three-part form the tiles could only be photographed empty.
+        if name.hasPrefix("map:") {
+            let parts = name.split(separator: ":")
+            if parts.count >= 2 {
+                return [.regionMap(country: String(parts[1]).capitalized)]
+            }
+        }
         switch name {
         case "menu":     return []
         case "grapes":   return [.list(category: .grapes, filter: nil)]
@@ -668,8 +675,8 @@ struct RootView: View {
         case "firmware": return [.firmwareHistory]
         // The France region map, and the country page it is reached from —
         // the second so the door itself can be looked at, not just the room.
-        case "france":   return [.franceMap]
         case "country":  return [.country(name: "France")]
+        case "country-italy": return [.country(name: "Italy")]
         default:         return nil
         }
     }
@@ -1079,7 +1086,7 @@ struct RootView: View {
                 // The screen itself decides whether to draw the door, so a
                 // second country getting a map is a change there and here,
                 // not a change to the outline component.
-                onOpenRegionMap: { push(.franceMap) }
+                onOpenRegionMap: { push(.regionMap(country: name)) }
             )
 
         case .state(let name):
@@ -1251,10 +1258,11 @@ struct RootView: View {
                 notFound
             }
 
-        // The France region map (0.9.55) — a test. Reached by tapping the
-        // country outline on France's page; see `FranceMapScreen`.
-        case .franceMap:
-            FranceMapScreen { open($0) }
+        // A country's painted region map (0.9.55) — a test. Reached by
+        // tapping the map in that country's REGIONS section; see
+        // `RegionMapScreen`.
+        case .regionMap(let country):
+            RegionMapScreen(country: country) { open($0) }
 
         case .continent(let id):
             if let entry = db.entry(id: id), case .continent(let c) = entry {

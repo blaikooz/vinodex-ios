@@ -1,24 +1,26 @@
 import Foundation
 
-/// **The France region map** (0.9.55) — a test, not a shipping feature.
+/// **A country's painted region map** (0.9.55) — a test, not a shipping feature.
 ///
-/// A second, richer view of one country: fourteen wine regions painted onto a
-/// projected France, tapped by colour rather than by button. It does **not**
-/// supersede the hand-drawn outline system — `CountryOutlineMap` and the
-/// `mapPosition` dots are untouched, and this map is reached *through* that
-/// outline rather than in place of it.
+/// A second, richer view of a country: its wine regions painted onto a
+/// projected outline over a backdrop of sea and neighbours, tapped by colour
+/// rather than by button. France and Italy have one; everywhere else keeps the
+/// hand-drawn outline and its `mapPosition` dots, which this does **not**
+/// supersede — `CountryOutlineMap` is untouched and still draws every country
+/// including these two.
 ///
-/// **Why the fourteen names here are not ids.** `southwest`, `rhone` and the
+/// **Why the names here are not ids.** `southwest`, `rhone`, `tuscany` and the
 /// rest are art stems: names for painted areas, chosen by the renderer that
-/// drew them. Four catalog regions live behind `southwest` alone. Letting a
-/// stem become an id would quietly assert that the map's grouping is the
-/// catalog's grouping, which it is not, so the two are joined only through
-/// `regionIDs(for:)` and never conflated.
+/// drew them. Four catalog regions live behind `southwest` alone, and Italy's
+/// Valpolicella and Etna sit inside `veneto` and `sicily` rather than beside
+/// them. Letting a stem become an id would quietly assert that the map's
+/// grouping is the catalog's grouping, which it is not, so the two are joined
+/// only through `regionIDs(for:)` and never conflated.
 ///
 /// This type is the *pure* half — decoding, the colour table, the stem/id
 /// join — so it can be tested on a machine with no simulator. The pixel
-/// sampling that turns a tap into a stem lives in `FranceMapView`.
-public struct FranceMap: Sendable {
+/// sampling that turns a tap into a stem lives in `RegionMapView`.
+public struct RegionMap: Sendable {
     /// One painted region.
     public struct Region: Sendable, Identifiable, Equatable {
         /// The art stem — `bordeaux`, `southwest`. Never a catalog id.
@@ -69,15 +71,16 @@ public struct FranceMap: Sendable {
     public let byStem: [String: [String]]
     /// The base map's logical size, before the 5x export.
     public let canvas: (w: Int, h: Int)
-    /// Where France itself sits on the canvas, as `(x, y, w, h)` fractions.
+    /// Where the country itself sits on the canvas, as `(x, y, w, h)`
+    /// fractions — the manifest calls it `subject_rect`.
     ///
-    /// The canvas is mostly world: sea, shelf and 107 neighbouring countries
-    /// reaching to Iceland and the Sahara, with France occupying about a
-    /// third of it. **Scale the layers so this rect fills the width France
-    /// should have and let the backdrop bleed off under a clip** — aspect-
-    /// fitting the whole canvas instead would shrink France to a third of the
+    /// The canvas is mostly world: sea, shelf and the neighbours, reaching
+    /// well past the border, with the country occupying about a third of it.
+    /// **Scale the layers so this rect fills the width the country should
+    /// have and let the backdrop bleed off under a clip** — aspect-fitting
+    /// the whole canvas instead would shrink the country to a third of the
     /// screen and take every tap target down with it.
-    public let franceRect: (x: Double, y: Double, w: Double, h: Double)
+    public let subjectRect: (x: Double, y: Double, w: Double, h: Double)
 
     /// Names for the fourteen areas. The stems are lowercase art names and
     /// the app writes region names in the catalog's own register, so the map
@@ -85,12 +88,41 @@ public struct FranceMap: Sendable {
     /// would otherwise render as RHONE, missing the circumflex the catalog
     /// spells correctly two lines below it.
     public static let displayNames: [String: String] = [
+        // France
         "alsace": "ALSACE", "beaujolais": "BEAUJOLAIS", "bordeaux": "BORDEAUX",
         "burgundy": "BURGUNDY", "champagne": "CHAMPAGNE", "corsica": "CORSICA",
         "jura": "JURA", "languedoc": "LANGUEDOC", "loire": "LOIRE",
         "provence": "PROVENCE", "rhone": "RHÔNE", "roussillon": "ROUSSILLON",
         "savoie": "SAVOIE", "southwest": "SOUTH WEST",
+        // Italy. Most would survive being up-cased; the three that would not
+        // are why the table covers all of them rather than the exceptions —
+        // a half-table invites the next name to be added to the wrong half.
+        "abruzzo": "ABRUZZO", "altoadige": "ALTO ADIGE", "basilicata": "BASILICATA",
+        "calabria": "CALABRIA", "campania": "CAMPANIA",
+        "emiliaromagna": "EMILIA-ROMAGNA", "friuli": "FRIULI", "lazio": "LAZIO",
+        "liguria": "LIGURIA", "lombardy": "LOMBARDY", "marche": "MARCHE",
+        "molise": "MOLISE", "piedmont": "PIEDMONT", "puglia": "PUGLIA",
+        "sardinia": "SARDINIA", "sicily": "SICILY", "trentino": "TRENTINO",
+        "tuscany": "TUSCANY", "umbria": "UMBRIA", "valledaosta": "VALLE D'AOSTA",
+        "veneto": "VENETO",
     ]
+
+    /// The countries with a painted map, by the resource-directory name.
+    ///
+    /// A roster rather than a probe of the bundle: a country that is *meant*
+    /// to have a map and does not should surface as a missing file, not as a
+    /// country that quietly falls back to the outline. Adding a third is a
+    /// render, an install, and a line here.
+    public static let mapped: [String] = ["france", "italy"]
+
+    /// The map key for a catalog country name, or nil where there is none.
+    /// Matching is case- and accent-insensitive because the catalog spells
+    /// countries the way a label does, not the way a filename does.
+    public static func key(forCountry name: String) -> String? {
+        let folded = name.folding(options: [.diacriticInsensitive, .caseInsensitive],
+                                  locale: nil)
+        return mapped.first { $0 == folded }
+    }
 
     public func displayName(_ stem: String) -> String {
         Self.displayNames[stem] ?? stem.uppercased()
@@ -141,8 +173,8 @@ public struct FranceMap: Sendable {
         self.byFill = byFill
         self.byStem = idx.byStem
         self.canvas = (man.base.canvas.first ?? 0, man.base.canvas.last ?? 0)
-        let r = man.base.france_rect
-        self.franceRect = r.count == 4 ? (r[0], r[1], r[2], r[3]) : (0, 0, 1, 1)
+        let r = man.base.subject_rect
+        self.subjectRect = r.count == 4 ? (r[0], r[1], r[2], r[3]) : (0, 0, 1, 1)
     }
 
     // The manifest carries more than this needs — the projection, the
@@ -150,7 +182,7 @@ public struct FranceMap: Sendable {
     // only what is used keeps the app from depending on fields the renderer
     // is free to change.
     private struct Manifest: Decodable {
-        struct Base: Decodable { let canvas: [Int]; let france_rect: [Double] }
+        struct Base: Decodable { let canvas: [Int]; let subject_rect: [Double] }
         struct Projection: Decodable { let origin: [Double]; let scale: Double }
         struct Detail: Decodable { let bounds_projected: [[Double]] }
         struct Entry: Decodable {

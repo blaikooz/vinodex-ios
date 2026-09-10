@@ -2,44 +2,48 @@ import Testing
 import Foundation
 @testable import VinodexCore
 
-/// The France region map's pure half (0.9.55, a test feature).
+/// The painted region maps' pure half (0.9.55, a test feature) — France and
+/// Italy, whichever `RegionMap.mapped` lists.
 ///
-/// These read the *shipped* manifest and index rather than fixtures, because
-/// the interesting failures are all drift between the renderer's output and
-/// what the app expects of it — a fixture would keep passing while the real
-/// map stopped resolving.
-@Suite("France region map")
-struct FranceMapTests {
-    private func load() throws -> FranceMap {
+/// These read the *shipped* manifests and indexes rather than fixtures,
+/// because the interesting failures are all drift between the renderer's
+/// output and what the app expects of it — a fixture would keep passing while
+/// the real map stopped resolving. That is not hypothetical: the generalised
+/// drop renamed `france_rect` to `subject_rect`, and nothing but reading the
+/// shipped file catches that.
+@Suite("Region maps")
+struct RegionMapTests {
+    private func load(_ country: String = "france") throws -> RegionMap {
         // From Tests/VinodexCoreTests up to the repo root.
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-        let dir = root.appendingPathComponent("Sources/VinodexUI/Resources/Maps/france")
-        return try FranceMap(
-            manifest: Data(contentsOf: dir.appendingPathComponent("france-manifest.json")),
-            index: Data(contentsOf: dir.appendingPathComponent("france-region-index.json"))
+        let dir = root.appendingPathComponent("Sources/VinodexUI/Resources/Maps/\(country)")
+        return try RegionMap(
+            manifest: Data(contentsOf: dir.appendingPathComponent("\(country)-manifest.json")),
+            index: Data(contentsOf: dir.appendingPathComponent("\(country)-region-index.json"))
         )
     }
 
-    @Test("the manifest carries all fourteen painted regions")
+    @Test("each manifest carries its painted regions")
     func fourteenRegions() throws {
         let map = try load()
         #expect(map.regions.count == 14)
-        // 502x496 since the backdrop arrived: the canvas grew a margin of
-        // world on every side (it reaches Iceland and the Sahara), and France
-        // itself now occupies about a third of it.
-        #expect(map.canvas.w == 502 && map.canvas.h == 496)
+        #expect(try load("italy").regions.count == 21)
+        // The canvas is whatever the render made it — it grew a margin of
+        // world on every side when the backdrop arrived, and the margin is
+        // config. `subjectRectIsSane` pins the part that has to hold.
+        #expect(map.canvas.w > 100 && map.canvas.h > 100)
     }
 
     /// France's own rect on the canvas, which is what the screen scales by.
     /// Aspect-fitting the whole canvas instead would shrink France to a third
     /// of the screen and take every tap target down with it, so this being
     /// right is the difference between a usable map and an unusable one.
-    @Test("France occupies about a third of the canvas, centred")
-    func franceRectIsSane() throws {
-        let fr = try load().franceRect
+    @Test("the country occupies about a third of its canvas, centred")
+    func subjectRectIsSane() throws {
+        let fr = try load().subjectRect
         #expect(fr.w > 0.25 && fr.w < 0.40, "France's width fraction: \(fr.w)")
         #expect(fr.h > 0.25 && fr.h < 0.40, "France's height fraction: \(fr.h)")
         // Roughly centred, since the renderer puts an equal margin all round.
@@ -51,16 +55,20 @@ struct FranceMapTests {
     /// fill would make one of them unreachable, silently, for every tap.
     @Test("every region's fill colour is unique")
     func fillsAreDistinct() throws {
-        let map = try load()
-        #expect(map.byFill.count == map.regions.count,
-                "two regions share a fill — one is unreachable")
+        for country in RegionMap.mapped {
+            let map = try load(country)
+            #expect(map.byFill.count == map.regions.count,
+                    "\(country): two regions share a fill — one is unreachable")
+        }
     }
 
     @Test("markers sit inside the canvas")
     func buttonsInBounds() throws {
-        for region in try load().regions {
+        for country in RegionMap.mapped {
+        for region in try load(country).regions {
             #expect(region.button.x > 0 && region.button.x < 1, "\(region.id) x")
             #expect(region.button.y > 0 && region.button.y < 1, "\(region.id) y")
+        }
         }
     }
 
@@ -70,7 +78,8 @@ struct FranceMapTests {
     /// over Alsace — visible, but only to someone who knows France.
     @Test("each detail drawing's frame sits on its own region")
     func detailFramesAlign() throws {
-        let map = try load()
+        for country in RegionMap.mapped {
+        let map = try load(country)
         for region in map.regions {
             let f = region.detailFrame
             #expect(f.w > 0 && f.h > 0, "\(region.id) has no detail frame")
@@ -83,16 +92,27 @@ struct FranceMapTests {
             #expect(region.button.y >= f.y && region.button.y <= f.y + f.h,
                     "\(region.id) marker is outside its own detail frame")
         }
+        }
     }
 
     /// A painted area with no catalog region behind it renders as inert, and
-    /// the drop asks for it to be reported. Today there are none — all
-    /// twenty catalog regions land on one of the fourteen stems.
-    @Test("every painted region has at least one catalog region behind it")
-    func everyStemIsBacked() throws {
-        let map = try load()
-        let empty = map.regions.map(\.id).filter { map.regionIDs(for: $0).isEmpty }
-        #expect(empty.isEmpty, "painted but uncatalogued: \(empty)")
+    /// the drop asks for it to be reported rather than silently tapped.
+    ///
+    /// France has none — all twenty catalog regions land on one of its
+    /// fourteen stems. **Italy has exactly three**, and they are a finding
+    /// about the catalog rather than about the map: Liguria, Molise and
+    /// Valle d'Aosta are real Italian wine regions the encyclopedia does not
+    /// hold yet. Pinned by name so that filling one in the catalog, or
+    /// painting a fourth uncovered area, both fail here and get a decision.
+    @Test("uncatalogued painted areas are exactly the ones we know about")
+    func stemsWithoutCatalog() throws {
+        let france = try load()
+        #expect(france.regions.map(\.id).filter { france.regionIDs(for: $0).isEmpty }.isEmpty)
+
+        let italy = try load("italy")
+        let empty = italy.regions.map(\.id).filter { italy.regionIDs(for: $0).isEmpty }
+        #expect(empty.sorted() == ["liguria", "molise", "valledaosta"],
+                "Italy's uncatalogued areas changed: \(empty.sorted())")
     }
 
     /// The index is generated from `pins.json` by `france_check.py`; these
@@ -114,28 +134,34 @@ struct FranceMapTests {
         #expect(map.regionIDs(for: "alsace") == ["R006"])
     }
 
-    @Test("all twenty France regions are placed, none twice")
+    @Test("every catalog region is placed once, in both countries")
     func everyCatalogRegionPlaced() throws {
-        let map = try load()
-        let placed = map.regions.flatMap { map.regionIDs(for: $0.id) }
-        #expect(placed.count == 20)
-        #expect(Set(placed).count == 20, "a region is on the map twice")
+        for (country, count) in [("france", 20), ("italy", 21)] {
+            let map = try load(country)
+            let placed = map.regions.flatMap { map.regionIDs(for: $0.id) }
+            #expect(placed.count == count, "\(country) placed \(placed.count)")
+            #expect(Set(placed).count == count, "\(country) has a region on the map twice")
+        }
     }
 
     @Test("hex decoding accepts the manifest's form and refuses nonsense")
     func hexDecoding() {
-        #expect(FranceMap.RGB(hex: "#8E2F45") == FranceMap.RGB(r: 142, g: 47, b: 69))
-        #expect(FranceMap.RGB(hex: "8E2F45") == FranceMap.RGB(r: 142, g: 47, b: 69))
-        #expect(FranceMap.RGB(hex: "#8E2F4") == nil)
-        #expect(FranceMap.RGB(hex: "zzzzzz") == nil)
+        #expect(RegionMap.RGB(hex: "#8E2F45") == RegionMap.RGB(r: 142, g: 47, b: 69))
+        #expect(RegionMap.RGB(hex: "8E2F45") == RegionMap.RGB(r: 142, g: 47, b: 69))
+        #expect(RegionMap.RGB(hex: "#8E2F4") == nil)
+        #expect(RegionMap.RGB(hex: "zzzzzz") == nil)
     }
 
     @Test("every stem has a display name spelled the catalog's way")
     func displayNames() throws {
-        let map = try load()
-        for region in map.regions {
-            #expect(FranceMap.displayNames[region.id] != nil, "no display name for \(region.id)")
+        for country in RegionMap.mapped {
+            let map = try load(country)
+            for region in map.regions {
+                #expect(RegionMap.displayNames[region.id] != nil,
+                        "no display name for \(country)/\(region.id)")
+            }
         }
+        let map = try load()
         // The one that would be wrong if a stem were simply up-cased.
         #expect(map.displayName("rhone") == "RHÔNE")
     }

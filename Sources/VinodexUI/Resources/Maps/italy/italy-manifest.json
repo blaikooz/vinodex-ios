@@ -1,0 +1,925 @@
+{
+ "generator": "region_map.py",
+ "country": "italy",
+ "projection": {
+  "kind": "equirectangular",
+  "x_factor": 0.73317995,
+  "origin": [
+   -7.63569,
+   -59.561893
+  ],
+  "scale": 13.625422,
+  "note": "canvas_x = (lon*x_factor - origin[0])*scale + 2 ; canvas_y = (-lat - origin[1])*scale + 2"
+ },
+ "base": {
+  "canvas": [
+   463,
+   502
+  ],
+  "export_scale": 5,
+  "unassigned": "#CEC6BA",
+  "outline": "#1A1420",
+  "key": "#EE03E1",
+  "layers": {
+   "interactive": "italy-regions.png",
+   "backdrop": "italy-backdrop.png"
+  },
+  "subject_rect": [
+   0.3693,
+   0.3406,
+   0.2613,
+   0.3187
+  ],
+  "subject_rect_note": "x,y,w,h as fractions of the canvas. Scale the two layers together so this rect fills the intended width; the backdrop bleeds off the screen edges."
+ },
+ "backdrop": {
+  "margin_px": 170,
+  "sea": "#38506B",
+  "foreign": "#8C8778",
+  "foreign_outline": "#1A1420",
+  "shallow": "#4E6985",
+  "shelf_px": 3,
+  "countries": [
+   "Akrotiri Sovereign Base Area",
+   "Aland",
+   "Albania",
+   "Algeria",
+   "Andorra",
+   "Armenia",
+   "Austria",
+   "Azerbaijan",
+   "Bahrain",
+   "Belarus",
+   "Belgium",
+   "Benin",
+   "Bir Tawil",
+   "Bosnia and Herzegovina",
+   "Bulgaria",
+   "Burkina Faso",
+   "Cabo Verde",
+   "Cameroon",
+   "Central African Republic",
+   "Chad",
+   "Croatia",
+   "Cyprus",
+   "Cyprus No Mans Area",
+   "Czechia",
+   "Denmark",
+   "Dhekelia Sovereign Base Area",
+   "Djibouti",
+   "Egypt",
+   "Eritrea",
+   "Estonia",
+   "Ethiopia",
+   "Faroe Islands",
+   "Finland",
+   "France",
+   "Gambia",
+   "Georgia",
+   "Germany",
+   "Ghana",
+   "Gibraltar",
+   "Greece",
+   "Greenland",
+   "Guernsey",
+   "Guinea",
+   "Guinea-Bissau",
+   "Hungary",
+   "Iceland",
+   "Iran",
+   "Iraq",
+   "Ireland",
+   "Isle of Man",
+   "Israel",
+   "Ivory Coast",
+   "Jersey",
+   "Jordan",
+   "Kazakhstan",
+   "Kosovo",
+   "Kuwait",
+   "Latvia",
+   "Lebanon",
+   "Libya",
+   "Liechtenstein",
+   "Lithuania",
+   "Luxembourg",
+   "Mali",
+   "Malta",
+   "Mauritania",
+   "Moldova",
+   "Monaco",
+   "Montenegro",
+   "Morocco",
+   "Netherlands",
+   "Niger",
+   "Nigeria",
+   "North Macedonia",
+   "Northern Cyprus",
+   "Norway",
+   "Oman",
+   "Palestine",
+   "Poland",
+   "Portugal",
+   "Qatar",
+   "Republic of Serbia",
+   "Romania",
+   "Russia",
+   "San Marino",
+   "Saudi Arabia",
+   "Senegal",
+   "Slovakia",
+   "Slovenia",
+   "Somalia",
+   "Somaliland",
+   "South Sudan",
+   "Spain",
+   "Sudan",
+   "Sweden",
+   "Switzerland",
+   "Syria",
+   "Togo",
+   "Tunisia",
+   "Turkey",
+   "Turkmenistan",
+   "Ukraine",
+   "United Arab Emirates",
+   "United Kingdom",
+   "Vatican",
+   "Western Sahara",
+   "Yemen"
+  ]
+ },
+ "marker_clearance": {
+  "12": [
+   [
+    "molise",
+    "campania",
+    8.2
+   ],
+   [
+    "molise",
+    "puglia",
+    9.1
+   ],
+   [
+    "umbria",
+    "marche",
+    9.4
+   ],
+   [
+    "altoadige",
+    "trentino",
+    9.8
+   ],
+   [
+    "campania",
+    "puglia",
+    9.9
+   ],
+   [
+    "abruzzo",
+    "molise",
+    10.6
+   ],
+   [
+    "trentino",
+    "veneto",
+    11.3
+   ],
+   [
+    "piedmont",
+    "valledaosta",
+    11.7
+   ]
+  ],
+  "10": [
+   [
+    "molise",
+    "campania",
+    8.2
+   ],
+   [
+    "molise",
+    "puglia",
+    9.1
+   ],
+   [
+    "umbria",
+    "marche",
+    9.4
+   ],
+   [
+    "altoadige",
+    "trentino",
+    9.8
+   ],
+   [
+    "campania",
+    "puglia",
+    9.9
+   ]
+  ],
+  "8": []
+ },
+ "splits": [],
+ "regions": {
+  "piedmont": {
+   "button": [
+    0.3931,
+    0.4004
+   ],
+   "clearance_px": 8.2,
+   "area_px": 423,
+   "fill": "#934AB5",
+   "units": [
+    "Verbano-Cusio-Ossola",
+    "Cuneo",
+    "Turin",
+    "Asti",
+    "Vercelli",
+    "Novara",
+    "Alessandria",
+    "Biella"
+   ],
+   "detail": {
+    "canvas": [
+     51,
+     62
+    ],
+    "bounds_projected": [
+     [
+      4.840988,
+      -46.452179
+     ],
+     [
+      6.749607,
+      -44.090799
+     ]
+    ],
+    "scale": 24.561909
+   }
+  },
+  "valledaosta": {
+   "button": [
+    0.3844,
+    0.3785
+   ],
+   "clearance_px": 3.2,
+   "area_px": 66,
+   "fill": "#2B8268",
+   "units": [
+    "Aoste"
+   ],
+   "detail": {
+    "canvas": [
+     62,
+     40
+    ],
+    "bounds_projected": [
+     [
+      4.972422,
+      -45.984119
+     ],
+     [
+      5.806452,
+      -45.466286
+     ]
+    ],
+    "scale": 69.541836
+   }
+  },
+  "liguria": {
+   "button": [
+    0.3974,
+    0.4263
+   ],
+   "clearance_px": 2.8,
+   "area_px": 107,
+   "fill": "#C6B58B",
+   "units": [
+    "Imperia",
+    "La Spezia",
+    "Genova",
+    "Savona"
+   ],
+   "detail": {
+    "canvas": [
+     62,
+     32
+    ],
+    "bounds_projected": [
+     [
+      5.482624,
+      -44.684763
+     ],
+     [
+      7.373512,
+      -43.784491
+     ]
+    ],
+    "scale": 30.67342
+   }
+  },
+  "lombardy": {
+   "button": [
+    0.4363,
+    0.3785
+   ],
+   "clearance_px": 8.6,
+   "area_px": 400,
+   "fill": "#47822B",
+   "units": [
+    "Varese",
+    "Como",
+    "Sondrio",
+    "Bergamo",
+    "Brescia",
+    "Cremona",
+    "Mantova",
+    "Milano",
+    "Lecco",
+    "Monza e Brianza",
+    "Lodi",
+    "Pavia"
+   ],
+   "detail": {
+    "canvas": [
+     62,
+     57
+    ],
+    "bounds_projected": [
+     [
+      6.230835,
+      -46.626974
+     ],
+     [
+      8.374018,
+      -44.67882
+     ]
+    ],
+    "scale": 27.062557
+   }
+  },
+  "altoadige": {
+   "button": [
+    0.473,
+    0.3506
+   ],
+   "clearance_px": 4.0,
+   "area_px": 133,
+   "fill": "#822B3B",
+   "units": [
+    "Bozen"
+   ],
+   "detail": {
+    "canvas": [
+     62,
+     36
+    ],
+    "bounds_projected": [
+     [
+      7.602464,
+      -47.085215
+     ],
+     [
+      9.142484,
+      -46.223893
+     ]
+    ],
+    "scale": 37.661841
+   }
+  },
+  "trentino": {
+   "button": [
+    0.4644,
+    0.3685
+   ],
+   "clearance_px": 4.1,
+   "area_px": 97,
+   "fill": "#B38BC6",
+   "units": [
+    "Trento"
+   ],
+   "detail": {
+    "canvas": [
+     62,
+     48
+    ],
+    "bounds_projected": [
+     [
+      7.668435,
+      -46.530313
+     ],
+     [
+      8.777104,
+      -45.681652
+     ]
+    ],
+    "scale": 52.315005
+   }
+  },
+  "veneto": {
+   "button": [
+    0.4816,
+    0.3845
+   ],
+   "clearance_px": 6.7,
+   "area_px": 309,
+   "fill": "#8BC6B4",
+   "units": [
+    "Belluno",
+    "Venezia",
+    "Padova",
+    "Rovigo",
+    "Vicenza",
+    "Verona",
+    "Treviso"
+   ],
+   "detail": {
+    "canvas": [
+     59,
+     62
+    ],
+    "bounds_projected": [
+     [
+      7.801423,
+      -46.675799
+     ],
+     [
+      9.601452,
+      -44.793452
+     ]
+    ],
+    "scale": 30.812597
+   }
+  },
+  "friuli": {
+   "button": [
+    0.5097,
+    0.3645
+   ],
+   "clearance_px": 5.1,
+   "area_px": 142,
+   "fill": "#C68B95",
+   "units": [
+    "Udine",
+    "Gorizia",
+    "Trieste",
+    "Pordenone"
+   ],
+   "detail": {
+    "canvas": [
+     62,
+     58
+    ],
+    "bounds_projected": [
+     [
+      9.044448,
+      -46.641
+     ],
+     [
+      10.187305,
+      -45.58125
+     ]
+    ],
+    "scale": 50.749986
+   }
+  },
+  "emiliaromagna": {
+   "button": [
+    0.4644,
+    0.4104
+   ],
+   "clearance_px": 6.0,
+   "area_px": 354,
+   "fill": "#B54A5D",
+   "units": [
+    "Rimini",
+    "Ferrara",
+    "Ravenna",
+    "Forlì-Cesena",
+    "Piacenza",
+    "Parma",
+    "Reggio Emilia",
+    "Modena",
+    "Bologna"
+   ],
+   "detail": {
+    "canvas": [
+     62,
+     35
+    ],
+    "bounds_projected": [
+     [
+      6.746305,
+      -45.138488
+     ],
+     [
+      9.350856,
+      -43.742862
+     ]
+    ],
+    "scale": 22.26871
+   }
+  },
+  "tuscany": {
+   "button": [
+    0.4687,
+    0.4382
+   ],
+   "clearance_px": 7.8,
+   "area_px": 373,
+   "fill": "#6CB54A",
+   "units": [
+    "Grosseto",
+    "Livorno",
+    "Pisa",
+    "Lucca",
+    "Massa-Carrara",
+    "Siena",
+    "Arezzo",
+    "Firenze",
+    "Pistoia",
+    "Prato"
+   ],
+   "detail": {
+    "canvas": [
+     56,
+     62
+    ],
+    "bounds_projected": [
+     [
+      7.102301,
+      -44.482967
+     ],
+     [
+      9.060364,
+      -42.318728
+     ]
+    ],
+    "scale": 26.799258
+   }
+  },
+  "umbria": {
+   "button": [
+    0.4968,
+    0.4542
+   ],
+   "clearance_px": 5.0,
+   "area_px": 127,
+   "fill": "#826A2B",
+   "units": [
+    "Terni",
+    "Perugia"
+   ],
+   "detail": {
+    "canvas": [
+     50,
+     62
+    ],
+    "bounds_projected": [
+     [
+      8.716788,
+      -43.63147
+     ],
+     [
+      9.719308,
+      -42.368472
+     ]
+    ],
+    "scale": 45.92248
+   }
+  },
+  "marche": {
+   "button": [
+    0.514,
+    0.4442
+   ],
+   "clearance_px": 5.0,
+   "area_px": 156,
+   "fill": "#8BADC6",
+   "units": [
+    "Pesaro e Urbino",
+    "Ancona",
+    "Macerata",
+    "Fermo",
+    "Ascoli Piceno"
+   ],
+   "detail": {
+    "canvas": [
+     61,
+     62
+    ],
+    "bounds_projected": [
+     [
+      8.940023,
+      -43.972398
+     ],
+     [
+      10.195254,
+      -42.687658
+     ]
+    ],
+    "scale": 45.145321
+   }
+  },
+  "lazio": {
+   "button": [
+    0.4968,
+    0.4781
+   ],
+   "clearance_px": 5.0,
+   "area_px": 270,
+   "fill": "#662B82",
+   "units": [
+    "Latina",
+    "Roma",
+    "Viterbo",
+    "Rieti",
+    "Frosinone"
+   ],
+   "detail": {
+    "canvas": [
+     57,
+     62
+    ],
+    "bounds_projected": [
+     [
+      8.396007,
+      -42.850387
+     ],
+     [
+      10.271911,
+      -40.785875
+     ]
+    ],
+    "scale": 28.093806
+   }
+  },
+  "abruzzo": {
+   "button": [
+    0.527,
+    0.4741
+   ],
+   "clearance_px": 6.0,
+   "area_px": 175,
+   "fill": "#82482B",
+   "units": [
+    "Teramo",
+    "Pescara",
+    "Chieti",
+    "L'Aquila"
+   ],
+   "detail": {
+    "canvas": [
+     62,
+     59
+    ],
+    "bounds_projected": [
+     [
+      9.540134,
+      -42.901561
+     ],
+     [
+      10.824238,
+      -41.686913
+     ]
+    ],
+    "scale": 45.167661
+   }
+  },
+  "molise": {
+   "button": [
+    0.5421,
+    0.49
+   ],
+   "clearance_px": 3.2,
+   "area_px": 67,
+   "fill": "#9EC68B",
+   "units": [
+    "Campobasso",
+    "Isernia"
+   ],
+   "detail": {
+    "canvas": [
+     62,
+     50
+    ],
+    "bounds_projected": [
+     [
+      10.224708,
+      -42.077948
+     ],
+     [
+      11.11412,
+      -41.370133
+     ]
+    ],
+    "scale": 65.211637
+   }
+  },
+  "campania": {
+   "button": [
+    0.5464,
+    0.506
+   ],
+   "clearance_px": 5.1,
+   "area_px": 217,
+   "fill": "#B56D4A",
+   "units": [
+    "Salerno",
+    "Napoli",
+    "Caserta",
+    "Benevento",
+    "Avellino"
+   ],
+   "detail": {
+    "canvas": [
+     62,
+     62
+    ],
+    "bounds_projected": [
+     [
+      10.076579,
+      -41.495663
+     ],
+     [
+      11.577313,
+      -39.99397
+     ]
+    ],
+    "scale": 38.623074
+   }
+  },
+  "puglia": {
+   "button": [
+    0.5616,
+    0.492
+   ],
+   "clearance_px": 4.5,
+   "area_px": 329,
+   "fill": "#4A88B5",
+   "units": [
+    "Foggia",
+    "Barletta-Andria Trani",
+    "Bari",
+    "Brindisi",
+    "Lecce",
+    "Taranto"
+   ],
+   "detail": {
+    "canvas": [
+     62,
+     51
+    ],
+    "bounds_projected": [
+     [
+      10.947801,
+      -41.944078
+     ],
+     [
+      13.576606,
+      -39.796617
+     ]
+    ],
+    "scale": 22.063263
+   }
+  },
+  "basilicata": {
+   "button": [
+    0.5767,
+    0.5219
+   ],
+   "clearance_px": 5.0,
+   "area_px": 149,
+   "fill": "#4AB595",
+   "units": [
+    "Matera",
+    "Potenza"
+   ],
+   "detail": {
+    "canvas": [
+     56,
+     62
+    ],
+    "bounds_projected": [
+     [
+      11.250104,
+      -41.136817
+     ],
+     [
+      12.363817,
+      -39.9008
+     ]
+    ],
+    "scale": 46.924921
+   }
+  },
+  "calabria": {
+   "button": [
+    0.5853,
+    0.5538
+   ],
+   "clearance_px": 5.7,
+   "area_px": 258,
+   "fill": "#2B5E82",
+   "units": [
+    "Cosenza",
+    "Crotene",
+    "Catanzaro",
+    "Reggio Calabria",
+    "Vibo Valentia"
+   ],
+   "detail": {
+    "canvas": [
+     34,
+     62
+    ],
+    "bounds_projected": [
+     [
+      11.455229,
+      -40.136852
+     ],
+     [
+      12.615381,
+      -37.919013
+     ]
+    ],
+    "scale": 26.151583
+   }
+  },
+  "sicily": {
+   "button": [
+    0.54,
+    0.6016
+   ],
+   "clearance_px": 7.1,
+   "area_px": 423,
+   "fill": "#C69E8B",
+   "units": [
+    "Trapani",
+    "Messina",
+    "Palermo",
+    "Agrigento",
+    "Caltanissetta",
+    "Ragusa",
+    "Siracusa",
+    "Catania",
+    "Enna"
+   ],
+   "detail": {
+    "canvas": [
+     52,
+     62
+    ],
+    "bounds_projected": [
+     [
+      8.741126,
+      -38.811957
+     ],
+     [
+      11.475455,
+      -35.489244
+     ]
+    ],
+    "scale": 17.455615
+   }
+  },
+  "sardinia": {
+   "button": [
+    0.4233,
+    0.5219
+   ],
+   "clearance_px": 7.3,
+   "area_px": 423,
+   "fill": "#B5974A",
+   "units": [
+    "Carbonia-Iglesias",
+    "Sassari",
+    "Nuoro",
+    "Olbia-Tempio",
+    "Oristrano",
+    "Medio Campidano",
+    "Cagliari",
+    "Ogliastra"
+   ],
+   "detail": {
+    "canvas": [
+     34,
+     62
+    ],
+    "bounds_projected": [
+     [
+      5.963539,
+      -41.262641
+     ],
+     [
+      7.204718,
+      -38.864325
+     ]
+    ],
+    "scale": 24.183636
+   }
+  }
+ }
+}

@@ -408,10 +408,10 @@ public struct CountryScreen: View {
                 // One red dot per region, geographically placed where the
                 // data carries a `mapPosition` (0.6.x) — see `CountryOutlineMap`.
                 //
-                // **France shows the painted map instead (0.9.55, a TEST).**
-                // The maintainer's second ruling: on the one country with a
-                // region map, that map *is* the regions map, unpinned, and
-                // tapping it opens the full page.
+                // **A mapped country shows the painted map instead (0.9.55,
+                // a TEST).** Where a country has one — France and Italy so
+                // far, the roster is `RegionMap.mapped` — that map *is* the
+                // regions map, unpinned, and tapping it opens the full page.
                 //
                 // What is still untouched, which is what the drop's §6
                 // actually protects: `outline-france.png`, every region's
@@ -420,9 +420,8 @@ public struct CountryScreen: View {
                 // draws France anywhere else it is asked to — and it draws it
                 // here too if the map fails to load, which is why the
                 // fallback below is the plain outline rather than a gap.
-                if country.caseInsensitiveCompare("France") == .orderedSame,
-                   let openMap = onOpenRegionMap, FranceAtlas.shared != nil {
-                    FranceMapThumb(onOpen: openMap)
+                if let openMap = onOpenRegionMap, RegionAtlas.of(country) != nil {
+                    RegionMapThumb(country: country, onOpen: openMap)
                         .padding(.bottom, 6)
                 } else {
                     CountryOutlineMap(country: country, regions: all)
