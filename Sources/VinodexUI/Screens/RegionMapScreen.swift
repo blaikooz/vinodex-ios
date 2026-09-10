@@ -84,37 +84,50 @@ public struct RegionMapScreen: View {
 
     private var atlas: RegionAtlas? { RegionAtlas.of(country) }
 
-    /// **The map keeps its size; the tiles scroll under it.**
+    /// **Built like every other page** (0.9.55, maintainer pass): one
+    /// `ScrollView` with the app's content margins over `lcd.page`, and both
+    /// halves in `DexSection` blocks, so this reads as a Vinodex screen
+    /// rather than as a map someone bolted on.
+    ///
+    /// No hero, by ruling. Every other page opens with a flag and a name
+    /// because it has to say what it is about; this one draws the country at
+    /// a size no hero could improve on, and the marquee already carries the
+    /// name.
     public var body: some View {
-        VStack(spacing: 10) {
-            if let atlas {
-                // **The map keeps its size when a region is chosen**
-                // (maintainer order, reversing the shrink). It is what you
-                // came to tap and what you tap next, so it holds the top of
-                // the page at a fixed height and the tiles scroll underneath
-                // it. The page no longer fits on one screen with full tiles —
-                // four of Italy's are taller than the LCD on their own — so
-                // what "one page" now buys is that the *map* never scrolls
-                // away, which was the part that mattered.
-                mapCard(atlas)
-                    .frame(height: Self.mapHeight)
-                if let stem = selected {
-                    ScrollView { tiles(atlas, stem: stem) }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                if let atlas {
+                    mapSection(atlas)
+                    if let stem = selected {
+                        regionSection(atlas, stem: stem)
+                    }
                 } else {
-                    Text("Tap anywhere in \(country). Every tap lands on a region — the nearest one, if you miss the small ones. The sea and its neighbours do nothing.")
-                        .font(DexFont.mono(16))
-                        .foregroundStyle(lcd.subtext)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Spacer(minLength: 0)
+                    DexSection("REGION MAP", symbol: "map.fill") {
+                        DexSectionEmpty(symbol: "map.slash", message: "MAP NOT INSTALLED")
+                    }
                 }
-            } else {
-                DexSectionEmpty(symbol: "map.slash", message: "MAP NOT INSTALLED")
             }
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .contentMargins(.horizontal, 14, for: .scrollContent)
+        .contentMargins(.bottom, 72, for: .scrollContent)
+        .background(lcd.page)
         .animation(DexMotion.settle, value: selected)
+    }
+
+    private func mapSection(_ atlas: RegionAtlas) -> some View {
+        DexSection("REGION MAP", symbol: "map.fill") {
+            VStack(alignment: .leading, spacing: 8) {
+                mapCard(atlas)
+                    .frame(height: Self.mapHeight)
+                Text(selected == nil
+                     ? "Tap anywhere in \(country). Every tap lands on a region — the nearest one, if you miss the small ones. The sea and its neighbours do nothing."
+                     : "Tap again to choose another region.")
+                    .font(DexFont.mono(16))
+                    .foregroundStyle(lcd.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
     }
 
     /// The map's height, chosen and unchanging. Big enough that Italy's
@@ -240,67 +253,89 @@ public struct RegionMapScreen: View {
 
     // MARK: The chosen region
 
-    /// The chosen region: its close-up at the one size they all share, its
-    /// name, and the catalog entries behind it as full tiles — the same
-    /// `EntryTileView` every list in the app uses, so a region reached from
-    /// the map looks like a region reached any other way.
+    /// The chosen region, as a section of the page: its close-up, the blurb
+    /// of the catalog region behind it, and every entry inside it as a full
+    /// tile — the same `EntryTileView` every list in the app uses, so a
+    /// region reached from the map looks like a region reached any other way.
     @ViewBuilder
-    private func tiles(_ atlas: RegionAtlas, stem: String) -> some View {
+    private func regionSection(_ atlas: RegionAtlas, stem: String) -> some View {
         let entries = atlas.map.regionIDs(for: stem).compactMap { db.entry(id: $0) }
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(lcd.surface)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6)
-                                .strokeBorder(lcd.surfaceEdge, lineWidth: 1)
-                        )
-                    if let art = atlas.detail(stem) {
-                        Image(uiImage: art)
-                            .interpolation(.none)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .padding(5)
-                            // "Expand slightly with tap": the drawing arrives
-                            // a little under size and settles. Keyed on the
-                            // stem so it replays when you move from one region
-                            // to the next, not only on the first choice.
-                            .transition(.scale(scale: 0.88).combined(with: .opacity))
-                            .id(stem)
+        DexSection(atlas.map.displayName(stem), symbol: "mappin.and.ellipse") {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .top, spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(lcd.surface)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .strokeBorder(lcd.surfaceEdge, lineWidth: 1)
+                            )
+                        if let art = atlas.detail(stem) {
+                            Image(uiImage: art)
+                                .interpolation(.none)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .padding(6)
+                                // "Expand slightly with tap": the drawing
+                                // arrives a little under size and settles.
+                                // Keyed on the stem so it replays when you
+                                // move from one region to the next, not only
+                                // on the first choice.
+                                .transition(.scale(scale: 0.88).combined(with: .opacity))
+                                .id(stem)
+                        }
+                    }
+                    .frame(width: Self.detailBox, height: Self.detailBox)
+
+                    // **The blurb, where there is exactly one.** An area
+                    // holding several catalog regions has no single
+                    // description to show — South West holds four, and
+                    // picking one of their blurbs to stand for the area would
+                    // be inventing an editorial claim the catalog never made.
+                    // Those areas lead with their tiles instead, which is the
+                    // honest answer and also the useful one.
+                    if let solo = entries.first, entries.count == 1 {
+                        Text(solo.entryDescription)
+                            .font(DexFont.mono(17))
+                            .foregroundStyle(lcd.bodyText)
+                            .lineSpacing(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        Text(entries.isEmpty
+                             ? "No catalog region covers this part of \(country) yet."
+                             : "\(entries.count) regions of the catalog sit inside this one.")
+                            .font(DexFont.mono(17))
+                            .foregroundStyle(lcd.subtext)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-                .frame(width: Self.detailBox, height: Self.detailBox)
 
-                Text(atlas.map.displayName(stem))
-                    .font(DexFont.retro(16))
-                    .tracking(1)
-                    .foregroundStyle(lcd.accent)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.7)
-                Spacer(minLength: 0)
-            }
+                if let solo = entries.first, entries.count == 1 {
+                    ReadAloudButton(text: solo.entryDescription)
+                }
 
-            if entries.isEmpty {
-                // Stated rather than rendered as a dead tap: an area the
-                // catalog does not cover is a finding about the catalog, and
-                // the test is asked to report it. Today there are none.
-                DexSectionEmpty(symbol: "mappin.slash", message: "NO CATALOG REGION HERE")
-            } else {
-                ForEach(entries) { entry in
-                    EntryTileView(
-                        entry: entry,
-                        palette: db.palette,
-                        locked: access.isLocked(entry, in: db),
-                        tried: bookmarks.contains(entry.id, on: .tried)
-                    ) {
-                        onSelectRegion(entry)
+                if entries.isEmpty {
+                    // Stated rather than rendered as a dead tap: an area the
+                    // catalog does not cover is a finding about the catalog,
+                    // and the test is asked to report it. Italy has three —
+                    // Liguria, Molise and Valle d'Aosta.
+                    DexSectionEmpty(symbol: "mappin.slash", message: "NO CATALOG REGION HERE")
+                } else {
+                    ForEach(entries) { entry in
+                        EntryTileView(
+                            entry: entry,
+                            palette: db.palette,
+                            locked: access.isLocked(entry, in: db),
+                            tried: bookmarks.contains(entry.id, on: .tried)
+                        ) {
+                            onSelectRegion(entry)
+                        }
                     }
                 }
             }
-            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
