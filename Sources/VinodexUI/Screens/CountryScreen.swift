@@ -408,29 +408,22 @@ public struct CountryScreen: View {
                 // One red dot per region, geographically placed where the
                 // data carries a `mapPosition` (0.6.x) — see `CountryOutlineMap`.
                 //
-                // **France's outline is a door (0.9.55, a TEST).** The art,
-                // the dots and the placement are all untouched — the drop's
-                // §6 is explicit that this must not supersede the hand-drawn
-                // outline system. What changes is that on the one country
-                // with a painted region map, tapping the outline opens it.
-                // Every other country's outline behaves exactly as before,
-                // and so does France's if the map fails to load.
+                // **France shows the painted map instead (0.9.55, a TEST).**
+                // The maintainer's second ruling: on the one country with a
+                // region map, that map *is* the regions map, unpinned, and
+                // tapping it opens the full page.
+                //
+                // What is still untouched, which is what the drop's §6
+                // actually protects: `outline-france.png`, every region's
+                // `mapPosition`, `OutlineDotPlacer`, and every other
+                // country's page. `CountryOutlineMap` is unchanged and still
+                // draws France anywhere else it is asked to — and it draws it
+                // here too if the map fails to load, which is why the
+                // fallback below is the plain outline rather than a gap.
                 if country.caseInsensitiveCompare("France") == .orderedSame,
-                   onOpenRegionMap != nil {
-                    Button {
-                        Haptics.screenTap()
-                        onOpenRegionMap?()
-                    } label: {
-                        VStack(spacing: 4) {
-                            CountryOutlineMap(country: country, regions: all)
-                            Text("TAP FOR THE REGION MAP")
-                                .font(DexFont.retro(10))
-                                .tracking(1)
-                                .foregroundStyle(lcd.accent)
-                        }
-                    }
-                    .buttonStyle(DexPressStyle(scale: 0.98))
-                    .padding(.bottom, 6)
+                   let openMap = onOpenRegionMap, FranceAtlas.shared != nil {
+                    FranceMapThumb(onOpen: openMap)
+                        .padding(.bottom, 6)
                 } else {
                     CountryOutlineMap(country: country, regions: all)
                         .padding(.bottom, 6)

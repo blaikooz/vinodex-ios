@@ -41,30 +41,56 @@ public struct FranceMapScreen: View {
     public init(db: WineDatabase = .shared, onSelectRegion: @escaping (WineEntry) -> Void) {
         self.db = db
         self.onSelectRegion = onSelectRegion
+        #if DEBUG
+        // `-vinodexScreenshot france:bordeaux` opens with a region already
+        // chosen. The simulator cannot be sent a tap, so without this the
+        // panel — half the screen — could only ever be photographed empty.
+        _selected = State(initialValue: Self.screenshotStem())
+        #endif
     }
+
+    #if DEBUG
+    private static func screenshotStem() -> String? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let flag = args.firstIndex(of: "-vinodexScreenshot"),
+              args.index(after: flag) < args.endIndex else { return nil }
+        let name = args[args.index(after: flag)]
+        guard name.hasPrefix("france:") else { return nil }
+        return String(name.dropFirst("france:".count))
+    }
+    #endif
 
     private var atlas: FranceAtlas? { FranceAtlas.shared }
 
+    /// **One page, no scrolling** (maintainer order). The map takes the room
+    /// left over and the panel beneath it is a fixed height, so choosing a
+    /// region never reflows the page under the finger that chose it — which
+    /// is the whole reason to probe a hit test here rather than on a list
+    /// that scrolls away from you.
     public var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                if let atlas {
-                    mapCard(atlas)
-                    if let stem = selected {
-                        detail(atlas, stem: stem)
-                    } else {
-                        Text("Tap anywhere in France. Every tap lands on a region — the nearest one, if you miss.")
-                            .font(DexFont.mono(17))
-                            .foregroundStyle(lcd.subtext)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                } else {
-                    DexSectionEmpty(symbol: "map.slash", message: "MAP NOT INSTALLED")
-                }
+        VStack(spacing: 10) {
+            if let atlas {
+                mapCard(atlas)
+                    .frame(maxHeight: .infinity)
+                panel(atlas)
+                    .frame(height: Self.panelHeight)
+            } else {
+                DexSectionEmpty(symbol: "map.slash", message: "MAP NOT INSTALLED")
             }
-            .padding(14)
         }
+        .padding(12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
+
+    /// Tall enough for the four rows `southwest` needs — the deepest of the
+    /// fourteen — so the panel is the same height whichever region is
+    /// showing, and the map above it never moves.
+    private static let panelHeight: CGFloat = 190
+    /// The box every detail drawing is fitted into. The renderer normalises
+    /// each to a 310px long axis, but their aspects run from Loire's 310x145
+    /// to Corsica's 140x310; fitting them all into one square is what makes
+    /// "equally sized" true on screen rather than only in the file.
+    private static let detailBox: CGFloat = 150
 
     // MARK: The map
 
@@ -81,6 +107,14 @@ public struct FranceMapScreen: View {
                 let ox = (geo.size.width - fitted.width) / 2
                 let oy = (geo.size.height - fitted.height) / 2
 
+                // **Unpinned** (maintainer order). The markers were the size
+                // the renderer proves collision-free, and at phone width they
+                // still swallowed the areas they marked — Beaujolais, the
+                // smallest region, disappeared under its own dot. They were
+                // never targets either, since the tap is a colour lookup on
+                // the map beneath them, so removing them costs nothing and
+                // gives the drawing back its fourteen colours. Which region
+                // is chosen is said by the panel below, in words.
                 ZStack(alignment: .topLeading) {
                     Image(uiImage: atlas.base)
                         .interpolation(.none)
@@ -88,23 +122,31 @@ public struct FranceMapScreen: View {
                         .aspectRatio(contentMode: .fit)
                         .frame(width: geo.size.width, height: geo.size.height)
 
-                    ForEach(atlas.map.regions) { region in
-                        let lit = region.id == selected
-                        Circle()
-                            .fill(lit ? Dex.yellow : Dex.red500)
-                            .overlay(Circle().strokeBorder(.black.opacity(0.75), lineWidth: 1))
-                            // Eight logical pixels, which the renderer proves
-                            // collision-free on every render — the tightest
-                            // pair, Languedoc and Roussillon, sits 8.2 apart.
-                            // They are markers, not targets: the tap is
-                            // handled by the map underneath them.
-                            .frame(width: 8 * scale * atlas.exportScale,
-                                   height: 8 * scale * atlas.exportScale)
+                    // **The chosen region lifts off the map in place.** Its
+                    // own detail drawing, laid over the patch of France it is
+                    // a close-up of and grown 12%, so the selection is
+                    // legible where the finger is rather than only in the
+                    // panel below. The frame comes from the renderer's
+                    // published projected bounds — see `Region.detailFrame`.
+                    if let stem = selected,
+                       let region = atlas.map.regions.first(where: { $0.id == stem }),
+                       let art = atlas.detail(stem),
+                       region.detailFrame.w > 0 {
+                        let f = region.detailFrame
+                        Image(uiImage: art)
+                            .interpolation(.none)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: CGFloat(f.w) * fitted.width,
+                                   height: CGFloat(f.h) * fitted.height)
+                            .shadow(color: .black.opacity(0.5), radius: 5, y: 2)
+                            .scaleEffect(1.12)
                             .position(
-                                x: ox + CGFloat(region.button.x) * fitted.width,
-                                y: oy + CGFloat(region.button.y) * fitted.height
+                                x: ox + CGFloat(f.x + f.w / 2) * fitted.width,
+                                y: oy + CGFloat(f.y + f.h / 2) * fitted.height
                             )
                             .allowsHitTesting(false)
+                            .transition(.opacity)
                     }
                 }
                 .contentShape(Rectangle())
@@ -122,39 +164,132 @@ public struct FranceMapScreen: View {
 
     // MARK: The chosen region
 
+    /// The fixed-height foot of the page: the chosen region's drawing at the
+    /// one size they all share, its name, and the catalog entries behind it.
     @ViewBuilder
-    private func detail(_ atlas: FranceAtlas, stem: String) -> some View {
-        let ids = atlas.map.regionIDs(for: stem)
-        let entries = ids.compactMap { db.entry(id: $0) }
-
-        DexSection(atlas.map.displayName(stem), symbol: "mappin.and.ellipse") {
-            VStack(alignment: .leading, spacing: 10) {
-                if let art = atlas.detail(stem) {
+    private func panel(_ atlas: FranceAtlas) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(lcd.surface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .strokeBorder(lcd.surfaceEdge, lineWidth: 1)
+                    )
+                if let stem = selected, let art = atlas.detail(stem) {
                     Image(uiImage: art)
                         .interpolation(.none)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(maxWidth: .infinity)
-                }
-
-                if entries.isEmpty {
-                    // Stated rather than rendered as a dead tap: an area the
-                    // catalog does not cover is a finding about the catalog,
-                    // and the test is asked to report it.
-                    DexSectionEmpty(symbol: "mappin.slash", message: "NO CATALOG REGION HERE")
-                } else {
-                    ForEach(entries) { entry in
-                        EntryTileView(
-                            entry: entry,
-                            palette: db.palette,
-                            locked: access.isLocked(entry, in: db),
-                            tried: bookmarks.contains(entry.id, on: .tried)
-                        ) {
-                            onSelectRegion(entry)
-                        }
-                    }
+                        .padding(8)
+                        // "Expand slightly with tap": the drawing arrives a
+                        // little under size and settles. Keyed on the stem so
+                        // it replays when you move from one region to the
+                        // next, rather than only on the first choice.
+                        .transition(.scale(scale: 0.88).combined(with: .opacity))
+                        .id(stem)
                 }
             }
+            .frame(width: Self.detailBox, height: Self.detailBox)
+
+            if let stem = selected {
+                regionList(atlas, stem: stem)
+            } else {
+                Text("Tap anywhere in France.\n\nEvery tap lands on a region — the nearest one, if you miss the small ones.")
+                    .font(DexFont.mono(16))
+                    .foregroundStyle(lcd.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func regionList(_ atlas: FranceAtlas, stem: String) -> some View {
+        let entries = atlas.map.regionIDs(for: stem).compactMap { db.entry(id: $0) }
+        VStack(alignment: .leading, spacing: 6) {
+            Text(atlas.map.displayName(stem))
+                .font(DexFont.retro(14))
+                .tracking(1)
+                .foregroundStyle(lcd.accent)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+
+            if entries.isEmpty {
+                // Stated rather than rendered as a dead tap: an area the
+                // catalog does not cover is a finding about the catalog, and
+                // the test is asked to report it. Today there are none.
+                Text("NO CATALOG REGION HERE")
+                    .font(DexFont.mono(15))
+                    .foregroundStyle(lcd.subtext)
+            } else {
+                // Compact rows rather than `EntryTileView`: four of them have
+                // to fit a fixed panel without scrolling, and a full tile is
+                // three times the height. The tile's job — art, lock, tried —
+                // belongs on the page these open.
+                ForEach(entries) { entry in
+                    Button {
+                        Haptics.screenTap()
+                        onSelectRegion(entry)
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text(entry.name.uppercased())
+                                .font(DexFont.retro(11))
+                                .foregroundStyle(lcd.text)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                            Spacer(minLength: 4)
+                            if bookmarks.contains(entry.id, on: .tried) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundStyle(Dex.green)
+                            }
+                            Image(systemName: access.isLocked(entry, in: db)
+                                  ? "lock.fill" : "chevron.right")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(lcd.subtext)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 7)
+                        .background(RoundedRectangle(cornerRadius: 5).fill(lcd.surface))
+                    }
+                    .buttonStyle(DexPressStyle(scale: 0.97))
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// The unpinned base map, sized for the REGIONS section of France's country
+/// page (0.9.55). Replaces the dotted outline there by maintainer order —
+/// the outline art itself and every other country's page are untouched.
+struct FranceMapThumb: View {
+    var settings: AppSettings = .shared
+    private var lcd: LcdMode { settings.lcdMode }
+    let onOpen: () -> Void
+
+    var body: some View {
+        if let atlas = FranceAtlas.shared {
+            Button {
+                Haptics.screenTap()
+                onOpen()
+            } label: {
+                VStack(spacing: 4) {
+                    Image(uiImage: atlas.base)
+                        .interpolation(.none)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(maxWidth: .infinity)
+                    Text("TAP TO EXPLORE THE REGIONS")
+                        .font(DexFont.retro(10))
+                        .tracking(1)
+                        .foregroundStyle(lcd.accent)
+                }
+            }
+            .buttonStyle(DexPressStyle(scale: 0.98))
         }
     }
 }

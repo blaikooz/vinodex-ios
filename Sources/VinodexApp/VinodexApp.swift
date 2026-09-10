@@ -652,6 +652,9 @@ struct RootView: View {
         if name.hasPrefix("detail:") {
             return [.detail(entryID: String(name.dropFirst("detail:".count)))]
         }
+        // `france:<stem>` opens the map with that region already chosen —
+        // `FranceMapScreen` reads the stem for itself.
+        if name.hasPrefix("france:") { return [.franceMap] }
         switch name {
         case "menu":     return []
         case "grapes":   return [.list(category: .grapes, filter: nil)]

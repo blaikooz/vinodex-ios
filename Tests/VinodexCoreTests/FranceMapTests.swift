@@ -47,6 +47,27 @@ struct FranceMapTests {
         }
     }
 
+    /// The frame that lets a chosen region lift off the base map in place.
+    /// Derived from the renderer's projected bounds through the base
+    /// projection, so an arithmetic slip here would park Bordeaux's close-up
+    /// over Alsace — visible, but only to someone who knows France.
+    @Test("each detail drawing's frame sits on its own region")
+    func detailFramesAlign() throws {
+        let map = try load()
+        for region in map.regions {
+            let f = region.detailFrame
+            #expect(f.w > 0 && f.h > 0, "\(region.id) has no detail frame")
+            #expect(f.x >= -0.02 && f.x + f.w <= 1.02, "\(region.id) runs off the canvas")
+            #expect(f.y >= -0.02 && f.y + f.h <= 1.02, "\(region.id) runs off the canvas")
+            // The close-up is of this region, so the marker — the point
+            // furthest inside it — must fall within the frame.
+            #expect(region.button.x >= f.x && region.button.x <= f.x + f.w,
+                    "\(region.id) marker is outside its own detail frame")
+            #expect(region.button.y >= f.y && region.button.y <= f.y + f.h,
+                    "\(region.id) marker is outside its own detail frame")
+        }
+    }
+
     /// A painted area with no catalog region behind it renders as inert, and
     /// the drop asks for it to be reported. Today there are none — all
     /// twenty catalog regions land on one of the fourteen stems.

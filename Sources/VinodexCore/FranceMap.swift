@@ -34,6 +34,16 @@ public struct FranceMap: Sendable {
         /// furthest inside the shape — so it lands in the visual middle of a
         /// crescent rather than off it.
         public let button: (x: Double, y: Double)
+        /// Where this region's *detail* drawing belongs on the base map, as
+        /// fractions of the base canvas: `(x, y)` of its top-left and its
+        /// `(w, h)`.
+        ///
+        /// The renderer publishes each detail map's projected bounds; run
+        /// through the base projection they say exactly which patch of France
+        /// that drawing is a close-up of. That is what lets the chosen region
+        /// lift off the map in place, rather than the selection being legible
+        /// only in a panel somewhere else on the screen.
+        public let detailFrame: (x: Double, y: Double, w: Double, h: Double)
 
         public static func == (a: Region, b: Region) -> Bool { a.id == b.id }
     }
@@ -91,12 +101,31 @@ public struct FranceMap: Sendable {
         let man = try JSONDecoder().decode(Manifest.self, from: manifest)
         let idx = try JSONDecoder().decode(Index.self, from: index)
 
+        // The base canvas in projected units, so a region's projected bounds
+        // can be expressed as fractions of it. `+ 2` is the renderer's own
+        // two-pixel margin, quoted in the manifest's projection note.
+        let pr = man.projection
+        let cw = Double(man.base.canvas.first ?? 1)
+        let ch = Double(man.base.canvas.last ?? 1)
+        func frac(_ px: Double, _ py: Double) -> (Double, Double) {
+            (((px - pr.origin[0]) * pr.scale + 2) / cw,
+             ((py - pr.origin[1]) * pr.scale + 2) / ch)
+        }
+
         var regions: [Region] = []
         var byFill: [RGB: String] = [:]
         for (stem, entry) in man.regions.sorted(by: { $0.key < $1.key }) {
             guard let rgb = RGB(hex: entry.fill), entry.button.count == 2 else { continue }
+            var frame = (x: 0.0, y: 0.0, w: 0.0, h: 0.0)
+            if let b = entry.detail?.bounds_projected, b.count == 2,
+               b[0].count == 2, b[1].count == 2 {
+                let (x0, y0) = frac(b[0][0], b[0][1])
+                let (x1, y1) = frac(b[1][0], b[1][1])
+                frame = (min(x0, x1), min(y0, y1), abs(x1 - x0), abs(y1 - y0))
+            }
             regions.append(Region(id: stem, fill: rgb,
-                                  button: (entry.button[0], entry.button[1])))
+                                  button: (entry.button[0], entry.button[1]),
+                                  detailFrame: frame))
             byFill[rgb] = stem
         }
         self.regions = regions
@@ -111,8 +140,15 @@ public struct FranceMap: Sendable {
     // is free to change.
     private struct Manifest: Decodable {
         struct Base: Decodable { let canvas: [Int] }
-        struct Entry: Decodable { let fill: String; let button: [Double] }
+        struct Projection: Decodable { let origin: [Double]; let scale: Double }
+        struct Detail: Decodable { let bounds_projected: [[Double]] }
+        struct Entry: Decodable {
+            let fill: String
+            let button: [Double]
+            let detail: Detail?
+        }
         let base: Base
+        let projection: Projection
         let regions: [String: Entry]
     }
 
