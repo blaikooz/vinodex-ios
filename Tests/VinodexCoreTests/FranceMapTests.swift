@@ -27,7 +27,24 @@ struct FranceMapTests {
     func fourteenRegions() throws {
         let map = try load()
         #expect(map.regions.count == 14)
-        #expect(map.canvas.w == 162 && map.canvas.h == 156)
+        // 502x496 since the backdrop arrived: the canvas grew a margin of
+        // world on every side (it reaches Iceland and the Sahara), and France
+        // itself now occupies about a third of it.
+        #expect(map.canvas.w == 502 && map.canvas.h == 496)
+    }
+
+    /// France's own rect on the canvas, which is what the screen scales by.
+    /// Aspect-fitting the whole canvas instead would shrink France to a third
+    /// of the screen and take every tap target down with it, so this being
+    /// right is the difference between a usable map and an unusable one.
+    @Test("France occupies about a third of the canvas, centred")
+    func franceRectIsSane() throws {
+        let fr = try load().franceRect
+        #expect(fr.w > 0.25 && fr.w < 0.40, "France's width fraction: \(fr.w)")
+        #expect(fr.h > 0.25 && fr.h < 0.40, "France's height fraction: \(fr.h)")
+        // Roughly centred, since the renderer puts an equal margin all round.
+        #expect(abs((fr.x + fr.w / 2) - 0.5) < 0.05)
+        #expect(abs((fr.y + fr.h / 2) - 0.5) < 0.05)
     }
 
     /// The load-bearing property of the whole hit test: two regions sharing a

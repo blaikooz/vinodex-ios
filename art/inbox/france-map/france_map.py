@@ -28,8 +28,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OUT  = os.path.join(HERE, 'out')
 
 MAG   = (238, 3, 225)     # chroma key, matches every other sheet in art/inbox
-INK   = (26, 20, 32)      # #1A1420
-STONE = (206, 198, 186)   # #CEC6BA, unassigned France
+INK   = (26, 20, 32)      # #1A1420  France's coastline: the strongest line drawn
+STONE = (206, 198, 186)   # #CEC6BA  unassigned France
+SEA         = (56, 80, 107)    # #38506B
+SHALLOW     = (78, 105, 133)   # #4E6985  shelf band hugging every coast
+FOREIGN     = (140, 135, 120)  # #8C8778  neighbouring countries, dimmer than STONE
+FOREIGN_INK = (26, 20, 32)     # #1A1420  same black as France, one line per frontier
 
 # --- the only authored table in this file ----------------------------------
 # wine region art stem -> (départements it is built from, fill)
@@ -61,7 +65,10 @@ REGIONS = {
 # stops. Reproducible; survives a re-render. §3 of the plan.
 SPLITS = [('beaujolais', 'rhone', 45.62)]     # (north stem, south stem, lat)
 
-LOG   = 160    # logical pixels on the base map's long axis
+LOG    = 160   # logical pixels on FRANCE's long axis (not the canvas — see MARGIN)
+MARGIN = int(os.environ.get('MARGIN', 170))  # logical px of world on every side
+SHELF  = 3     # shelf band width; the coastline eats the innermost pixel
+MIN_ISLAND = 20  # land masses smaller than this are specks, not islands
 SCALE = 5      # export multiplier, nearest-neighbour
 SS    = 6      # rasteriser supersample; max-pooled down, so thin capes survive
 
@@ -127,12 +134,40 @@ def despeckle(m, min_hole=4):
     return m
 
 
-def outline(mask, canvas):
-    nb = np.zeros_like(mask)
-    for dy in (-1, 0, 1):
-        for dx in (-1, 0, 1):
-            nb |= np.roll(np.roll(mask, dy, 0), dx, 1)
-    canvas[nb & ~mask] = INK
+CROSS = np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]], bool)
+
+
+def border(mask):
+    """One-pixel outer border, 4-connected.
+
+    8-connected dilation looks like the obvious choice and is wrong: at every
+    diagonal staircase it paints both the pixel above and the pixel beside, so
+    the line comes out two and three pixels thick along any coast that isn't
+    axis-aligned. The cross kernel gives a line that is exactly one pixel thick
+    everywhere and still visually continuous, because the result is itself
+    8-connected.
+    """
+    return ndimage.binary_dilation(mask, CROSS) & ~mask
+
+
+def outline(mask, canvas, colour=INK):
+    canvas[border(mask)] = colour
+
+
+def drop_islets(m, min_px=MIN_ISLAND):
+    """Remove land masses too small to draw as anything but a speck.
+
+    A 2-pixel island still gets a full border, so it renders as a dot of ink with
+    a dot of land inside it — noise along a coast that is otherwise one clean
+    line. Île de Ré, Oléron and Noirmoutier go; Corsica (205 px) and the
+    Balearics stay.
+    """
+    lab, n = ndimage.label(m)
+    if not n:
+        return m
+    keep = np.bincount(lab.ravel())
+    keep[0] = 0
+    return np.isin(lab, np.nonzero(keep >= min_px)[0])
 
 
 def pole(m):
@@ -146,22 +181,105 @@ def pole(m):
     return int(x), int(y), float(dt.max())
 
 
-# --- base map --------------------------------------------------------------
+# --- projection, sized on France, then widened by MARGIN --------------------
 allr = rings(list(FR))
 K = math.cos(math.radians(np.vstack([p[0] for p in allr])[:, 1].mean()))
 P = project(allr, K)
 allp = np.vstack([r for poly in P for r in poly])
-MN, MX = allp.min(axis=0), allp.max(axis=0)
-span = MX - MN
+FMN, FMX = allp.min(axis=0), allp.max(axis=0)
+span = FMX - FMN
 S = (LOG - 2) / span.max()
-W = int(round(span[0] * S)) + 2
-H = int(round(span[1] * S)) + 2
+FW = int(round(span[0] * S)) + 2          # France's own footprint, for the rect below
+FH = int(round(span[1] * S)) + 2
 
-base = despeckle(raster(P, MN, S, W, H))
-canvas = np.full((H + 2, W + 2, 3), MAG, np.uint8)
-land = np.zeros((H + 2, W + 2), bool)
-land[1:-1, 1:-1] = base
-canvas[land] = STONE
+# The canvas is France's box plus a margin of sea and neighbours on every side.
+# The projection ORIGIN moves; the scale does not, so France is drawn at exactly
+# the size it would have been without a backdrop and every downstream number
+# stays comparable to the pre-backdrop run.
+MN = FMN - MARGIN / S
+W = FW + 2 * MARGIN
+H = FH + 2 * MARGIN
+
+canvas = np.full((H + 2, W + 2, 3), SEA, np.uint8)
+
+# --- exterior: neighbouring countries ---------------------------------------
+NB = json.load(open(os.path.join(HERE, 'neighbours.json')))['features']
+nb_rings = []
+for f in NB:
+    for poly in f['geometry']['coordinates']:
+        nb_rings.append([np.array(r, float) for r in poly])
+foreign = np.zeros((H + 2, W + 2), bool)
+foreign[1:-1, 1:-1] = despeckle(raster(project(nb_rings, K), MN, S, W, H))
+foreign = drop_islets(foreign)
+
+# France's own silhouette, needed here only so the shelf hugs its coast too
+fr_land = np.zeros((H + 2, W + 2), bool)
+fr_land[1:-1, 1:-1] = despeckle(raster(P, MN, S, W, H))
+fr_land = drop_islets(fr_land)
+
+# continental shelf: a lighter band of sea hugging every coast, the way a
+# printed atlas shades shallow water. Two pixels, so it reads at this size.
+shelf = ndimage.binary_dilation(foreign | fr_land, iterations=SHELF) & ~(foreign | fr_land)
+canvas[shelf] = SHALLOW
+canvas[foreign] = FOREIGN
+
+# --- one line per frontier --------------------------------------------------
+# Outlining each country separately draws its border into its neighbour's
+# territory, so every shared frontier came out as TWO parallel lines — one laid
+# down by each side. Label the countries instead and derive the borders from
+# where the labels change, which can only ever produce one line.
+lab = np.zeros((H + 2, W + 2), np.int16)
+for i, f in enumerate(NB, start=1):
+    rr = [[np.array(r, float) for r in poly] for poly in f['geometry']['coordinates']]
+    m = np.zeros((H + 2, W + 2), bool)
+    m[1:-1, 1:-1] = raster(project(rr, K), MN, S, W, H)
+    lab[m & foreign & (lab == 0)] = i
+lab[fr_land] = -1                     # France is its own label, never a neighbour's
+
+# The interactive layer paints France's coastline one pixel outside France, so
+# anything the backdrop draws there would sit alongside it as a second line.
+fr_edge = border(fr_land)
+
+# Coastline: derived from the union, so it is drawn once in the sea.
+coast = border(foreign) & ~fr_land & ~fr_edge
+
+# Internal frontiers: a pixel is a border if the label to its right or below
+# differs. Two conditions, both load-bearing:
+#   - directional, because checking all four neighbours marks the pixel on BOTH
+#     sides of every frontier, which is the doubling again;
+#   - both sides must be foreign LAND, because otherwise a coastal pixel counts
+#     as a frontier with the sea and gets inked on the land side while `coast`
+#     inks the sea side — a two-pixel coastline on every south- and east-facing
+#     shore.
+internal = np.zeros_like(foreign)
+internal[:, :-1] |= (lab[:, :-1] != lab[:, 1:]) & foreign[:, :-1] & foreign[:, 1:]
+internal[:-1, :] |= (lab[:-1, :] != lab[1:, :]) & foreign[:-1, :] & foreign[1:, :]
+internal &= ~fr_edge
+
+# Land that runs off the canvas is cut by the window, not bounded by a coast.
+# Drawing a border along that cut turns the edge of the map into a black frame,
+# so the outer ring is left alone and the land simply runs off.
+rim = np.zeros_like(foreign)
+rim[:2, :] = rim[-2:, :] = True
+rim[:, :2] = rim[:, -2:] = True
+
+canvas[(coast | internal) & ~rim] = FOREIGN_INK
+
+# France's own footprint is filled with STONE rather than left as sea: the
+# interactive layer covers it exactly, so this is only ever visible as a seam if
+# the two layers are a pixel out of register — and a stone seam is invisible
+# where a sea-blue one would not be.
+canvas[fr_land] = STONE
+
+# the rasteriser leaves a one-pixel pad on every side; replicate into it so the
+# backdrop bleeds to the true edge instead of showing a frame of open sea
+canvas[0] = canvas[1]; canvas[-1] = canvas[-2]
+canvas[:, 0] = canvas[:, 1]; canvas[:, -1] = canvas[:, -2]
+backdrop = canvas.copy()
+
+# --- France on top ----------------------------------------------------------
+land = fr_land          # the same silhouette the backdrop was cut around,
+canvas[land] = STONE    # so the two layers register by construction
 
 stems = list(REGIONS)
 cov = np.stack([coverage(project(rings(REGIONS[s][0]), K), MN, S, W, H) for s in stems])
@@ -187,9 +305,27 @@ for stem in REGIONS:
 outline(land, canvas)
 CH, CW = canvas.shape[:2]
 
+# France's own box within the canvas, as fractions. The app should scale the
+# pair so THIS rect fills the intended width and let the backdrop bleed off the
+# screen edges — that keeps every tap target the size §5.2 measured.
+FRECT = [round((MARGIN + 1) / CW, 4), round((MARGIN + 1) / CH, 4),
+         round(FW / CW, 4), round(FH / CH, 4)]
+
 os.makedirs(OUT, exist_ok=True)
-Image.fromarray(canvas).resize((CW * SCALE, CH * SCALE), Image.NEAREST) \
-     .save(os.path.join(OUT, 'france-regions.png'))
+
+
+def save(arr, name):
+    Image.fromarray(arr).resize((arr.shape[1] * SCALE, arr.shape[0] * SCALE),
+                                Image.NEAREST).save(os.path.join(OUT, name))
+
+
+# the interactive layer: France only, everything else the chroma key
+inter = np.full_like(canvas, MAG)
+inter[land] = canvas[land]
+outline(land, inter)
+save(inter, 'france-regions.png')      # hit-tested; key means "not France"
+save(backdrop, 'france-backdrop.png')  # sea + neighbours, drawn underneath
+save(canvas, 'france-map-preview.png')  # the two composited, for eyeballing
 
 # --- computed button positions + collision proof ---------------------------
 btn = {n: pole(m) for n, m in masks.items()}
@@ -249,7 +385,19 @@ manifest = {
                  'note': 'canvas_x = (lon*x_factor - origin[0])*scale + 2 ; '
                          'canvas_y = (-lat - origin[1])*scale + 2'},
   'base': {'canvas': [CW, CH], 'export_scale': SCALE,
-           'unassigned': '#%02X%02X%02X' % STONE, 'outline': '#%02X%02X%02X' % INK},
+           'unassigned': '#%02X%02X%02X' % STONE, 'outline': '#%02X%02X%02X' % INK,
+           'key': '#%02X%02X%02X' % MAG,
+           'layers': {'interactive': 'france-regions.png',
+                      'backdrop': 'france-backdrop.png'},
+           'france_rect': FRECT,
+           'france_rect_note': 'x,y,w,h as fractions of the canvas. Scale the two '
+                               'layers together so this rect fills the intended '
+                               'width; the backdrop bleeds off the screen edges.'},
+  'backdrop': {'margin_px': MARGIN, 'sea': '#%02X%02X%02X' % SEA,
+               'foreign': '#%02X%02X%02X' % FOREIGN,
+               'foreign_outline': '#%02X%02X%02X' % FOREIGN_INK,
+               'shallow': '#%02X%02X%02X' % SHALLOW, 'shelf_px': SHELF,
+               'countries': sorted(f['properties']['name'] for f in NB)},
   'marker_clearance': {str(d): collisions(d) for d in (12, 10, 8)},
   'splits': [{'north': a, 'south': b, 'lat': c} for a, b, c in SPLITS],
   'regions': {

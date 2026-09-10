@@ -16,18 +16,29 @@ what "it worked" means.
 Everything is in `art/inbox/france-map/`.
 
 ```
-france_map.py            renders the base map, 14 detail maps, and the manifest
+france_map.py            renders both map layers, 14 detail maps, and the manifest
 france_check.py          the gate: reads the shipped PNG, resolves coordinates
 fr-departements.json     96 metropolitan départements, trimmed from Natural Earth
                          10m admin-1 (460KB). No network needed at any point.
+neighbours.json          107 countries — the world as far as it reaches, same source, clipped
+                         to a wide window around France (2.4MB)
 pins-sample.json         38 known appellation coordinates, used to prove the
                          pipeline before the real data exists. Replace in step 3.
 out/                     pre-rendered output, so you can look before running
-  france-regions.png     the base map, 810x780 (162x156 logical at 5x)
+  france-regions.png     the INTERACTIVE layer: France only, everything else the
+                         chroma key. 2510x2480 (502x496 logical at 5x)
+  france-backdrop.png    the BACKDROP layer: sea, continental shelf, and the
+                         neighbouring countries. Same canvas, drawn underneath.
+  france-map-preview.png the two composited — for eyeballing, not for shipping
   map-<stem>.png         14 detail maps, ~300px long axis
   france-manifest.json   computed button fractions, palette, projection, splits
   france-region-index.json  catalog id -> region stem
 ```
+
+**The base map is two layers on one canvas.** They are pixel-aligned by
+construction — same projection, same origin, same scale — so the app draws the
+backdrop, then the interactive layer directly on top, with no offset arithmetic
+of its own.
 
 `out/` is committed so you can see the result without a Python environment. It
 is regenerable and should be treated as build output, not as art masters —
@@ -49,7 +60,7 @@ Expected tail of `france_map.py`:
 
 ```
 split beaujolais/rhone at 45.62N: 9 px -> rhone
-base canvas 162x156 logical, exported 810x780
+base canvas 502x496 logical, exported 2510x2480
 ...
 marker d= 8 -> 0 collisions []
 14 detail maps written
@@ -123,8 +134,14 @@ should see them:
 
 ```
 art/icons/maps/france/france-regions.png
+art/icons/maps/france/france-backdrop.png
 art/icons/maps/france/map-<stem>.png       x14
 ```
+
+**The backdrop must not be keyed.** It is opaque by design — sea, shelf and
+neighbouring land, no transparency anywhere. Only `france-regions.png` and the
+detail maps carry the magenta key. If the importer keys everything it touches,
+route the backdrop around it or it will come out full of holes.
 
 If that folder is inside a tree either gate walks, put it somewhere else rather
 than adding an exclusion to a gate. Adding exclusions to `icons:verify` is how
@@ -136,7 +153,21 @@ its zero-pixel budget stops being honest.
 
 The goal is a single test screen reachable from wherever you park experiments.
 
-**5.1 Draw the base map.** One image, aspect-fit. Nothing else.
+**5.1 Draw the two layers, sized by France rather than by the canvas.**
+
+`france-backdrop.png`, then `france-regions.png` on top, same rect. Do **not**
+aspect-fit the canvas — scale the pair so that `base.france_rect` (x, y, w, h as
+fractions of the canvas) fills the width you want France to have, and let the
+backdrop bleed off the screen edges under a clip.
+
+That is the whole point of the margin: France stays exactly the size §5.2
+measured, and the sea and neighbours are overspill rather than something
+competing for the same screen. If you aspect-fit the whole canvas instead,
+France shrinks to 32% of the canvas and every tap target in the table below
+shrinks with it. `MARGIN` in the script controls how much world there is; it
+defaults to 170 logical pixels a side, which reaches Iceland, the Azores, the
+Sahara and Ukraine. It costs nothing at the France end — change it and every
+number in the manifest follows.
 
 **5.2 Hit-test by nearest region colour, not by button.**
 
@@ -148,17 +179,26 @@ and France is nearly square so a taller phone buys nothing.
 
 So:
 
-1. Convert the tap point to base-map image space (the same `.aspectRatio(.fit)`
-   arithmetic 0.8.4's `C4` needed for the label well — the fitted rect, not the
-   view rect).
-2. Sample the pixel. If it matches a region fill in the manifest, that's the hit.
-3. If it doesn't — unassigned stone, outline, or off the coast — search outward
-   for the nearest region pixel and take that.
+1. Convert the tap point to canvas space using the same transform §5.1 used to
+   draw (the fitted rect, not the view rect — the arithmetic 0.8.4's `C4` needed
+   for the label well).
+2. Sample **the interactive layer**. If the pixel matches a region fill in the
+   manifest, that's the hit.
+3. If it is `base.key` — the chroma magenta — the tap was outside France
+   entirely: the sea, or a neighbouring country. **No hit.** Do nothing.
+4. If it is stone or the coastline ink, the tap was inside France but on an
+   unassigned département. Search outward for the nearest region pixel and take
+   that.
 
-Step 3 is not a fallback, it's the design: there is no dead space, every tap
-inside France resolves to something, and a small region's catchment is far larger
-than its footprint. A tap in the Charentes goes to Bordeaux, which is the right
-answer for a player who doesn't know why that part is grey.
+Step 4 is not a fallback, it's the design: there is no dead space inside France,
+and a small region's catchment is far larger than its footprint. A tap in the
+Charentes goes to Bordeaux, which is the right answer for a player who doesn't
+know why that part is grey.
+
+Step 3 is what the backdrop buys beyond atmosphere: before it, everything outside
+France was the same magenta as the unassigned interior, so a tap in the Atlantic
+had to resolve to *something*. Now "outside France" is a thing the player can
+see, so it can also be a thing that does nothing.
 
 Build the colour→stem table from `france-manifest.json` at load; don't hardcode
 hexes in Swift, or the palette has two definitions the first time it's tuned.
@@ -202,10 +242,12 @@ The test has passed when all of these are true:
 
 1. `france_check.py pins.json` returns PASS on all 19 real catalog regions.
 2. The base map renders in the simulator at phone width and reads clearly —
-   fourteen distinguishable areas, Corsica present, no colour pair ambiguous.
-3. Every tap inside France resolves to a region. Deliberately try the hard ones:
-   Beaujolais (79 px, the smallest), the Languedoc/Roussillon pair (their markers
-   are 8.2 logical px apart), and the unassigned Charentes.
+   fourteen distinguishable areas, Corsica present, no colour pair ambiguous, and
+   the backdrop bleeding off the edges rather than boxed inside them.
+3. Every tap inside France resolves to a region; every tap outside it does
+   nothing. Deliberately try the hard ones: Beaujolais (79 px, the smallest), the
+   Languedoc/Roussillon pair (their markers are 8.2 logical px apart), the
+   unassigned Charentes, and the Bay of Biscay.
 4. Tapping opens the right detail map, and the catalog route from §5.5 lands on
    the right entry.
 5. `outlines:check`, `icons:verify`, `find-missing-refs` and the data-drift job
@@ -232,6 +274,17 @@ exists to answer.
   `['Charente', 'Charente-Maritime']` as one more region and re-render.
 - **Northern and Southern Rhône are one area,** as are Languedoc and its
   sub-appellations. Splitting them is a config change, not a code change.
+- **Islands under 20 logical px are not drawn.** Ré, Oléron, Noirmoutier, Elba
+  and the Tuscan specks. At this scale each was a dot of ink around a dot of
+  land, which broke the coastline into beads. Corsica (205 px) and the Balearics
+  (42 px) are well clear of the threshold. If a catalog coordinate ever lands on
+  one of the dropped islands, `france_check.py` will report it as `ON-STONE` or
+  `OFF-MAP` rather than silently mis-resolving it.
+- **The backdrop is a wide window, not literally the whole globe.** At the scale
+  where France is legible, a true world map would be **19,356 x 14,075 px** —
+  not a shippable asset. The margin is as much world as fits sensibly; a genuine
+  globe belongs at a different zoom level, which the app already has in globe
+  scan.
 - **No appellation pins yet.** Deferred until the real coordinates exist; the
   same projection in the manifest places them when they do.
 - **Two map systems for one country** is acceptable at test scale and a smell at

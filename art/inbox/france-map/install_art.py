@@ -44,17 +44,32 @@ def key_out(src, dst):
     return int(mask.sum()), a.shape[1] * a.shape[0]
 
 
+# **Never keyed**, per HANDOFF §4: the backdrop is opaque by design — sea,
+# shelf and neighbouring land — and keying it would punch holes wherever the
+# renderer happened to use a magenta-ish tone. It is copied verbatim.
+# `france-map-preview.png` is the two composited for eyeballing and is
+# explicitly not for shipping, so it is not installed at all.
+VERBATIM = {"france-backdrop.png"}
+SKIP = {"france-map-preview.png"}
+
+
 def main():
     if not os.path.isdir(SRC):
         sys.exit(f"no {SRC} — run france_map.py first")
     os.makedirs(DEST, exist_ok=True)
 
-    pngs = sorted(f for f in os.listdir(SRC) if f.endswith(".png"))
-    if len(pngs) != 15:
-        sys.exit(f"expected 15 PNGs (1 base + 14 detail), found {len(pngs)}")
+    pngs = sorted(f for f in os.listdir(SRC) if f.endswith(".png") and f not in SKIP)
+    keyable = [f for f in pngs if f not in VERBATIM]
+    if len(keyable) != 15:
+        sys.exit(f"expected 15 keyable PNGs (1 interactive + 14 detail), found {len(keyable)}")
 
     for name in pngs:
-        keyed, total = key_out(os.path.join(SRC, name), os.path.join(DEST, name))
+        src, dst = os.path.join(SRC, name), os.path.join(DEST, name)
+        if name in VERBATIM:
+            shutil.copy(src, dst)
+            print(f"  {name:26}   verbatim (opaque backdrop)")
+            continue
+        keyed, total = key_out(src, dst)
         print(f"  {name:26} {keyed * 100 / total:5.1f}% keyed")
 
     # The manifest and the index travel with the art: the app builds its

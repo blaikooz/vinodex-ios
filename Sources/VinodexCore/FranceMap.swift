@@ -69,6 +69,15 @@ public struct FranceMap: Sendable {
     public let byStem: [String: [String]]
     /// The base map's logical size, before the 5x export.
     public let canvas: (w: Int, h: Int)
+    /// Where France itself sits on the canvas, as `(x, y, w, h)` fractions.
+    ///
+    /// The canvas is mostly world: sea, shelf and 107 neighbouring countries
+    /// reaching to Iceland and the Sahara, with France occupying about a
+    /// third of it. **Scale the layers so this rect fills the width France
+    /// should have and let the backdrop bleed off under a clip** — aspect-
+    /// fitting the whole canvas instead would shrink France to a third of the
+    /// screen and take every tap target down with it.
+    public let franceRect: (x: Double, y: Double, w: Double, h: Double)
 
     /// Names for the fourteen areas. The stems are lowercase art names and
     /// the app writes region names in the catalog's own register, so the map
@@ -132,6 +141,8 @@ public struct FranceMap: Sendable {
         self.byFill = byFill
         self.byStem = idx.byStem
         self.canvas = (man.base.canvas.first ?? 0, man.base.canvas.last ?? 0)
+        let r = man.base.france_rect
+        self.franceRect = r.count == 4 ? (r[0], r[1], r[2], r[3]) : (0, 0, 1, 1)
     }
 
     // The manifest carries more than this needs — the projection, the
@@ -139,7 +150,7 @@ public struct FranceMap: Sendable {
     // only what is used keeps the app from depending on fields the renderer
     // is free to change.
     private struct Manifest: Decodable {
-        struct Base: Decodable { let canvas: [Int] }
+        struct Base: Decodable { let canvas: [Int]; let france_rect: [Double] }
         struct Projection: Decodable { let origin: [Double]; let scale: Double }
         struct Detail: Decodable { let bounds_projected: [[Double]] }
         struct Entry: Decodable {
