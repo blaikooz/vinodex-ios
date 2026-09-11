@@ -61,6 +61,19 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.9.55",
+  date: "2026-09-11",
+  headline: "A GLOBE YOU CAN OPEN",
+  notes: [
+    "GLOBE SCAN answers for itself: tap a wine country and the globe turns to it and moves in until the country fills the glass.",
+    "Tap again and its wine regions are painted onto the sphere in the place they belong, seven countries deep, Bordeaux to Marlborough.",
+    "Tapping a region lifts it off the map and raises its entry, so the globe now leads all the way to the catalog.",
+    "Magnification is a slider, and it reports where you actually are instead of offering three steps you are rarely standing on.",
+    "The LWIN wine index is credited the way its licence asks, with the attribution and notice files that 0.9.54 shipped without.",
+  ],
+};
+
+const PREVIOUS_0954: FirmwareRelease = {
   version: "0.9.54",
   date: "2026-09-09",
   headline: "FIT FOR THE SHELF",
@@ -446,6 +459,7 @@ const PREVIOUS_0892: FirmwareRelease = {
 };
 
 const PREVIOUS: FirmwareRelease[] = [
+  PREVIOUS_0954,
   PREVIOUS_0953,
   PREVIOUS_0952,
   PREVIOUS_0951,
