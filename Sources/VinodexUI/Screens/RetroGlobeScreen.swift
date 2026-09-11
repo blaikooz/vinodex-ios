@@ -55,7 +55,41 @@ public struct RetroGlobeScreen: View {
     /// The region under the last tap at the region tier, named in the HUD and
     /// carrying the entry tile.
     @State private var selectedRegion: String?
+    /// The magnification a pinch started from. `MagnifyGesture` reports a
+    /// factor against the gesture's own start, not against the last frame, so
+    /// without an anchor each update would compound the one before it.
+    @State private var pinchAnchor: Double?
+    /// The entry behind the chosen region, resolved once when it is chosen.
+    ///
+    /// **Not resolved in the view body.** `GlobeModel` writes `yaw` every
+    /// frame and `@Observable` invalidates on every write, so this screen's
+    /// body runs at 60Hz — and the tile was doing a catalog id-resolve plus two
+    /// store lookups inside it, sixty times a second, for a tile that changes
+    /// only when you tap.
+    @State private var selectedEntry: WineEntry?
 
+    /// The magnification the region tier was framed at, so a pinch past it can
+    /// hand dragging back. Nil away from that tier.
+    @State private var fittedZoom: Double?
+
+
+    /// **The map holds still at the size it was framed at, and moves once you
+    /// zoom past that.** Locking the region tier outright made pinch a trap:
+    /// magnification is about the screen centre, so anything that left the
+    /// glass could not be brought back and the small regions pinch exists to
+    /// reach became unreachable. Fitted or wider, it is pinned; closer in, it
+    /// pans.
+    private var canDragGlobe: Bool {
+        guard regionTier != nil else { return true }
+        guard let fitted = fittedZoom else { return false }
+        return model.zoom > fitted * 1.02
+    }
+
+    /// What a scene rebuild is keyed on — the screen mode, the skin and the
+    /// texture are all baked in `buildScene`, so each has to force one.
+    private var sceneKey: String {
+        "\(lcd.rawValue)|\(skin.rawValue)|\(globeTexture.stem)"
+    }
 
     /// The globe viewport's width over its height. On a portrait screen the
     /// horizontal field is the narrow one, so the fit has to know this or
@@ -156,7 +190,7 @@ public struct RetroGlobeScreen: View {
                         // other two are in it: it is baked in `buildScene`,
                         // so flipping the switch has to rebuild the view to
                         // be seen at all.
-                        .id("\(lcd.rawValue)|\(skin.rawValue)|\(globeTexture.stem)")
+                        .id(sceneKey)
 
                     // The drag rides an explicit clear hit-shape rather than
                     // the representable (0.9.51 fix): the SCNView disables its
@@ -198,6 +232,24 @@ public struct RetroGlobeScreen: View {
                                 SpatialTapGesture()
                                     .onEnded { tapped(at: $0.location) }
                             )
+                            // **Pinch is the magnification control now**
+                            // (0.9.56). A slider spent the screen's whole
+                            // width reporting a number, on a screen whose
+                            // subject is a picture; two fingers say the same
+                            // thing and cost nothing. Simultaneous, like the
+                            // tap: a pinch and a drag can share a touch
+                            // sequence, and arbitration on this screen has
+                            // eaten every gesture that had to win one.
+                            .simultaneousGesture(
+                                MagnifyGesture()
+                                    .onChanged { value in
+                                        if pinchAnchor == nil { pinchAnchor = model.zoom }
+                                        let base = pinchAnchor ?? model.zoom
+                                        model.zoom = min(GlobeModel.maxZoom,
+                                                         max(1, base * value.magnification))
+                                    }
+                                    .onEnded { _ in pinchAnchor = nil }
+                            )
                             .onAppear { globeSize = geo.size }
                             .onChange(of: geo.size) { _, new in globeSize = new }
                     }
@@ -238,14 +290,15 @@ public struct RetroGlobeScreen: View {
                     }
                 }
 
-                // One row, two jobs: the continent toggle at the globe, the
-                // way back at the region tier. Same slot and same height, so
-                // descending a tier does not move the controls under the
-                // finger that got you there.
-                if regionTier == nil {
-                    listToggle
-                } else {
+                // **The continent list belongs to the whole globe only.** Once
+                // you have chosen a country the screen is about that country,
+                // and a button offering to swap the sphere for a list of
+                // continents is answering a question nobody is asking. The way
+                // back takes the same slot at the region tier.
+                if regionTier != nil {
                     globeBackButton
+                } else if pickedCountry == nil {
+                    listToggle
                 }
 
                 // Two lines, because the globe has two affordances and the
@@ -270,11 +323,12 @@ public struct RetroGlobeScreen: View {
                             .foregroundStyle(lcd.subtext)
                     }
                     .multilineTextAlignment(.center)
-                } else {
-                    globeZoomSlider
                 }
             }
-            .padding(.vertical, 12)
+            // **The glass runs to the chassis.** Twelve points of padding on a
+            // screen this size is a visible frame around a picture that wants
+            // to be the screen, and the sphere is the subject here.
+            .padding(.vertical, 2)
 
 
         }
@@ -295,6 +349,23 @@ public struct RetroGlobeScreen: View {
             // negotiate with and the drag below is simply this screen's own.
         }
         .onChange(of: freezesGlobe) { _, frozen in model.autoSpins = !frozen }
+        // The scene is rebuilt from scratch on a mode, skin or texture change
+        // (see the `.id` on `GlobeSceneView`), which takes the region map with
+        // it. Re-laid here, so changing the screen colour while reading a map
+        // does not empty it.
+        .onChange(of: sceneKey) { _, _ in
+            // After the update settles. `.onChange` here and `makeUIView` on
+            // the `.id`-keyed representable run in the same SwiftUI pass and
+            // their order is undocumented; re-laying first would parent the map
+            // to the globe that is about to be replaced, and it would vanish
+            // with nothing to put it back.
+            Task { @MainActor in
+                guard let country = regionTier,
+                      let atlas = RegionAtlas.of(country) else { return }
+                model.showRegions(atlas.map, image: atlas.base, backdrop: atlas.backdrop)
+                if let stem = selectedRegion { model.popRegion(atlas.cutout(stem)) }
+            }
+        }
         .onChange(of: voiceOver) { _, on in if on { showsList = true } }
         .onDisappear {
             model.stop()
@@ -339,7 +410,9 @@ public struct RetroGlobeScreen: View {
             case "region": taps = 3
             default: break
             }
-            if taps == 2, tail.count == 2 { probeStem = String(tail[1]) }
+            // `:region:tuscany` names a stem too — the condition read `== 2`
+            // and silently dropped it for the three-tap form.
+            if taps >= 2, tail.count == 2 { probeStem = String(tail[1]) }
             spec = spec[..<colon]
         }
         let parts = spec.split(separator: ",")
@@ -352,7 +425,15 @@ public struct RetroGlobeScreen: View {
             guard globeSize != .zero else { return }
             let centre = CGPoint(x: globeSize.width / 2, y: globeSize.height / 2)
             for i in 0..<taps {
-                if i > 0 { try? await Task.sleep(for: .milliseconds(120)) }
+                // 120ms between the first two: they have to read as a double
+                // tap. But the second starts a fly-to that `tick` eases over
+                // frames, so a third tap 120ms later hit-tests whatever the
+                // camera happened to be passing through — the region it named
+                // was a function of frame timing. A third tap waits for the
+                // globe to arrive, which is what makes this probe evidence
+                // rather than a coin toss.
+                if i == 1 { try? await Task.sleep(for: .milliseconds(120)) }
+                if i == 2 { try? await Task.sleep(for: .seconds(2)) }
                 tapped(at: centre)
             }
             // After the fly-to has settled, or the glass is still showing the
@@ -411,6 +492,8 @@ public struct RetroGlobeScreen: View {
     /// Back to the turning globe.
     private func release() {
         Haptics.select()
+        pinchAnchor = nil
+        fittedZoom = nil
         model.autoSpins = !freezesGlobe
         model.zoom = 1
         withAnimation(DexMotion.settle) { pickedCountry = nil }
@@ -439,21 +522,35 @@ public struct RetroGlobeScreen: View {
         // **Painted onto the sphere, in place.** Not a panel over the globe:
         // the country's regions appear where the country is, and moving in is
         // the same globe getting closer rather than a new screen arriving.
-        model.showRegions(atlas.map, image: atlas.base)
+        model.showRegions(atlas.map, image: atlas.base, backdrop: atlas.backdrop)
         let b = atlas.map.subjectBounds
+        let fit = GlobeModel.zoomToFit(
+            west: b.west, east: b.east,
+            south: b.south, north: b.north,
+            // Tighter than the country tier: the regions are the subject now,
+            // so less air around them.
+            aspect: viewportAspect, margin: 1.02)
+        fittedZoom = fit
         model.focus(lon: (b.west + b.east) / 2,
                     lat: (b.south + b.north) / 2,
-                    // Tighter than the country tier: the regions are the
-                    // subject now, so less air around them.
-                    zoom: GlobeModel.zoomToFit(
-                        west: b.west, east: b.east,
-                        south: b.south, north: b.north,
-                        aspect: viewportAspect, margin: 1.02))
+                    zoom: fit)
         if let stem = probeStem { model.popRegion(atlas.cutout(stem)) }
+        let found = probeStem.flatMap { entry(for: $0, in: atlas) }
         withAnimation(DexMotion.settle) {
             regionTier = hit.admin
             selectedRegion = probeStem
+            selectedEntry = found
         }
+    }
+
+    /// The entry behind a painted region — the region itself, never an
+    /// appellation inside it. `RegionMap.primaryEntryID` decides; this resolves.
+    private func entry(for stem: String, in atlas: RegionAtlas) -> WineEntry? {
+        let all = atlas.map.regionIDs(for: stem).compactMap { db.entry(id: $0) }
+        guard let id = atlas.map.primaryEntryID(
+            for: stem, names: all.map { (id: $0.id, name: $0.name) }
+        ) else { return nil }
+        return all.first { $0.id == id }
     }
 
     /// A tap while the regions are up: name one, or leave the tier.
@@ -471,7 +568,11 @@ public struct RetroGlobeScreen: View {
         // step, not a menu to be dismissed by hand.
         Haptics.select()
         model.popRegion(atlas.cutout(stem))
-        withAnimation(DexMotion.settle) { selectedRegion = stem }
+        let found = entry(for: stem, in: atlas)
+        withAnimation(DexMotion.settle) {
+            selectedRegion = stem
+            selectedEntry = found
+        }
     }
 
     /// Back up to the country tier: the patch comes off and the globe pulls
@@ -479,17 +580,25 @@ public struct RetroGlobeScreen: View {
     private func closeRegions() {
         Haptics.screenTap()
         model.hideRegions()
+        // A pinch that is cancelled rather than ended never clears its anchor,
+        // and a stale one makes the next pinch jump from the wrong base.
+        pinchAnchor = nil
+        fittedZoom = nil
         withAnimation(DexMotion.settle) {
             regionTier = nil
             selectedRegion = nil
+            selectedEntry = nil
         }
-        if let picked = pickedCountry, let atlas = RegionAtlas.of(picked.admin) {
-            let b = atlas.map.subjectBounds
-            model.focus(lon: (b.west + b.east) / 2,
-                        lat: (b.south + b.north) / 2,
+        // **Back to the view `pick` established, not a second opinion of it.**
+        // This re-framed on the manifest's country box while `pick` framed on
+        // the globe raster's — two sources of truth for "where is Italy", so
+        // coming back up a tier landed somewhere slightly else than you left.
+        if let picked = pickedCountry, let tap = model.lastHit,
+           let box = model.landmass(of: picked.id, near: tap.lon, near: tap.lat) {
+            model.focus(lon: box.lon, lat: box.lat,
                         zoom: GlobeModel.zoomToFit(
-                            west: b.west, east: b.east,
-                            south: b.south, north: b.north,
+                            west: box.west, east: box.east,
+                            south: box.south, north: box.north,
                             aspect: viewportAspect))
         } else {
             model.zoom = 1
@@ -563,10 +672,10 @@ public struct RetroGlobeScreen: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .padding(.horizontal, 12)
-        // Clear of the HUD's bottom line, which is drawn on the glass and runs
-        // the full width.
-        .padding(.bottom, 26)
+        .padding(.horizontal, 10)
+        // As low as the glass goes: the HUD's bottom line is gone, so there is
+        // nothing left down here to clear, and every point given back is map.
+        .padding(.bottom, 4)
     }
 
     /// The country under the last tap, as a tile you can take. Naming a country
@@ -575,27 +684,30 @@ public struct RetroGlobeScreen: View {
     private func countryTile(_ picked: GlobeIndex.Country) -> some View {
         Button {
             Haptics.select()
-            onOpenCountry?(picked.admin)
+            // **The catalog's spelling, not the atlas's.** Natural Earth
+            // calls it "United States of America" and the catalog files it
+            // under "USA"; it is the only one of the thirty that disagrees,
+            // and the country page opened empty for it.
+            onOpenCountry?(GlobeIndex.catalogName(for: picked.admin))
         } label: {
             HStack(spacing: 12) {
-                FlagSwatch(db: db, country: picked.admin, width: 54, height: 34)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(picked.label)
-                        .font(DexFont.retro(13))
-                        .foregroundStyle(lcd.text)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                    Text(picked.isMapped ? "\(picked.mapped) REGIONS" : "COUNTRY")
-                        .font(DexFont.retro(10))
-                        .tracking(1)
-                        .foregroundStyle(lcd.subtext)
-                }
+                // The catalog's spelling here too — the flag is looked up by
+                // the same name the country page is, so "United States of
+                // America" drew an empty swatch beside a correct label.
+                FlagSwatch(db: db, country: GlobeIndex.catalogName(for: picked.admin),
+                           width: 36, height: 23)
+                Text(picked.label)
+                    .font(DexFont.retro(12))
+                    .foregroundStyle(lcd.text)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                 Spacer(minLength: 8)
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(lcd.subtext)
             }
-            .padding(10)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
             .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
             .overlay(RoundedRectangle(cornerRadius: 6)
                 .strokeBorder(lcd.accent.opacity(0.5), lineWidth: 1))
@@ -631,19 +743,22 @@ public struct RetroGlobeScreen: View {
     /// globe the reader is still looking at — the full tile is what the entry
     /// page opens with.
     private func regionEntryCard(_ atlas: RegionAtlas, stem: String) -> some View {
-        let entries = atlas.map.regionIDs(for: stem).compactMap { db.entry(id: $0) }
+        let entries = selectedEntry.map { [$0] } ?? []
         return VStack(alignment: .leading, spacing: 8) {
-            Text(atlas.map.displayName(stem))
-                .font(DexFont.retro(12))
-                .tracking(1)
-                .foregroundStyle(lcd.accent)
+            // No name header: the tile under it already carries the region's
+            // name, and printing it twice cost a line of map for nothing. The
+            // empty case still needs words, so it keeps them.
             if entries.isEmpty {
+                Text(atlas.map.displayName(stem))
+                    .font(DexFont.retro(12))
+                    .tracking(1)
+                    .foregroundStyle(lcd.accent)
                 Text("NO CATALOG ENTRY HERE YET")
                     .font(DexFont.retro(10))
                     .tracking(1)
                     .foregroundStyle(lcd.subtext)
             } else {
-                ForEach(entries.prefix(2)) { entry in
+                ForEach(entries) { entry in
                     EntryTileView(
                         entry: entry,
                         palette: db.palette,
@@ -655,80 +770,48 @@ public struct RetroGlobeScreen: View {
                 }
             }
         }
-        .padding(10)
+        .padding(6)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
         .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(lcd.accent.opacity(0.5), lineWidth: 1))
     }
 
+    /// **The readout, and nothing else** (0.9.56, maintainer order).
+    ///
+    /// The name line went because the floating tile already carries it, and
+    /// the instruction line went because a sphere that turns under your finger
+    /// and lights up when you tap it does not need to be captioned. What is
+    /// left is where the camera is pointing, which is the one thing the
+    /// picture cannot say for itself.
     private var globeHUD: some View {
-        VStack(spacing: 0) {
-            hudRow(leading: hudTitle, trailing: facingText, top: true)
+        HStack {
             Spacer(minLength: 0)
-            hudRow(leading: hudHint, trailing: zoomLabel(model.zoom), top: false)
+            // Its own dark ground: the readout is drawn over whatever the
+            // globe happens to be showing, and over a bright painted country
+            // it was unreadable. A plate under it costs nothing and means the
+            // one piece of text left on the glass can always be read.
+            Text(facingText)
+                .font(DexFont.mono(14))
+                .foregroundStyle(lcd.subtext)
+                .lineLimit(1)
+                .monospacedDigit()
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(lcd.page.opacity(0.82))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 5)
+                        .strokeBorder(lcd.surfaceEdge.opacity(0.7), lineWidth: 1)
+                )
         }
+        .padding(.horizontal, 10)
+        .padding(.top, 6)
+        .frame(maxHeight: .infinity, alignment: .top)
         .allowsHitTesting(false)
     }
 
-    private func hudRow(leading: String, trailing: String, top: Bool) -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(leading)
-                .font(DexFont.retro(10))
-                .tracking(1)
-                .foregroundStyle(top ? lcd.accent : lcd.subtext)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            Spacer(minLength: 8)
-            Text(trailing)
-                .font(DexFont.mono(14))
-                .foregroundStyle(top ? lcd.subtext : lcd.accent)
-                .lineLimit(1)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .background(
-            LinearGradient(
-                colors: top ? [lcd.page.opacity(0.8), .clear] : [.clear, lcd.page.opacity(0.8)],
-                startPoint: .top, endPoint: .bottom
-            )
-        )
-    }
-
-    /// What the bottom row says, which depends on what the last tap found.
-    private var hudHint: String {
-        if let country = regionTier, let atlas = RegionAtlas.of(country) {
-            let total = atlas.map.regions.count
-            guard let stem = selectedRegion,
-                  let n = atlas.map.regions.firstIndex(where: { $0.id == stem })
-            else { return "\(total) REGIONS · TAP ONE" }
-            return "REGION \(n + 1) OF \(total) · TAP THE TILE"
-        }
-        guard let picked = pickedCountry else { return "DRAG TO SPIN · TAP A COUNTRY" }
-        guard picked.isMapped else { return "NO REGION MAP FOR THIS ONE" }
-        if let atlas = RegionAtlas.of(picked.admin) {
-            return "\(atlas.map.regions.count) REGIONS · TAP AGAIN TO OPEN"
-        }
-        return "TAP AGAIN FOR ITS REGIONS"
-    }
-
-    /// The HUD's name line: the country, and the region once one is chosen —
-    /// "ITALY · EMILIA-ROMAGNA", as the prototype reads it.
-    private var hudTitle: String {
-        let country = regionTier ?? pickedCountry?.label ?? "GLOBE"
-        guard let stem = selectedRegion, let tier = regionTier,
-              let atlas = RegionAtlas.of(tier) else { return country.uppercased() }
-        return country.uppercased() + " · " + atlas.map.displayName(stem).uppercased()
-    }
-
-    /// The bank's steps are 1, 1.5 and 2, but tapping a country sets whatever
-    /// magnification fills the glass — so the readout has to say the number
-    /// rather than pick from three. It read "2X" at six for one commit.
-    private func zoomLabel(_ z: Double) -> String {
-        z < 1.05 ? "1X"
-            : (z.truncatingRemainder(dividingBy: 1) == 0
-               ? String(format: "%.0fX", z)
-               : String(format: "%.1fX", z))
-    }
 
     /// Hemispheres rather than signs, and one decimal: this drifts as the
     /// globe turns, and a second decimal would be a number nobody can read
@@ -755,39 +838,6 @@ public struct RetroGlobeScreen: View {
             }
         }
         .allowsHitTesting(false)
-    }
-
-    /// Moves the camera in rather than scaling the sphere, so the markers
-    /// keep projecting through the same renderer they always did.
-    /// **Magnification as one continuous control** (0.9.55, maintainer order).
-    ///
-    /// Three preset buttons could not say where you were: tapping a country
-    /// sets whatever magnification fits it, so the bank spent most of its life
-    /// showing three unlit buttons next to a globe at 8.3x. A slider both
-    /// reports the current value and lets you leave it anywhere.
-    private var globeZoomSlider: some View {
-        HStack(spacing: 10) {
-            Text("ZOOM")
-                .font(DexFont.retro(10))
-                .tracking(2)
-                .foregroundStyle(lcd.subtext)
-            Slider(
-                value: Binding(
-                    get: { model.zoom },
-                    set: { model.zoom = $0 }
-                ),
-                in: 1...GlobeModel.maxZoom
-            )
-            .tint(lcd.accent)
-            .accessibilityLabel("Globe magnification")
-            .accessibilityValue(zoomLabel(model.zoom))
-            Text(zoomLabel(model.zoom))
-                .font(DexFont.mono(13))
-                .foregroundStyle(lcd.accent)
-                .frame(width: 46, alignment: .trailing)
-                .monospacedDigit()
-        }
-        .padding(.horizontal, 14)
     }
 
     // MARK: Continent list (the non-globe path)
@@ -939,13 +989,27 @@ public struct RetroGlobeScreen: View {
 
     // MARK: Drag
 
+    /// **The region map does not move** (0.9.56, maintainer order). A country
+    /// is flown to and framed to fit; dragging from there only ever slid the
+    /// subject off the glass, and at this magnification a small drag throws it
+    /// a long way. The tier above keeps its drag — the whole globe is a thing
+    /// you turn.
     private var dragGesture: some Gesture {
         DragGesture(minimumDistance: 4)
             // `value.time` is threaded through so the throw that carries the
             // globe after the finger lifts is measured in points per *second*
             // rather than points per touch-event — those are not the same
             // number on a 120Hz panel. (AUDIT M11)
-            .onChanged { value in model.drag(translation: value.translation, at: value.time) }
+            .onChanged { value in
+                guard canDragGlobe else { return }
+                model.drag(translation: value.translation, at: value.time)
+            }
+            // **`endDrag` is never skipped.** Guarding it too left `dragging`
+            // true whenever a touch satisfied both the 4pt drag minimum and the
+            // tap recogniser and the tap opened the region tier mid-gesture —
+            // and `tick` damps velocity only while `!dragging`, so the map slid
+            // away forever. At the region tier this is a no-op anyway: nothing
+            // fed it any velocity.
             .onEnded { _ in model.endDrag() }
     }
 }
@@ -1056,7 +1120,7 @@ final class GlobeModel {
     private static let maxPitch: Double = 1.0
     private static let globeRadius: Double = 1.05
     /// Was `-0.0032` per frame: the same rotation, stated per second.
-    private static let autoSpinRate: Double = -0.0032 * dampingReferenceRate
+    private static let autoSpinRate: Double = -0.0016 * dampingReferenceRate
     /// A frame delta longer than this is a stall, not a slow frame — a
     /// backgrounded app or a blocked main thread returning after half a second
     /// would otherwise snap the globe a third of a turn. Clamped, the worst
@@ -1098,7 +1162,7 @@ final class GlobeModel {
     /// a first-class way to pick one, and the marker plates hide well before
     /// the limb anyway (`frontFacingThreshold`). At 3.45 the sphere is ~14%
     /// wider on screen and the plates still clear each other.
-    static let cameraDistance: Double = 3.45
+    static let cameraDistance: Double = 2.95
     /// Markers hide well before the limb so they never straddle the edge.
     private static let frontFacingThreshold: Double = 0.55
 
@@ -1228,7 +1292,10 @@ final class GlobeModel {
             for wx in (cells.x - dx)...(cells.x + dx) {
                 // Wrapped, so a window over the Pacific still sees both sides.
                 let x = ((wx % atlas.w) + atlas.w) % atlas.w
-                guard atlas.cells[y * atlas.w + x] == UInt8(id) else { continue }
+                // `clamping`, not the trapping init: `id` comes off decoded
+                // JSON, and `RegionAtlas` already uses `clamping` at both of
+                // its analogous sites. Safe by data today; a crash tomorrow.
+                guard atlas.cells[y * atlas.w + x] == UInt8(clamping: id) else { continue }
                 let cl = (Double(x) / Double(atlas.w)) * 360 - 180
                 let la = 90 - (Double(y) / Double(atlas.h)) * 180
                 sx += cos(cl * .pi / 180)
@@ -1277,7 +1344,6 @@ final class GlobeModel {
             }
         }
         let cutoff = far[max(0, keep - 1)]
-        far = []
 
         var minLat = 90.0, maxLat = -90.0, minDLon = 0.0, maxDLon = 0.0
         for (la, d) in zip(lats, dLons) where hypot(la - midLat, d * cosLat) <= cutoff {
@@ -1296,7 +1362,7 @@ final class GlobeModel {
     /// glass. A sphere at 1x shows about 140 usable degrees before the limb
     /// curls away, so this is that over the span, kept inside bounds a globe
     /// still reads as a globe at.
-    /// The furthest in the lens goes, and the ceiling the slider runs to.
+    /// The furthest in the lens goes, and the ceiling a pinch runs to.
     static let maxZoom: Double = 12
 
     /// **Magnification that actually fits the country on the glass.**
@@ -1444,7 +1510,12 @@ final class GlobeModel {
     /// across, which is a coloured smudge at the magnification this tier uses.
     /// The patch carries the painted art at its own resolution instead, and
     /// costs one small geometry.
-    func showRegions(_ map: RegionMap, image: UIImage) {
+    /// `backdrop` is the opaque world the region art is drawn over. A
+    /// parameter rather than a property: it was a property for one build, and
+    /// `showRegions` opens by calling `hideRegions`, which cleared it — so the
+    /// value the caller had just set was gone by the line that read it, and the
+    /// underlay silently never drew. Passed in, there is no order to get wrong.
+    func showRegions(_ map: RegionMap, image: UIImage, backdrop: UIImage?) {
         hideRegions()
         let b = map.subjectBounds
         // Half a degree of margin: the subject rect is the country's own
@@ -1456,9 +1527,35 @@ final class GlobeModel {
 
         // Enough divisions that the patch follows the curve without a visible
         // facet at this tier's magnification, and few enough to stay free.
-        regionBounds = (west, east, south, north)
 
-        let geometry = patchGeometry(map: map, lift: 1.004)
+        // **The map's own backdrop goes under it.** The globe paints Italy in
+        // one flat bright colour at 2048x1024 — cells 14km across at this
+        // latitude — while the painted coastline is finer, so the globe's
+        // blockier Italy overhung the map and showed as a rim of its own
+        // colour: green around Italy, purple around Spain, tan around France.
+        // It read as the map bleeding onto its neighbours; it was the globe
+        // showing around the map. The backdrop is opaque and shares the art's
+        // canvas, projection and origin exactly, so laid underneath it there is
+        // no seam to mis-register and nothing of the globe left to show.
+        if let world = backdrop {
+            let underGeometry = patchGeometry(map: map, bounds: map.canvasBounds, lift: 1.002)
+            let under = SCNMaterial()
+            under.diffuse.contents = world
+            under.lightingModel = .constant
+            under.isDoubleSided = true
+            under.diffuse.magnificationFilter = .nearest
+            under.diffuse.minificationFilter = .nearest
+            under.diffuse.mipFilter = .none
+            under.diffuse.wrapS = .clamp
+            under.diffuse.wrapT = .clamp
+            underGeometry.materials = [under]
+            let underNode = SCNNode(geometry: underGeometry)
+            underNode.renderingOrder = 9
+            globeNode.addChildNode(underNode)
+            regionUnderNode = underNode
+        }
+
+        let geometry = patchGeometry(map: map, bounds: (west, east, south, north), lift: 1.004)
 
         let material = SCNMaterial()
         material.diffuse.contents = image
@@ -1466,8 +1563,17 @@ final class GlobeModel {
         // shading over the region colours turns a palette chosen for contrast
         // into a gradient that hides the smallest regions at the limb.
         material.lightingModel = .constant
+        // **Nearest in every direction, and no mipmaps.** The art is clean —
+        // zero partial-alpha pixels, zero surviving key colour — so the halo
+        // around every painted country came entirely from filtering: an opaque
+        // region colour averaged with the transparent black beside it gives a
+        // half-strength version of that colour, which then draws OVER the
+        // neighbouring country. That is why Spain bled purple and Italy bled
+        // green: each country was haloed in its own coastal region's colour.
+        // Mipmaps do the same averaging one level down, so they go too.
         material.diffuse.magnificationFilter = .nearest
-        material.diffuse.minificationFilter = .linear
+        material.diffuse.minificationFilter = .nearest
+        material.diffuse.mipFilter = .none
         material.diffuse.wrapS = .clamp
         material.diffuse.wrapT = .clamp
         material.isDoubleSided = true
@@ -1479,17 +1585,27 @@ final class GlobeModel {
         globeNode.addChildNode(node)
         regionNode = node
 
+        // **The graticule comes off while a map is up.** The wire shell sits at
+        // radius + 0.04 and the map at radius * 1.004, so the grid is nearer
+        // the camera and rules lines straight across the regions. It is scenery
+        // for a spinning globe; over a map of Tuscany it is just lines on the
+        // subject.
+        wireNode.isHidden = true
+
         // **The chosen region rides a copy of the mesh, further out.** Same
         // grid, same texel under every vertex, just a larger radius — so it
         // lifts off the country without any chance of sliding out of register
         // with the shape it was cut from. A drop shadow would have been the
         // flat-map way to say "raised"; on a sphere the honest way is to
         // actually raise it.
-        let popGeometry = patchGeometry(map: map, lift: Self.regionLift)
+        let popGeometry = patchGeometry(map: map, bounds: (west, east, south, north),
+                                        lift: Self.regionLift)
         let pop = SCNMaterial()
         pop.lightingModel = .constant
         pop.isDoubleSided = true
         pop.diffuse.magnificationFilter = .nearest
+        pop.diffuse.minificationFilter = .nearest
+        pop.diffuse.mipFilter = .none
         pop.diffuse.wrapS = .clamp
         pop.diffuse.wrapT = .clamp
         pop.diffuse.contents = UIColor.clear
@@ -1512,13 +1628,14 @@ final class GlobeModel {
     }
 
     private var regionPopNode: SCNNode?
-    /// The patch's own extent, so a second mesh can be built over the same
-    /// ground without the caller passing the bounds back in.
-    private var regionBounds: (west: Double, east: Double, south: Double, north: Double)?
+    private var regionUnderNode: SCNNode?
 
     /// The lat/lon mesh the region tier is drawn on, at a given radius.
-    private func patchGeometry(map: RegionMap, lift: Double) -> SCNGeometry {
-        guard let b = regionBounds else { return SCNGeometry() }
+    private func patchGeometry(
+        map: RegionMap,
+        bounds b: (west: Double, east: Double, south: Double, north: Double),
+        lift: Double
+    ) -> SCNGeometry {
         // Enough divisions that the patch follows the curve without a visible
         // facet at this tier's magnification, and few enough to stay free.
         let cols = 72, rows = 72
@@ -1571,11 +1688,13 @@ final class GlobeModel {
     }
 
     func hideRegions() {
+        wireNode.isHidden = false
+        regionUnderNode?.removeFromParentNode()
+        regionUnderNode = nil
         regionNode?.removeFromParentNode()
         regionNode = nil
         regionPopNode?.removeFromParentNode()
         regionPopNode = nil
-        regionBounds = nil
     }
 
     /// Where a tap landed on the region patch, in the art's own pixel space,
@@ -1589,7 +1708,13 @@ final class GlobeModel {
               let hit = view.hitTest(point, options: [
                   .boundingBoxOnly: false,
                   .searchMode: SCNHitTestSearchMode.all.rawValue,
-              ]).first(where: { $0.node === node || $0.node === regionPopNode })
+              // **The map, and only the map.** The raised region rides a copy
+              // of this mesh 2.2% further out, so a ray meets it at a
+              // different coordinate than it meets the map — and being nearer
+              // the camera it was hit FIRST, so every tap resolved against the
+              // raised shell and landed a region or two off. It was answering
+              // UMBRIA for the middle of LAZIO.
+              ]).first(where: { $0.node === node })
         else { return nil }
         let uv = hit.textureCoordinates(withMappingChannel: 0)
         return CGPoint(x: CGFloat(uv.x) * artSize.width,
@@ -1707,8 +1832,20 @@ final class GlobeModel {
             // the tint rode for two releases without ever visibly reaching the
             // device: under the physically-based lighting model that layer is
             // quietly ignored on hardware.
-            let base = invertsTexture ? Self.inverted(image) ?? image : image
-            material.diffuse.contents = Self.colorized(base, with: tint) ?? base
+            // **The wine globe keeps its own palette.** `colorized` reduces to
+            // luma and multiplies by the screen tint, which is right for the
+            // coastline texture — one neon line on black, whose colour is the
+            // mode's to choose. It is exactly wrong here: thirty countries
+            // authored in thirty distinct colours all collapse to the same
+            // green, and "which countries can I tap" becomes unanswerable.
+            // The wine texture is a map, not a monochrome overlay, so it wears
+            // the colours it was drawn in.
+            if texture == .wine {
+                material.diffuse.contents = image
+            } else {
+                let base = invertsTexture ? Self.inverted(image) ?? image : image
+                material.diffuse.contents = Self.colorized(base, with: tint) ?? base
+            }
         } else {
             material.diffuse.contents = tint
         }
@@ -1722,10 +1859,21 @@ final class GlobeModel {
         // rather than the old fixed bottle green: the glow has to be the same
         // colour as the thing glowing.
         material.emission.contents = Self.shaded(tint, isLight ? 0.20 : 0.14)
-        material.emission.intensity = isLight ? 0.08 : 0.3
+        // The wine map carries its own brightness; the glow that makes a
+        // single neon coastline readable only washes thirty colours together.
+        material.emission.intensity = texture == .wine ? 0.04 : (isLight ? 0.08 : 0.3)
         sphere.materials = [material]
         globeNode = SCNNode(geometry: sphere)
         scene.rootNode.addChildNode(globeNode)
+        // **The region patch was parented to the globe that just went.**
+        // `buildScene` runs again whenever the screen mode, skin or texture
+        // changes, and it builds a fresh `globeNode` — so the map, its backdrop
+        // and the raised region are all detached, while these references went on
+        // claiming they were on screen. The screen watches the same key and
+        // lays the map down again; this makes the model honest in the meantime.
+        regionNode = nil
+        regionUnderNode = nil
+        regionPopNode = nil
 
         // Wireframe shell just outside it.
         let wire = SCNSphere(radius: CGFloat(Self.globeRadius + 0.04))

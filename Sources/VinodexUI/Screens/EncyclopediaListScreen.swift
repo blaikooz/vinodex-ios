@@ -206,7 +206,22 @@ public struct EncyclopediaListScreen: View {
     /// Whether the chip rows are unfolded. Folded by default: the list is the
     /// subject, and three rows of chips above it unasked-for would bury the
     /// first result. Session-local, like the fold state everywhere else.
-    @State private var showsChips = false
+    @State private var showsChips = Self.opensFiltersForScreenshot()
+
+    #if DEBUG
+    /// `-vinodexScreenshot grapes:filters` opens with the facet panel already
+    /// unfolded. The panel is the half of this screen a screenshot cannot
+    /// otherwise reach — it takes a tap — and it is where the bug lived that
+    /// made GRAPES look frozen, so it needs to be photographable.
+    private static func opensFiltersForScreenshot() -> Bool {
+        let args = ProcessInfo.processInfo.arguments
+        guard let flag = args.firstIndex(of: "-vinodexScreenshot"),
+              args.index(after: flag) < args.endIndex else { return false }
+        return args[args.index(after: flag)].hasSuffix(":filters")
+    }
+    #else
+    private static func opensFiltersForScreenshot() -> Bool { false }
+    #endif
     @State private var screens = ScreenStateStore.shared
     /// The three shelves, for the SAVED / WANTED / TRIED chips and for the
     /// tried border on a row (0.8.91, B1/B2).
@@ -428,6 +443,21 @@ public struct EncyclopediaListScreen: View {
             }
 
             if showsChips, !chipFacets.isEmpty {
+                // **Bounded, and scrolling inside its bound.** This strip is
+                // pinned above the list rather than inside it, so whatever
+                // height it takes comes straight out of the list's. GRAPES
+                // carries five facet rows and one of them (STYLE, ten values)
+                // wraps — unfolded they filled the glass, the list was left
+                // with nothing, and the screen read as frozen: the filter
+                // button "locked" it. `ChipFilterScreen` already solved this
+                // for its six facets in 0.5.9 — "they scroll in their own well
+                // under the bar rather than pushing the results off the
+                // device" — at the same 330pt. This is that, here.
+                // Indicators ON, as `ChipFilterScreen`'s well has them: the
+                // bug being fixed was a screen that read as frozen, and 330pt
+                // of clipped content with nothing saying it scrolls is the same
+                // mistake one layer down.
+                ScrollView(.vertical) {
                 VStack(alignment: .leading, spacing: 10) {
                     if chips.count > 0 {
                         Button {
@@ -452,12 +482,15 @@ public struct EncyclopediaListScreen: View {
                         chipRow(facet)
                     }
                 }
+                }
+                .frame(maxHeight: 330)
                 .transition(.opacity)
             }
         }
         .padding(.horizontal, 10)
         .padding(.top, 8)
     }
+
 
     /// The far-right filter toggle: the old FILTER row compressed to an icon
     /// with its active-count badge. The options open under the bar, pinned

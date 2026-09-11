@@ -61,6 +61,19 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.9.56",
+  date: "2026-09-11",
+  headline: "ROOM TO READ",
+  notes: [
+    "GLOBE SCAN is all map now: the name plate, the instruction line and the zoom bar are gone, and two fingers do the zooming.",
+    "Every wine country wears its own bright colour and a drawn coastline, so what is worth tapping reads at a glance.",
+    "A country's region map holds still while you read it, and the region you tap lifts off the map and offers its entry.",
+    "The United States opens its own page from the globe, which it had never once managed to do.",
+    "A region answers with its own entry instead of the appellations inside it, and the GRAPES filter no longer freezes the list.",
+  ],
+};
+
+const PREVIOUS_0955: FirmwareRelease = {
   version: "0.9.55",
   date: "2026-09-11",
   headline: "A GLOBE YOU CAN OPEN",
@@ -459,6 +472,7 @@ const PREVIOUS_0892: FirmwareRelease = {
 };
 
 const PREVIOUS: FirmwareRelease[] = [
+  PREVIOUS_0955,
   PREVIOUS_0954,
   PREVIOUS_0953,
   PREVIOUS_0952,

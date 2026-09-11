@@ -677,7 +677,8 @@ struct RootView: View {
         }
         switch name {
         case "menu":     return []
-        case "grapes":   return [.list(category: .grapes, filter: nil)]
+        case "grapes", "grapes:filters":
+            return [.list(category: .grapes, filter: nil)]
         case "globe":    return [.globe]
         case "scanner":  return [.labelReader]
         case "passport": return [.passport]
