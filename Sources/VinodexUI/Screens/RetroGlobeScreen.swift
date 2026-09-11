@@ -44,6 +44,21 @@ public struct RetroGlobeScreen: View {
     @State private var pickedCountry: GlobeIndex.Country?
     /// The globe viewport's size, so the debug probe below can tap its centre.
     @State private var globeSize: CGSize = .zero
+    /// The country whose region map is raised over the globe, if any.
+    @State private var regionTier: String?
+    /// The last tap, for counting a double — see `tapped(at:)`.
+    @State private var lastTap: (point: CGPoint, when: Date)?
+    /// A region for the screenshot probe to open the overlay's card on. Always
+    /// nil outside `-vinodexScreenshot`.
+    @State private var probeStem: String?
+    #if DEBUG
+    /// Taps this screen has received, for the HUD's debug readout.
+    @State private var tapCount = 0
+    /// Where the globe's gesture area sits on screen. A synthesised tap is
+    /// aimed in screen points and arrives in this view's own space, so without
+    /// the origin every aim is a guess with a plausible-looking answer.
+    @State private var globeFrame: CGRect = .zero
+    #endif
     /// The eight stored settings, as one model (arch **A17**).
     var settings: AppSettings = .shared
     private var lcd: LcdMode { settings.lcdMode }
@@ -72,13 +87,17 @@ public struct RetroGlobeScreen: View {
     /// nowhere to send it, in which case a second tap simply re-names the
     /// country rather than going anywhere.
     let onOpenRegionMap: ((String) -> Void)?
+    /// Opens an entry page from the region overlay's card — the last step of
+    /// the artifact's descent: globe, country, region, entry.
+    let onOpenEntry: ((WineEntry) -> Void)?
 
     public init(
         db: WineDatabase = .shared,
         onSelectContinent: @escaping (Continent) -> Void,
         onWorldSearch: @escaping () -> Void,
         showsSearch: Bool = true,
-        onOpenRegionMap: ((String) -> Void)? = nil
+        onOpenRegionMap: ((String) -> Void)? = nil,
+        onOpenEntry: ((WineEntry) -> Void)? = nil
     ) {
         self.db = db
         _model = State(initialValue: GlobeModel(db: db))
@@ -86,6 +105,7 @@ public struct RetroGlobeScreen: View {
         self.onWorldSearch = onWorldSearch
         self.showsSearch = showsSearch
         self.onOpenRegionMap = onOpenRegionMap
+        self.onOpenEntry = onOpenEntry
     }
 
     public var body: some View {
@@ -100,7 +120,14 @@ public struct RetroGlobeScreen: View {
                 // Looks like the other screens' search bars, but it opens the
                 // search screen rather than filtering in place — results laid
                 // over a spinning sphere read as a rendering glitch.
-                if showsSearch {
+                // **The globe's own controls stand down while the region map
+                // is up.** The scrim dims the sphere, which is the point — you
+                // can see you are still on Globe Scan — but it cannot make a
+                // search field or a zoom bank stop reading as controls, and a
+                // map of Italy framed by buttons belonging to the tier above it
+                // is just two screens drawn on top of each other. The globe
+                // stays; the things you could press on it go.
+                if showsSearch && regionTier == nil {
                     searchBar
                 }
 
@@ -152,18 +179,30 @@ public struct RetroGlobeScreen: View {
                             // needs 4pt of travel, a tap needs none, so they
                             // cannot both win the same touch.
                             .gesture(dragGesture)
+                            // **One tap gesture, and the second tap counted
+                            // here.** `SpatialTapGesture(count: 2)` never
+                            // fired alongside the drag, whether composed
+                            // exclusively or simultaneously — SwiftUI's
+                            // arbitration has been the cause of every dead
+                            // gesture on this screen. Counting the taps
+                            // ourselves is a dozen lines and cannot be
+                            // out-voted by a gesture we do not control.
                             .simultaneousGesture(
-                                // Two taps tried before one, so a double tap
-                                // opens the map instead of toggling twice.
-                                SpatialTapGesture(count: 2)
-                                    .onEnded { openMap(at: $0.location) }
-                                    .exclusively(before:
-                                        SpatialTapGesture()
-                                            .onEnded { toggle(at: $0.location) }
-                                    )
+                                SpatialTapGesture()
+                                    .onEnded { tapped(at: $0.location) }
                             )
-                            .onAppear { globeSize = geo.size }
-                            .onChange(of: geo.size) { _, new in globeSize = new }
+                            .onAppear {
+                                globeSize = geo.size
+                                #if DEBUG
+                                globeFrame = geo.frame(in: .global)
+                                #endif
+                            }
+                            .onChange(of: geo.size) { _, new in
+                                globeSize = new
+                                #if DEBUG
+                                globeFrame = geo.frame(in: .global)
+                                #endif
+                            }
                     }
 
                     // **The instrument panel** (0.9.55), after the Globe Scan
@@ -171,7 +210,7 @@ public struct RetroGlobeScreen: View {
                     // printed under it. Hidden while the list is up — the
                     // list answers for the globe then, and a coordinate for a
                     // sphere nobody is looking at is furniture.
-                    if !showsList {
+                    if !showsList && regionTier == nil {
                         globeScanlines
                         globeHUD
                     }
@@ -195,7 +234,9 @@ public struct RetroGlobeScreen: View {
                     }
                 }
 
-                listToggle
+                if regionTier == nil {
+                    listToggle
+                }
 
                 // Two lines, because the globe has two affordances and the
                 // second one is the one that actually gets you somewhere. A
@@ -207,7 +248,9 @@ public struct RetroGlobeScreen: View {
                 // move under the finger that pressed it.
                 // The globe's own instructions moved onto the glass; what is
                 // left here speaks for the list, which has no HUD of its own.
-                if showsList {
+                if regionTier != nil {
+                    EmptyView()
+                } else if showsList {
                     VStack(spacing: 5) {
                         Text("PICK A CONTINENT")
                             .font(DexFont.retro(11))
@@ -224,6 +267,27 @@ public struct RetroGlobeScreen: View {
                 }
             }
             .padding(.vertical, 12)
+
+            // **The region map covers the whole screen, not just the sphere.**
+            // Hung off the globe's own ZStack it sat inside that frame, and the
+            // search bar, the country name, the continent button and the zoom
+            // bank all went on showing around it — a map for Italy framed by
+            // controls that still belonged to the globe. It is a tier, so it
+            // takes the screen; the globe stays lit behind the scrim, which is
+            // what says you have not left it.
+            if let country = regionTier {
+                RegionMapOverlay(
+                    country: country,
+                    preselect: probeStem,
+                    onOpenEntry: { entry in
+                        regionTier = nil
+                        onOpenEntry?(entry)
+                    },
+                    onClose: { withAnimation(DexMotion.settle) { regionTier = nil } }
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .transition(.opacity)
+            }
         }
         .onAppear {
             model.autoSpins = !freezesGlobe
@@ -261,7 +325,30 @@ public struct RetroGlobeScreen: View {
               args.index(after: flag) < args.endIndex else { return }
         let name = args[args.index(after: flag)]
         guard name.hasPrefix("globe@") else { return }
-        let parts = name.dropFirst("globe@".count).split(separator: ",")
+        // A trailing `:double` sends two taps instead of one, through the same
+        // entry point a finger uses — the point being to test the double-tap
+        // detector and the overlay it raises, not to route around them. Driving
+        // it from the simulator with two `click` events could not be made to
+        // land inside the 0.35s window reliably, and a test that flakes on the
+        // harness cannot tell you anything about the code.
+        // `globe@12.5,42.5` turns there and taps once; `:double` taps twice
+        // and `:double:tuscany` opens the overlay's card on that region too.
+        // `:hold` turns there and taps nothing, which is the form that leaves
+        // the screen ready for a real tap from the simulator — with any other
+        // form the probe's own tap has already changed the state under it.
+        var spec = name.dropFirst("globe@".count)
+        var taps = 1
+        if let colon = spec.firstIndex(of: ":") {
+            let tail = spec[spec.index(after: colon)...].split(separator: ":")
+            switch tail.first {
+            case "hold": taps = 0
+            case "double": taps = 2
+            default: break
+            }
+            if taps == 2, tail.count == 2 { probeStem = String(tail[1]) }
+            spec = spec[..<colon]
+        }
+        let parts = spec.split(separator: ",")
         guard parts.count == 2, let lon = Double(parts[0]), let lat = Double(parts[1]) else { return }
 
         model.autoSpins = false
@@ -269,10 +356,38 @@ public struct RetroGlobeScreen: View {
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(2))
             guard globeSize != .zero else { return }
-            toggle(at: CGPoint(x: globeSize.width / 2, y: globeSize.height / 2))
+            let centre = CGPoint(x: globeSize.width / 2, y: globeSize.height / 2)
+            for i in 0..<taps {
+                if i > 0 { try? await Task.sleep(for: .milliseconds(120)) }
+                tapped(at: centre)
+            }
         }
     }
     #endif
+
+    /// How close in time and place two taps must be to count as one double.
+    /// 0.35s is the platform's own double-tap window; 44pt is the minimum
+    /// target, so two taps inside it were aimed at the same thing.
+    private static let doubleTapWindow: TimeInterval = 0.35
+    private static let doubleTapSlop: CGFloat = 44
+
+    /// Every tap on the sphere arrives here, and the second one of a pair is
+    /// recognised by the clock rather than by a gesture.
+    private func tapped(at point: CGPoint) {
+        #if DEBUG
+        tapCount += 1
+        #endif
+        let now = Date()
+        if let last = lastTap,
+           now.timeIntervalSince(last.when) < Self.doubleTapWindow,
+           hypot(point.x - last.point.x, point.y - last.point.y) < Self.doubleTapSlop {
+            lastTap = nil
+            openMap(at: point)
+            return
+        }
+        lastTap = (point, now)
+        toggle(at: point)
+    }
 
     /// One tap: choose a country, or let go of the one already chosen.
     ///
@@ -281,14 +396,13 @@ public struct RetroGlobeScreen: View {
     /// stuck — there is otherwise no way back to the turning globe except
     /// leaving the screen.
     private func toggle(at point: CGPoint) {
+        // **Anywhere that is not a wine country takes you back out.** Ocean,
+        // ice, or a country with no wine: the globe returns to its default
+        // size and resumes drifting. Tapping the chosen country again used to
+        // do this, which put the way out on the one target you were least
+        // likely to aim at by accident — and made the selected country
+        // behave differently from every other one on the sphere.
         guard let hit = model.country(at: point) else {
-            // Ocean or a country that makes no wine. Clearing rather than
-            // ignoring: leaving the last name up while the finger lands
-            // somewhere else would be the readout lying.
-            release()
-            return
-        }
-        if pickedCountry?.id == hit.id {
             release()
             return
         }
@@ -303,17 +417,27 @@ public struct RetroGlobeScreen: View {
         withAnimation(DexMotion.settle) { pickedCountry = nil }
     }
 
-    /// Two taps: into the country's painted region map, where it has one.
+    /// Two taps: raise the country's region map **over** the globe.
+    ///
+    /// An overlay rather than a push, which is the artifact's own shape: the
+    /// globe stays the screen you are on and stays visible behind, so
+    /// descending a tier never feels like leaving.
     private func openMap(at point: CGPoint) {
-        guard let hit = model.country(at: point) else { return }
+        // **The country already chosen, not whatever is under the finger
+        // now.** The first tap of the pair flies the globe to the country and
+        // magnifies it, so by the second tap the geography beneath that screen
+        // point has moved — re-picking there found the neighbour, or the sea.
+        // The artifact has the same rule for the same reason: a second tap
+        // acts on the selection, not on the pixel.
+        guard let hit = pickedCountry ?? model.country(at: point) else { return }
         guard hit.isMapped, RegionMap.key(forCountry: hit.admin) != nil else {
-            // Say what was tapped rather than nothing at all — a double tap
-            // on a country with no map should still select it.
+            // A double tap on a country with no map still selects it, rather
+            // than doing nothing and reading as a dead control.
             pick(hit)
             return
         }
         Haptics.screenTap()
-        onOpenRegionMap?(hit.admin)
+        withAnimation(DexMotion.settle) { regionTier = hit.admin }
     }
 
     /// A tap on the sphere. The first names the country; a second on the same
@@ -340,7 +464,11 @@ public struct RetroGlobeScreen: View {
         // back when it arrives, and a drag takes it back sooner.
         if let tap = model.lastHit,
            let middle = model.landmass(of: hit.id, near: tap.lon, near: tap.lat) {
-            model.focus(lon: middle.lon, lat: middle.lat, zoom: max(model.zoom, 1.5))
+            // Zoomed to the country's own size rather than to a fixed step:
+            // Chile and Luxembourg both fill the glass, which is what "tap a
+            // country and look at it" has to mean if it is to mean anything.
+            model.focus(lon: middle.lon, lat: middle.lat,
+                        zoom: GlobeModel.zoomToFill(span: middle.span))
         }
     }
 
@@ -351,13 +479,37 @@ public struct RetroGlobeScreen: View {
     /// so they stay legible over ocean and over ice alike.
     private var globeHUD: some View {
         VStack(spacing: 0) {
+            #if DEBUG
+            // How many taps the screen has actually received, shown only in
+            // debug builds. Whether a synthesised click reaches SwiftUI at all
+            // cannot be read off the globe — a tap that lands on ocean and one
+            // that never arrives leave the identical picture — so the count is
+            // the only honest witness.
+            hudRow(leading: (pickedCountry?.label ?? "GLOBE") + " ·\(tapCount)",
+                   trailing: debugHitText, top: true)
+            #else
             hudRow(leading: pickedCountry?.label ?? "GLOBE",
                    trailing: facingText, top: true)
+            #endif
             Spacer(minLength: 0)
             hudRow(leading: hudHint, trailing: zoomLabel(model.zoom), top: false)
         }
         .allowsHitTesting(false)
     }
+
+    #if DEBUG
+    /// Where the last tap's ray actually met the sphere, beside where the
+    /// camera is pointing. A tap that resolves to no country and a tap whose
+    /// ray missed the globe entirely both leave `GLOBE` in the HUD and an
+    /// unchanged picture; only the two coordinates together separate them.
+    private var debugHitText: String {
+        let box = String(format: "[%.0f,%.0f %.0fx%.0f] ",
+                         globeFrame.minX, globeFrame.minY,
+                         globeFrame.width, globeFrame.height)
+        guard let hit = model.lastHit else { return box + "— " + facingText }
+        return box + String(format: "%.0f,%.0f ", hit.lon, hit.lat) + facingText
+    }
+    #endif
 
     private func hudRow(leading: String, trailing: String, top: Bool) -> some View {
         HStack(alignment: .firstTextBaseline) {
@@ -389,8 +541,14 @@ public struct RetroGlobeScreen: View {
         return picked.isMapped ? "TAP AGAIN FOR ITS REGIONS" : "NO REGION MAP FOR THIS ONE"
     }
 
+    /// The bank's steps are 1, 1.5 and 2, but tapping a country sets whatever
+    /// magnification fills the glass — so the readout has to say the number
+    /// rather than pick from three. It read "2X" at six for one commit.
     private func zoomLabel(_ z: Double) -> String {
-        z == 1 ? "1X" : (z == 1.5 ? "1.5X" : "2X")
+        z < 1.05 ? "1X"
+            : (z.truncatingRemainder(dividingBy: 1) == 0
+               ? String(format: "%.0fX", z)
+               : String(format: "%.1fX", z))
     }
 
     /// Hemispheres rather than signs, and one decimal: this drifts as the
@@ -869,27 +1027,51 @@ final class GlobeModel {
     /// and what someone pointing at a country means by it. Longitude is
     /// averaged as a unit vector, because a window can straddle the date
     /// line and averaging +179 with -179 as arithmetic lands in Africa.
-    func landmass(of id: Int, near lon: Double, near lat: Double) -> (lon: Double, lat: Double)? {
+    func landmass(of id: Int, near lon: Double, near lat: Double)
+        -> (lon: Double, lat: Double, span: Double)? {
         guard let atlas = Self.atlas else { return nil }
         let span = 25.0
         let cells = GlobeIndex.cell(lon: lon, lat: lat, width: atlas.w, height: atlas.h)
         let dx = Int(span / 360 * Double(atlas.w))
         let dy = Int(span / 180 * Double(atlas.h))
         var sx = 0.0, sy = 0.0, slat = 0.0, n = 0.0
+        var minLat = 90.0, maxLat = -90.0, minDLon = 0.0, maxDLon = 0.0
         for y in max(0, cells.y - dy)...min(atlas.h - 1, cells.y + dy) {
             for wx in (cells.x - dx)...(cells.x + dx) {
                 // Wrapped, so a window over the Pacific still sees both sides.
                 let x = ((wx % atlas.w) + atlas.w) % atlas.w
                 guard atlas.cells[y * atlas.w + x] == UInt8(id) else { continue }
                 let cl = (Double(x) / Double(atlas.w)) * 360 - 180
+                let la = 90 - (Double(y) / Double(atlas.h)) * 180
                 sx += cos(cl * .pi / 180)
                 sy += sin(cl * .pi / 180)
-                slat += 90 - (Double(y) / Double(atlas.h)) * 180
+                slat += la
                 n += 1
+                minLat = min(minLat, la); maxLat = max(maxLat, la)
+                // Longitude spread measured against the tap, so a country
+                // straddling the date line does not read as 360 degrees wide.
+                var d = cl - lon
+                if d > 180 { d -= 360 } else if d < -180 { d += 360 }
+                minDLon = min(minDLon, d); maxDLon = max(maxDLon, d)
             }
         }
         guard n > 0 else { return nil }
-        return (atan2(sy / n, sx / n) * 180 / .pi, slat / n)
+        // Degrees of arc the country actually occupies. Longitude is narrowed
+        // by the cosine of its latitude — 20 degrees of longitude in Chile is
+        // a far shorter arc than 20 degrees at the equator, and zooming by the
+        // raw number would leave the southern countries tiny.
+        let midLat = slat / n
+        let arc = max(maxLat - minLat,
+                      (maxDLon - minDLon) * cos(midLat * .pi / 180))
+        return (atan2(sy / n, sx / n) * 180 / .pi, midLat, max(arc, 1))
+    }
+
+    /// The magnification that makes a country of `span` degrees fill the
+    /// glass. A sphere at 1x shows about 140 usable degrees before the limb
+    /// curls away, so this is that over the span, kept inside bounds a globe
+    /// still reads as a globe at.
+    static func zoomToFill(span: Double) -> Double {
+        min(6, max(1.2, 110 / span))
     }
 
     /// Turn the globe until a coordinate faces the camera, and move in.
@@ -996,15 +1178,23 @@ final class GlobeModel {
         return (lon, pitch * 180 / .pi)
     }
 
-    /// Magnification, as the prototype's bank sets it. Moving the camera in
-    /// rather than scaling the node: the sphere keeps its geometry, its
-    /// lighting and its marker projection, and only the distance changes.
+    /// Magnification — a **lens**, not a dolly.
+    ///
+    /// Moving the camera in was the obvious reading of "zoom" and it is wrong
+    /// on a sphere: the globe's radius is 1.05 and the camera sits at 3.45, so
+    /// anything past about 3x puts the camera *inside* the globe and the
+    /// screen fills with the far wall. Narrowing the field of view instead
+    /// magnifies from where it stands — the geometry, the three lights and
+    /// the marker projection all carry on exactly as they were, and there is
+    /// no distance at which it breaks.
     var zoom: Double = 1 {
         didSet {
             guard zoom != oldValue else { return }
-            cameraNode.position = SCNVector3(0, 0, Float(Self.cameraDistance / zoom))
+            cameraNode.camera?.fieldOfView = CGFloat(Self.baseFieldOfView / zoom)
         }
     }
+
+    static let baseFieldOfView: Double = 50
     private var velocityYaw: Double = 0
     private var velocityPitch: Double = 0
     private var dragging = false
@@ -1143,12 +1333,12 @@ final class GlobeModel {
         scene.rootNode.addChildNode(rim)
 
         let camera = SCNCamera()
-        camera.fieldOfView = 50
+        camera.fieldOfView = CGFloat(Self.baseFieldOfView / zoom)
         camera.zNear = 0.1
         camera.zFar = 100
         cameraNode = SCNNode()
         cameraNode.camera = camera
-        cameraNode.position = SCNVector3(0, 0, Float(Self.cameraDistance / zoom))
+        cameraNode.position = SCNVector3(0, 0, Float(Self.cameraDistance))
         scene.rootNode.addChildNode(cameraNode)
 
         return scene

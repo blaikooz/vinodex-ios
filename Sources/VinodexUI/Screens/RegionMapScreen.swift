@@ -738,4 +738,177 @@ final class RegionAtlas {
         return (v == Self.outside || v == Self.unassigned) ? nil : v
     }
 }
+
+/// **The region map, over the globe** (0.9.55) — the artifact's second tier.
+///
+/// A double tap on a wine country raises this rather than navigating away, so
+/// Globe Scan stays the screen you are on and the globe stays behind it. The
+/// map is the same painted pair the flat screen draws; what differs is what a
+/// tap does with it: choosing a region raises its entries as a card, and
+/// choosing one of those is what finally leaves for the catalog.
+struct RegionMapOverlay: View {
+    var settings: AppSettings = .shared
+    private var lcd: LcdMode { settings.lcdMode }
+
+    let country: String
+    let onOpenEntry: (WineEntry) -> Void
+    let onClose: () -> Void
+
+    private let db: WineDatabase
+    @State private var access = AccessStore.shared
+    @State private var bookmarks = BookmarkStore.shared
+    @State private var selected: String?
+
+    init(
+        db: WineDatabase = .shared,
+        country: String,
+        preselect: String? = nil,
+        onOpenEntry: @escaping (WineEntry) -> Void,
+        onClose: @escaping () -> Void
+    ) {
+        self.db = db
+        self.country = country
+        self.onOpenEntry = onOpenEntry
+        self.onClose = onClose
+        // Only ever non-nil from the screenshot probe, for the same reason
+        // `RegionMapScreen` has one: the card is half this overlay and a tap
+        // on a painted region is the only thing that raises it, so without a
+        // way in it could only be photographed empty.
+        _selected = State(initialValue: preselect)
+    }
+
+    var body: some View {
+        ZStack {
+            // The scrim is the way out, the way the artifact's globe tier is:
+            // tapping off the card drops back rather than hunting a button.
+            lcd.page.opacity(0.86)
+                .ignoresSafeArea()
+                .onTapGesture { onClose() }
+
+            if let atlas = RegionAtlas.of(country) {
+                VStack(spacing: 10) {
+                    header
+                    map(atlas)
+                    if let stem = selected {
+                        card(atlas, stem: stem)
+                    } else {
+                        Text("TAP A REGION")
+                            .font(DexFont.retro(11))
+                            .tracking(2)
+                            .foregroundStyle(lcd.subtext)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(14)
+            } else {
+                DexSectionEmpty(symbol: "map.slash", message: "NO MAP FOR THIS COUNTRY")
+            }
+        }
+        .transition(.opacity.combined(with: .scale(scale: 0.96)))
+    }
+
+    private var header: some View {
+        HStack {
+            Text(country.uppercased())
+                .font(DexFont.retro(14))
+                .tracking(2)
+                .foregroundStyle(lcd.accent)
+            Spacer(minLength: 8)
+            Button {
+                Haptics.screenTap()
+                onClose()
+            } label: {
+                Text("← GLOBE")
+                    .font(DexFont.retro(11))
+                    .tracking(1)
+                    .foregroundStyle(lcd.subtext)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .background(RoundedRectangle(cornerRadius: 5).fill(lcd.surface))
+            }
+            .buttonStyle(DexPressStyle(scale: 0.97))
+        }
+    }
+
+    private func map(_ atlas: RegionAtlas) -> some View {
+        GeometryReader { geo in
+            let art = atlas.baseSize
+            let r = atlas.map.subjectRect
+            let scale = min(geo.size.width / (CGFloat(r.w) * art.width),
+                            geo.size.height / (CGFloat(r.h) * art.height))
+            let w = art.width * scale, h = art.height * scale
+            let ox = geo.size.width / 2 - CGFloat(r.x + r.w / 2) * w
+            let oy = geo.size.height / 2 - CGFloat(r.y + r.h / 2) * h
+
+            ZStack(alignment: .topLeading) {
+                if let world = atlas.backdrop {
+                    Image(uiImage: world).interpolation(.none).resizable()
+                        .frame(width: w, height: h).offset(x: ox, y: oy)
+                }
+                Image(uiImage: atlas.base).interpolation(.none).resizable()
+                    .frame(width: w, height: h).offset(x: ox, y: oy)
+
+                if let stem = selected,
+                   let region = atlas.map.regions.first(where: { $0.id == stem }),
+                   let art2 = atlas.detail(stem), region.detailFrame.w > 0 {
+                    let f = region.detailFrame
+                    Image(uiImage: art2).interpolation(.none).resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: CGFloat(f.w) * w, height: CGFloat(f.h) * h)
+                        .shadow(color: .black.opacity(0.5), radius: 5, y: 2)
+                        .scaleEffect(1.12)
+                        .position(x: ox + CGFloat(f.x + f.w / 2) * w,
+                                  y: oy + CGFloat(f.y + f.h / 2) * h)
+                        .allowsHitTesting(false)
+                }
+            }
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
+            .clipped()
+            .contentShape(Rectangle())
+            .onTapGesture { point in
+                let inArt = CGPoint(x: (point.x - ox) / scale, y: (point.y - oy) / scale)
+                if let stem = atlas.region(atX: inArt) {
+                    Haptics.select()
+                    withAnimation(DexMotion.settle) { selected = stem }
+                }
+            }
+        }
+        .frame(height: 300)
+        .background(lcd.screen)
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(lcd.surfaceEdge, lineWidth: 1))
+    }
+
+    /// The entries behind the chosen region, raised as a card. Full tiles,
+    /// because tapping one leaves for its entry page and a tile is what an
+    /// entry looks like everywhere else in the app.
+    private func card(_ atlas: RegionAtlas, stem: String) -> some View {
+        let entries = atlas.map.regionIDs(for: stem).compactMap { db.entry(id: $0) }
+        return VStack(alignment: .leading, spacing: 8) {
+            Text(atlas.map.displayName(stem))
+                .font(DexFont.retro(13))
+                .tracking(1)
+                .foregroundStyle(lcd.accent)
+            if entries.isEmpty {
+                DexSectionEmpty(symbol: "mappin.slash", message: "NO CATALOG REGION HERE")
+            } else {
+                ForEach(entries) { entry in
+                    EntryTileView(
+                        entry: entry,
+                        palette: db.palette,
+                        locked: access.isLocked(entry, in: db),
+                        tried: bookmarks.contains(entry.id, on: .tried)
+                    ) {
+                        onOpenEntry(entry)
+                    }
+                }
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
+        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(lcd.accent.opacity(0.5), lineWidth: 1))
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+}
 #endif
