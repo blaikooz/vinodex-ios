@@ -30,6 +30,82 @@ which was kept current throughout and remains the richer record. Two versions
 have no tag of their own: 0.9.46 rode inside the v0.9.47 dispatch, and 0.9.51
 inside v0.9.52.
 
+## [0.9.55] — 2026-09-11 · A GLOBE YOU CAN OPEN
+
+### Added
+- **Globe Scan opens, two tiers deep.** Tapping a wine country turns the globe
+  to it and moves in until the country fills the glass; tapping again paints
+  that country's wine regions onto the sphere *in place*, rather than raising a
+  panel above it. Tapping a region lifts it off the surface and raises its
+  entry tile, which leads to the catalog.
+- **Seven countries carry painted regions** — France, Italy, Spain, Portugal,
+  Argentina, Chile and New Zealand — laid on a lat/lon mesh textured with the
+  painted art at its own resolution.
+- A country tile floats over the sphere when one is tapped, so naming a country
+  leads to its page.
+- `-vinodexScreenshot`, a debug mode that drives the app to a named screen, so
+  store images can be reshot in minutes.
+
+### Changed
+- **Magnification is a slider**, replacing the 1×/1.5×/2× bank — which could
+  never say where you were, since tapping a country sets whatever fits it.
+- Region hit-testing resolves against an 8-bit **index raster** rather than by
+  matching pixel colours: 38.7 MB of colour tables for seven countries became
+  1.55 MB, and a region can no longer be mis-resolved by a shifted fill.
+- Every tier wears the same furniture in the same slots.
+
+### Fixed
+- **The globe read the southern hemisphere for the northern.** Pitch was
+  negated in both `focus` and `facing`, so the two agreed with each other and
+  disagreed with the sphere, and a flipped texture `v` hid the pair — three
+  sign errors, every round-trip probe passing. Rendering a known latitude and
+  looking at it drew Antarctica.
+- **Tapping a country did nothing**: the hit test used `.closest`, and the
+  wireframe shell sits nearer the camera than the globe.
+- **The fit cropped**, for two independent reasons that cancelled into "about
+  right" on the one country anyone checked. Centring used the mean of a
+  country's cells, which is pulled toward whichever end is widest, so Italy sat
+  a degree north and lost Sicily. And the extent was one collapsed number of
+  degrees — ignoring that a degree of longitude is not a degree of arc, and
+  that a portrait viewport's *horizontal* field is the narrow one. Portugal
+  needed a third fix: it owns the Azores and Madeira, which put the centre of
+  its view in open ocean.
+- `RegionMapScreen.swift` carried **three copies of `RegionMapOverlay`**,
+  spliced in by an earlier patch run. All three parse — Swift allows a local
+  type inside a function — so the compiler never said a word while the
+  file-scope copy quietly did the work.
+- The LWIN timing bound no longer fails on Simulator timings.
+
+### Legal
+- **LWIN is credited as CC BY 4.0 requires** — licensor, licence and a
+  statement of modification, in `ATTRIBUTION.md`, `NOTICE.md` and
+  `licenses/LICENSE-lwin.txt`, plus a FIRMWARE credit block. 0.9.54 shipped the
+  data without any of it.
+
+## [0.9.54] — 2026-09-09 · FIT FOR THE SHELF
+
+*The first build sent to external testers.*
+
+### Added
+- **185,000 wines from the trade's own LWIN index**, carried on the device and
+  matched with no network at all. THE BOTTLE names producer and bottling on
+  every scan, and importer and bottler lines read straight off the label.
+- **A NARRATOR in SETTINGS** — any installed English voice, or AUTOMATIC to
+  reach for the best one downloaded.
+- Vinho Verde pours as the fortieth style, and the atlas fills its blanks:
+  every region names its soils, its climate and its appellations.
+- Forty grapes learn the other names they go by in the books.
+
+### Changed
+- **On iPad the whole handheld fills the screen in proportion, edge to edge.**
+- BACK UP carries everything: exam history, custom devices, walkthrough
+  progress and two dozen more ride the archive.
+
+### Fixed
+- Every exam question anchors true.
+- VoiceOver speaks every control's name; the last icons lose their halos; the
+  barcode returns to the back plate on iPad.
+
 ## [0.9.53] — 2026-09-08 · READ ALL ABOUT IT
 
 ### Added

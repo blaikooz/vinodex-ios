@@ -201,23 +201,31 @@ struct LWINIndexTests {
     func performanceSanity() {
         let clock = ContinuousClock()
 
-        // **A wall-clock budget cannot mean the same thing on a machine we own
-        // and on a runner we share.** The cold load took 38.7s against a 20s
-        // bound on GitHub's macOS simulator job and under 2s locally — and in
-        // that same run three trivial tests that take ten seconds here each
-        // took a hundred and seventy. The index had not changed; the runner was
-        // contended.
+        // **A wall-clock budget cannot mean the same thing natively and in the
+        // Simulator.** The cold load takes under two seconds through
+        // `swift test` and took 38.7s, then 28.3s, against a 20s bound in the
+        // iOS Simulator job — where three trivial tests that run in ten seconds
+        // here each took a hundred and seventy. The index had not changed.
         //
-        // The bound is a *shape* guard, not a benchmark: what it exists to
-        // catch is an accidental O(n^2) in the parser or a fuzzy pass that
-        // walks the whole vocabulary, and those are measured in minutes, not in
-        // the difference between twenty seconds and forty. So it keeps its real
-        // tightness where timing is meaningful, and on CI it loosens to
-        // something only a genuine change of shape can trip. Deleting it there
-        // was the other option; a loose bound still catches what this guards.
-        let shared = ProcessInfo.processInfo.environment["CI"] != nil
-        let loadBudget: Duration = shared ? .seconds(180) : .seconds(20)
-        let matchBudget: Duration = shared ? .seconds(45) : .seconds(5)
+        // The bound is a *shape* guard, not a benchmark: what it catches is an
+        // accidental O(n^2) in the parser or a fuzzy pass over the whole
+        // vocabulary, and those are measured in minutes, not in the gap between
+        // twenty seconds and forty. So it keeps its real tightness where timing
+        // is meaningful and loosens where it is not.
+        //
+        // Keyed on the *simulator*, not on a `CI` environment variable: the
+        // first attempt read `ProcessInfo.environment["CI"]` and failed exactly
+        // as before, because the runner's environment does not cross into the
+        // test process hosted inside the Simulator. The compile-time target is
+        // the one signal that is actually true there. `swift test` — every
+        // local run and the Linux CI job — is native, and keeps the tight bound.
+        #if targetEnvironment(simulator)
+        let loadBudget: Duration = .seconds(180)
+        let matchBudget: Duration = .seconds(45)
+        #else
+        let loadBudget: Duration = .seconds(20)
+        let matchBudget: Duration = .seconds(5)
+        #endif
 
         // A fresh instance, so this measures a real cold load even when the
         // shared index is already warm from the other tests.
