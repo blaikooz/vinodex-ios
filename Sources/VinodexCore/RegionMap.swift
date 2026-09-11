@@ -270,6 +270,33 @@ public struct RegionMap: Sendable {
     /// rendering as a dead tap.
     public func regionIDs(for stem: String) -> [String] { byStem[stem] ?? [] }
 
+    /// **Which of a painted region's entries IS the region**, rather than
+    /// something inside it.
+    ///
+    /// A painted area can carry several catalog entries: Veneto carries Veneto
+    /// *and* Valpolicella, Sicily carries Sicily *and* Etna. Listing them
+    /// together answers a question the tap did not ask — you pointed at Veneto.
+    ///
+    /// Exact name first, then one that *contains* the region's name. The
+    /// contains step is not decoration: `southwest` displays as "SOUTH WEST"
+    /// and its entry is named "South West France", so exact-match fails and a
+    /// first-mapped fallback picks Gaillac — an appellation inside it, which is
+    /// precisely the bug this prevents. Eleven of the eighty-five painted
+    /// regions have no entry named after them at all; there the first mapped
+    /// entry is the honest answer.
+    ///
+    /// Takes the names rather than the entries so it can be tested without a
+    /// database: the caller resolves ids, this decides which one is the region.
+    public func primaryEntryID(for stem: String, names: [(id: String, name: String)]) -> String? {
+        func fold(_ value: String) -> String {
+            value.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil)
+        }
+        let want = fold(displayName(stem))
+        return names.first { fold($0.name) == want }?.id
+            ?? names.first { fold($0.name).contains(want) }?.id
+            ?? names.first?.id
+    }
+
     /// Builds from the two JSON files installed beside the art.
     ///
     /// Throwing rather than optional-returning: every failure here means the
@@ -304,7 +331,10 @@ public struct RegionMap: Sendable {
         self.regions = regions
         self.byIndex = byIndex
         self.byStem = idx.byStem
-        self.canvas = (man.base.canvas.first ?? 0, man.base.canvas.last ?? 0)
+        // `?? 1`, matching `cw`/`ch` above. At zero an empty `canvas` array
+        // divides through `patchGeometry`'s UVs and yields a NaN mesh rather
+        // than a load that fails — a silently garbage map instead of no map.
+        self.canvas = (man.base.canvas.first ?? 1, man.base.canvas.last ?? 1)
         let pr = man.projection
         self.projOrigin = (pr.origin.first ?? 0, pr.origin.last ?? 0)
         self.projScale = pr.scale

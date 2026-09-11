@@ -453,7 +453,11 @@ public struct EncyclopediaListScreen: View {
                 // for its six facets in 0.5.9 — "they scroll in their own well
                 // under the bar rather than pushing the results off the
                 // device" — at the same 330pt. This is that, here.
-                ScrollView(.vertical, showsIndicators: false) {
+                // Indicators ON, as `ChipFilterScreen`'s well has them: the
+                // bug being fixed was a screen that read as frozen, and 330pt
+                // of clipped content with nothing saying it scrolls is the same
+                // mistake one layer down.
+                ScrollView(.vertical) {
                 VStack(alignment: .leading, spacing: 10) {
                     if chips.count > 0 {
                         Button {

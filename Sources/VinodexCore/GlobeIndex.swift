@@ -43,6 +43,22 @@ public struct GlobeIndex: Sendable {
 
     public func country(id: Int) -> Country? { byID[id] }
 
+    /// **The catalog's spelling of a country the atlas names.**
+    ///
+    /// Natural Earth and the catalog disagree exactly once in thirty: the atlas
+    /// says "United States of America", the catalog files it under "USA". The
+    /// globe opened an empty country page and drew an empty flag for it until
+    /// this existed, and nothing would have failed if a thirty-first country
+    /// arrived with the same problem — which is why it lives here, in Core,
+    /// with a test over the shipped data rather than in the view that noticed.
+    public static func catalogName(for admin: String) -> String {
+        catalogSpelling[admin] ?? admin
+    }
+
+    private static let catalogSpelling: [String: String] = [
+        "United States of America": "USA",
+    ]
+
     /// Where a coordinate falls in the raster, as `(x, y)` cells.
     ///
     /// Plain equirectangular — the globe texture is wrapped that way, so this

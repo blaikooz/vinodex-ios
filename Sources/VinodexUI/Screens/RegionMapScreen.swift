@@ -688,11 +688,25 @@ final class RegionAtlas {
             rgba[i * 4 + 3] = 255
         }
         let image = Self.image(from: &rgba, w: w, h: h)
-        if let image { cutouts[stem] = image }
+        if let image {
+            // **Bounded.** Each cutout is a real w*h*4 bitmap — about a
+            // megabyte — and the atlas that holds them lives in a static cache
+            // that never evicts, so tapping through all seven countries' 85
+            // regions would pin some 77MB for the life of the process. Only the
+            // current selection and the one before it are ever wanted, and a
+            // cutout costs a quarter-megapixel pass to rebuild.
+            if cutoutOrder.count >= 3, let oldest = cutoutOrder.first {
+                cutouts.removeValue(forKey: oldest)
+                cutoutOrder.removeFirst()
+            }
+            cutouts[stem] = image
+            cutoutOrder.append(stem)
+        }
         return image
     }
 
     private var cutouts: [String: UIImage] = [:]
+    private var cutoutOrder: [String] = []
 
     private static func image(from rgba: inout [UInt8], w: Int, h: Int) -> UIImage? {
         var out: UIImage?

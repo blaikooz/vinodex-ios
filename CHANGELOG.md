@@ -30,6 +30,51 @@ which was kept current throughout and remains the richer record. Two versions
 have no tag of their own: 0.9.46 rode inside the v0.9.47 dispatch, and 0.9.51
 inside v0.9.52.
 
+## [0.9.56] — 2026-09-11 · ROOM TO READ
+
+### Changed
+- **Globe Scan is given back to the map.** The name plate, the instruction
+  line and the zoom bar are gone; what is left on the glass is the coordinate
+  readout, on its own dark plate so it stays legible over a bright country.
+  Pinch replaces the slider (1×–12×), the idle drift runs at half speed, the
+  camera moved in so the sphere fills the room that freed up, and the continent
+  list belongs to the whole globe alone.
+- **The wine globe keeps its own palette.** The texture was being reduced to
+  luma and multiplied by the screen tint — right for the neon coastline art,
+  wrong for a map, since thirty authored colours all landed on the same green.
+  Regenerated with fills lifted in HSV (blending toward white raises value and
+  drops saturation together, which is why a first pass came out pastel) and
+  every border and coastline drawn dark.
+- **A region map holds still.** The country is flown to and framed to fit, so
+  dragging only slid the subject off the glass.
+- A region's tile shows that region's entry, not the appellations inside it —
+  Veneto no longer arrives with Valpolicella, nor Sicily with Etna.
+
+### Fixed
+- **The halo around every painted country was the globe, not the map.** The
+  art is clean (zero partial-alpha pixels, zero surviving key colour); those
+  rims were the colours the globe paints those countries — Spain
+  `(192,102,236)`, Italy `(96,214,43)`, France `(234,146,103)`. Globe cells are
+  14 km across at that latitude and the painted coastline is far finer, so the
+  globe's blockier country overhung the map and showed around it. The map's own
+  backdrop now sits underneath, sharing the art's canvas, projection and origin
+  exactly, so there is no seam that can mis-register.
+- **Taps on a region landed a region off.** The raised region rides a copy of
+  the map's mesh 2.2% further out and the hit test accepted it, so a ray met
+  that shell at a different coordinate than it met the map — and being nearer
+  the camera, it won. The probe answered UMBRIA for the middle of LAZIO.
+- The graticule no longer rules lines across a region map.
+- The region map survives a screen-mode, skin or texture change, which rebuilds
+  the scene and used to detach it silently.
+- **The United States opens its own page**, and wears its flag. Natural Earth
+  calls it "United States of America"; the catalog files it under "USA". It is
+  the only one of the thirty that disagrees.
+- **The GRAPES filter no longer freezes the list.** The facet panel is pinned
+  above the list rather than inside it, so its height comes out of the list's —
+  STYLE's ten chips wrapped to four lines and the panel ran about 400pt of a
+  560pt viewport, leaving a row and a half. It clips and scrolls in its own
+  well now, as `ChipFilterScreen` has since 0.5.9.
+
 ## [0.9.55] — 2026-09-11 · A GLOBE YOU CAN OPEN
 
 ### Added
