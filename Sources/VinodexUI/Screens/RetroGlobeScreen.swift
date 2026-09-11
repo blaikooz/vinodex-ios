@@ -243,6 +243,17 @@ public struct RetroGlobeScreen: View {
         }
         Haptics.select()
         withAnimation(DexMotion.settle) { pickedCountry = hit }
+        // **The globe comes to the country.** Turning it until the country
+        // faces the camera and moving in is what makes the first tap feel
+        // like it did something, rather than only writing a name in the HUD —
+        // and it puts the country under the finger for the second tap, which
+        // near the limb is the difference between hitting Chile and hitting
+        // Argentina. The drift stops while it flies; `focus` hands control
+        // back when it arrives, and a drag takes it back sooner.
+        if let tap = model.lastHit,
+           let middle = model.landmass(of: hit.id, near: tap.lon, near: tap.lat) {
+            model.focus(lon: middle.lon, lat: middle.lat, zoom: max(model.zoom, 1.5))
+        }
     }
 
     // MARK: The instrument panel
@@ -756,6 +767,66 @@ final class GlobeModel {
         return (index, bytes, w, h)
     }()
 
+    /// Where a country sits **near a given point** — the mean of its cells
+    /// within a window around the tap.
+    ///
+    /// **Not the whole country's mean**, which is wrong for any state with
+    /// scattered territory and silently so. Natural Earth's France includes
+    /// Guiana, Réunion and New Caledonia, and averaging them puts "France"
+    /// at 41.5N 3.2W — in the sea off Barcelona. Tapping Bordeaux would have
+    /// flown the globe to the Mediterranean.
+    ///
+    /// A window around the finger instead: it finds the landmass that was
+    /// actually tapped and ignores the far-flung rest, which is both correct
+    /// and what someone pointing at a country means by it. Longitude is
+    /// averaged as a unit vector, because a window can straddle the date
+    /// line and averaging +179 with -179 as arithmetic lands in Africa.
+    func landmass(of id: Int, near lon: Double, near lat: Double) -> (lon: Double, lat: Double)? {
+        guard let atlas = Self.atlas else { return nil }
+        let span = 25.0
+        let cells = GlobeIndex.cell(lon: lon, lat: lat, width: atlas.w, height: atlas.h)
+        let dx = Int(span / 360 * Double(atlas.w))
+        let dy = Int(span / 180 * Double(atlas.h))
+        var sx = 0.0, sy = 0.0, slat = 0.0, n = 0.0
+        for y in max(0, cells.y - dy)...min(atlas.h - 1, cells.y + dy) {
+            for wx in (cells.x - dx)...(cells.x + dx) {
+                // Wrapped, so a window over the Pacific still sees both sides.
+                let x = ((wx % atlas.w) + atlas.w) % atlas.w
+                guard atlas.cells[y * atlas.w + x] == UInt8(id) else { continue }
+                let cl = (Double(x) / Double(atlas.w)) * 360 - 180
+                sx += cos(cl * .pi / 180)
+                sy += sin(cl * .pi / 180)
+                slat += 90 - (Double(y) / Double(atlas.h)) * 180
+                n += 1
+            }
+        }
+        guard n > 0 else { return nil }
+        return (atan2(sy / n, sx / n) * 180 / .pi, slat / n)
+    }
+
+    /// Turn the globe until a coordinate faces the camera, and move in.
+    ///
+    /// Eased over frames in `tick` rather than set outright: the globe is a
+    /// physical thing on this device and a sphere that teleports reads as a
+    /// glitch rather than as a movement.
+    func focus(lon: Double, lat: Double, zoom target: Double) {
+        let wantYaw = -lon * .pi / 180
+        // The shortest way round, so turning from Chile to New Zealand does
+        // not unwind most of the way through Africa first.
+        var delta = (wantYaw - yaw).truncatingRemainder(dividingBy: 2 * .pi)
+        if delta > .pi { delta -= 2 * .pi } else if delta < -.pi { delta += 2 * .pi }
+        focusYaw = yaw + delta
+        focusPitch = min(max(-lat * .pi / 180, -Self.maxPitch), Self.maxPitch)
+        zoom = target
+    }
+
+    /// Where the last successful pick landed, so the focus can centre the
+    /// landmass that was tapped rather than the country's scattered mean.
+    private(set) var lastHit: (lon: Double, lat: Double)?
+
+    private var focusYaw: Double?
+    private var focusPitch: Double?
+
     /// The country under a point on screen, or nil for sea, ice, or a country
     /// that makes no wine.
     ///
@@ -771,9 +842,14 @@ final class GlobeModel {
     func country(at point: CGPoint) -> GlobeIndex.Country? {
         guard let atlas = Self.atlas,
               let view = sceneView,
+              // **`.all`, not `.closest`.** The scene carries a wireframe
+              // shell a shade larger than the sphere, so the closest thing a
+              // ray meets is the wire — and with `.closest` the globe itself
+              // never appeared in the results at all. The tap did nothing,
+              // silently, which is exactly the shape of bug a hit test hides.
               let hit = view.hitTest(point, options: [
                   .boundingBoxOnly: false,
-                  .searchMode: SCNHitTestSearchMode.closest.rawValue,
+                  .searchMode: SCNHitTestSearchMode.all.rawValue,
               ]).first(where: { $0.node === globeNode })
         else { return nil }
 
@@ -787,7 +863,9 @@ final class GlobeModel {
 
         let cell = GlobeIndex.cell(lon: lon, lat: lat, width: atlas.w, height: atlas.h)
         let value = Int(atlas.cells[cell.y * atlas.w + cell.x])
-        return value == 0 ? nil : atlas.index.country(id: value)
+        guard value != 0, let found = atlas.index.country(id: value) else { return nil }
+        lastHit = (lon, lat)
+        return found
     }
     private var wireNode = SCNNode()
     private weak var sceneView: SCNView?
@@ -1066,8 +1144,20 @@ final class GlobeModel {
             velocityPitch *= decay
         }
 
-        yaw += (velocityYaw + (autoSpins ? Self.autoSpinRate : 0)) * dt
-        pitch = min(max(pitch + velocityPitch * dt, -Self.maxPitch), Self.maxPitch)
+        if let ty = focusYaw, let tp = focusPitch {
+            // Ease toward the chosen country, and hand control back the
+            // moment it is close enough that another frame would not show.
+            let k = min(1, dt * 6)
+            yaw += (ty - yaw) * k
+            pitch += (tp - pitch) * k
+            if abs(ty - yaw) < 0.002 && abs(tp - pitch) < 0.002 {
+                yaw = ty; pitch = tp
+                focusYaw = nil; focusPitch = nil
+            }
+        } else {
+            yaw += (velocityYaw + (autoSpins ? Self.autoSpinRate : 0)) * dt
+            pitch = min(max(pitch + velocityPitch * dt, -Self.maxPitch), Self.maxPitch)
+        }
 
         applyOrientation()
 
@@ -1202,6 +1292,10 @@ final class GlobeModel {
         velocityPitch = dPitch / interval
         lastDragTime = time
 
+        // A finger outranks the animation: dragging mid-flight should take
+        // the globe, not fight it.
+        focusYaw = nil
+        focusPitch = nil
         yaw += dYaw
         pitch = min(max(pitch + dPitch, -Self.maxPitch), Self.maxPitch)
     }
