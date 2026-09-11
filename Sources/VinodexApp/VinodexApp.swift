@@ -1038,11 +1038,11 @@ struct RootView: View {
                 // The globe's second tier (0.9.55): tapping a wine country
                 // twice drops into its painted region map, which is the same
                 // screen the country page reaches.
-                onOpenRegionMap: { push(.regionMap(country: $0)) },
                 // The last step of the globe's descent: an entry chosen from
                 // the region overlay opens its page, through the same gate
                 // every other entry link goes through.
-                onOpenEntry: { open($0) }
+                onOpenEntry: { open($0) },
+                onOpenCountry: { push(.country(name: $0)) }
             )
 
         case .bookmarks:
