@@ -31,6 +31,10 @@ struct RegionMapTests {
         let map = try load()
         #expect(map.regions.count == 14)
         #expect(try load("italy").regions.count == 21)
+        // 85 painted regions across the seven countries.
+        var total = 0
+        for country in RegionMap.mapped { total += try load(country).regions.count }
+        #expect(total == 85, "painted regions across all seven: \(total)")
         // The canvas is whatever the render made it — it grew a margin of
         // world on every side when the backdrop arrived, and the margin is
         // config. `subjectRectIsSane` pins the part that has to hold.
@@ -53,12 +57,22 @@ struct RegionMapTests {
 
     /// The load-bearing property of the whole hit test: two regions sharing a
     /// fill would make one of them unreachable, silently, for every tap.
-    @Test("every region's fill colour is unique")
-    func fillsAreDistinct() throws {
+    /// **The contract the hit test rests on.** Ids are what resolve a tap;
+    /// fills are presentation and repeat across countries on purpose — 85
+    /// regions share 35 colours, because two that never appear on screen
+    /// together are free to look alike. A duplicate *id* inside one country
+    /// would make a region unreachable, silently.
+    @Test("every region's index id is unique within its country")
+    func indexesAreDistinct() throws {
         for country in RegionMap.mapped {
             let map = try load(country)
-            #expect(map.byFill.count == map.regions.count,
-                    "\(country): two regions share a fill — one is unreachable")
+            #expect(map.byIndex.count == map.regions.count,
+                    "\(country): two regions share an index id")
+            // One byte, and 0 and 255 are reserved for outside and unassigned.
+            for region in map.regions {
+                #expect(region.index >= 1 && region.index <= 254,
+                        "\(country)/\(region.id) id \(region.index) is not a usable byte")
+            }
         }
     }
 
@@ -104,15 +118,37 @@ struct RegionMapTests {
     /// Valle d'Aosta are real Italian wine regions the encyclopedia does not
     /// hold yet. Pinned by name so that filling one in the catalog, or
     /// painting a fourth uncovered area, both fail here and get a decision.
+    /// **25 of 85 painted areas have no catalog region behind them**, and
+    /// they are pinned by name rather than counted, so that filling one in
+    /// the catalog — or painting a new area nothing covers — fails here and
+    /// gets a decision instead of passing quietly.
+    ///
+    /// This is a finding about the *catalog*, not the map. The gap is almost
+    /// entirely New World: New Zealand has seven of its ten uncovered, Chile
+    /// five of eight, Argentina three of six. France has none. A tap on any
+    /// of these lands on a real region and then says NO CATALOG REGION HERE,
+    /// which is honest but is not what a tester wants to meet.
     @Test("uncatalogued painted areas are exactly the ones we know about")
     func stemsWithoutCatalog() throws {
-        let france = try load()
-        #expect(france.regions.map(\.id).filter { france.regionIDs(for: $0).isEmpty }.isEmpty)
-
-        let italy = try load("italy")
-        let empty = italy.regions.map(\.id).filter { italy.regionIDs(for: $0).isEmpty }
-        #expect(empty.sorted() == ["liguria", "molise", "valledaosta"],
-                "Italy's uncatalogued areas changed: \(empty.sorted())")
+        let known: [String: [String]] = [
+            "france": [],
+            "italy": ["liguria", "molise", "valledaosta"],
+            "spain": ["andalucia", "aragon", "extremadura", "madrid"],
+            "portugal": ["algarve", "beirainterior", "setubal"],
+            "argentina": ["catamarca", "cordoba", "sanjuan"],
+            "chile": ["biobio", "coquimbo", "malleco", "maule", "rapel"],
+            "newzealand": ["auckland", "canterbury", "gisborne", "nelson",
+                           "northland", "waikatobop", "wairarapa"],
+        ]
+        var total = 0
+        for country in RegionMap.mapped {
+            let map = try load(country)
+            let empty = map.regions.map(\.id)
+                .filter { map.regionIDs(for: $0).isEmpty }.sorted()
+            #expect(empty == known[country], "\(country) uncovered changed: \(empty)")
+            total += empty.count
+        }
+        #expect(total == 25)
     }
 
     /// The index is generated from `pins.json` by `france_check.py`; these
@@ -134,14 +170,26 @@ struct RegionMapTests {
         #expect(map.regionIDs(for: "alsace") == ["R006"])
     }
 
-    @Test("every catalog region is placed once, in both countries")
+    @Test("every catalog region is placed once, in every country")
     func everyCatalogRegionPlaced() throws {
-        for (country, count) in [("france", 20), ("italy", 21)] {
+        // Portugal is 7 rather than 9, Spain 18 rather than 19: Madeira, the
+        // Azores and the Canaries are 900–1800km offshore, and widening a
+        // mainland map far enough to hold them would shrink the mainland —
+        // and every tap target on it — to nothing. They stay reachable
+        // through the ordinary region list; they simply have no square on
+        // this board. See `OFF_ANY_MAP` in make_pins.py.
+        let expected = [("france", 20), ("italy", 21), ("spain", 18),
+                        ("portugal", 7), ("argentina", 3), ("chile", 3),
+                        ("newzealand", 3)]
+        var total = 0
+        for (country, count) in expected {
             let map = try load(country)
             let placed = map.regions.flatMap { map.regionIDs(for: $0.id) }
             #expect(placed.count == count, "\(country) placed \(placed.count)")
             #expect(Set(placed).count == count, "\(country) has a region on the map twice")
+            total += placed.count
         }
+        #expect(total == 75)
     }
 
     @Test("hex decoding accepts the manifest's form and refuses nonsense")

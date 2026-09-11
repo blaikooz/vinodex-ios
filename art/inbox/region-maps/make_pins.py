@@ -78,22 +78,97 @@ ITALY = {
     "R112": (15.677, 40.923, "Rionero in Vulture (Basilicata)",    "basilicata"),
 }
 
-TABLES = {"france": FRANCE, "italy": ITALY}
+
+# Spain. Several catalog rows are DOs inside a bigger painted area — Rueda and
+# Toro share `ruedatoro`, Valdeorras/Ribeiro/Ribeira Sacra/Rías Baixas are all
+# Galicia, Priorat and Penedès are both Catalonia. Each is pinned at its own
+# town, not at its region's centre, so the map puts it where it belongs.
+SPAIN = {
+    "R030": (-2.445, 42.465, "Logroño (Rioja)",                    "rioja"),
+    "R031": (-3.700, 41.625, "Aranda de Duero (Ribera)",           "riberadelduero"),
+    "R032": (0.822, 41.203, "Gratallops (Priorat)",                "catalonia"),
+    "R033": (-8.645, 42.400, "Cambados (Rías Baixas)",             "galicia"),
+    "R034": (-4.958, 41.410, "Rueda (Valladolid)",                 "ruedatoro"),
+    "R035": (-6.137, 36.687, "Jerez de la Frontera",               "jerez"),
+    "R088": (-7.116, 42.430, "O Barco de Valdeorras",              "galicia"),
+    "R089": (-6.596, 42.604, "Cacabelos (Bierzo)",                 "bierzo"),
+    "R101": (-2.617, 43.257, "Getaria (Txakoli)",                  "basque"),
+    "R102": (1.700, 41.372, "Vilafranca del Penedès",              "catalonia"),
+    "R103": (-1.203, 39.487, "Utiel-Requena",                      "levante"),
+    "R104": (1.199, 41.412, "Montblanc (Conca de Barberà)",        "catalonia"),
+    "R113": (-5.393, 41.523, "Toro (Zamora)",                      "ruedatoro"),
+    "R114": (-1.643, 42.693, "Olite (Navarra)",                    "navarra"),
+    "R115": (-3.000, 39.300, "Valdepeñas (La Mancha)",             "lamancha"),
+    "R116": (-7.500, 42.400, "Doade (Ribeira Sacra)",              "galicia"),
+    "R119": (-8.150, 42.290, "Ribadavia (Ribeiro)",                "galicia"),
+    "R120": (2.950, 39.600, "Binissalem (Mallorca)",               "baleares"),
+}
+
+PORTUGAL = {
+    "R036": (-7.546, 41.166, "Pinhão (Douro)",                     "douro"),
+    "R037": (-8.420, 41.700, "Monção (Vinho Verde)",               "vinhoverde"),
+    "R082": (-8.470, 40.450, "Anadia (Bairrada)",                  "bairrada"),
+    "R083": (-7.912, 40.660, "Viseu (Dão)",                        "dao"),
+    "R084": (-8.685, 39.230, "Almeirim (Tejo)",                    "tejo"),
+    "R085": (-9.212, 38.880, "Bucelas (Lisboa)",                   "lisboa"),
+    "R086": (-7.910, 38.570, "Évora (Alentejo)",                   "alentejo"),
+}
+
+ARGENTINA = {
+    "R045": (-68.850, -33.030, "Luján de Cuyo (Mendoza)",          "mendoza"),
+    "R087": (-65.980, -25.450, "Cafayate (Salta)",                 "salta"),
+    "R146": (-67.500, -39.030, "General Roca (Río Negro)",         "patagonia"),
+}
+
+CHILE = {
+    "R046": (-70.750, -33.750, "Buin (Maipo)",                     "maipo"),
+    "R124": (-72.400, -36.590, "Chillán (Itata)",                  "itata"),
+    "R145": (-71.410, -33.320, "Casablanca",                       "aconcagua"),
+}
+
+NEWZEALAND = {
+    "R043": (173.960, -41.517, "Blenheim (Marlborough)",           "marlborough"),
+    "R044": (169.130, -45.030, "Cromwell (Central Otago)",         "centralotago"),
+    "R144": (176.850, -39.640, "Hastings (Hawke's Bay)",           "hawkesbay"),
+}
+
+# Catalog regions that no mainland map can hold. The Canaries sit ~1800km off
+# Spain and the Azores ~1500km off Portugal; widening a country's margin far
+# enough to include them would shrink its mainland — and every tap target on
+# it — to nothing. They are not map failures and not config errors, they are
+# places this kind of map does not cover. Each stays fully reachable through
+# the ordinary region list; it simply has no square on the board.
+OFF_ANY_MAP = {
+    "R063": "Canary Islands (Spain) — ~1800km offshore",
+    "R081": "Madeira (Portugal) — ~900km offshore",
+    "R121": "Azores (Portugal) — ~1500km offshore",
+}
+
+TABLES = {
+    "france": FRANCE, "italy": ITALY, "spain": SPAIN, "portugal": PORTUGAL,
+    "argentina": ARGENTINA, "chile": CHILE, "newzealand": NEWZEALAND,
+}
 name = (sys.argv[1] if len(sys.argv) > 1 else "france").lower()
 if name not in TABLES:
-    sys.exit("usage: make_pins.py france|italy")
+    sys.exit("usage: make_pins.py " + "|".join(TABLES))
 table = TABLES[name]
 
 entries = {e["id"]: e for e in json.load(open(ENTRIES))}
-country = {"france": "France", "italy": "Italy"}[name]
+country = {
+    "france": "France", "italy": "Italy", "spain": "Spain",
+    "portugal": "Portugal", "argentina": "Argentina", "chile": "Chile",
+    "newzealand": "New Zealand",
+}[name]
 catalog = {
     e["id"] for e in entries.values()
     if e.get("category") == "REGIONS" and e.get("details", {}).get("origin") == country
 }
 
-missing = sorted(catalog - set(table))
+missing = sorted(catalog - set(table) - set(OFF_ANY_MAP))
 if missing:
     print("!! catalog regions with no authored pin: %s" % ", ".join(missing))
+for rid in sorted(set(OFF_ANY_MAP) & catalog):
+    print("   off any map, deliberately: %s — %s" % (rid, OFF_ANY_MAP[rid]))
 extra = sorted(set(table) - catalog)
 if extra:
     print("!! pins for ids the catalog does not hold: %s" % ", ".join(extra))

@@ -659,7 +659,17 @@ struct RootView: View {
         if name.hasPrefix("map:") {
             let parts = name.split(separator: ":")
             if parts.count >= 2 {
-                return [.regionMap(country: String(parts[1]).capitalized)]
+                // The catalog's spelling, not the directory key's: the route
+                // title is the country's name and "newzealand".capitalized is
+                // "Newzealand". Only the screenshot shortcut needs this —
+                // reached properly, the country comes from CountryScreen.
+                let spelled = [
+                    "france": "France", "italy": "Italy", "spain": "Spain",
+                    "portugal": "Portugal", "argentina": "Argentina",
+                    "chile": "Chile", "newzealand": "New Zealand",
+                ]
+                let key = String(parts[1])
+                return [.regionMap(country: spelled[key] ?? key.capitalized)]
             }
         }
         switch name {

@@ -22,8 +22,15 @@
   "key": "#EE03E1",
   "layers": {
    "interactive": "france-regions.png",
-   "backdrop": "france-backdrop.png"
+   "backdrop": "france-backdrop.png",
+   "index": "france-index.png"
   },
+  "index_legend": {
+   "0": "outside the country (sea, neighbour, coastline ink)",
+   "255": "inside the country, unassigned ground",
+   "1..N": "a region — see regions[].id"
+  },
+  "index_note": "one byte per LOGICAL cell, canvas-sized, NOT export_scale. Hit-test against this, not against pixel colour.",
   "subject_rect": [
    0.3406,
    0.3448,
@@ -168,13 +175,15 @@
  },
  "splits": [
   {
-   "north": "beaujolais",
-   "south": "rhone",
-   "lat": 45.62
+   "keeps": "beaujolais",
+   "gains": "rhone",
+   "value": 45.62,
+   "axis": "lat"
   }
  ],
  "regions": {
   "bordeaux": {
+   "id": 1,
    "button": [
     0.4382,
     0.5423
@@ -187,23 +196,20 @@
    ],
    "detail": {
     "canvas": [
-     50,
-     62
+     53,
+     68
     ],
-    "bounds_projected": [
-     [
-      -0.866628,
-      -45.57331
-     ],
-     [
-      0.221524,
-      -44.197959
-     ]
-    ],
-    "scale": 42.171053
+    "upscale": 3,
+    "source_bbox": [
+     213,
+     258,
+     229,
+     279
+    ]
    }
   },
   "southwest": {
+   "id": 2,
    "button": [
     0.4781,
     0.5645
@@ -227,23 +233,20 @@
    ],
    "detail": {
     "canvas": [
-     62,
-     55
+     59,
+     51
     ],
-    "bounds_projected": [
-     [
-      -1.235737,
-      -45.710337
-     ],
-     [
-      2.370516,
-      -42.567646
-     ]
-    ],
-    "scale": 16.083172
+    "upscale": 1,
+    "source_bbox": [
+     207,
+     256,
+     263,
+     304
+    ]
    }
   },
   "loire": {
+   "id": 3,
    "button": [
     0.49,
     0.4677
@@ -263,23 +266,20 @@
    ],
    "detail": {
     "canvas": [
-     62,
-     29
+     75,
+     35
     ],
-    "bounds_projected": [
-     [
-      -1.757774,
-      -48.339069
-     ],
-     [
-      2.904463,
-      -46.350939
-     ]
-    ],
-    "scale": 12.440382
+    "upscale": 1,
+    "source_bbox": [
+     199,
+     214,
+     271,
+     246
+    ]
    }
   },
   "burgundy": {
+   "id": 4,
    "button": [
     0.5538,
     0.4657
@@ -294,23 +294,20 @@
    ],
    "detail": {
     "canvas": [
-     52,
-     62
+     60,
+     72
     ],
-    "bounds_projected": [
-     [
-      1.946513,
-      -48.411744
-     ],
-     [
-      3.796736,
-      -46.171752
-     ]
-    ],
-    "scale": 25.89295
+    "upscale": 2,
+    "source_bbox": [
+     258,
+     214,
+     286,
+     248
+    ]
    }
   },
   "beaujolais": {
+   "id": 5,
    "button": [
     0.5478,
     0.506
@@ -323,23 +320,20 @@
    ],
    "detail": {
     "canvas": [
-     46,
-     62
+     57,
+     57
     ],
-    "bounds_projected": [
-     [
-      2.924119,
-      -46.299193
-     ],
-     [
-      3.545891,
-      -45.444457
-     ]
-    ],
-    "scale": 67.85721
+    "upscale": 5,
+    "source_bbox": [
+     272,
+     247,
+     282,
+     257
+    ]
    }
   },
   "champagne": {
+   "id": 6,
    "button": [
     0.5418,
     0.4194
@@ -355,23 +349,20 @@
    ],
    "detail": {
     "canvas": [
-     51,
-     62
+     66,
+     80
     ],
-    "bounds_projected": [
-     [
-      2.038221,
-      -50.060099
-     ],
-     [
-      4.055347,
-      -47.588307
-     ]
-    ],
-    "scale": 23.464758
+    "upscale": 2,
+    "source_bbox": [
+     259,
+     188,
+     290,
+     226
+    ]
    }
   },
   "alsace": {
+   "id": 7,
    "button": [
     0.6135,
     0.4194
@@ -385,23 +376,20 @@
    ],
    "detail": {
     "canvas": [
-     36,
-     62
+     32,
+     56
     ],
-    "bounds_projected": [
-     [
-      4.723079,
-      -49.065683
-     ],
-     [
-      5.638538,
-      -47.416797
-     ]
-    ],
-    "scale": 35.175264
+    "upscale": 2,
+    "source_bbox": [
+     301,
+     203,
+     315,
+     229
+    ]
    }
   },
   "jura": {
+   "id": 8,
    "button": [
     0.5757,
     0.4839
@@ -414,23 +402,20 @@
    ],
    "detail": {
     "canvas": [
-     41,
-     62
+     42,
+     70
     ],
-    "bounds_projected": [
-     [
-      3.610011,
-      -47.292215
-     ],
-     [
-      4.267696,
-      -46.260686
-     ]
-    ],
-    "scale": 56.227212
+    "upscale": 4,
+    "source_bbox": [
+     284,
+     231,
+     293,
+     247
+    ]
    }
   },
   "savoie": {
+   "id": 9,
    "button": [
     0.5876,
     0.5121
@@ -444,23 +429,20 @@
    ],
    "detail": {
     "canvas": [
-     48,
-     62
+     56,
+     71
     ],
-    "bounds_projected": [
-     [
-      3.8509,
-      -46.457372
-     ],
-     [
-      4.92369,
-      -45.053585
-     ]
-    ],
-    "scale": 41.316809
+    "upscale": 3,
+    "source_bbox": [
+     287,
+     244,
+     304,
+     266
+    ]
    }
   },
   "rhone": {
+   "id": 10,
    "button": [
     0.5538,
     0.5524
@@ -476,23 +458,20 @@
    ],
    "detail": {
     "canvas": [
-     57,
-     62
+     56,
+     70
     ],
-    "bounds_projected": [
-     [
-      2.25956,
-      -45.365707
-     ],
-     [
-      4.009145,
-      -43.459906
-     ]
-    ],
-    "scale": 30.433398
+    "upscale": 2,
+    "source_bbox": [
+     263,
+     258,
+     289,
+     291
+    ]
    }
   },
   "provence": {
+   "id": 11,
    "button": [
     0.5896,
     0.5706
@@ -508,23 +487,20 @@
    ],
    "detail": {
     "canvas": [
-     62,
-     45
+     76,
+     56
     ],
-    "bounds_projected": [
-     [
-      2.891983,
-      -44.660923
-     ],
-     [
-      5.288967,
-      -42.987128
-     ]
-    ],
-    "scale": 24.19708
+    "upscale": 2,
+    "source_bbox": [
+     273,
+     272,
+     309,
+     298
+    ]
    }
   },
   "languedoc": {
+   "id": 12,
    "button": [
     0.504,
     0.5968
@@ -538,23 +514,20 @@
    ],
    "detail": {
     "canvas": [
-     62,
-     49
+     54,
+     44
     ],
-    "bounds_projected": [
-     [
-      1.166526,
-      -43.970652
-     ],
-     [
-      2.874654,
-      -42.652161
-     ]
-    ],
-    "scale": 33.95531
+    "upscale": 2,
+    "source_bbox": [
+     246,
+     283,
+     271,
+     303
+    ]
    }
   },
   "roussillon": {
+   "id": 13,
    "button": [
     0.508,
     0.6129
@@ -567,23 +540,20 @@
    ],
    "detail": {
     "canvas": [
-     62,
-     38
+     70,
+     42
     ],
-    "bounds_projected": [
-     [
-      1.173739,
-      -42.9138
-     ],
-     [
-      2.187651,
-      -42.325661
-     ]
-    ],
-    "scale": 57.204189
+    "upscale": 4,
+    "source_bbox": [
+     245,
+     300,
+     261,
+     309
+    ]
    }
   },
   "corsica": {
+   "id": 14,
    "button": [
     0.6454,
     0.623
@@ -597,20 +567,16 @@
    ],
    "detail": {
     "canvas": [
-     28,
-     62
+     26,
+     56
     ],
-    "bounds_projected": [
-     [
-      5.875728,
-      -43.017401
-     ],
-     [
-      6.573178,
-      -41.365912
-     ]
-    ],
-    "scale": 35.119822
+    "upscale": 2,
+    "source_bbox": [
+     319,
+     298,
+     330,
+     324
+    ]
    }
   }
  }

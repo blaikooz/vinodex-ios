@@ -1,0 +1,23 @@
+[
+ {
+  "id": "R046",
+  "name": "Maipo Valley",
+  "lon": -70.75,
+  "lat": -33.75,
+  "expect": "maipo"
+ },
+ {
+  "id": "R124",
+  "name": "Itata Valley",
+  "lon": -72.4,
+  "lat": -36.59,
+  "expect": "itata"
+ },
+ {
+  "id": "R145",
+  "name": "Casablanca Valley",
+  "lon": -71.41,
+  "lat": -33.32,
+  "expect": "aconcagua"
+ }
+]

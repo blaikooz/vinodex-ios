@@ -1,0 +1,128 @@
+[
+ {
+  "id": "R030",
+  "name": "Rioja",
+  "lon": -2.445,
+  "lat": 42.465,
+  "expect": "rioja"
+ },
+ {
+  "id": "R031",
+  "name": "Ribera del Duero",
+  "lon": -3.7,
+  "lat": 41.625,
+  "expect": "riberadelduero"
+ },
+ {
+  "id": "R032",
+  "name": "Priorat",
+  "lon": 0.822,
+  "lat": 41.203,
+  "expect": "catalonia"
+ },
+ {
+  "id": "R033",
+  "name": "Rías Baixas",
+  "lon": -8.645,
+  "lat": 42.4,
+  "expect": "galicia"
+ },
+ {
+  "id": "R034",
+  "name": "Rueda",
+  "lon": -4.958,
+  "lat": 41.41,
+  "expect": "ruedatoro"
+ },
+ {
+  "id": "R035",
+  "name": "Jerez",
+  "lon": -6.137,
+  "lat": 36.687,
+  "expect": "jerez"
+ },
+ {
+  "id": "R088",
+  "name": "Valdeorras",
+  "lon": -7.116,
+  "lat": 42.43,
+  "expect": "galicia"
+ },
+ {
+  "id": "R089",
+  "name": "Bierzo",
+  "lon": -6.596,
+  "lat": 42.604,
+  "expect": "bierzo"
+ },
+ {
+  "id": "R101",
+  "name": "Basque Country",
+  "lon": -2.617,
+  "lat": 43.257,
+  "expect": "basque"
+ },
+ {
+  "id": "R102",
+  "name": "Penedès",
+  "lon": 1.7,
+  "lat": 41.372,
+  "expect": "catalonia"
+ },
+ {
+  "id": "R103",
+  "name": "Utiel-Requena",
+  "lon": -1.203,
+  "lat": 39.487,
+  "expect": "levante"
+ },
+ {
+  "id": "R104",
+  "name": "Conca de Barberà",
+  "lon": 1.199,
+  "lat": 41.412,
+  "expect": "catalonia"
+ },
+ {
+  "id": "R113",
+  "name": "Toro",
+  "lon": -5.393,
+  "lat": 41.523,
+  "expect": "ruedatoro"
+ },
+ {
+  "id": "R114",
+  "name": "Navarra",
+  "lon": -1.643,
+  "lat": 42.693,
+  "expect": "navarra"
+ },
+ {
+  "id": "R115",
+  "name": "La Mancha",
+  "lon": -3.0,
+  "lat": 39.3,
+  "expect": "lamancha"
+ },
+ {
+  "id": "R116",
+  "name": "Ribeira Sacra",
+  "lon": -7.5,
+  "lat": 42.4,
+  "expect": "galicia"
+ },
+ {
+  "id": "R119",
+  "name": "Ribeiro",
+  "lon": -8.15,
+  "lat": 42.29,
+  "expect": "galicia"
+ },
+ {
+  "id": "R120",
+  "name": "Mallorca",
+  "lon": 2.95,
+  "lat": 39.6,
+  "expect": "baleares"
+ }
+]

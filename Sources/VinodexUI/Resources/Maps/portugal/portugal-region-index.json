@@ -1,0 +1,37 @@
+{
+ "byId": {
+  "R036": "douro",
+  "R037": "vinhoverde",
+  "R082": "bairrada",
+  "R083": "dao",
+  "R084": "tejo",
+  "R085": "lisboa",
+  "R086": "alentejo"
+ },
+ "byStem": {
+  "vinhoverde": [
+   "R037"
+  ],
+  "douro": [
+   "R036"
+  ],
+  "dao": [
+   "R083"
+  ],
+  "bairrada": [
+   "R082"
+  ],
+  "beirainterior": [],
+  "lisboa": [
+   "R085"
+  ],
+  "tejo": [
+   "R084"
+  ],
+  "setubal": [],
+  "alentejo": [
+   "R086"
+  ],
+  "algarve": []
+ }
+}

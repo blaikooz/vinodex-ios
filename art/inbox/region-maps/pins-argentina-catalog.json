@@ -1,0 +1,23 @@
+[
+ {
+  "id": "R045",
+  "name": "Mendoza",
+  "lon": -68.85,
+  "lat": -33.03,
+  "expect": "mendoza"
+ },
+ {
+  "id": "R087",
+  "name": "Salta",
+  "lon": -65.98,
+  "lat": -25.45,
+  "expect": "salta"
+ },
+ {
+  "id": "R146",
+  "name": "Patagonia",
+  "lon": -67.5,
+  "lat": -39.03,
+  "expect": "patagonia"
+ }
+]

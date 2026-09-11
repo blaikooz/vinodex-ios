@@ -94,3 +94,105 @@ ITALY = dict(
 )
 
 COUNTRIES = {'france': FRANCE, 'italy': ITALY}
+
+
+SPAIN = dict(
+    admin1='es-provinces.json', subject='Spain', log=160, margin=170, splits=[],
+    exclude=['Las Palmas', 'Santa Cruz de Tenerife', 'Ceuta', 'Melilla'],
+    regions={
+     'rioja'        : ['La Rioja', 'Álava'],
+     'navarra'      : ['Navarra'],
+     'basque'       : ['Bizkaia', 'Gipuzkoa'],
+     'riberadelduero': ['Burgos', 'Soria'],
+     'ruedatoro'    : ['Valladolid', 'Zamora', 'Segovia'],
+     'bierzo'       : ['León'],
+     'galicia'      : ['La Coruña', 'Lugo', 'Orense', 'Pontevedra'],
+     'catalonia'    : ['Barcelona', 'Tarragona', 'Lérida', 'Gerona'],
+     'aragon'       : ['Huesca', 'Teruel', 'Zaragoza'],
+     'lamancha'     : ['Albacete', 'Ciudad Real', 'Cuenca', 'Guadalajara', 'Toledo'],
+     'madrid'       : ['Madrid'],
+     'levante'      : ['Alicante', 'Castellón', 'Valencia', 'Murcia'],
+     'jerez'        : ['Cádiz', 'Sevilla', 'Huelva'],
+     'andalucia'    : ['Córdoba', 'Málaga', 'Granada', 'Jaén', 'Almería'],
+     'extremadura'  : ['Badajoz', 'Cáceres'],
+     'baleares'     : ['Baleares'],
+    },
+)
+
+PORTUGAL = dict(
+    admin1='pt-districts.json', subject='Portugal', log=160, margin=170,
+    splits=[('douro', 'dao', 41.00)],
+    exclude=['Azores', 'Madeira'],
+    regions={
+     'vinhoverde'   : ['Viana do Castelo', 'Braga', 'Porto'],
+     # Viseu district holds the Douro's south bank AND the Dão. Cut at 41.00 N:
+     # north of it is Douro, south is Dão. `dao` therefore starts with no units
+     # of its own and is entirely the product of that split.
+     'douro'        : ['Vila Real', 'Bragança', 'Viseu'],
+     'dao'          : [],
+     'bairrada'     : ['Aveiro', 'Coimbra'],
+     'beirainterior': ['Castelo Branco', 'Guarda'],
+     'lisboa'       : ['Lisboa', 'Leiria'],
+     'tejo'         : ['Santarém'],
+     'setubal'      : ['Setúbal'],
+     'alentejo'     : ['Évora', 'Beja', 'Portalegre'],
+     'algarve'      : ['Faro'],
+    },
+)
+
+ARGENTINA = dict(
+    admin1='ar-provinces.json', subject='Argentina', log=160, margin=170, splits=[],
+    exclude=['Tierra del Fuego'],   # the province carries an Antarctic claim
+    focus='regions',
+    regions={
+     'mendoza'   : ['Mendoza'],
+     'sanjuan'   : ['San Juan'],
+     'salta'     : ['Salta', 'Jujuy'],
+     'catamarca' : ['Catamarca', 'La Rioja'],
+     'patagonia' : ['Río Negro', 'Neuquén', 'Chubut'],
+     'cordoba'   : ['Córdoba'],
+    },
+)
+
+CHILE = dict(
+    admin1='cl-regions.json', subject='Chile', log=160, margin=170,
+    exclude=[], focus='regions',
+    # Valparaíso Region includes Easter Island; frame on the mainland wine belt.
+    frame_window=(-76, -40, -69, -28),
+    # Natural Earth's Metropolitana polygon reaches to 71.46 W at Casablanca's
+    # latitude — about 25 km further west than the real regional boundary, which
+    # put Casablanca in Maipo. Cut on the meridian: Maipo keeps the east side.
+    splits=[('maipo', 'aconcagua', -71.25, 'lon')],
+    regions={
+     'coquimbo'  : ['Coquimbo'],
+     'aconcagua' : ['Valparaíso'],
+     'maipo'     : ['Región Metropolitana de Santiago'],
+     'rapel'     : ["Libertador General Bernardo O'Higgins"],
+     'maule'     : ['Maule'],
+     'itata'     : ['Ñuble'],
+     'biobio'    : ['Bío-Bío'],
+     'malleco'   : ['La Araucanía'],
+    },
+)
+
+NEWZEALAND = dict(
+    admin1='nz-councils.json', subject='New Zealand', log=160, margin=170, splits=[],
+    exclude=['Antipodes Islands', 'Auckland Islands', 'Campbell Islands',
+             'Chatham Islands Territory', 'Kermadec Islands', 'The Snares',
+             'Three Kings Islands', 'Tokelau'],
+    regions={
+     'northland'   : ['Northland'],
+     'auckland'    : ['Auckland'],
+     'waikatobop'  : ['Waikato', 'Bay of Plenty'],
+     'gisborne'    : ['Gisborne District'],
+     'hawkesbay'   : ["Hawke's Bay"],
+     'wairarapa'   : ['Wellington'],
+     'nelson'      : ['Nelson City', 'Tasman District'],
+     'marlborough' : ['Marlborough District'],
+     'canterbury'  : ['Canterbury'],
+     'centralotago': ['Otago'],
+    },
+)
+
+COUNTRIES.update(spain=SPAIN, portugal=PORTUGAL, argentina=ARGENTINA,
+                 chile=CHILE, newzealand=NEWZEALAND)

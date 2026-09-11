@@ -31,22 +31,32 @@ NAME = args[0] if args and not args[0].endswith('.json') else 'france'
 OUT = os.path.join(HERE, 'out', NAME)
 
 man = json.load(open(os.path.join(OUT, '%s-manifest.json' % NAME)))
-img = np.array(Image.open(os.path.join(OUT, '%s-regions.png' % NAME)).convert('RGB'))
-SC = man['base']['export_scale']
-img = img[::SC, ::SC]                                   # back to logical pixels
 CW, CH = man['base']['canvas']
-assert img.shape[:2] == (CH, CW), 'manifest canvas disagrees with the PNG'
+
+# The gate reads the INDEX raster, because that is what the app hit-tests. The
+# art is checked against it separately, below, so the two cannot drift.
+idx = np.array(Image.open(os.path.join(OUT, '%s-index.png' % NAME)))
+assert idx.shape == (CH, CW), 'manifest canvas disagrees with the index raster'
+
+art = np.array(Image.open(os.path.join(OUT, '%s-regions.png' % NAME)).convert('RGB'))
+SC = man['base']['export_scale']
+art = art[::SC, ::SC]
+for n, r in man['regions'].items():
+    px = np.unique(art[idx == r['id']].reshape(-1, 3), axis=0)
+    assert len(px) == 1 and '#%02X%02X%02X' % tuple(px[0]) == r['fill'], \
+        'art and index disagree on ' + n
+img = art
 
 pr = man['projection']
 K, O, S = pr['x_factor'], pr['origin'], pr['scale']
+BY_ID = {r['id']: n for n, r in man['regions'].items()}
+assert len(BY_ID) == len(man['regions']), 'two regions share an id'
 BY_RGB = {tuple(int(r['fill'][i:i + 2], 16) for i in (1, 3, 5)): n
           for n, r in man['regions'].items()}
 STONE = tuple(int(man['base']['unassigned'][i:i + 2], 16) for i in (1, 3, 5))
 INK = tuple(int(man['base']['outline'][i:i + 2], 16) for i in (1, 3, 5))
 
-# region masks, read off the shipped art
-masks = {n: np.all(img == np.array(c, np.uint8), axis=2) for c, n in BY_RGB.items()}
-COORDS = {n: np.argwhere(m) for n, m in masks.items()}    # (y, x)
+COORDS = {n: np.argwhere(idx == i) for i, n in BY_ID.items()}   # (y, x)
 
 
 def to_canvas(lon, lat):
@@ -75,11 +85,11 @@ for p in pins:
     if not (0 <= xi < CW and 0 <= yi < CH):
         note = 'OFF-MAP'
     else:
-        px = tuple(img[yi, xi])
-        got = BY_RGB.get(px)
+        v = int(idx[yi, xi])
+        got = BY_ID.get(v)
         if got is None:
             n, d = nearest(x, y)
-            kind = 'ON-STONE' if px == STONE else ('ON-OUTLINE' if px == INK else 'ON-KEY')
+            kind = 'ON-STONE' if v == 255 else 'OUTSIDE'
             note = '%s -> nearest %s (%.1fpx)' % (kind, n, d)
             got = n
     if note:

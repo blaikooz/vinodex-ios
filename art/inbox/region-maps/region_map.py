@@ -57,6 +57,14 @@ SS    = 6      # rasteriser supersample; max-pooled down, so thin capes survive
 
 # ---------------------------------------------------------------------------
 FEAT = json.load(open(os.path.join(HERE, CFG['admin1'])))['features']
+# Far-flung territories are dropped before anything is projected: one Atlantic
+# island group stretches the bounding box so far that the mainland shrinks to
+# nothing. They are named in the config so the omission is a decision, not a
+# side effect.
+DROP = set(CFG.get('exclude', ()))
+FEAT = [f for f in FEAT if f['properties']['name'] not in DROP]
+if DROP:
+    print('excluded from %s: %s' % (NAME, ', '.join(sorted(DROP))))
 FR = {f['properties']['name']: f for f in FEAT}
 BY_REGION = {}
 for f in FEAT:
@@ -186,7 +194,29 @@ def pole(m):
 allr = rings(list(FR))
 K = math.cos(math.radians(np.vstack([p[0] for p in allr])[:, 1].mean()))
 P = project(allr, K)
-allp = np.vstack([r for poly in P for r in poly])
+
+# Which shape sizes the canvas. By default the whole country; 'regions' frames on
+# the claimed wine areas instead and lets the rest of the country run off the
+# edge. Chile is 4,000 km tall and 180 km wide — framed on the country, its wine
+# belt is an illegible sliver in the middle of an empty page.
+def in_window(poly):
+    """Keep a ring only if it sits inside the framing window, when one is set.
+
+    Some admin-1 units carry very distant territory — Chile's Valparaíso Region
+    includes Easter Island, 3,500 km out in the Pacific, which on its own turned
+    the country's frame from tall-and-narrow into wide-and-empty.
+    """
+    w = CFG.get('frame_window')
+    if not w:
+        return True
+    c = poly[0].mean(axis=0)
+    return w[0] <= c[0] <= w[2] and w[1] <= c[1] <= w[3]
+
+
+frame = P if CFG.get('focus') != 'regions' else project(
+    [r for r in rings(sorted({u for us in REGIONS.values() for u in us}))
+     if in_window(r)], K)
+allp = np.vstack([r for poly in frame for r in poly])
 FMN, FMX = allp.min(axis=0), allp.max(axis=0)
 span = FMX - FMN
 S = (LOG - 2) / span.max()
@@ -293,18 +323,39 @@ for i, stem in enumerate(stems):
     q[1:-1, 1:-1] = any_ & (win == i)
     masks[stem] = q & land
 
-for north, south, lat in SPLITS:
-    ycut = int(round((-lat - MN[1]) * S)) + 2
-    below = np.zeros((H + 2, W + 2), bool)
-    below[ycut:, :] = True
-    moved = masks[north] & below
-    masks[north] &= ~moved
-    masks[south] |= moved
-    print('split %s/%s at %.2fN: %d px -> %s' % (north, south, lat, moved.sum(), south))
+# A split corrects one admin-1 unit that holds two wine regions, by cutting it
+# on a parallel or a meridian. Each entry is (keeps, gains, value[, axis]):
+# on 'lat' the first stem keeps the NORTH side, on 'lon' it keeps the EAST.
+# Reproducible from the same projection, so it survives a re-render — which an
+# authored exception list would not.
+for spec in SPLITS:
+    keeps, gains, value = spec[0], spec[1], spec[2]
+    axis = spec[3] if len(spec) > 3 else 'lat'
+    other = np.zeros((H + 2, W + 2), bool)
+    if axis == 'lat':
+        cut = int(round((-value - MN[1]) * S)) + 2
+        other[cut:, :] = True                       # south of the parallel
+    else:
+        cut = int(round((value * K - MN[0]) * S)) + 2
+        other[:, :cut] = True                       # west of the meridian
+    moved = masks[keeps] & other
+    masks[keeps] &= ~moved
+    masks[gains] |= moved
+    print('split %s/%s at %.2f%s: %d px -> %s'
+          % (keeps, gains, value, 'N' if axis == 'lat' else 'E', moved.sum(), gains))
 
 FILLS = assign(masks, CFG.get('fills'))
+assert len(set(FILLS.values())) == len(FILLS), 'two regions share a fill'
 for stem in REGIONS:
     canvas[masks[stem]] = FILLS[stem]
+# The runtime identifies a region by its pixel colour, so prove the painted
+# canvas agrees with the table the manifest is about to publish.
+for stem in REGIONS:
+    if not masks[stem].any():
+        print('EMPTY MASK:', stem); continue
+    got = np.unique(canvas[masks[stem]].reshape(-1, 3), axis=0)
+    assert len(got) == 1 and tuple(got[0]) == FILLS[stem], \
+        'painted %s as %s, manifest says %s' % (stem, got, FILLS[stem])
 outline(land, canvas)
 CH, CW = canvas.shape[:2]
 
@@ -321,6 +372,27 @@ def save(arr, name):
     Image.fromarray(arr).resize((arr.shape[1] * SCALE, arr.shape[0] * SCALE),
                                 Image.NEAREST).save(os.path.join(OUT, name))
 
+
+# --- the index raster: what the app actually hit-tests -----------------------
+# One byte per LOGICAL cell, on exactly the canvas the manifest describes:
+#   0    outside the country — sea, a neighbour, or the coastline ink
+#   255  inside the country but on unassigned ground
+#   1..N a region, numbered in manifest order
+#
+# This exists because matching an RGB value is the wrong contract on iOS. The
+# PNGs carry no colour profile, an asset catalog may re-encode them, and any
+# smoothed scale turns a border pixel into a blend that matches nothing — three
+# separate ways for a colour-keyed hit test to fail without saying so. An integer
+# survives all of them, and it frees the palette to be a presentation choice.
+index = np.zeros((CH, CW), np.uint8)
+index[land] = 255
+IDS = {}
+for i, stem in enumerate(REGIONS, start=1):
+    index[masks[stem]] = i
+    IDS[stem] = i
+for stem, i in IDS.items():
+    assert (index == i).sum() == int(masks[stem].sum()), 'index disagrees on ' + stem
+Image.fromarray(index).save(os.path.join(OUT, '%s-index.png' % NAME))
 
 # the interactive layer: the subject only, everything else the chroma key
 inter = np.full_like(canvas, MAG)
@@ -356,27 +428,28 @@ for d in (12, 10, 8):
 DETAIL_LOG = 60      # logical px long axis; 5x -> ~300px, matches §6.2
 detail_meta = {}
 if '--base' not in sys.argv:
-    for stem, deps in REGIONS.items():
-        rr = project(rings(deps), K)
-        pts = np.vstack([r for poly in rr for r in poly])
-        mn, mx = pts.min(axis=0), pts.max(axis=0)
-        sp = mx - mn
-        s = (DETAIL_LOG - 2) / sp.max()
-        w = int(round(sp[0] * s)) + 2
-        h = int(round(sp[1] * s)) + 2
-        m = despeckle(raster(rr, mn, s, w, h))
+    # Detail maps are cut from the SAME masks the base map painted, not
+    # re-rasterised from the unit lists. Two reasons: a region that exists only
+    # because of a split has no unit list to rasterise, and a re-rasterised
+    # detail map would silently ignore every split — France's Beaujolais and
+    # Rhône detail maps were wrong for exactly that reason before this changed.
+    for stem in REGIONS:
+        mk = masks[stem]
+        ys, xs = np.nonzero(mk)
+        sub = mk[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+        up = max(1, int(round(DETAIL_LOG / max(sub.shape))))
+        sub = np.kron(sub, np.ones((up, up), bool))
+        h, w = sub.shape
         c = np.full((h + 2, w + 2, 3), MAG, np.uint8)
         q = np.zeros((h + 2, w + 2), bool)
-        q[1:-1, 1:-1] = m
+        q[1:-1, 1:-1] = sub
         c[q] = FILLS[stem]
         outline(q, c)
         Image.fromarray(c).resize(((w + 2) * SCALE, (h + 2) * SCALE), Image.NEAREST) \
              .save(os.path.join(OUT, 'map-%s.png' % stem))
-        detail_meta[stem] = {
-            'canvas': [w + 2, h + 2],
-            'bounds_projected': [list(np.round(mn, 6)), list(np.round(mx, 6))],
-            'scale': round(float(s), 6),
-        }
+        detail_meta[stem] = {'canvas': [w + 2, h + 2], 'upscale': up,
+                             'source_bbox': [int(xs.min()), int(ys.min()),
+                                             int(xs.max()), int(ys.max())]}
     print('%d detail maps written' % len(detail_meta))
 
 # --- manifest --------------------------------------------------------------
@@ -391,7 +464,13 @@ manifest = {
            'unassigned': '#%02X%02X%02X' % STONE, 'outline': '#%02X%02X%02X' % INK,
            'key': '#%02X%02X%02X' % MAG,
            'layers': {'interactive': '%s-regions.png' % NAME,
-                      'backdrop': '%s-backdrop.png' % NAME},
+                      'backdrop': '%s-backdrop.png' % NAME,
+                      'index': '%s-index.png' % NAME},
+           'index_legend': {'0': 'outside the country (sea, neighbour, coastline ink)',
+                            '255': 'inside the country, unassigned ground',
+                            '1..N': 'a region — see regions[].id'},
+           'index_note': 'one byte per LOGICAL cell, canvas-sized, NOT export_scale. '
+                         'Hit-test against this, not against pixel colour.',
            'subject_rect': FRECT,
            'subject_rect_note': 'x,y,w,h as fractions of the canvas. Scale the two '
                                'layers together so this rect fills the intended '
@@ -402,9 +481,11 @@ manifest = {
                'shallow': '#%02X%02X%02X' % SHALLOW, 'shelf_px': SHELF,
                'countries': sorted(f['properties']['name'] for f in NB)},
   'marker_clearance': {str(d): collisions(d) for d in (12, 10, 8)},
-  'splits': [{'north': a, 'south': b, 'lat': c} for a, b, c in SPLITS],
+  'splits': [{'keeps': sp[0], 'gains': sp[1], 'value': sp[2],
+              'axis': sp[3] if len(sp) > 3 else 'lat'} for sp in SPLITS],
   'regions': {
-     n: {'button': [round(x / CW, 4), round(y / CH, 4)],
+     n: {'id': IDS[n],
+         'button': [round(x / CW, 4), round(y / CH, 4)],
          'clearance_px': round(r, 1),
          'area_px': int(masks[n].sum()),
          'fill': '#%02X%02X%02X' % FILLS[n],

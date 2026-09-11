@@ -1,0 +1,74 @@
+[
+ {
+  "name": "Vinho Verde/Braga",
+  "lon": -8.43,
+  "lat": 41.55,
+  "expect": "vinhoverde"
+ },
+ {
+  "name": "Moncao",
+  "lon": -8.48,
+  "lat": 42.08,
+  "expect": "vinhoverde"
+ },
+ {
+  "name": "Douro/Pinhao",
+  "lon": -7.54,
+  "lat": 41.19,
+  "expect": "douro"
+ },
+ {
+  "name": "Dao/Viseu",
+  "lon": -7.91,
+  "lat": 40.66,
+  "expect": "dao"
+ },
+ {
+  "name": "Bairrada/Anadia",
+  "lon": -8.43,
+  "lat": 40.44,
+  "expect": "bairrada"
+ },
+ {
+  "name": "Beira Interior",
+  "lon": -7.51,
+  "lat": 40.28,
+  "expect": "beirainterior"
+ },
+ {
+  "name": "Obidos",
+  "lon": -9.16,
+  "lat": 39.36,
+  "expect": "lisboa"
+ },
+ {
+  "name": "Colares",
+  "lon": -9.45,
+  "lat": 38.8,
+  "expect": "lisboa"
+ },
+ {
+  "name": "Tejo/Santarem",
+  "lon": -8.69,
+  "lat": 39.24,
+  "expect": "tejo"
+ },
+ {
+  "name": "Setubal",
+  "lon": -8.89,
+  "lat": 38.52,
+  "expect": "setubal"
+ },
+ {
+  "name": "Alentejo/Evora",
+  "lon": -7.91,
+  "lat": 38.57,
+  "expect": "alentejo"
+ },
+ {
+  "name": "Algarve/Lagoa",
+  "lon": -8.45,
+  "lat": 37.13,
+  "expect": "algarve"
+ }
+]

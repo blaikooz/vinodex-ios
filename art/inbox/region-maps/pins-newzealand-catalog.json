@@ -1,0 +1,23 @@
+[
+ {
+  "id": "R043",
+  "name": "Marlborough",
+  "lon": 173.96,
+  "lat": -41.517,
+  "expect": "marlborough"
+ },
+ {
+  "id": "R044",
+  "name": "Central Otago",
+  "lon": 169.13,
+  "lat": -45.03,
+  "expect": "centralotago"
+ },
+ {
+  "id": "R144",
+  "name": "Hawke's Bay",
+  "lon": 176.85,
+  "lat": -39.64,
+  "expect": "hawkesbay"
+ }
+]

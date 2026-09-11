@@ -1,0 +1,21 @@
+{
+ "byId": {
+  "R045": "mendoza",
+  "R087": "salta",
+  "R146": "patagonia"
+ },
+ "byStem": {
+  "mendoza": [
+   "R045"
+  ],
+  "sanjuan": [],
+  "salta": [
+   "R087"
+  ],
+  "catamarca": [],
+  "patagonia": [
+   "R146"
+  ],
+  "cordoba": []
+ }
+}

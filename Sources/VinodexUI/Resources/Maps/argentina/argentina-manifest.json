@@ -1,0 +1,328 @@
+{
+ "generator": "region_map.py",
+ "country": "argentina",
+ "projection": {
+  "kind": "equirectangular",
+  "x_factor": 0.84090444,
+  "origin": [
+   -86.722086,
+   -4.265123
+  ],
+  "scale": 6.525395,
+  "note": "canvas_x = (lon*x_factor - origin[0])*scale + 2 ; canvas_y = (-lat - origin[1])*scale + 2"
+ },
+ "base": {
+  "canvas": [
+   401,
+   502
+  ],
+  "export_scale": 5,
+  "unassigned": "#CEC6BA",
+  "outline": "#1A1420",
+  "key": "#EE03E1",
+  "layers": {
+   "interactive": "argentina-regions.png",
+   "backdrop": "argentina-backdrop.png",
+   "index": "argentina-index.png"
+  },
+  "index_legend": {
+   "0": "outside the country (sea, neighbour, coastline ink)",
+   "255": "inside the country, unassigned ground",
+   "1..N": "a region — see regions[].id"
+  },
+  "index_note": "one byte per LOGICAL cell, canvas-sized, NOT export_scale. Hit-test against this, not against pixel colour.",
+  "subject_rect": [
+   0.4264,
+   0.3406,
+   0.1471,
+   0.3187
+  ],
+  "subject_rect_note": "x,y,w,h as fractions of the canvas. Scale the two layers together so this rect fills the intended width; the backdrop bleeds off the screen edges."
+ },
+ "backdrop": {
+  "margin_px": 170,
+  "sea": "#38506B",
+  "foreign": "#8C8778",
+  "foreign_outline": "#1A1420",
+  "shallow": "#4E6985",
+  "shelf_px": 3,
+  "countries": [
+   "Akrotiri Sovereign Base Area",
+   "Aland",
+   "Albania",
+   "Algeria",
+   "Andorra",
+   "Armenia",
+   "Austria",
+   "Azerbaijan",
+   "Bahrain",
+   "Belarus",
+   "Belgium",
+   "Benin",
+   "Bir Tawil",
+   "Bosnia and Herzegovina",
+   "Bulgaria",
+   "Burkina Faso",
+   "Cabo Verde",
+   "Cameroon",
+   "Central African Republic",
+   "Chad",
+   "Croatia",
+   "Cyprus",
+   "Cyprus No Mans Area",
+   "Czechia",
+   "Denmark",
+   "Dhekelia Sovereign Base Area",
+   "Djibouti",
+   "Egypt",
+   "Eritrea",
+   "Estonia",
+   "Ethiopia",
+   "Faroe Islands",
+   "Finland",
+   "France",
+   "Gambia",
+   "Georgia",
+   "Germany",
+   "Ghana",
+   "Gibraltar",
+   "Greece",
+   "Greenland",
+   "Guernsey",
+   "Guinea",
+   "Guinea-Bissau",
+   "Hungary",
+   "Iceland",
+   "Iran",
+   "Iraq",
+   "Ireland",
+   "Isle of Man",
+   "Israel",
+   "Italy",
+   "Ivory Coast",
+   "Jersey",
+   "Jordan",
+   "Kazakhstan",
+   "Kosovo",
+   "Kuwait",
+   "Latvia",
+   "Lebanon",
+   "Libya",
+   "Liechtenstein",
+   "Lithuania",
+   "Luxembourg",
+   "Mali",
+   "Malta",
+   "Mauritania",
+   "Moldova",
+   "Monaco",
+   "Montenegro",
+   "Morocco",
+   "Netherlands",
+   "Niger",
+   "Nigeria",
+   "North Macedonia",
+   "Northern Cyprus",
+   "Norway",
+   "Oman",
+   "Palestine",
+   "Poland",
+   "Portugal",
+   "Qatar",
+   "Republic of Serbia",
+   "Romania",
+   "Russia",
+   "San Marino",
+   "Saudi Arabia",
+   "Senegal",
+   "Slovakia",
+   "Slovenia",
+   "Somalia",
+   "Somaliland",
+   "South Sudan",
+   "Spain",
+   "Sudan",
+   "Sweden",
+   "Switzerland",
+   "Syria",
+   "Togo",
+   "Tunisia",
+   "Turkey",
+   "Turkmenistan",
+   "Ukraine",
+   "United Arab Emirates",
+   "United Kingdom",
+   "Vatican",
+   "Western Sahara",
+   "Yemen"
+  ]
+ },
+ "marker_clearance": {
+  "12": [],
+  "10": [],
+  "8": []
+ },
+ "splits": [],
+ "regions": {
+  "mendoza": {
+   "id": 1,
+   "button": [
+    0.4788,
+    0.508
+   ],
+   "clearance_px": 9.5,
+   "area_px": 572,
+   "fill": "#2B8268",
+   "units": [
+    "Mendoza"
+   ],
+   "detail": {
+    "canvas": [
+     48,
+     74
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     180,
+     239,
+     202,
+     274
+    ]
+   }
+  },
+  "sanjuan": {
+   "id": 2,
+   "button": [
+    0.4738,
+    0.4602
+   ],
+   "clearance_px": 7.8,
+   "area_px": 321,
+   "fill": "#82482B",
+   "units": [
+    "San Juan"
+   ],
+   "detail": {
+    "canvas": [
+     46,
+     54
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     180,
+     215,
+     201,
+     240
+    ]
+   }
+  },
+  "salta": {
+   "id": 3,
+   "button": [
+    0.5262,
+    0.3725
+   ],
+   "clearance_px": 12.0,
+   "area_px": 725,
+   "fill": "#826A2B",
+   "units": [
+    "Salta",
+    "Jujuy"
+   ],
+   "detail": {
+    "canvas": [
+     72,
+     62
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     191,
+     172,
+     225,
+     201
+    ]
+   }
+  },
+  "catamarca": {
+   "id": 4,
+   "button": [
+    0.4963,
+    0.4303
+   ],
+   "clearance_px": 9.9,
+   "area_px": 666,
+   "fill": "#2B5E82",
+   "units": [
+    "Catamarca",
+    "La Rioja"
+   ],
+   "detail": {
+    "canvas": [
+     29,
+     47
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     185,
+     194,
+     211,
+     238
+    ]
+   }
+  },
+  "patagonia": {
+   "id": 5,
+   "button": [
+    0.4763,
+    0.6116
+   ],
+   "clearance_px": 19.4,
+   "area_px": 2153,
+   "fill": "#822B3B",
+   "units": [
+    "Río Negro",
+    "Neuquén",
+    "Chubut"
+   ],
+   "detail": {
+    "canvas": [
+     55,
+     68
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     171,
+     265,
+     223,
+     330
+    ]
+   }
+  },
+  "cordoba": {
+   "id": 6,
+   "button": [
+    0.5411,
+    0.4641
+   ],
+   "clearance_px": 10.4,
+   "area_px": 636,
+   "fill": "#47822B",
+   "units": [
+    "Córdoba"
+   ],
+   "detail": {
+    "canvas": [
+     48,
+     78
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     207,
+     221,
+     229,
+     258
+    ]
+   }
+  }
+ }
+}

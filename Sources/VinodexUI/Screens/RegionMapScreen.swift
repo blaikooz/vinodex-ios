@@ -448,26 +448,39 @@ final class RegionAtlas {
     /// marker can be drawn at the size the renderer proved collision-free.
     let exportScale: CGFloat = 5
 
-    /// One byte per pixel: an index into `map.regions`, or one of the two
-    /// sentinels below. A flat table rather than a dictionary of points — the
-    /// outward search walks it, and 632KB is a fair price for a test.
-    private let stems: [UInt8]
-    /// Inside France, but no wine region here — unassigned département, or
-    /// the coastline stroke. These search outward.
-    private static let unassigned: UInt8 = 254
-    /// Outside the coastline entirely: sea, or the keyed-away surround.
+    /// The index raster: one byte per **logical canvas cell**, straight from
+    /// `<country>-index.png`.
     ///
-    /// **Separated from `unassigned` after probing the built map.** With one
-    /// "no region" value and a generous radius, a tap in the open Atlantic
-    /// resolved to the Loire 135 pixels away and the canvas's far corner to
-    /// Corsica — the search happily crossed the sea to find something. The
-    /// drop promises that every tap *inside France* resolves, and says
-    /// nothing about the water; answering a tap on empty background with a
-    /// region 135px distant is not generosity, it is a wrong answer
-    /// delivered confidently. So the sea now refuses, and the search runs
-    /// only from land.
-    private static let outside: UInt8 = 255
+    /// **This replaced matching pixel colours, and the change is not
+    /// cosmetic.** Colour matching works in a browser and is fragile on iOS
+    /// in three separate ways, none of which announces itself: the PNGs carry
+    /// no ICC profile, so anything that renders them through a P3 context
+    /// shifts every channel and breaks matching everywhere at once; Xcode may
+    /// repack a PNG; and any smoothing turns border pixels into blends that
+    /// match nothing. The index is an integer no colour pipeline can perturb.
+    ///
+    /// It is also 25x smaller. The colour table needed a byte per *exported*
+    /// pixel at 5x — 38.7 MB for seven countries resident, with a 25 MB
+    /// transient RGBA bitmap per decode. The index is a byte per *logical*
+    /// cell: 1.55 MB for all seven, 13 KB on disk.
+    ///
+    /// `0` is outside the country — sea, a neighbour, or the coastline ink,
+    /// which is drawn one cell outside the border on purpose. `255` is inside
+    /// but unassigned. Anything else is `Region.index`.
+    private let cells: [UInt8]
+    /// Outside the country. A tap here answers nothing at all, rather than
+    /// reaching across open water for whichever region is least far.
+    private static let outside: UInt8 = 0
+    /// Inside the country, but on an admin-1 unit no wine region claims.
+    /// These search outward.
+    private static let unassigned: UInt8 = 255
+    /// Index byte to position in `map.regions`.
+    private let slot: [UInt8: Int]
+    /// The index is at LOGICAL scale; the art is at `export_scale`. Taps
+    /// arrive in art space, so they are divided down before lookup — reading
+    /// the index at art coordinates was the obvious bug to write here.
     private let w: Int, h: Int
+    private let exportScaleI: Int
     private var details: [String: UIImage] = [:]
 
     private init?(_ key: String) {
@@ -475,11 +488,13 @@ final class RegionAtlas {
         guard let manifestURL = Self.url(key, "\(key)-manifest", "json"),
               let indexURL = Self.url(key, "\(key)-region-index", "json"),
               let baseURL = Self.url(key, "\(key)-regions", "png"),
+              let cellsURL = Self.url(key, "\(key)-index", "png"),
               let manifest = try? Data(contentsOf: manifestURL),
               let index = try? Data(contentsOf: indexURL),
               let map = try? RegionMap(manifest: manifest, index: index),
               let image = UIImage(contentsOfFile: baseURL.path),
-              let cg = image.cgImage
+              let raster = UIImage(contentsOfFile: cellsURL.path),
+              let cg = raster.cgImage
         else { return nil }
 
         self.map = map
@@ -488,34 +503,31 @@ final class RegionAtlas {
         self.backdrop = Self.url(key, "\(key)-backdrop", "png")
             .flatMap { UIImage(contentsOfFile: $0.path) }
 
-        // Everything below works in locals and assigns at the end: the
-        // pixel-reading closure would otherwise capture a half-initialised
-        // `self` to reach `w` and `h`.
+        // Locals until the end: the drawing closure would otherwise capture a
+        // half-initialised `self`.
         let width = cg.width, height = cg.height
-        var raw = [UInt8](repeating: 0, count: width * height * 4)
-        var table = [UInt8](repeating: Self.outside, count: width * height)
-        raw.withUnsafeMutableBytes { buf in
+        var bytes = [UInt8](repeating: Self.outside, count: width * height)
+        bytes.withUnsafeMutableBytes { buf in
             guard let ctx = CGContext(
                 data: buf.baseAddress, width: width, height: height,
-                bitsPerComponent: 8, bytesPerRow: width * 4,
-                space: CGColorSpaceCreateDeviceRGB(),
-                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                bitsPerComponent: 8, bytesPerRow: width,
+                space: CGColorSpaceCreateDeviceGray(),
+                bitmapInfo: CGImageAlphaInfo.none.rawValue
             ) else { return }
+            // Grayscale, no alpha, no interpolation: the bytes must survive
+            // the draw exactly, because they are data rather than a picture.
+            ctx.interpolationQuality = .none
             ctx.draw(cg, in: CGRect(x: 0, y: 0, width: width, height: height))
         }
-        var lookup: [RegionMap.RGB: UInt8] = [:]
-        for (i, region) in map.regions.enumerated() { lookup[region.fill] = UInt8(i) }
-        for p in 0..<(width * height) {
-            let o = p * 4
-            // Transparent stays `outside`: the magenta key was stripped at
-            // install, so alpha is exactly the coastline.
-            guard raw[o + 3] > 0 else { continue }
-            let rgb = RegionMap.RGB(r: Int(raw[o]), g: Int(raw[o + 1]), b: Int(raw[o + 2]))
-            table[p] = lookup[rgb] ?? Self.unassigned
-        }
+        self.cells = bytes
         self.w = width
         self.h = height
-        self.stems = table
+        self.exportScaleI = max(1, Int((image.size.width / CGFloat(width)).rounded()))
+        var slots: [UInt8: Int] = [:]
+        for (i, region) in map.regions.enumerated() {
+            slots[UInt8(clamping: region.index)] = i
+        }
+        self.slot = slots
     }
 
     private static func url(_ key: String, _ name: String, _ ext: String) -> URL? {
@@ -536,25 +548,28 @@ final class RegionAtlas {
         return art
     }
 
-    /// The region at a point in base-image space, or the nearest one.
-    ///
-    /// Returns nil only for a tap so far outside France that nothing is found
-    /// inside the search radius — the corners of the canvas, which are sea.
+    /// The region at a point in **base-art space**, or the nearest one
+    /// inside the same country. Nil when the tap was outside the country.
     func region(atX point: CGPoint) -> String? {
-        let px = Int(point.x.rounded()), py = Int(point.y.rounded())
-        guard let idx = nearestIndex(x: px, y: py) else { return nil }
-        return map.regions[Int(idx)].id
+        // Art space to index space. The index is one cell per *logical*
+        // canvas unit while the art is exported at 5x, so a tap has to be
+        // divided down before it is looked up.
+        let cx = Int(point.x.rounded()) / exportScaleI
+        let cy = Int(point.y.rounded()) / exportScaleI
+        guard let byte = nearestCell(x: cx, y: cy), let i = slot[byte] else { return nil }
+        return map.regions[i].id
     }
 
-    private func nearestIndex(x: Int, y: Int) -> UInt8? {
-        // A tap in the sea answers nothing at all — see `outside`. This is
-        // the guard that keeps the outward search a *catchment* rather than
-        // a magnet reaching across open water.
-        guard x >= 0, y >= 0, x < w, y < h, stems[y * w + x] != Self.outside else { return nil }
+    private func nearestCell(x: Int, y: Int) -> UInt8? {
+        // A tap outside the country answers nothing at all. This is the guard
+        // that keeps the outward search a *catchment* rather than a magnet
+        // reaching across open water — without it a tap in the Atlantic
+        // answered "Loire" from 135 cells away.
+        guard x >= 0, y >= 0, x < w, y < h, cells[y * w + x] != Self.outside else { return nil }
         if let hit = at(x, y) { return hit }
-        // Expanding square rings from a point known to be on land. The cap is
-        // a quarter of the canvas, which comfortably clears the widest
-        // unassigned stretch (the Charentes need 20px, Brittany more).
+        // Expanding rings from a cell known to be inside the country. The cap
+        // clears the widest unassigned stretch comfortably — the Charentes
+        // need 4 cells, Spain's interior more.
         let maxR = min(w, h) / 4
         var r = 1
         while r <= maxR {
@@ -562,19 +577,23 @@ final class RegionAtlas {
                 if let hit = at(x + dx, y - r) { return hit }
                 if let hit = at(x + dx, y + r) { return hit }
             }
-            for dy in (-r + 1)...(r - 1) where r > 1 {
-                if let hit = at(x - r, y + dy) { return hit }
-                if let hit = at(x + r, y + dy) { return hit }
+            if r > 1 {
+                for dy in (-r + 1)...(r - 1) {
+                    if let hit = at(x - r, y + dy) { return hit }
+                    if let hit = at(x + r, y + dy) { return hit }
+                }
             }
             r += 1
         }
         return nil
     }
 
+    /// The region byte at a cell, or nil for outside and unassigned — the two
+    /// values that are not regions.
     private func at(_ x: Int, _ y: Int) -> UInt8? {
         guard x >= 0, y >= 0, x < w, y < h else { return nil }
-        let v = stems[y * w + x]
-        return v >= Self.unassigned ? nil : v
+        let v = cells[y * w + x]
+        return (v == Self.outside || v == Self.unassigned) ? nil : v
     }
 }
 #endif

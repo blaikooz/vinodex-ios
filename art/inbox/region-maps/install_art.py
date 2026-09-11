@@ -56,6 +56,10 @@ def main():
     hexkey = manifest["base"].get("key", "#EE03E1").lstrip("#")
     key = tuple(int(hexkey[i:i + 2], 16) for i in (0, 2, 4))
     backdrop = os.path.basename(manifest["base"]["layers"]["backdrop"])
+    # The index raster is DATA, not art: one byte per logical cell naming the
+    # region there. Keying it would rewrite those bytes into transparency and
+    # destroy the hit test. Copied verbatim, like the backdrop.
+    index = f"{name}-index.png"
 
     # A stale detail map from a previous render would sit in the bundle
     # forever otherwise — the region set is config and can change.
@@ -64,6 +68,7 @@ def main():
             os.remove(os.path.join(dest, old))
 
     kept = 0
+    pngs = sorted(f for f in os.listdir(src) if f.endswith(".png"))
     for f in sorted(os.listdir(src)):
         if f.endswith("-map-preview.png"):
             continue
@@ -73,9 +78,10 @@ def main():
             continue
         if not f.endswith(".png"):
             continue
-        if f == backdrop:
+        if f in (backdrop, index):
             shutil.copy(os.path.join(src, f), os.path.join(dest, f))
-            print(f"  {f:28}   verbatim (opaque backdrop)")
+            why = "index raster — data" if f == index else "opaque backdrop"
+            print(f"  {f:28}   verbatim ({why})")
             continue
         keyed, total = key_out(os.path.join(src, f), os.path.join(dest, f), key)
         print(f"  {f:28} {keyed * 100 / total:5.1f}% keyed")
