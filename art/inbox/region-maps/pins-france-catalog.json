@@ -1,0 +1,142 @@
+[
+ {
+  "id": "R001",
+  "name": "Bordeaux",
+  "lon": -0.578,
+  "lat": 44.838,
+  "expect": "bordeaux"
+ },
+ {
+  "id": "R002",
+  "name": "Burgundy",
+  "lon": 4.84,
+  "lat": 47.022,
+  "expect": "burgundy"
+ },
+ {
+  "id": "R003",
+  "name": "Champagne",
+  "lon": 3.96,
+  "lat": 49.043,
+  "expect": "champagne"
+ },
+ {
+  "id": "R004",
+  "name": "Rhône Valley",
+  "lon": 4.808,
+  "lat": 44.138,
+  "expect": "rhone"
+ },
+ {
+  "id": "R005",
+  "name": "Loire Valley",
+  "lon": 0.69,
+  "lat": 47.394,
+  "expect": "loire"
+ },
+ {
+  "id": "R006",
+  "name": "Alsace",
+  "lon": 7.358,
+  "lat": 48.079,
+  "expect": "alsace"
+ },
+ {
+  "id": "R007",
+  "name": "Provence",
+  "lon": 5.448,
+  "lat": 43.529,
+  "expect": "provence"
+ },
+ {
+  "id": "R008",
+  "name": "Beaujolais",
+  "lon": 4.719,
+  "lat": 45.989,
+  "expect": "beaujolais"
+ },
+ {
+  "id": "R009",
+  "name": "Languedoc",
+  "lon": 3.216,
+  "lat": 43.344,
+  "expect": "languedoc"
+ },
+ {
+  "id": "R010",
+  "name": "Chablis",
+  "lon": 3.799,
+  "lat": 47.814,
+  "expect": "burgundy"
+ },
+ {
+  "id": "R011",
+  "name": "Sauternes",
+  "lon": -0.319,
+  "lat": 44.539,
+  "expect": "bordeaux"
+ },
+ {
+  "id": "R012",
+  "name": "Jura",
+  "lon": 5.775,
+  "lat": 46.904,
+  "expect": "jura"
+ },
+ {
+  "id": "R079",
+  "name": "Gaillac",
+  "lon": 1.898,
+  "lat": 43.901,
+  "expect": "southwest"
+ },
+ {
+  "id": "R099",
+  "name": "Châteauneuf-du-Pape",
+  "lon": 4.832,
+  "lat": 44.056,
+  "expect": "rhone"
+ },
+ {
+  "id": "R105",
+  "name": "Corsica",
+  "lon": 8.738,
+  "lat": 41.927,
+  "expect": "corsica"
+ },
+ {
+  "id": "R106",
+  "name": "Savoie",
+  "lon": 5.917,
+  "lat": 45.564,
+  "expect": "savoie"
+ },
+ {
+  "id": "R107",
+  "name": "Roussillon",
+  "lon": 2.895,
+  "lat": 42.698,
+  "expect": "roussillon"
+ },
+ {
+  "id": "R108",
+  "name": "Cahors",
+  "lon": 1.441,
+  "lat": 44.448,
+  "expect": "southwest"
+ },
+ {
+  "id": "R122",
+  "name": "South West France",
+  "lon": 0.482,
+  "lat": 44.851,
+  "expect": "southwest"
+ },
+ {
+  "id": "R155",
+  "name": "Jurançon",
+  "lon": -0.383,
+  "lat": 43.29,
+  "expect": "southwest"
+ }
+]

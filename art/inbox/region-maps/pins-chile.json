@@ -1,0 +1,74 @@
+[
+ {
+  "name": "Elqui",
+  "lon": -70.95,
+  "lat": -29.95,
+  "expect": "coquimbo"
+ },
+ {
+  "name": "Limari",
+  "lon": -71.2,
+  "lat": -30.6,
+  "expect": "coquimbo"
+ },
+ {
+  "name": "Casablanca",
+  "lon": -71.41,
+  "lat": -33.32,
+  "expect": "aconcagua"
+ },
+ {
+  "name": "San Felipe",
+  "lon": -70.73,
+  "lat": -32.75,
+  "expect": "aconcagua"
+ },
+ {
+  "name": "Maipo/Buin",
+  "lon": -70.74,
+  "lat": -33.73,
+  "expect": "maipo"
+ },
+ {
+  "name": "Cachapoal/Rengo",
+  "lon": -70.86,
+  "lat": -34.41,
+  "expect": "rapel"
+ },
+ {
+  "name": "Colchagua",
+  "lon": -71.37,
+  "lat": -34.64,
+  "expect": "rapel"
+ },
+ {
+  "name": "Curico",
+  "lon": -71.24,
+  "lat": -34.98,
+  "expect": "maule"
+ },
+ {
+  "name": "Maule/Talca",
+  "lon": -71.67,
+  "lat": -35.43,
+  "expect": "maule"
+ },
+ {
+  "name": "Itata/Chillan",
+  "lon": -72.1,
+  "lat": -36.61,
+  "expect": "itata"
+ },
+ {
+  "name": "Bio Bio",
+  "lon": -72.35,
+  "lat": -37.47,
+  "expect": "biobio"
+ },
+ {
+  "name": "Malleco/Traiguen",
+  "lon": -72.68,
+  "lat": -38.25,
+  "expect": "malleco"
+ }
+]

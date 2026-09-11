@@ -201,18 +201,36 @@ struct LWINIndexTests {
     func performanceSanity() {
         let clock = ContinuousClock()
 
+        // **A wall-clock budget cannot mean the same thing on a machine we own
+        // and on a runner we share.** The cold load took 38.7s against a 20s
+        // bound on GitHub's macOS simulator job and under 2s locally — and in
+        // that same run three trivial tests that take ten seconds here each
+        // took a hundred and seventy. The index had not changed; the runner was
+        // contended.
+        //
+        // The bound is a *shape* guard, not a benchmark: what it exists to
+        // catch is an accidental O(n^2) in the parser or a fuzzy pass that
+        // walks the whole vocabulary, and those are measured in minutes, not in
+        // the difference between twenty seconds and forty. So it keeps its real
+        // tightness where timing is meaningful, and on CI it loosens to
+        // something only a genuine change of shape can trip. Deleting it there
+        // was the other option; a loose bound still catches what this guards.
+        let shared = ProcessInfo.processInfo.environment["CI"] != nil
+        let loadBudget: Duration = shared ? .seconds(180) : .seconds(20)
+        let matchBudget: Duration = shared ? .seconds(45) : .seconds(5)
+
         // A fresh instance, so this measures a real cold load even when the
         // shared index is already warm from the other tests.
         let fresh = LWINIndex()
         let loadTime = clock.measure { _ = fresh.storage() }
         #expect(fresh.recordCount > 150_000)
-        #expect(loadTime < .seconds(20), "cold load took \(loadTime)")
+        #expect(loadTime < loadBudget, "cold load took \(loadTime)")
 
         let matchTime = clock.measure {
             for _ in 0..<10 {
                 _ = fresh.matches(for: label("CHATEAU LAFITE ROTHSCHILD", "PAUILLAC", "2015"))
             }
         }
-        #expect(matchTime < .seconds(5), "10 matches took \(matchTime)")
+        #expect(matchTime < matchBudget, "10 matches took \(matchTime)")
     }
 }

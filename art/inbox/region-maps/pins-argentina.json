@@ -1,0 +1,68 @@
+[
+ {
+  "name": "Lujan de Cuyo",
+  "lon": -68.88,
+  "lat": -33.03,
+  "expect": "mendoza"
+ },
+ {
+  "name": "Valle de Uco",
+  "lon": -69.2,
+  "lat": -33.7,
+  "expect": "mendoza"
+ },
+ {
+  "name": "San Rafael",
+  "lon": -68.33,
+  "lat": -34.62,
+  "expect": "mendoza"
+ },
+ {
+  "name": "Tulum/San Juan",
+  "lon": -68.54,
+  "lat": -31.54,
+  "expect": "sanjuan"
+ },
+ {
+  "name": "Cafayate",
+  "lon": -65.98,
+  "lat": -26.07,
+  "expect": "salta"
+ },
+ {
+  "name": "Maimara/Jujuy",
+  "lon": -65.4,
+  "lat": -23.62,
+  "expect": "salta"
+ },
+ {
+  "name": "Famatina",
+  "lon": -67.53,
+  "lat": -28.92,
+  "expect": "catamarca"
+ },
+ {
+  "name": "Tinogasta",
+  "lon": -67.56,
+  "lat": -28.06,
+  "expect": "catamarca"
+ },
+ {
+  "name": "San Patricio del Chanar",
+  "lon": -68.3,
+  "lat": -38.47,
+  "expect": "patagonia"
+ },
+ {
+  "name": "General Roca",
+  "lon": -67.58,
+  "lat": -39.03,
+  "expect": "patagonia"
+ },
+ {
+  "name": "Traslasierra",
+  "lon": -65.02,
+  "lat": -31.98,
+  "expect": "cordoba"
+ }
+]

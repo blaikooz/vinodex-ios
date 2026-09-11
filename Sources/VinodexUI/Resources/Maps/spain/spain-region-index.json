@@ -1,0 +1,70 @@
+{
+ "byId": {
+  "R030": "rioja",
+  "R031": "riberadelduero",
+  "R032": "catalonia",
+  "R033": "galicia",
+  "R034": "ruedatoro",
+  "R035": "jerez",
+  "R088": "galicia",
+  "R089": "bierzo",
+  "R101": "basque",
+  "R102": "catalonia",
+  "R103": "levante",
+  "R104": "catalonia",
+  "R113": "ruedatoro",
+  "R114": "navarra",
+  "R115": "lamancha",
+  "R116": "galicia",
+  "R119": "galicia",
+  "R120": "baleares"
+ },
+ "byStem": {
+  "rioja": [
+   "R030"
+  ],
+  "navarra": [
+   "R114"
+  ],
+  "basque": [
+   "R101"
+  ],
+  "riberadelduero": [
+   "R031"
+  ],
+  "ruedatoro": [
+   "R034",
+   "R113"
+  ],
+  "bierzo": [
+   "R089"
+  ],
+  "galicia": [
+   "R033",
+   "R088",
+   "R116",
+   "R119"
+  ],
+  "catalonia": [
+   "R032",
+   "R102",
+   "R104"
+  ],
+  "aragon": [],
+  "lamancha": [
+   "R115"
+  ],
+  "madrid": [],
+  "levante": [
+   "R103"
+  ],
+  "jerez": [
+   "R035"
+  ],
+  "andalucia": [],
+  "extremadura": [],
+  "baleares": [
+   "R120"
+  ]
+ }
+}

@@ -13,6 +13,10 @@ public struct CountryScreen: View {
     let country: String
     let onSelectRegion: (WineEntry) -> Void
     let onSelectState: (String) -> Void
+    /// Opens the painted region map, on the one country that has one
+    /// (0.9.55, a test). Nil everywhere else, and nil is what makes the
+    /// outline behave exactly as it always has — see the note at its use.
+    let onOpenRegionMap: (() -> Void)?
 
     @State private var access = AccessStore.shared
     @State private var bookmarks = BookmarkStore.shared
@@ -105,12 +109,14 @@ public struct CountryScreen: View {
         db: WineDatabase = .shared,
         country: String,
         onSelectRegion: @escaping (WineEntry) -> Void,
-        onSelectState: @escaping (String) -> Void = { _ in }
+        onSelectState: @escaping (String) -> Void = { _ in },
+        onOpenRegionMap: (() -> Void)? = nil
     ) {
         self.db = db
         self.country = country
         self.onSelectRegion = onSelectRegion
         self.onSelectState = onSelectState
+        self.onOpenRegionMap = onOpenRegionMap
 
         // Everything below reads the *parameter*, not `self.db`: `self` is not
         // fully initialised yet, so the property cannot be read here even
@@ -401,8 +407,26 @@ public struct CountryScreen: View {
                 }
                 // One red dot per region, geographically placed where the
                 // data carries a `mapPosition` (0.6.x) — see `CountryOutlineMap`.
-                CountryOutlineMap(country: country, regions: all)
-                    .padding(.bottom, 6)
+                //
+                // **A mapped country shows the painted map instead (0.9.55,
+                // a TEST).** Where a country has one — France and Italy so
+                // far, the roster is `RegionMap.mapped` — that map *is* the
+                // regions map, unpinned, and tapping it opens the full page.
+                //
+                // What is still untouched, which is what the drop's §6
+                // actually protects: `outline-france.png`, every region's
+                // `mapPosition`, `OutlineDotPlacer`, and every other
+                // country's page. `CountryOutlineMap` is unchanged and still
+                // draws France anywhere else it is asked to — and it draws it
+                // here too if the map fails to load, which is why the
+                // fallback below is the plain outline rather than a gap.
+                if let openMap = onOpenRegionMap, RegionAtlas.of(country) != nil {
+                    RegionMapThumb(country: country, onOpen: openMap)
+                        .padding(.bottom, 6)
+                } else {
+                    CountryOutlineMap(country: country, regions: all)
+                        .padding(.bottom, 6)
+                }
                 ForEach(shown) { entry in
                     EntryTileView(
                         entry: entry,

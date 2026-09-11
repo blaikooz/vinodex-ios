@@ -1,0 +1,383 @@
+{
+ "generator": "region_map.py",
+ "country": "chile",
+ "projection": {
+  "kind": "equirectangular",
+  "x_factor": 0.69361681,
+  "origin": [
+   -62.785522,
+   17.579864
+  ],
+  "scale": 14.796486,
+  "note": "canvas_x = (lon*x_factor - origin[0])*scale + 2 ; canvas_y = (-lat - origin[1])*scale + 2"
+ },
+ "base": {
+  "canvas": [
+   387,
+   502
+  ],
+  "export_scale": 5,
+  "unassigned": "#CEC6BA",
+  "outline": "#1A1420",
+  "key": "#EE03E1",
+  "layers": {
+   "interactive": "chile-regions.png",
+   "backdrop": "chile-backdrop.png",
+   "index": "chile-index.png"
+  },
+  "index_legend": {
+   "0": "outside the country (sea, neighbour, coastline ink)",
+   "255": "inside the country, unassigned ground",
+   "1..N": "a region — see regions[].id"
+  },
+  "index_note": "one byte per LOGICAL cell, canvas-sized, NOT export_scale. Hit-test against this, not against pixel colour.",
+  "subject_rect": [
+   0.4419,
+   0.3406,
+   0.1163,
+   0.3187
+  ],
+  "subject_rect_note": "x,y,w,h as fractions of the canvas. Scale the two layers together so this rect fills the intended width; the backdrop bleeds off the screen edges."
+ },
+ "backdrop": {
+  "margin_px": 170,
+  "sea": "#38506B",
+  "foreign": "#8C8778",
+  "foreign_outline": "#1A1420",
+  "shallow": "#4E6985",
+  "shelf_px": 3,
+  "countries": [
+   "Akrotiri Sovereign Base Area",
+   "Aland",
+   "Albania",
+   "Algeria",
+   "Andorra",
+   "Armenia",
+   "Austria",
+   "Azerbaijan",
+   "Bahrain",
+   "Belarus",
+   "Belgium",
+   "Benin",
+   "Bir Tawil",
+   "Bosnia and Herzegovina",
+   "Bulgaria",
+   "Burkina Faso",
+   "Cabo Verde",
+   "Cameroon",
+   "Central African Republic",
+   "Chad",
+   "Croatia",
+   "Cyprus",
+   "Cyprus No Mans Area",
+   "Czechia",
+   "Denmark",
+   "Dhekelia Sovereign Base Area",
+   "Djibouti",
+   "Egypt",
+   "Eritrea",
+   "Estonia",
+   "Ethiopia",
+   "Faroe Islands",
+   "Finland",
+   "France",
+   "Gambia",
+   "Georgia",
+   "Germany",
+   "Ghana",
+   "Gibraltar",
+   "Greece",
+   "Greenland",
+   "Guernsey",
+   "Guinea",
+   "Guinea-Bissau",
+   "Hungary",
+   "Iceland",
+   "Iran",
+   "Iraq",
+   "Ireland",
+   "Isle of Man",
+   "Israel",
+   "Italy",
+   "Ivory Coast",
+   "Jersey",
+   "Jordan",
+   "Kazakhstan",
+   "Kosovo",
+   "Kuwait",
+   "Latvia",
+   "Lebanon",
+   "Libya",
+   "Liechtenstein",
+   "Lithuania",
+   "Luxembourg",
+   "Mali",
+   "Malta",
+   "Mauritania",
+   "Moldova",
+   "Monaco",
+   "Montenegro",
+   "Morocco",
+   "Netherlands",
+   "Niger",
+   "Nigeria",
+   "North Macedonia",
+   "Northern Cyprus",
+   "Norway",
+   "Oman",
+   "Palestine",
+   "Poland",
+   "Portugal",
+   "Qatar",
+   "Republic of Serbia",
+   "Romania",
+   "Russia",
+   "San Marino",
+   "Saudi Arabia",
+   "Senegal",
+   "Slovakia",
+   "Slovenia",
+   "Somalia",
+   "Somaliland",
+   "South Sudan",
+   "Spain",
+   "Sudan",
+   "Sweden",
+   "Switzerland",
+   "Syria",
+   "Togo",
+   "Tunisia",
+   "Turkey",
+   "Turkmenistan",
+   "Ukraine",
+   "United Arab Emirates",
+   "United Kingdom",
+   "Vatican",
+   "Western Sahara",
+   "Yemen"
+  ]
+ },
+ "marker_clearance": {
+  "12": [],
+  "10": [],
+  "8": []
+ },
+ "splits": [
+  {
+   "keeps": "maipo",
+   "gains": "aconcagua",
+   "value": -71.25,
+   "axis": "lon"
+  }
+ ],
+ "regions": {
+  "coquimbo": {
+   "id": 1,
+   "button": [
+    0.5297,
+    0.3725
+   ],
+   "clearance_px": 8.0,
+   "area_px": 607,
+   "fill": "#826A2B",
+   "units": [
+    "Coquimbo"
+   ],
+   "detail": {
+    "canvas": [
+     22,
+     49
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     195,
+     172,
+     214,
+     218
+    ]
+   }
+  },
+  "aconcagua": {
+   "id": 2,
+   "button": [
+    0.5245,
+    0.4442
+   ],
+   "clearance_px": 7.0,
+   "area_px": 299,
+   "fill": "#2B5E82",
+   "units": [
+    "Valparaíso"
+   ],
+   "detail": {
+    "canvas": [
+     42,
+     66
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     193,
+     215,
+     212,
+     246
+    ]
+   }
+  },
+  "maipo": {
+   "id": 3,
+   "button": [
+    0.5323,
+    0.4721
+   ],
+   "clearance_px": 6.3,
+   "area_px": 222,
+   "fill": "#B54A5D",
+   "units": [
+    "Región Metropolitana de Santiago"
+   ],
+   "detail": {
+    "canvas": [
+     47,
+     62
+    ],
+    "upscale": 3,
+    "source_bbox": [
+     200,
+     230,
+     214,
+     249
+    ]
+   }
+  },
+  "rapel": {
+   "id": 4,
+   "button": [
+    0.5065,
+    0.502
+   ],
+   "clearance_px": 5.8,
+   "area_px": 262,
+   "fill": "#47822B",
+   "units": [
+    "Libertador General Bernardo O'Higgins"
+   ],
+   "detail": {
+    "canvas": [
+     65,
+     50
+    ],
+    "upscale": 3,
+    "source_bbox": [
+     191,
+     244,
+     211,
+     259
+    ]
+   }
+  },
+  "maule": {
+   "id": 5,
+   "button": [
+    0.5116,
+    0.5339
+   ],
+   "clearance_px": 10.0,
+   "area_px": 465,
+   "fill": "#822B3B",
+   "units": [
+    "Maule"
+   ],
+   "detail": {
+    "canvas": [
+     54,
+     54
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     183,
+     256,
+     208,
+     281
+    ]
+   }
+  },
+  "itata": {
+   "id": 6,
+   "button": [
+    0.4935,
+    0.5637
+   ],
+   "clearance_px": 5.8,
+   "area_px": 213,
+   "fill": "#2B8268",
+   "units": [
+    "Ñuble"
+   ],
+   "detail": {
+    "canvas": [
+     59,
+     53
+    ],
+    "upscale": 3,
+    "source_bbox": [
+     183,
+     275,
+     201,
+     291
+    ]
+   }
+  },
+  "biobio": {
+   "id": 7,
+   "button": [
+    0.5013,
+    0.5936
+   ],
+   "clearance_px": 6.3,
+   "area_px": 412,
+   "fill": "#662B82",
+   "units": [
+    "Bío-Bío"
+   ],
+   "detail": {
+    "canvas": [
+     60,
+     62
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     174,
+     281,
+     202,
+     310
+    ]
+   }
+  },
+  "malleco": {
+   "id": 8,
+   "button": [
+    0.4858,
+    0.6275
+   ],
+   "clearance_px": 11.2,
+   "area_px": 573,
+   "fill": "#82482B",
+   "units": [
+    "La Araucanía"
+   ],
+   "detail": {
+    "canvas": [
+     60,
+     66
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     176,
+     299,
+     204,
+     330
+    ]
+   }
+  }
+ }
+}

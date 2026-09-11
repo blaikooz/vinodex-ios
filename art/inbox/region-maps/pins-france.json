@@ -1,0 +1,230 @@
+[
+ {
+  "name": "Medoc",
+  "lon": -0.85,
+  "lat": 45.2,
+  "expect": "bordeaux"
+ },
+ {
+  "name": "Saint-Emilion",
+  "lon": -0.16,
+  "lat": 44.89,
+  "expect": "bordeaux"
+ },
+ {
+  "name": "Sauternes",
+  "lon": -0.35,
+  "lat": 44.53,
+  "expect": "bordeaux"
+ },
+ {
+  "name": "Pessac-Leognan",
+  "lon": -0.62,
+  "lat": 44.78,
+  "expect": "bordeaux"
+ },
+ {
+  "name": "Pomerol",
+  "lon": -0.19,
+  "lat": 44.93,
+  "expect": "bordeaux"
+ },
+ {
+  "name": "Chablis",
+  "lon": 3.8,
+  "lat": 47.81,
+  "expect": "burgundy"
+ },
+ {
+  "name": "Cote de Nuits",
+  "lon": 4.95,
+  "lat": 47.15,
+  "expect": "burgundy"
+ },
+ {
+  "name": "Cote de Beaune",
+  "lon": 4.83,
+  "lat": 47.02,
+  "expect": "burgundy"
+ },
+ {
+  "name": "Maconnais",
+  "lon": 4.75,
+  "lat": 46.35,
+  "expect": "burgundy"
+ },
+ {
+  "name": "Beaujolais",
+  "lon": 4.63,
+  "lat": 46.03,
+  "expect": "beaujolais"
+ },
+ {
+  "name": "Champagne/Reims",
+  "lon": 4.03,
+  "lat": 49.25,
+  "expect": "champagne"
+ },
+ {
+  "name": "Cote des Bar",
+  "lon": 4.7,
+  "lat": 48.13,
+  "expect": "champagne"
+ },
+ {
+  "name": "Sancerre",
+  "lon": 2.84,
+  "lat": 47.33,
+  "expect": "loire"
+ },
+ {
+  "name": "Vouvray",
+  "lon": 0.8,
+  "lat": 47.41,
+  "expect": "loire"
+ },
+ {
+  "name": "Muscadet",
+  "lon": -1.35,
+  "lat": 47.2,
+  "expect": "loire"
+ },
+ {
+  "name": "Chinon",
+  "lon": 0.24,
+  "lat": 47.17,
+  "expect": "loire"
+ },
+ {
+  "name": "Saumur",
+  "lon": -0.08,
+  "lat": 47.26,
+  "expect": "loire"
+ },
+ {
+  "name": "Chateauneuf-du-Pape",
+  "lon": 4.83,
+  "lat": 44.06,
+  "expect": "rhone"
+ },
+ {
+  "name": "Cote-Rotie",
+  "lon": 4.8,
+  "lat": 45.51,
+  "expect": "rhone"
+ },
+ {
+  "name": "Hermitage",
+  "lon": 4.83,
+  "lat": 45.07,
+  "expect": "rhone"
+ },
+ {
+  "name": "Tavel",
+  "lon": 4.68,
+  "lat": 44.01,
+  "expect": "rhone"
+ },
+ {
+  "name": "Gigondas",
+  "lon": 5.0,
+  "lat": 44.19,
+  "expect": "rhone"
+ },
+ {
+  "name": "Bandol",
+  "lon": 5.75,
+  "lat": 43.14,
+  "expect": "provence"
+ },
+ {
+  "name": "Cassis",
+  "lon": 5.54,
+  "lat": 43.21,
+  "expect": "provence"
+ },
+ {
+  "name": "Aix-en-Provence",
+  "lon": 5.45,
+  "lat": 43.53,
+  "expect": "provence"
+ },
+ {
+  "name": "Alsace/Colmar",
+  "lon": 7.36,
+  "lat": 48.08,
+  "expect": "alsace"
+ },
+ {
+  "name": "Cahors",
+  "lon": 1.44,
+  "lat": 44.45,
+  "expect": "southwest"
+ },
+ {
+  "name": "Madiran",
+  "lon": -0.06,
+  "lat": 43.55,
+  "expect": "southwest"
+ },
+ {
+  "name": "Jurancon",
+  "lon": -0.42,
+  "lat": 43.27,
+  "expect": "southwest"
+ },
+ {
+  "name": "Banyuls",
+  "lon": 3.13,
+  "lat": 42.48,
+  "expect": "roussillon"
+ },
+ {
+  "name": "Minervois",
+  "lon": 2.75,
+  "lat": 43.3,
+  "expect": "languedoc"
+ },
+ {
+  "name": "Corbieres",
+  "lon": 2.75,
+  "lat": 43.05,
+  "expect": "languedoc"
+ },
+ {
+  "name": "Pic Saint-Loup",
+  "lon": 3.82,
+  "lat": 43.78,
+  "expect": "languedoc"
+ },
+ {
+  "name": "Arbois/Jura",
+  "lon": 5.78,
+  "lat": 46.9,
+  "expect": "jura"
+ },
+ {
+  "name": "Chignin/Savoie",
+  "lon": 6.0,
+  "lat": 45.53,
+  "expect": "savoie"
+ },
+ {
+  "name": "Patrimonio/Corsica",
+  "lon": 9.35,
+  "lat": 42.7,
+  "expect": "corsica"
+ },
+ {
+  "name": "Ajaccio",
+  "lon": 8.74,
+  "lat": 41.93,
+  "expect": "corsica"
+ },
+ {
+  "name": "Bergerac",
+  "lon": 0.48,
+  "lat": 44.85,
+  "expect": "southwest"
+ }
+]

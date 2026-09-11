@@ -1,0 +1,583 @@
+{
+ "generator": "region_map.py",
+ "country": "france",
+ "projection": {
+  "kind": "equirectangular",
+  "x_factor": 0.68760106,
+  "origin": [
+   -14.399096,
+   -61.957317
+  ],
+  "scale": 15.639696,
+  "note": "canvas_x = (lon*x_factor - origin[0])*scale + 2 ; canvas_y = (-lat - origin[1])*scale + 2"
+ },
+ "base": {
+  "canvas": [
+   502,
+   496
+  ],
+  "export_scale": 5,
+  "unassigned": "#CEC6BA",
+  "outline": "#1A1420",
+  "key": "#EE03E1",
+  "layers": {
+   "interactive": "france-regions.png",
+   "backdrop": "france-backdrop.png",
+   "index": "france-index.png"
+  },
+  "index_legend": {
+   "0": "outside the country (sea, neighbour, coastline ink)",
+   "255": "inside the country, unassigned ground",
+   "1..N": "a region — see regions[].id"
+  },
+  "index_note": "one byte per LOGICAL cell, canvas-sized, NOT export_scale. Hit-test against this, not against pixel colour.",
+  "subject_rect": [
+   0.3406,
+   0.3448,
+   0.3187,
+   0.3105
+  ],
+  "subject_rect_note": "x,y,w,h as fractions of the canvas. Scale the two layers together so this rect fills the intended width; the backdrop bleeds off the screen edges."
+ },
+ "backdrop": {
+  "margin_px": 170,
+  "sea": "#38506B",
+  "foreign": "#8C8778",
+  "foreign_outline": "#1A1420",
+  "shallow": "#4E6985",
+  "shelf_px": 3,
+  "countries": [
+   "Akrotiri Sovereign Base Area",
+   "Aland",
+   "Albania",
+   "Algeria",
+   "Andorra",
+   "Armenia",
+   "Austria",
+   "Azerbaijan",
+   "Bahrain",
+   "Belarus",
+   "Belgium",
+   "Benin",
+   "Bir Tawil",
+   "Bosnia and Herzegovina",
+   "Bulgaria",
+   "Burkina Faso",
+   "Cabo Verde",
+   "Cameroon",
+   "Central African Republic",
+   "Chad",
+   "Croatia",
+   "Cyprus",
+   "Cyprus No Mans Area",
+   "Czechia",
+   "Denmark",
+   "Dhekelia Sovereign Base Area",
+   "Djibouti",
+   "Egypt",
+   "Eritrea",
+   "Estonia",
+   "Ethiopia",
+   "Faroe Islands",
+   "Finland",
+   "Gambia",
+   "Georgia",
+   "Germany",
+   "Ghana",
+   "Gibraltar",
+   "Greece",
+   "Greenland",
+   "Guernsey",
+   "Guinea",
+   "Guinea-Bissau",
+   "Hungary",
+   "Iceland",
+   "Iran",
+   "Iraq",
+   "Ireland",
+   "Isle of Man",
+   "Israel",
+   "Italy",
+   "Ivory Coast",
+   "Jersey",
+   "Jordan",
+   "Kazakhstan",
+   "Kosovo",
+   "Kuwait",
+   "Latvia",
+   "Lebanon",
+   "Libya",
+   "Liechtenstein",
+   "Lithuania",
+   "Luxembourg",
+   "Mali",
+   "Malta",
+   "Mauritania",
+   "Moldova",
+   "Monaco",
+   "Montenegro",
+   "Morocco",
+   "Netherlands",
+   "Niger",
+   "Nigeria",
+   "North Macedonia",
+   "Northern Cyprus",
+   "Norway",
+   "Oman",
+   "Palestine",
+   "Poland",
+   "Portugal",
+   "Qatar",
+   "Republic of Serbia",
+   "Romania",
+   "Russia",
+   "San Marino",
+   "Saudi Arabia",
+   "Senegal",
+   "Slovakia",
+   "Slovenia",
+   "Somalia",
+   "Somaliland",
+   "South Sudan",
+   "Spain",
+   "Sudan",
+   "Sweden",
+   "Switzerland",
+   "Syria",
+   "Togo",
+   "Tunisia",
+   "Turkey",
+   "Turkmenistan",
+   "Ukraine",
+   "United Arab Emirates",
+   "United Kingdom",
+   "Vatican",
+   "Western Sahara",
+   "Yemen"
+  ]
+ },
+ "marker_clearance": {
+  "12": [
+   [
+    "languedoc",
+    "roussillon",
+    8.2
+   ]
+  ],
+  "10": [
+   [
+    "languedoc",
+    "roussillon",
+    8.2
+   ]
+  ],
+  "8": []
+ },
+ "splits": [
+  {
+   "keeps": "beaujolais",
+   "gains": "rhone",
+   "value": 45.62,
+   "axis": "lat"
+  }
+ ],
+ "regions": {
+  "bordeaux": {
+   "id": 1,
+   "button": [
+    0.4382,
+    0.5423
+   ],
+   "clearance_px": 6.7,
+   "area_px": 221,
+   "fill": "#8E2F45",
+   "units": [
+    "Gironde"
+   ],
+   "detail": {
+    "canvas": [
+     53,
+     68
+    ],
+    "upscale": 3,
+    "source_bbox": [
+     213,
+     258,
+     229,
+     279
+    ]
+   }
+  },
+  "southwest": {
+   "id": 2,
+   "button": [
+    0.4781,
+    0.5645
+   ],
+   "clearance_px": 13.9,
+   "area_px": 1552,
+   "fill": "#C9A24C",
+   "units": [
+    "Dordogne",
+    "Lot",
+    "Lot-et-Garonne",
+    "Tarn",
+    "Tarn-et-Garonne",
+    "Gers",
+    "Landes",
+    "Pyrénées-Atlantiques",
+    "Hautes-Pyrénées",
+    "Aveyron",
+    "Ariège",
+    "Haute-Garonne"
+   ],
+   "detail": {
+    "canvas": [
+     59,
+     51
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     207,
+     256,
+     263,
+     304
+    ]
+   }
+  },
+  "loire": {
+   "id": 3,
+   "button": [
+    0.49,
+    0.4677
+   ],
+   "clearance_px": 13.0,
+   "area_px": 1201,
+   "fill": "#6E9464",
+   "units": [
+    "Loire-Atlantique",
+    "Maine-et-Loire",
+    "Indre-et-Loire",
+    "Loir-et-Cher",
+    "Loiret",
+    "Cher",
+    "Nièvre",
+    "Indre"
+   ],
+   "detail": {
+    "canvas": [
+     75,
+     35
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     199,
+     214,
+     271,
+     246
+    ]
+   }
+  },
+  "burgundy": {
+   "id": 4,
+   "button": [
+    0.5538,
+    0.4657
+   ],
+   "clearance_px": 7.0,
+   "area_px": 521,
+   "fill": "#A6631F",
+   "units": [
+    "Côte-d'Or",
+    "Saône-et-Loire",
+    "Yonne"
+   ],
+   "detail": {
+    "canvas": [
+     60,
+     72
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     258,
+     214,
+     286,
+     248
+    ]
+   }
+  },
+  "beaujolais": {
+   "id": 5,
+   "button": [
+    0.5478,
+    0.506
+   ],
+   "clearance_px": 3.6,
+   "area_px": 79,
+   "fill": "#D0577A",
+   "units": [
+    "Rhône"
+   ],
+   "detail": {
+    "canvas": [
+     57,
+     57
+    ],
+    "upscale": 5,
+    "source_bbox": [
+     272,
+     247,
+     282,
+     257
+    ]
+   }
+  },
+  "champagne": {
+   "id": 6,
+   "button": [
+    0.5418,
+    0.4194
+   ],
+   "clearance_px": 9.0,
+   "area_px": 631,
+   "fill": "#E4D08A",
+   "units": [
+    "Marne",
+    "Aube",
+    "Aisne",
+    "Haute-Marne"
+   ],
+   "detail": {
+    "canvas": [
+     66,
+     80
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     259,
+     188,
+     290,
+     226
+    ]
+   }
+  },
+  "alsace": {
+   "id": 7,
+   "button": [
+    0.6135,
+    0.4194
+   ],
+   "clearance_px": 4.0,
+   "area_px": 212,
+   "fill": "#3E8C8A",
+   "units": [
+    "Bas-Rhin",
+    "Haute-Rhin"
+   ],
+   "detail": {
+    "canvas": [
+     32,
+     56
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     301,
+     203,
+     315,
+     229
+    ]
+   }
+  },
+  "jura": {
+   "id": 8,
+   "button": [
+    0.5757,
+    0.4839
+   ],
+   "clearance_px": 4.1,
+   "area_px": 119,
+   "fill": "#8A7BB0",
+   "units": [
+    "Jura"
+   ],
+   "detail": {
+    "canvas": [
+     42,
+     70
+    ],
+    "upscale": 4,
+    "source_bbox": [
+     284,
+     231,
+     293,
+     247
+    ]
+   }
+  },
+  "savoie": {
+   "id": 9,
+   "button": [
+    0.5876,
+    0.5121
+   ],
+   "clearance_px": 6.1,
+   "area_px": 259,
+   "fill": "#7FA8C9",
+   "units": [
+    "Savoie",
+    "Haute-Savoie"
+   ],
+   "detail": {
+    "canvas": [
+     56,
+     71
+    ],
+    "upscale": 3,
+    "source_bbox": [
+     287,
+     244,
+     304,
+     266
+    ]
+   }
+  },
+  "rhone": {
+   "id": 10,
+   "button": [
+    0.5538,
+    0.5524
+   ],
+   "clearance_px": 9.1,
+   "area_px": 464,
+   "fill": "#A8412C",
+   "units": [
+    "Ardèche",
+    "Drôme",
+    "Vaucluse",
+    "Gard"
+   ],
+   "detail": {
+    "canvas": [
+     56,
+     70
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     263,
+     258,
+     289,
+     291
+    ]
+   }
+  },
+  "provence": {
+   "id": 11,
+   "button": [
+    0.5896,
+    0.5706
+   ],
+   "clearance_px": 8.5,
+   "area_px": 481,
+   "fill": "#D98F7A",
+   "units": [
+    "Var",
+    "Bouches-du-Rhône",
+    "Alpes-de-Haute-Provence",
+    "Alpes-Maritimes"
+   ],
+   "detail": {
+    "canvas": [
+     76,
+     56
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     273,
+     272,
+     309,
+     298
+    ]
+   }
+  },
+  "languedoc": {
+   "id": 12,
+   "button": [
+    0.504,
+    0.5968
+   ],
+   "clearance_px": 5.0,
+   "area_px": 243,
+   "fill": "#8C8F3E",
+   "units": [
+    "Hérault",
+    "Aude"
+   ],
+   "detail": {
+    "canvas": [
+     54,
+     44
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     246,
+     283,
+     271,
+     303
+    ]
+   }
+  },
+  "roussillon": {
+   "id": 13,
+   "button": [
+    0.508,
+    0.6129
+   ],
+   "clearance_px": 4.0,
+   "area_px": 94,
+   "fill": "#5F5B8C",
+   "units": [
+    "Pyrénées-Orientales"
+   ],
+   "detail": {
+    "canvas": [
+     70,
+     42
+    ],
+    "upscale": 4,
+    "source_bbox": [
+     245,
+     300,
+     261,
+     309
+    ]
+   }
+  },
+  "corsica": {
+   "id": 14,
+   "button": [
+    0.6454,
+    0.623
+   ],
+   "clearance_px": 5.8,
+   "area_px": 205,
+   "fill": "#4E7A4A",
+   "units": [
+    "Corse-du-Sud",
+    "Haute-Corse"
+   ],
+   "detail": {
+    "canvas": [
+     26,
+     56
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     319,
+     298,
+     330,
+     324
+    ]
+   }
+  }
+ }
+}

@@ -1,0 +1,236 @@
+[
+ {
+  "name": "Barolo",
+  "lon": 7.94,
+  "lat": 44.61,
+  "expect": "piedmont"
+ },
+ {
+  "name": "Barbaresco",
+  "lon": 8.09,
+  "lat": 44.72,
+  "expect": "piedmont"
+ },
+ {
+  "name": "Asti",
+  "lon": 8.2,
+  "lat": 44.9,
+  "expect": "piedmont"
+ },
+ {
+  "name": "Gattinara",
+  "lon": 8.36,
+  "lat": 45.61,
+  "expect": "piedmont"
+ },
+ {
+  "name": "Valle d Aosta",
+  "lon": 7.32,
+  "lat": 45.74,
+  "expect": "valledaosta"
+ },
+ {
+  "name": "Cinque Terre",
+  "lon": 9.71,
+  "lat": 44.13,
+  "expect": "liguria"
+ },
+ {
+  "name": "Valtellina",
+  "lon": 9.87,
+  "lat": 46.17,
+  "expect": "lombardy"
+ },
+ {
+  "name": "Franciacorta",
+  "lon": 10.0,
+  "lat": 45.55,
+  "expect": "lombardy"
+ },
+ {
+  "name": "Oltrepo Pavese",
+  "lon": 9.15,
+  "lat": 45.02,
+  "expect": "lombardy"
+ },
+ {
+  "name": "Alto Adige",
+  "lon": 11.35,
+  "lat": 46.5,
+  "expect": "altoadige"
+ },
+ {
+  "name": "Trento",
+  "lon": 11.12,
+  "lat": 46.07,
+  "expect": "trentino"
+ },
+ {
+  "name": "Valpolicella",
+  "lon": 10.9,
+  "lat": 45.53,
+  "expect": "veneto"
+ },
+ {
+  "name": "Soave",
+  "lon": 11.25,
+  "lat": 45.42,
+  "expect": "veneto"
+ },
+ {
+  "name": "Valdobbiadene",
+  "lon": 12.0,
+  "lat": 45.9,
+  "expect": "veneto"
+ },
+ {
+  "name": "Collio",
+  "lon": 13.5,
+  "lat": 45.95,
+  "expect": "friuli"
+ },
+ {
+  "name": "Colli Orientali",
+  "lon": 13.35,
+  "lat": 46.1,
+  "expect": "friuli"
+ },
+ {
+  "name": "Lambrusco/Modena",
+  "lon": 10.93,
+  "lat": 44.65,
+  "expect": "emiliaromagna"
+ },
+ {
+  "name": "Romagna/Faenza",
+  "lon": 11.88,
+  "lat": 44.29,
+  "expect": "emiliaromagna"
+ },
+ {
+  "name": "Chianti Classico",
+  "lon": 11.3,
+  "lat": 43.47,
+  "expect": "tuscany"
+ },
+ {
+  "name": "Montalcino",
+  "lon": 11.49,
+  "lat": 43.06,
+  "expect": "tuscany"
+ },
+ {
+  "name": "Montepulciano",
+  "lon": 11.79,
+  "lat": 43.1,
+  "expect": "tuscany"
+ },
+ {
+  "name": "Bolgheri",
+  "lon": 10.61,
+  "lat": 43.23,
+  "expect": "tuscany"
+ },
+ {
+  "name": "Orvieto",
+  "lon": 12.11,
+  "lat": 42.72,
+  "expect": "umbria"
+ },
+ {
+  "name": "Montefalco",
+  "lon": 12.65,
+  "lat": 42.89,
+  "expect": "umbria"
+ },
+ {
+  "name": "Verdicchio/Jesi",
+  "lon": 13.25,
+  "lat": 43.52,
+  "expect": "marche"
+ },
+ {
+  "name": "Conero",
+  "lon": 13.6,
+  "lat": 43.55,
+  "expect": "marche"
+ },
+ {
+  "name": "Frascati",
+  "lon": 12.68,
+  "lat": 41.81,
+  "expect": "lazio"
+ },
+ {
+  "name": "Chieti",
+  "lon": 14.17,
+  "lat": 42.35,
+  "expect": "abruzzo"
+ },
+ {
+  "name": "Biferno",
+  "lon": 14.66,
+  "lat": 41.56,
+  "expect": "molise"
+ },
+ {
+  "name": "Taurasi",
+  "lon": 14.97,
+  "lat": 40.99,
+  "expect": "campania"
+ },
+ {
+  "name": "Greco di Tufo",
+  "lon": 14.83,
+  "lat": 41.02,
+  "expect": "campania"
+ },
+ {
+  "name": "Castel del Monte",
+  "lon": 16.27,
+  "lat": 41.09,
+  "expect": "puglia"
+ },
+ {
+  "name": "Salice Salentino",
+  "lon": 17.97,
+  "lat": 40.38,
+  "expect": "puglia"
+ },
+ {
+  "name": "Aglianico del Vulture",
+  "lon": 15.68,
+  "lat": 40.92,
+  "expect": "basilicata"
+ },
+ {
+  "name": "Ciro",
+  "lon": 17.06,
+  "lat": 39.38,
+  "expect": "calabria"
+ },
+ {
+  "name": "Etna",
+  "lon": 15.05,
+  "lat": 37.75,
+  "expect": "sicily"
+ },
+ {
+  "name": "Marsala",
+  "lon": 12.44,
+  "lat": 37.8,
+  "expect": "sicily"
+ },
+ {
+  "name": "Vermentino di Gallura",
+  "lon": 9.5,
+  "lat": 40.92,
+  "expect": "sardinia"
+ },
+ {
+  "name": "Cannonau/Nuoro",
+  "lon": 9.33,
+  "lat": 40.32,
+  "expect": "sardinia"
+ }
+]

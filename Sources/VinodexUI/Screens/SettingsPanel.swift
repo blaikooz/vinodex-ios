@@ -2032,6 +2032,36 @@ public struct SettingsSectionPanel: View {
             }
         }
 
+        // **WINE GLOBE** (0.9.55) — a test behind a switch, which is what
+        // the drop's own audit asks for: "get it on a simulator behind a flag
+        // before anyone decides it replaces globe scan". Off by default,
+        // because a test does not change what a player sees until they ask.
+        //
+        // The switch changes the globe's *picture* only. Tapping the sphere
+        // to pick a country is the prototype's real interaction and is
+        // deliberately not wired: per-pixel un-projection at 60fps has never
+        // run anywhere but a desktop browser.
+        settingsSection("WINE GLOBE") {
+            VStack(alignment: .leading, spacing: 10) {
+                settingRow(
+                    symbol: "globe.europe.africa.fill",
+                    tint: settings.wineGlobe ? Dex.green : lcd.subtext,
+                    title: "WINE COUNTRIES",
+                    detail: settings.wineGlobe
+                        ? "The globe is painted by wine country."
+                        : "The globe wears its coastline map."
+                ) {
+                    DexToggle(isOn: settings.wineGlobe, tint: Dex.green, label: "Wine globe") {
+                        settings.wineGlobe.toggle()
+                    }
+                }
+                Text("A test: thirty wine countries, each in its own colour. Tapping the globe still picks a continent, as it always has.")
+                    .font(DexFont.mono(17))
+                    .foregroundStyle(lcd.subtext)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+
         // **NARRATOR** (0.9.54, maintainer ask). The READ ALOUD voice, made a
         // setting. Siri's own voice is not exposed to apps, so this is the
         // approved substitute: AUTOMATIC prefers the best voice actually

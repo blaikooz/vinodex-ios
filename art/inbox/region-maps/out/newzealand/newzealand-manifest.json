@@ -1,0 +1,442 @@
+{
+ "generator": "region_map.py",
+ "country": "newzealand",
+ "projection": {
+  "kind": "equirectangular",
+  "x_factor": 0.75765833,
+  "origin": [
+   112.266528,
+   20.539449
+  ],
+  "scale": 12.267115,
+  "note": "canvas_x = (lon*x_factor - origin[0])*scale + 2 ; canvas_y = (-lat - origin[1])*scale + 2"
+ },
+ "base": {
+  "canvas": [
+   456,
+   502
+  ],
+  "export_scale": 5,
+  "unassigned": "#CEC6BA",
+  "outline": "#1A1420",
+  "key": "#EE03E1",
+  "layers": {
+   "interactive": "newzealand-regions.png",
+   "backdrop": "newzealand-backdrop.png",
+   "index": "newzealand-index.png"
+  },
+  "index_legend": {
+   "0": "outside the country (sea, neighbour, coastline ink)",
+   "255": "inside the country, unassigned ground",
+   "1..N": "a region — see regions[].id"
+  },
+  "index_note": "one byte per LOGICAL cell, canvas-sized, NOT export_scale. Hit-test against this, not against pixel colour.",
+  "subject_rect": [
+   0.375,
+   0.3406,
+   0.25,
+   0.3187
+  ],
+  "subject_rect_note": "x,y,w,h as fractions of the canvas. Scale the two layers together so this rect fills the intended width; the backdrop bleeds off the screen edges."
+ },
+ "backdrop": {
+  "margin_px": 170,
+  "sea": "#38506B",
+  "foreign": "#8C8778",
+  "foreign_outline": "#1A1420",
+  "shallow": "#4E6985",
+  "shelf_px": 3,
+  "countries": [
+   "Akrotiri Sovereign Base Area",
+   "Aland",
+   "Albania",
+   "Algeria",
+   "Andorra",
+   "Armenia",
+   "Austria",
+   "Azerbaijan",
+   "Bahrain",
+   "Belarus",
+   "Belgium",
+   "Benin",
+   "Bir Tawil",
+   "Bosnia and Herzegovina",
+   "Bulgaria",
+   "Burkina Faso",
+   "Cabo Verde",
+   "Cameroon",
+   "Central African Republic",
+   "Chad",
+   "Croatia",
+   "Cyprus",
+   "Cyprus No Mans Area",
+   "Czechia",
+   "Denmark",
+   "Dhekelia Sovereign Base Area",
+   "Djibouti",
+   "Egypt",
+   "Eritrea",
+   "Estonia",
+   "Ethiopia",
+   "Faroe Islands",
+   "Finland",
+   "France",
+   "Gambia",
+   "Georgia",
+   "Germany",
+   "Ghana",
+   "Gibraltar",
+   "Greece",
+   "Greenland",
+   "Guernsey",
+   "Guinea",
+   "Guinea-Bissau",
+   "Hungary",
+   "Iceland",
+   "Iran",
+   "Iraq",
+   "Ireland",
+   "Isle of Man",
+   "Israel",
+   "Italy",
+   "Ivory Coast",
+   "Jersey",
+   "Jordan",
+   "Kazakhstan",
+   "Kosovo",
+   "Kuwait",
+   "Latvia",
+   "Lebanon",
+   "Libya",
+   "Liechtenstein",
+   "Lithuania",
+   "Luxembourg",
+   "Mali",
+   "Malta",
+   "Mauritania",
+   "Moldova",
+   "Monaco",
+   "Montenegro",
+   "Morocco",
+   "Netherlands",
+   "Niger",
+   "Nigeria",
+   "North Macedonia",
+   "Northern Cyprus",
+   "Norway",
+   "Oman",
+   "Palestine",
+   "Poland",
+   "Portugal",
+   "Qatar",
+   "Republic of Serbia",
+   "Romania",
+   "Russia",
+   "San Marino",
+   "Saudi Arabia",
+   "Senegal",
+   "Slovakia",
+   "Slovenia",
+   "Somalia",
+   "Somaliland",
+   "South Sudan",
+   "Spain",
+   "Sudan",
+   "Sweden",
+   "Switzerland",
+   "Syria",
+   "Togo",
+   "Tunisia",
+   "Turkey",
+   "Turkmenistan",
+   "Ukraine",
+   "United Arab Emirates",
+   "United Kingdom",
+   "Vatican",
+   "Western Sahara",
+   "Yemen"
+  ]
+ },
+ "marker_clearance": {
+  "12": [
+   [
+    "nelson",
+    "marlborough",
+    8.2
+   ]
+  ],
+  "10": [
+   [
+    "nelson",
+    "marlborough",
+    8.2
+   ]
+  ],
+  "8": []
+ },
+ "splits": [],
+ "regions": {
+  "northland": {
+   "id": 1,
+   "button": [
+    0.5241,
+    0.3645
+   ],
+   "clearance_px": 5.0,
+   "area_px": 196,
+   "fill": "#2B8268",
+   "units": [
+    "Northland"
+   ],
+   "detail": {
+    "canvas": [
+     40,
+     54
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     229,
+     171,
+     247,
+     196
+    ]
+   }
+  },
+  "auckland": {
+   "id": 2,
+   "button": [
+    0.5461,
+    0.4044
+   ],
+   "clearance_px": 3.2,
+   "area_px": 88,
+   "fill": "#82482B",
+   "units": [
+    "Auckland"
+   ],
+   "detail": {
+    "canvas": [
+     50,
+     58
+    ],
+    "upscale": 4,
+    "source_bbox": [
+     243,
+     193,
+     254,
+     206
+    ]
+   }
+  },
+  "waikatobop": {
+   "id": 3,
+   "button": [
+    0.5614,
+    0.4283
+   ],
+   "clearance_px": 7.8,
+   "area_px": 492,
+   "fill": "#2B5E82",
+   "units": [
+    "Waikato",
+    "Bay of Plenty"
+   ],
+   "detail": {
+    "canvas": [
+     68,
+     74
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     247,
+     197,
+     279,
+     232
+    ]
+   }
+  },
+  "gisborne": {
+   "id": 4,
+   "button": [
+    0.6096,
+    0.4382
+   ],
+   "clearance_px": 4.1,
+   "area_px": 115,
+   "fill": "#B5974A",
+   "units": [
+    "Gisborne District"
+   ],
+   "detail": {
+    "canvas": [
+     41,
+     56
+    ],
+    "upscale": 3,
+    "source_bbox": [
+     272,
+     210,
+     284,
+     227
+    ]
+   }
+  },
+  "hawkesbay": {
+   "id": 5,
+   "button": [
+    0.5811,
+    0.4622
+   ],
+   "clearance_px": 5.0,
+   "area_px": 210,
+   "fill": "#B54A5D",
+   "units": [
+    "Hawke's Bay"
+   ],
+   "detail": {
+    "canvas": [
+     40,
+     50
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     261,
+     223,
+     279,
+     246
+    ]
+   }
+  },
+  "wairarapa": {
+   "id": 6,
+   "button": [
+    0.5592,
+    0.504
+   ],
+   "clearance_px": 5.0,
+   "area_px": 132,
+   "fill": "#826A2B",
+   "units": [
+    "Wellington"
+   ],
+   "detail": {
+    "canvas": [
+     70,
+     54
+    ],
+    "upscale": 4,
+    "source_bbox": [
+     247,
+     248,
+     263,
+     260
+    ]
+   }
+  },
+  "nelson": {
+   "id": 7,
+   "button": [
+    0.5066,
+    0.512
+   ],
+   "clearance_px": 3.6,
+   "area_px": 158,
+   "fill": "#B56D4A",
+   "units": [
+    "Nelson City",
+    "Tasman District"
+   ],
+   "detail": {
+    "canvas": [
+     44,
+     71
+    ],
+    "upscale": 3,
+    "source_bbox": [
+     224,
+     246,
+     237,
+     268
+    ]
+   }
+  },
+  "marlborough": {
+   "id": 8,
+   "button": [
+    0.5241,
+    0.5159
+   ],
+   "clearance_px": 4.1,
+   "area_px": 161,
+   "fill": "#662B82",
+   "units": [
+    "Marlborough District"
+   ],
+   "detail": {
+    "canvas": [
+     50,
+     68
+    ],
+    "upscale": 3,
+    "source_bbox": [
+     230,
+     249,
+     245,
+     270
+    ]
+   }
+  },
+  "canterbury": {
+   "id": 9,
+   "button": [
+    0.4583,
+    0.5817
+   ],
+   "clearance_px": 8.2,
+   "area_px": 641,
+   "fill": "#47822B",
+   "units": [
+    "Canterbury"
+   ],
+   "detail": {
+    "canvas": [
+     44,
+     41
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     201,
+     264,
+     242,
+     302
+    ]
+   }
+  },
+  "centralotago": {
+   "id": 10,
+   "button": [
+    0.4452,
+    0.6135
+   ],
+   "clearance_px": 7.8,
+   "area_px": 488,
+   "fill": "#822B3B",
+   "units": [
+    "Otago"
+   ],
+   "detail": {
+    "canvas": [
+     60,
+     70
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     187,
+     289,
+     215,
+     322
+    ]
+   }
+  }
+ }
+}

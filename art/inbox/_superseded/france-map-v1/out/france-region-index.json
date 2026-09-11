@@ -1,0 +1,74 @@
+{
+ "byId": {
+  "R001": "bordeaux",
+  "R002": "burgundy",
+  "R003": "champagne",
+  "R004": "rhone",
+  "R005": "loire",
+  "R006": "alsace",
+  "R007": "provence",
+  "R008": "beaujolais",
+  "R009": "languedoc",
+  "R010": "burgundy",
+  "R011": "bordeaux",
+  "R012": "jura",
+  "R079": "southwest",
+  "R099": "rhone",
+  "R105": "corsica",
+  "R106": "savoie",
+  "R107": "roussillon",
+  "R108": "southwest",
+  "R122": "southwest",
+  "R155": "southwest"
+ },
+ "byStem": {
+  "bordeaux": [
+   "R001",
+   "R011"
+  ],
+  "southwest": [
+   "R079",
+   "R108",
+   "R122",
+   "R155"
+  ],
+  "loire": [
+   "R005"
+  ],
+  "burgundy": [
+   "R002",
+   "R010"
+  ],
+  "beaujolais": [
+   "R008"
+  ],
+  "champagne": [
+   "R003"
+  ],
+  "alsace": [
+   "R006"
+  ],
+  "jura": [
+   "R012"
+  ],
+  "savoie": [
+   "R106"
+  ],
+  "rhone": [
+   "R004",
+   "R099"
+  ],
+  "provence": [
+   "R007"
+  ],
+  "languedoc": [
+   "R009"
+  ],
+  "roussillon": [
+   "R107"
+  ],
+  "corsica": [
+   "R105"
+  ]
+ }
+}

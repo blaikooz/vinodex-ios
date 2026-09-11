@@ -104,4 +104,6 @@ public enum SavedDataKey: String, CaseIterable, Sendable {
     /// The chosen narrator voice identifier (0.9.54). Absent = AUTOMATIC —
     /// the ladder in `NarratorPreference` picks the best installed voice.
     case narratorVoice       = "narratorVoice"
+    /// The wine-country globe texture (0.9.55, a test behind a switch).
+    case wineGlobe           = "wineGlobe"
 }

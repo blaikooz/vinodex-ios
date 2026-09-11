@@ -1,0 +1,23 @@
+{
+ "byId": {
+  "R046": "maipo",
+  "R124": "itata",
+  "R145": "aconcagua"
+ },
+ "byStem": {
+  "coquimbo": [],
+  "aconcagua": [
+   "R145"
+  ],
+  "maipo": [
+   "R046"
+  ],
+  "rapel": [],
+  "maule": [],
+  "itata": [
+   "R124"
+  ],
+  "biobio": [],
+  "malleco": []
+ }
+}

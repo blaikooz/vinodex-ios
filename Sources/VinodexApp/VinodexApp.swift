@@ -508,6 +508,27 @@ struct RootView: View {
         .preferredColorScheme(.dark)
         .statusBarHidden()
         .onAppear {
+            // **Screenshot mode** (0.9.55, DEBUG only). `-vinodexScreenshot
+            // <name>` lands the app on one named screen with the boot
+            // sequence already finished, so the App Store images can be
+            // captured from the command line.
+            //
+            // Why it earns its place rather than being a hack: the store
+            // images have to be reshot every release, the simulator offers no
+            // way to tap, and the alternative is a hand-driven session per
+            // release — which is exactly the chore that leaves a listing
+            // showing a build from two months ago.
+            //
+            // `#if DEBUG` because this is a back door by construction: a
+            // shipped build must not be arguable onto an arbitrary screen at
+            // launch. Release builds do not compile these lines at all.
+            #if DEBUG
+            if let opening = Self.screenshotRoute() {
+                booting = false
+                path = opening
+            }
+            #endif
+
             // Before anything reads TEXT SIZE. A no-op on every launch after the
             // first, and on any device where the user has set it themselves.
             //
@@ -616,6 +637,63 @@ struct RootView: View {
     }
 
     // MARK: Demo mode (0.7.3, A2)
+
+    #if DEBUG
+    /// The screenshot vocabulary: `-vinodexScreenshot <name>` to a route
+    /// stack. Names belong to `scripts/shoot-store-screenshots.sh` rather
+    /// than to the app, so the script can be re-aimed without touching a
+    /// route. `detail:<id>` passes an entry id straight through, which is how
+    /// the shoot picks its grape without a case per variety.
+    static func screenshotRoute() -> [DexRoute]? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let flag = args.firstIndex(of: "-vinodexScreenshot"),
+              args.index(after: flag) < args.endIndex else { return nil }
+        let name = args[args.index(after: flag)]
+        if name.hasPrefix("detail:") {
+            return [.detail(entryID: String(name.dropFirst("detail:".count)))]
+        }
+        // `map:<country>` opens a region map; `map:<country>:<stem>` opens
+        // it with that region already chosen, which `RegionMapScreen` reads
+        // for itself. The simulator cannot be sent a tap, so without the
+        // three-part form the tiles could only be photographed empty.
+        // `globe@<lon>,<lat>` is the globe too — the screen reads the
+        // coordinate for itself and probes a tap there.
+        if name.hasPrefix("globe@") { return [.globe] }
+        if name.hasPrefix("map:") {
+            let parts = name.split(separator: ":")
+            if parts.count >= 2 {
+                // The catalog's spelling, not the directory key's: the route
+                // title is the country's name and "newzealand".capitalized is
+                // "Newzealand". Only the screenshot shortcut needs this —
+                // reached properly, the country comes from CountryScreen.
+                let spelled = [
+                    "france": "France", "italy": "Italy", "spain": "Spain",
+                    "portugal": "Portugal", "argentina": "Argentina",
+                    "chile": "Chile", "newzealand": "New Zealand",
+                ]
+                let key = String(parts[1])
+                return [.regionMap(country: spelled[key] ?? key.capitalized)]
+            }
+        }
+        switch name {
+        case "menu":     return []
+        case "grapes":   return [.list(category: .grapes, filter: nil)]
+        case "globe":    return [.globe]
+        case "scanner":  return [.labelReader]
+        case "passport": return [.passport]
+        case "exam":     return [.wsetQuiz]
+        case "moon":     return [.moonDial]
+        case "shelves":  return [.bookmarks]
+        case "settings": return [.settings]
+        case "firmware": return [.firmwareHistory]
+        // The France region map, and the country page it is reached from —
+        // the second so the door itself can be looked at, not just the room.
+        case "country":  return [.country(name: "France")]
+        case "country-italy": return [.country(name: "Italy")]
+        default:         return nil
+        }
+    }
+    #endif
 
     /// Start the attract loop from the System panel.
     ///
@@ -956,7 +1034,15 @@ struct RootView: View {
                     // info screen rather than jumping straight to its regions.
                     push(.continent(entryID: "CONT_\(continent.rawValue)"))
                 },
-                onWorldSearch: { push(.globeSearch) }
+                onWorldSearch: { push(.globeSearch) },
+                // The globe's second tier (0.9.55): tapping a wine country
+                // twice drops into its painted region map, which is the same
+                // screen the country page reaches.
+                // The last step of the globe's descent: an entry chosen from
+                // the region overlay opens its page, through the same gate
+                // every other entry link goes through.
+                onOpenEntry: { open($0) },
+                onOpenCountry: { push(.country(name: $0)) }
             )
 
         case .bookmarks:
@@ -1016,7 +1102,12 @@ struct RootView: View {
             CountryScreen(
                 country: name,
                 onSelectRegion: { open($0) },
-                onSelectState: { push(.state(name: $0)) }
+                onSelectState: { push(.state(name: $0)) },
+                // Offered only where a painted map exists (0.9.55, a test).
+                // The screen itself decides whether to draw the door, so a
+                // second country getting a map is a change there and here,
+                // not a change to the outline component.
+                onOpenRegionMap: { push(.regionMap(country: name)) }
             )
 
         case .state(let name):
@@ -1187,6 +1278,12 @@ struct RootView: View {
             } else {
                 notFound
             }
+
+        // A country's painted region map (0.9.55) — a test. Reached by
+        // tapping the map in that country's REGIONS section; see
+        // `RegionMapScreen`.
+        case .regionMap(let country):
+            RegionMapScreen(country: country) { open($0) }
 
         case .continent(let id):
             if let entry = db.entry(id: id), case .continent(let c) = entry {

@@ -1,0 +1,657 @@
+{
+ "countries": [
+  {
+   "idx": 2,
+   "admin": "Argentina",
+   "stem": "argentina",
+   "fill": "#61277C",
+   "label": "ARGENTINA",
+   "mapped": 6,
+   "key": "argentina"
+  },
+  {
+   "idx": 3,
+   "admin": "Australia",
+   "stem": "australia",
+   "fill": "#C9A492",
+   "label": "AUSTRALIA",
+   "mapped": 0,
+   "key": "australia"
+  },
+  {
+   "idx": 4,
+   "admin": "Austria",
+   "stem": "austria",
+   "fill": "#A45F3D",
+   "label": "AUSTRIA",
+   "mapped": 0,
+   "key": "austria"
+  },
+  {
+   "idx": 5,
+   "admin": "Brazil",
+   "stem": "brazil",
+   "fill": "#7FBC62",
+   "label": "BRAZIL",
+   "mapped": 0,
+   "key": "brazil"
+  },
+  {
+   "idx": 6,
+   "admin": "Bulgaria",
+   "stem": "bulgaria",
+   "fill": "#7C4327",
+   "label": "BULGARIA",
+   "mapped": 0,
+   "key": "bulgaria"
+  },
+  {
+   "idx": 7,
+   "admin": "Canada",
+   "stem": "canada",
+   "fill": "#BCA362",
+   "label": "CANADA",
+   "mapped": 0,
+   "key": "canada"
+  },
+  {
+   "idx": 8,
+   "admin": "Chile",
+   "stem": "chile",
+   "fill": "#7C6427",
+   "label": "CHILE",
+   "mapped": 8,
+   "key": "chile"
+  },
+  {
+   "idx": 9,
+   "admin": "China",
+   "stem": "china",
+   "fill": "#92B2C9",
+   "label": "CHINA",
+   "mapped": 0,
+   "key": "china"
+  },
+  {
+   "idx": 10,
+   "admin": "Croatia",
+   "stem": "croatia",
+   "fill": "#A43D4F",
+   "label": "CROATIA",
+   "mapped": 0,
+   "key": "croatia"
+  },
+  {
+   "idx": 11,
+   "admin": "France",
+   "stem": "france",
+   "fill": "#BC8062",
+   "label": "FRANCE",
+   "mapped": 14,
+   "key": "france"
+  },
+  {
+   "idx": 12,
+   "admin": "Georgia",
+   "stem": "georgia",
+   "fill": "#A4873D",
+   "label": "GEORGIA",
+   "mapped": 0,
+   "key": "georgia"
+  },
+  {
+   "idx": 13,
+   "admin": "Germany",
+   "stem": "germany",
+   "fill": "#833DA4",
+   "label": "GERMANY",
+   "mapped": 0,
+   "key": "germany"
+  },
+  {
+   "idx": 14,
+   "admin": "Greece",
+   "stem": "greece",
+   "fill": "#92C9B8",
+   "label": "GREECE",
+   "mapped": 0,
+   "key": "greece"
+  },
+  {
+   "idx": 15,
+   "admin": "Hungary",
+   "stem": "hungary",
+   "fill": "#5EA43D",
+   "label": "HUNGARY",
+   "mapped": 0,
+   "key": "hungary"
+  },
+  {
+   "idx": 16,
+   "admin": "India",
+   "stem": "india",
+   "fill": "#7C2736",
+   "label": "INDIA",
+   "mapped": 0,
+   "key": "india"
+  },
+  {
+   "idx": 17,
+   "admin": "Italy",
+   "stem": "italy",
+   "fill": "#427C27",
+   "label": "ITALY",
+   "mapped": 21,
+   "key": "italy"
+  },
+  {
+   "idx": 18,
+   "admin": "Japan",
+   "stem": "japan",
+   "fill": "#BC6272",
+   "label": "JAPAN",
+   "mapped": 0,
+   "key": "japan"
+  },
+  {
+   "idx": 19,
+   "admin": "Lebanon",
+   "stem": "lebanon",
+   "fill": "#62BCA1",
+   "label": "LEBANON",
+   "mapped": 0,
+   "key": "lebanon"
+  },
+  {
+   "idx": 20,
+   "admin": "Mexico",
+   "stem": "mexico",
+   "fill": "#A3C992",
+   "label": "MEXICO",
+   "mapped": 0,
+   "key": "mexico"
+  },
+  {
+   "idx": 21,
+   "admin": "Morocco",
+   "stem": "morocco",
+   "fill": "#C9BA92",
+   "label": "MOROCCO",
+   "mapped": 0,
+   "key": "morocco"
+  },
+  {
+   "idx": 22,
+   "admin": "New Zealand",
+   "stem": "new-zealand",
+   "fill": "#D7B7BD",
+   "label": "NEW ZEALAND",
+   "mapped": 10,
+   "key": "newzealand"
+  },
+  {
+   "idx": 23,
+   "admin": "Portugal",
+   "stem": "portugal",
+   "fill": "#277C63",
+   "label": "PORTUGAL",
+   "mapped": 10,
+   "key": "portugal"
+  },
+  {
+   "idx": 24,
+   "admin": "Romania",
+   "stem": "romania",
+   "fill": "#B792C9",
+   "label": "ROMANIA",
+   "mapped": 0,
+   "key": "romania"
+  },
+  {
+   "idx": 25,
+   "admin": "Slovenia",
+   "stem": "slovenia",
+   "fill": "#3D78A4",
+   "label": "SLOVENIA",
+   "mapped": 0,
+   "key": "slovenia"
+  },
+  {
+   "idx": 26,
+   "admin": "South Africa",
+   "stem": "south-africa",
+   "fill": "#D7C2B7",
+   "label": "SOUTH AFRICA",
+   "mapped": 0,
+   "key": "south-africa"
+  },
+  {
+   "idx": 27,
+   "admin": "Spain",
+   "stem": "spain",
+   "fill": "#9F62BC",
+   "label": "SPAIN",
+   "mapped": 16,
+   "key": "spain"
+  },
+  {
+   "idx": 28,
+   "admin": "Switzerland",
+   "stem": "switzerland",
+   "fill": "#6296BC",
+   "label": "SWITZERLAND",
+   "mapped": 0,
+   "key": "switzerland"
+  },
+  {
+   "idx": 29,
+   "admin": "United Kingdom",
+   "stem": "united-kingdom",
+   "fill": "#3DA485",
+   "label": "UNITED KINGDOM",
+   "mapped": 0,
+   "key": "united-kingdom"
+  },
+  {
+   "idx": 30,
+   "admin": "United States of America",
+   "stem": "usa",
+   "fill": "#27587C",
+   "label": "UNITED STATES",
+   "mapped": 0,
+   "key": "usa"
+  },
+  {
+   "idx": 31,
+   "admin": "Uruguay",
+   "stem": "uruguay",
+   "fill": "#C9929C",
+   "label": "URUGUAY",
+   "mapped": 0,
+   "key": "uruguay"
+  }
+ ],
+ "regions": {
+  "france": {
+   "bounds": [
+    -6.0143,
+    40.4844,
+    10.4411,
+    51.9691
+   ],
+   "size": [
+    300,
+    210
+   ],
+   "stems": [
+    "bordeaux",
+    "southwest",
+    "loire",
+    "burgundy",
+    "beaujolais",
+    "champagne",
+    "alsace",
+    "jura",
+    "savoie",
+    "rhone",
+    "provence",
+    "languedoc",
+    "roussillon",
+    "corsica"
+   ],
+   "fills": [
+    "#8E2F45",
+    "#C9A24C",
+    "#6E9464",
+    "#A6631F",
+    "#D0577A",
+    "#E4D08A",
+    "#3E8C8A",
+    "#8A7BB0",
+    "#7FA8C9",
+    "#A8412C",
+    "#D98F7A",
+    "#8C8F3E",
+    "#5F5B8C",
+    "#4E7A4A"
+   ],
+   "labels": [
+    "bordeaux",
+    "southwest",
+    "loire",
+    "burgundy",
+    "beaujolais",
+    "champagne",
+    "alsace",
+    "jura",
+    "savoie",
+    "rhone",
+    "provence",
+    "languedoc",
+    "roussillon",
+    "corsica"
+   ]
+  },
+  "italy": {
+   "bounds": [
+    5.8878,
+    34.7744,
+    19.2323,
+    47.8001
+   ],
+   "size": [
+    300,
+    293
+   ],
+   "stems": [
+    "piedmont",
+    "valledaosta",
+    "liguria",
+    "lombardy",
+    "altoadige",
+    "trentino",
+    "veneto",
+    "friuli",
+    "emiliaromagna",
+    "tuscany",
+    "umbria",
+    "marche",
+    "lazio",
+    "abruzzo",
+    "molise",
+    "campania",
+    "puglia",
+    "basilicata",
+    "calabria",
+    "sicily",
+    "sardinia"
+   ],
+   "fills": [
+    "#934AB5",
+    "#2B8268",
+    "#C6B58B",
+    "#47822B",
+    "#822B3B",
+    "#B38BC6",
+    "#8BC6B4",
+    "#C68B95",
+    "#B54A5D",
+    "#6CB54A",
+    "#826A2B",
+    "#8BADC6",
+    "#662B82",
+    "#82482B",
+    "#9EC68B",
+    "#B56D4A",
+    "#4A88B5",
+    "#4AB595",
+    "#2B5E82",
+    "#C69E8B",
+    "#B5974A"
+   ],
+   "labels": [
+    "piedmont",
+    "valledaosta",
+    "liguria",
+    "lombardy",
+    "altoadige",
+    "trentino",
+    "veneto",
+    "friuli",
+    "emiliaromagna",
+    "tuscany",
+    "umbria",
+    "marche",
+    "lazio",
+    "abruzzo",
+    "molise",
+    "campania",
+    "puglia",
+    "basilicata",
+    "calabria",
+    "sicily",
+    "sardinia"
+   ]
+  },
+  "spain": {
+   "bounds": [
+    -10.1097,
+    35.1887,
+    5.1548,
+    44.6112
+   ],
+   "size": [
+    300,
+    186
+   ],
+   "stems": [
+    "rioja",
+    "navarra",
+    "basque",
+    "riberadelduero",
+    "ruedatoro",
+    "bierzo",
+    "galicia",
+    "catalonia",
+    "aragon",
+    "lamancha",
+    "madrid",
+    "levante",
+    "jerez",
+    "andalucia",
+    "extremadura",
+    "baleares"
+   ],
+   "fills": [
+    "#934AB5",
+    "#2B5E82",
+    "#B56D4A",
+    "#6CB54A",
+    "#4A88B5",
+    "#C69E8B",
+    "#47822B",
+    "#4AB595",
+    "#826A2B",
+    "#662B82",
+    "#82482B",
+    "#B54A5D",
+    "#822B3B",
+    "#B5974A",
+    "#2B8268",
+    "#C68B95"
+   ],
+   "labels": [
+    "rioja",
+    "navarra",
+    "basque",
+    "riberadelduero",
+    "ruedatoro",
+    "bierzo",
+    "galicia",
+    "catalonia",
+    "aragon",
+    "lamancha",
+    "madrid",
+    "levante",
+    "jerez",
+    "andalucia",
+    "extremadura",
+    "baleares"
+   ]
+  },
+  "portugal": {
+   "bounds": [
+    -9.8087,
+    36.6546,
+    -5.8947,
+    42.4649
+   ],
+   "size": [
+    202,
+    300
+   ],
+   "stems": [
+    "vinhoverde",
+    "douro",
+    "dao",
+    "bairrada",
+    "beirainterior",
+    "lisboa",
+    "tejo",
+    "setubal",
+    "alentejo",
+    "algarve"
+   ],
+   "fills": [
+    "#82482B",
+    "#47822B",
+    "#B56D4A",
+    "#2B5E82",
+    "#662B82",
+    "#822B3B",
+    "#2B8268",
+    "#B5974A",
+    "#B54A5D",
+    "#826A2B"
+   ],
+   "labels": [
+    "vinhoverde",
+    "douro",
+    "dao",
+    "bairrada",
+    "beirainterior",
+    "lisboa",
+    "tejo",
+    "setubal",
+    "alentejo",
+    "algarve"
+   ]
+  },
+  "argentina": {
+   "bounds": [
+    -73.6013,
+    -47.4528,
+    -60.2802,
+    -20.3342
+   ],
+   "size": [
+    148,
+    300
+   ],
+   "stems": [
+    "mendoza",
+    "sanjuan",
+    "salta",
+    "catamarca",
+    "patagonia",
+    "cordoba"
+   ],
+   "fills": [
+    "#2B8268",
+    "#82482B",
+    "#826A2B",
+    "#2B5E82",
+    "#822B3B",
+    "#47822B"
+   ],
+   "labels": [
+    "mendoza",
+    "sanjuan",
+    "salta",
+    "catamarca",
+    "patagonia",
+    "cordoba"
+   ]
+  },
+  "chile": {
+   "bounds": [
+    -76.72,
+    -40.72,
+    -68.28,
+    -27.28
+   ],
+   "size": [
+    189,
+    300
+   ],
+   "stems": [
+    "coquimbo",
+    "aconcagua",
+    "maipo",
+    "rapel",
+    "maule",
+    "itata",
+    "biobio",
+    "malleco"
+   ],
+   "fills": [
+    "#826A2B",
+    "#2B5E82",
+    "#B54A5D",
+    "#47822B",
+    "#822B3B",
+    "#2B8268",
+    "#662B82",
+    "#82482B"
+   ],
+   "labels": [
+    "coquimbo",
+    "aconcagua",
+    "maipo",
+    "rapel",
+    "maule",
+    "itata",
+    "biobio",
+    "malleco"
+   ]
+  },
+  "newzealand": {
+   "bounds": [
+    165.6937,
+    -48.0504,
+    179.339,
+    -33.6248
+   ],
+   "size": [
+    284,
+    300
+   ],
+   "stems": [
+    "northland",
+    "auckland",
+    "waikatobop",
+    "gisborne",
+    "hawkesbay",
+    "wairarapa",
+    "nelson",
+    "marlborough",
+    "canterbury",
+    "centralotago"
+   ],
+   "fills": [
+    "#2B8268",
+    "#82482B",
+    "#2B5E82",
+    "#B5974A",
+    "#B54A5D",
+    "#826A2B",
+    "#B56D4A",
+    "#662B82",
+    "#47822B",
+    "#822B3B"
+   ],
+   "labels": [
+    "northland",
+    "auckland",
+    "waikatobop",
+    "gisborne",
+    "hawkesbay",
+    "wairarapa",
+    "nelson",
+    "marlborough",
+    "canterbury",
+    "centralotago"
+   ]
+  }
+ }
+}

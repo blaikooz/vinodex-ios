@@ -1,0 +1,25 @@
+{
+ "byId": {
+  "R043": "marlborough",
+  "R044": "centralotago",
+  "R144": "hawkesbay"
+ },
+ "byStem": {
+  "northland": [],
+  "auckland": [],
+  "waikatobop": [],
+  "gisborne": [],
+  "hawkesbay": [
+   "R144"
+  ],
+  "wairarapa": [],
+  "nelson": [],
+  "marlborough": [
+   "R043"
+  ],
+  "canterbury": [],
+  "centralotago": [
+   "R044"
+  ]
+ }
+}

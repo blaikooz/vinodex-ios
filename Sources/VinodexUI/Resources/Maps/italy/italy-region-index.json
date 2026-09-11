@@ -1,0 +1,87 @@
+{
+ "byId": {
+  "R021": "tuscany",
+  "R022": "piedmont",
+  "R023": "veneto",
+  "R024": "sicily",
+  "R025": "campania",
+  "R026": "friuli",
+  "R027": "altoadige",
+  "R028": "abruzzo",
+  "R029": "puglia",
+  "R064": "marche",
+  "R069": "sardinia",
+  "R070": "trentino",
+  "R071": "veneto",
+  "R072": "emiliaromagna",
+  "R073": "sicily",
+  "R074": "friuli",
+  "R100": "umbria",
+  "R109": "lombardy",
+  "R110": "lazio",
+  "R111": "calabria",
+  "R112": "basilicata"
+ },
+ "byStem": {
+  "piedmont": [
+   "R022"
+  ],
+  "valledaosta": [],
+  "liguria": [],
+  "lombardy": [
+   "R109"
+  ],
+  "altoadige": [
+   "R027"
+  ],
+  "trentino": [
+   "R070"
+  ],
+  "veneto": [
+   "R023",
+   "R071"
+  ],
+  "friuli": [
+   "R026",
+   "R074"
+  ],
+  "emiliaromagna": [
+   "R072"
+  ],
+  "tuscany": [
+   "R021"
+  ],
+  "umbria": [
+   "R100"
+  ],
+  "marche": [
+   "R064"
+  ],
+  "lazio": [
+   "R110"
+  ],
+  "abruzzo": [
+   "R028"
+  ],
+  "molise": [],
+  "campania": [
+   "R025"
+  ],
+  "puglia": [
+   "R029"
+  ],
+  "basilicata": [
+   "R112"
+  ],
+  "calabria": [
+   "R111"
+  ],
+  "sicily": [
+   "R024",
+   "R073"
+  ],
+  "sardinia": [
+   "R069"
+  ]
+ }
+}

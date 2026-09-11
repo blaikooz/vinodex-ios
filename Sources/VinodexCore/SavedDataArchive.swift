@@ -68,6 +68,8 @@ public struct SavedDataArchive: Codable, Sendable, Equatable {
     public var keepAwakeEnabled: Bool?
     /// The narrator voice identifier (0.9.54). Absent = AUTOMATIC.
     public var narratorVoice: String?
+    /// The wine-country globe switch (0.9.55).
+    public var wineGlobe: Bool?
     /// The avatar, inline. A 512pt JPEG at q0.85 is tens of KB; base64 costs a
     /// third more and buys a single file the user cannot separate from its
     /// other half.
@@ -133,7 +135,7 @@ public enum SavedDataArchiver {
             starterTierOnly: false, grantedEntitlements: [],
             displayName: nil, textScale: nil, uiScale: nil, lcdMode: nil,
             chassisSkin: nil, hapticsEnabled: nil, soundsEnabled: nil,
-            keepAwakeEnabled: nil, narratorVoice: nil, avatarJPEG: avatarJPEG
+            keepAwakeEnabled: nil, narratorVoice: nil, wineGlobe: nil, avatarJPEG: avatarJPEG
         )
 
         for key in SavedDataKey.allCases {
@@ -188,6 +190,7 @@ public enum SavedDataArchiver {
             case .soundsEnabled:       archive.soundsEnabled = defaults.object(forKey: name) as? Bool
             case .keepAwakeEnabled:    archive.keepAwakeEnabled = defaults.object(forKey: name) as? Bool
             case .narratorVoice:       archive.narratorVoice = defaults.string(forKey: name)
+            case .wineGlobe:           archive.wineGlobe = defaults.object(forKey: name) as? Bool
             }
         }
         return archive
@@ -261,6 +264,7 @@ public enum SavedDataArchiver {
             case .soundsEnabled:       put(key, archive.soundsEnabled)
             case .keepAwakeEnabled:    put(key, archive.keepAwakeEnabled)
             case .narratorVoice:       put(key, archive.narratorVoice)
+            case .wineGlobe:           put(key, archive.wineGlobe)
             }
         }
         return written

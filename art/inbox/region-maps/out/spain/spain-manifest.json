@@ -1,0 +1,610 @@
+{
+ "generator": "region_map.py",
+ "country": "spain",
+ "projection": {
+  "kind": "equirectangular",
+  "x_factor": 0.75673244,
+  "origin": [
+   -18.128411,
+   -54.89031
+  ],
+  "scale": 15.319639,
+  "note": "canvas_x = (lon*x_factor - origin[0])*scale + 2 ; canvas_y = (-lat - origin[1])*scale + 2"
+ },
+ "base": {
+  "canvas": [
+   502,
+   463
+  ],
+  "export_scale": 5,
+  "unassigned": "#CEC6BA",
+  "outline": "#1A1420",
+  "key": "#EE03E1",
+  "layers": {
+   "interactive": "spain-regions.png",
+   "backdrop": "spain-backdrop.png",
+   "index": "spain-index.png"
+  },
+  "index_legend": {
+   "0": "outside the country (sea, neighbour, coastline ink)",
+   "255": "inside the country, unassigned ground",
+   "1..N": "a region — see regions[].id"
+  },
+  "index_note": "one byte per LOGICAL cell, canvas-sized, NOT export_scale. Hit-test against this, not against pixel colour.",
+  "subject_rect": [
+   0.3406,
+   0.3693,
+   0.3187,
+   0.2613
+  ],
+  "subject_rect_note": "x,y,w,h as fractions of the canvas. Scale the two layers together so this rect fills the intended width; the backdrop bleeds off the screen edges."
+ },
+ "backdrop": {
+  "margin_px": 170,
+  "sea": "#38506B",
+  "foreign": "#8C8778",
+  "foreign_outline": "#1A1420",
+  "shallow": "#4E6985",
+  "shelf_px": 3,
+  "countries": [
+   "Akrotiri Sovereign Base Area",
+   "Aland",
+   "Albania",
+   "Algeria",
+   "Andorra",
+   "Armenia",
+   "Austria",
+   "Azerbaijan",
+   "Bahrain",
+   "Belarus",
+   "Belgium",
+   "Benin",
+   "Bir Tawil",
+   "Bosnia and Herzegovina",
+   "Bulgaria",
+   "Burkina Faso",
+   "Cabo Verde",
+   "Cameroon",
+   "Central African Republic",
+   "Chad",
+   "Croatia",
+   "Cyprus",
+   "Cyprus No Mans Area",
+   "Czechia",
+   "Denmark",
+   "Dhekelia Sovereign Base Area",
+   "Djibouti",
+   "Egypt",
+   "Eritrea",
+   "Estonia",
+   "Ethiopia",
+   "Faroe Islands",
+   "Finland",
+   "France",
+   "Gambia",
+   "Georgia",
+   "Germany",
+   "Ghana",
+   "Gibraltar",
+   "Greece",
+   "Greenland",
+   "Guernsey",
+   "Guinea",
+   "Guinea-Bissau",
+   "Hungary",
+   "Iceland",
+   "Iran",
+   "Iraq",
+   "Ireland",
+   "Isle of Man",
+   "Israel",
+   "Italy",
+   "Ivory Coast",
+   "Jersey",
+   "Jordan",
+   "Kazakhstan",
+   "Kosovo",
+   "Kuwait",
+   "Latvia",
+   "Lebanon",
+   "Libya",
+   "Liechtenstein",
+   "Lithuania",
+   "Luxembourg",
+   "Mali",
+   "Malta",
+   "Mauritania",
+   "Moldova",
+   "Monaco",
+   "Montenegro",
+   "Morocco",
+   "Netherlands",
+   "Niger",
+   "Nigeria",
+   "North Macedonia",
+   "Northern Cyprus",
+   "Norway",
+   "Oman",
+   "Palestine",
+   "Poland",
+   "Portugal",
+   "Qatar",
+   "Republic of Serbia",
+   "Romania",
+   "Russia",
+   "San Marino",
+   "Saudi Arabia",
+   "Senegal",
+   "Slovakia",
+   "Slovenia",
+   "Somalia",
+   "Somaliland",
+   "South Sudan",
+   "Sudan",
+   "Sweden",
+   "Switzerland",
+   "Syria",
+   "Togo",
+   "Tunisia",
+   "Turkey",
+   "Turkmenistan",
+   "Ukraine",
+   "United Arab Emirates",
+   "United Kingdom",
+   "Vatican",
+   "Western Sahara",
+   "Yemen"
+  ]
+ },
+ "marker_clearance": {
+  "12": [],
+  "10": [],
+  "8": []
+ },
+ "splits": [],
+ "regions": {
+  "rioja": {
+   "id": 1,
+   "button": [
+    0.494,
+    0.4168
+   ],
+   "clearance_px": 4.5,
+   "area_px": 161,
+   "fill": "#934AB5",
+   "units": [
+    "La Rioja",
+    "Álava"
+   ],
+   "detail": {
+    "canvas": [
+     56,
+     62
+    ],
+    "upscale": 3,
+    "source_bbox": [
+     242,
+     181,
+     259,
+     200
+    ]
+   }
+  },
+  "navarra": {
+   "id": 2,
+   "button": [
+    0.5179,
+    0.4039
+   ],
+   "clearance_px": 5.8,
+   "area_px": 210,
+   "fill": "#2B5E82",
+   "units": [
+    "Navarra"
+   ],
+   "detail": {
+    "canvas": [
+     59,
+     68
+    ],
+    "upscale": 3,
+    "source_bbox": [
+     252,
+     179,
+     270,
+     200
+    ]
+   }
+  },
+  "basque": {
+   "id": 3,
+   "button": [
+    0.494,
+    0.3888
+   ],
+   "clearance_px": 3.2,
+   "area_px": 96,
+   "fill": "#B56D4A",
+   "units": [
+    "Bizkaia",
+    "Gipuzkoa"
+   ],
+   "detail": {
+    "canvas": [
+     62,
+     29
+    ],
+    "upscale": 3,
+    "source_bbox": [
+     239,
+     177,
+     258,
+     185
+    ]
+   }
+  },
+  "riberadelduero": {
+   "id": 4,
+   "button": [
+    0.4701,
+    0.4147
+   ],
+   "clearance_px": 7.1,
+   "area_px": 502,
+   "fill": "#6CB54A",
+   "units": [
+    "Burgos",
+    "Soria"
+   ],
+   "detail": {
+    "canvas": [
+     62,
+     68
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     229,
+     181,
+     258,
+     213
+    ]
+   }
+  },
+  "ruedatoro": {
+   "id": 5,
+   "button": [
+    0.4343,
+    0.4428
+   ],
+   "clearance_px": 7.3,
+   "area_px": 542,
+   "fill": "#4A88B5",
+   "units": [
+    "Valladolid",
+    "Zamora",
+    "Segovia"
+   ],
+   "detail": {
+    "canvas": [
+     46,
+     28
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     198,
+     195,
+     241,
+     220
+    ]
+   }
+  },
+  "bierzo": {
+   "id": 6,
+   "button": [
+    0.4243,
+    0.4104
+   ],
+   "clearance_px": 7.1,
+   "area_px": 324,
+   "fill": "#C69E8B",
+   "units": [
+    "León"
+   ],
+   "detail": {
+    "canvas": [
+     56,
+     40
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     198,
+     180,
+     224,
+     198
+    ]
+   }
+  },
+  "galicia": {
+   "id": 7,
+   "button": [
+    0.3725,
+    0.4039
+   ],
+   "clearance_px": 11.0,
+   "area_px": 656,
+   "fill": "#47822B",
+   "units": [
+    "La Coruña",
+    "Lugo",
+    "Orense",
+    "Pontevedra"
+   ],
+   "detail": {
+    "canvas": [
+     62,
+     64
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     172,
+     172,
+     201,
+     202
+    ]
+   }
+  },
+  "catalonia": {
+   "id": 8,
+   "button": [
+    0.5896,
+    0.4363
+   ],
+   "clearance_px": 10.2,
+   "area_px": 671,
+   "fill": "#4AB595",
+   "units": [
+    "Barcelona",
+    "Tarragona",
+    "Lérida",
+    "Gerona"
+   ],
+   "detail": {
+    "canvas": [
+     76,
+     74
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     282,
+     186,
+     318,
+     221
+    ]
+   }
+  },
+  "aragon": {
+   "id": 9,
+   "button": [
+    0.5418,
+    0.4471
+   ],
+   "clearance_px": 11.4,
+   "area_px": 919,
+   "fill": "#826A2B",
+   "units": [
+    "Huesca",
+    "Teruel",
+    "Zaragoza"
+   ],
+   "detail": {
+    "canvas": [
+     36,
+     49
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     255,
+     185,
+     288,
+     231
+    ]
+   }
+  },
+  "lamancha": {
+   "id": 10,
+   "button": [
+    0.494,
+    0.5184
+   ],
+   "clearance_px": 13.0,
+   "area_px": 1489,
+   "fill": "#662B82",
+   "units": [
+    "Albacete",
+    "Ciudad Real",
+    "Cuenca",
+    "Guadalajara",
+    "Toledo"
+   ],
+   "detail": {
+    "canvas": [
+     54,
+     52
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     217,
+     210,
+     268,
+     259
+    ]
+   }
+  },
+  "madrid": {
+   "id": 11,
+   "button": [
+    0.4681,
+    0.4795
+   ],
+   "clearance_px": 5.0,
+   "area_px": 159,
+   "fill": "#82482B",
+   "units": [
+    "Madrid"
+   ],
+   "detail": {
+    "canvas": [
+     56,
+     62
+    ],
+    "upscale": 3,
+    "source_bbox": [
+     226,
+     212,
+     243,
+     231
+    ]
+   }
+  },
+  "levante": {
+   "id": 12,
+   "button": [
+    0.5259,
+    0.5637
+   ],
+   "clearance_px": 6.7,
+   "area_px": 686,
+   "fill": "#B54A5D",
+   "units": [
+    "Alicante",
+    "Castellón",
+    "Valencia",
+    "Murcia"
+   ],
+   "detail": {
+    "canvas": [
+     35,
+     54
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     253,
+     218,
+     285,
+     269
+    ]
+   }
+  },
+  "jerez": {
+   "id": 13,
+   "button": [
+    0.4143,
+    0.581
+   ],
+   "clearance_px": 9.0,
+   "area_px": 606,
+   "fill": "#822B3B",
+   "units": [
+    "Cádiz",
+    "Sevilla",
+    "Huelva"
+   ],
+   "detail": {
+    "canvas": [
+     70,
+     70
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     192,
+     258,
+     225,
+     291
+    ]
+   }
+  },
+  "andalucia": {
+   "id": 14,
+   "button": [
+    0.4741,
+    0.5767
+   ],
+   "clearance_px": 13.0,
+   "area_px": 1046,
+   "fill": "#B5974A",
+   "units": [
+    "Córdoba",
+    "Málaga",
+    "Granada",
+    "Jaén",
+    "Almería"
+   ],
+   "detail": {
+    "canvas": [
+     48,
+     39
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     215,
+     250,
+     260,
+     286
+    ]
+   }
+  },
+  "extremadura": {
+   "id": 15,
+   "button": [
+    0.4163,
+    0.5227
+   ],
+   "clearance_px": 12.2,
+   "area_px": 817,
+   "fill": "#2B8268",
+   "units": [
+    "Badajoz",
+    "Cáceres"
+   ],
+   "detail": {
+    "canvas": [
+     68,
+     80
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     192,
+     222,
+     224,
+     260
+    ]
+   }
+  },
+  "baleares": {
+   "id": 16,
+   "button": [
+    0.6255,
+    0.5076
+   ],
+   "clearance_px": 4.2,
+   "area_px": 145,
+   "fill": "#C68B95",
+   "units": [
+    "Baleares"
+   ],
+   "detail": {
+    "canvas": [
+     78,
+     48
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     293,
+     228,
+     330,
+     250
+    ]
+   }
+  }
+ }
+}

@@ -1,0 +1,74 @@
+[
+ {
+  "name": "Kerikeri",
+  "lon": 173.95,
+  "lat": -35.22,
+  "expect": "northland"
+ },
+ {
+  "name": "Kumeu",
+  "lon": 174.56,
+  "lat": -36.77,
+  "expect": "auckland"
+ },
+ {
+  "name": "Waiheke",
+  "lon": 175.08,
+  "lat": -36.8,
+  "expect": "auckland"
+ },
+ {
+  "name": "Te Kauwhata",
+  "lon": 175.15,
+  "lat": -37.4,
+  "expect": "waikatobop"
+ },
+ {
+  "name": "Te Puke",
+  "lon": 176.32,
+  "lat": -37.78,
+  "expect": "waikatobop"
+ },
+ {
+  "name": "Gisborne",
+  "lon": 177.98,
+  "lat": -38.66,
+  "expect": "gisborne"
+ },
+ {
+  "name": "Hawkes Bay/Napier",
+  "lon": 176.91,
+  "lat": -39.49,
+  "expect": "hawkesbay"
+ },
+ {
+  "name": "Martinborough",
+  "lon": 175.46,
+  "lat": -41.22,
+  "expect": "wairarapa"
+ },
+ {
+  "name": "Nelson",
+  "lon": 173.28,
+  "lat": -41.27,
+  "expect": "nelson"
+ },
+ {
+  "name": "Marlborough/Blenheim",
+  "lon": 173.96,
+  "lat": -41.51,
+  "expect": "marlborough"
+ },
+ {
+  "name": "Waipara",
+  "lon": 172.75,
+  "lat": -43.06,
+  "expect": "canterbury"
+ },
+ {
+  "name": "Central Otago/Cromwell",
+  "lon": 169.2,
+  "lat": -45.05,
+  "expect": "centralotago"
+ }
+]

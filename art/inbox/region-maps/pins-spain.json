@@ -1,0 +1,152 @@
+[
+ {
+  "name": "Haro/Rioja",
+  "lon": -2.84,
+  "lat": 42.58,
+  "expect": "rioja"
+ },
+ {
+  "name": "Laguardia",
+  "lon": -2.58,
+  "lat": 42.55,
+  "expect": "rioja"
+ },
+ {
+  "name": "Olite/Navarra",
+  "lon": -1.65,
+  "lat": 42.48,
+  "expect": "navarra"
+ },
+ {
+  "name": "Getaria/Txakoli",
+  "lon": -2.2,
+  "lat": 43.3,
+  "expect": "basque"
+ },
+ {
+  "name": "Ribera del Duero",
+  "lon": -3.69,
+  "lat": 41.67,
+  "expect": "riberadelduero"
+ },
+ {
+  "name": "Rueda",
+  "lon": -4.73,
+  "lat": 41.41,
+  "expect": "ruedatoro"
+ },
+ {
+  "name": "Toro",
+  "lon": -5.39,
+  "lat": 41.52,
+  "expect": "ruedatoro"
+ },
+ {
+  "name": "Bierzo",
+  "lon": -6.59,
+  "lat": 42.55,
+  "expect": "bierzo"
+ },
+ {
+  "name": "Rias Baixas",
+  "lon": -8.81,
+  "lat": 42.51,
+  "expect": "galicia"
+ },
+ {
+  "name": "Ribeira Sacra",
+  "lon": -7.5,
+  "lat": 42.4,
+  "expect": "galicia"
+ },
+ {
+  "name": "Priorat",
+  "lon": 0.8,
+  "lat": 41.2,
+  "expect": "catalonia"
+ },
+ {
+  "name": "Penedes",
+  "lon": 1.7,
+  "lat": 41.35,
+  "expect": "catalonia"
+ },
+ {
+  "name": "Carinena",
+  "lon": -1.22,
+  "lat": 41.34,
+  "expect": "aragon"
+ },
+ {
+  "name": "Somontano",
+  "lon": 0.13,
+  "lat": 42.09,
+  "expect": "aragon"
+ },
+ {
+  "name": "La Mancha",
+  "lon": -3.03,
+  "lat": 39.17,
+  "expect": "lamancha"
+ },
+ {
+  "name": "Valdepenas",
+  "lon": -3.39,
+  "lat": 38.76,
+  "expect": "lamancha"
+ },
+ {
+  "name": "Vinos de Madrid",
+  "lon": -4.01,
+  "lat": 40.29,
+  "expect": "madrid"
+ },
+ {
+  "name": "Jumilla",
+  "lon": -1.33,
+  "lat": 38.48,
+  "expect": "levante"
+ },
+ {
+  "name": "Utiel-Requena",
+  "lon": -1.1,
+  "lat": 39.49,
+  "expect": "levante"
+ },
+ {
+  "name": "Alicante",
+  "lon": -0.48,
+  "lat": 38.35,
+  "expect": "levante"
+ },
+ {
+  "name": "Jerez",
+  "lon": -6.14,
+  "lat": 36.69,
+  "expect": "jerez"
+ },
+ {
+  "name": "Montilla-Moriles",
+  "lon": -4.64,
+  "lat": 37.59,
+  "expect": "andalucia"
+ },
+ {
+  "name": "Malaga",
+  "lon": -4.42,
+  "lat": 36.72,
+  "expect": "andalucia"
+ },
+ {
+  "name": "Ribera del Guadiana",
+  "lon": -6.37,
+  "lat": 38.88,
+  "expect": "extremadura"
+ },
+ {
+  "name": "Binissalem",
+  "lon": 2.84,
+  "lat": 39.68,
+  "expect": "baleares"
+ }
+]

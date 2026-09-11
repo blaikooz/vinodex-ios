@@ -1,0 +1,51 @@
+[
+ {
+  "id": "R036",
+  "name": "Douro",
+  "lon": -7.546,
+  "lat": 41.166,
+  "expect": "douro"
+ },
+ {
+  "id": "R037",
+  "name": "Vinho Verde",
+  "lon": -8.42,
+  "lat": 41.7,
+  "expect": "vinhoverde"
+ },
+ {
+  "id": "R082",
+  "name": "Bairrada",
+  "lon": -8.47,
+  "lat": 40.45,
+  "expect": "bairrada"
+ },
+ {
+  "id": "R083",
+  "name": "Dão",
+  "lon": -7.912,
+  "lat": 40.66,
+  "expect": "dao"
+ },
+ {
+  "id": "R084",
+  "name": "Tejo",
+  "lon": -8.685,
+  "lat": 39.23,
+  "expect": "tejo"
+ },
+ {
+  "id": "R085",
+  "name": "Bucelas",
+  "lon": -9.212,
+  "lat": 38.88,
+  "expect": "lisboa"
+ },
+ {
+  "id": "R086",
+  "name": "Alentejo",
+  "lon": -7.91,
+  "lat": 38.57,
+  "expect": "alentejo"
+ }
+]
