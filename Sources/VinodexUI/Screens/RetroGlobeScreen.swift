@@ -586,7 +586,7 @@ public struct RetroGlobeScreen: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                     Text(picked.isMapped ? "\(picked.mapped) REGIONS" : "COUNTRY")
-                        .font(DexFont.retro(9))
+                        .font(DexFont.retro(10))
                         .tracking(1)
                         .foregroundStyle(lcd.subtext)
                 }
