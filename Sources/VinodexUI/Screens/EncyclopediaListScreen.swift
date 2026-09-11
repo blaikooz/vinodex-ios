@@ -206,7 +206,22 @@ public struct EncyclopediaListScreen: View {
     /// Whether the chip rows are unfolded. Folded by default: the list is the
     /// subject, and three rows of chips above it unasked-for would bury the
     /// first result. Session-local, like the fold state everywhere else.
-    @State private var showsChips = false
+    @State private var showsChips = Self.opensFiltersForScreenshot()
+
+    #if DEBUG
+    /// `-vinodexScreenshot grapes:filters` opens with the facet panel already
+    /// unfolded. The panel is the half of this screen a screenshot cannot
+    /// otherwise reach — it takes a tap — and it is where the bug lived that
+    /// made GRAPES look frozen, so it needs to be photographable.
+    private static func opensFiltersForScreenshot() -> Bool {
+        let args = ProcessInfo.processInfo.arguments
+        guard let flag = args.firstIndex(of: "-vinodexScreenshot"),
+              args.index(after: flag) < args.endIndex else { return false }
+        return args[args.index(after: flag)].hasSuffix(":filters")
+    }
+    #else
+    private static func opensFiltersForScreenshot() -> Bool { false }
+    #endif
     @State private var screens = ScreenStateStore.shared
     /// The three shelves, for the SAVED / WANTED / TRIED chips and for the
     /// tried border on a row (0.8.91, B1/B2).
