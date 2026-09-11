@@ -61,6 +61,12 @@ public struct RetroGlobeScreen: View {
     @State private var pinchAnchor: Double?
 
 
+    /// What a scene rebuild is keyed on — the screen mode, the skin and the
+    /// texture are all baked in `buildScene`, so each has to force one.
+    private var sceneKey: String {
+        "\(lcd.rawValue)|\(skin.rawValue)|\(globeTexture.stem)"
+    }
+
     /// The globe viewport's width over its height. On a portrait screen the
     /// horizontal field is the narrow one, so the fit has to know this or
     /// every wide country loses its coasts.
@@ -160,7 +166,7 @@ public struct RetroGlobeScreen: View {
                         // other two are in it: it is baked in `buildScene`,
                         // so flipping the switch has to rebuild the view to
                         // be seen at all.
-                        .id("\(lcd.rawValue)|\(skin.rawValue)|\(globeTexture.stem)")
+                        .id(sceneKey)
 
                     // The drag rides an explicit clear hit-shape rather than
                     // the representable (0.9.51 fix): the SCNView disables its
@@ -319,6 +325,15 @@ public struct RetroGlobeScreen: View {
             // negotiate with and the drag below is simply this screen's own.
         }
         .onChange(of: freezesGlobe) { _, frozen in model.autoSpins = !frozen }
+        // The scene is rebuilt from scratch on a mode, skin or texture change
+        // (see the `.id` on `GlobeSceneView`), which takes the region map with
+        // it. Re-laid here, so changing the screen colour while reading a map
+        // does not empty it.
+        .onChange(of: sceneKey) { _, _ in
+            guard let country = regionTier, let atlas = RegionAtlas.of(country) else { return }
+            model.showRegions(atlas.map, image: atlas.base, backdrop: atlas.backdrop)
+            if let stem = selectedRegion { model.popRegion(atlas.cutout(stem)) }
+        }
         .onChange(of: voiceOver) { _, on in if on { showsList = true } }
         .onDisappear {
             model.stop()
@@ -947,14 +962,25 @@ public struct RetroGlobeScreen: View {
 
     // MARK: Drag
 
+    /// **The region map does not move** (0.9.56, maintainer order). A country
+    /// is flown to and framed to fit; dragging from there only ever slid the
+    /// subject off the glass, and at this magnification a small drag throws it
+    /// a long way. The tier above keeps its drag — the whole globe is a thing
+    /// you turn.
     private var dragGesture: some Gesture {
         DragGesture(minimumDistance: 4)
             // `value.time` is threaded through so the throw that carries the
             // globe after the finger lifts is measured in points per *second*
             // rather than points per touch-event — those are not the same
             // number on a 120Hz panel. (AUDIT M11)
-            .onChanged { value in model.drag(translation: value.translation, at: value.time) }
-            .onEnded { _ in model.endDrag() }
+            .onChanged { value in
+                guard regionTier == nil else { return }
+                model.drag(translation: value.translation, at: value.time)
+            }
+            .onEnded { _ in
+                guard regionTier == nil else { return }
+                model.endDrag()
+            }
     }
 }
 
@@ -1650,7 +1676,13 @@ final class GlobeModel {
               let hit = view.hitTest(point, options: [
                   .boundingBoxOnly: false,
                   .searchMode: SCNHitTestSearchMode.all.rawValue,
-              ]).first(where: { $0.node === node || $0.node === regionPopNode })
+              // **The map, and only the map.** The raised region rides a copy
+              // of this mesh 2.2% further out, so a ray meets it at a
+              // different coordinate than it meets the map — and being nearer
+              // the camera it was hit FIRST, so every tap resolved against the
+              // raised shell and landed a region or two off. It was answering
+              // UMBRIA for the middle of LAZIO.
+              ]).first(where: { $0.node === node })
         else { return nil }
         let uv = hit.textureCoordinates(withMappingChannel: 0)
         return CGPoint(x: CGFloat(uv.x) * artSize.width,
@@ -1801,6 +1833,15 @@ final class GlobeModel {
         sphere.materials = [material]
         globeNode = SCNNode(geometry: sphere)
         scene.rootNode.addChildNode(globeNode)
+        // **The region patch was parented to the globe that just went.**
+        // `buildScene` runs again whenever the screen mode, skin or texture
+        // changes, and it builds a fresh `globeNode` — so the map, its backdrop
+        // and the raised region are all detached, while these references went on
+        // claiming they were on screen. The screen watches the same key and
+        // lays the map down again; this makes the model honest in the meantime.
+        regionNode = nil
+        regionUnderNode = nil
+        regionPopNode = nil
 
         // Wireframe shell just outside it.
         let wire = SCNSphere(radius: CGFloat(Self.globeRadius + 0.04))
