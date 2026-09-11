@@ -656,6 +656,9 @@ struct RootView: View {
         // it with that region already chosen, which `RegionMapScreen` reads
         // for itself. The simulator cannot be sent a tap, so without the
         // three-part form the tiles could only be photographed empty.
+        // `globe@<lon>,<lat>` is the globe too — the screen reads the
+        // coordinate for itself and probes a tap there.
+        if name.hasPrefix("globe@") { return [.globe] }
         if name.hasPrefix("map:") {
             let parts = name.split(separator: ":")
             if parts.count >= 2 {

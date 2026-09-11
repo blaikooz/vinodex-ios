@@ -42,6 +42,8 @@ public struct RetroGlobeScreen: View {
     /// region map — the prototype's two-tier gesture, which is why this is
     /// state rather than a transient highlight.
     @State private var pickedCountry: GlobeIndex.Country?
+    /// The globe viewport's size, so the debug probe below can tap its centre.
+    @State private var globeSize: CGSize = .zero
     /// The eight stored settings, as one model (arch **A17**).
     var settings: AppSettings = .shared
     private var lcd: LcdMode { settings.lcdMode }
@@ -137,10 +139,14 @@ public struct RetroGlobeScreen: View {
                     // a non-interactive representable. The tap is layered on
                     // the same shape, and a drag that starts moving wins, so
                     // spinning the globe never selects a country.
-                    Color.clear
-                        .contentShape(Rectangle())
-                        .gesture(dragGesture)
-                        .onTapGesture { point in pick(at: point) }
+                    GeometryReader { geo in
+                        Color.clear
+                            .contentShape(Rectangle())
+                            .gesture(dragGesture)
+                            .onTapGesture { point in pick(at: point) }
+                            .onAppear { globeSize = geo.size }
+                            .onChange(of: geo.size) { _, new in globeSize = new }
+                    }
 
                     // **The instrument panel** (0.9.55), after the Globe Scan
                     // prototype: the readout sits on the glass rather than
@@ -203,6 +209,9 @@ public struct RetroGlobeScreen: View {
         }
         .onAppear {
             model.autoSpins = !freezesGlobe
+            #if DEBUG
+            runProbeIfAsked()
+            #endif
             // Opened straight onto the list under VoiceOver rather than onto a
             // sphere with nothing on it to focus. Not forced — the toggle still
             // works both ways, because someone may well want to explore the
@@ -220,6 +229,32 @@ public struct RetroGlobeScreen: View {
             model.stop()
         }
     }
+
+    #if DEBUG
+    /// **A tap the simulator cannot send.** `-vinodexScreenshot globe@<lon>,<lat>`
+    /// turns the globe to a coordinate, lets it arrive, then picks the centre
+    /// of the viewport — which is that coordinate if, and only if, the whole
+    /// chain agrees: the orientation maths, SceneKit's texture wrap, and the
+    /// index raster. The HUD then names what it found, and a screenshot says
+    /// whether it is right. It is the only way to test this without a finger.
+    private func runProbeIfAsked() {
+        let args = ProcessInfo.processInfo.arguments
+        guard let flag = args.firstIndex(of: "-vinodexScreenshot"),
+              args.index(after: flag) < args.endIndex else { return }
+        let name = args[args.index(after: flag)]
+        guard name.hasPrefix("globe@") else { return }
+        let parts = name.dropFirst("globe@".count).split(separator: ",")
+        guard parts.count == 2, let lon = Double(parts[0]), let lat = Double(parts[1]) else { return }
+
+        model.autoSpins = false
+        model.focus(lon: lon, lat: lat, zoom: 1)
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            guard globeSize != .zero else { return }
+            pick(at: CGPoint(x: globeSize.width / 2, y: globeSize.height / 2))
+        }
+    }
+    #endif
 
     /// A tap on the sphere. The first names the country; a second on the same
     /// one opens its region map, which is the prototype's two-tier gesture.
@@ -242,6 +277,12 @@ public struct RetroGlobeScreen: View {
             return
         }
         Haptics.select()
+        // **The drift stops when a country is chosen** (maintainer order).
+        // A globe that keeps turning under a selected country carries it off
+        // the glass, and the second tap then lands on its neighbour. Spinning
+        // resumes only by leaving and coming back, which is the one moment
+        // nobody is aiming at anything.
+        model.autoSpins = false
         withAnimation(DexMotion.settle) { pickedCountry = hit }
         // **The globe comes to the country.** Turning it until the country
         // faces the camera and moving in is what makes the first tap feel
@@ -853,18 +894,32 @@ final class GlobeModel {
               ]).first(where: { $0.node === globeNode })
         else { return nil }
 
-        // Local coordinates on the sphere, inverted back through the same
-        // formula `latLngToVector3` uses forwards.
-        let p = hit.localCoordinates
-        let r = Double(Self.globeRadius)
-        let lat = 90 - acos(max(-1, min(1, Double(p.y) / r))) * 180 / .pi
-        let lng = atan2(Double(p.z), -Double(p.x)) * 180 / .pi - 180
-        let lon = lng < -180 ? lng + 360 : (lng > 180 ? lng - 360 : lng)
+        // **The texture coordinate, from SceneKit itself.** Inverting
+        // `latLngToVector3` gave a lon/lat that was self-consistent and still
+        // wrong, because what matters is not where the point is in the
+        // sphere's own maths but which texel of the wrapped image sits there
+        // — and the index raster is aligned to the texture, not to the
+        // marker formula. SceneKit already computed that UV to draw the
+        // pixel; asking for it is the one answer that cannot disagree with
+        // what is on screen.
+        let uv = hit.textureCoordinates(withMappingChannel: 0)
+        let u = Double(uv.x) - floor(Double(uv.x))          // wrapped, not clamped
+        // **Flipped.** SceneKit hands back texture coordinates with v rising
+        // from the BOTTOM of the image, while the raster's first row is the
+        // north pole. Unflipped, a tap on Italy at 42.5N looked up 42.5S —
+        // open ocean — and every tap on the northern hemisphere resolved to
+        // nothing while the readout cheerfully named the right coordinate.
+        let v = 1 - min(max(Double(uv.y), 0), 1)
 
-        let cell = GlobeIndex.cell(lon: lon, lat: lat, width: atlas.w, height: atlas.h)
-        let value = Int(atlas.cells[cell.y * atlas.w + cell.x])
+        let x = min(atlas.w - 1, Int(u * Double(atlas.w)))
+        let y = min(atlas.h - 1, Int(v * Double(atlas.h)))
+        let value = Int(atlas.cells[y * atlas.w + x])
+
+        // Degrees for the HUD and the fly-to, read off the same UV so the
+        // readout can never name one place while the tap resolves another.
+        lastHit = (lon: u * 360 - 180, lat: 90 - v * 180)
+
         guard value != 0, let found = atlas.index.country(id: value) else { return nil }
-        lastHit = (lon, lat)
         return found
     }
     private var wireNode = SCNNode()
