@@ -463,7 +463,7 @@ public struct RetroGlobeScreen: View {
         // **Painted onto the sphere, in place.** Not a panel over the globe:
         // the country's regions appear where the country is, and moving in is
         // the same globe getting closer rather than a new screen arriving.
-        model.showRegions(atlas.map, image: atlas.base)
+        model.showRegions(atlas.map, image: atlas.base, backdrop: atlas.backdrop)
         let b = atlas.map.subjectBounds
         model.focus(lon: (b.west + b.east) / 2,
                     lat: (b.south + b.north) / 2,
@@ -719,13 +719,27 @@ public struct RetroGlobeScreen: View {
     private var globeHUD: some View {
         HStack {
             Spacer(minLength: 0)
+            // Its own dark ground: the readout is drawn over whatever the
+            // globe happens to be showing, and over a bright painted country
+            // it was unreadable. A plate under it costs nothing and means the
+            // one piece of text left on the glass can always be read.
             Text(facingText)
                 .font(DexFont.mono(14))
                 .foregroundStyle(lcd.subtext)
                 .lineLimit(1)
                 .monospacedDigit()
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(lcd.page.opacity(0.82))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 5)
+                        .strokeBorder(lcd.surfaceEdge.opacity(0.7), lineWidth: 1)
+                )
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 10)
         .padding(.top, 6)
         .frame(maxHeight: .infinity, alignment: .top)
         .allowsHitTesting(false)
@@ -1438,7 +1452,12 @@ final class GlobeModel {
     /// across, which is a coloured smudge at the magnification this tier uses.
     /// The patch carries the painted art at its own resolution instead, and
     /// costs one small geometry.
-    func showRegions(_ map: RegionMap, image: UIImage) {
+    /// `backdrop` is the opaque world the region art is drawn over. A
+    /// parameter rather than a property: it was a property for one build, and
+    /// `showRegions` opens by calling `hideRegions`, which cleared it — so the
+    /// value the caller had just set was gone by the line that read it, and the
+    /// underlay silently never drew. Passed in, there is no order to get wrong.
+    func showRegions(_ map: RegionMap, image: UIImage, backdrop: UIImage?) {
         hideRegions()
         let b = map.subjectBounds
         // Half a degree of margin: the subject rect is the country's own
@@ -1450,9 +1469,35 @@ final class GlobeModel {
 
         // Enough divisions that the patch follows the curve without a visible
         // facet at this tier's magnification, and few enough to stay free.
-        regionBounds = (west, east, south, north)
 
-        let geometry = patchGeometry(map: map, lift: 1.004)
+        // **The map's own backdrop goes under it.** The globe paints Italy in
+        // one flat bright colour at 2048x1024 — cells 14km across at this
+        // latitude — while the painted coastline is finer, so the globe's
+        // blockier Italy overhung the map and showed as a rim of its own
+        // colour: green around Italy, purple around Spain, tan around France.
+        // It read as the map bleeding onto its neighbours; it was the globe
+        // showing around the map. The backdrop is opaque and shares the art's
+        // canvas, projection and origin exactly, so laid underneath it there is
+        // no seam to mis-register and nothing of the globe left to show.
+        if let world = backdrop {
+            let underGeometry = patchGeometry(map: map, bounds: map.canvasBounds, lift: 1.002)
+            let under = SCNMaterial()
+            under.diffuse.contents = world
+            under.lightingModel = .constant
+            under.isDoubleSided = true
+            under.diffuse.magnificationFilter = .nearest
+            under.diffuse.minificationFilter = .nearest
+            under.diffuse.mipFilter = .none
+            under.diffuse.wrapS = .clamp
+            under.diffuse.wrapT = .clamp
+            underGeometry.materials = [under]
+            let underNode = SCNNode(geometry: underGeometry)
+            underNode.renderingOrder = 9
+            globeNode.addChildNode(underNode)
+            regionUnderNode = underNode
+        }
+
+        let geometry = patchGeometry(map: map, bounds: (west, east, south, north), lift: 1.004)
 
         let material = SCNMaterial()
         material.diffuse.contents = image
@@ -1460,8 +1505,17 @@ final class GlobeModel {
         // shading over the region colours turns a palette chosen for contrast
         // into a gradient that hides the smallest regions at the limb.
         material.lightingModel = .constant
+        // **Nearest in every direction, and no mipmaps.** The art is clean —
+        // zero partial-alpha pixels, zero surviving key colour — so the halo
+        // around every painted country came entirely from filtering: an opaque
+        // region colour averaged with the transparent black beside it gives a
+        // half-strength version of that colour, which then draws OVER the
+        // neighbouring country. That is why Spain bled purple and Italy bled
+        // green: each country was haloed in its own coastal region's colour.
+        // Mipmaps do the same averaging one level down, so they go too.
         material.diffuse.magnificationFilter = .nearest
-        material.diffuse.minificationFilter = .linear
+        material.diffuse.minificationFilter = .nearest
+        material.diffuse.mipFilter = .none
         material.diffuse.wrapS = .clamp
         material.diffuse.wrapT = .clamp
         material.isDoubleSided = true
@@ -1473,17 +1527,27 @@ final class GlobeModel {
         globeNode.addChildNode(node)
         regionNode = node
 
+        // **The graticule comes off while a map is up.** The wire shell sits at
+        // radius + 0.04 and the map at radius * 1.004, so the grid is nearer
+        // the camera and rules lines straight across the regions. It is scenery
+        // for a spinning globe; over a map of Tuscany it is just lines on the
+        // subject.
+        wireNode.isHidden = true
+
         // **The chosen region rides a copy of the mesh, further out.** Same
         // grid, same texel under every vertex, just a larger radius — so it
         // lifts off the country without any chance of sliding out of register
         // with the shape it was cut from. A drop shadow would have been the
         // flat-map way to say "raised"; on a sphere the honest way is to
         // actually raise it.
-        let popGeometry = patchGeometry(map: map, lift: Self.regionLift)
+        let popGeometry = patchGeometry(map: map, bounds: (west, east, south, north),
+                                        lift: Self.regionLift)
         let pop = SCNMaterial()
         pop.lightingModel = .constant
         pop.isDoubleSided = true
         pop.diffuse.magnificationFilter = .nearest
+        pop.diffuse.minificationFilter = .nearest
+        pop.diffuse.mipFilter = .none
         pop.diffuse.wrapS = .clamp
         pop.diffuse.wrapT = .clamp
         pop.diffuse.contents = UIColor.clear
@@ -1506,13 +1570,14 @@ final class GlobeModel {
     }
 
     private var regionPopNode: SCNNode?
-    /// The patch's own extent, so a second mesh can be built over the same
-    /// ground without the caller passing the bounds back in.
-    private var regionBounds: (west: Double, east: Double, south: Double, north: Double)?
+    private var regionUnderNode: SCNNode?
 
     /// The lat/lon mesh the region tier is drawn on, at a given radius.
-    private func patchGeometry(map: RegionMap, lift: Double) -> SCNGeometry {
-        guard let b = regionBounds else { return SCNGeometry() }
+    private func patchGeometry(
+        map: RegionMap,
+        bounds b: (west: Double, east: Double, south: Double, north: Double),
+        lift: Double
+    ) -> SCNGeometry {
         // Enough divisions that the patch follows the curve without a visible
         // facet at this tier's magnification, and few enough to stay free.
         let cols = 72, rows = 72
@@ -1565,11 +1630,13 @@ final class GlobeModel {
     }
 
     func hideRegions() {
+        wireNode.isHidden = false
+        regionUnderNode?.removeFromParentNode()
+        regionUnderNode = nil
         regionNode?.removeFromParentNode()
         regionNode = nil
         regionPopNode?.removeFromParentNode()
         regionPopNode = nil
-        regionBounds = nil
     }
 
     /// Where a tap landed on the region patch, in the art's own pixel space,

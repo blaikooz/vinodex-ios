@@ -116,6 +116,17 @@ public struct RegionMap: Sendable {
         return (x, y)
     }
 
+    /// The whole canvas's extent in degrees — sea, shelf and neighbours
+    /// included, not just the country. The globe draws the backdrop over this,
+    /// which is what keeps its own coarse country fill from showing around a
+    /// finer painted coastline.
+    public var canvasBounds: (west: Double, east: Double, south: Double, north: Double) {
+        let topLeft = coordinate(atCanvas: 0, 0)
+        let bottomRight = coordinate(atCanvas: Double(canvas.w), Double(canvas.h))
+        return (west: topLeft.lon, east: bottomRight.lon,
+                south: bottomRight.lat, north: topLeft.lat)
+    }
+
     /// The country's own extent in degrees, from `subject_rect` — the corners
     /// of the painted country rather than of the whole canvas, which is
     /// mostly sea and neighbours.
