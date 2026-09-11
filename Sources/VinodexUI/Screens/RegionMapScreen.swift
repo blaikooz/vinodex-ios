@@ -50,6 +50,13 @@ public struct RegionMapScreen: View {
     @State private var bookmarks = BookmarkStore.shared
     /// The painted area under the last tap, or nil for the whole country.
     @State private var selected: String?
+    /// Where the last tap landed, in real degrees, for the HUD readout.
+    @State private var coordinate: (lon: Double, lat: Double)?
+    /// The HUD's magnification bank — 1x, 2x, 4x, as the globe prototype
+    /// wears it. The map is drawn at `scale * zoom` and stays centred on the
+    /// chosen region, so zooming is what makes the small areas aimable rather
+    /// than merely visible.
+    @State private var zoom: CGFloat = 1
     let onSelectRegion: (WineEntry) -> Void
 
     public init(
@@ -114,18 +121,125 @@ public struct RegionMapScreen: View {
         .animation(DexMotion.settle, value: selected)
     }
 
+    /// **The map as an instrument panel**, after the Globe Scan prototype:
+    /// a square LCD with the readout laid over the picture rather than
+    /// printed under it, scanlines on the glass, and a magnification bank.
     private func mapSection(_ atlas: RegionAtlas) -> some View {
         DexSection("REGION MAP", symbol: "map.fill") {
-            VStack(alignment: .leading, spacing: 8) {
-                mapCard(atlas)
-                    .frame(height: Self.mapHeight)
-                Text(selected == nil
-                     ? "Tap anywhere in \(country). Every tap lands on a region — the nearest one, if you miss the small ones. The sea and its neighbours do nothing."
-                     : "Tap again to choose another region.")
-                    .font(DexFont.mono(16))
-                    .foregroundStyle(lcd.subtext)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(spacing: 8) {
+                ZStack {
+                    mapCard(atlas)
+                    mapScanlines
+                    hud(atlas)
+                }
+                .frame(height: Self.mapHeight)
+                .background(lcd.screen)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .strokeBorder(lcd.surfaceEdge, lineWidth: 1)
+                )
+
+                zoomBank
+            }
+        }
+    }
+
+    /// Glass, not a filter. `ScanlineOverlay` is the chassis's own and lays
+    /// 50% black over everything — right for the LCD, far too heavy here,
+    /// and doubling up with the scanlines the LCD already has underneath. A
+    /// hairline at 7% every four points is what the prototype uses and is
+    /// enough to read as glass without taking the map's colours down with it.
+    private var mapScanlines: some View {
+        Canvas { context, size in
+            var y: CGFloat = 0
+            while y < size.height {
+                context.fill(
+                    Path(CGRect(x: 0, y: y, width: size.width, height: 1)),
+                    with: .color(.black.opacity(0.07))
+                )
+                y += 4
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    /// Top row names the tier and the coordinate under the last tap; bottom
+    /// row carries the instruction and the magnification. Both sit on a scrim
+    /// so they stay legible over sea or over Sicily.
+    private func hud(_ atlas: RegionAtlas) -> some View {
+        VStack(spacing: 0) {
+            hudRow(
+                leading: selected.map(atlas.map.displayName) ?? country.uppercased(),
+                trailing: coordinateText,
+                top: true
+            )
+            Spacer(minLength: 0)
+            hudRow(
+                leading: selected == nil ? "TAP A REGION" : "TAP AGAIN TO CHANGE",
+                trailing: zoom == 1 ? "1X" : (zoom == 2 ? "2X" : "4X"),
+                top: false
+            )
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func hudRow(leading: String, trailing: String, top: Bool) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(leading)
+                .font(DexFont.retro(11))
+                .tracking(1)
+                .foregroundStyle(top ? lcd.accent : lcd.subtext)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Spacer(minLength: 8)
+            Text(trailing)
+                .font(DexFont.mono(14))
+                .foregroundStyle(top ? lcd.subtext : lcd.accent)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(
+            LinearGradient(
+                colors: top
+                    ? [lcd.page.opacity(0.85), .clear]
+                    : [.clear, lcd.page.opacity(0.85)],
+                startPoint: .top, endPoint: .bottom
+            )
+        )
+    }
+
+    /// Degrees under the last tap, in the readout the prototype uses.
+    /// Hemispheres rather than signs: a wine map is read by people, and
+    /// "44.8N 0.6W" is Bordeaux where "-0.6" is arithmetic.
+    private var coordinateText: String {
+        guard let c = coordinate else { return "--" }
+        let ns = c.lat >= 0 ? "N" : "S"
+        let ew = c.lon >= 0 ? "E" : "W"
+        return String(format: "%.1f°%@ %.1f°%@", abs(c.lat), ns, abs(c.lon), ew)
+    }
+
+    private var zoomBank: some View {
+        HStack(spacing: 6) {
+            ForEach([CGFloat(1), 2, 4], id: \.self) { step in
+                Button {
+                    Haptics.select()
+                    withAnimation(DexMotion.settle) { zoom = step }
+                } label: {
+                    Text(step == 1 ? "1X" : (step == 2 ? "2X" : "4X"))
+                        .font(DexFont.retro(11))
+                        .tracking(1)
+                        .foregroundStyle(zoom == step ? lcd.onAccent : lcd.subtext)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                        .background(
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(zoom == step ? lcd.accent : lcd.surface)
+                        )
+                }
+                .buttonStyle(DexPressStyle(scale: 0.97))
+                .accessibilityLabel("Zoom \(Int(step)) times")
             }
         }
     }
@@ -167,14 +281,31 @@ public struct RegionMapScreen: View {
                 // case matters — choosing another region without going back
                 // is the point of the band, and a France cropped top and
                 // bottom hides Champagne and Languedoc from the next tap.
-                let scale = min(
+                let fit = min(
                     (geo.size.width - inset * 2) / (CGFloat(fr.w) * art.width),
                     (geo.size.height - inset * 2) / (CGFloat(fr.h) * art.height)
                 )
+                // Magnified about whatever is chosen, so 4x on Valle d'Aosta
+                // puts Valle d'Aosta under the finger rather than somewhere
+                // off the glass.
+                //
+                // **Only when magnified.** At 1x the whole country fits, so
+                // centring on a region instead would shove the country to one
+                // side of the glass to no purpose — which is exactly what it
+                // did on the first cut, with France pressed against the right
+                // edge and the Atlantic taking the rest.
+                let scale = fit * zoom
+                let middle = (x: fr.x + fr.w / 2, y: fr.y + fr.h / 2)
+                let focus = zoom > 1
+                    ? (selected
+                        .flatMap { stem in atlas.map.regions.first { $0.id == stem } }
+                        .map { (x: $0.button.x, y: $0.button.y) } ?? middle)
+                    : middle
                 let fitted = CGSize(width: art.width * scale, height: art.height * scale)
-                // Centre France in the viewport, not the canvas.
-                let ox = geo.size.width / 2 - (CGFloat(fr.x + fr.w / 2) * fitted.width)
-                let oy = geo.size.height / 2 - (CGFloat(fr.y + fr.h / 2) * fitted.height)
+                // Centred on the focus — the country at rest, the chosen
+                // region once there is one.
+                let ox = geo.size.width / 2 - (CGFloat(focus.x) * fitted.width)
+                let oy = geo.size.height / 2 - (CGFloat(focus.y) * fitted.height)
 
                 // **Unpinned** (maintainer order). The markers were the size
                 // the renderer proves collision-free, and at phone width they
@@ -238,6 +369,10 @@ public struct RegionMapScreen: View {
                     // neighbour. Do nothing rather than reaching for whatever
                     // region is least far, which is what the backdrop buys
                     // beyond atmosphere.
+                    // The readout answers every tap, including the ones that
+                    // resolve to no region: "where did I just touch" is a
+                    // fair question over open sea too.
+                    coordinate = atlas.coordinate(atArt: inArt)
                     if let stem = atlas.region(atX: inArt) {
                         Haptics.select()
                         withAnimation(DexMotion.settle) { selected = stem }
@@ -546,6 +681,13 @@ final class RegionAtlas {
               let art = UIImage(contentsOfFile: url.path) else { return nil }
         details[stem] = art
         return art
+    }
+
+    /// The real coordinate under a point in base-art space, for the HUD.
+    /// Art space is `export_scale` times the canvas the projection speaks in.
+    func coordinate(atArt point: CGPoint) -> (lon: Double, lat: Double) {
+        map.coordinate(atCanvas: Double(point.x) / Double(exportScaleI),
+                       Double(point.y) / Double(exportScaleI))
     }
 
     /// The region at a point in **base-art space**, or the nearest one

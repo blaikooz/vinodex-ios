@@ -89,6 +89,24 @@ public struct RegionMap: Sendable {
     /// screen and take every tap target down with it.
     public let subjectRect: (x: Double, y: Double, w: Double, h: Double)
 
+    /// Turns a canvas cell back into a real coordinate, for the HUD readout.
+    ///
+    /// **The manifest's own projection, never a reimplementation** — contract
+    /// 2 of the drop's audit. The renderer publishes `origin`, `scale` and
+    /// the longitude `x_factor` precisely so the app does not carry a second
+    /// set of constants that can drift from the first without anything
+    /// saying so. This inverts the note the manifest itself prints:
+    /// `canvas_x = (lon*x_factor - origin[0])*scale + 2`.
+    public func coordinate(atCanvas x: Double, _ y: Double) -> (lon: Double, lat: Double) {
+        let lon = ((x - 2) / projScale + projOrigin.0) / projXFactor
+        let lat = -((y - 2) / projScale + projOrigin.1)
+        return (lon, lat)
+    }
+
+    private let projOrigin: (Double, Double)
+    private let projScale: Double
+    private let projXFactor: Double
+
     /// Names for all 85 painted areas across the seven countries.
     ///
     /// The stems are lowercase art names and the app writes region names in
@@ -251,6 +269,10 @@ public struct RegionMap: Sendable {
         self.byIndex = byIndex
         self.byStem = idx.byStem
         self.canvas = (man.base.canvas.first ?? 0, man.base.canvas.last ?? 0)
+        let pr = man.projection
+        self.projOrigin = (pr.origin.first ?? 0, pr.origin.last ?? 0)
+        self.projScale = pr.scale
+        self.projXFactor = pr.x_factor
         let r = man.base.subject_rect
         self.subjectRect = r.count == 4 ? (r[0], r[1], r[2], r[3]) : (0, 0, 1, 1)
     }
@@ -268,7 +290,13 @@ public struct RegionMap: Sendable {
             let button: [Double]
             let detail: Detail?
         }
+        struct Projection: Decodable {
+            let origin: [Double]
+            let scale: Double
+            let x_factor: Double
+        }
         let base: Base
+        let projection: Projection
         let regions: [String: Entry]
     }
 
