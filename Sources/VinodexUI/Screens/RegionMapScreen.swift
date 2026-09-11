@@ -665,6 +665,40 @@ final class RegionAtlas {
         self.slot = slots
     }
 
+    /// **A white stencil of one region**, for lighting it up on the globe.
+    ///
+    /// Drawn from the index raster rather than by matching the art's colours:
+    /// the raster already says which cell belongs to which region, and colour
+    /// matching is the thing the index exists to replace. Canvas resolution,
+    /// not the 5x export — it is a soft glow laid over art that carries the
+    /// detail, so the extra twenty-five times the pixels would buy nothing.
+    func highlight(_ stem: String) -> UIImage? {
+        if let hit = highlights[stem] { return hit }
+        guard let region = map.regions.first(where: { $0.id == stem }) else { return nil }
+        let want = UInt8(clamping: region.index)
+        var rgba = [UInt8](repeating: 0, count: w * h * 4)
+        for i in 0..<(w * h) where cells[i] == want {
+            rgba[i * 4 + 0] = 255
+            rgba[i * 4 + 1] = 255
+            rgba[i * 4 + 2] = 255
+            rgba[i * 4 + 3] = 150
+        }
+        var image: UIImage?
+        rgba.withUnsafeMutableBytes { buf in
+            guard let ctx = CGContext(
+                data: buf.baseAddress, width: w, height: h,
+                bitsPerComponent: 8, bytesPerRow: w * 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ), let cg = ctx.makeImage() else { return }
+            image = UIImage(cgImage: cg)
+        }
+        if let image { highlights[stem] = image }
+        return image
+    }
+
+    private var highlights: [String: UIImage] = [:]
+
     private static func url(_ key: String, _ name: String, _ ext: String) -> URL? {
         // `Bundle.module` directly rather than through `DexAsset`: adding a
         // case there would enlist `DexAssetAudit` to police this directory,

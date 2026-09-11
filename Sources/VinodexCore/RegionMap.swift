@@ -103,6 +103,31 @@ public struct RegionMap: Sendable {
         return (lon, lat)
     }
 
+    /// The same projection the other way — a coordinate to a canvas cell.
+    ///
+    /// The globe needs this one: to lay a country's painted regions onto the
+    /// sphere, each vertex of the patch knows its own longitude and latitude
+    /// and has to find the texel that belongs there. It is the manifest's
+    /// printed formula applied forwards, so the two directions cannot drift
+    /// apart the way a second hand-written constant would.
+    public func canvas(atLon lon: Double, lat: Double) -> (x: Double, y: Double) {
+        let x = (lon * projXFactor - projOrigin.0) * projScale + 2
+        let y = (-lat - projOrigin.1) * projScale + 2
+        return (x, y)
+    }
+
+    /// The country's own extent in degrees, from `subject_rect` — the corners
+    /// of the painted country rather than of the whole canvas, which is
+    /// mostly sea and neighbours.
+    public var subjectBounds: (west: Double, east: Double, south: Double, north: Double) {
+        let x0 = subjectRect.x * Double(canvas.w), x1 = (subjectRect.x + subjectRect.w) * Double(canvas.w)
+        let y0 = subjectRect.y * Double(canvas.h), y1 = (subjectRect.y + subjectRect.h) * Double(canvas.h)
+        let topLeft = coordinate(atCanvas: x0, y0)
+        let bottomRight = coordinate(atCanvas: x1, y1)
+        return (west: topLeft.lon, east: bottomRight.lon,
+                south: bottomRight.lat, north: topLeft.lat)
+    }
+
     private let projOrigin: (Double, Double)
     private let projScale: Double
     private let projXFactor: Double
