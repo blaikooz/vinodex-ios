@@ -210,6 +210,13 @@ public struct RetroGlobeScreen: View {
                     if !showsList {
                         globeScanlines
                         globeHUD
+                        // **The tile floats on the glass, not below it.** Laid
+                        // over the whole screen it covered the continent
+                        // toggle — the non-globe path, which is the one route
+                        // through this screen that does not require aiming at
+                        // a moving sphere, so burying it was the one thing
+                        // this layout could not afford to do.
+                        floatingTile
                     }
                 }
                 // Hidden from assistive tech *before* the overlay is added, so
@@ -231,8 +238,14 @@ public struct RetroGlobeScreen: View {
                     }
                 }
 
+                // One row, two jobs: the continent toggle at the globe, the
+                // way back at the region tier. Same slot and same height, so
+                // descending a tier does not move the controls under the
+                // finger that got you there.
                 if regionTier == nil {
                     listToggle
+                } else {
+                    globeBackButton
                 }
 
                 // Two lines, because the globe has two affordances and the
@@ -245,9 +258,7 @@ public struct RetroGlobeScreen: View {
                 // move under the finger that pressed it.
                 // The globe's own instructions moved onto the glass; what is
                 // left here speaks for the list, which has no HUD of its own.
-                if regionTier != nil {
-                    EmptyView()
-                } else if showsList {
+                if showsList {
                     VStack(spacing: 5) {
                         Text("PICK A CONTINENT")
                             .font(DexFont.retro(11))
@@ -265,11 +276,7 @@ public struct RetroGlobeScreen: View {
             }
             .padding(.vertical, 12)
 
-            // The region tier's own furniture — the way back and the tile for
-            // the region under the last tap. Everything else about that tier
-            // is drawn on the sphere.
-            countryTile
-            regionTierChrome
+
         }
         .onAppear {
             model.autoSpins = !freezesGlobe
@@ -325,6 +332,11 @@ public struct RetroGlobeScreen: View {
             switch tail.first {
             case "hold": taps = 0
             case "double": taps = 2
+            // Three: two to open the region tier, and a third that goes
+            // through `tappedRegion` and picks whatever region is under the
+            // middle of the glass — so the region hit test is exercised by the
+            // same entry point a finger uses, not stubbed past with a stem.
+            case "region": taps = 3
             default: break
             }
             if taps == 2, tail.count == 2 { probeStem = String(tail[1]) }
@@ -531,82 +543,88 @@ public struct RetroGlobeScreen: View {
     /// Top row names the tier and the coordinate the camera is looking at;
     /// bottom row carries the two affordances the globe has. Both on a scrim,
     /// so they stay legible over ocean and over ice alike.
-    /// **The region tier's furniture.** The map itself is on the globe, so
-    /// what is left here is the way back out and the tile for whichever
-    /// region was last tapped — the confirmation step between naming a place
-    /// and leaving the screen for its entry.
-    /// **The country under the last tap, as a tile you can take.** Naming a
-    /// country in the HUD says what you hit; the tile is what makes the tap
-    /// lead somewhere — the same shape the lists use, floating over the sphere.
+    /// **What floats on the glass.** One slot, whichever tier you are on: the
+    /// country you tapped, or the region you tapped inside it. Both are the
+    /// step between naming a place and leaving for its page, and both sit over
+    /// the sphere rather than under it — laid out below the globe they pushed
+    /// the continent toggle off the screen, and that toggle is the only route
+    /// through here that does not require aiming at a moving target.
     @ViewBuilder
-    private var countryTile: some View {
-        if regionTier == nil, let picked = pickedCountry {
-            Button {
-                Haptics.select()
-                onOpenCountry?(picked.admin)
-            } label: {
-                HStack(spacing: 12) {
-                    FlagSwatch(db: db, country: picked.admin, width: 54, height: 34)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(picked.label)
-                            .font(DexFont.retro(13))
-                            .foregroundStyle(lcd.text)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                        Text(picked.isMapped ? "\(picked.mapped) REGIONS" : "COUNTRY")
-                            .font(DexFont.retro(9))
-                            .tracking(1)
-                            .foregroundStyle(lcd.subtext)
-                    }
-                    Spacer(minLength: 8)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(lcd.subtext)
-                }
-                .padding(10)
-                .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
-                .overlay(RoundedRectangle(cornerRadius: 6)
-                    .strokeBorder(lcd.accent.opacity(0.5), lineWidth: 1))
-            }
-            .buttonStyle(DexPressStyle(scale: 0.98))
-            .padding(.horizontal, 14)
-            .padding(.bottom, 38)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-            .transition(.move(edge: .bottom).combined(with: .opacity))
-        }
-    }
-
-    @ViewBuilder
-    private var regionTierChrome: some View {
-        if let country = regionTier {
-            VStack(spacing: 10) {
-                Spacer(minLength: 0)
+    private var floatingTile: some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
+            if let country = regionTier {
                 if let stem = selectedRegion, let atlas = RegionAtlas.of(country) {
                     regionEntryCard(atlas, stem: stem)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                HStack {
-                    Button {
-                        closeRegions()
-                    } label: {
-                        Text("← GLOBE")
-                            .font(DexFont.retro(11))
-                            .tracking(1)
-                            .foregroundStyle(lcd.subtext)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(RoundedRectangle(cornerRadius: 5).fill(lcd.surface))
-                    }
-                    .buttonStyle(DexPressStyle(scale: 0.97))
-                    Spacer(minLength: 0)
-                }
+            } else if let picked = pickedCountry {
+                countryTile(picked)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-            .padding(.horizontal, 14)
-            // Clear of the HUD's bottom line, which is drawn on the glass and
-            // runs the full width — the way back sat directly on top of
-            // "21 REGIONS · TAP ONE" otherwise.
-            .padding(.bottom, 38)
         }
+        .padding(.horizontal, 12)
+        // Clear of the HUD's bottom line, which is drawn on the glass and runs
+        // the full width.
+        .padding(.bottom, 26)
+    }
+
+    /// The country under the last tap, as a tile you can take. Naming a country
+    /// in the HUD says what you hit; the tile is what makes the tap lead
+    /// somewhere — the same shape the lists use.
+    private func countryTile(_ picked: GlobeIndex.Country) -> some View {
+        Button {
+            Haptics.select()
+            onOpenCountry?(picked.admin)
+        } label: {
+            HStack(spacing: 12) {
+                FlagSwatch(db: db, country: picked.admin, width: 54, height: 34)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(picked.label)
+                        .font(DexFont.retro(13))
+                        .foregroundStyle(lcd.text)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    Text(picked.isMapped ? "\(picked.mapped) REGIONS" : "COUNTRY")
+                        .font(DexFont.retro(9))
+                        .tracking(1)
+                        .foregroundStyle(lcd.subtext)
+                }
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(lcd.subtext)
+            }
+            .padding(10)
+            .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
+            .overlay(RoundedRectangle(cornerRadius: 6)
+                .strokeBorder(lcd.accent.opacity(0.5), lineWidth: 1))
+        }
+        .buttonStyle(DexPressStyle(scale: 0.98))
+    }
+
+    /// The way back up to the globe, in the slot the continent toggle uses at
+    /// the tier above.
+    private var globeBackButton: some View {
+        Button {
+            closeRegions()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 12, weight: .bold))
+                Text("BACK TO THE GLOBE")
+                    .font(DexFont.retro(11))
+                    .tracking(2)
+            }
+            .foregroundStyle(lcd.subtext)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
+            .overlay(RoundedRectangle(cornerRadius: 6)
+                .strokeBorder(lcd.surfaceEdge, lineWidth: 2))
+        }
+        .buttonStyle(DexPressStyle(scale: 0.98))
+        .padding(.horizontal, 12)
     }
 
     /// The entries behind the chosen region. Compact, because it sits over a
