@@ -32,8 +32,30 @@ DEST = os.path.join(REPO, "Sources/VinodexUI/Resources/Maps")
 # The ground the wine countries sit on. Deliberately not black: the globe's
 # own material multiplies and re-tints, and a pure-black land mass renders as
 # a hole rather than as land in the lighter screen modes.
-SEA = (14, 22, 34)
-LAND = (58, 62, 70)
+SEA = (10, 16, 26)
+LAND = (52, 56, 64)
+# Every border and coastline, drawn where two index values meet. Dark rather
+# than light: on a sphere at 8x the outline is the only thing separating two
+# neighbouring fills, and a light line reads as a third country between them.
+OUTLINE = (6, 9, 16)
+
+# **The wine countries are drawn bright, and the app no longer tints them.**
+# `colorized` used to reduce this whole texture to luma and multiply it by the
+# screen tint, so thirty authored colours landed on one green and "which
+# countries can I tap" had no answer. With the tint gone these fills are what
+# reaches the glass, and the authored palette was chosen to sit UNDER that
+# tint — muted, because the tint was going to supply the light. Lifted toward
+# white so they carry themselves.
+def brighten(rgb):
+    # Lifted in HSV rather than blended toward white. Blending raises value and
+    # drops saturation together, which is why the first pass came out pastel:
+    # thirty washed colours are harder to tell apart than thirty muted ones.
+    # Raising value and holding saturation keeps them distinct AND bright.
+    import colorsys
+    h, s_, v = colorsys.rgb_to_hsv(*(c / 255 for c in rgb))
+    v = min(1.0, v * 2.05)
+    s_ = min(1.0, s_ * 1.18)
+    return tuple(int(round(c * 255)) for c in colorsys.hsv_to_rgb(h, s_, v))
 
 
 def main():
@@ -57,7 +79,7 @@ def main():
             continue
         mask = idx == value
         if value in known:
-            out[mask] = known[value]
+            out[mask] = brighten(known[value])
             painted += 1
         else:
             out[mask] = LAND
@@ -67,6 +89,18 @@ def main():
     for f in ("globe-index.png", "globe-meta.json"):
         shutil.copy(os.path.join(HERE, f), os.path.join(DEST, f))
         print(f"  {f}   verbatim (index + meta — data)")
+    # Outlines last, so they sit on top of every fill. A cell is a border when
+    # the cell to its right or below carries a different index — one pass, no
+    # neighbour search, and it catches coastlines and land borders alike
+    # because the sea is an index value too.
+    right = np.zeros_like(idx, dtype=bool)
+    down = np.zeros_like(idx, dtype=bool)
+    right[:, :-1] = idx[:, :-1] != idx[:, 1:]
+    down[:-1, :] = idx[:-1, :] != idx[1:, :]
+    edges = right | down
+    out[edges] = OUTLINE
+    print(f"  outlines   {edges.sum():,} cells")
+
     path = os.path.join(DEST, "globe-wine.png")
     Image.fromarray(out, "RGB").save(path, optimize=True)
     kb = os.path.getsize(path) / 1024

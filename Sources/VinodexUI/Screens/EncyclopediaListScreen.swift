@@ -428,6 +428,17 @@ public struct EncyclopediaListScreen: View {
             }
 
             if showsChips, !chipFacets.isEmpty {
+                // **Bounded, and scrolling inside its bound.** This strip is
+                // pinned above the list rather than inside it, so whatever
+                // height it takes comes straight out of the list's. GRAPES
+                // carries five facet rows and one of them (STYLE, ten values)
+                // wraps — unfolded they filled the glass, the list was left
+                // with nothing, and the screen read as frozen: the filter
+                // button "locked" it. `ChipFilterScreen` already solved this
+                // for its six facets in 0.5.9 — "they scroll in their own well
+                // under the bar rather than pushing the results off the
+                // device" — at the same 330pt. This is that, here.
+                ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 10) {
                     if chips.count > 0 {
                         Button {
@@ -452,12 +463,15 @@ public struct EncyclopediaListScreen: View {
                         chipRow(facet)
                     }
                 }
+                }
+                .frame(maxHeight: 330)
                 .transition(.opacity)
             }
         }
         .padding(.horizontal, 10)
         .padding(.top, 8)
     }
+
 
     /// The far-right filter toggle: the old FILTER row compressed to an icon
     /// with its active-count badge. The options open under the bar, pinned

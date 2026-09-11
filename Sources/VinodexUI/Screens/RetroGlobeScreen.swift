@@ -55,6 +55,10 @@ public struct RetroGlobeScreen: View {
     /// The region under the last tap at the region tier, named in the HUD and
     /// carrying the entry tile.
     @State private var selectedRegion: String?
+    /// The magnification a pinch started from. `MagnifyGesture` reports a
+    /// factor against the gesture's own start, not against the last frame, so
+    /// without an anchor each update would compound the one before it.
+    @State private var pinchAnchor: Double?
 
 
     /// The globe viewport's width over its height. On a portrait screen the
@@ -198,6 +202,24 @@ public struct RetroGlobeScreen: View {
                                 SpatialTapGesture()
                                     .onEnded { tapped(at: $0.location) }
                             )
+                            // **Pinch is the magnification control now**
+                            // (0.9.56). A slider spent the screen's whole
+                            // width reporting a number, on a screen whose
+                            // subject is a picture; two fingers say the same
+                            // thing and cost nothing. Simultaneous, like the
+                            // tap: a pinch and a drag can share a touch
+                            // sequence, and arbitration on this screen has
+                            // eaten every gesture that had to win one.
+                            .simultaneousGesture(
+                                MagnifyGesture()
+                                    .onChanged { value in
+                                        if pinchAnchor == nil { pinchAnchor = model.zoom }
+                                        let base = pinchAnchor ?? model.zoom
+                                        model.zoom = min(GlobeModel.maxZoom,
+                                                         max(1, base * value.magnification))
+                                    }
+                                    .onEnded { _ in pinchAnchor = nil }
+                            )
                             .onAppear { globeSize = geo.size }
                             .onChange(of: geo.size) { _, new in globeSize = new }
                     }
@@ -238,14 +260,15 @@ public struct RetroGlobeScreen: View {
                     }
                 }
 
-                // One row, two jobs: the continent toggle at the globe, the
-                // way back at the region tier. Same slot and same height, so
-                // descending a tier does not move the controls under the
-                // finger that got you there.
-                if regionTier == nil {
-                    listToggle
-                } else {
+                // **The continent list belongs to the whole globe only.** Once
+                // you have chosen a country the screen is about that country,
+                // and a button offering to swap the sphere for a list of
+                // continents is answering a question nobody is asking. The way
+                // back takes the same slot at the region tier.
+                if regionTier != nil {
                     globeBackButton
+                } else if pickedCountry == nil {
+                    listToggle
                 }
 
                 // Two lines, because the globe has two affordances and the
@@ -270,11 +293,12 @@ public struct RetroGlobeScreen: View {
                             .foregroundStyle(lcd.subtext)
                     }
                     .multilineTextAlignment(.center)
-                } else {
-                    globeZoomSlider
                 }
             }
-            .padding(.vertical, 12)
+            // **The glass runs to the chassis.** Twelve points of padding on a
+            // screen this size is a visible frame around a picture that wants
+            // to be the screen, and the sphere is the subject here.
+            .padding(.vertical, 2)
 
 
         }
@@ -563,10 +587,10 @@ public struct RetroGlobeScreen: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .padding(.horizontal, 12)
-        // Clear of the HUD's bottom line, which is drawn on the glass and runs
-        // the full width.
-        .padding(.bottom, 26)
+        .padding(.horizontal, 10)
+        // As low as the glass goes: the HUD's bottom line is gone, so there is
+        // nothing left down here to clear, and every point given back is map.
+        .padding(.bottom, 4)
     }
 
     /// The country under the last tap, as a tile you can take. Naming a country
@@ -575,32 +599,42 @@ public struct RetroGlobeScreen: View {
     private func countryTile(_ picked: GlobeIndex.Country) -> some View {
         Button {
             Haptics.select()
-            onOpenCountry?(picked.admin)
+            // **The catalog's spelling, not the atlas's.** Natural Earth
+            // calls it "United States of America" and the catalog files it
+            // under "USA"; it is the only one of the thirty that disagrees,
+            // and the country page opened empty for it.
+            onOpenCountry?(Self.catalogName(for: picked.admin))
         } label: {
             HStack(spacing: 12) {
-                FlagSwatch(db: db, country: picked.admin, width: 54, height: 34)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(picked.label)
-                        .font(DexFont.retro(13))
-                        .foregroundStyle(lcd.text)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                    Text(picked.isMapped ? "\(picked.mapped) REGIONS" : "COUNTRY")
-                        .font(DexFont.retro(10))
-                        .tracking(1)
-                        .foregroundStyle(lcd.subtext)
-                }
+                // The catalog's spelling here too — the flag is looked up by
+                // the same name the country page is, so "United States of
+                // America" drew an empty swatch beside a correct label.
+                FlagSwatch(db: db, country: Self.catalogName(for: picked.admin),
+                           width: 36, height: 23)
+                Text(picked.label)
+                    .font(DexFont.retro(12))
+                    .foregroundStyle(lcd.text)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                 Spacer(minLength: 8)
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(lcd.subtext)
             }
-            .padding(10)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
             .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
             .overlay(RoundedRectangle(cornerRadius: 6)
                 .strokeBorder(lcd.accent.opacity(0.5), lineWidth: 1))
         }
         .buttonStyle(DexPressStyle(scale: 0.98))
+    }
+
+    /// The atlas spells one country differently from the catalog. Checked
+    /// against all thirty: `United States of America` is the only mismatch, so
+    /// this is a correction rather than a mapping table waiting to grow.
+    static func catalogName(for admin: String) -> String {
+        admin == "United States of America" ? "USA" : admin
     }
 
     /// The way back up to the globe, in the slot the continent toggle uses at
@@ -631,13 +665,27 @@ public struct RetroGlobeScreen: View {
     /// globe the reader is still looking at — the full tile is what the entry
     /// page opens with.
     private func regionEntryCard(_ atlas: RegionAtlas, stem: String) -> some View {
-        let entries = atlas.map.regionIDs(for: stem).compactMap { db.entry(id: $0) }
+        // **The region itself, not the appellations inside it.** A painted
+        // area can carry several catalog entries — Veneto carries Veneto *and*
+        // Valpolicella, Sicily carries Sicily *and* Etna — and listing them
+        // together answers a question the tap did not ask: you pointed at
+        // Veneto. The one named after the region wins; where nothing matches by
+        // name the first mapped entry stands in, so a region still leads
+        // somewhere rather than reading as empty.
+        let all = atlas.map.regionIDs(for: stem).compactMap { db.entry(id: $0) }
+        let wanted = atlas.map.displayName(stem)
+        let entries = all
+            .first { $0.name.caseInsensitiveCompare(wanted) == .orderedSame }
+            .map { [$0] } ?? Array(all.prefix(1))
         return VStack(alignment: .leading, spacing: 8) {
-            Text(atlas.map.displayName(stem))
-                .font(DexFont.retro(12))
-                .tracking(1)
-                .foregroundStyle(lcd.accent)
+            // No name header: the tile under it already carries the region's
+            // name, and printing it twice cost a line of map for nothing. The
+            // empty case still needs words, so it keeps them.
             if entries.isEmpty {
+                Text(atlas.map.displayName(stem))
+                    .font(DexFont.retro(12))
+                    .tracking(1)
+                    .foregroundStyle(lcd.accent)
                 Text("NO CATALOG ENTRY HERE YET")
                     .font(DexFont.retro(10))
                     .tracking(1)
@@ -655,18 +703,31 @@ public struct RetroGlobeScreen: View {
                 }
             }
         }
-        .padding(10)
+        .padding(6)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
         .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(lcd.accent.opacity(0.5), lineWidth: 1))
     }
 
+    /// **The readout, and nothing else** (0.9.56, maintainer order).
+    ///
+    /// The name line went because the floating tile already carries it, and
+    /// the instruction line went because a sphere that turns under your finger
+    /// and lights up when you tap it does not need to be captioned. What is
+    /// left is where the camera is pointing, which is the one thing the
+    /// picture cannot say for itself.
     private var globeHUD: some View {
-        VStack(spacing: 0) {
-            hudRow(leading: hudTitle, trailing: facingText, top: true)
+        HStack {
             Spacer(minLength: 0)
-            hudRow(leading: hudHint, trailing: zoomLabel(model.zoom), top: false)
+            Text(facingText)
+                .font(DexFont.mono(14))
+                .foregroundStyle(lcd.subtext)
+                .lineLimit(1)
+                .monospacedDigit()
         }
+        .padding(.horizontal, 12)
+        .padding(.top, 6)
+        .frame(maxHeight: .infinity, alignment: .top)
         .allowsHitTesting(false)
     }
 
@@ -692,42 +753,6 @@ public struct RetroGlobeScreen: View {
                 startPoint: .top, endPoint: .bottom
             )
         )
-    }
-
-    /// What the bottom row says, which depends on what the last tap found.
-    private var hudHint: String {
-        if let country = regionTier, let atlas = RegionAtlas.of(country) {
-            let total = atlas.map.regions.count
-            guard let stem = selectedRegion,
-                  let n = atlas.map.regions.firstIndex(where: { $0.id == stem })
-            else { return "\(total) REGIONS · TAP ONE" }
-            return "REGION \(n + 1) OF \(total) · TAP THE TILE"
-        }
-        guard let picked = pickedCountry else { return "DRAG TO SPIN · TAP A COUNTRY" }
-        guard picked.isMapped else { return "NO REGION MAP FOR THIS ONE" }
-        if let atlas = RegionAtlas.of(picked.admin) {
-            return "\(atlas.map.regions.count) REGIONS · TAP AGAIN TO OPEN"
-        }
-        return "TAP AGAIN FOR ITS REGIONS"
-    }
-
-    /// The HUD's name line: the country, and the region once one is chosen —
-    /// "ITALY · EMILIA-ROMAGNA", as the prototype reads it.
-    private var hudTitle: String {
-        let country = regionTier ?? pickedCountry?.label ?? "GLOBE"
-        guard let stem = selectedRegion, let tier = regionTier,
-              let atlas = RegionAtlas.of(tier) else { return country.uppercased() }
-        return country.uppercased() + " · " + atlas.map.displayName(stem).uppercased()
-    }
-
-    /// The bank's steps are 1, 1.5 and 2, but tapping a country sets whatever
-    /// magnification fills the glass — so the readout has to say the number
-    /// rather than pick from three. It read "2X" at six for one commit.
-    private func zoomLabel(_ z: Double) -> String {
-        z < 1.05 ? "1X"
-            : (z.truncatingRemainder(dividingBy: 1) == 0
-               ? String(format: "%.0fX", z)
-               : String(format: "%.1fX", z))
     }
 
     /// Hemispheres rather than signs, and one decimal: this drifts as the
@@ -759,37 +784,6 @@ public struct RetroGlobeScreen: View {
 
     /// Moves the camera in rather than scaling the sphere, so the markers
     /// keep projecting through the same renderer they always did.
-    /// **Magnification as one continuous control** (0.9.55, maintainer order).
-    ///
-    /// Three preset buttons could not say where you were: tapping a country
-    /// sets whatever magnification fits it, so the bank spent most of its life
-    /// showing three unlit buttons next to a globe at 8.3x. A slider both
-    /// reports the current value and lets you leave it anywhere.
-    private var globeZoomSlider: some View {
-        HStack(spacing: 10) {
-            Text("ZOOM")
-                .font(DexFont.retro(10))
-                .tracking(2)
-                .foregroundStyle(lcd.subtext)
-            Slider(
-                value: Binding(
-                    get: { model.zoom },
-                    set: { model.zoom = $0 }
-                ),
-                in: 1...GlobeModel.maxZoom
-            )
-            .tint(lcd.accent)
-            .accessibilityLabel("Globe magnification")
-            .accessibilityValue(zoomLabel(model.zoom))
-            Text(zoomLabel(model.zoom))
-                .font(DexFont.mono(13))
-                .foregroundStyle(lcd.accent)
-                .frame(width: 46, alignment: .trailing)
-                .monospacedDigit()
-        }
-        .padding(.horizontal, 14)
-    }
-
     // MARK: Continent list (the non-globe path)
 
     /// Switches between the sphere and the list. Sized to the 44pt minimum
@@ -1056,7 +1050,7 @@ final class GlobeModel {
     private static let maxPitch: Double = 1.0
     private static let globeRadius: Double = 1.05
     /// Was `-0.0032` per frame: the same rotation, stated per second.
-    private static let autoSpinRate: Double = -0.0032 * dampingReferenceRate
+    private static let autoSpinRate: Double = -0.0016 * dampingReferenceRate
     /// A frame delta longer than this is a stall, not a slow frame — a
     /// backgrounded app or a blocked main thread returning after half a second
     /// would otherwise snap the globe a third of a turn. Clamped, the worst
@@ -1098,7 +1092,7 @@ final class GlobeModel {
     /// a first-class way to pick one, and the marker plates hide well before
     /// the limb anyway (`frontFacingThreshold`). At 3.45 the sphere is ~14%
     /// wider on screen and the plates still clear each other.
-    static let cameraDistance: Double = 3.45
+    static let cameraDistance: Double = 2.95
     /// Markers hide well before the limb so they never straddle the edge.
     private static let frontFacingThreshold: Double = 0.55
 
@@ -1707,8 +1701,20 @@ final class GlobeModel {
             // the tint rode for two releases without ever visibly reaching the
             // device: under the physically-based lighting model that layer is
             // quietly ignored on hardware.
-            let base = invertsTexture ? Self.inverted(image) ?? image : image
-            material.diffuse.contents = Self.colorized(base, with: tint) ?? base
+            // **The wine globe keeps its own palette.** `colorized` reduces to
+            // luma and multiplies by the screen tint, which is right for the
+            // coastline texture — one neon line on black, whose colour is the
+            // mode's to choose. It is exactly wrong here: thirty countries
+            // authored in thirty distinct colours all collapse to the same
+            // green, and "which countries can I tap" becomes unanswerable.
+            // The wine texture is a map, not a monochrome overlay, so it wears
+            // the colours it was drawn in.
+            if texture == .wine {
+                material.diffuse.contents = image
+            } else {
+                let base = invertsTexture ? Self.inverted(image) ?? image : image
+                material.diffuse.contents = Self.colorized(base, with: tint) ?? base
+            }
         } else {
             material.diffuse.contents = tint
         }
@@ -1722,7 +1728,9 @@ final class GlobeModel {
         // rather than the old fixed bottle green: the glow has to be the same
         // colour as the thing glowing.
         material.emission.contents = Self.shaded(tint, isLight ? 0.20 : 0.14)
-        material.emission.intensity = isLight ? 0.08 : 0.3
+        // The wine map carries its own brightness; the glow that makes a
+        // single neon coastline readable only washes thirty colours together.
+        material.emission.intensity = texture == .wine ? 0.04 : (isLight ? 0.08 : 0.3)
         sphere.materials = [material]
         globeNode = SCNNode(geometry: sphere)
         scene.rootNode.addChildNode(globeNode)
