@@ -13,14 +13,14 @@ already inverts and re-tints its texture per screen mode
 2-megapixel image to do something that never changes would be paying every
 frame for a constant.
 
-WHAT IS NOT INSTALLED: `globe-index.png` itself. Tapping the globe to pick a
-country is the prototype's real interaction and AUDIT §5 is explicit that it
-has never run outside a desktop browser — per-pixel un-projection at 60fps on
-a phone being exactly the kind of thing that is fine until it is not. This
-ships the *look* behind a setting so it can be judged on a device; the
-interaction stays upstream until someone measures it.
+ALSO INSTALLED (0.9.55, maintainer order): `globe-index.png` and
+`globe-meta.json` themselves, because the interaction is now wired — tapping
+the sphere picks a country. AUDIT §5's worry was per-pixel un-projection at
+60fps, and that is not what this does: SceneKit's own `hitTest` answers ONE
+ray when a finger lands, which is a hit test rather than a render pass. The
+index is read once per tap, not once per frame.
 """
-import json, os, sys
+import json, os, shutil, sys
 
 import numpy as np
 from PIL import Image
@@ -64,6 +64,9 @@ def main():
             print(f"  index {value} has no country in the meta — drawn as land")
 
     os.makedirs(DEST, exist_ok=True)
+    for f in ("globe-index.png", "globe-meta.json"):
+        shutil.copy(os.path.join(HERE, f), os.path.join(DEST, f))
+        print(f"  {f}   verbatim (index + meta — data)")
     path = os.path.join(DEST, "globe-wine.png")
     Image.fromarray(out, "RGB").save(path, optimize=True)
     kb = os.path.getsize(path) / 1024

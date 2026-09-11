@@ -1031,7 +1031,11 @@ struct RootView: View {
                     // info screen rather than jumping straight to its regions.
                     push(.continent(entryID: "CONT_\(continent.rawValue)"))
                 },
-                onWorldSearch: { push(.globeSearch) }
+                onWorldSearch: { push(.globeSearch) },
+                // The globe's second tier (0.9.55): tapping a wine country
+                // twice drops into its painted region map, which is the same
+                // screen the country page reaches.
+                onOpenRegionMap: { push(.regionMap(country: $0)) }
             )
 
         case .bookmarks:
