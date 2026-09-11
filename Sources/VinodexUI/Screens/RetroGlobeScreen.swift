@@ -142,8 +142,26 @@ public struct RetroGlobeScreen: View {
                     GeometryReader { geo in
                         Color.clear
                             .contentShape(Rectangle())
+                            // **The drag stays the primary gesture and the
+                            // taps ride alongside it.** `.gesture(drag)` with
+                            // a separate `.onTapGesture` is a SwiftUI
+                            // arbitration conflict: the drag claims the touch
+                            // sequence and the tap never fires, which is
+                            // exactly what "nothing happens" looked like.
+                            // Simultaneous lets both recognise — the drag
+                            // needs 4pt of travel, a tap needs none, so they
+                            // cannot both win the same touch.
                             .gesture(dragGesture)
-                            .onTapGesture { point in pick(at: point) }
+                            .simultaneousGesture(
+                                // Two taps tried before one, so a double tap
+                                // opens the map instead of toggling twice.
+                                SpatialTapGesture(count: 2)
+                                    .onEnded { openMap(at: $0.location) }
+                                    .exclusively(before:
+                                        SpatialTapGesture()
+                                            .onEnded { toggle(at: $0.location) }
+                                    )
+                            )
                             .onAppear { globeSize = geo.size }
                             .onChange(of: geo.size) { _, new in globeSize = new }
                     }
@@ -251,10 +269,52 @@ public struct RetroGlobeScreen: View {
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(2))
             guard globeSize != .zero else { return }
-            pick(at: CGPoint(x: globeSize.width / 2, y: globeSize.height / 2))
+            toggle(at: CGPoint(x: globeSize.width / 2, y: globeSize.height / 2))
         }
     }
     #endif
+
+    /// One tap: choose a country, or let go of the one already chosen.
+    ///
+    /// **Tapping the same country again releases it** and the globe returns
+    /// to drifting, which is what makes the selection feel held rather than
+    /// stuck — there is otherwise no way back to the turning globe except
+    /// leaving the screen.
+    private func toggle(at point: CGPoint) {
+        guard let hit = model.country(at: point) else {
+            // Ocean or a country that makes no wine. Clearing rather than
+            // ignoring: leaving the last name up while the finger lands
+            // somewhere else would be the readout lying.
+            release()
+            return
+        }
+        if pickedCountry?.id == hit.id {
+            release()
+            return
+        }
+        pick(hit)
+    }
+
+    /// Back to the turning globe.
+    private func release() {
+        Haptics.select()
+        model.autoSpins = !freezesGlobe
+        model.zoom = 1
+        withAnimation(DexMotion.settle) { pickedCountry = nil }
+    }
+
+    /// Two taps: into the country's painted region map, where it has one.
+    private func openMap(at point: CGPoint) {
+        guard let hit = model.country(at: point) else { return }
+        guard hit.isMapped, RegionMap.key(forCountry: hit.admin) != nil else {
+            // Say what was tapped rather than nothing at all — a double tap
+            // on a country with no map should still select it.
+            pick(hit)
+            return
+        }
+        Haptics.screenTap()
+        onOpenRegionMap?(hit.admin)
+    }
 
     /// A tap on the sphere. The first names the country; a second on the same
     /// one opens its region map, which is the prototype's two-tier gesture.
@@ -262,20 +322,7 @@ public struct RetroGlobeScreen: View {
     /// A country with no painted map stops at being named — twenty-three of
     /// the thirty do. That is not a dead end so much as the honest state of
     /// the catalog, and the HUD says which it is.
-    private func pick(at point: CGPoint) {
-        guard let hit = model.country(at: point) else {
-            // Ocean, ice, or a country that makes no wine. Clearing rather
-            // than ignoring: leaving the last name up while the finger lands
-            // somewhere else would be the readout lying.
-            withAnimation(DexMotion.settle) { pickedCountry = nil }
-            return
-        }
-        if pickedCountry?.id == hit.id, hit.isMapped,
-           RegionMap.key(forCountry: hit.admin) != nil {
-            Haptics.screenTap()
-            onOpenRegionMap?(hit.admin)
-            return
-        }
+    private func pick(_ hit: GlobeIndex.Country) {
         Haptics.select()
         // **The drift stops when a country is chosen** (maintainer order).
         // A globe that keeps turning under a selected country carries it off
@@ -857,7 +904,7 @@ final class GlobeModel {
         var delta = (wantYaw - yaw).truncatingRemainder(dividingBy: 2 * .pi)
         if delta > .pi { delta -= 2 * .pi } else if delta < -.pi { delta += 2 * .pi }
         focusYaw = yaw + delta
-        focusPitch = min(max(-lat * .pi / 180, -Self.maxPitch), Self.maxPitch)
+        focusPitch = min(max(lat * .pi / 180, -Self.maxPitch), Self.maxPitch)
         zoom = target
     }
 
@@ -904,12 +951,12 @@ final class GlobeModel {
         // what is on screen.
         let uv = hit.textureCoordinates(withMappingChannel: 0)
         let u = Double(uv.x) - floor(Double(uv.x))          // wrapped, not clamped
-        // **Flipped.** SceneKit hands back texture coordinates with v rising
-        // from the BOTTOM of the image, while the raster's first row is the
-        // north pole. Unflipped, a tap on Italy at 42.5N looked up 42.5S —
-        // open ocean — and every tap on the northern hemisphere resolved to
-        // nothing while the readout cheerfully named the right coordinate.
-        let v = 1 - min(max(Double(uv.y), 0), 1)
+        // v rises from the top of the raster, whose first row is the north
+        // pole — the same sense SceneKit hands back. It was flipped here for
+        // one commit, which made taps work while the globe's pitch was ALSO
+        // inverted: two wrongs agreeing. With the pitch corrected the flip
+        // had to go, and the pair is now right rather than merely consistent.
+        let v = min(max(Double(uv.y), 0), 1)
 
         let x = min(atlas.w - 1, Int(u * Double(atlas.w)))
         let y = min(atlas.h - 1, Int(v * Double(atlas.h)))
@@ -940,7 +987,13 @@ final class GlobeModel {
         var lon = -yaw * 180 / .pi
         lon = lon.truncatingRemainder(dividingBy: 360)
         if lon > 180 { lon -= 360 } else if lon < -180 { lon += 360 }
-        return (lon, -pitch * 180 / .pi)
+        // **Positive pitch faces north.** It was negated here and negated
+        // again in `focus`, so the two agreed with each other and disagreed
+        // with the sphere: asking the globe for 60N turned it to 60S and the
+        // readout confidently said 60N. Two errors cancelling is why a probe
+        // that fed a coordinate through `focus` and read it back here could
+        // never have caught it — only looking at the picture did.
+        return (lon, pitch * 180 / .pi)
     }
 
     /// Magnification, as the prototype's bank sets it. Moving the camera in
