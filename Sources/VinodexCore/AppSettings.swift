@@ -27,6 +27,9 @@ public enum SettingsDefault {
     public static let keepAwakeEnabled = true
     /// Empty means "not set" — the profile header draws TASTER instead.
     public static let displayName = ""
+    /// Off: the wine-country globe is a test, and a test does not change
+    /// what a player sees until they ask for it.
+    public static let wineGlobe = false
     /// Empty means AUTOMATIC — `NarratorPreference` picks the best installed
     /// voice. See the note on `AppSettings.narratorVoice` for why empty is
     /// stored as an absent key.
@@ -158,6 +161,19 @@ public final class AppSettings {
         }
     }
 
+    /// Paints the globe by wine country instead of the neon coastline
+    /// (0.9.55). A switch rather than a replacement: AUDIT §5 asks for this
+    /// to be seen on a device before anyone decides it supersedes globe scan,
+    /// and the interaction behind it — tapping the sphere to pick a country —
+    /// is deliberately not wired, because per-pixel un-projection at 60fps on
+    /// a phone has never run anywhere but a desktop browser.
+    public var wineGlobe: Bool {
+        didSet {
+            guard !isAdopting, wineGlobe != oldValue else { return }
+            defaults.set(wineGlobe, forKey: SavedDataKey.wineGlobe.rawValue)
+        }
+    }
+
     /// The narrator voice identifier, or empty for AUTOMATIC (0.9.54).
     ///
     /// AUTOMATIC is stored by *removing* the key, not by writing `""` — the
@@ -200,6 +216,7 @@ public final class AppSettings {
         self.keepAwakeEnabled = stored.keepAwakeEnabled
         self.displayName = stored.displayName
         self.narratorVoice = stored.narratorVoice
+        self.wineGlobe = stored.wineGlobe
     }
 
     /// Re-reads every key — the seventh instance of the trap **M35** recorded.
@@ -227,6 +244,7 @@ public final class AppSettings {
             keepAwakeEnabled = stored.keepAwakeEnabled
             displayName = stored.displayName
             narratorVoice = stored.narratorVoice
+            wineGlobe = stored.wineGlobe
         }
     }
 
@@ -288,6 +306,7 @@ public final class AppSettings {
         let keepAwakeEnabled: Bool
         let displayName: String
         let narratorVoice: String
+        let wineGlobe: Bool
 
         init(reading defaults: UserDefaults) {
             textScale = TextScale.current(in: defaults)
@@ -304,6 +323,8 @@ public final class AppSettings {
                 ?? SettingsDefault.displayName
             narratorVoice = defaults.string(forKey: SavedDataKey.narratorVoice.rawValue)
                 ?? SettingsDefault.narratorVoice
+            wineGlobe = Self.flag(.wineGlobe, in: defaults,
+                                  default: SettingsDefault.wineGlobe)
         }
 
         /// A stored flag, or `fallback` when the key has never been written.

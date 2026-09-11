@@ -31,8 +31,9 @@ struct SavedDataArchiveTests {
         // the tried-day log, the walkthrough and passport ledgers — joined
         // it through the opaque archive lane, so backup/restore finally
         // carries everything the app remembers. 48 in the same release:
-        // `narratorVoice`, the NARRATOR picker's chosen reading voice.
-        #expect(SavedDataKey.allCases.count == 48)
+        // `narratorVoice`, the NARRATOR picker's chosen reading voice. 49 in
+        // 0.9.55: `wineGlobe`, the switch behind the wine-country globe test.
+        #expect(SavedDataKey.allCases.count == 49)
         let raws = SavedDataKey.allCases.map(\.rawValue)
         #expect(Set(raws).count == raws.count, "duplicate key string: \(raws)")
         #expect(raws.allSatisfy { !$0.isEmpty })

@@ -53,6 +53,7 @@ public struct RetroGlobeScreen: View {
     /// Mode first, skin as the DARK fallback — the resolution 0.6.4 F1 exists
     /// to establish.
     private var globeTint: Color { lcd.globeTint ?? skin.globeTint }
+    private var globeTexture: GlobeTexture { settings.wineGlobe ? .wine : .coastline }
 
     /// Autospin off. Two reasons, one rule: Reduce Motion asks for no
     /// unprompted movement, and VoiceOver cannot land on a target that is
@@ -95,7 +96,8 @@ public struct RetroGlobeScreen: View {
                         model: model,
                         isLight: lcd.isLight,
                         tint: UIColor(globeTint),
-                        invertsTexture: lcd.invertsGlobeTexture
+                        invertsTexture: lcd.invertsGlobeTexture,
+                        texture: globeTexture
                     )
                         // The scene's lighting, emission and tint are
                         // baked in `buildScene`, which only runs in
@@ -103,7 +105,11 @@ public struct RetroGlobeScreen: View {
                         // rebuild the view to take effect. Keyed on both, it
                         // costs one rebuild per toggle rather than one per
                         // render.
-                        .id("\(lcd.rawValue)|\(skin.rawValue)")
+                        // The texture joins the key for the same reason the
+                        // other two are in it: it is baked in `buildScene`,
+                        // so flipping the switch has to rebuild the view to
+                        // be seen at all.
+                        .id("\(lcd.rawValue)|\(skin.rawValue)|\(globeTexture.stem)")
 
                     // The drag rides an explicit clear hit-shape rather than
                     // the representable (0.9.51 fix): the SCNView disables its
@@ -428,12 +434,28 @@ public struct RetroGlobeScreen: View {
 // MARK: - Scene
 
 /// Hosts the `SCNView`. SceneKit is UIKit-only, so this is the bridge.
+/// What the sphere is painted with (0.9.55).
+enum GlobeTexture {
+    /// The neon-green coastline that has always shipped.
+    case coastline
+    /// The thirty wine countries, each in its own colour — a test behind
+    /// `AppSettings.wineGlobe`. The picture only: tapping the sphere to pick
+    /// a country is the prototype's real interaction and stays upstream until
+    /// someone measures per-pixel un-projection on a phone (AUDIT §5).
+    case wine
+
+    var stem: String { self == .wine ? "globe-wine" : "updatedglobemap" }
+    var ext: String { self == .wine ? "png" : "jpg" }
+}
+
 struct GlobeSceneView: UIViewRepresentable {
     let model: GlobeModel
     var isLight: Bool
     var tint: UIColor
     /// LIGHT mode's inverted-colour globe (0.6.4, F1).
     var invertsTexture: Bool = false
+    /// Which texture the sphere wears (0.9.55) — see `AppSettings.wineGlobe`.
+    var texture: GlobeTexture = .coastline
 
     /// The model itself, so `dismantleUIView` — which is static and is handed
     /// nothing but the view and the coordinator — can reach it. (AUDIT **L10**)
@@ -444,7 +466,8 @@ struct GlobeSceneView: UIViewRepresentable {
         view.backgroundColor = .clear
         view.antialiasingMode = .multisampling2X
         view.isUserInteractionEnabled = false   // gestures are handled in SwiftUI
-        view.scene = model.buildScene(isLight: isLight, tint: tint, invertsTexture: invertsTexture)
+        view.scene = model.buildScene(isLight: isLight, tint: tint,
+                                      invertsTexture: invertsTexture, texture: texture)
         view.pointOfView = model.cameraNode
         model.attach(to: view)
         return view
@@ -672,7 +695,12 @@ final class GlobeModel {
     /// to luminance and re-hued — and the three lights, the emission and the
     /// wireframe all take the tint too. Colorizing alone would not have been
     /// enough: a purple sphere lit by three green lamps renders green again.
-    func buildScene(isLight: Bool, tint: UIColor = .white, invertsTexture: Bool = false) -> SCNScene {
+    func buildScene(
+        isLight: Bool,
+        tint: UIColor = .white,
+        invertsTexture: Bool = false,
+        texture: GlobeTexture = .coastline
+    ) -> SCNScene {
         let scene = SCNScene()
         scene.background.contents = UIColor.clear
 
@@ -681,7 +709,9 @@ final class GlobeModel {
         sphere.segmentCount = 96
         let material = SCNMaterial()
         material.lightingModel = .physicallyBased
-        if let url = DexResources.url(named: "updatedglobemap", ext: "jpg", in: .maps),
+        if let url = DexResources.url(named: texture.stem, ext: texture.ext, in: .maps)
+            ?? DexResources.url(named: GlobeTexture.coastline.stem,
+                                ext: GlobeTexture.coastline.ext, in: .maps),
            let image = UIImage(contentsOfFile: url.path) {
             // Both treatments happen to the TEXTURE, once per rebuild
             // (`buildScene` only runs from `makeUIView`): invert first
