@@ -124,6 +124,16 @@ public struct RetroGlobeScreen: View {
                         .gesture(dragGesture)
 
                     markerLayer
+
+                    // **The instrument panel** (0.9.55), after the Globe Scan
+                    // prototype: the readout sits on the glass rather than
+                    // printed under it. Hidden while the list is up — the
+                    // list answers for the globe then, and a coordinate for a
+                    // sphere nobody is looking at is furniture.
+                    if !showsList {
+                        globeScanlines
+                        globeHUD
+                    }
                 }
                 // Hidden from assistive tech *before* the overlay is added, so
                 // the list that replaces it is not hidden with it: the globe
@@ -154,17 +164,23 @@ public struct RetroGlobeScreen: View {
                 // Swapped rather than removed while the list is up: the pair is
                 // the same two lines tall either way, so the toggle does not
                 // move under the finger that pressed it.
-                VStack(spacing: 5) {
-                    Text(showsList ? "PICK A CONTINENT" : "DRAG TO SPIN GLOBE")
-                        .font(DexFont.retro(11))
-                        .tracking(3)
-                        .foregroundStyle(lcd.accent)
-                    Text(showsList ? "OR GO BACK TO THE GLOBE" : "TAP TO SELECT CONTINENT")
-                        .font(DexFont.retro(10))
-                        .tracking(2)
-                        .foregroundStyle(lcd.subtext)
+                // The globe's own instructions moved onto the glass; what is
+                // left here speaks for the list, which has no HUD of its own.
+                if showsList {
+                    VStack(spacing: 5) {
+                        Text("PICK A CONTINENT")
+                            .font(DexFont.retro(11))
+                            .tracking(3)
+                            .foregroundStyle(lcd.accent)
+                        Text("OR GO BACK TO THE GLOBE")
+                            .font(DexFont.retro(10))
+                            .tracking(2)
+                            .foregroundStyle(lcd.subtext)
+                    }
+                    .multilineTextAlignment(.center)
+                } else {
+                    globeZoomBank
                 }
-                .multilineTextAlignment(.center)
             }
             .padding(.vertical, 12)
         }
@@ -186,6 +202,100 @@ public struct RetroGlobeScreen: View {
         .onDisappear {
             model.stop()
         }
+    }
+
+    // MARK: The instrument panel
+
+    /// Top row names the tier and the coordinate the camera is looking at;
+    /// bottom row carries the two affordances the globe has. Both on a scrim,
+    /// so they stay legible over ocean and over ice alike.
+    private var globeHUD: some View {
+        VStack(spacing: 0) {
+            hudRow(leading: "GLOBE", trailing: facingText, top: true)
+            Spacer(minLength: 0)
+            hudRow(leading: "DRAG TO SPIN · TAP A CONTINENT",
+                   trailing: model.zoom == 1 ? "1X" : (model.zoom == 2 ? "2X" : "4X"),
+                   top: false)
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func hudRow(leading: String, trailing: String, top: Bool) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(leading)
+                .font(DexFont.retro(10))
+                .tracking(1)
+                .foregroundStyle(top ? lcd.accent : lcd.subtext)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Spacer(minLength: 8)
+            Text(trailing)
+                .font(DexFont.mono(14))
+                .foregroundStyle(top ? lcd.subtext : lcd.accent)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(
+            LinearGradient(
+                colors: top ? [lcd.page.opacity(0.8), .clear] : [.clear, lcd.page.opacity(0.8)],
+                startPoint: .top, endPoint: .bottom
+            )
+        )
+    }
+
+    /// Hemispheres rather than signs, and one decimal: this drifts as the
+    /// globe turns, and a second decimal would be a number nobody can read
+    /// changing faster than anyone can read it.
+    private var facingText: String {
+        let f = model.facing
+        return String(format: "%.1f°%@ %.1f°%@",
+                      abs(f.lat), f.lat >= 0 ? "N" : "S",
+                      abs(f.lon), f.lon >= 0 ? "E" : "W")
+    }
+
+    /// A hairline at 7 percent every four points. Not `ScanlineOverlay`,
+    /// which lays 50 percent black over everything — right for the LCD and
+    /// far too heavy on a sphere that is already lit from three sides.
+    private var globeScanlines: some View {
+        Canvas { context, size in
+            var y: CGFloat = 0
+            while y < size.height {
+                context.fill(
+                    Path(CGRect(x: 0, y: y, width: size.width, height: 1)),
+                    with: .color(.black.opacity(0.07))
+                )
+                y += 4
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    /// Moves the camera in rather than scaling the sphere, so the markers
+    /// keep projecting through the same renderer they always did.
+    private var globeZoomBank: some View {
+        HStack(spacing: 6) {
+            ForEach([1.0, 2.0, 4.0], id: \.self) { step in
+                Button {
+                    Haptics.select()
+                    withAnimation(DexMotion.settle) { model.zoom = step }
+                } label: {
+                    Text(step == 1 ? "1X" : (step == 2 ? "2X" : "4X"))
+                        .font(DexFont.retro(11))
+                        .tracking(1)
+                        .foregroundStyle(model.zoom == step ? lcd.onAccent : lcd.subtext)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                        .background(
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(model.zoom == step ? lcd.accent : lcd.surface)
+                        )
+                }
+                .buttonStyle(DexPressStyle(scale: 0.97))
+                .accessibilityLabel("Zoom \(Int(step)) times")
+            }
+        }
+        .padding(.horizontal, 12)
     }
 
     // MARK: Continent list (the non-globe path)
@@ -579,7 +689,7 @@ final class GlobeModel {
     /// a first-class way to pick one, and the marker plates hide well before
     /// the limb anyway (`frontFacingThreshold`). At 3.45 the sphere is ~14%
     /// wider on screen and the plates still clear each other.
-    private static let cameraDistance: Double = 3.45
+    static let cameraDistance: Double = 3.45
     /// Markers hide well before the limb so they never straddle the edge.
     private static let frontFacingThreshold: Double = 0.55
 
@@ -655,6 +765,30 @@ final class GlobeModel {
 
     private var yaw: Double = 0
     private var pitch: Double = 0
+
+    /// The coordinate at the centre of the sphere — what the camera is
+    /// looking straight at. Yaw spins about the pole so it reads as
+    /// longitude; pitch tips the globe so it reads as latitude, negated
+    /// because tipping the globe *down* brings the northern hemisphere up.
+    ///
+    /// The globe drifts at rest, so this changes continuously. That is the
+    /// point: it is a position readout on an instrument, not a label.
+    var facing: (lon: Double, lat: Double) {
+        var lon = -yaw * 180 / .pi
+        lon = lon.truncatingRemainder(dividingBy: 360)
+        if lon > 180 { lon -= 360 } else if lon < -180 { lon += 360 }
+        return (lon, -pitch * 180 / .pi)
+    }
+
+    /// Magnification, as the prototype's bank sets it. Moving the camera in
+    /// rather than scaling the node: the sphere keeps its geometry, its
+    /// lighting and its marker projection, and only the distance changes.
+    var zoom: Double = 1 {
+        didSet {
+            guard zoom != oldValue else { return }
+            cameraNode.position = SCNVector3(0, 0, Float(Self.cameraDistance / zoom))
+        }
+    }
     private var velocityYaw: Double = 0
     private var velocityPitch: Double = 0
     private var dragging = false
@@ -798,7 +932,7 @@ final class GlobeModel {
         camera.zFar = 100
         cameraNode = SCNNode()
         cameraNode.camera = camera
-        cameraNode.position = SCNVector3(0, 0, Float(Self.cameraDistance))
+        cameraNode.position = SCNVector3(0, 0, Float(Self.cameraDistance / zoom))
         scene.rootNode.addChildNode(cameraNode)
 
         return scene
