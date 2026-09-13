@@ -120,11 +120,26 @@ public struct RegionMap: Sendable {
     /// included, not just the country. The globe draws the backdrop over this,
     /// which is what keeps its own coarse country fill from showing around a
     /// finer painted coastline.
+    ///
+    /// **Clamped to the poles, because a canvas is a rectangle and the world
+    /// is not.** `region_map.py` sizes every canvas to the same 502-cell height
+    /// and pads whatever is left over as sea, so a country reaching far north
+    /// ends up with margin whose latitude is past 90. Canada's runs to
+    /// **128.2°N** — 38 degrees of nothing.
+    ///
+    /// Numerically that is only blank sea. Geometrically it is a fold: the
+    /// globe's patch mesh places a vertex at 128°N by going over the pole and
+    /// 52 degrees down the far side, so the top of the canvas lands back on
+    /// the near hemisphere on top of itself and z-fights. It reads as evenly
+    /// spaced curved bands of sea cut through the land — which is exactly what
+    /// Greenland showed on the shipped Canada map, and why this clamp is here
+    /// rather than in the renderer: the fence measures the same bounds, and a
+    /// fence around a latitude that does not exist is no fence at all.
     public var canvasBounds: (west: Double, east: Double, south: Double, north: Double) {
         let topLeft = coordinate(atCanvas: 0, 0)
         let bottomRight = coordinate(atCanvas: Double(canvas.w), Double(canvas.h))
         return (west: topLeft.lon, east: bottomRight.lon,
-                south: bottomRight.lat, north: topLeft.lat)
+                south: max(bottomRight.lat, -90), north: min(topLeft.lat, 90))
     }
 
     /// The country's own extent in degrees, from `subject_rect` — the corners
@@ -417,13 +432,41 @@ public struct RegionMap: Sendable {
     /// Takes the names rather than the entries so it can be tested without a
     /// database: the caller resolves ids, this decides which one is the region.
     public func primaryEntryID(for stem: String, names: [(id: String, name: String)]) -> String? {
+        primaryEntry(for: stem, names: names)?.id
+    }
+
+    /// The same pick, plus **whether the catalog has an entry for the area at
+    /// all** (0.9.58).
+    ///
+    /// `primaryEntryID` has always had three steps and only two of them are
+    /// really an answer. Exact name and contains-name both find the entry that
+    /// *is* the place. The third — first mapped — is a stand-in: the area has
+    /// no page of its own, so the map hands back one of the things inside it.
+    ///
+    /// That is fine as a destination and wrong as a name, and the difference
+    /// is what the maintainer photographed on 13 Sep: tapping California on
+    /// the USA map raised a tile reading NAPA VALLEY. California is a state
+    /// with six AVAs in the catalog and no entry of its own, so the fallback
+    /// picked the first of the six and the screen presented it as the thing
+    /// that had been tapped. `isOwnEntry` is false there, and the screen can
+    /// say "CALIFORNIA, and here is what is inside it" instead of quietly
+    /// renaming the state after one of its valleys.
+    public func primaryEntry(
+        for stem: String, names: [(id: String, name: String)]
+    ) -> (id: String, isOwnEntry: Bool)? {
         func fold(_ value: String) -> String {
             value.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil)
         }
         let want = fold(displayName(stem))
-        return names.first { fold($0.name) == want }?.id
-            ?? names.first { fold($0.name).contains(want) }?.id
-            ?? names.first?.id
+        if let exact = names.first(where: { fold($0.name) == want }) {
+            return (exact.id, true)
+        }
+        // "SOUTH WEST" against "South West France" — the entry is the area,
+        // spelled longer. Still its own entry.
+        if let contains = names.first(where: { fold($0.name).contains(want) }) {
+            return (contains.id, true)
+        }
+        return names.first.map { ($0.id, false) }
     }
 
     /// Builds from the two JSON files installed beside the art.

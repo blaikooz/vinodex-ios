@@ -61,6 +61,47 @@ struct RegionMapTests {
         #expect(abs((fr.y + fr.h / 2) - 0.5) < 0.05)
     }
 
+    /// **No canvas may claim a latitude the world does not have.**
+    ///
+    /// `region_map.py` gives every country the same 502-cell canvas height and
+    /// pads the remainder as sea, so a far-northern country runs off the top:
+    /// Canada's raw canvas reaches **128.2°N**, thirty-eight degrees past the
+    /// pole, all of it empty blue.
+    ///
+    /// Empty is not harmless. The globe lays the backdrop on a lat/lon mesh,
+    /// and a vertex at 128°N is placed by going over the pole and 52 degrees
+    /// down the far side — so the top of Canada's canvas folded back onto the
+    /// near hemisphere and z-fought with itself. On the device that read as
+    /// evenly spaced curved bands of sea cutting through Greenland, which is
+    /// the bug the maintainer photographed on 13 Sep. The fence measures these
+    /// same bounds, so an impossible north would also have fenced the camera
+    /// to a latitude it can never reach.
+    @Test("every canvas describes a real extent, poles included")
+    func canvasBoundsAreReal() throws {
+        for country in RegionMap.mapped {
+            let b = try load(country).canvasBounds
+            #expect(b.north <= 90, "\(country) canvas claims \(b.north)°N")
+            #expect(b.south >= -90, "\(country) canvas claims \(b.south)°S")
+            #expect(b.north > b.south, "\(country) canvas is inverted or empty")
+            #expect(b.east > b.west, "\(country) canvas is inverted or empty")
+            // The subject has to survive the clamp — trimming dead margin must
+            // never trim the country.
+            let s = try load(country).subjectBounds
+            #expect(s.north <= b.north + 0.001 && s.south >= b.south - 0.001,
+                    "\(country)'s country sits outside its own clamped canvas")
+        }
+    }
+
+    /// Canada by name, because it is the one the clamp exists for and a
+    /// regression here would be invisible in the aggregate above.
+    @Test("Canada's canvas stops at the pole, not thirty-eight degrees past it")
+    func canadaStopsAtThePole() throws {
+        let b = try load("canada").canvasBounds
+        #expect(b.north == 90)
+        // Still the whole country: Canada reaches 83.1°N at Cape Columbia.
+        #expect(try load("canada").subjectBounds.north > 80)
+    }
+
     /// The load-bearing property of the whole hit test: two regions sharing a
     /// fill would make one of them unreachable, silently, for every tap.
     /// **The contract the hit test rests on.** Ids are what resolve a tap;
