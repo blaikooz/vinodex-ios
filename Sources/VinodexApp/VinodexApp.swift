@@ -92,6 +92,11 @@ struct RootView: View {
     /// once the BIOS clears, on a device that has never been offered the
     /// walkthrough. See `VinoIntroCard`.
     @State private var showingIntro = false
+    /// The four orientation cards, shown once, immediately after the name card
+    /// (0.9.57). Gated by nothing of its own — it is reached only through
+    /// `finishIntro()`, which runs only where `shouldAutoStart` already said a
+    /// first-run sequence was due. See `Orientation`.
+    @State private var showingOrientation = false
     /// The boot POST (0.7.3, A1). True for the first ~1.9 seconds of a launch,
     /// or until the screen is tapped.
     @State private var booting = true
@@ -342,6 +347,13 @@ struct RootView: View {
                     VinoIntroCard { finishIntro() }
                 }
 
+                // After the name, before the menu. Same panel, same scrim — he
+                // has stopped asking and started telling, and a new player
+                // should not be able to see the join.
+                if showingOrientation {
+                    OrientationCards(startAt: orientationProbePage) { finishOrientation() }
+                }
+
                 // Last in this stack, so it covers the two prompts above rather
                 // than booting underneath them.
                 if booting {
@@ -359,6 +371,7 @@ struct RootView: View {
             .animation(DexMotion.overlay, value: toolIntro?.id)
             .animation(DexMotion.overlay, value: vino.current?.id)
             .animation(DexMotion.overlay, value: showingIntro)
+            .animation(DexMotion.overlay, value: showingOrientation)
         }
         // **The four-way collision, sequenced** (0.8.9c, D1).
         //
@@ -526,6 +539,10 @@ struct RootView: View {
             if let opening = Self.screenshotRoute() {
                 booting = false
                 path = opening
+                // Here rather than in `.onChange(of: booting)`: that observer
+                // is installed with the view, and a `booting = false` written
+                // during the same `onAppear` does not reliably reach it.
+                if Self.wantsOrientationProbe() { showingOrientation = true }
             }
             #endif
 
@@ -659,6 +676,10 @@ struct RootView: View {
         // `globe@<lon>,<lat>` is the globe too — the screen reads the
         // coordinate for itself and probes a tap there.
         if name.hasPrefix("globe@") { return [.globe] }
+        // `orientation[:N]` is the first-run card deck over the menu. It needs
+        // a route so the BIOS clears; the cards themselves are raised in
+        // `onAppear` beside the same boot skip.
+        if name.hasPrefix("orientation") { return [] }
         if name.hasPrefix("map:") {
             let parts = name.split(separator: ":")
             if parts.count >= 2 {
@@ -839,8 +860,54 @@ struct RootView: View {
         showingIntro = false
         triggers.fireOnce(.firstLaunch)
         triggers.fireOnce(.firstLaunchNamed)
-        coachmarks.start()
+        // **Orientation, not the guided run** (0.9.57). The coachmark asks the
+        // player to press GRAPES, then TRIED, then open the Passport before it
+        // will let go — a good second experience and a demanding first one, and
+        // one that never mentioned the label reader, the globe or the exam.
+        // It keeps its place in SETTINGS ▸ DEVICE ▸ TUTORIAL, which already
+        // offers it through `WalkthroughScreen.onGuidedRun`; what a new player
+        // gets first is four cards saying what the device is.
+        //
+        // Marked here rather than when orientation ends: the sequence has been
+        // offered by this point, and someone who force-quits halfway through
+        // should not meet it again. `start()` used to write this flag, and
+        // removing that call without replacing it would have replayed the whole
+        // first run on every launch.
+        coachmarks.markOffered()
+        showingOrientation = true
     }
+
+    /// Orientation is over; the menu is the next thing anyone sees.
+    private func finishOrientation() {
+        showingOrientation = false
+    }
+
+    #if DEBUG
+    /// `-vinodexScreenshot orientation[:N]` opens on the orientation cards at
+    /// card N, skipping the BIOS and the name card. The same reason the globe
+    /// and the region maps have probes: this screen takes taps to reach, the
+    /// simulator has no tap tooling, and a screen that cannot be photographed
+    /// cannot be reviewed.
+    private var orientationProbePage: Int {
+        let args = ProcessInfo.processInfo.arguments
+        guard let flag = args.firstIndex(of: "-vinodexScreenshot"),
+              args.index(after: flag) < args.endIndex else { return 0 }
+        let parts = args[args.index(after: flag)].split(separator: ":")
+        guard parts.first == "orientation", parts.count == 2 else { return 0 }
+        return Int(parts[1]) ?? 0
+    }
+
+    /// Whether that probe was asked for at all.
+    private static func wantsOrientationProbe() -> Bool {
+        let args = ProcessInfo.processInfo.arguments
+        guard let flag = args.firstIndex(of: "-vinodexScreenshot"),
+              args.index(after: flag) < args.endIndex else { return false }
+        return args[args.index(after: flag)].hasPrefix("orientation")
+    }
+    #else
+    private var orientationProbePage: Int { 0 }
+    private static func wantsOrientationProbe() -> Bool { false }
+    #endif
 
     /// Whether one of the overlays this view owns is on top.
     ///
@@ -850,6 +917,8 @@ struct RootView: View {
     /// than a boolean.
     private var chromeIsUp: Bool {
         booting || toolIntro != nil || lockedAttempt != nil || showingDataAlert
+            // Orientation is a modal with buttons, like the card before it.
+            || showingOrientation
             // The introduction is him, at length, with a keyboard up. A queued
             // remark landing across the bottom of it would be him interrupting
             // himself. (0.8.9d, F1)
