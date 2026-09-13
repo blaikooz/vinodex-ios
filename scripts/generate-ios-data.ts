@@ -617,6 +617,21 @@ const COUNTRY_SHAPE_ICONS: Record<string, string> = {
   // v0.9.51: ring-rasterised on the same precedent, drawn the day Cappadocia
   // and Elazığ gave the coverage gate a reason to demand it.
   turkey: 'art:outline-turkey',
+  // sommbot's five-country batch. These five differ from every row above in
+  // one way that matters: the masters were already drawn (the 0.8.4 F1 hand
+  // drop) and `country-outline-fills.py` already carries an ink colour for
+  // each, exactly as its header promised — "the day one does, the wiring is a
+  // single COUNTRY_SHAPE_ICONS row rather than a row plus a colour nobody has
+  // chosen." These are those five rows, and nothing else was needed.
+  //
+  // Bosnia is the sixth master and stays unwired on purpose: it has no
+  // catalog entry, and its stem (`bosnia`) would not match the slug of the
+  // only honest country name (`bosnia-and-herzegovina`). See FINDINGS.md.
+  czechia: 'art:outline-czechia',
+  slovakia: 'art:outline-slovakia',
+  ukraine: 'art:outline-ukraine',
+  serbia: 'art:outline-serbia',
+  israel: 'art:outline-israel',
 };
 
 /// Icon-well background per style classification.
@@ -759,6 +774,14 @@ const FLAG_PATHS: Record<string, string> = {
   // v0.9.51: Turkey opens with the full batch — gate, gradient, outline,
   // natives and two regions in the same commit.
   Turkey: 'Asia/turkey/turkey.png',
+  // sommbot's five-country batch. The pack files Ukraine under both Europe and
+  // Asia and Israel under Asia; the relpath is the pack's, the continent
+  // roster is ours (Ukraine sits in CONT_EUROPE, Israel in CONT_ASIA).
+  Czechia: 'Europe/czechia/czechia.png',
+  Slovakia: 'Europe/slovakia/slovakia.png',
+  Ukraine: 'Europe/ukraine/ukraine.png',
+  Serbia: 'Europe/serbia/serbia.png',
+  Israel: 'Asia/israel/israel.png',
 };
 
 // Full-colour pixel-art portraits for styles (0.5.6), keyed by normalised

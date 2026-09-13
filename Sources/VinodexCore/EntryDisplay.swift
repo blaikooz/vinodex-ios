@@ -253,6 +253,9 @@ public enum EntryDisplay {
         case ("AVA", _):   return "American Viticultural Area"
         case ("DAC", _):   return "Districtus Austriae Controllatus"
         case ("DHC", _):   return "Districtus Hungaricus Controllatus"
+        // Slovakia's, which borrows Hungary's Latin construction — the two sit
+        // together because they read as a typo for each other otherwise.
+        case ("DSC", _):   return "Districtus Slovakia Controllatus"
         case ("GI", _):    return "Geographical Indication"
         case ("PDO", _):   return "Protected Designation of Origin"
         case ("PGI", _):   return "Protected Geographical Indication"

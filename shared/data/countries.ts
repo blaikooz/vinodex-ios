@@ -1268,5 +1268,80 @@ export const COUNTRIES: CountryGateEntry[] = [
       keyRegions: ['Cappadocia', 'Elazığ'],
       notableGrapes: ['Öküzgözü', 'Boğazkere', 'Narince']
     }
+  },
+  {
+    id: 'C034',
+    name: 'Czechia',
+    description: 'Czech wine is Moravian wine: 96% of the vineyard lies in the southeast against the Austrian border, and Bohemia’s 680 hectares sit at 50°N, among the northernmost commercial vines in Europe. Quality is graded by ripeness rather than by place — seven attribute grades from Kabinetní to Výběr z cibéb, measured in °NM, with chaptalisation banned across all of them. The VOC appellation scheme layered on top since Znojmo’s in 2009 has never carried more than a fraction of production. Pálava, a 1953 Traminer × Müller-Thurgau crossing from Velké Pavlovice, is the country’s own contribution to the world’s varieties.',
+    category: 'COUNTRY_GATE',
+    color: '#1d4ed8',
+    icon: 'flag',
+    tags: ['PDO', 'PGI', 'COUNTRY'],
+    details: {
+      origin: 'Czechia',
+      classification: 'COUNTRY',
+      keyRegions: ['Mikulovská', 'Znojemská'],
+      notableGrapes: ['Grüner Veltliner', 'Welschriesling', 'St. Laurent']
+    }
+  },
+  {
+    id: 'C035',
+    name: 'Slovakia',
+    description: 'Slovakia’s registered vineyard runs to some 17,600 hectares, but little more than half of it is actually in production — two decades of abandonment after the socialist estates broke up. Wines of origin carry DSC, Districtus Slovakia Controllatus, the national name for PDO since the 2009 wine law. The country’s claim on Tokaj is the part worth knowing: Trianon left Czechoslovakia three villages of the historic Hegyalja in 1920, Slovakia had enlarged its delimited area to 908 hectares across seven villages by 1996, a bilateral settlement followed in 2004, and the European Court of Justice dismissed Hungary’s challenge in 2014.',
+    category: 'COUNTRY_GATE',
+    color: '#2563eb',
+    icon: 'flag',
+    tags: ['DSC', 'PDO', 'COUNTRY'],
+    details: {
+      origin: 'Slovakia',
+      classification: 'COUNTRY',
+      keyRegions: ['Malokarpatská', 'Slovenský Tokaj'],
+      notableGrapes: ['Grüner Veltliner', 'Welschriesling', 'Blaufränkisch']
+    }
+  },
+  {
+    id: 'C036',
+    name: 'Ukraine',
+    description: 'Ukrainian wine was built by one man twice over: Prince Lev Golitsyn bought Novyi Svit in 1878 and was making bottle-fermented sparkling there within a decade, then founded Massandra above Yalta in 1894 for the imperial domains. Both estates are in Crimea and both were seized after 2014. What remains is the mainland — the Bessarabian coast, where the native Telti-Kuruk survives on perhaps seventy hectares, and Zakarpattia behind the Carpathians. The vineyard fell from 34,700 hectares in 2021 to 26,000 in 2022; an EU-modelled wine law arrived in 2024, but there is still no official production zoning to hang appellations on.',
+    category: 'COUNTRY_GATE',
+    color: '#0369a1',
+    icon: 'flag',
+    tags: ['GI', 'COUNTRY'],
+    details: {
+      origin: 'Ukraine',
+      classification: 'COUNTRY',
+      keyRegions: ['Bessarabia', 'Zakarpattia'],
+      notableGrapes: ['Aligoté', 'Rkatsiteli', 'Saperavi']
+    }
+  },
+  {
+    id: 'C037',
+    name: 'Serbia',
+    description: 'Serbia grades origin in three tiers — G.I., then the controlled K.P.K. and K.G.P.K. — and issues a numbered mark for every bottle, which is how the state knows that nearly two-thirds of its origin wine sits in the lowest tier. Three regions divide into 22 districts and 77 vinogorja under a 2015 zoning rulebook last amended in 2024. The grape that matters is Prokupac: its own parents are unknown, but marker work makes it the founder of a Balkan family running four generations and reaching as far as Thracian Turkey. Sremski Karlovci on Fruška Gora still makes Bermet, a wormwood-steeped dessert wine protected in its own right.',
+    category: 'COUNTRY_GATE',
+    color: '#1e40af',
+    icon: 'flag',
+    tags: ['PDO', 'PGI', 'COUNTRY'],
+    details: {
+      origin: 'Serbia',
+      classification: 'COUNTRY',
+      keyRegions: ['Fruška Gora', 'Šumadija'],
+      notableGrapes: ['Welschriesling', 'Muscat Blanc à Petits Grains']
+    }
+  },
+  {
+    id: 'C038',
+    name: 'Israel',
+    description: 'Baron Edmond de Rothschild planted the first modern vineyards at Rishon LeZion and Zichron Ya’akov from 1882 and had both wineries built by 1892; the name Carmel came later, with the export company. Quality is a far more recent story — technically minded wineries from 1983 onward replaced sweet sacramental wine with dry varietal wine, and Margalit opened the boutique era in 1989. Nearly all Israeli wine is kosher, which governs who may handle it rather than how it is made; mevushal, the flash-pasteurised style that lets anyone pour it, is a separate choice most fine-wine producers decline. Judea became the first registered wine appellation in 2020.',
+    category: 'COUNTRY_GATE',
+    color: '#0284c7',
+    icon: 'flag',
+    tags: ['GI', 'COUNTRY'],
+    details: {
+      origin: 'Israel',
+      classification: 'COUNTRY',
+      keyRegions: ['Judean Hills', 'Upper Galilee'],
+      notableGrapes: ['Cabernet Sauvignon', 'Syrah', 'Chardonnay']
+    }
   }
 ];
