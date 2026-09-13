@@ -1,0 +1,23 @@
+[
+ {
+  "id": "R061",
+  "name": "Burgenland",
+  "lon": 16.68,
+  "lat": 47.8,
+  "expect": "burgenland"
+ },
+ {
+  "id": "R062",
+  "name": "Niederösterreich",
+  "lon": 16.63,
+  "lat": 48.67,
+  "expect": "niederosterreich"
+ },
+ {
+  "id": "R153",
+  "name": "Styria",
+  "lon": 15.54,
+  "lat": 46.78,
+  "expect": "styria"
+ }
+]

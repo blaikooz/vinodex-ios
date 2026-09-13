@@ -11,6 +11,15 @@
   },
   {
    "idx": 3,
+   "admin": "Armenia",
+   "stem": "armenia",
+   "fill": "#2B4182",
+   "label": "ARMENIA",
+   "mapped": 0,
+   "key": "armenia"
+  },
+  {
+   "idx": 4,
    "admin": "Australia",
    "stem": "australia",
    "fill": "#C9A492",
@@ -19,16 +28,16 @@
    "key": "australia"
   },
   {
-   "idx": 4,
+   "idx": 5,
    "admin": "Austria",
    "stem": "austria",
    "fill": "#A45F3D",
    "label": "AUSTRIA",
-   "mapped": 0,
+   "mapped": 3,
    "key": "austria"
   },
   {
-   "idx": 5,
+   "idx": 6,
    "admin": "Brazil",
    "stem": "brazil",
    "fill": "#7FBC62",
@@ -37,7 +46,7 @@
    "key": "brazil"
   },
   {
-   "idx": 6,
+   "idx": 7,
    "admin": "Bulgaria",
    "stem": "bulgaria",
    "fill": "#7C4327",
@@ -46,7 +55,7 @@
    "key": "bulgaria"
   },
   {
-   "idx": 7,
+   "idx": 8,
    "admin": "Canada",
    "stem": "canada",
    "fill": "#BCA362",
@@ -55,7 +64,7 @@
    "key": "canada"
   },
   {
-   "idx": 8,
+   "idx": 9,
    "admin": "Chile",
    "stem": "chile",
    "fill": "#7C6427",
@@ -64,16 +73,16 @@
    "key": "chile"
   },
   {
-   "idx": 9,
+   "idx": 10,
    "admin": "China",
    "stem": "china",
    "fill": "#92B2C9",
    "label": "CHINA",
-   "mapped": 0,
+   "mapped": 4,
    "key": "china"
   },
   {
-   "idx": 10,
+   "idx": 11,
    "admin": "Croatia",
    "stem": "croatia",
    "fill": "#A43D4F",
@@ -82,7 +91,16 @@
    "key": "croatia"
   },
   {
-   "idx": 11,
+   "idx": 12,
+   "admin": "Cyprus",
+   "stem": "cyprus",
+   "fill": "#82822B",
+   "label": "CYPRUS",
+   "mapped": 0,
+   "key": "cyprus"
+  },
+  {
+   "idx": 13,
    "admin": "France",
    "stem": "france",
    "fill": "#BC8062",
@@ -91,7 +109,7 @@
    "key": "france"
   },
   {
-   "idx": 12,
+   "idx": 14,
    "admin": "Georgia",
    "stem": "georgia",
    "fill": "#A4873D",
@@ -100,7 +118,7 @@
    "key": "georgia"
   },
   {
-   "idx": 13,
+   "idx": 15,
    "admin": "Germany",
    "stem": "germany",
    "fill": "#833DA4",
@@ -109,7 +127,7 @@
    "key": "germany"
   },
   {
-   "idx": 14,
+   "idx": 16,
    "admin": "Greece",
    "stem": "greece",
    "fill": "#92C9B8",
@@ -118,7 +136,7 @@
    "key": "greece"
   },
   {
-   "idx": 15,
+   "idx": 17,
    "admin": "Hungary",
    "stem": "hungary",
    "fill": "#5EA43D",
@@ -127,7 +145,7 @@
    "key": "hungary"
   },
   {
-   "idx": 16,
+   "idx": 18,
    "admin": "India",
    "stem": "india",
    "fill": "#7C2736",
@@ -136,7 +154,7 @@
    "key": "india"
   },
   {
-   "idx": 17,
+   "idx": 19,
    "admin": "Italy",
    "stem": "italy",
    "fill": "#427C27",
@@ -145,7 +163,7 @@
    "key": "italy"
   },
   {
-   "idx": 18,
+   "idx": 20,
    "admin": "Japan",
    "stem": "japan",
    "fill": "#BC6272",
@@ -154,7 +172,7 @@
    "key": "japan"
   },
   {
-   "idx": 19,
+   "idx": 21,
    "admin": "Lebanon",
    "stem": "lebanon",
    "fill": "#62BCA1",
@@ -163,7 +181,7 @@
    "key": "lebanon"
   },
   {
-   "idx": 20,
+   "idx": 22,
    "admin": "Mexico",
    "stem": "mexico",
    "fill": "#A3C992",
@@ -172,7 +190,16 @@
    "key": "mexico"
   },
   {
-   "idx": 21,
+   "idx": 23,
+   "admin": "Moldova",
+   "stem": "moldova",
+   "fill": "#822B6C",
+   "label": "MOLDOVA",
+   "mapped": 0,
+   "key": "moldova"
+  },
+  {
+   "idx": 24,
    "admin": "Morocco",
    "stem": "morocco",
    "fill": "#C9BA92",
@@ -181,7 +208,7 @@
    "key": "morocco"
   },
   {
-   "idx": 22,
+   "idx": 25,
    "admin": "New Zealand",
    "stem": "new-zealand",
    "fill": "#D7B7BD",
@@ -190,7 +217,7 @@
    "key": "newzealand"
   },
   {
-   "idx": 23,
+   "idx": 26,
    "admin": "Portugal",
    "stem": "portugal",
    "fill": "#277C63",
@@ -199,7 +226,7 @@
    "key": "portugal"
   },
   {
-   "idx": 24,
+   "idx": 27,
    "admin": "Romania",
    "stem": "romania",
    "fill": "#B792C9",
@@ -208,7 +235,7 @@
    "key": "romania"
   },
   {
-   "idx": 25,
+   "idx": 28,
    "admin": "Slovenia",
    "stem": "slovenia",
    "fill": "#3D78A4",
@@ -217,7 +244,7 @@
    "key": "slovenia"
   },
   {
-   "idx": 26,
+   "idx": 29,
    "admin": "South Africa",
    "stem": "south-africa",
    "fill": "#D7C2B7",
@@ -226,7 +253,7 @@
    "key": "south-africa"
   },
   {
-   "idx": 27,
+   "idx": 30,
    "admin": "Spain",
    "stem": "spain",
    "fill": "#9F62BC",
@@ -235,7 +262,7 @@
    "key": "spain"
   },
   {
-   "idx": 28,
+   "idx": 31,
    "admin": "Switzerland",
    "stem": "switzerland",
    "fill": "#6296BC",
@@ -244,7 +271,16 @@
    "key": "switzerland"
   },
   {
-   "idx": 29,
+   "idx": 32,
+   "admin": "Turkey",
+   "stem": "turkey",
+   "fill": "#2B2B82",
+   "label": "TURKEY",
+   "mapped": 0,
+   "key": "turkey"
+  },
+  {
+   "idx": 33,
    "admin": "United Kingdom",
    "stem": "united-kingdom",
    "fill": "#3DA485",
@@ -253,7 +289,7 @@
    "key": "united-kingdom"
   },
   {
-   "idx": 30,
+   "idx": 34,
    "admin": "United States of America",
    "stem": "usa",
    "fill": "#27587C",
@@ -262,7 +298,7 @@
    "key": "usa"
   },
   {
-   "idx": 31,
+   "idx": 35,
    "admin": "Uruguay",
    "stem": "uruguay",
    "fill": "#C9929C",
@@ -652,6 +688,70 @@
     "canterbury",
     "centralotago"
    ]
+  },
+  "austria": {
+   "bounds": [
+    9.0635,
+    45.921,
+    17.606,
+    49.4674
+   ],
+   "size": [
+    300,
+    125
+   ],
+   "stems": [
+    "burgenland",
+    "niederosterreich",
+    "styria"
+   ],
+   "fills": [
+    "#8B43AD",
+    "#82482B",
+    "#65AD43"
+   ],
+   "labels": [
+    "burgenland",
+    "niederosterreich",
+    "styria"
+   ]
+  },
+  "china": {
+   "bounds": [
+    69.932,
+    12.1052,
+    138.4428,
+    57.2397
+   ],
+   "size": [
+    300,
+    198
+   ],
+   "stems": [
+    "ningxia",
+    "shangrila",
+    "shandong",
+    "hebei"
+   ],
+   "fills": [
+    "#A1BBCE",
+    "#2B8268",
+    "#65AD43",
+    "#8B43AD"
+   ],
+   "labels": [
+    "ningxia",
+    "shangrila",
+    "shandong",
+    "hebei"
+   ]
   }
+ },
+ "index_pixels": {
+  "sha256": "142ebad66137fa3c8c3e2c1c4549888479bef6d90217227f446b20f72f5f0c53",
+  "shape": [
+   1024,
+   2048
+  ]
  }
 }

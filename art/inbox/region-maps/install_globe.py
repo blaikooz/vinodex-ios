@@ -20,7 +20,7 @@ the sphere picks a country. AUDIT §5's worry was per-pixel un-projection at
 ray when a finger lands, which is a hit test rather than a render pass. The
 index is read once per tap, not once per frame.
 """
-import json, os, shutil, sys
+import hashlib, io, json, os, shutil, sys
 
 import numpy as np
 from PIL import Image
@@ -46,21 +46,37 @@ OUTLINE = (6, 9, 16)
 # reaches the glass, and the authored palette was chosen to sit UNDER that
 # tint — muted, because the tint was going to supply the light. Lifted toward
 # white so they carry themselves.
-def brighten(rgb):
-    # Lifted in HSV rather than blended toward white. Blending raises value and
-    # drops saturation together, which is why the first pass came out pastel:
-    # thirty washed colours are harder to tell apart than thirty muted ones.
-    # Raising value and holding saturation keeps them distinct AND bright.
-    import colorsys
-    h, s_, v = colorsys.rgb_to_hsv(*(c / 255 for c in rgb))
-    v = min(1.0, v * 2.05)
-    s_ = min(1.0, s_ * 1.18)
-    return tuple(int(round(c * 255)) for c in colorsys.hsv_to_rgb(h, s_, v))
+from palette import brighten          # the one definition; see palette.brighten
 
 
 def main():
-    idx = np.array(Image.open(os.path.join(HERE, "globe-index.png")))
+    raw = open(os.path.join(HERE, "globe-index.png"), "rb").read()
+    idx = np.array(Image.open(io.BytesIO(raw)))
     meta = json.load(open(os.path.join(HERE, "globe-meta.json")))
+
+    # A country's `idx` is its position in an alphabetical list. Add one country
+    # and most of the others renumber, so a raster from before the change pairs
+    # cleanly with a meta from after it and every country answers as its
+    # alphabetical neighbour — no crash, no failing shape, just a hit test that
+    # is quietly wrong. globe_tex.py stamps the raster's fingerprint into the meta so
+    # the mismatch is caught here instead of on a device.
+    # Over the decoded PIXELS, not the file bytes: PNGs get re-encoded in
+    # transit between machines, so a byte hash fails on a re-save that changed
+    # nothing and would pass on a hand-edited raster re-encoded the same way.
+    # What must match is the data.
+    want = meta.get("index_pixels")
+    if want:
+        got = {"sha256": hashlib.sha256(idx.tobytes()).hexdigest(),
+               "shape": list(idx.shape)}
+        if got != want:
+            raise SystemExit(
+                "globe-index.png does not match globe-meta.json.\n"
+                "  meta expects %s %s\n  raster is    %s %s\n"
+                "They are generated as a pair — re-run globe_tex.py, commit both."
+                % (want["shape"], want["sha256"][:16],
+                   got["shape"], got["sha256"][:16]))
+    else:
+        print("  note: meta carries no index_pixels; regenerate with globe_tex.py")
 
     out = np.zeros(idx.shape + (3,), dtype=np.uint8)
     out[:, :] = SEA

@@ -7,7 +7,25 @@ came from, and asserts every catalog coordinate resolves to a wine region.
     python3 region_check.py france my-pins.json      # the real regions.ts rows
 
 Input JSON: a list of {"id":..., "name":..., "lon":..., "lat":...}.
-`id` is optional and only used in the report.
+
+`id` is the CATALOG id (R032), and it is not cosmetic: it keys
+`<name>-region-index.json`, which is the artefact the app reads to turn a
+catalog row into a painted region. A pin file without ids can check the map but
+cannot write that index — see WHICH PINS below.
+
+WHICH PINS
+  The seven older countries carry two pin files. `pins-<c>.json` is dense and
+  name-only: more coverage, better at catching a mis-painted département.
+  `pins-<c>-catalog.json` is the real regions.ts rows, with ids. Austria and
+  China have one file that is both.
+
+  The check runs against whatever you name, defaulting to `pins-<c>.json`. The
+  region index is written from whichever pins carry ids, which is a different
+  file for those seven — and the reason this is spelled out is that it did not
+  used to be. `by_id[i or n]` fell back to the pin NAME, so the documented
+  invocation `python3 region_check.py france` silently replaced an id-keyed
+  index with a name-keyed one. Nothing failed; the file just stopped being able
+  to answer the question it exists for.
 
 Exit 0 if every pin lands on a coloured region. Exit 1 otherwise, listing which
 pins failed and how. This is deliberately the same discipline as
@@ -72,47 +90,70 @@ def nearest(x, y):
     return best[1], math.sqrt(best[0])
 
 
-src = next((a for a in args if a.endswith('.json')),
-           os.path.join(HERE, 'pins-%s.json' % NAME))
+def resolve(pins):
+    """Where each pin lands on the shipped index raster."""
+    fails, rows = [], []
+    for p in pins:
+        x, y = to_canvas(p['lon'], p['lat'])
+        xi, yi = int(round(x)), int(round(y))
+        got, note = None, ''
+        if not (0 <= xi < CW and 0 <= yi < CH):
+            note = 'OFF-MAP'
+        else:
+            v = int(idx[yi, xi])
+            got = BY_ID.get(v)
+            if got is None:
+                n, d = nearest(x, y)
+                kind = 'ON-STONE' if v == 255 else 'OUTSIDE'
+                note = '%s -> nearest %s (%.1fpx)' % (kind, n, d)
+                got = n
+        if note:
+            fails.append((p, note))
+        elif p.get('expect') and p['expect'] != got:
+            note = 'MISMATCH expected %s' % p['expect']
+            fails.append((p, note))
+        rows.append((p.get('id', ''), p['name'], got or '-', note))
+    return fails, rows
+
+
+named = next((a for a in args if a.endswith('.json')), None)
+src = named or os.path.join(HERE, 'pins-%s.json' % NAME)
 pins = json.load(open(src))
 print('checking %d pins from %s\n' % (len(pins), os.path.basename(src)))
 
-fails, rows = [], []
-for p in pins:
-    x, y = to_canvas(p['lon'], p['lat'])
-    xi, yi = int(round(x)), int(round(y))
-    got, note = None, ''
-    if not (0 <= xi < CW and 0 <= yi < CH):
-        note = 'OFF-MAP'
-    else:
-        v = int(idx[yi, xi])
-        got = BY_ID.get(v)
-        if got is None:
-            n, d = nearest(x, y)
-            kind = 'ON-STONE' if v == 255 else 'OUTSIDE'
-            note = '%s -> nearest %s (%.1fpx)' % (kind, n, d)
-            got = n
-    if note:
-        fails.append((p, note))
-    elif p.get('expect') and p['expect'] != got:
-        note = 'MISMATCH expected %s' % p['expect']
-        fails.append((p, note))
-    rows.append((p.get('id', ''), p['name'], got or '-', note))
+fails, rows = resolve(pins)
 
 w1 = max(len(r[0]) for r in rows) or 1
 w2 = max(len(r[1]) for r in rows)
 for i, n, g, note in rows:
     print('%-*s  %-*s  %-11s %s' % (w1, i, w2, n, g, note))
 
-by_id, by_stem = {}, {s: [] for s in man['regions']}
-for (i, n, g, note) in rows:
-    if not note and g in by_stem:
-        by_id[i or n] = g
-        by_stem[g].append(i or n)
-json.dump({'byId': by_id, 'byStem': by_stem},
-          open(os.path.join(OUT, '%s-region-index.json' % NAME), 'w'),
-          ensure_ascii=False, indent=1)
-print('\nwrote %s-region-index.json (%d ids mapped)' % (NAME, len(by_id)))
+# --- the region index, from pins that carry catalog ids ----------------------
+cat = os.path.join(HERE, 'pins-%s-catalog.json' % NAME)
+if all(p.get('id') for p in pins):
+    idx_src, idx_rows = src, rows
+elif not named and os.path.exists(cat):
+    idx_src = cat
+    _f, idx_rows = resolve(json.load(open(cat)))
+    print('\nregion index from %s (%d pins)' % (os.path.basename(cat), len(idx_rows)))
+else:
+    idx_src, idx_rows = None, None
+    print('\n%s-region-index.json NOT written: these pins carry no catalog ids,\n'
+          'and overwriting an id-keyed index with a name-keyed one is worse than\n'
+          'leaving it alone. Run with the catalog pins to rebuild it.' % NAME)
+
+if idx_rows is not None:
+    by_id, by_stem = {}, {s: [] for s in man['regions']}
+    for (i, n, g, note) in idx_rows:
+        if not note and g in by_stem:
+            by_id[i] = g
+            by_stem[g].append(i)
+    assert all(by_id), 'a pin reached the index without a catalog id'
+    json.dump({'byId': by_id, 'byStem': by_stem},
+              open(os.path.join(OUT, '%s-region-index.json' % NAME), 'w'),
+              ensure_ascii=False, indent=1)
+    print('\nwrote %s-region-index.json (%d ids mapped from %s)'
+          % (NAME, len(by_id), os.path.basename(idx_src)))
 
 if fails:
     print('FAIL — %d of %d pins did not resolve cleanly:' % (len(fails), len(pins)))
