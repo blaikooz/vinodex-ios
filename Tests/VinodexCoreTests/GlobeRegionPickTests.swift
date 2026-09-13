@@ -107,4 +107,53 @@ struct GlobeRegionPickTests {
         #expect(italy.primaryEntryID(for: "veneto", names: [("X", "Soave")]) == "X")
         #expect(italy.primaryEntryID(for: "veneto", names: []) == nil)
     }
+
+    /// **The fallback has to admit that it is one** (0.9.58).
+    ///
+    /// Standing in is a fine way to choose a destination and a terrible way to
+    /// choose a name. On the device, California — a painted state with six
+    /// AVAs in the catalog and no page of its own — raised a tile reading NAPA
+    /// VALLEY, because the fallback's answer was presented as the thing that
+    /// had been tapped. `isOwnEntry` separates "this entry IS the area" from
+    /// "this entry is merely inside it", and the card says so either way.
+    @Test("a stand-in entry is marked as one, and a real one is not")
+    func ownEntryIsDistinguished() throws {
+        let usa = try map("usa")
+        // The six the map actually carries under `california`. Not one of them
+        // is named California, and none of them should claim to be.
+        let california = usa.primaryEntry(for: "california", names: [
+            ("R013", "Napa Valley"), ("R014", "Sonoma"), ("R016", "Paso Robles"),
+            ("R018", "Santa Barbara"), ("R020", "Lodi"), ("R123", "San Benito"),
+        ])
+        #expect(california?.id == "R013")
+        #expect(california?.isOwnEntry == false, "Napa Valley is not California")
+
+        // Both matching steps are the area itself, exact and longer-spelled.
+        let italy = try map("italy")
+        #expect(italy.primaryEntry(for: "veneto", names: [
+            ("R023", "Veneto"), ("R071", "Valpolicella"),
+        ])?.isOwnEntry == true)
+        let france = try map("france")
+        #expect(france.primaryEntry(for: "southwest", names: [
+            ("R1", "Gaillac"), ("R3", "South West France"),
+        ])?.isOwnEntry == true)
+
+        #expect(usa.primaryEntry(for: "california", names: []) == nil)
+    }
+
+    /// Which painted areas have no page of their own, named. Ten areas carry
+    /// more than one catalog entry and most of them are still a place — the
+    /// interesting set is the ones that are not, because those are the taps
+    /// that used to be renamed after their contents.
+    @Test("the USA map paints states, and the catalog has no state pages")
+    func usaPaintsStates() throws {
+        let usa = try map("usa")
+        let stems = Set(usa.regions.map(\.id))
+        #expect(stems == ["california", "oregon", "washington", "newyork"],
+                "the USA map's painted areas changed: \(stems.sorted())")
+        // Six AVAs under one state. When state pages arrive this count moves
+        // to the state and this test is where that shows up.
+        #expect(usa.regionIDs(for: "california").count == 6)
+        #expect(usa.regionIDs(for: "oregon").count == 1)
+    }
 }

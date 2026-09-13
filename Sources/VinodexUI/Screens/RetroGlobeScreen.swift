@@ -66,24 +66,19 @@ public struct RetroGlobeScreen: View {
     /// body runs at 60Hz — and the tile was doing a catalog id-resolve plus two
     /// store lookups inside it, sixty times a second, for a tile that changes
     /// only when you tap.
-    @State private var selectedEntry: WineEntry?
+    @State private var selectedContents: RegionContents?
 
-    /// The magnification the region tier was framed at, so a pinch past it can
-    /// hand dragging back. Nil away from that tier.
-    @State private var fittedZoom: Double?
-
-
-    /// **The map holds still at the size it was framed at, and moves once you
-    /// zoom past that.** Locking the region tier outright made pinch a trap:
-    /// magnification is about the screen centre, so anything that left the
-    /// glass could not be brought back and the small regions pinch exists to
-    /// reach became unreachable. Fitted or wider, it is pinned; closer in, it
-    /// pans.
-    private var canDragGlobe: Bool {
-        guard regionTier != nil else { return true }
-        guard let fitted = fittedZoom else { return false }
-        return model.zoom > fitted * 1.02
-    }
+    /// **The map moves, and the fence decides how far.**
+    ///
+    /// This was three rules in three batches. Locked outright, pinch became a
+    /// trap: magnification is about the screen centre, so anything that left
+    /// the glass could not be brought back. Unlocked above the framed zoom, it
+    /// walked off the art. Now `GlobeModel.fence` clamps the heading against
+    /// the drawn canvas every time the camera moves, so "you can move around
+    /// but not outside this zone" is enforced where the camera is written
+    /// rather than by refusing the gesture — and a map with no room to spare
+    /// simply springs back, which reads as an edge instead of as a dead panel.
+    private var canDragGlobe: Bool { true }
 
     /// What a scene rebuild is keyed on — the screen mode, the skin and the
     /// texture are all baked in `buildScene`, so each has to force one.
@@ -245,7 +240,10 @@ public struct RetroGlobeScreen: View {
                                     .onChanged { value in
                                         if pinchAnchor == nil { pinchAnchor = model.zoom }
                                         let base = pinchAnchor ?? model.zoom
-                                        model.zoom = min(GlobeModel.maxZoom,
+                                        // The ceiling is the model's, because
+                                        // it depends on the tier: 12 on the
+                                        // globe, the art's own limit on a map.
+                                        model.zoom = min(model.zoomCeiling,
                                                          max(1, base * value.magnification))
                                     }
                                     .onEnded { _ in pinchAnchor = nil }
@@ -493,7 +491,6 @@ public struct RetroGlobeScreen: View {
     private func release() {
         Haptics.select()
         pinchAnchor = nil
-        fittedZoom = nil
         model.autoSpins = !freezesGlobe
         model.zoom = 1
         withAnimation(DexMotion.settle) { pickedCountry = nil }
@@ -528,29 +525,54 @@ public struct RetroGlobeScreen: View {
             west: b.west, east: b.east,
             south: b.south, north: b.north,
             // Tighter than the country tier: the regions are the subject now,
-            // so less air around them.
-            aspect: viewportAspect, margin: 1.02)
-        fittedZoom = fit
+            // so less air around them. And it runs to the *map* ceiling: the
+            // globe's 12 held Cyprus and the United Kingdom back from the size
+            // their own art supports, and the fence would only have pushed
+            // past it a line later anyway.
+            aspect: viewportAspect, margin: 1.02, ceiling: GlobeModel.mapMaxZoom)
+
+        // **The map is a panel, and you cannot get off it.** Pinching out or
+        // dragging used to walk the camera past the backdrop's edge, where
+        // there is nothing to draw: a hard-edged panel with black void beyond
+        // it and the raw globe showing through — Argentina's bright green
+        // beside Chile, a band of open sea above Lebanon. The fence is the
+        // drawn map's own extent, so "outside" is defined by the art rather
+        // than by a guess.
+        model.fence(to: atlas.map.canvasBounds, aspect: viewportAspect)
         model.focus(lon: (b.west + b.east) / 2,
                     lat: (b.south + b.north) / 2,
                     zoom: fit)
         if let stem = probeStem { model.popRegion(atlas.cutout(stem)) }
-        let found = probeStem.flatMap { entry(for: $0, in: atlas) }
+        let found = probeStem.map { contents(of: $0, in: atlas) }
         withAnimation(DexMotion.settle) {
             regionTier = hit.admin
             selectedRegion = probeStem
-            selectedEntry = found
+            selectedContents = found
         }
     }
 
-    /// The entry behind a painted region — the region itself, never an
-    /// appellation inside it. `RegionMap.primaryEntryID` decides; this resolves.
-    private func entry(for stem: String, in atlas: RegionAtlas) -> WineEntry? {
+    /// What a painted area leads to: the area's own page where the catalog has
+    /// one, and otherwise everything the catalog files inside it.
+    ///
+    /// `RegionMap.primaryEntry` decides which case this is; the screen needs
+    /// both halves, because the two read differently. Bordeaux is a page.
+    /// California is a state with six AVAs and no page, and the honest tile
+    /// there says CALIFORNIA and lists the six.
+    private func contents(of stem: String, in atlas: RegionAtlas) -> RegionContents {
         let all = atlas.map.regionIDs(for: stem).compactMap { db.entry(id: $0) }
-        guard let id = atlas.map.primaryEntryID(
+        guard let pick = atlas.map.primaryEntry(
             for: stem, names: all.map { (id: $0.id, name: $0.name) }
-        ) else { return nil }
-        return all.first { $0.id == id }
+        ) else { return RegionContents(name: atlas.map.displayName(stem), entries: [], isPlace: false) }
+        let name = atlas.map.displayName(stem)
+        if pick.isOwnEntry {
+            return RegionContents(name: name,
+                                  entries: all.filter { $0.id == pick.id },
+                                  isPlace: true)
+        }
+        // No page of its own. Everything inside it, in the catalog's order —
+        // capped, because this floats over a globe the reader is looking at.
+        return RegionContents(name: name, entries: Array(all.prefix(3)),
+                              isPlace: false, more: max(0, all.count - 3))
     }
 
     /// A tap while the regions are up: name one, or leave the tier.
@@ -568,10 +590,10 @@ public struct RetroGlobeScreen: View {
         // step, not a menu to be dismissed by hand.
         Haptics.select()
         model.popRegion(atlas.cutout(stem))
-        let found = entry(for: stem, in: atlas)
+        let found = contents(of: stem, in: atlas)
         withAnimation(DexMotion.settle) {
             selectedRegion = stem
-            selectedEntry = found
+            selectedContents = found
         }
     }
 
@@ -579,15 +601,15 @@ public struct RetroGlobeScreen: View {
     /// out to the magnification that had the whole country on the glass.
     private func closeRegions() {
         Haptics.screenTap()
+        model.unfence()
         model.hideRegions()
         // A pinch that is cancelled rather than ended never clears its anchor,
         // and a stale one makes the next pinch jump from the wrong base.
         pinchAnchor = nil
-        fittedZoom = nil
         withAnimation(DexMotion.settle) {
             regionTier = nil
             selectedRegion = nil
-            selectedEntry = nil
+            selectedContents = nil
         }
         // **Back to the view `pick` established, not a second opinion of it.**
         // This re-framed on the manifest's country box while `pick` framed on
@@ -743,21 +765,36 @@ public struct RetroGlobeScreen: View {
     /// globe the reader is still looking at — the full tile is what the entry
     /// page opens with.
     private func regionEntryCard(_ atlas: RegionAtlas, stem: String) -> some View {
-        let entries = selectedEntry.map { [$0] } ?? []
+        let found = selectedContents ?? contents(of: stem, in: atlas)
+        let entries = found.entries
         return VStack(alignment: .leading, spacing: 8) {
-            // No name header: the tile under it already carries the region's
-            // name, and printing it twice cost a line of map for nothing. The
-            // empty case still needs words, so it keeps them.
+            // **The name of the thing you pointed at** (0.9.58, maintainer
+            // order: "the region should be the region name"). The header came
+            // off in 0.9.57 on the argument that the tile below already
+            // carried it — true only while the area and its entry are the same
+            // place. Tap California and the tile said NAPA VALLEY, which is a
+            // valley inside a state the catalog does not have a page for.
+            Text(found.name)
+                .font(DexFont.retro(12))
+                .tracking(1)
+                .foregroundStyle(lcd.accent)
             if entries.isEmpty {
-                Text(atlas.map.displayName(stem))
-                    .font(DexFont.retro(12))
-                    .tracking(1)
-                    .foregroundStyle(lcd.accent)
                 Text("NO CATALOG ENTRY HERE YET")
                     .font(DexFont.retro(10))
                     .tracking(1)
                     .foregroundStyle(lcd.subtext)
             } else {
+                // Where the area has no page of its own, the tiles below are
+                // its contents rather than itself, and saying so is the
+                // difference between a list and a mislabel.
+                if !found.isPlace {
+                    Text(found.more > 0
+                         ? "INSIDE IT — \(entries.count) OF \(entries.count + found.more)"
+                         : "INSIDE IT")
+                        .font(DexFont.retro(10))
+                        .tracking(1)
+                        .foregroundStyle(lcd.subtext)
+                }
                 ForEach(entries) { entry in
                     EntryTileView(
                         entry: entry,
@@ -1365,6 +1402,18 @@ final class GlobeModel {
     /// The furthest in the lens goes, and the ceiling a pinch runs to.
     static let maxZoom: Double = 12
 
+    /// **The ceiling while a drawn map is up, which is a different number.**
+    ///
+    /// 12 is a limit on the *globe*: `globe-wine.png` is 2048 across, so about
+    /// 5.7 texels to the degree, and past 12x the sphere is showing a country
+    /// as a handful of coloured blocks. A region map is 2510 cells tall over
+    /// as little as four degrees — six hundred times the detail — and the
+    /// fence needs the headroom anyway: filling a portrait viewport with the
+    /// United Kingdom's canvas takes 23.7x, so a 12 ceiling made the fence
+    /// unsatisfiable for the nine smallest countries and let the camera sit
+    /// where the art had already run out.
+    static let mapMaxZoom: Double = 32
+
     /// **Magnification that actually fits the country on the glass.**
     ///
     /// The old version divided a constant by the larger of the two spans in
@@ -1380,8 +1429,49 @@ final class GlobeModel {
     /// own aspect is accounted for.
     static func zoomToFit(
         west: Double, east: Double, south: Double, north: Double,
-        aspect: Double, margin: Double = 1.28
+        aspect: Double, margin: Double = 1.28, ceiling: Double = maxZoom
     ) -> Double {
+        let (vertical, forWidth) = fields(west: west, east: east,
+                                          south: south, north: north, aspect: aspect)
+        // Contain: satisfy whichever axis is hungrier, and let the other one
+        // carry slack.
+        let needed = max(vertical, forWidth) * margin
+        guard needed > 0.01 else { return 1 }
+        return min(ceiling, max(1, Self.baseFieldOfView / needed))
+    }
+
+    /// **The other half of the same sum: magnification that leaves no art edge
+    /// on the glass.**
+    ///
+    /// `zoomToFit` contains — both extents inside the viewport, slack on the
+    /// axis that needed less. That is right for framing a country and wrong
+    /// for a fence, because the slack *is* the failure: it is the strip where
+    /// the backdrop has run out and the bare globe shows through. A canvas
+    /// 4.8 degrees wide and 5.2 tall, contained in a portrait viewport, is
+    /// held to its width, and the view then reaches 7.7 degrees vertically —
+    /// two and a half degrees of open sea and green Syria above and below
+    /// Lebanon's panel, which is what the device showed.
+    ///
+    /// So take the *smaller* requirement instead. The art overflows the axis
+    /// it has to spare rather than falling short of it, and the glass is
+    /// covered whatever shape the canvas is.
+    static func zoomToFill(
+        west: Double, east: Double, south: Double, north: Double,
+        aspect: Double, ceiling: Double = mapMaxZoom
+    ) -> Double {
+        let (vertical, forWidth) = fields(west: west, east: east,
+                                          south: south, north: north, aspect: aspect)
+        let needed = min(vertical, forWidth)
+        guard needed > 0.01 else { return 1 }
+        return min(ceiling, max(1, Self.baseFieldOfView / needed))
+    }
+
+    /// The field of view each extent asks for, in degrees, both expressed as a
+    /// *vertical* field so they can be compared. Shared so the fit and the
+    /// fence cannot drift apart — they are the same measurement read two ways.
+    private static func fields(
+        west: Double, east: Double, south: Double, north: Double, aspect: Double
+    ) -> (vertical: Double, forWidth: Double) {
         let midLat = (south + north) / 2 * .pi / 180
         // Longitude converges toward the poles; latitude does not.
         let lonArc = abs(east - west) * cos(midLat)
@@ -1396,17 +1486,12 @@ final class GlobeModel {
             return 2 * atan(across / depth) * 180 / .pi
         }
 
-        let vertical = fieldFor(arc: latArc)
         // The horizontal field is narrower than the vertical one on a portrait
         // viewport, so a horizontal extent needs a *larger* vertical field to
         // be contained: tan(h/2) = aspect * tan(v/2), inverted.
         let horizontal = fieldFor(arc: lonArc)
-        let neededForWidth = 2 * atan(tan(horizontal / 2 * .pi / 180)
-                                      / max(aspect, 0.05)) * 180 / .pi
-
-        let needed = max(vertical, neededForWidth) * margin
-        guard needed > 0.01 else { return 1 }
-        return min(Self.maxZoom, max(1, Self.baseFieldOfView / needed))
+        return (fieldFor(arc: latArc),
+                2 * atan(tan(horizontal / 2 * .pi / 180) / max(aspect, 0.05)) * 180 / .pi)
     }
 
     /// Turn the globe until a coordinate faces the camera, and move in.
@@ -1544,8 +1629,18 @@ final class GlobeModel {
             under.lightingModel = .constant
             under.isDoubleSided = true
             under.diffuse.magnificationFilter = .nearest
-            under.diffuse.minificationFilter = .nearest
-            under.diffuse.mipFilter = .none
+            // **The backdrop gets real minification, unlike the layer above
+            // it.** Nearest with no mipmaps was copied from the region art,
+            // where it is load-bearing: that layer has a keyed alpha edge, and
+            // averaging an opaque region colour with the transparent black
+            // beside it is what produced the halo around every country. The
+            // backdrop has no alpha at all — five flat opaque colours — so it
+            // cannot halo, and sampling it nearest at distance produced moire
+            // instead: the diagonal banding over Greenland on the northern
+            // maps, worst where a coastline is intricate and the screen scale
+            // is small.
+            under.diffuse.minificationFilter = .linear
+            under.diffuse.mipFilter = .linear
             under.diffuse.wrapS = .clamp
             under.diffuse.wrapT = .clamp
             underGeometry.materials = [under]
@@ -1759,9 +1854,96 @@ final class GlobeModel {
     /// no distance at which it breaks.
     var zoom: Double = 1 {
         didSet {
+            // Clamped rather than guarded: a pinch writes whatever the
+            // gesture produced, and the fence has to hold against the value
+            // actually written, not merely refuse it.
+            let want = min(max(zoom, fenceMinZoom), zoomCeiling)
+            if want != zoom { zoom = want; return }
             guard zoom != oldValue else { return }
             cameraNode.camera?.fieldOfView = CGFloat(Self.baseFieldOfView / zoom)
+            clampToFence()
         }
+    }
+
+    // MARK: - The fence
+
+    /// The drawn map's extent, while one is up. Nil at the globe tier, where
+    /// there is nothing to fall off.
+    private var fence: (west: Double, east: Double, south: Double, north: Double)?
+    /// The furthest out the lens may go before the panel stops filling the
+    /// glass. 1 when there is no fence.
+    private var fenceMinZoom: Double = 1
+
+    /// How far in a pinch may run: the globe's limit at the globe tier, the
+    /// art's at the map tier. Read by the zoom setter, so nothing can write
+    /// past it by another route.
+    var zoomCeiling: Double { fence == nil ? Self.maxZoom : Self.mapMaxZoom }
+
+    /// **Fence the camera to the drawn map.** Pan and zoom stay live; what
+    /// stops is leaving the art. The minimum zoom is the one at which the
+    /// panel covers the viewport — `zoomToFill`, not `zoomToFit`: a fit leaves
+    /// the slack axis short, and short is where the globe shows through.
+    func fence(to bounds: (west: Double, east: Double, south: Double, north: Double),
+               aspect: Double) {
+        fence = bounds
+        fenceMinZoom = Self.zoomToFill(
+            west: bounds.west, east: bounds.east,
+            south: bounds.south, north: bounds.north,
+            aspect: aspect)
+        if zoom < fenceMinZoom { zoom = fenceMinZoom }
+        clampToFence()
+    }
+
+    func unfence() {
+        fence = nil
+        fenceMinZoom = 1
+    }
+
+    /// Pull the heading back inside the fence, allowing for how much of the
+    /// map the lens is currently showing. Half the visible arc is subtracted
+    /// from each edge, so the view's *edge* stops at the art's edge rather
+    /// than its centre doing so — and where the visible arc is wider than the
+    /// map, the centre is pinned to the map's middle instead of fighting two
+    /// opposite limits.
+    private func clampToFence() {
+        guard let f = fence else { return }
+        let visible = Self.visibleArc(atZoom: zoom)
+        let midLat = (f.south + f.north) / 2
+        let midLon = (f.west + f.east) / 2
+
+        let halfLat = visible / 2
+        let latRoom = (f.north - f.south) / 2 - halfLat
+        let wantLat = latRoom > 0
+            ? min(max(pitch * 180 / .pi, midLat - latRoom), midLat + latRoom)
+            : midLat
+
+        // Longitude converges toward the poles, so the same arc spans more
+        // degrees of longitude the further north you are.
+        let halfLon = halfLat / max(cos(wantLat * .pi / 180), 0.2)
+        let lonRoom = (f.east - f.west) / 2 - halfLon
+        let currentLon = -yaw * 180 / .pi
+        let wantLon = lonRoom > 0
+            ? min(max(currentLon, midLon - lonRoom), midLon + lonRoom)
+            : midLon
+
+        pitch = min(max(wantLat * .pi / 180, -Self.maxPitch), Self.maxPitch)
+        yaw = -wantLon * .pi / 180
+        applyOrientation()
+    }
+
+    /// Degrees of arc the lens shows vertically at a given magnification —
+    /// the inverse of `zoomToFit`'s `fieldFor`.
+    static func visibleArc(atZoom z: Double) -> Double {
+        let fov = baseFieldOfView / max(z, 0.01)
+        var lo = 0.1, hi = 170.0
+        for _ in 0..<40 {
+            let mid = (lo + hi) / 2
+            let half = mid / 2 * .pi / 180
+            let f = 2 * atan(globeRadius * sin(half)
+                             / (cameraDistance - globeRadius * cos(half))) * 180 / .pi
+            if f < fov { lo = mid } else { hi = mid }
+        }
+        return (lo + hi) / 2
     }
 
     static let baseFieldOfView: Double = 50
@@ -2048,6 +2230,10 @@ final class GlobeModel {
         } else {
             yaw += (velocityYaw + (autoSpins ? Self.autoSpinRate : 0)) * dt
             pitch = min(max(pitch + velocityPitch * dt, -Self.maxPitch), Self.maxPitch)
+            // The throw after the finger lifts has to stop at the fence too,
+            // or a flick walks straight off the panel the drag was stopped from
+            // leaving.
+            clampToFence()
         }
 
         applyOrientation()
@@ -2189,6 +2375,7 @@ final class GlobeModel {
         focusPitch = nil
         yaw += dYaw
         pitch = min(max(pitch + dPitch, -Self.maxPitch), Self.maxPitch)
+        clampToFence()
     }
 
     func endDrag() {
@@ -2332,4 +2519,21 @@ private final class DisplayLinkProxy: NSObject {
         }
     }
 }
+
+/// **What a tap on a painted area found**, as one value rather than an entry
+/// and three inferences about it.
+///
+/// The two cases are genuinely different and the screen has to tell them
+/// apart. `isPlace` means the catalog has a page for the area itself — tap
+/// Bordeaux, get Bordeaux. Otherwise the area is a container the catalog fills
+/// but does not name: the USA map paints states, and the catalog files AVAs
+/// with a `state` on them, so California holds six entries and is none of
+/// them. `more` is how many were left off the front of the card.
+struct RegionContents: Equatable {
+    let name: String
+    let entries: [WineEntry]
+    let isPlace: Bool
+    var more: Int = 0
+}
+
 #endif
