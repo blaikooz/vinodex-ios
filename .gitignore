@@ -40,3 +40,8 @@ scripts/__pycache__/
 art/icons/countries-from-rings/
 build.log
 build/
+
+# Python bytecode from the art pipeline scripts. Tracked by accident; they
+# churn on every render and carry a toolchain version in the filename.
+__pycache__/
+*.pyc
