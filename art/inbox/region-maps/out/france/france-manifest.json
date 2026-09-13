@@ -9,7 +9,8 @@
    -61.957317
   ],
   "scale": 15.639696,
-  "note": "canvas_x = (lon*x_factor - origin[0])*scale + 2 ; canvas_y = (-lat - origin[1])*scale + 2"
+  "note": "canvas_x = (lon*x_factor - origin[0])*scale + 2 ; canvas_y = (-lat - origin[1])*scale + 2",
+  "cell_note": "Those are CONTINUOUS canvas coordinates. The cell containing a point is floor(x), floor(y) — the rasteriser fills cell i from [i, i+1). Rounding picks the nearest cell CENTRE and lands one cell over for anything past the halfway line; harmless on a large region, decisive on a small child."
  },
  "base": {
   "canvas": [
@@ -23,7 +24,8 @@
   "layers": {
    "interactive": "france-regions.png",
    "backdrop": "france-backdrop.png",
-   "index": "france-index.png"
+   "index": "france-index.png",
+   "index2": "france-index2.png"
   },
   "index_legend": {
    "0": "outside the country (sea, neighbour, coastline ink)",
@@ -173,6 +175,59 @@
   ],
   "8": []
  },
+ "children": {
+  "chateauneuf": {
+   "id": 1,
+   "parent": "rhone",
+   "area_px": 4,
+   "units": [
+    "Châteauneuf-du-Pape"
+   ],
+   "source": "fr-communes.json",
+   "detail": {
+    "canvas": [
+     56,
+     70
+    ],
+    "upscale": 2,
+    "framed_on": "rhone",
+    "source_bbox": [
+     263,
+     258,
+     289,
+     291
+    ]
+   }
+  },
+  "sauternes": {
+   "id": 2,
+   "parent": "bordeaux",
+   "area_px": 5,
+   "units": [
+    "Sauternes",
+    "Bommes",
+    "Fargues",
+    "Preignac",
+    "Barsac"
+   ],
+   "source": "fr-communes.json",
+   "detail": {
+    "canvas": [
+     53,
+     68
+    ],
+    "upscale": 3,
+    "framed_on": "bordeaux",
+    "source_bbox": [
+     213,
+     258,
+     229,
+     279
+    ]
+   }
+  }
+ },
+ "children_note": "A second index plane, <country>-index2.png: same dimensions and same logical scale as index, 0 = no child, 1..M = children[].id. Read it BEFORE index; non-zero wins, otherwise fall back. Children resolve through the same catalog-id map as regions.",
  "splits": [
   {
    "keeps": "beaujolais",

@@ -1,0 +1,28 @@
+{
+ "byId": {
+  "R048": "santorini",
+  "R065": "peloponnese",
+  "R067": "naoussa",
+  "R068": "amyndeon",
+  "R140": "attica",
+  "R066": "peloponnese"
+ },
+ "byStem": {
+  "santorini": [
+   "R048"
+  ],
+  "peloponnese": [
+   "R065",
+   "R066"
+  ],
+  "naoussa": [
+   "R067"
+  ],
+  "amyndeon": [
+   "R068"
+  ],
+  "attica": [
+   "R140"
+  ]
+ }
+}

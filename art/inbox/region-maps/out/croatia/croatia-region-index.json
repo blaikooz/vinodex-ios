@@ -1,0 +1,18 @@
+{
+ "byId": {
+  "R093": "dalmatia",
+  "R134": "istria",
+  "R142": "slavonia"
+ },
+ "byStem": {
+  "dalmatia": [
+   "R093"
+  ],
+  "istria": [
+   "R134"
+  ],
+  "slavonia": [
+   "R142"
+  ]
+ }
+}

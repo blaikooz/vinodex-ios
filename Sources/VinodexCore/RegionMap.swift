@@ -143,6 +143,31 @@ public struct RegionMap: Sendable {
     private let projScale: Double
     private let projXFactor: Double
 
+    /// **A region painted inside another region** (0.9.57).
+    ///
+    /// The index raster holds one byte per cell, so a cell belongs to exactly
+    /// one area and a child inside a parent cannot be expressed. A second
+    /// plane carries them: `0` means "no child here", and `1..M` name one.
+    ///
+    /// Two today, both in France — Sauternes inside Bordeaux and
+    /// Châteauneuf-du-Pape inside the Rhône. Both are commune-sized: four and
+    /// five cells against a France cell of 7.1 x 7.4 km.
+    public struct Child: Sendable, Equatable {
+        /// The byte this child carries in the second plane.
+        public let index: Int
+        /// The area it sits inside, as a stem.
+        public let parent: String
+        /// Its own stem.
+        public let stem: String
+    }
+
+    /// Children by their plane-2 byte. Empty where a country ships no second
+    /// plane, which is all but one of them.
+    public let childrenByIndex: [Int: Child]
+
+    /// Whether this country ships a second index plane at all.
+    public var hasChildren: Bool { !childrenByIndex.isEmpty }
+
     /// Names for all 85 painted areas across the seven countries.
     ///
     /// The stems are lowercase art names and the app writes region names in
@@ -159,44 +184,76 @@ public struct RegionMap: Sendable {
         "algarve": "ALGARVE",
         "alsace": "ALSACE",
         "altoadige": "ALTO ADIGE",
+        "amyndeon": "AMYNDEON",
         "andalucia": "ANDALUCIA",
+        "aragatsotn": "ARAGATSOTN",
         "aragon": "ARAGON",
+        "attica": "ATTICA",
         "auckland": "AUCKLAND",
         "bairrada": "BAIRRADA",
         "baleares": "BALEARES",
+        "barossa": "BAROSSA VALLEY",
         "basilicata": "BASILICATA",
         "basque": "BASQUE",
+        "batroun": "BATROUN",
         "beaujolais": "BEAUJOLAIS",
         "beirainterior": "BEIRA INTERIOR",
+        "bekaa": "BEKAA VALLEY",
+        "bessarabia": "BESSARABIA",
         "bierzo": "BIERZO",
         "biobio": "BÍO BÍO",
         "bordeaux": "BORDEAUX",
         "burgenland": "BURGENLAND",
         "burgundy": "BURGUNDY",
         "calabria": "CALABRIA",
+        "california": "CALIFORNIA",
+        "campanha": "CAMPANHA GAÚCHA",
         "campania": "CAMPANIA",
+        "canelones": "CANELONES",
         "canterbury": "CANTERBURY",
+        "cappadocia": "CAPPADOCIA",
         "catalonia": "CATALONIA",
         "catamarca": "CATAMARCA",
         "centralotago": "CENTRAL OTAGO",
         "champagne": "CHAMPAGNE",
+        "chateauneuf": "CHÂTEAUNEUF-DU-PAPE",
+        "codru": "CODRU",
+        "commandaria": "COMMANDARIA",
         "coquimbo": "COQUIMBO",
         "cordoba": "CORDOBA",
         "corsica": "CORSICA",
+        "cotnari": "COTNARI",
+        "dalmatia": "DALMATIA",
         "dao": "DÃO",
+        "dealumare": "DEALU MARE",
         "douro": "DOURO",
+        "eger": "EGER",
+        "elazig": "ELAZIĞ",
         "emiliaromagna": "EMILIA-ROMAGNA",
         "extremadura": "EXTREMADURA",
+        "franconia": "FRANCONIA",
         "friuli": "FRIULI",
+        "fruskagora": "FRUŠKA GORA",
         "galicia": "GALICIA",
         "gisborne": "GISBORNE",
+        "goriskabrda": "GORIŠKA BRDA",
+        "guadalupe": "VALLE DE GUADALUPE",
+        "guerrouane": "GUERROUANE",
         "hawkesbay": "HAWKE'S BAY",
         "hebei": "HEBEI",
+        "huntervalley": "HUNTER VALLEY",
+        "imereti": "IMERETI",
+        "istria": "ISTRIA",
         "itata": "ITATA",
         "jerez": "JEREZ",
+        "judeanhills": "JUDEAN HILLS",
         "jura": "JURA",
+        "kakheti": "KAKHETI",
+        "kartli": "KARTLI",
+        "kent": "KENT",
         "lamancha": "LA MANCHA",
         "languedoc": "LANGUEDOC",
+        "lavaux": "LAVAUX",
         "lazio": "LAZIO",
         "levante": "LEVANTE",
         "liguria": "LIGURIA",
@@ -205,22 +262,41 @@ public struct RegionMap: Sendable {
         "lombardy": "LOMBARDY",
         "madrid": "MADRID",
         "maipo": "MAIPO",
+        "maldonado": "MALDONADO",
         "malleco": "MALLECO",
+        "malokarpatska": "MALOKARPATSKÁ",
         "marche": "MARCHE",
+        "margaretriver": "MARGARET RIVER",
         "marlborough": "MARLBOROUGH",
         "maule": "MAULE",
         "mendoza": "MENDOZA",
+        "mikulovska": "MIKULOVSKÁ",
         "molise": "MOLISE",
+        "mosel": "MOSEL",
+        "nandihills": "NANDI HILLS",
+        "naoussa": "NAOUSSA",
+        "nashik": "NASHIK",
         "navarra": "NAVARRA",
         "nelson": "NELSON",
+        "newyork": "FINGER LAKES",
+        "niagara": "NIAGARA PENINSULA",
         "niederosterreich": "NIEDERÖSTERREICH",
         "ningxia": "HELAN MOUNTAIN",
         "northland": "NORTHLAND",
+        "okanagan": "OKANAGAN VALLEY",
+        "oregon": "WILLAMETTE VALLEY",
+        "paarl": "PAARL & FRANSCHHOEK",
+        "parras": "PARRAS VALLEY",
         "patagonia": "PATAGONIA",
+        "peloponnese": "PELOPONNESE",
+        "pfalz": "PFALZ",
         "piedmont": "PIEDMONT",
+        "pitsilia": "PITSILIA",
         "provence": "PROVENCE",
         "puglia": "PUGLIA",
         "rapel": "RAPEL",
+        "rheingau": "RHEINGAU",
+        "rheinhessen": "RHEINHESSEN",
         "rhone": "RHÔNE",
         "riberadelduero": "RIBERA DEL DUERO",
         "rioja": "RIOJA",
@@ -228,23 +304,49 @@ public struct RegionMap: Sendable {
         "ruedatoro": "RUEDA & TORO",
         "salta": "SALTA",
         "sanjuan": "SAN JUAN",
+        "santorini": "SANTORINI",
         "sardinia": "SARDINIA",
+        "sauternes": "SAUTERNES",
         "savoie": "SAVOIE",
+        "serragaucha": "SERRA GAÚCHA",
         "setubal": "SETUBAL",
         "shandong": "SHANDONG",
         "shangrila": "SHANGRI-LA",
         "sicily": "SICILY",
+        "slavonia": "SLAVONIA",
+        "slovensky-tokaj": "SLOVENSKÝ TOKAJ",
         "southwest": "SOUTH WEST",
+        "stefanvoda": "ȘTEFAN VODĂ",
+        "stellenbosch": "STELLENBOSCH",
+        "struma": "STRUMA VALLEY",
         "styria": "STYRIA",
+        "sumadija": "ŠUMADIJA",
+        "sussex": "SUSSEX",
+        "swartland": "SWARTLAND",
+        "tarnave": "TÂRNAVE",
         "tejo": "TEJO",
+        "thracian": "THRACIAN LOWLANDS",
+        "tokaj": "TOKAJ",
         "trentino": "TRENTINO",
         "tuscany": "TUSCANY",
         "umbria": "UMBRIA",
+        "uppergalilee": "UPPER GALILEE",
+        "valais": "VALAIS",
         "valledaosta": "VALLE D'AOSTA",
+        "vayotsdzor": "VAYOTS DZOR",
         "veneto": "VENETO",
+        "villany": "VILLÁNY",
         "vinhoverde": "VINHO VERDE",
+        "vipava": "VIPAVA VALLEY",
         "waikatobop": "WAIKATO & BOP",
         "wairarapa": "WAIRARAPA",
+        "walkerbay": "WALKER BAY",
+        "washington": "WALLA WALLA",
+        "yamagata": "YAMAGATA",
+        "yamanashi": "YAMANASHI",
+        "zakarpattia": "ZAKARPATTIA",
+        "zenata": "ZENATA",
+        "znojemska": "ZNOJEMSKÁ",
     ]
 
     /// The countries with a painted map, by the resource-directory name.
@@ -254,16 +356,35 @@ public struct RegionMap: Sendable {
     /// country that quietly falls back to the outline. Adding a third is a
     /// render, an install, and a line here.
     public static let mapped: [String] = [
-        "france", "italy", "spain", "portugal", "argentina", "chile", "newzealand",
-        "austria", "china",
+        // Every wine country the catalog holds, on the maintainer's ruling of
+        // 13 Sep: a region map each, USA at state level, subregions later.
+        // Nine to thirty-nine in one drop.
+        "argentina", "armenia", "australia", "austria", "brazil", "bulgaria",
+        "canada", "chile", "china", "croatia", "cyprus", "czechia", "france",
+        "georgia", "germany", "greece", "hungary", "india", "israel", "italy",
+        "japan", "lebanon", "mexico", "moldova", "morocco", "newzealand",
+        "portugal", "romania", "serbia", "slovakia", "slovenia", "southafrica",
+        "spain", "switzerland", "turkey", "ukraine", "unitedkingdom",
+        "uruguay", "usa",
     ]
 
-    /// The map key for a catalog country name, or nil where there is none.
+    /// The map key for a country name, or nil where there is none.
+    ///
     /// Matching folds accents, case and spaces, because the catalog spells
     /// countries the way a label does and the resource directory the way a
     /// filename does — "New Zealand" has to find `newzealand`.
+    ///
+    /// **The atlas's spelling is translated first.** Callers hand this either
+    /// the catalog's name or the globe's, and the globe's comes from Natural
+    /// Earth, which says "United States of America" and "Republic of Serbia".
+    /// Folding those gives `unitedstatesofamerica` and `republicofserbia`,
+    /// which are not directories — so both countries' region maps were
+    /// unreachable the moment they gained one: a double tap fell through and
+    /// did nothing, silently. `GlobeIndex.catalogName` already existed for
+    /// exactly this boundary and every other caller of it; running it here
+    /// fixes the lookup for all of them at once.
     public static func key(forCountry name: String) -> String? {
-        let folded = name
+        let folded = GlobeIndex.catalogName(for: name)
             .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil)
             .replacingOccurrences(of: " ", with: "")
         return mapped.first { $0 == folded }
@@ -343,6 +464,12 @@ public struct RegionMap: Sendable {
         // divides through `patchGeometry`'s UVs and yields a NaN mesh rather
         // than a load that fails — a silently garbage map instead of no map.
         self.canvas = (man.base.canvas.first ?? 1, man.base.canvas.last ?? 1)
+        var kids: [Int: Child] = [:]
+        for (stem, child) in man.children ?? [:] {
+            kids[child.id] = Child(index: child.id, parent: child.parent, stem: stem)
+        }
+        self.childrenByIndex = kids
+
         let pr = man.projection
         self.projOrigin = (pr.origin.first ?? 0, pr.origin.last ?? 0)
         self.projScale = pr.scale
@@ -369,9 +496,17 @@ public struct RegionMap: Sendable {
             let scale: Double
             let x_factor: Double
         }
+        struct Child: Decodable {
+            let id: Int
+            let parent: String
+        }
         let base: Base
         let projection: Projection
         let regions: [String: Entry]
+        /// Absent on every country but France today. Optional by design — the
+        /// second plane is opt-in per country, which is what keeps the other
+        /// thirty-eight byte-identical.
+        let children: [String: Child]?
     }
 
     private struct Index: Decodable {

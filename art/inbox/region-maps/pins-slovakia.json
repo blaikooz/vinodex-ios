@@ -1,0 +1,16 @@
+[
+ {
+  "id": "R160",
+  "name": "malokarpatska",
+  "lon": 17.27,
+  "lat": 48.29,
+  "expect": "malokarpatska"
+ },
+ {
+  "id": "R161",
+  "name": "slovensky-tokaj",
+  "lon": 21.72,
+  "lat": 48.42,
+  "expect": "slovensky-tokaj"
+ }
+]

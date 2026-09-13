@@ -1,0 +1,247 @@
+{
+ "generator": "region_map.py",
+ "country": "hungary",
+ "projection": {
+  "kind": "equirectangular",
+  "x_factor": 0.67995848,
+  "origin": [
+   5.980413,
+   -53.532096
+  ],
+  "scale": 34.254422,
+  "note": "canvas_x = (lon*x_factor - origin[0])*scale + 2 ; canvas_y = (-lat - origin[1])*scale + 2",
+  "cell_note": "Those are CONTINUOUS canvas coordinates. The cell containing a point is floor(x), floor(y) — the rasteriser fills cell i from [i, i+1). Rounding picks the nearest cell CENTRE and lands one cell over for anything past the halfway line; harmless on a large region, decisive on a small child."
+ },
+ "base": {
+  "canvas": [
+   502,
+   441
+  ],
+  "export_scale": 5,
+  "unassigned": "#CEC6BA",
+  "outline": "#1A1420",
+  "key": "#EE03E1",
+  "layers": {
+   "interactive": "hungary-regions.png",
+   "backdrop": "hungary-backdrop.png",
+   "index": "hungary-index.png"
+  },
+  "index_legend": {
+   "0": "outside the country (sea, neighbour, coastline ink)",
+   "255": "inside the country, unassigned ground",
+   "1..N": "a region — see regions[].id"
+  },
+  "index_note": "one byte per LOGICAL cell, canvas-sized, NOT export_scale. Hit-test against this, not against pixel colour.",
+  "subject_rect": [
+   0.3406,
+   0.3878,
+   0.3187,
+   0.2245
+  ],
+  "subject_rect_note": "x,y,w,h as fractions of the canvas. Scale the two layers together so this rect fills the intended width; the backdrop bleeds off the screen edges."
+ },
+ "backdrop": {
+  "margin_px": 170,
+  "sea": "#38506B",
+  "foreign": "#8C8778",
+  "foreign_outline": "#1A1420",
+  "shallow": "#4E6985",
+  "shelf_px": 3,
+  "countries": [
+   "Akrotiri Sovereign Base Area",
+   "Aland",
+   "Albania",
+   "Algeria",
+   "Andorra",
+   "Armenia",
+   "Austria",
+   "Azerbaijan",
+   "Bahrain",
+   "Belarus",
+   "Belgium",
+   "Benin",
+   "Bir Tawil",
+   "Bosnia and Herzegovina",
+   "Bulgaria",
+   "Burkina Faso",
+   "Cabo Verde",
+   "Cameroon",
+   "Central African Republic",
+   "Chad",
+   "Croatia",
+   "Cyprus",
+   "Cyprus No Mans Area",
+   "Czechia",
+   "Denmark",
+   "Dhekelia Sovereign Base Area",
+   "Djibouti",
+   "Egypt",
+   "Eritrea",
+   "Estonia",
+   "Ethiopia",
+   "Faroe Islands",
+   "Finland",
+   "France",
+   "Gambia",
+   "Georgia",
+   "Germany",
+   "Ghana",
+   "Gibraltar",
+   "Greece",
+   "Greenland",
+   "Guernsey",
+   "Guinea",
+   "Guinea-Bissau",
+   "Iceland",
+   "Iran",
+   "Iraq",
+   "Ireland",
+   "Isle of Man",
+   "Israel",
+   "Italy",
+   "Ivory Coast",
+   "Jersey",
+   "Jordan",
+   "Kazakhstan",
+   "Kosovo",
+   "Kuwait",
+   "Latvia",
+   "Lebanon",
+   "Libya",
+   "Liechtenstein",
+   "Lithuania",
+   "Luxembourg",
+   "Mali",
+   "Malta",
+   "Mauritania",
+   "Moldova",
+   "Monaco",
+   "Montenegro",
+   "Morocco",
+   "Netherlands",
+   "Niger",
+   "Nigeria",
+   "North Macedonia",
+   "Northern Cyprus",
+   "Norway",
+   "Oman",
+   "Palestine",
+   "Poland",
+   "Portugal",
+   "Qatar",
+   "Republic of Serbia",
+   "Romania",
+   "Russia",
+   "San Marino",
+   "Saudi Arabia",
+   "Senegal",
+   "Slovakia",
+   "Slovenia",
+   "Somalia",
+   "Somaliland",
+   "South Sudan",
+   "Spain",
+   "Sudan",
+   "Sweden",
+   "Switzerland",
+   "Syria",
+   "Togo",
+   "Tunisia",
+   "Turkey",
+   "Turkmenistan",
+   "Ukraine",
+   "United Arab Emirates",
+   "United Kingdom",
+   "Vatican",
+   "Western Sahara",
+   "Yemen"
+  ]
+ },
+ "marker_clearance": {
+  "12": [],
+  "10": [],
+  "8": []
+ },
+ "splits": [],
+ "regions": {
+  "tokaj": {
+   "id": 1,
+   "button": [
+    0.5757,
+    0.4127
+   ],
+   "clearance_px": 8.5,
+   "area_px": 736,
+   "fill": "#65AD43",
+   "units": [
+    "Borsod-Abaúj-Zemplén"
+   ],
+   "detail": {
+    "canvas": [
+     53,
+     34
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     263,
+     171,
+     313,
+     202
+    ]
+   }
+  },
+  "villany": {
+   "id": 2,
+   "button": [
+    0.4243,
+    0.5873
+   ],
+   "clearance_px": 6.4,
+   "area_px": 460,
+   "fill": "#2B8268",
+   "units": [
+    "Baranya"
+   ],
+   "detail": {
+    "canvas": [
+     62,
+     50
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     207,
+     245,
+     236,
+     268
+    ]
+   }
+  },
+  "eger": {
+   "id": 3,
+   "button": [
+    0.5319,
+    0.449
+   ],
+   "clearance_px": 7.3,
+   "area_px": 377,
+   "fill": "#8B43AD",
+   "units": [
+    "Heves",
+    "Eger"
+   ],
+   "detail": {
+    "canvas": [
+     58,
+     52
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     253,
+     187,
+     280,
+     211
+    ]
+   }
+  }
+ }
+}

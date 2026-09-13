@@ -1,0 +1,14 @@
+{
+ "byId": {
+  "R151": "commandaria",
+  "R152": "pitsilia"
+ },
+ "byStem": {
+  "commandaria": [
+   "R151"
+  ],
+  "pitsilia": [
+   "R152"
+  ]
+ }
+}

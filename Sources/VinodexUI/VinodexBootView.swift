@@ -159,6 +159,8 @@ public struct VinodexBootView: View {
     @State private var sysIn = false
     @State private var promptIn = false
     @State private var promptBlink = false
+    /// The plain-language second line, after the prompt has blinked unheeded.
+    @State private var hintIn = false
     @State private var sweepX: CGFloat = 0
     @State private var finished = false
 
@@ -390,15 +392,35 @@ public struct VinodexBootView: View {
                 .font(.system(size: 12 * s, weight: .heavy, design: .monospaced))
                 .opacity(sysIn ? 1 : 0)
 
+            // **Louder, because this screen waits forever** (0.9.57). The hold
+            // has no ceiling by design (0.8.94, B1) — which makes this the one
+            // piece of text in the app that a new player, or an App Review
+            // engineer, might sit and stare at wondering whether it has hung.
+            // Bigger, and it blinks to a dimmer trough rather than fading to a
+            // near-miss of itself.
             Text(BiosChrome.prompt)
-                .font(DexFont.retroFixed(8 * s))
+                .font(DexFont.retroFixed(10 * s))
                 .tracking(1.5 * s)
                 .lineLimit(1)
                 .minimumScaleFactor(0.4)
                 .foregroundStyle(BiosInk.magenta)
-                .shadow(color: BiosInk.magenta.opacity(0.7), radius: 5 * s)
-                .opacity(promptIn ? (promptBlink ? 0.15 : 1) : 0)
+                .shadow(color: BiosInk.magenta.opacity(0.9), radius: 7 * s)
+                .opacity(promptIn ? (promptBlink ? 0.32 : 1) : 0)
                 .padding(.top, 8 * s)
+
+            // **The instruction, for whoever did not take the hint.** The line
+            // above is in character and says "button" on a device with no
+            // buttons a stranger would recognise. This one is plain, and it
+            // arrives only for somebody who has already waited — so the
+            // ceremony is intact for everyone who taps straight through.
+            Text("TAP THE SCREEN")
+                .font(DexFont.retroFixed(8 * s))
+                .tracking(2 * s)
+                .lineLimit(1)
+                .minimumScaleFactor(0.4)
+                .foregroundStyle(BiosInk.magenta.opacity(0.75))
+                .opacity(hintIn ? 1 : 0)
+                .padding(.top, 5 * s)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .padding(.horizontal, 16 * s)
@@ -519,6 +541,11 @@ public struct VinodexBootView: View {
         withAnimation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true)) {
             promptBlink = true
         }
+        // Four seconds of the prompt alone, then the plain instruction. Long
+        // enough that anyone who was going to tap already has.
+        try? await Task.sleep(for: .seconds(4))
+        guard !finished else { return }
+        withAnimation(.easeOut(duration: 0.45)) { hintIn = true }
 
         // No ceiling any more (0.8.94, B1). The screen holds on the blinking
         // prompt until a touch — `finish()` is reached only through the tap on

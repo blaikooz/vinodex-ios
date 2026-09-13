@@ -1,0 +1,16 @@
+[
+ {
+  "id": "R117",
+  "name": "Serra Gaúcha",
+  "lon": -51.52,
+  "lat": -29.17,
+  "expect": "serragaucha"
+ },
+ {
+  "id": "R118",
+  "name": "Campanha Gaúcha",
+  "lon": -55.53,
+  "lat": -30.88,
+  "expect": "campanha"
+ }
+]

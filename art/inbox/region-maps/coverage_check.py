@@ -14,13 +14,23 @@ fails no build, renders correctly, and is invisible until somebody taps it and
 gets "NO CATALOG ENTRY HERE YET".
 
 Reads `out/<c>/<c>-region-index.json`, which `region_check.py` generates from the
-catalog pins, so this asks the same question the app asks and needs no access to
-`shared/`. Two failure directions, opposite causes:
+catalog pins, and cross-checks it against `regions.ts` through `catalog.py`.
+Three failure directions:
 
-  DEAD    a painted stem with no catalog id     -> write the entry, or drop the area
-  SHARED  one stem answering for several ids    -> split the area, or a second
+  DEAD      a painted stem with no catalog id   -> write the entry, or drop the area
+  SHARED    one stem answering for several ids  -> split the area, or a second
                                                    index plane where no admin
                                                    unit isolates the child
+  UNPINNED  a catalog row in a mapped country
+            that has no pin at all              -> pin it, or say why it cannot be
+
+UNPINNED was missing from the first version and it is the worst of the three,
+because the region index is built FROM the pins: a catalog row nobody pinned
+never enters the file, so it can be neither dead nor shared. It is invisible to
+a gate that only reads the index. Four rows sit there today — Wachau, waiting on
+the second index plane, and Madeira, the Azores and the Canary Islands, whose
+islands are excluded from their country's frame. All four are known and
+deliberate; the point is that the gate should be the thing that says so.
 
 Not fatal by default. Every number it prints today is a known debt with a plan
 attached, and a gate that is red on arrival gets switched off. Run it with
@@ -29,6 +39,8 @@ attached, and a gate that is red on arrival gets switched off. Run it with
 import json
 import os
 import sys
+
+import catalog
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, 'out')
@@ -45,27 +57,44 @@ def countries(argv):
 
 def main():
     strict = '--strict' in sys.argv
-    dead_total = shared_total = areas_total = 0
-    dead_rows, shared_rows = [], []
+    dead_total = shared_total = areas_total = unpinned_total = 0
+    dead_rows, shared_rows, unpinned_rows = [], [], []
+
+    # Catalog rows by country stem, for the UNPINNED direction. Soft: outside a
+    # repo there is no regions.ts, and the other two checks still work.
+    by_country = {}
+    try:
+        for rid, name, stem in catalog.regions():
+            by_country.setdefault(stem, []).append((rid, name))
+    except SystemExit as e:
+        print('catalog cross-check skipped: %s\n' % e)
+
+    # out/ directory name -> catalog stem. They agree everywhere but here.
+    STEM = {'newzealand': 'new-zealand'}
 
     for c in countries(sys.argv[1:]):
         p = os.path.join(OUT, c, '%s-region-index.json' % c)
         if not os.path.exists(p):
             print('%-12s no region index — run region_check.py %s' % (c, c))
             continue
-        by_stem = json.load(open(p))['byStem']
+        doc = json.load(open(p))
+        by_stem, by_id = doc['byStem'], doc['byId']
         dead = sorted(s for s, ids in by_stem.items() if not ids)
         shared = sorted((s, ids) for s, ids in by_stem.items() if len(ids) > 1)
+        unpinned = [(i, n) for i, n in by_country.get(STEM.get(c, c), [])
+                    if i not in by_id]
         areas_total += len(by_stem)
         dead_total += len(dead)
         shared_total += sum(len(i) - 1 for _, i in shared)
-        print('%-12s %2d areas   %2d dead   %2d areas answering for %d ids'
-              % (c, len(by_stem), len(dead), len(shared),
-                 sum(len(i) for _, i in shared)))
+        unpinned_total += len(unpinned)
+        print('%-12s %2d areas   %2d dead   %2d shared   %2d unpinned'
+              % (c, len(by_stem), len(dead), len(shared), len(unpinned)))
         for s in dead:
             dead_rows.append((c, s))
         for s, ids in shared:
             shared_rows.append((c, s, ids))
+        for i, n in unpinned:
+            unpinned_rows.append((c, i, n))
 
     if dead_rows:
         print('\nDEAD — painted, no catalog entry behind it:')
@@ -75,10 +104,15 @@ def main():
         print('\nSHARED — one area answering for several catalog rows:')
         for c, s, ids in shared_rows:
             print('   %-12s %-16s %s' % (c, s, ', '.join(ids)))
+    if unpinned_rows:
+        print('\nUNPINNED — catalog row in a mapped country, no pin, invisible '
+              'to the other two:')
+        for c, i, n in unpinned_rows:
+            print('   %-12s %-6s %s' % (c, i, n))
 
-    print('\n%d painted areas: %d dead, %d catalog rows without an area of their own'
-          % (areas_total, dead_total, shared_total))
-    if strict and (dead_total or shared_total):
+    print('\n%d painted areas: %d dead, %d catalog rows sharing an area, '
+          '%d unpinned' % (areas_total, dead_total, shared_total, unpinned_total))
+    if strict and (dead_total or shared_total or unpinned_total):
         print('--strict: failing.')
         return 1
     return 0

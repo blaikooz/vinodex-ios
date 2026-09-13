@@ -1,0 +1,23 @@
+[
+ {
+  "id": "R094",
+  "name": "Dealu Mare",
+  "lon": 26.2,
+  "lat": 45.1,
+  "expect": "dealumare"
+ },
+ {
+  "id": "R135",
+  "name": "Târnave",
+  "lon": 24.0,
+  "lat": 46.2,
+  "expect": "tarnave"
+ },
+ {
+  "id": "R154",
+  "name": "Cotnari",
+  "lon": 26.95,
+  "lat": 47.35,
+  "expect": "cotnari"
+ }
+]

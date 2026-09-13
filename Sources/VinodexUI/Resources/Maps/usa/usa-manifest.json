@@ -1,0 +1,273 @@
+{
+ "generator": "region_map.py",
+ "country": "usa",
+ "projection": {
+  "kind": "equirectangular",
+  "x_factor": 0.78826908,
+  "origin": [
+   -143.171573,
+   -93.839654
+  ],
+  "scale": 3.790654,
+  "note": "canvas_x = (lon*x_factor - origin[0])*scale + 2 ; canvas_y = (-lat - origin[1])*scale + 2",
+  "cell_note": "Those are CONTINUOUS canvas coordinates. The cell containing a point is floor(x), floor(y) — the rasteriser fills cell i from [i, i+1). Rounding picks the nearest cell CENTRE and lands one cell over for anything past the halfway line; harmless on a large region, decisive on a small child."
+ },
+ "base": {
+  "canvas": [
+   502,
+   406
+  ],
+  "export_scale": 5,
+  "unassigned": "#CEC6BA",
+  "outline": "#1A1420",
+  "key": "#EE03E1",
+  "layers": {
+   "interactive": "usa-regions.png",
+   "backdrop": "usa-backdrop.png",
+   "index": "usa-index.png"
+  },
+  "index_legend": {
+   "0": "outside the country (sea, neighbour, coastline ink)",
+   "255": "inside the country, unassigned ground",
+   "1..N": "a region — see regions[].id"
+  },
+  "index_note": "one byte per LOGICAL cell, canvas-sized, NOT export_scale. Hit-test against this, not against pixel colour.",
+  "subject_rect": [
+   0.3406,
+   0.4212,
+   0.3187,
+   0.1576
+  ],
+  "subject_rect_note": "x,y,w,h as fractions of the canvas. Scale the two layers together so this rect fills the intended width; the backdrop bleeds off the screen edges."
+ },
+ "backdrop": {
+  "margin_px": 170,
+  "sea": "#38506B",
+  "foreign": "#8C8778",
+  "foreign_outline": "#1A1420",
+  "shallow": "#4E6985",
+  "shelf_px": 3,
+  "countries": [
+   "Akrotiri Sovereign Base Area",
+   "Aland",
+   "Albania",
+   "Algeria",
+   "Andorra",
+   "Armenia",
+   "Austria",
+   "Azerbaijan",
+   "Bahrain",
+   "Belarus",
+   "Belgium",
+   "Benin",
+   "Bir Tawil",
+   "Bosnia and Herzegovina",
+   "Bulgaria",
+   "Burkina Faso",
+   "Cabo Verde",
+   "Cameroon",
+   "Central African Republic",
+   "Chad",
+   "Croatia",
+   "Cyprus",
+   "Cyprus No Mans Area",
+   "Czechia",
+   "Denmark",
+   "Dhekelia Sovereign Base Area",
+   "Djibouti",
+   "Egypt",
+   "Eritrea",
+   "Estonia",
+   "Ethiopia",
+   "Faroe Islands",
+   "Finland",
+   "France",
+   "Gambia",
+   "Georgia",
+   "Germany",
+   "Ghana",
+   "Gibraltar",
+   "Greece",
+   "Greenland",
+   "Guernsey",
+   "Guinea",
+   "Guinea-Bissau",
+   "Hungary",
+   "Iceland",
+   "Iran",
+   "Iraq",
+   "Ireland",
+   "Isle of Man",
+   "Israel",
+   "Italy",
+   "Ivory Coast",
+   "Jersey",
+   "Jordan",
+   "Kazakhstan",
+   "Kosovo",
+   "Kuwait",
+   "Latvia",
+   "Lebanon",
+   "Libya",
+   "Liechtenstein",
+   "Lithuania",
+   "Luxembourg",
+   "Mali",
+   "Malta",
+   "Mauritania",
+   "Moldova",
+   "Monaco",
+   "Montenegro",
+   "Morocco",
+   "Netherlands",
+   "Niger",
+   "Nigeria",
+   "North Macedonia",
+   "Northern Cyprus",
+   "Norway",
+   "Oman",
+   "Palestine",
+   "Poland",
+   "Portugal",
+   "Qatar",
+   "Republic of Serbia",
+   "Romania",
+   "Russia",
+   "San Marino",
+   "Saudi Arabia",
+   "Senegal",
+   "Slovakia",
+   "Slovenia",
+   "Somalia",
+   "Somaliland",
+   "South Sudan",
+   "Spain",
+   "Sudan",
+   "Sweden",
+   "Switzerland",
+   "Syria",
+   "Togo",
+   "Tunisia",
+   "Turkey",
+   "Turkmenistan",
+   "Ukraine",
+   "United Arab Emirates",
+   "United Kingdom",
+   "Vatican",
+   "Western Sahara",
+   "Yemen"
+  ]
+ },
+ "marker_clearance": {
+  "12": [],
+  "10": [],
+  "8": []
+ },
+ "splits": [],
+ "regions": {
+  "california": {
+   "id": 1,
+   "button": [
+    0.3745,
+    0.5419
+   ],
+   "clearance_px": 7.1,
+   "area_px": 544,
+   "fill": "#8B43AD",
+   "units": [
+    "California"
+   ],
+   "detail": {
+    "canvas": [
+     66,
+     74
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     172,
+     199,
+     203,
+     234
+    ]
+   }
+  },
+  "oregon": {
+   "id": 2,
+   "button": [
+    0.3725,
+    0.4704
+   ],
+   "clearance_px": 8.0,
+   "area_px": 358,
+   "fill": "#65AD43",
+   "units": [
+    "Oregon"
+   ],
+   "detail": {
+    "canvas": [
+     52,
+     36
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     172,
+     182,
+     196,
+     198
+    ]
+   }
+  },
+  "washington": {
+   "id": 3,
+   "button": [
+    0.3625,
+    0.4384
+   ],
+   "clearance_px": 6.1,
+   "area_px": 254,
+   "fill": "#662B82",
+   "units": [
+    "Washington"
+   ],
+   "detail": {
+    "canvas": [
+     50,
+     28
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     172,
+     172,
+     195,
+     184
+    ]
+   }
+  },
+  "newyork": {
+   "id": 4,
+   "button": [
+    0.6375,
+    0.4754
+   ],
+   "clearance_px": 5.7,
+   "area_px": 213,
+   "fill": "#2B8268",
+   "units": [
+    "New York"
+   ],
+   "detail": {
+    "canvas": [
+     52,
+     38
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     306,
+     187,
+     330,
+     204
+    ]
+   }
+  }
+ }
+}

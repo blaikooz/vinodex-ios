@@ -1,0 +1,16 @@
+[
+ {
+  "id": "R166",
+  "name": "judeanhills",
+  "lon": 35.05,
+  "lat": 31.75,
+  "expect": "judeanhills"
+ },
+ {
+  "id": "R167",
+  "name": "uppergalilee",
+  "lon": 35.45,
+  "lat": 33.03,
+  "expect": "uppergalilee"
+ }
+]

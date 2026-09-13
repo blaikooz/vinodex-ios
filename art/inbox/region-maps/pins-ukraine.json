@@ -1,0 +1,16 @@
+[
+ {
+  "id": "R162",
+  "name": "bessarabia",
+  "lon": 30.34,
+  "lat": 46.12,
+  "expect": "bessarabia"
+ },
+ {
+  "id": "R163",
+  "name": "zakarpattia",
+  "lon": 22.65,
+  "lat": 48.2,
+  "expect": "zakarpattia"
+ }
+]

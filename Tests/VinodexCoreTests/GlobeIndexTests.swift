@@ -43,8 +43,13 @@ struct GlobeIndexTests {
     func mappedAgreesWithRegionMaps() throws {
         let index = try load()
         let mapped = index.countries.filter(\.isMapped)
-        // Nine since 0.9.57 — Austria and China joined the seven.
-        #expect(mapped.count == 9)
+        // **All of them**, on the maintainer's ruling of 13 Sep: a region map
+        // for every wine country the catalog holds, USA at state level. Nine to
+        // thirty-nine in one drop, so this arm now asserts the roster is
+        // complete rather than counting a subset.
+        #expect(mapped.count == 39)
+        #expect(mapped.count == index.countries.count,
+                "a wine country with no region map: \(index.countries.filter { !$0.isMapped }.map(\.admin))")
         for country in mapped {
             #expect(RegionMap.key(forCountry: country.admin) != nil,
                     "\(country.admin) says it has a region map, but RegionMap.mapped disagrees")

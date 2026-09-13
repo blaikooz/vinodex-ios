@@ -1,0 +1,16 @@
+[
+ {
+  "id": "R158",
+  "name": "mikulovska",
+  "lon": 16.64,
+  "lat": 48.81,
+  "expect": "mikulovska"
+ },
+ {
+  "id": "R159",
+  "name": "znojemska",
+  "lon": 16.05,
+  "lat": 48.86,
+  "expect": "znojemska"
+ }
+]

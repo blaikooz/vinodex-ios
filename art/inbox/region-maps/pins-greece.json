@@ -1,0 +1,44 @@
+[
+ {
+  "id": "R048",
+  "name": "Santorini",
+  "lon": 25.43,
+  "lat": 36.42,
+  "expect": "santorini"
+ },
+ {
+  "id": "R065",
+  "name": "Peloponnese",
+  "lon": 22.38,
+  "lat": 37.6,
+  "expect": "peloponnese"
+ },
+ {
+  "id": "R067",
+  "name": "Naoussa",
+  "lon": 22.07,
+  "lat": 40.63,
+  "expect": "naoussa"
+ },
+ {
+  "id": "R068",
+  "name": "Amyndeon",
+  "lon": 21.69,
+  "lat": 40.69,
+  "expect": "amyndeon"
+ },
+ {
+  "id": "R140",
+  "name": "Attica",
+  "lon": 23.95,
+  "lat": 37.95,
+  "expect": "attica"
+ },
+ {
+  "id": "R066",
+  "name": "Nemea",
+  "lon": 22.66,
+  "lat": 37.82,
+  "expect": "peloponnese"
+ }
+]

@@ -1,0 +1,32 @@
+{
+ "byId": {
+  "R013": "california",
+  "R015": "oregon",
+  "R017": "washington",
+  "R019": "newyork",
+  "R014": "california",
+  "R016": "california",
+  "R018": "california",
+  "R020": "california",
+  "R123": "california"
+ },
+ "byStem": {
+  "california": [
+   "R013",
+   "R014",
+   "R016",
+   "R018",
+   "R020",
+   "R123"
+  ],
+  "oregon": [
+   "R015"
+  ],
+  "washington": [
+   "R017"
+  ],
+  "newyork": [
+   "R019"
+  ]
+ }
+}

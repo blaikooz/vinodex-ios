@@ -1,0 +1,16 @@
+[
+ {
+  "id": "R091",
+  "name": "Niagara Peninsula",
+  "lon": -79.13,
+  "lat": 43.17,
+  "expect": "niagara"
+ },
+ {
+  "id": "R092",
+  "name": "Okanagan Valley",
+  "lon": -119.59,
+  "lat": 49.5,
+  "expect": "okanagan"
+ }
+]

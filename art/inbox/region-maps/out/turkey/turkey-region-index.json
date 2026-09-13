@@ -1,0 +1,14 @@
+{
+ "byId": {
+  "R156": "cappadocia",
+  "R157": "elazig"
+ },
+ "byStem": {
+  "cappadocia": [
+   "R156"
+  ],
+  "elazig": [
+   "R157"
+  ]
+ }
+}

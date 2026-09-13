@@ -1,0 +1,14 @@
+{
+ "byId": {
+  "R164": "fruskagora",
+  "R165": "sumadija"
+ },
+ "byStem": {
+  "fruskagora": [
+   "R164"
+  ],
+  "sumadija": [
+   "R165"
+  ]
+ }
+}

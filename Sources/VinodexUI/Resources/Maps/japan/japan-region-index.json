@@ -1,0 +1,14 @@
+{
+ "byId": {
+  "R052": "yamanashi",
+  "R090": "yamagata"
+ },
+ "byStem": {
+  "yamanashi": [
+   "R052"
+  ],
+  "yamagata": [
+   "R090"
+  ]
+ }
+}

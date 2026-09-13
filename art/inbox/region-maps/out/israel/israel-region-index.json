@@ -1,0 +1,14 @@
+{
+ "byId": {
+  "R166": "judeanhills",
+  "R167": "uppergalilee"
+ },
+ "byStem": {
+  "judeanhills": [
+   "R166"
+  ],
+  "uppergalilee": [
+   "R167"
+  ]
+ }
+}

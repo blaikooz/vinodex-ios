@@ -1,0 +1,14 @@
+{
+ "byId": {
+  "R053": "nashik",
+  "R054": "nandihills"
+ },
+ "byStem": {
+  "nashik": [
+   "R053"
+  ],
+  "nandihills": [
+   "R054"
+  ]
+ }
+}

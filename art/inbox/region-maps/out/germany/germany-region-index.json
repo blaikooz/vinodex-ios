@@ -1,0 +1,26 @@
+{
+ "byId": {
+  "R038": "mosel",
+  "R039": "rheingau",
+  "R077": "franconia",
+  "R078": "rheinhessen",
+  "R143": "pfalz"
+ },
+ "byStem": {
+  "mosel": [
+   "R038"
+  ],
+  "rheingau": [
+   "R039"
+  ],
+  "franconia": [
+   "R077"
+  ],
+  "rheinhessen": [
+   "R078"
+  ],
+  "pfalz": [
+   "R143"
+  ]
+ }
+}

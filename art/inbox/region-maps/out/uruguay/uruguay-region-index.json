@@ -1,0 +1,14 @@
+{
+ "byId": {
+  "R096": "canelones",
+  "R137": "maldonado"
+ },
+ "byStem": {
+  "canelones": [
+   "R096"
+  ],
+  "maldonado": [
+   "R137"
+  ]
+ }
+}

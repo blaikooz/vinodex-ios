@@ -1,0 +1,23 @@
+[
+ {
+  "id": "R058",
+  "name": "Kakheti",
+  "lon": 45.85,
+  "lat": 41.9,
+  "expect": "kakheti"
+ },
+ {
+  "id": "R059",
+  "name": "Kartli",
+  "lon": 44.3,
+  "lat": 41.9,
+  "expect": "kartli"
+ },
+ {
+  "id": "R060",
+  "name": "Imereti",
+  "lon": 42.7,
+  "lat": 42.15,
+  "expect": "imereti"
+ }
+]

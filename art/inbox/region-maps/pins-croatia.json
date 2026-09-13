@@ -1,0 +1,23 @@
+[
+ {
+  "id": "R093",
+  "name": "Dalmatia",
+  "lon": 17.42,
+  "lat": 42.95,
+  "expect": "dalmatia"
+ },
+ {
+  "id": "R134",
+  "name": "Istria",
+  "lon": 13.94,
+  "lat": 45.23,
+  "expect": "istria"
+ },
+ {
+  "id": "R142",
+  "name": "Slavonia",
+  "lon": 17.88,
+  "lat": 45.42,
+  "expect": "slavonia"
+ }
+]

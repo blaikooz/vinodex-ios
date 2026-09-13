@@ -31,11 +31,16 @@ struct RegionMapTests {
         let map = try load()
         #expect(map.regions.count == 14)
         #expect(try load("italy").regions.count == 21)
-        // 92 painted regions across the nine countries — 85 across the
-        // original seven, plus Austria's 3 and China's 4 (0.9.57).
+        // 167 painted areas across all thirty-nine countries, on the
+        // maintainer's ruling of 13 Sep that every wine country gets a map.
+        // Plus France's two children on the second index plane, which are
+        // painted regions the area count does not see: 169 in all.
         var total = 0
         for country in RegionMap.mapped { total += try load(country).regions.count }
-        #expect(total == 92, "painted regions across all nine: \(total)")
+        #expect(total == 167, "painted areas across all thirty-nine: \(total)")
+        var children = 0
+        for country in RegionMap.mapped { children += try load(country).childrenByIndex.count }
+        #expect(children == 2, "children on second planes: \(children)")
         // The canvas is whatever the render made it — it grew a margin of
         // world on every side when the backdrop arrived, and the margin is
         // config. `subjectRectIsSane` pins the part that has to hold.
@@ -132,26 +137,45 @@ struct RegionMapTests {
     @Test("uncatalogued painted areas are exactly the ones we know about")
     func stemsWithoutCatalog() throws {
         let known: [String: [String]] = [
-            "france": [],
-            "italy": ["liguria", "molise", "valledaosta"],
-            "spain": ["andalucia", "aragon", "extremadura", "madrid"],
-            "portugal": ["algarve", "beirainterior", "setubal"],
             "argentina": ["catamarca", "cordoba", "sanjuan"],
-            "chile": ["biobio", "coquimbo", "malleco", "maule", "rapel"],
-            "newzealand": ["auckland", "canterbury", "gisborne", "nelson",
-                           "northland", "waikatobop", "wairarapa"],
-            // **The first two countries to arrive with no dead areas at all.**
-            // Both were built to the one-area-per-catalog-region rule rather
-            // than retrofitted to it, which is what the rule is for.
-            //
-            // Austria carries the *opposite* gap, which this test does not
-            // measure: it paints 3 areas against 4 catalog rows, because
-            // Wachau sits inside Niederösterreich and a single index plane
-            // cannot hold a region inside a region. It was left unpainted
-            // rather than faked with a split — a wrong boundary is worse than
-            // an absent one, because nothing can detect it.
+            "armenia": [],
+            "australia": [],
             "austria": [],
+            "brazil": [],
+            "bulgaria": [],
+            "canada": [],
+            "chile": ["biobio", "coquimbo", "malleco", "maule", "rapel"],
             "china": [],
+            "croatia": [],
+            "cyprus": [],
+            "czechia": [],
+            "france": [],
+            "georgia": [],
+            "germany": [],
+            "greece": [],
+            "hungary": [],
+            "india": [],
+            "israel": [],
+            "italy": ["liguria", "molise", "valledaosta"],
+            "japan": [],
+            "lebanon": [],
+            "mexico": [],
+            "moldova": [],
+            "morocco": [],
+            "newzealand": ["auckland", "canterbury", "gisborne", "nelson", "northland", "waikatobop", "wairarapa"],
+            "portugal": ["algarve", "beirainterior", "setubal"],
+            "romania": [],
+            "serbia": [],
+            "slovakia": [],
+            "slovenia": [],
+            "southafrica": [],
+            "spain": ["andalucia", "aragon", "extremadura", "madrid"],
+            "switzerland": [],
+            "turkey": [],
+            "ukraine": [],
+            "unitedkingdom": [],
+            "uruguay": [],
+            "usa": [],
         ]
         var total = 0
         for country in RegionMap.mapped {
@@ -170,14 +194,23 @@ struct RegionMapTests {
     @Test("the catalog joins where the geography says it should")
     func knownGroupings() throws {
         let map = try load()
-        #expect(map.regionIDs(for: "bordeaux").sorted() == ["R001", "R011"])
+        // **Sauternes left Bordeaux's area for the second index plane**
+        // (0.9.57). It is a sub-AOC inside the Gironde that no admin unit
+        // isolates, so it was only ever grouped here because one plane cannot
+        // hold a region inside a region. It is a child now, and still resolves.
+        #expect(map.regionIDs(for: "bordeaux") == ["R001"])
+        #expect(map.regionIDs(for: "sauternes") == ["R011"])
         // Four regions behind one painted area — the case that makes a stem
         // an art name rather than an id.
         #expect(map.regionIDs(for: "southwest").sorted() == ["R079", "R108", "R122", "R155"])
         // Beaujolais and the northern Rhône share a département, split at
         // 45.62N by the renderer. If the split regressed these two swap.
         #expect(map.regionIDs(for: "beaujolais") == ["R008"])
-        #expect(map.regionIDs(for: "rhone").sorted() == ["R004", "R099"])
+        // Châteauneuf likewise: a commune inside the Southern Rhône. Handing
+        // it the Vaucluse would have painted Gigondas and Vacqueyras as
+        // Châteauneuf, which is why it waited for the second plane.
+        #expect(map.regionIDs(for: "rhone") == ["R004"])
+        #expect(map.regionIDs(for: "chateauneuf") == ["R099"])
         // Alsace decoded from mapPosition landed in Champagne; the authored
         // coordinate is what fixed it. This pin is that bug's gravestone.
         #expect(map.regionIDs(for: "alsace") == ["R006"])
@@ -197,7 +230,12 @@ struct RegionMapTests {
         var total = 0
         for (country, count) in expected {
             let map = try load(country)
+            // Areas **and** children: France's twenty includes Sauternes and
+            // Châteauneuf, which live on the second plane rather than being
+            // areas of their own. Counting areas alone would read as two
+            // catalog regions having fallen off the map.
             let placed = map.regions.flatMap { map.regionIDs(for: $0.id) }
+                + map.childrenByIndex.values.flatMap { map.regionIDs(for: $0.stem) }
             #expect(placed.count == count, "\(country) placed \(placed.count)")
             #expect(Set(placed).count == count, "\(country) has a region on the map twice")
             total += placed.count

@@ -1,0 +1,18 @@
+{
+ "byId": {
+  "R058": "kakheti",
+  "R059": "kartli",
+  "R060": "imereti"
+ },
+ "byStem": {
+  "kakheti": [
+   "R058"
+  ],
+  "kartli": [
+   "R059"
+  ],
+  "imereti": [
+   "R060"
+  ]
+ }
+}

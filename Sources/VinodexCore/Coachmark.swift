@@ -482,6 +482,23 @@ public final class CoachmarkEngine {
         persist()
     }
 
+    /// **The first-run sequence has been offered, without starting the guided
+    /// run** (0.9.57).
+    ///
+    /// `start()` used to be the only thing that set this, because the coachmark
+    /// *was* the first run. Orientation took that slot, and removing the
+    /// `start()` call left nothing writing the flag — so the whole first-run
+    /// sequence would have replayed on every launch, forever. The flag's
+    /// meaning is unchanged and so is its storage: it has always been "the
+    /// first-run sequence has been offered", and it is already registered for
+    /// BACK UP and already seeded by `seed(hasHistory:)` against a real
+    /// install's history.
+    public func markOffered() {
+        guard !hasBeenOffered else { return }
+        hasBeenOffered = true
+        persist()
+    }
+
     /// Begin, or pick up where a skipped run left off.
     ///
     /// A finished walkthrough restarts from the top: somebody who has completed

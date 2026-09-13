@@ -1,0 +1,16 @@
+[
+ {
+  "id": "R164",
+  "name": "fruskagora",
+  "lon": 19.75,
+  "lat": 45.15,
+  "expect": "fruskagora"
+ },
+ {
+  "id": "R165",
+  "name": "sumadija",
+  "lon": 20.6,
+  "lat": 44.25,
+  "expect": "sumadija"
+ }
+]

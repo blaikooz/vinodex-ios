@@ -27,6 +27,37 @@ FRANCE = dict(
     # just comes out as a speck. Named here so the config is correct against the
     # source, not only against the file that happens to be committed.
     exclude=['Guadeloupe', 'Guyane française', 'La Réunion', 'Martinique', 'Mayotte'],
+    # --- the second index plane -------------------------------------------
+    # A child is a catalog region that lives INSIDE a painted one and that no
+    # admin-1 unit isolates. It gets a byte in <country>-index2.png, which the
+    # hit test reads before plane 1. See horizon-md/index2-agreed.md.
+    #
+    # `source` is a commune-level file, because that is the level these exist
+    # at; `fetch_communes.py` builds it from IGN/INSEE under Licence Ouverte.
+    # `units` names whole communes, and the approximation each list makes is
+    # stated here, next to the list that makes it.
+    children={
+     # R099. The AOC is ~3,200 ha over five communes: all of Châteauneuf-du-Pape
+     # and PARTS of Bédarrides, Courthézon, Orange and Sorgues. Taking the one
+     # whole commune UNDER-covers it by roughly half.
+     #
+     # That is the right direction to be wrong. A tap in the commune answers
+     # Châteauneuf; a tap in the spill answers Rhône, which is true, just less
+     # specific. Taking all five would over-cover and paint Côtes du Rhône
+     # vineyards in Orange and Sorgues as Châteauneuf-du-Pape — a wrong answer
+     # rather than a quiet one, and nothing downstream could detect it.
+     'chateauneuf': dict(parent='rhone', source='fr-communes.json',
+                         units=['Châteauneuf-du-Pape']),
+     # R011. Unlike Châteauneuf this one is exact: the AOC is five WHOLE
+     # communes, so the composed polygon is the appellation rather than an
+     # approximation of it. Barsac may label as either Barsac or Sauternes.
+     #
+     # The five-commune list is the standard definition and it is NOT from a
+     # register I could reach — sommbot should confirm it before this ships.
+     'sauternes': dict(parent='bordeaux', source='fr-communes.json',
+                       units=['Sauternes', 'Bommes', 'Fargues', 'Preignac',
+                              'Barsac']),
+    },
     # The Rhône département holds Beaujolais in its north and the head of the
     # Northern Rhône (Ampuis, Côte-Rôtie) in its south. Cut it where Beaujolais
     # stops. Reproducible; survives a re-render.
@@ -355,3 +386,377 @@ NEWZEALAND['fills'] = {
      'canterbury': (71, 130, 43),
      'centralotago': (130, 43, 59),
 }
+
+# =============================================================================
+# Wave 2, 13 Sep 2026 — a region map for every wine country in the catalog.
+#
+# Each block below was validated before it was written: every unit name is
+# checked to exist in the extract, and every catalog region has a pin authored
+# from the town its appellations name, so `region_check.py` proves the mapping
+# against the shipped raster rather than against this table.
+#
+# Two standing approximations apply widely here and are not repeated per block:
+#
+#   * A painted area covers the WHOLE admin unit. Nashik is painted as all of
+#     Maharashtra and Niagara as all of Ontario. That is the same licence
+#     Bordeaux already takes over the Gironde, and it is what makes a two-region
+#     country legible at all.
+#   * Where several catalog regions share one unit, `splits` cuts it on a
+#     parallel or a meridian and the cuts chain. Germany takes two and South
+#     Africa three. A cut is reproducible and survives a re-render, which an
+#     authored exception list would not — but it is a straight line through
+#     country that has no straight lines in it, and everything it misplaces is
+#     unassigned ground rather than another catalog region.
+# =============================================================================
+
+GREECE = dict(
+    # log=220, not 160: at 160 a cell is ~7 km and Santorini (76 km2) is dropped
+    # as an islet, so its own pin lands in the sea. An archipelago needs the
+    # resolution its islands are made of.
+    admin1='gr-peripheries.json', subject='Greece', log=220, margin=170,
+    min_island=4,   # Santorini is ~6 cells here; the default 20 deletes it
+    splits=[],
+    regions={
+     'santorini'  : ['Notio Aigaio'],
+     'peloponnese': ['Peloponnisos', 'Dytiki Ellada'],
+     'naoussa'    : ['Kentriki Makedonia'],
+     'amyndeon'   : ['Dytiki Makedonia'],
+     'attica'     : ['Attiki'],
+    },
+)
+
+GEORGIA = dict(
+    admin1='ge-regions.json', subject='Georgia', log=160, margin=170,
+    splits=[],
+    regions={
+     'kakheti': ['Kakheti'],
+     'kartli' : ['Shida Kartli', 'Kvemo Kartli'],
+     'imereti': ['Imereti'],
+    },
+)
+
+CROATIA = dict(
+    admin1='hr-counties.json', subject='Croatia', log=160, margin=170,
+    splits=[],
+    regions={
+     'dalmatia': ['Zadarska', 'Šibensko-Kninska', 'Splitsko-Dalmatinska', 'Dubrovacko-Neretvanska'],
+     'istria'  : ['Istarska'],
+     'slavonia': ['Osjecko-Baranjska', 'Vukovarsko-Srijemska', 'Brodsko-Posavska', 'Viroviticko-Podravska'],
+    },
+)
+
+HUNGARY = dict(
+    admin1='hu-counties.json', subject='Hungary', log=160, margin=170,
+    splits=[],
+    regions={
+     'tokaj'  : ['Borsod-Abaúj-Zemplén'],
+     'villany': ['Baranya'],
+     'eger'   : ['Heves', 'Eger'],
+    },
+)
+
+ROMANIA = dict(
+    admin1='ro-counties.json', subject='Romania', log=160, margin=170,
+    splits=[],
+    regions={
+     'dealumare': ['Prahova', 'Buzau'],
+     'tarnave'  : ['Alba', 'Mures', 'Sibiu'],
+     'cotnari'  : ['Iasi'],
+    },
+)
+
+BULGARIA = dict(
+    admin1='bg-provinces.json', subject='Bulgaria', log=160, margin=170,
+    splits=[],
+    regions={
+     'thracian': ['Plovdiv', 'Pazardzhik', 'Stara Zagora', 'Haskovo'],
+     'struma'  : ['Blagoevgrad'],
+    },
+)
+
+MOLDOVA = dict(
+    admin1='md-districts.json', subject='Moldova', log=160, margin=170,
+    splits=[],
+    regions={
+     'codru'     : ['Străşeni', 'Ialoveni', 'Călărași', 'Nisporeni', 'Hîncesti', 'Criuleni', 'Anenii Noi', 'Orhei', 'Chişinău'],
+     'stefanvoda': ['Ștefan Vodă'],
+    },
+)
+
+UKRAINE = dict(
+    admin1='ua-oblasts.json', subject='Ukraine', log=160, margin=170,
+    splits=[],
+    regions={
+     'bessarabia' : ['Odessa'],
+     'zakarpattia': ['Transcarpathia'],
+    },
+)
+
+SERBIA = dict(
+    admin1='rs-districts.json', subject='Republic of Serbia', log=160, margin=170,
+    splits=[],
+    regions={
+     'fruskagora': ['Južno-Backi', 'Sremski'],
+     'sumadija'  : ['Šumadijski'],
+    },
+)
+
+SLOVAKIA = dict(
+    admin1='sk-regions.json', subject='Slovakia', log=160, margin=170,
+    splits=[],
+    regions={
+     'malokarpatska'  : ['Bratislavský', 'Trnavský'],
+     'slovensky-tokaj': ['Košický'],
+    },
+)
+
+SLOVENIA = dict(
+    admin1='si-municipalities.json', subject='Slovenia', log=160, margin=170,
+    splits=[],
+    regions={
+     'goriskabrda': ['Brda', 'Nova Goriška'],
+     'vipava'     : ['Vipava', 'Ajdovščina'],
+    },
+)
+
+ISRAEL = dict(
+    admin1='il-districts.json', subject='Israel', log=160, margin=170,
+    splits=[],
+    regions={
+     'judeanhills' : ['Jerusalem'],
+     'uppergalilee': ['HaZafon'],
+    },
+)
+
+LEBANON = dict(
+    admin1='lb-governorates.json', subject='Lebanon', log=160, margin=170,
+    splits=[],
+    regions={
+     'bekaa'  : ['Beqaa'],
+     'batroun': ['North Lebanon'],
+    },
+)
+
+CYPRUS = dict(
+    admin1='cy-districts.json', subject='Cyprus', log=160, margin=170,
+    splits=[],
+    regions={
+     'commandaria': ['Limassol'],
+     'pitsilia'   : ['Nicosia'],
+    },
+)
+
+TURKEY = dict(
+    admin1='tr-provinces.json', subject='Turkey', log=160, margin=170,
+    splits=[],
+    regions={
+     # Cappadocia as a wine area is the whole tuff plateau, not one province.
+     'cappadocia': ['Nevsehir', 'Aksaray', 'Nigde', 'Kayseri'],
+     'elazig'    : ['Elazig'],
+    },
+)
+
+ARMENIA = dict(
+    admin1='am-provinces.json', subject='Armenia', log=160, margin=170,
+    splits=[],
+    regions={
+     'vayotsdzor': ['Vayots Dzor'],
+     'aragatsotn': ['Aragatsotn'],
+    },
+)
+
+SWITZERLAND = dict(
+    admin1='ch-cantons.json', subject='Switzerland', log=160, margin=170,
+    splits=[],
+    regions={
+     'valais': ['Valais'],
+     'lavaux': ['Vaud'],
+    },
+)
+
+UNITEDKINGDOM = dict(
+    admin1='uk-counties.json', subject='United Kingdom', log=160, margin=170,
+    # Every English wine region is in the south-east, so a frame on the whole
+    # island puts Kent at 0.7% of the subject. Frame on the regions; the north
+    # still draws, it just bleeds off the margin.
+    focus='regions',
+    splits=[],
+    regions={
+     'sussex': ['East Sussex', 'West Sussex'],
+     'kent'  : ['Kent'],
+    },
+)
+
+JAPAN = dict(
+    # Two prefectures on a 3,000 km archipelago: at log=160 Yamanashi was 27
+    # cells and invisible. A finer canvas AND a frame on the regions, which puts
+    # Honshu between Yamanashi and Yamagata across the map; Hokkaido and Kyushu
+    # still draw and bleed off the margin.
+    admin1='jp-prefectures.json', subject='Japan', log=260, margin=120,
+    focus='regions',
+    splits=[],
+    regions={
+     'yamanashi': ['Yamanashi'],
+     'yamagata' : ['Yamagata'],
+    },
+)
+
+INDIA = dict(
+    admin1='in-states.json', subject='India', log=160, margin=170,
+    splits=[],
+    regions={
+     'nashik'    : ['Maharashtra'],
+     'nandihills': ['Karnataka'],
+    },
+)
+
+CANADA = dict(
+    admin1='ca-provinces.json', subject='Canada', log=160, margin=170,
+    splits=[],
+    regions={
+     'niagara' : ['Ontario'],
+     'okanagan': ['British Columbia'],
+    },
+)
+
+MEXICO = dict(
+    admin1='mx-states.json', subject='Mexico', log=160, margin=170,
+    splits=[],
+    regions={
+     'guadalupe': ['Baja California'],
+     'parras'   : ['Coahuila'],
+    },
+)
+
+URUGUAY = dict(
+    admin1='uy-departments.json', subject='Uruguay', log=160, margin=170,
+    splits=[],
+    regions={
+     'canelones': ['Canelones'],
+     'maldonado': ['Maldonado'],
+    },
+)
+
+MOROCCO = dict(
+    admin1='ma-regions.json', subject='Morocco', log=160, margin=170,
+    splits=[],
+    regions={
+     'guerrouane': ['Meknès - Tafilalet'],
+     # Grand Casablanca alone is 17 cells. Zenata sits on the coastal plain
+     # east of Casablanca, which is Chaouia-Ouardigha.
+     'zenata'    : ['Grand Casablanca', 'Chaouia - Ouardigha'],
+    },
+)
+
+AUSTRALIA = dict(
+    admin1='au-states.json', subject='Australia', log=160, margin=170,
+    exclude=['Lord Howe Island', 'Macquarie Island', 'Jervis Bay Territory'],
+    splits=[],
+    regions={
+     'barossa'      : ['South Australia'],
+     'margaretriver': ['Western Australia'],
+     'huntervalley' : ['New South Wales'],
+    },
+)
+
+USA = dict(
+    admin1='us-states.json', subject='United States of America', log=160, margin=170,
+    # Alaska and Hawaii carry no catalog wine region and stretch the frame
+    # across a third of the planet. Named, so the omission is a decision.
+    exclude=['Alaska', 'Hawaii'],
+    focus='regions',
+    splits=[],
+    regions={
+     'california': ['California'],
+     'oregon'    : ['Oregon'],
+     'washington': ['Washington'],
+     'newyork'   : ['New York'],
+    },
+)
+
+BRAZIL = dict(
+    admin1='br-states.json', subject='Brazil', log=160, margin=170,
+    focus='regions',
+    splits=[('serragaucha', 'campanha', -30.0)],
+    regions={
+     'serragaucha': ['Rio Grande do Sul'],
+     'campanha'   : [],
+    },
+)
+
+CZECHIA = dict(
+    admin1='cz-regions.json', subject='Czech Republic', log=160, margin=170,
+    splits=[('mikulovska', 'znojemska', 16.35, 'lon')],
+    regions={
+     'mikulovska': ['Jihomoravský'],
+     'znojemska' : [],
+    },
+)
+
+GERMANY = dict(
+    admin1='de-states.json', subject='Germany', log=160, margin=170,
+    splits=[('rheinhessen', 'mosel', 7.4, 'lon'), ('rheinhessen', 'pfalz', 49.65)],
+    regions={
+     'mosel'      : [],
+     'rheingau'   : ['Hessen'],
+     'franconia'  : ['Bayern'],
+     'rheinhessen': ['Rheinland-Pfalz'],
+     'pfalz'      : [],
+    },
+)
+
+SOUTHAFRICA = dict(
+    admin1='za-provinces.json', subject='South Africa', log=160, margin=60,
+    # All four are inside the Western Cape, which is a tenth of the country, so
+    # the frame is the Western Cape. margin=60 rather than the usual 170: at
+    # this scale a 170-cell margin is wide enough to swallow the whole country
+    # back into the canvas and undo the focus.
+    focus='regions',
+    # AND a window, because focus='regions' alone did nothing here. Natural
+    # Earth files the Prince Edward Islands — Marion Island, 37.7E 46.9S, 1,800
+    # km into the Southern Ocean — under the WESTERN CAPE. They stretch the
+    # province's own bounding box from 6 degrees to 20 and hand the frame back
+    # to the whole country. Same trap as the Azores and the Canaries, one level
+    # down, where a country-level `exclude` cannot reach it.
+    frame_window=(16.0, -35.5, 26.0, -30.0),
+    splits=[('swartland', 'paarl', -33.6), ('paarl', 'stellenbosch', -33.85), ('stellenbosch', 'walkerbay', -34.2)],
+    regions={
+     'swartland'   : ['Western Cape'],
+     'paarl'       : [],
+     'stellenbosch': [],
+     'walkerbay'   : [],
+    },
+)
+
+COUNTRIES.update({
+    'greece': GREECE,
+    'georgia': GEORGIA,
+    'croatia': CROATIA,
+    'hungary': HUNGARY,
+    'romania': ROMANIA,
+    'bulgaria': BULGARIA,
+    'moldova': MOLDOVA,
+    'ukraine': UKRAINE,
+    'serbia': SERBIA,
+    'slovakia': SLOVAKIA,
+    'slovenia': SLOVENIA,
+    'israel': ISRAEL,
+    'lebanon': LEBANON,
+    'cyprus': CYPRUS,
+    'turkey': TURKEY,
+    'armenia': ARMENIA,
+    'switzerland': SWITZERLAND,
+    'unitedkingdom': UNITEDKINGDOM,
+    'japan': JAPAN,
+    'india': INDIA,
+    'canada': CANADA,
+    'mexico': MEXICO,
+    'uruguay': URUGUAY,
+    'morocco': MOROCCO,
+    'australia': AUSTRALIA,
+    'usa': USA,
+    'brazil': BRAZIL,
+    'czechia': CZECHIA,
+    'germany': GERMANY,
+    'southafrica': SOUTHAFRICA,
+})

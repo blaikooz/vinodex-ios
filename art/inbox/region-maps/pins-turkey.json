@@ -1,0 +1,16 @@
+[
+ {
+  "id": "R156",
+  "name": "Cappadocia",
+  "lon": 34.91,
+  "lat": 38.63,
+  "expect": "cappadocia"
+ },
+ {
+  "id": "R157",
+  "name": "Elazığ",
+  "lon": 39.22,
+  "lat": 38.68,
+  "expect": "elazig"
+ }
+]

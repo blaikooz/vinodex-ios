@@ -1,0 +1,16 @@
+[
+ {
+  "id": "R151",
+  "name": "Commandaria",
+  "lon": 33.05,
+  "lat": 34.86,
+  "expect": "commandaria"
+ },
+ {
+  "id": "R152",
+  "name": "Pitsilia",
+  "lon": 33.09,
+  "lat": 34.97,
+  "expect": "pitsilia"
+ }
+]
