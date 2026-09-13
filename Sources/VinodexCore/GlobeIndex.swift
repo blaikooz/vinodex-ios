@@ -57,6 +57,10 @@ public struct GlobeIndex: Sendable {
 
     private static let catalogSpelling: [String: String] = [
         "United States of America": "USA",
+        // Natural Earth's admin name for Serbia, which the catalog files under
+        // the short form. Same class as the USA row and found the same way —
+        // by the test below failing rather than by anyone noticing.
+        "Republic of Serbia": "Serbia",
     ]
 
     /// Where a coordinate falls in the raster, as `(x, y)` cells.

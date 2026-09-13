@@ -72,7 +72,7 @@ struct CoverageTests {
         // R157): Styria, Cotnari, Jurançon, and Turkey's Cappadocia and
         // Elazığ.
         #expect(db.entries(in: .grapes).count == 221)
-        #expect(db.entries(in: .regions).count == 157)
+        #expect(db.entries(in: .regions).count == 167)
         // 31 since 0.6.x: Medium-Full Red removed, its grapes now Full-Body.
         // 33 since 0.7.9 (G): Madeira and Cava; 31 through 0.9.42's removal;
         // **33 again since 0.9.45**: the maintainer reversed the removal
@@ -143,7 +143,7 @@ struct CoverageTests {
         // batch running — all 42 new tasting notes reuse the vocabulary.
         // 530 since the v0.9.54 readiness batch: +1 style, S041 Vinho Verde.
         // Flavours unchanged at 106 for the tenth batch running.
-        #expect(stats.total == 530)
+        #expect(stats.total == 540)
         // 26 since 0.7.3c: Brazil is the first *new* origin since Mexico. The
         // count is distinct region origins, so the coming-soon gates still do
         // not count and adding a country without a region would not move it.
@@ -162,7 +162,7 @@ struct CoverageTests {
         // than waiting out a coming-soon phase.
         // 34 since v0.9.51: Turkey opens the same way, with Cappadocia and
         // Elazığ in the same commit as its gate.
-        #expect(stats.countries == 34)
+        #expect(stats.countries == 39)
         #expect(stats.categoryLines.count == 6)
     }
 

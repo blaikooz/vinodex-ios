@@ -526,9 +526,13 @@ struct ArtPipelineRosterTests {
     /// is what stops "drawn ahead" from becoming the excuse that any unused file
     /// in the directory is fine.
     private static let drawnAheadOutlines: Set<String> = [
-        "arizona", "bosnia", "czechia", "idaho", "israel", "michigan",
-        "missouri", "new-mexico", "serbia", "slovakia", "texas", "ukraine",
-        "virginia",
+        // Masters drawn before the catalog needed them. Five came off this
+        // list when sommbot authored Czechia, Israel, Serbia, Slovakia and
+        // Ukraine — the wiring was one COUNTRY_SHAPE_ICONS row each, exactly
+        // as the fills script promised. Bosnia stays: it was declined, and
+        // its stem would not match the slug of its only honest name.
+        "bosnia", "michigan", "idaho", "texas", "arizona",
+        "virginia", "missouri", "new-mexico",
     ]
 
     /// **Every outline the catalog draws has a master, and every master is

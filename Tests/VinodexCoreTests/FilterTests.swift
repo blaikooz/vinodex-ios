@@ -100,7 +100,10 @@ struct FilterTests {
         // Turkey's pair opened with v0.9.51.
         let asia = db.regions(in: .asia)
         #expect(
-            asia.map(\.name) == ["Batroun", "Bekaa Valley", "Cappadocia", "Elazığ", "Hebei", "Helan Mountain", "Nandi Hills", "Nashik", "Shandong", "Shangri-La", "Yamagata", "Yamanashi"],
+            asia.map(\.name) == // Judean Hills and Upper Galilee joined with Israel (sommbot's batch).
+            ["Batroun", "Bekaa Valley", "Cappadocia", "Elazığ", "Hebei",
+             "Helan Mountain", "Judean Hills", "Nandi Hills", "Nashik",
+             "Shandong", "Shangri-La", "Upper Galilee", "Yamagata", "Yamanashi"],
             "got \(asia.map(\.name))"
         )
 

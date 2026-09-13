@@ -101,6 +101,15 @@
   },
   {
    "idx": 13,
+   "admin": "Czechia",
+   "stem": "czechia",
+   "fill": "#822B57",
+   "label": "CZECHIA",
+   "mapped": 0,
+   "key": "czechia"
+  },
+  {
+   "idx": 14,
    "admin": "France",
    "stem": "france",
    "fill": "#BC8062",
@@ -109,7 +118,7 @@
    "key": "france"
   },
   {
-   "idx": 14,
+   "idx": 15,
    "admin": "Georgia",
    "stem": "georgia",
    "fill": "#A4873D",
@@ -118,7 +127,7 @@
    "key": "georgia"
   },
   {
-   "idx": 15,
+   "idx": 16,
    "admin": "Germany",
    "stem": "germany",
    "fill": "#833DA4",
@@ -127,7 +136,7 @@
    "key": "germany"
   },
   {
-   "idx": 16,
+   "idx": 17,
    "admin": "Greece",
    "stem": "greece",
    "fill": "#92C9B8",
@@ -136,7 +145,7 @@
    "key": "greece"
   },
   {
-   "idx": 17,
+   "idx": 18,
    "admin": "Hungary",
    "stem": "hungary",
    "fill": "#5EA43D",
@@ -145,7 +154,7 @@
    "key": "hungary"
   },
   {
-   "idx": 18,
+   "idx": 19,
    "admin": "India",
    "stem": "india",
    "fill": "#7C2736",
@@ -154,7 +163,16 @@
    "key": "india"
   },
   {
-   "idx": 19,
+   "idx": 20,
+   "admin": "Israel",
+   "stem": "israel",
+   "fill": "#C072AC",
+   "label": "ISRAEL",
+   "mapped": 0,
+   "key": "israel"
+  },
+  {
+   "idx": 21,
    "admin": "Italy",
    "stem": "italy",
    "fill": "#427C27",
@@ -163,7 +181,7 @@
    "key": "italy"
   },
   {
-   "idx": 20,
+   "idx": 22,
    "admin": "Japan",
    "stem": "japan",
    "fill": "#BC6272",
@@ -172,7 +190,7 @@
    "key": "japan"
   },
   {
-   "idx": 21,
+   "idx": 23,
    "admin": "Lebanon",
    "stem": "lebanon",
    "fill": "#62BCA1",
@@ -181,7 +199,7 @@
    "key": "lebanon"
   },
   {
-   "idx": 22,
+   "idx": 24,
    "admin": "Mexico",
    "stem": "mexico",
    "fill": "#A3C992",
@@ -190,7 +208,7 @@
    "key": "mexico"
   },
   {
-   "idx": 23,
+   "idx": 25,
    "admin": "Moldova",
    "stem": "moldova",
    "fill": "#822B6C",
@@ -199,7 +217,7 @@
    "key": "moldova"
   },
   {
-   "idx": 24,
+   "idx": 26,
    "admin": "Morocco",
    "stem": "morocco",
    "fill": "#C9BA92",
@@ -208,7 +226,7 @@
    "key": "morocco"
   },
   {
-   "idx": 25,
+   "idx": 27,
    "admin": "New Zealand",
    "stem": "new-zealand",
    "fill": "#D7B7BD",
@@ -217,7 +235,7 @@
    "key": "newzealand"
   },
   {
-   "idx": 26,
+   "idx": 28,
    "admin": "Portugal",
    "stem": "portugal",
    "fill": "#277C63",
@@ -226,7 +244,16 @@
    "key": "portugal"
   },
   {
-   "idx": 27,
+   "idx": 29,
+   "admin": "Republic of Serbia",
+   "stem": "serbia",
+   "fill": "#8672C0",
+   "label": "SERBIA",
+   "mapped": 0,
+   "key": "serbia"
+  },
+  {
+   "idx": 30,
    "admin": "Romania",
    "stem": "romania",
    "fill": "#B792C9",
@@ -235,7 +262,16 @@
    "key": "romania"
   },
   {
-   "idx": 28,
+   "idx": 31,
+   "admin": "Slovakia",
+   "stem": "slovakia",
+   "fill": "#2B8282",
+   "label": "SLOVAKIA",
+   "mapped": 0,
+   "key": "slovakia"
+  },
+  {
+   "idx": 32,
    "admin": "Slovenia",
    "stem": "slovenia",
    "fill": "#3D78A4",
@@ -244,7 +280,7 @@
    "key": "slovenia"
   },
   {
-   "idx": 29,
+   "idx": 33,
    "admin": "South Africa",
    "stem": "south-africa",
    "fill": "#D7C2B7",
@@ -253,7 +289,7 @@
    "key": "south-africa"
   },
   {
-   "idx": 30,
+   "idx": 34,
    "admin": "Spain",
    "stem": "spain",
    "fill": "#9F62BC",
@@ -262,7 +298,7 @@
    "key": "spain"
   },
   {
-   "idx": 31,
+   "idx": 35,
    "admin": "Switzerland",
    "stem": "switzerland",
    "fill": "#6296BC",
@@ -271,7 +307,7 @@
    "key": "switzerland"
   },
   {
-   "idx": 32,
+   "idx": 36,
    "admin": "Turkey",
    "stem": "turkey",
    "fill": "#2B2B82",
@@ -280,7 +316,16 @@
    "key": "turkey"
   },
   {
-   "idx": 33,
+   "idx": 37,
+   "admin": "Ukraine",
+   "stem": "ukraine",
+   "fill": "#ACC072",
+   "label": "UKRAINE",
+   "mapped": 0,
+   "key": "ukraine"
+  },
+  {
+   "idx": 38,
    "admin": "United Kingdom",
    "stem": "united-kingdom",
    "fill": "#3DA485",
@@ -289,7 +334,7 @@
    "key": "united-kingdom"
   },
   {
-   "idx": 34,
+   "idx": 39,
    "admin": "United States of America",
    "stem": "usa",
    "fill": "#27587C",
@@ -298,7 +343,7 @@
    "key": "usa"
   },
   {
-   "idx": 35,
+   "idx": 40,
    "admin": "Uruguay",
    "stem": "uruguay",
    "fill": "#C9929C",
@@ -748,7 +793,7 @@
   }
  },
  "index_pixels": {
-  "sha256": "142ebad66137fa3c8c3e2c1c4549888479bef6d90217227f446b20f72f5f0c53",
+  "sha256": "ffd754eea8afb82120a22ee415c7cbca538c704ce137667fe530023ddc36fab6",
   "shape": [
    1024,
    2048

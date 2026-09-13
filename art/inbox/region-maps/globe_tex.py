@@ -39,8 +39,23 @@ WINE = {
  # Added once ne.json reached the repo. These four are the whole gap: they carry
  # catalog regions and could not be tapped because the globe could not be built.
  'Armenia':'armenia','Cyprus':'cyprus','Moldova':'moldova','Turkey':'turkey',
+ # sommbot's five-country batch: the catalog led, so the map follows. Five of
+ # the six named below are no longer "NOT ADDED" -- each now carries a gate
+ # blurb and two regions in shared/data, which is what the assert measures.
+ # The NE spellings are the ones this file already recorded: Serbia is
+ # 'Republic of Serbia', and that mismatch needs the matching display-name row
+ # in GlobeIndex.catalogName beside the USA one, or the globe will label it
+ # 'Republic of Serbia' and open nothing.
+ 'Czechia':'czechia','Slovakia':'slovakia','Ukraine':'ukraine',
+ 'Republic of Serbia':'serbia','Israel':'israel',
  #
- # NOT ADDED, and the reason is the assert below. A first pass here carried ten,
+ # Known approximation, measured this pass: Natural Earth's 'Ukraine' feature
+ # stops at 45.21N, i.e. it does NOT include Crimea -- ne.json files the
+ # peninsula under 'Russia'. So a tap on Crimea answers "Russia" while the
+ # country outline art (drawn to 44.34N) does include it. That is a decision
+ # for the maintainer, not something to paper over here.
+ #
+ # STILL NOT ADDED -- bosnia, and the reason is the assert below. A first pass here carried ten,
  # derived from the set difference between art/icons/entries/countries/*.png (51
  # stems) and this table. That derivation is wrong: **the art is not the
  # catalog.** Outlines exist for countries with no entry, and six of the ten —
@@ -160,7 +175,13 @@ Image.fromarray(a).save(os.path.join(HERE, 'globe-index.png'), optimize=True)
 #   label  display text, admin uppercased, with the overrides below
 #   mapped how many regions the flat map has; 0 means "no drill-down"
 #   fill   the country's colour on the globe
-LABELS = {'United States of America': 'UNITED STATES'}
+LABELS = {'United States of America': 'UNITED STATES',
+          # Natural Earth's admin name, which is not what anyone calls it. The
+          # catalog files it as "Serbia" and the country page says Serbia, so a
+          # tile reading REPUBLIC OF SERBIA is the globe disagreeing with the
+          # page it opens. `GlobeIndex.catalogName` fixes where the tap GOES;
+          # this fixes what it SAYS, and both are needed.
+          'Republic of Serbia': 'SERBIA'}
 
 prior = {}
 _p = os.path.join(HERE, 'globe-meta.json')
