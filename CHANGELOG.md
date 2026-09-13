@@ -30,6 +30,54 @@ which was kept current throughout and remains the richer record. Two versions
 have no tag of their own: 0.9.46 rode inside the v0.9.47 dispatch, and 0.9.51
 inside v0.9.52.
 
+## [0.9.57] — 2026-09-13 · THE WHOLE WINE WORLD
+
+### Added
+- **A region map for every wine country — 9 to 39.** 167 painted areas, on the
+  maintainer's ruling that each wine country gets one, USA at state level.
+  Germany and South Africa came off the blocked list via chained axis cuts: a
+  meridian at 7.4°E for the Mosel, a parallel at 49.65°N for the Pfalz, three
+  parallels across the Western Cape. Straight lines through country that has
+  none, and every cell they misplace is unassigned ground.
+- **A second index plane**, optional per country and live on France. Sauternes
+  inside Bordeaux and Châteauneuf-du-Pape inside the Rhône — a sub-AOC and a
+  commune that no administrative unit isolates, and which one plane could not
+  express. Plane 2 is read before plane 1 and read *exactly*, with no
+  nearest-cell catchment: a four-cell child with one would swallow taps meant
+  for its parent.
+- **Four orientation cards on first launch** — the encyclopedia, the label
+  reader, practice, the world. Nothing waits on the player and SKIP is on every
+  card. The scanner is second rather than last because the old sequence saved
+  it for a closing line that anyone who skipped never reached.
+- 77 display names, from the catalog's own spellings.
+
+### Changed
+- The six-step guided run keeps its place in SETTINGS ▸ DEVICE ▸ TUTORIAL and
+  loses only the first-launch slot, which settles a collision the coachmark's
+  own header admitted: *"shipping two tutorials in one menu would have passed
+  every gate in this repo."*
+- The BIOS prompt is larger and blinks to a dimmer trough, and after four
+  unheeded seconds adds a plain second line: `TAP THE SCREEN`. The hold has no
+  ceiling by design, which makes it the one screen that can be mistaken for a
+  hang.
+
+### Fixed
+- **The hit test rounded where the rasteriser floors.** Cell `i` is filled from
+  `[i, i+1)`, so the cell containing a point is `floor(x)`. The app rounded the
+  art coordinate before dividing it down, sending the trailing half-pixel of
+  every five-pixel cell into its neighbour — 10.2% of taps resolving one cell
+  right or down. Invisible on a 464-cell Rhône; decisive on a 5-cell Sauternes.
+- **The United States and Serbia could not open their region maps.**
+  `key(forCountry:)` folds a name to a directory, and the globe hands it
+  Natural Earth's spelling — "United States of America" and "Republic of
+  Serbia" fold to no directory at all. Both gained a map in this drop and
+  neither could be opened; the double tap fell through silently.
+- **Onboarding would have replayed on every launch, forever.** `start()` was
+  the only writer of `hasBeenOffered`, and moving the first-run slot off the
+  coachmark removed the only call to it.
+- Orientation cards drew a grey chip instead of Professor Vino, having stored
+  their expression as a raw string where the glyph loader wanted an art stem.
+
 ## [0.9.56] — 2026-09-11 · ROOM TO READ
 
 ### Changed
