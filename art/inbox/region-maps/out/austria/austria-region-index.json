@@ -1,0 +1,18 @@
+{
+ "byId": {
+  "R061": "burgenland",
+  "R062": "niederosterreich",
+  "R153": "styria"
+ },
+ "byStem": {
+  "burgenland": [
+   "R061"
+  ],
+  "niederosterreich": [
+   "R062"
+  ],
+  "styria": [
+   "R153"
+  ]
+ }
+}

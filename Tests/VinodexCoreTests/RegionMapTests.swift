@@ -31,10 +31,11 @@ struct RegionMapTests {
         let map = try load()
         #expect(map.regions.count == 14)
         #expect(try load("italy").regions.count == 21)
-        // 85 painted regions across the seven countries.
+        // 92 painted regions across the nine countries — 85 across the
+        // original seven, plus Austria's 3 and China's 4 (0.9.57).
         var total = 0
         for country in RegionMap.mapped { total += try load(country).regions.count }
-        #expect(total == 85, "painted regions across all seven: \(total)")
+        #expect(total == 92, "painted regions across all nine: \(total)")
         // The canvas is whatever the render made it — it grew a margin of
         // world on every side when the backdrop arrived, and the margin is
         // config. `subjectRectIsSane` pins the part that has to hold.
@@ -139,6 +140,18 @@ struct RegionMapTests {
             "chile": ["biobio", "coquimbo", "malleco", "maule", "rapel"],
             "newzealand": ["auckland", "canterbury", "gisborne", "nelson",
                            "northland", "waikatobop", "wairarapa"],
+            // **The first two countries to arrive with no dead areas at all.**
+            // Both were built to the one-area-per-catalog-region rule rather
+            // than retrofitted to it, which is what the rule is for.
+            //
+            // Austria carries the *opposite* gap, which this test does not
+            // measure: it paints 3 areas against 4 catalog rows, because
+            // Wachau sits inside Niederösterreich and a single index plane
+            // cannot hold a region inside a region. It was left unpainted
+            // rather than faked with a split — a wrong boundary is worse than
+            // an absent one, because nothing can detect it.
+            "austria": [],
+            "china": [],
         ]
         var total = 0
         for country in RegionMap.mapped {

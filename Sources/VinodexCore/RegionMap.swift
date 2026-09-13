@@ -171,6 +171,7 @@ public struct RegionMap: Sendable {
         "bierzo": "BIERZO",
         "biobio": "BÍO BÍO",
         "bordeaux": "BORDEAUX",
+        "burgenland": "BURGENLAND",
         "burgundy": "BURGUNDY",
         "calabria": "CALABRIA",
         "campania": "CAMPANIA",
@@ -190,6 +191,7 @@ public struct RegionMap: Sendable {
         "galicia": "GALICIA",
         "gisborne": "GISBORNE",
         "hawkesbay": "HAWKE'S BAY",
+        "hebei": "HEBEI",
         "itata": "ITATA",
         "jerez": "JEREZ",
         "jura": "JURA",
@@ -211,6 +213,8 @@ public struct RegionMap: Sendable {
         "molise": "MOLISE",
         "navarra": "NAVARRA",
         "nelson": "NELSON",
+        "niederosterreich": "NIEDERÖSTERREICH",
+        "ningxia": "HELAN MOUNTAIN",
         "northland": "NORTHLAND",
         "patagonia": "PATAGONIA",
         "piedmont": "PIEDMONT",
@@ -227,8 +231,11 @@ public struct RegionMap: Sendable {
         "sardinia": "SARDINIA",
         "savoie": "SAVOIE",
         "setubal": "SETUBAL",
+        "shandong": "SHANDONG",
+        "shangrila": "SHANGRI-LA",
         "sicily": "SICILY",
         "southwest": "SOUTH WEST",
+        "styria": "STYRIA",
         "tejo": "TEJO",
         "trentino": "TRENTINO",
         "tuscany": "TUSCANY",
@@ -248,6 +255,7 @@ public struct RegionMap: Sendable {
     /// render, an install, and a line here.
     public static let mapped: [String] = [
         "france", "italy", "spain", "portugal", "argentina", "chile", "newzealand",
+        "austria", "china",
     ]
 
     /// The map key for a catalog country name, or nil where there is none.

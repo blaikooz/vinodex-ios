@@ -1,0 +1,30 @@
+[
+ {
+  "id": "R050",
+  "name": "Helan Mountain",
+  "lon": 106.23,
+  "lat": 38.49,
+  "expect": "ningxia"
+ },
+ {
+  "id": "R051",
+  "name": "Shangri-La",
+  "lon": 98.91,
+  "lat": 28.48,
+  "expect": "shangrila"
+ },
+ {
+  "id": "R075",
+  "name": "Shandong",
+  "lon": 121.45,
+  "lat": 37.46,
+  "expect": "shandong"
+ },
+ {
+  "id": "R076",
+  "name": "Hebei",
+  "lon": 115.52,
+  "lat": 40.4,
+  "expect": "hebei"
+ }
+]

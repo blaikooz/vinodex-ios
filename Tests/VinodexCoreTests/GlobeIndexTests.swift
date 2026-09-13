@@ -18,16 +18,21 @@ struct GlobeIndexTests {
         return try GlobeIndex(meta: Data(contentsOf: url))
     }
 
-    @Test("thirty wine countries, every id a usable byte")
+    @Test("every wine country the catalog holds, and every id a usable byte")
     func roster() throws {
         let index = try load()
-        #expect(index.countries.count == 30)
+        // 34, not 30: the globe's roster is now asserted against
+        // `shared/data/regions.ts` at render time, and the catalog holds
+        // exactly 34 distinct origins. Six countries with outline art but no
+        // catalog entry were briefly added and then removed — the art folder
+        // is not the catalog, and `everyCountryResolves` below is what says so.
+        #expect(index.countries.count == 34)
         for country in index.countries {
             // 0 is reserved for everywhere else, and the raster is 8-bit.
             #expect(country.id >= 1 && country.id <= 255, "\(country.admin) id \(country.id)")
             #expect(!country.label.isEmpty)
         }
-        #expect(Set(index.countries.map(\.id)).count == 30, "two countries share an id")
+        #expect(Set(index.countries.map(\.id)).count == 34, "two countries share an id")
     }
 
     /// The seven with painted region maps are exactly the seven the flat maps
@@ -37,7 +42,8 @@ struct GlobeIndexTests {
     func mappedAgreesWithRegionMaps() throws {
         let index = try load()
         let mapped = index.countries.filter(\.isMapped)
-        #expect(mapped.count == 7)
+        // Nine since 0.9.57 — Austria and China joined the seven.
+        #expect(mapped.count == 9)
         for country in mapped {
             #expect(RegionMap.key(forCountry: country.admin) != nil,
                     "\(country.admin) says it has a region map, but RegionMap.mapped disagrees")

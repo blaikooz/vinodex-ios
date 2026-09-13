@@ -1,0 +1,22 @@
+{
+ "byId": {
+  "R050": "ningxia",
+  "R051": "shangrila",
+  "R075": "shandong",
+  "R076": "hebei"
+ },
+ "byStem": {
+  "ningxia": [
+   "R050"
+  ],
+  "shangrila": [
+   "R051"
+  ],
+  "shandong": [
+   "R075"
+  ],
+  "hebei": [
+   "R076"
+  ]
+ }
+}
