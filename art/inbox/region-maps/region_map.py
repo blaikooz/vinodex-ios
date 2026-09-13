@@ -52,6 +52,10 @@ LOG    = CFG['log']
 MARGIN = int(os.environ.get('MARGIN', CFG['margin']))
 SHELF  = 3     # shelf band width; the coastline eats the innermost pixel
 MIN_ISLAND = 20  # land masses smaller than this are specks, not islands
+# ...unless the island IS a wine region. Santorini is 76 km2; at Greece's canvas
+# that is about six cells, so the speck filter deleted the most famous island in
+# Greek wine and its own pin landed in the sea. Per-country, because lowering it
+# everywhere resurrects the specks it exists to remove.
 SCALE = 5      # export multiplier, nearest-neighbour
 SS    = 6      # rasteriser supersample; max-pooled down, so thin capes survive
 
@@ -163,7 +167,8 @@ def outline(mask, canvas, colour=INK):
     canvas[border(mask)] = colour
 
 
-def drop_islets(m, min_px=MIN_ISLAND):
+def drop_islets(m, min_px=None):
+    min_px = MIN_ISLAND if min_px is None else min_px
     """Remove land masses too small to draw as anything but a speck.
 
     A 2-pixel island still gets a full border, so it renders as a dot of ink with
@@ -247,7 +252,7 @@ foreign = drop_islets(foreign)
 # the subject's own silhouette, needed here so the shelf hugs its coast too
 subj = np.zeros((H + 2, W + 2), bool)
 subj[1:-1, 1:-1] = despeckle(raster(P, MN, S, W, H))
-subj = drop_islets(subj)
+subj = drop_islets(subj, CFG.get('min_island'))
 
 # continental shelf: a lighter band of sea hugging every coast, the way a
 # printed atlas shades shallow water. Two pixels, so it reads at this size.
@@ -394,6 +399,70 @@ for stem, i in IDS.items():
     assert (index == i).sum() == int(masks[stem].sum()), 'index disagrees on ' + stem
 Image.fromarray(index).save(os.path.join(OUT, '%s-index.png' % NAME))
 
+# --- the second index plane: children ---------------------------------------
+# A child is a catalog region INSIDE a painted one that no admin-1 unit isolates
+# — Châteauneuf-du-Pape is one commune in the Vaucluse, Sauternes five in the
+# Gironde. Same dimensions and same logical scale as plane 1; 0 means "no child
+# here", 1..M is a child. The hit test reads this first and falls back to plane
+# 1, so a country without children ships no file and nothing changes for it.
+# Agreed with the terminal in horizon-md/index2-agreed.md.
+CHILDREN = CFG.get('children') or {}
+index2, KID_IDS, kid_masks, kid_meta = None, {}, {}, {}
+if CHILDREN:
+    index2 = np.zeros((CH, CW), np.uint8)
+    src_cache = {}
+    for i, (stem, spec) in enumerate(CHILDREN.items(), start=1):
+        # Namespace: children and regions share one byId map in the region
+        # index, so a collision would resolve to whichever the app looked up
+        # first. Cheap to forbid.
+        assert stem not in REGIONS, 'child %r collides with a region stem' % stem
+        parent = spec['parent']
+        assert parent in REGIONS, 'child %r names unknown parent %r' % (stem, parent)
+
+        path = spec['source']
+        if path not in src_cache:
+            with open(os.path.join(HERE, path), encoding='utf-8') as fh:
+                src_cache[path] = {f['properties']['name']: f
+                                   for f in json.load(fh)['features']}
+        by_name = src_cache[path]
+        gone = [u for u in spec['units'] if u not in by_name]
+        assert not gone, 'no such unit in %s: %s' % (path, gone)
+
+        polys = []
+        for u in spec['units']:
+            g = by_name[u]['geometry']
+            for poly in ([g['coordinates']] if g['type'] == 'Polygon'
+                         else g['coordinates']):
+                polys.append([np.array(r, float)[:, :2] for r in poly])
+        raw = np.zeros((CH, CW), bool)
+        raw[1:-1, 1:-1] = raster(project(polys, K), MN, S, W, H)
+
+        # Containment. A child that leaks past its parent's boundary is the bug
+        # nobody can see: the tap resolves, to the wrong thing. Clip it, then
+        # refuse the clip if it removed a meaningful share — that means the
+        # config put the child in the wrong parent, and silently trimming it
+        # would hide exactly that.
+        m = raw & masks[parent]
+        assert m.any(), 'child %r renders to nothing' % stem
+        lost = 1 - m.sum() / max(1, raw.sum())
+        assert lost < 0.02, (
+            'child %r is only %.0f%% inside %s — wrong parent, or the two '
+            'sources disagree about the boundary'
+            % (stem, 100 * (1 - lost), parent))
+
+        index2[m] = i
+        KID_IDS[stem] = i
+        kid_masks[stem] = m
+        print('child %-14s %5d px inside %-11s (%d unit%s)'
+              % (stem, m.sum(), parent, len(spec['units']),
+                 '' if len(spec['units']) == 1 else 's'))
+
+    for stem, i in KID_IDS.items():
+        assert (index2 == i).sum() == int(kid_masks[stem].sum()), \
+            'index2 disagrees on ' + stem
+    assert index2.shape == index.shape, 'the two planes must share a grid'
+    Image.fromarray(index2).save(os.path.join(OUT, '%s-index2.png' % NAME))
+
 # the interactive layer: the subject only, everything else the chroma key
 inter = np.full_like(canvas, MAG)
 inter[land] = canvas[land]
@@ -452,6 +521,43 @@ if '--base' not in sys.argv:
                                              int(xs.max()), int(ys.max())]}
     print('%d detail maps written' % len(detail_meta))
 
+    # A child's detail map is drawn INSIDE ITS PARENT'S FRAME, not cropped to
+    # itself. The globe already shows the child alone: RegionAtlas.cutout reads
+    # plane 2 and raises the child's own outline out of the parent, so a picture
+    # of the child on its own would duplicate the one view that exists and omit
+    # the one that does not. What RegionMapScreen is for is the question the
+    # globe cannot answer — WHERE in Niederösterreich is the Wachau, where in
+    # the Rhône is Châteauneuf. So: the parent at the parent's crop, in the
+    # parent's fill knocked back, with the child painted over it in full.
+    PARENT_DIM = 0.45          # how far the parent is pushed toward the ground
+    for stem, m in kid_masks.items():
+        parent = CHILDREN[stem]['parent']
+        pm = masks[parent]
+        ys, xs = np.nonzero(pm)          # the PARENT's box, so the child sits
+        y0, y1 = ys.min(), ys.max() + 1  # where it really sits
+        x0, x1 = xs.min(), xs.max() + 1
+        sub_p, sub_c = pm[y0:y1, x0:x1], m[y0:y1, x0:x1]
+        up = max(1, int(round(DETAIL_LOG / max(sub_p.shape))))
+        sub_p = np.kron(sub_p, np.ones((up, up), bool))
+        sub_c = np.kron(sub_c, np.ones((up, up), bool))
+        h, w = sub_p.shape
+        c = np.full((h + 2, w + 2, 3), MAG, np.uint8)
+        qp = np.zeros((h + 2, w + 2), bool); qp[1:-1, 1:-1] = sub_p
+        qc = np.zeros((h + 2, w + 2), bool); qc[1:-1, 1:-1] = sub_c
+        pf = np.array(FILLS[parent], float)
+        c[qp] = np.round(pf + (np.array(STONE, float) - pf) * PARENT_DIM)
+        c[qc] = FILLS[parent]            # the child keeps the parent's own hue
+        outline(qp, c)                   # parent silhouette
+        outline(qc, c)                   # and the child's, so it reads as a place
+        Image.fromarray(c).resize(((w + 2) * SCALE, (h + 2) * SCALE), Image.NEAREST) \
+             .save(os.path.join(OUT, 'map-%s.png' % stem))
+        kid_meta[stem] = {'canvas': [w + 2, h + 2], 'upscale': up,
+                          'framed_on': parent,
+                          'source_bbox': [int(x0), int(y0), int(x1 - 1), int(y1 - 1)]}
+    if kid_meta:
+        print('%d child detail maps written, each framed on its parent'
+              % len(kid_meta))
+
 # --- manifest --------------------------------------------------------------
 manifest = {
   'generator': 'region_map.py', 'country': NAME,
@@ -459,13 +565,20 @@ manifest = {
                  'origin': [round(float(MN[0]), 6), round(float(MN[1]), 6)],
                  'scale': round(float(S), 6),
                  'note': 'canvas_x = (lon*x_factor - origin[0])*scale + 2 ; '
-                         'canvas_y = (-lat - origin[1])*scale + 2'},
+                         'canvas_y = (-lat - origin[1])*scale + 2',
+                 'cell_note': 'Those are CONTINUOUS canvas coordinates. The cell '
+                              'containing a point is floor(x), floor(y) — the '
+                              'rasteriser fills cell i from [i, i+1). Rounding '
+                              'picks the nearest cell CENTRE and lands one cell '
+                              'over for anything past the halfway line; harmless '
+                              'on a large region, decisive on a small child.'},
   'base': {'canvas': [CW, CH], 'export_scale': SCALE,
            'unassigned': '#%02X%02X%02X' % STONE, 'outline': '#%02X%02X%02X' % INK,
            'key': '#%02X%02X%02X' % MAG,
-           'layers': {'interactive': '%s-regions.png' % NAME,
-                      'backdrop': '%s-backdrop.png' % NAME,
-                      'index': '%s-index.png' % NAME},
+           'layers': dict({'interactive': '%s-regions.png' % NAME,
+                           'backdrop': '%s-backdrop.png' % NAME,
+                           'index': '%s-index.png' % NAME},
+                          **({'index2': '%s-index2.png' % NAME} if CHILDREN else {})),
            'index_legend': {'0': 'outside the country (sea, neighbour, coastline ink)',
                             '255': 'inside the country, unassigned ground',
                             '1..N': 'a region — see regions[].id'},
@@ -481,6 +594,21 @@ manifest = {
                'shallow': '#%02X%02X%02X' % SHALLOW, 'shelf_px': SHELF,
                'countries': sorted(f['properties']['name'] for f in NB)},
   'marker_clearance': {str(d): collisions(d) for d in (12, 10, 8)},
+  # Absent entirely when a country has no children, so nothing about the other
+  # eight changes and no consumer has to migrate.
+  **({'children': {
+      stem: {'id': KID_IDS[stem],
+             'parent': CHILDREN[stem]['parent'],
+             'area_px': int(kid_masks[stem].sum()),
+             'units': CHILDREN[stem]['units'],
+             'source': CHILDREN[stem]['source'],
+             'detail': kid_meta.get(stem)}
+      for stem in CHILDREN},
+      'children_note':
+          'A second index plane, <country>-index2.png: same dimensions and same '
+          'logical scale as index, 0 = no child, 1..M = children[].id. Read it '
+          'BEFORE index; non-zero wins, otherwise fall back. Children resolve '
+          'through the same catalog-id map as regions.'} if CHILDREN else {}),
   'splits': [{'keeps': sp[0], 'gains': sp[1], 'value': sp[2],
               'axis': sp[3] if len(sp) > 3 else 'lat'} for sp in SPLITS],
   'regions': {
@@ -498,4 +626,5 @@ json.dump(manifest, open(os.path.join(OUT, '%s-manifest.json' % NAME), 'w'),
 print('wrote', OUT)
 
 # expose for region_check.py
-__all__ = ['masks', 'land', 'K', 'MN', 'S', 'CW', 'CH', 'REGIONS', 'btn']
+__all__ = ['masks', 'land', 'K', 'MN', 'S', 'CW', 'CH', 'REGIONS', 'btn',
+           'kid_masks', 'KID_IDS']

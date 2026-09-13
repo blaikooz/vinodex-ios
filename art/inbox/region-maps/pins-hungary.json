@@ -1,0 +1,23 @@
+[
+ {
+  "id": "R049",
+  "name": "Tokaj",
+  "lon": 21.41,
+  "lat": 48.12,
+  "expect": "tokaj"
+ },
+ {
+  "id": "R133",
+  "name": "Villány",
+  "lon": 18.45,
+  "lat": 45.87,
+  "expect": "villany"
+ },
+ {
+  "id": "R141",
+  "name": "Eger",
+  "lon": 20.37,
+  "lat": 47.9,
+  "expect": "eger"
+ }
+]

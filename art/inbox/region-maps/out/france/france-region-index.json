@@ -10,10 +10,10 @@
   "R008": "beaujolais",
   "R009": "languedoc",
   "R010": "burgundy",
-  "R011": "bordeaux",
+  "R011": "sauternes",
   "R012": "jura",
   "R079": "southwest",
-  "R099": "rhone",
+  "R099": "chateauneuf",
   "R105": "corsica",
   "R106": "savoie",
   "R107": "roussillon",
@@ -23,8 +23,7 @@
  },
  "byStem": {
   "bordeaux": [
-   "R001",
-   "R011"
+   "R001"
   ],
   "southwest": [
    "R079",
@@ -55,8 +54,7 @@
    "R106"
   ],
   "rhone": [
-   "R004",
-   "R099"
+   "R004"
   ],
   "provence": [
    "R007"
@@ -69,6 +67,12 @@
   ],
   "corsica": [
    "R105"
+  ],
+  "chateauneuf": [
+   "R099"
+  ],
+  "sauternes": [
+   "R011"
   ]
  }
 }

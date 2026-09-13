@@ -1,0 +1,16 @@
+[
+ {
+  "id": "R052",
+  "name": "Yamanashi",
+  "lon": 138.73,
+  "lat": 35.65,
+  "expect": "yamanashi"
+ },
+ {
+  "id": "R090",
+  "name": "Yamagata",
+  "lon": 140.34,
+  "lat": 38.25,
+  "expect": "yamagata"
+ }
+]

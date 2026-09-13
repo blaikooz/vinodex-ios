@@ -1,0 +1,22 @@
+{
+ "byId": {
+  "R055": "swartland",
+  "R057": "paarl",
+  "R047": "stellenbosch",
+  "R056": "walkerbay"
+ },
+ "byStem": {
+  "swartland": [
+   "R055"
+  ],
+  "paarl": [
+   "R057"
+  ],
+  "stellenbosch": [
+   "R047"
+  ],
+  "walkerbay": [
+   "R056"
+  ]
+ }
+}

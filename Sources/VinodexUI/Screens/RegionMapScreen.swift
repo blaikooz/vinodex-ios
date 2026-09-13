@@ -615,6 +615,9 @@ final class RegionAtlas {
     /// arrive in art space, so they are divided down before lookup — reading
     /// the index at art coordinates was the obvious bug to write here.
     private let w: Int, h: Int
+    /// The second index plane, where a country ships one. Same dimensions and
+    /// same logical scale as `cells`; `0` means "no child here".
+    private let children: [UInt8]
     private let exportScaleI: Int
     private var details: [String: UIImage] = [:]
 
@@ -657,6 +660,31 @@ final class RegionAtlas {
         self.cells = bytes
         self.w = width
         self.h = height
+
+        // **The second plane, read the same way and never keyed.** Optional:
+        // only France ships one today. It is data exactly as plane 1 is, and
+        // the drop that introduced it nearly lost it to the chroma-key path —
+        // a keyed index2 looks like an ordinary mostly-transparent PNG while
+        // every child cell has been rewritten to transparency, and the hit
+        // test would quietly fall back to plane 1 for everything.
+        var kids = [UInt8](repeating: 0, count: width * height)
+        if !map.childrenByIndex.isEmpty,
+           let url = Self.url(key, "\(key)-index2", "png"),
+           let raster = UIImage(contentsOfFile: url.path),
+           let cg = raster.cgImage,
+           cg.width == width, cg.height == height {
+            kids.withUnsafeMutableBytes { buf in
+                guard let ctx = CGContext(
+                    data: buf.baseAddress, width: width, height: height,
+                    bitsPerComponent: 8, bytesPerRow: width,
+                    space: CGColorSpaceCreateDeviceGray(),
+                    bitmapInfo: CGImageAlphaInfo.none.rawValue
+                ) else { return }
+                ctx.interpolationQuality = .none
+                ctx.draw(cg, in: CGRect(x: 0, y: 0, width: width, height: height))
+            }
+        }
+        self.children = kids
         self.exportScaleI = max(1, Int((image.size.width / CGFloat(width)).rounded()))
         var slots: [UInt8: Int] = [:]
         for (i, region) in map.regions.enumerated() {
@@ -751,11 +779,36 @@ final class RegionAtlas {
     /// The region at a point in **base-art space**, or the nearest one
     /// inside the same country. Nil when the tap was outside the country.
     func region(atX point: CGPoint) -> String? {
-        // Art space to index space. The index is one cell per *logical*
-        // canvas unit while the art is exported at 5x, so a tap has to be
-        // divided down before it is looked up.
-        let cx = Int(point.x.rounded()) / exportScaleI
-        let cy = Int(point.y.rounded()) / exportScaleI
+        // **Floor, not round** — the manifest says so outright since the
+        // 13 Sep drop: *"the rasteriser fills cell i from [i, i+1). Rounding
+        // picks the nearest cell CENTRE and lands one cell over for anything
+        // past the halfway line; harmless on a large region, decisive on a
+        // small child."*
+        //
+        // This rounded the *art* coordinate before dividing it down, which is
+        // a milder version of the same fault: the trailing half-pixel of every
+        // five-pixel cell rounded up into its neighbour, so 10.2% of taps
+        // resolved one cell right or down. Invisible on a 464-cell Rhône and
+        // decisive on a 5-cell Sauternes, which is exactly the case the second
+        // index plane has just introduced.
+        //
+        // Floored in canvas space in one step rather than art-then-divide, so
+        // there is no intermediate to round at all.
+        let scale = CGFloat(exportScaleI)
+        let cx = Int((point.x / scale).rounded(.down))
+        let cy = Int((point.y / scale).rounded(.down))
+
+        // **The child wins where there is one.** Plane 2 is read first and
+        // exactly — no nearest-cell search, because a four-cell child with a
+        // catchment around it would swallow taps meant for the parent it sits
+        // inside. You get Sauternes by hitting Sauternes.
+        if cx >= 0, cy >= 0, cx < w, cy < h {
+            let kid = children[cy * w + cx]
+            if kid != 0, let child = map.childrenByIndex[Int(kid)] {
+                return child.stem
+            }
+        }
+
         guard let byte = nearestCell(x: cx, y: cy), let i = slot[byte] else { return nil }
         return map.regions[i].id
     }

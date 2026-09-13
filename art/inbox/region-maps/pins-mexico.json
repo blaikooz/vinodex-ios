@@ -1,0 +1,16 @@
+[
+ {
+  "id": "R098",
+  "name": "Valle de Guadalupe",
+  "lon": -116.6,
+  "lat": 32.09,
+  "expect": "guadalupe"
+ },
+ {
+  "id": "R139",
+  "name": "Parras Valley",
+  "lon": -102.18,
+  "lat": 25.44,
+  "expect": "parras"
+ }
+]

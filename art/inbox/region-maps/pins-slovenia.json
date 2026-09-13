@@ -1,0 +1,16 @@
+[
+ {
+  "id": "R129",
+  "name": "Goriška Brda",
+  "lon": 13.53,
+  "lat": 45.99,
+  "expect": "goriskabrda"
+ },
+ {
+  "id": "R130",
+  "name": "Vipava Valley",
+  "lon": 13.96,
+  "lat": 45.85,
+  "expect": "vipava"
+ }
+]

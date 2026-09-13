@@ -1,0 +1,14 @@
+{
+ "byId": {
+  "R160": "malokarpatska",
+  "R161": "slovensky-tokaj"
+ },
+ "byStem": {
+  "malokarpatska": [
+   "R160"
+  ],
+  "slovensky-tokaj": [
+   "R161"
+  ]
+ }
+}

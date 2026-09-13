@@ -1,0 +1,14 @@
+{
+ "byId": {
+  "R095": "valais",
+  "R136": "lavaux"
+ },
+ "byStem": {
+  "valais": [
+   "R095"
+  ],
+  "lavaux": [
+   "R136"
+  ]
+ }
+}

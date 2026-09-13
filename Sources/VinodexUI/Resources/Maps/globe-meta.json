@@ -15,7 +15,7 @@
    "stem": "armenia",
    "fill": "#2B4182",
    "label": "ARMENIA",
-   "mapped": 0,
+   "mapped": 2,
    "key": "armenia"
   },
   {
@@ -24,7 +24,7 @@
    "stem": "australia",
    "fill": "#C9A492",
    "label": "AUSTRALIA",
-   "mapped": 0,
+   "mapped": 3,
    "key": "australia"
   },
   {
@@ -42,7 +42,7 @@
    "stem": "brazil",
    "fill": "#7FBC62",
    "label": "BRAZIL",
-   "mapped": 0,
+   "mapped": 2,
    "key": "brazil"
   },
   {
@@ -51,7 +51,7 @@
    "stem": "bulgaria",
    "fill": "#7C4327",
    "label": "BULGARIA",
-   "mapped": 0,
+   "mapped": 2,
    "key": "bulgaria"
   },
   {
@@ -60,7 +60,7 @@
    "stem": "canada",
    "fill": "#BCA362",
    "label": "CANADA",
-   "mapped": 0,
+   "mapped": 2,
    "key": "canada"
   },
   {
@@ -87,7 +87,7 @@
    "stem": "croatia",
    "fill": "#A43D4F",
    "label": "CROATIA",
-   "mapped": 0,
+   "mapped": 3,
    "key": "croatia"
   },
   {
@@ -96,7 +96,7 @@
    "stem": "cyprus",
    "fill": "#82822B",
    "label": "CYPRUS",
-   "mapped": 0,
+   "mapped": 2,
    "key": "cyprus"
   },
   {
@@ -105,7 +105,7 @@
    "stem": "czechia",
    "fill": "#822B57",
    "label": "CZECHIA",
-   "mapped": 0,
+   "mapped": 2,
    "key": "czechia"
   },
   {
@@ -123,7 +123,7 @@
    "stem": "georgia",
    "fill": "#A4873D",
    "label": "GEORGIA",
-   "mapped": 0,
+   "mapped": 3,
    "key": "georgia"
   },
   {
@@ -132,7 +132,7 @@
    "stem": "germany",
    "fill": "#833DA4",
    "label": "GERMANY",
-   "mapped": 0,
+   "mapped": 5,
    "key": "germany"
   },
   {
@@ -141,7 +141,7 @@
    "stem": "greece",
    "fill": "#92C9B8",
    "label": "GREECE",
-   "mapped": 0,
+   "mapped": 5,
    "key": "greece"
   },
   {
@@ -150,7 +150,7 @@
    "stem": "hungary",
    "fill": "#5EA43D",
    "label": "HUNGARY",
-   "mapped": 0,
+   "mapped": 3,
    "key": "hungary"
   },
   {
@@ -159,7 +159,7 @@
    "stem": "india",
    "fill": "#7C2736",
    "label": "INDIA",
-   "mapped": 0,
+   "mapped": 2,
    "key": "india"
   },
   {
@@ -168,7 +168,7 @@
    "stem": "israel",
    "fill": "#C072AC",
    "label": "ISRAEL",
-   "mapped": 0,
+   "mapped": 2,
    "key": "israel"
   },
   {
@@ -186,7 +186,7 @@
    "stem": "japan",
    "fill": "#BC6272",
    "label": "JAPAN",
-   "mapped": 0,
+   "mapped": 2,
    "key": "japan"
   },
   {
@@ -195,7 +195,7 @@
    "stem": "lebanon",
    "fill": "#62BCA1",
    "label": "LEBANON",
-   "mapped": 0,
+   "mapped": 2,
    "key": "lebanon"
   },
   {
@@ -204,7 +204,7 @@
    "stem": "mexico",
    "fill": "#A3C992",
    "label": "MEXICO",
-   "mapped": 0,
+   "mapped": 2,
    "key": "mexico"
   },
   {
@@ -213,7 +213,7 @@
    "stem": "moldova",
    "fill": "#822B6C",
    "label": "MOLDOVA",
-   "mapped": 0,
+   "mapped": 2,
    "key": "moldova"
   },
   {
@@ -222,7 +222,7 @@
    "stem": "morocco",
    "fill": "#C9BA92",
    "label": "MOROCCO",
-   "mapped": 0,
+   "mapped": 2,
    "key": "morocco"
   },
   {
@@ -249,7 +249,7 @@
    "stem": "serbia",
    "fill": "#8672C0",
    "label": "SERBIA",
-   "mapped": 0,
+   "mapped": 2,
    "key": "serbia"
   },
   {
@@ -258,7 +258,7 @@
    "stem": "romania",
    "fill": "#B792C9",
    "label": "ROMANIA",
-   "mapped": 0,
+   "mapped": 3,
    "key": "romania"
   },
   {
@@ -267,7 +267,7 @@
    "stem": "slovakia",
    "fill": "#2B8282",
    "label": "SLOVAKIA",
-   "mapped": 0,
+   "mapped": 2,
    "key": "slovakia"
   },
   {
@@ -276,7 +276,7 @@
    "stem": "slovenia",
    "fill": "#3D78A4",
    "label": "SLOVENIA",
-   "mapped": 0,
+   "mapped": 2,
    "key": "slovenia"
   },
   {
@@ -285,8 +285,8 @@
    "stem": "south-africa",
    "fill": "#D7C2B7",
    "label": "SOUTH AFRICA",
-   "mapped": 0,
-   "key": "south-africa"
+   "mapped": 4,
+   "key": "southafrica"
   },
   {
    "idx": 34,
@@ -303,7 +303,7 @@
    "stem": "switzerland",
    "fill": "#6296BC",
    "label": "SWITZERLAND",
-   "mapped": 0,
+   "mapped": 2,
    "key": "switzerland"
   },
   {
@@ -312,7 +312,7 @@
    "stem": "turkey",
    "fill": "#2B2B82",
    "label": "TURKEY",
-   "mapped": 0,
+   "mapped": 2,
    "key": "turkey"
   },
   {
@@ -321,7 +321,7 @@
    "stem": "ukraine",
    "fill": "#ACC072",
    "label": "UKRAINE",
-   "mapped": 0,
+   "mapped": 2,
    "key": "ukraine"
   },
   {
@@ -330,8 +330,8 @@
    "stem": "united-kingdom",
    "fill": "#3DA485",
    "label": "UNITED KINGDOM",
-   "mapped": 0,
-   "key": "united-kingdom"
+   "mapped": 2,
+   "key": "unitedkingdom"
   },
   {
    "idx": 39,
@@ -339,7 +339,7 @@
    "stem": "usa",
    "fill": "#27587C",
    "label": "UNITED STATES",
-   "mapped": 0,
+   "mapped": 4,
    "key": "usa"
   },
   {
@@ -348,7 +348,7 @@
    "stem": "uruguay",
    "fill": "#C9929C",
    "label": "URUGUAY",
-   "mapped": 0,
+   "mapped": 2,
    "key": "uruguay"
   }
  ],
@@ -789,6 +789,771 @@
     "shangrila",
     "shandong",
     "hebei"
+   ]
+  },
+  "greece": {
+   "bounds": [
+    19.1097,
+    34.2982,
+    28.7566,
+    42.2673
+   ],
+   "size": [
+    300,
+    248
+   ],
+   "stems": [
+    "santorini",
+    "peloponnese",
+    "naoussa",
+    "amyndeon",
+    "attica"
+   ],
+   "fills": [
+    "#8BC072",
+    "#8B43AD",
+    "#65AD43",
+    "#662B82",
+    "#47822B"
+   ],
+   "labels": [
+    "santorini",
+    "peloponnese",
+    "naoussa",
+    "amyndeon",
+    "attica"
+   ]
+  },
+  "georgia": {
+   "bounds": [
+    39.5834,
+    40.6416,
+    47.0973,
+    43.9784
+   ],
+   "size": [
+    300,
+    134
+   ],
+   "stems": [
+    "kakheti",
+    "kartli",
+    "imereti"
+   ],
+   "fills": [
+    "#8B43AD",
+    "#65AD43",
+    "#662B82"
+   ],
+   "labels": [
+    "kakheti",
+    "kartli",
+    "imereti"
+   ]
+  },
+  "croatia": {
+   "bounds": [
+    13.1471,
+    42.0619,
+    19.7622,
+    46.9014
+   ],
+   "size": [
+    300,
+    220
+   ],
+   "stems": [
+    "dalmatia",
+    "istria",
+    "slavonia"
+   ],
+   "fills": [
+    "#8BC072",
+    "#2B8268",
+    "#A1BBCE"
+   ],
+   "labels": [
+    "dalmatia",
+    "istria",
+    "slavonia"
+   ]
+  },
+  "hungary": {
+   "bounds": [
+    15.687,
+    45.3343,
+    23.2846,
+    48.9762
+   ],
+   "size": [
+    300,
+    144
+   ],
+   "stems": [
+    "tokaj",
+    "villany",
+    "eger"
+   ],
+   "fills": [
+    "#65AD43",
+    "#2B8268",
+    "#8B43AD"
+   ],
+   "labels": [
+    "tokaj",
+    "villany",
+    "eger"
+   ]
+  },
+  "romania": {
+   "bounds": [
+    19.6754,
+    43.0826,
+    30.267,
+    48.8422
+   ],
+   "size": [
+    300,
+    164
+   ],
+   "stems": [
+    "dealumare",
+    "tarnave",
+    "cotnari"
+   ],
+   "fills": [
+    "#8BC072",
+    "#2B8268",
+    "#A1BBCE"
+   ],
+   "labels": [
+    "dealumare",
+    "tarnave",
+    "cotnari"
+   ]
+  },
+  "bulgaria": {
+   "bounds": [
+    21.9695,
+    40.8626,
+    28.979,
+    44.6039
+   ],
+   "size": [
+    300,
+    161
+   ],
+   "stems": [
+    "thracian",
+    "struma"
+   ],
+   "fills": [
+    "#8B43AD",
+    "#65AD43"
+   ],
+   "labels": [
+    "thracian",
+    "struma"
+   ]
+  },
+  "moldova": {
+   "bounds": [
+    26.4071,
+    45.251,
+    30.3424,
+    48.6969
+   ],
+   "size": [
+    300,
+    263
+   ],
+   "stems": [
+    "codru",
+    "stefanvoda"
+   ],
+   "fills": [
+    "#8BC072",
+    "#2B8268"
+   ],
+   "labels": [
+    "codru",
+    "stefanvoda"
+   ]
+  },
+  "ukraine": {
+   "bounds": [
+    21.0512,
+    44.132,
+    41.2411,
+    53.4506
+   ],
+   "size": [
+    300,
+    139
+   ],
+   "stems": [
+    "bessarabia",
+    "zakarpattia"
+   ],
+   "fills": [
+    "#8BC072",
+    "#2B8268"
+   ],
+   "labels": [
+    "bessarabia",
+    "zakarpattia"
+   ]
+  },
+  "serbia": {
+   "bounds": [
+    18.5966,
+    41.9866,
+    23.2329,
+    46.4223
+   ],
+   "size": [
+    300,
+    287
+   ],
+   "stems": [
+    "fruskagora",
+    "sumadija"
+   ],
+   "fills": [
+    "#8BC072",
+    "#2B8268"
+   ],
+   "labels": [
+    "fruskagora",
+    "sumadija"
+   ]
+  },
+  "slovakia": {
+   "bounds": [
+    16.5028,
+    47.4083,
+    22.8813,
+    49.9435
+   ],
+   "size": [
+    300,
+    120
+   ],
+   "stems": [
+    "malokarpatska",
+    "slovensky-tokaj"
+   ],
+   "fills": [
+    "#8BC072",
+    "#2B8268"
+   ],
+   "labels": [
+    "malokarpatska",
+    "slovensky-tokaj"
+   ]
+  },
+  "slovenia": {
+   "bounds": [
+    13.1763,
+    45.2346,
+    16.7043,
+    47.053
+   ],
+   "size": [
+    300,
+    155
+   ],
+   "stems": [
+    "goriskabrda",
+    "vipava"
+   ],
+   "fills": [
+    "#8B43AD",
+    "#65AD43"
+   ],
+   "labels": [
+    "goriskabrda",
+    "vipava"
+   ]
+  },
+  "israel": {
+   "bounds": [
+    34.0133,
+    29.2547,
+    36.1231,
+    33.6417
+   ],
+   "size": [
+    145,
+    300
+   ],
+   "stems": [
+    "judeanhills",
+    "uppergalilee"
+   ],
+   "fills": [
+    "#8BC072",
+    "#2B8268"
+   ],
+   "labels": [
+    "judeanhills",
+    "uppergalilee"
+   ]
+  },
+  "lebanon": {
+   "bounds": [
+    35.0017,
+    32.9577,
+    36.702,
+    34.7855
+   ],
+   "size": [
+    279,
+    300
+   ],
+   "stems": [
+    "bekaa",
+    "batroun"
+   ],
+   "fills": [
+    "#8B43AD",
+    "#65AD43"
+   ],
+   "labels": [
+    "bekaa",
+    "batroun"
+   ]
+  },
+  "cyprus": {
+   "bounds": [
+    32.1621,
+    34.5154,
+    34.2088,
+    35.309
+   ],
+   "size": [
+    300,
+    117
+   ],
+   "stems": [
+    "commandaria",
+    "pitsilia"
+   ],
+   "fills": [
+    "#8B43AD",
+    "#65AD43"
+   ],
+   "labels": [
+    "commandaria",
+    "pitsilia"
+   ]
+  },
+  "turkey": {
+   "bounds": [
+    24.5146,
+    34.6712,
+    45.9556,
+    43.2474
+   ],
+   "size": [
+    300,
+    121
+   ],
+   "stems": [
+    "cappadocia",
+    "elazig"
+   ],
+   "fills": [
+    "#8BC072",
+    "#2B8268"
+   ],
+   "labels": [
+    "cappadocia",
+    "elazig"
+   ]
+  },
+  "armenia": {
+   "bounds": [
+    43.2463,
+    38.6737,
+    46.7926,
+    41.4804
+   ],
+   "size": [
+    300,
+    238
+   ],
+   "stems": [
+    "vayotsdzor",
+    "aragatsotn"
+   ],
+   "fills": [
+    "#8BC072",
+    "#2B8268"
+   ],
+   "labels": [
+    "vayotsdzor",
+    "aragatsotn"
+   ]
+  },
+  "switzerland": {
+   "bounds": [
+    5.6841,
+    45.55,
+    10.7373,
+    48.0719
+   ],
+   "size": [
+    300,
+    150
+   ],
+   "stems": [
+    "valais",
+    "lavaux"
+   ],
+   "fills": [
+    "#8B43AD",
+    "#65AD43"
+   ],
+   "labels": [
+    "valais",
+    "lavaux"
+   ]
+  },
+  "unitedkingdom": {
+   "bounds": [
+    -1.0966,
+    50.586,
+    1.5923,
+    51.6317
+   ],
+   "size": [
+    300,
+    117
+   ],
+   "stems": [
+    "sussex",
+    "kent"
+   ],
+   "fills": [
+    "#8B43AD",
+    "#65AD43"
+   ],
+   "labels": [
+    "sussex",
+    "kent"
+   ]
+  },
+  "japan": {
+   "bounds": [
+    137.9311,
+    34.9195,
+    140.8557,
+    39.3526
+   ],
+   "size": [
+    198,
+    300
+   ],
+   "stems": [
+    "yamanashi",
+    "yamagata"
+   ],
+   "fills": [
+    "#8BC072",
+    "#2B8268"
+   ],
+   "labels": [
+    "yamanashi",
+    "yamagata"
+   ]
+  },
+  "india": {
+   "bounds": [
+    66.3903,
+    4.9924,
+    99.1154,
+    37.2485
+   ],
+   "size": [
+    300,
+    296
+   ],
+   "stems": [
+    "nashik",
+    "nandihills"
+   ],
+   "fills": [
+    "#8B43AD",
+    "#65AD43"
+   ],
+   "labels": [
+    "nashik",
+    "nandihills"
+   ]
+  },
+  "canada": {
+   "bounds": [
+    -146.3089,
+    36.3657,
+    -47.3133,
+    88.4199
+   ],
+   "size": [
+    300,
+    158
+   ],
+   "stems": [
+    "niagara",
+    "okanagan"
+   ],
+   "fills": [
+    "#8BC072",
+    "#2B8268"
+   ],
+   "labels": [
+    "niagara",
+    "okanagan"
+   ]
+  },
+  "mexico": {
+   "bounds": [
+    -120.2689,
+    12.6462,
+    -84.8005,
+    34.6129
+   ],
+   "size": [
+    300,
+    186
+   ],
+   "stems": [
+    "guadalupe",
+    "parras"
+   ],
+   "fills": [
+    "#8BC072",
+    "#2B8268"
+   ],
+   "labels": [
+    "guadalupe",
+    "parras"
+   ]
+  },
+  "uruguay": {
+   "bounds": [
+    -58.7591,
+    -35.2931,
+    -52.7911,
+    -29.7772
+   ],
+   "size": [
+    300,
+    277
+   ],
+   "stems": [
+    "canelones",
+    "maldonado"
+   ],
+   "fills": [
+    "#8B43AD",
+    "#65AD43"
+   ],
+   "labels": [
+    "canelones",
+    "maldonado"
+   ]
+  },
+  "morocco": {
+   "bounds": [
+    -17.9726,
+    20.4611,
+    -0.0731,
+    36.8854
+   ],
+   "size": [
+    300,
+    275
+   ],
+   "stems": [
+    "guerrouane",
+    "zenata"
+   ],
+   "fills": [
+    "#8B43AD",
+    "#65AD43"
+   ],
+   "labels": [
+    "guerrouane",
+    "zenata"
+   ]
+  },
+  "australia": {
+   "bounds": [
+    110.4768,
+    -46.084,
+    156.0733,
+    -6.7975
+   ],
+   "size": [
+    300,
+    259
+   ],
+   "stems": [
+    "barossa",
+    "margaretriver",
+    "huntervalley"
+   ],
+   "fills": [
+    "#65AD43",
+    "#8B43AD",
+    "#662B82"
+   ],
+   "labels": [
+    "barossa",
+    "margaretriver",
+    "huntervalley"
+   ]
+  },
+  "usa": {
+   "bounds": [
+    -127.9072,
+    29.359,
+    -68.6848,
+    52.1651
+   ],
+   "size": [
+    300,
+    116
+   ],
+   "stems": [
+    "california",
+    "oregon",
+    "washington",
+    "newyork"
+   ],
+   "fills": [
+    "#8B43AD",
+    "#65AD43",
+    "#662B82",
+    "#2B8268"
+   ],
+   "labels": [
+    "california",
+    "oregon",
+    "washington",
+    "newyork"
+   ]
+  },
+  "brazil": {
+   "bounds": [
+    -58.0864,
+    -34.217,
+    -49.225,
+    -26.5973
+   ],
+   "size": [
+    300,
+    258
+   ],
+   "stems": [
+    "serragaucha",
+    "campanha"
+   ],
+   "fills": [
+    "#8B43AD",
+    "#65AD43"
+   ],
+   "labels": [
+    "serragaucha",
+    "campanha"
+   ]
+  },
+  "czechia": {
+   "bounds": [
+    11.6705,
+    48.1522,
+    19.2431,
+    51.4457
+   ],
+   "size": [
+    300,
+    131
+   ],
+   "stems": [
+    "mikulovska",
+    "znojemska"
+   ],
+   "fills": [
+    "#8B43AD",
+    "#65AD43"
+   ],
+   "labels": [
+    "mikulovska",
+    "znojemska"
+   ]
+  },
+  "germany": {
+   "bounds": [
+    5.3023,
+    46.7209,
+    15.5722,
+    55.6155
+   ],
+   "size": [
+    300,
+    260
+   ],
+   "stems": [
+    "mosel",
+    "rheingau",
+    "franconia",
+    "rheinhessen",
+    "pfalz"
+   ],
+   "fills": [
+    "#8B43AD",
+    "#662B82",
+    "#AFCEA1",
+    "#65AD43",
+    "#AD6643"
+   ],
+   "labels": [
+    "mosel",
+    "rheingau",
+    "franconia",
+    "rheinhessen",
+    "pfalz"
+   ]
+  },
+  "southafrica": {
+   "bounds": [
+    15.4,
+    -36.1,
+    26.6,
+    -29.4
+   ],
+   "size": [
+    300,
+    180
+   ],
+   "stems": [
+    "swartland",
+    "paarl",
+    "stellenbosch",
+    "walkerbay"
+   ],
+   "fills": [
+    "#662B82",
+    "#65AD43",
+    "#8B43AD",
+    "#47822B"
+   ],
+   "labels": [
+    "swartland",
+    "paarl",
+    "stellenbosch",
+    "walkerbay"
    ]
   }
  },

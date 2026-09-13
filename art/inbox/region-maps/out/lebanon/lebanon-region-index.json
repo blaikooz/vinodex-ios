@@ -1,0 +1,14 @@
+{
+ "byId": {
+  "R127": "bekaa",
+  "R128": "batroun"
+ },
+ "byStem": {
+  "bekaa": [
+   "R127"
+  ],
+  "batroun": [
+   "R128"
+  ]
+ }
+}

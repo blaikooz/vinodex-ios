@@ -1,0 +1,307 @@
+{
+ "generator": "region_map.py",
+ "country": "germany",
+ "projection": {
+  "kind": "equirectangular",
+  "x_factor": 0.62530543,
+  "origin": [
+   -4.726585,
+   -63.451513
+  ],
+  "scale": 20.27145,
+  "note": "canvas_x = (lon*x_factor - origin[0])*scale + 2 ; canvas_y = (-lat - origin[1])*scale + 2",
+  "cell_note": "Those are CONTINUOUS canvas coordinates. The cell containing a point is floor(x), floor(y) — the rasteriser fills cell i from [i, i+1). Rounding picks the nearest cell CENTRE and lands one cell over for anything past the halfway line; harmless on a large region, decisive on a small child."
+ },
+ "base": {
+  "canvas": [
+   460,
+   502
+  ],
+  "export_scale": 5,
+  "unassigned": "#CEC6BA",
+  "outline": "#1A1420",
+  "key": "#EE03E1",
+  "layers": {
+   "interactive": "germany-regions.png",
+   "backdrop": "germany-backdrop.png",
+   "index": "germany-index.png"
+  },
+  "index_legend": {
+   "0": "outside the country (sea, neighbour, coastline ink)",
+   "255": "inside the country, unassigned ground",
+   "1..N": "a region — see regions[].id"
+  },
+  "index_note": "one byte per LOGICAL cell, canvas-sized, NOT export_scale. Hit-test against this, not against pixel colour.",
+  "subject_rect": [
+   0.3717,
+   0.3406,
+   0.2565,
+   0.3187
+  ],
+  "subject_rect_note": "x,y,w,h as fractions of the canvas. Scale the two layers together so this rect fills the intended width; the backdrop bleeds off the screen edges."
+ },
+ "backdrop": {
+  "margin_px": 170,
+  "sea": "#38506B",
+  "foreign": "#8C8778",
+  "foreign_outline": "#1A1420",
+  "shallow": "#4E6985",
+  "shelf_px": 3,
+  "countries": [
+   "Akrotiri Sovereign Base Area",
+   "Aland",
+   "Albania",
+   "Algeria",
+   "Andorra",
+   "Armenia",
+   "Austria",
+   "Azerbaijan",
+   "Bahrain",
+   "Belarus",
+   "Belgium",
+   "Benin",
+   "Bir Tawil",
+   "Bosnia and Herzegovina",
+   "Bulgaria",
+   "Burkina Faso",
+   "Cabo Verde",
+   "Cameroon",
+   "Central African Republic",
+   "Chad",
+   "Croatia",
+   "Cyprus",
+   "Cyprus No Mans Area",
+   "Czechia",
+   "Denmark",
+   "Dhekelia Sovereign Base Area",
+   "Djibouti",
+   "Egypt",
+   "Eritrea",
+   "Estonia",
+   "Ethiopia",
+   "Faroe Islands",
+   "Finland",
+   "France",
+   "Gambia",
+   "Georgia",
+   "Ghana",
+   "Gibraltar",
+   "Greece",
+   "Greenland",
+   "Guernsey",
+   "Guinea",
+   "Guinea-Bissau",
+   "Hungary",
+   "Iceland",
+   "Iran",
+   "Iraq",
+   "Ireland",
+   "Isle of Man",
+   "Israel",
+   "Italy",
+   "Ivory Coast",
+   "Jersey",
+   "Jordan",
+   "Kazakhstan",
+   "Kosovo",
+   "Kuwait",
+   "Latvia",
+   "Lebanon",
+   "Libya",
+   "Liechtenstein",
+   "Lithuania",
+   "Luxembourg",
+   "Mali",
+   "Malta",
+   "Mauritania",
+   "Moldova",
+   "Monaco",
+   "Montenegro",
+   "Morocco",
+   "Netherlands",
+   "Niger",
+   "Nigeria",
+   "North Macedonia",
+   "Northern Cyprus",
+   "Norway",
+   "Oman",
+   "Palestine",
+   "Poland",
+   "Portugal",
+   "Qatar",
+   "Republic of Serbia",
+   "Romania",
+   "Russia",
+   "San Marino",
+   "Saudi Arabia",
+   "Senegal",
+   "Slovakia",
+   "Slovenia",
+   "Somalia",
+   "Somaliland",
+   "South Sudan",
+   "Spain",
+   "Sudan",
+   "Sweden",
+   "Switzerland",
+   "Syria",
+   "Togo",
+   "Tunisia",
+   "Turkey",
+   "Turkmenistan",
+   "Ukraine",
+   "United Arab Emirates",
+   "United Kingdom",
+   "Vatican",
+   "Western Sahara",
+   "Yemen"
+  ]
+ },
+ "marker_clearance": {
+  "12": [],
+  "10": [],
+  "8": []
+ },
+ "splits": [
+  {
+   "keeps": "rheinhessen",
+   "gains": "mosel",
+   "value": 7.4,
+   "axis": "lon"
+  },
+  {
+   "keeps": "rheinhessen",
+   "gains": "pfalz",
+   "value": 49.65,
+   "axis": "lat"
+  }
+ ],
+ "regions": {
+  "mosel": {
+   "id": 1,
+   "button": [
+    0.4,
+    0.5438
+   ],
+   "clearance_px": 7.3,
+   "area_px": 324,
+   "fill": "#8B43AD",
+   "units": [],
+   "detail": {
+    "canvas": [
+     36,
+     66
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     175,
+     260,
+     191,
+     291
+    ]
+   }
+  },
+  "rheingau": {
+   "id": 2,
+   "button": [
+    0.463,
+    0.5179
+   ],
+   "clearance_px": 10.3,
+   "area_px": 744,
+   "fill": "#662B82",
+   "units": [
+    "Hessen"
+   ],
+   "detail": {
+    "canvas": [
+     33,
+     48
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     197,
+     241,
+     227,
+     286
+    ]
+   }
+  },
+  "franconia": {
+   "id": 3,
+   "button": [
+    0.537,
+    0.5976
+   ],
+   "clearance_px": 18.0,
+   "area_px": 2379,
+   "fill": "#AFCEA1",
+   "units": [
+    "Bayern"
+   ],
+   "detail": {
+    "canvas": [
+     63,
+     70
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     212,
+     263,
+     272,
+     330
+    ]
+   }
+  },
+  "rheinhessen": {
+   "id": 4,
+   "button": [
+    0.4239,
+    0.5219
+   ],
+   "clearance_px": 4.0,
+   "area_px": 216,
+   "fill": "#65AD43",
+   "units": [
+    "Rheinland-Pfalz"
+   ],
+   "detail": {
+    "canvas": [
+     28,
+     56
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     192,
+     255,
+     204,
+     281
+    ]
+   }
+  },
+  "pfalz": {
+   "id": 5,
+   "button": [
+    0.4304,
+    0.5737
+   ],
+   "clearance_px": 6.7,
+   "area_px": 171,
+   "fill": "#AD6643",
+   "units": [],
+   "detail": {
+    "canvas": [
+     58,
+     58
+    ],
+    "upscale": 4,
+    "source_bbox": [
+     192,
+     282,
+     205,
+     295
+    ]
+   }
+  }
+ }
+}

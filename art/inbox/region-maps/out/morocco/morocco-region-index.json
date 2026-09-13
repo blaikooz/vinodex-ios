@@ -1,0 +1,14 @@
+{
+ "byId": {
+  "R097": "guerrouane",
+  "R138": "zenata"
+ },
+ "byStem": {
+  "guerrouane": [
+   "R097"
+  ],
+  "zenata": [
+   "R138"
+  ]
+ }
+}

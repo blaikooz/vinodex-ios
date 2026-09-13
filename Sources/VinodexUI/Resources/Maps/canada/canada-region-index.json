@@ -1,0 +1,14 @@
+{
+ "byId": {
+  "R091": "niagara",
+  "R092": "okanagan"
+ },
+ "byStem": {
+  "niagara": [
+   "R091"
+  ],
+  "okanagan": [
+   "R092"
+  ]
+ }
+}

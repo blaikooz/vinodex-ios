@@ -60,6 +60,12 @@ def main():
     # region there. Keying it would rewrite those bytes into transparency and
     # destroy the hit test. Copied verbatim, like the backdrop.
     index = f"{name}-index.png"
+    # ...and the second plane, where a country has one. Same reasoning, and it
+    # matters more: index2 is mostly zeros, so keying it would look like a
+    # perfectly ordinary mostly-transparent PNG while every child cell it
+    # carries had been rewritten to transparency. The hit test would fall back
+    # to plane 1 for everything and nothing would report a problem.
+    index2 = f"{name}-index2.png"
 
     # A stale detail map from a previous render would sit in the bundle
     # forever otherwise — the region set is config and can change.
@@ -78,9 +84,10 @@ def main():
             continue
         if not f.endswith(".png"):
             continue
-        if f in (backdrop, index):
+        if f in (backdrop, index, index2):
             shutil.copy(os.path.join(src, f), os.path.join(dest, f))
-            why = "index raster — data" if f == index else "opaque backdrop"
+            why = ("index raster — data" if f == index else
+                   "second index plane — data" if f == index2 else "opaque backdrop")
             print(f"  {f:28}   verbatim ({why})")
             continue
         keyed, total = key_out(os.path.join(src, f), os.path.join(dest, f), key)

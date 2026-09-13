@@ -1,0 +1,37 @@
+[
+ {
+  "id": "R038",
+  "name": "Mosel",
+  "lon": 6.94,
+  "lat": 49.92,
+  "expect": "mosel"
+ },
+ {
+  "id": "R039",
+  "name": "Rheingau",
+  "lon": 8.02,
+  "lat": 50.0,
+  "expect": "rheingau"
+ },
+ {
+  "id": "R077",
+  "name": "Franconia",
+  "lon": 9.93,
+  "lat": 49.79,
+  "expect": "franconia"
+ },
+ {
+  "id": "R078",
+  "name": "Rheinhessen",
+  "lon": 8.34,
+  "lat": 49.87,
+  "expect": "rheinhessen"
+ },
+ {
+  "id": "R143",
+  "name": "Pfalz",
+  "lon": 8.19,
+  "lat": 49.41,
+  "expect": "pfalz"
+ }
+]

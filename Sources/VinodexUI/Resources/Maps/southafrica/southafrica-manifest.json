@@ -1,0 +1,286 @@
+{
+ "generator": "region_map.py",
+ "country": "southafrica",
+ "projection": {
+  "kind": "equirectangular",
+  "x_factor": 0.87748667,
+  "origin": [
+   13.45295,
+   28.333295
+  ],
+  "scale": 28.070772,
+  "note": "canvas_x = (lon*x_factor - origin[0])*scale + 2 ; canvas_y = (-lat - origin[1])*scale + 2",
+  "cell_note": "Those are CONTINUOUS canvas coordinates. The cell containing a point is floor(x), floor(y) — the rasteriser fills cell i from [i, i+1). Rounding picks the nearest cell CENTRE and lands one cell over for anything past the halfway line; harmless on a large region, decisive on a small child."
+ },
+ "base": {
+  "canvas": [
+   282,
+   246
+  ],
+  "export_scale": 5,
+  "unassigned": "#CEC6BA",
+  "outline": "#1A1420",
+  "key": "#EE03E1",
+  "layers": {
+   "interactive": "southafrica-regions.png",
+   "backdrop": "southafrica-backdrop.png",
+   "index": "southafrica-index.png"
+  },
+  "index_legend": {
+   "0": "outside the country (sea, neighbour, coastline ink)",
+   "255": "inside the country, unassigned ground",
+   "1..N": "a region — see regions[].id"
+  },
+  "index_note": "one byte per LOGICAL cell, canvas-sized, NOT export_scale. Hit-test against this, not against pixel colour.",
+  "subject_rect": [
+   0.2163,
+   0.248,
+   0.5674,
+   0.5041
+  ],
+  "subject_rect_note": "x,y,w,h as fractions of the canvas. Scale the two layers together so this rect fills the intended width; the backdrop bleeds off the screen edges."
+ },
+ "backdrop": {
+  "margin_px": 60,
+  "sea": "#38506B",
+  "foreign": "#8C8778",
+  "foreign_outline": "#1A1420",
+  "shallow": "#4E6985",
+  "shelf_px": 3,
+  "countries": [
+   "Akrotiri Sovereign Base Area",
+   "Aland",
+   "Albania",
+   "Algeria",
+   "Andorra",
+   "Armenia",
+   "Austria",
+   "Azerbaijan",
+   "Bahrain",
+   "Belarus",
+   "Belgium",
+   "Benin",
+   "Bir Tawil",
+   "Bosnia and Herzegovina",
+   "Bulgaria",
+   "Burkina Faso",
+   "Cabo Verde",
+   "Cameroon",
+   "Central African Republic",
+   "Chad",
+   "Croatia",
+   "Cyprus",
+   "Cyprus No Mans Area",
+   "Czechia",
+   "Denmark",
+   "Dhekelia Sovereign Base Area",
+   "Djibouti",
+   "Egypt",
+   "Eritrea",
+   "Estonia",
+   "Ethiopia",
+   "Faroe Islands",
+   "Finland",
+   "France",
+   "Gambia",
+   "Georgia",
+   "Germany",
+   "Ghana",
+   "Gibraltar",
+   "Greece",
+   "Greenland",
+   "Guernsey",
+   "Guinea",
+   "Guinea-Bissau",
+   "Hungary",
+   "Iceland",
+   "Iran",
+   "Iraq",
+   "Ireland",
+   "Isle of Man",
+   "Israel",
+   "Italy",
+   "Ivory Coast",
+   "Jersey",
+   "Jordan",
+   "Kazakhstan",
+   "Kosovo",
+   "Kuwait",
+   "Latvia",
+   "Lebanon",
+   "Libya",
+   "Liechtenstein",
+   "Lithuania",
+   "Luxembourg",
+   "Mali",
+   "Malta",
+   "Mauritania",
+   "Moldova",
+   "Monaco",
+   "Montenegro",
+   "Morocco",
+   "Netherlands",
+   "Niger",
+   "Nigeria",
+   "North Macedonia",
+   "Northern Cyprus",
+   "Norway",
+   "Oman",
+   "Palestine",
+   "Poland",
+   "Portugal",
+   "Qatar",
+   "Republic of Serbia",
+   "Romania",
+   "Russia",
+   "San Marino",
+   "Saudi Arabia",
+   "Senegal",
+   "Slovakia",
+   "Slovenia",
+   "Somalia",
+   "Somaliland",
+   "South Sudan",
+   "Spain",
+   "Sudan",
+   "Sweden",
+   "Switzerland",
+   "Syria",
+   "Togo",
+   "Tunisia",
+   "Turkey",
+   "Turkmenistan",
+   "Ukraine",
+   "United Arab Emirates",
+   "United Kingdom",
+   "Vatican",
+   "Western Sahara",
+   "Yemen"
+  ]
+ },
+ "marker_clearance": {
+  "12": [],
+  "10": [],
+  "8": []
+ },
+ "splits": [
+  {
+   "keeps": "swartland",
+   "gains": "paarl",
+   "value": -33.6,
+   "axis": "lat"
+  },
+  {
+   "keeps": "paarl",
+   "gains": "stellenbosch",
+   "value": -33.85,
+   "axis": "lat"
+  },
+  {
+   "keeps": "stellenbosch",
+   "gains": "walkerbay",
+   "value": -34.2,
+   "axis": "lat"
+  }
+ ],
+ "regions": {
+  "swartland": {
+   "id": 1,
+   "button": [
+    0.578,
+    0.5285
+   ],
+   "clearance_px": 20.0,
+   "area_px": 6308,
+   "fill": "#662B82",
+   "units": [
+    "Western Cape"
+   ],
+   "detail": {
+    "canvas": [
+     161,
+     90
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     62,
+     62,
+     220,
+     149
+    ]
+   }
+  },
+  "paarl": {
+   "id": 2,
+   "button": [
+    0.2908,
+    0.622
+   ],
+   "clearance_px": 4.0,
+   "area_px": 890,
+   "fill": "#65AD43",
+   "units": [],
+   "detail": {
+    "canvas": [
+     133,
+     9
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     76,
+     150,
+     206,
+     156
+    ]
+   }
+  },
+  "stellenbosch": {
+   "id": 3,
+   "button": [
+    0.3227,
+    0.6545
+   ],
+   "clearance_px": 5.0,
+   "area_px": 1140,
+   "fill": "#8B43AD",
+   "units": [],
+   "detail": {
+    "canvas": [
+     135,
+     12
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     75,
+     157,
+     207,
+     166
+    ]
+   }
+  },
+  "walkerbay": {
+   "id": 4,
+   "button": [
+    0.4043,
+    0.7114
+   ],
+   "clearance_px": 8.1,
+   "area_px": 698,
+   "fill": "#47822B",
+   "units": [],
+   "detail": {
+    "canvas": [
+     92,
+     20
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     76,
+     167,
+     165,
+     184
+    ]
+   }
+  }
+ }
+}

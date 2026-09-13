@@ -1,0 +1,14 @@
+{
+ "byId": {
+  "R131": "sussex",
+  "R132": "kent"
+ },
+ "byStem": {
+  "sussex": [
+   "R131"
+  ],
+  "kent": [
+   "R132"
+  ]
+ }
+}

@@ -1,0 +1,16 @@
+[
+ {
+  "id": "R095",
+  "name": "Valais",
+  "lon": 7.36,
+  "lat": 46.23,
+  "expect": "valais"
+ },
+ {
+  "id": "R136",
+  "name": "Lavaux",
+  "lon": 6.75,
+  "lat": 46.49,
+  "expect": "lavaux"
+ }
+]

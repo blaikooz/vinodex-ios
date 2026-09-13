@@ -1,0 +1,299 @@
+{
+ "generator": "region_map.py",
+ "country": "greece",
+ "projection": {
+  "kind": "equirectangular",
+  "x_factor": 0.78398415,
+  "origin": [
+   9.978454,
+   -47.158868
+  ],
+  "scale": 31.432635,
+  "note": "canvas_x = (lon*x_factor - origin[0])*scale + 2 ; canvas_y = (-lat - origin[1])*scale + 2",
+  "cell_note": "Those are CONTINUOUS canvas coordinates. The cell containing a point is floor(x), floor(y) — the rasteriser fills cell i from [i, i+1). Rounding picks the nearest cell CENTRE and lands one cell over for anything past the halfway line; harmless on a large region, decisive on a small child."
+ },
+ "base": {
+  "canvas": [
+   556,
+   562
+  ],
+  "export_scale": 5,
+  "unassigned": "#CEC6BA",
+  "outline": "#1A1420",
+  "key": "#EE03E1",
+  "layers": {
+   "interactive": "greece-regions.png",
+   "backdrop": "greece-backdrop.png",
+   "index": "greece-index.png"
+  },
+  "index_legend": {
+   "0": "outside the country (sea, neighbour, coastline ink)",
+   "255": "inside the country, unassigned ground",
+   "1..N": "a region — see regions[].id"
+  },
+  "index_note": "one byte per LOGICAL cell, canvas-sized, NOT export_scale. Hit-test against this, not against pixel colour.",
+  "subject_rect": [
+   0.3076,
+   0.3043,
+   0.3849,
+   0.3915
+  ],
+  "subject_rect_note": "x,y,w,h as fractions of the canvas. Scale the two layers together so this rect fills the intended width; the backdrop bleeds off the screen edges."
+ },
+ "backdrop": {
+  "margin_px": 170,
+  "sea": "#38506B",
+  "foreign": "#8C8778",
+  "foreign_outline": "#1A1420",
+  "shallow": "#4E6985",
+  "shelf_px": 3,
+  "countries": [
+   "Akrotiri Sovereign Base Area",
+   "Aland",
+   "Albania",
+   "Algeria",
+   "Andorra",
+   "Armenia",
+   "Austria",
+   "Azerbaijan",
+   "Bahrain",
+   "Belarus",
+   "Belgium",
+   "Benin",
+   "Bir Tawil",
+   "Bosnia and Herzegovina",
+   "Bulgaria",
+   "Burkina Faso",
+   "Cabo Verde",
+   "Cameroon",
+   "Central African Republic",
+   "Chad",
+   "Croatia",
+   "Cyprus",
+   "Cyprus No Mans Area",
+   "Czechia",
+   "Denmark",
+   "Dhekelia Sovereign Base Area",
+   "Djibouti",
+   "Egypt",
+   "Eritrea",
+   "Estonia",
+   "Ethiopia",
+   "Faroe Islands",
+   "Finland",
+   "France",
+   "Gambia",
+   "Georgia",
+   "Germany",
+   "Ghana",
+   "Gibraltar",
+   "Greenland",
+   "Guernsey",
+   "Guinea",
+   "Guinea-Bissau",
+   "Hungary",
+   "Iceland",
+   "Iran",
+   "Iraq",
+   "Ireland",
+   "Isle of Man",
+   "Israel",
+   "Italy",
+   "Ivory Coast",
+   "Jersey",
+   "Jordan",
+   "Kazakhstan",
+   "Kosovo",
+   "Kuwait",
+   "Latvia",
+   "Lebanon",
+   "Libya",
+   "Liechtenstein",
+   "Lithuania",
+   "Luxembourg",
+   "Mali",
+   "Malta",
+   "Mauritania",
+   "Moldova",
+   "Monaco",
+   "Montenegro",
+   "Morocco",
+   "Netherlands",
+   "Niger",
+   "Nigeria",
+   "North Macedonia",
+   "Northern Cyprus",
+   "Norway",
+   "Oman",
+   "Palestine",
+   "Poland",
+   "Portugal",
+   "Qatar",
+   "Republic of Serbia",
+   "Romania",
+   "Russia",
+   "San Marino",
+   "Saudi Arabia",
+   "Senegal",
+   "Slovakia",
+   "Slovenia",
+   "Somalia",
+   "Somaliland",
+   "South Sudan",
+   "Spain",
+   "Sudan",
+   "Sweden",
+   "Switzerland",
+   "Syria",
+   "Togo",
+   "Tunisia",
+   "Turkey",
+   "Turkmenistan",
+   "Ukraine",
+   "United Arab Emirates",
+   "United Kingdom",
+   "Vatican",
+   "Western Sahara",
+   "Yemen"
+  ]
+ },
+ "marker_clearance": {
+  "12": [],
+  "10": [],
+  "8": []
+ },
+ "splits": [],
+ "regions": {
+  "santorini": {
+   "id": 1,
+   "button": [
+    0.6763,
+    0.6174
+   ],
+   "clearance_px": 4.5,
+   "area_px": 733,
+   "fill": "#8BC072",
+   "units": [
+    "Notio Aigaio"
+   ],
+   "detail": {
+    "canvas": [
+     101,
+     87
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     286,
+     289,
+     384,
+     373
+    ]
+   }
+  },
+  "peloponnese": {
+   "id": 2,
+   "button": [
+    0.4209,
+    0.532
+   ],
+   "clearance_px": 15.5,
+   "area_px": 2362,
+   "fill": "#8B43AD",
+   "units": [
+    "Peloponnisos",
+    "Dytiki Ellada"
+   ],
+   "detail": {
+    "canvas": [
+     69,
+     90
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     199,
+     253,
+     265,
+     340
+    ]
+   }
+  },
+  "naoussa": {
+   "id": 3,
+   "button": [
+    0.4694,
+    0.3505
+   ],
+   "clearance_px": 13.2,
+   "area_px": 1743,
+   "fill": "#65AD43",
+   "units": [
+    "Kentriki Makedonia"
+   ],
+   "detail": {
+    "canvas": [
+     62,
+     49
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     223,
+     183,
+     282,
+     229
+    ]
+   }
+  },
+  "amyndeon": {
+   "id": 4,
+   "button": [
+    0.3885,
+    0.3879
+   ],
+   "clearance_px": 13.3,
+   "area_px": 851,
+   "fill": "#662B82",
+   "units": [
+    "Dytiki Makedonia"
+   ],
+   "detail": {
+    "canvas": [
+     72,
+     76
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     199,
+     197,
+     233,
+     233
+    ]
+   }
+  },
+  "attica": {
+   "id": 5,
+   "button": [
+    0.4928,
+    0.5107
+   ],
+   "clearance_px": 5.8,
+   "area_px": 422,
+   "fill": "#47822B",
+   "units": [
+    "Attiki"
+   ],
+   "detail": {
+    "canvas": [
+     32,
+     82
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     252,
+     279,
+     281,
+     358
+    ]
+   }
+  }
+ }
+}

@@ -1,0 +1,16 @@
+[
+ {
+  "id": "R149",
+  "name": "Vayots Dzor",
+  "lon": 45.2,
+  "lat": 39.72,
+  "expect": "vayotsdzor"
+ },
+ {
+  "id": "R150",
+  "name": "Aragatsotn",
+  "lon": 44.2,
+  "lat": 40.35,
+  "expect": "aragatsotn"
+ }
+]

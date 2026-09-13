@@ -1,0 +1,18 @@
+{
+ "byId": {
+  "R094": "dealumare",
+  "R135": "tarnave",
+  "R154": "cotnari"
+ },
+ "byStem": {
+  "dealumare": [
+   "R094"
+  ],
+  "tarnave": [
+   "R135"
+  ],
+  "cotnari": [
+   "R154"
+  ]
+ }
+}

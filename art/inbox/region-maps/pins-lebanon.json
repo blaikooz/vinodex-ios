@@ -1,0 +1,16 @@
+[
+ {
+  "id": "R127",
+  "name": "Bekaa Valley",
+  "lon": 35.9,
+  "lat": 33.85,
+  "expect": "bekaa"
+ },
+ {
+  "id": "R128",
+  "name": "Batroun",
+  "lon": 35.66,
+  "lat": 34.25,
+  "expect": "batroun"
+ }
+]

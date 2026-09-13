@@ -56,6 +56,23 @@ CW, CH = man['base']['canvas']
 idx = np.array(Image.open(os.path.join(OUT, '%s-index.png' % NAME)))
 assert idx.shape == (CH, CW), 'manifest canvas disagrees with the index raster'
 
+# The second index plane, when the country has one. Read BEFORE the base plane,
+# which is the order the app uses: non-zero wins, otherwise fall back. Reading it
+# here is what proves containment end to end — R099 has to come back
+# `chateauneuf` from the shipped rasters, not from the geometry it was cut from.
+IDX2, KIDS = None, {}
+_p2 = os.path.join(OUT, '%s-index2.png' % NAME)
+if os.path.exists(_p2):
+    IDX2 = np.array(Image.open(_p2))
+    assert IDX2.shape == idx.shape, 'the two index planes disagree on the grid'
+    KIDS = {c['id']: n for n, c in (man.get('children') or {}).items()}
+    assert KIDS, '%s-index2.png exists but the manifest declares no children' % NAME
+    for n, c in man['children'].items():
+        inside = ((IDX2 == c['id']) & (idx == man['regions'][c['parent']]['id'])).sum()
+        assert inside == (IDX2 == c['id']).sum(), \
+            '%s leaks outside %s in the shipped rasters' % (n, c['parent'])
+    print('plane 2: %d children, all inside their parents' % len(KIDS))
+
 art = np.array(Image.open(os.path.join(OUT, '%s-regions.png' % NAME)).convert('RGB'))
 SC = man['base']['export_scale']
 art = art[::SC, ::SC]
@@ -95,13 +112,20 @@ def resolve(pins):
     fails, rows = [], []
     for p in pins:
         x, y = to_canvas(p['lon'], p['lat'])
-        xi, yi = int(round(x)), int(round(y))
+        # FLOOR, not round. The rasteriser fills cell i from canvas coordinate
+        # [i, i+1), so the cell containing a point is floor(coord); rounding
+        # picks the nearest cell CENTRE and lands one cell over for anything in
+        # the upper half of a cell. Invisible on a 464-cell region and decisive
+        # on a 5-cell child: two Sauternes probes 2.5 km apart disagreed, one
+        # answering `sauternes` and the other `bordeaux`, purely from this.
+        xi, yi = int(x), int(y)
         got, note = None, ''
         if not (0 <= xi < CW and 0 <= yi < CH):
             note = 'OFF-MAP'
         else:
+            kid = int(IDX2[yi, xi]) if IDX2 is not None else 0
             v = int(idx[yi, xi])
-            got = BY_ID.get(v)
+            got = KIDS.get(kid) or BY_ID.get(v)
             if got is None:
                 n, d = nearest(x, y)
                 kind = 'ON-STONE' if v == 255 else 'OUTSIDE'
@@ -144,6 +168,7 @@ else:
 
 if idx_rows is not None:
     by_id, by_stem = {}, {s: [] for s in man['regions']}
+    by_stem.update({s: [] for s in (man.get('children') or {})})
     for (i, n, g, note) in idx_rows:
         if not note and g in by_stem:
             by_id[i] = g

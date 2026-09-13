@@ -1,0 +1,30 @@
+[
+ {
+  "id": "R055",
+  "name": "Swartland",
+  "lon": 18.73,
+  "lat": -33.46,
+  "expect": "swartland"
+ },
+ {
+  "id": "R057",
+  "name": "Paarl & Franschhoek",
+  "lon": 18.96,
+  "lat": -33.73,
+  "expect": "paarl"
+ },
+ {
+  "id": "R047",
+  "name": "Stellenbosch",
+  "lon": 18.86,
+  "lat": -33.93,
+  "expect": "stellenbosch"
+ },
+ {
+  "id": "R056",
+  "name": "Walker Bay",
+  "lon": 19.28,
+  "lat": -34.4,
+  "expect": "walkerbay"
+ }
+]

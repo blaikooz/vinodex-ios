@@ -15,7 +15,7 @@
   "name": "Sauternes",
   "lon": -0.35,
   "lat": 44.53,
-  "expect": "bordeaux"
+  "expect": "sauternes"
  },
  {
   "name": "Pessac-Leognan",
@@ -105,7 +105,7 @@
   "name": "Chateauneuf-du-Pape",
   "lon": 4.83,
   "lat": 44.06,
-  "expect": "rhone"
+  "expect": "chateauneuf"
  },
  {
   "name": "Cote-Rotie",

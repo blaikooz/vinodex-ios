@@ -1,0 +1,18 @@
+{
+ "byId": {
+  "R049": "tokaj",
+  "R133": "villany",
+  "R141": "eger"
+ },
+ "byStem": {
+  "tokaj": [
+   "R049"
+  ],
+  "villany": [
+   "R133"
+  ],
+  "eger": [
+   "R141"
+  ]
+ }
+}

@@ -1,0 +1,14 @@
+{
+ "byId": {
+  "R162": "bessarabia",
+  "R163": "zakarpattia"
+ },
+ "byStem": {
+  "bessarabia": [
+   "R162"
+  ],
+  "zakarpattia": [
+   "R163"
+  ]
+ }
+}

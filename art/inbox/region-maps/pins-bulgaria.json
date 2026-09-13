@@ -1,0 +1,16 @@
+[
+ {
+  "id": "R125",
+  "name": "Thracian Lowlands",
+  "lon": 24.75,
+  "lat": 42.15,
+  "expect": "thracian"
+ },
+ {
+  "id": "R126",
+  "name": "Struma Valley",
+  "lon": 23.27,
+  "lat": 41.57,
+  "expect": "struma"
+ }
+]

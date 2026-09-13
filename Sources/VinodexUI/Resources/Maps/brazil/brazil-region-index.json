@@ -1,0 +1,14 @@
+{
+ "byId": {
+  "R117": "serragaucha",
+  "R118": "campanha"
+ },
+ "byStem": {
+  "serragaucha": [
+   "R117"
+  ],
+  "campanha": [
+   "R118"
+  ]
+ }
+}

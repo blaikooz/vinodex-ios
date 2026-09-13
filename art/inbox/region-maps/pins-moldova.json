@@ -1,0 +1,16 @@
+[
+ {
+  "id": "R147",
+  "name": "Codru",
+  "lon": 28.55,
+  "lat": 47.05,
+  "expect": "codru"
+ },
+ {
+  "id": "R148",
+  "name": "\\u0218tefan Vod\\u0103",
+  "lon": 29.85,
+  "lat": 46.53,
+  "expect": "stefanvoda"
+ }
+]

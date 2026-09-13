@@ -1,0 +1,16 @@
+[
+ {
+  "id": "R053",
+  "name": "Nashik",
+  "lon": 73.79,
+  "lat": 19.99,
+  "expect": "nashik"
+ },
+ {
+  "id": "R054",
+  "name": "Nandi Hills",
+  "lon": 77.68,
+  "lat": 13.37,
+  "expect": "nandihills"
+ }
+]

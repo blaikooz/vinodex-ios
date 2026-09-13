@@ -1,0 +1,14 @@
+{
+ "byId": {
+  "R158": "mikulovska",
+  "R159": "znojemska"
+ },
+ "byStem": {
+  "mikulovska": [
+   "R158"
+  ],
+  "znojemska": [
+   "R159"
+  ]
+ }
+}

@@ -1,0 +1,65 @@
+[
+ {
+  "id": "R013",
+  "name": "Napa Valley",
+  "lon": -122.35,
+  "lat": 38.5,
+  "expect": "california"
+ },
+ {
+  "id": "R015",
+  "name": "Willamette Valley",
+  "lon": -123.05,
+  "lat": 45.22,
+  "expect": "oregon"
+ },
+ {
+  "id": "R017",
+  "name": "Walla Walla",
+  "lon": -118.35,
+  "lat": 46.25,
+  "expect": "washington"
+ },
+ {
+  "id": "R019",
+  "name": "Finger Lakes",
+  "lon": -76.85,
+  "lat": 42.68,
+  "expect": "newyork"
+ },
+ {
+  "id": "R014",
+  "name": "Sonoma",
+  "lon": -122.86,
+  "lat": 38.48,
+  "expect": "california"
+ },
+ {
+  "id": "R016",
+  "name": "Paso Robles",
+  "lon": -120.69,
+  "lat": 35.63,
+  "expect": "california"
+ },
+ {
+  "id": "R018",
+  "name": "Santa Barbara",
+  "lon": -120.24,
+  "lat": 34.64,
+  "expect": "california"
+ },
+ {
+  "id": "R020",
+  "name": "Lodi",
+  "lon": -121.27,
+  "lat": 38.13,
+  "expect": "california"
+ },
+ {
+  "id": "R123",
+  "name": "San Benito",
+  "lon": -121.2,
+  "lat": 36.6,
+  "expect": "california"
+ }
+]

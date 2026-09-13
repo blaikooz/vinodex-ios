@@ -23,8 +23,8 @@
  {
   "id": "R004",
   "name": "Rhône Valley",
-  "lon": 4.808,
-  "lat": 44.138,
+  "lon": 4.856,
+  "lat": 45.07,
   "expect": "rhone"
  },
  {
@@ -74,7 +74,7 @@
   "name": "Sauternes",
   "lon": -0.319,
   "lat": 44.539,
-  "expect": "bordeaux"
+  "expect": "sauternes"
  },
  {
   "id": "R012",
@@ -95,7 +95,7 @@
   "name": "Châteauneuf-du-Pape",
   "lon": 4.832,
   "lat": 44.056,
-  "expect": "rhone"
+  "expect": "chateauneuf"
  },
  {
   "id": "R105",

@@ -1,0 +1,14 @@
+{
+ "byId": {
+  "R125": "thracian",
+  "R126": "struma"
+ },
+ "byStem": {
+  "thracian": [
+   "R125"
+  ],
+  "struma": [
+   "R126"
+  ]
+ }
+}

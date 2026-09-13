@@ -1,0 +1,18 @@
+{
+ "byId": {
+  "R041": "barossa",
+  "R042": "margaretriver",
+  "R080": "huntervalley"
+ },
+ "byStem": {
+  "barossa": [
+   "R041"
+  ],
+  "margaretriver": [
+   "R042"
+  ],
+  "huntervalley": [
+   "R080"
+  ]
+ }
+}
