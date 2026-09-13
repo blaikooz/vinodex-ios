@@ -156,4 +156,48 @@ struct GlobeRegionPickTests {
         #expect(usa.regionIDs(for: "california").count == 6)
         #expect(usa.regionIDs(for: "oregon").count == 1)
     }
+
+    /// **The property the state link rests on** (0.9.58).
+    ///
+    /// The globe offers a state page for a painted area when every entry
+    /// inside it agrees on one `details.state`. That is deliberately a rule
+    /// about the data rather than a check for "is this the USA map" — but it
+    /// is only *safe* because of two facts about the shipped catalog, and both
+    /// are the kind that change quietly.
+    ///
+    /// First: `details.state` is carried by nine regions and nothing else, all
+    /// of them American. A French region growing a `state` would start
+    /// offering a state page for a state that has no flag and no gate record.
+    /// Second: each painted US area's entries agree. If a future AVA straddled
+    /// a state line the rule would return nil and the area would fall back to
+    /// listing its contents, which is correct — but worth seeing happen here
+    /// rather than on a device.
+    @Test("only US regions carry a state, and each painted area agrees on one")
+    func stateIsAmericanAndUnanimous() throws {
+        let db = WineDatabase.shared
+        var withState: [String: String] = [:]
+        for entry in db.entries(in: .regions) {
+            guard case .region(let r) = entry, let state = r.details.state,
+                  !state.isEmpty else { continue }
+            withState[entry.id] = state
+        }
+        #expect(withState.count == 9, "regions carrying a state: \(withState.count)")
+        #expect(Set(withState.values) == ["California", "Oregon", "Washington", "New York"])
+
+        let usa = try map("usa")
+        for stem in usa.regions.map(\.id) {
+            let states = Set(usa.regionIDs(for: stem).compactMap { withState[$0] })
+            #expect(states.count == 1,
+                    "\(stem) spans \(states.sorted()), so it has no single state page")
+        }
+
+        // And every one of those four is a place the app can actually draw a
+        // page for: `countries.json` carries its blurb, and `StateScreen` now
+        // reads it. A state on a region with no gate record would be a link to
+        // a page with nothing on it.
+        for state in Set(withState.values) {
+            #expect(db.countryInfo(state) != nil,
+                    "\(state) has regions but no gate record in countries.json")
+        }
+    }
 }

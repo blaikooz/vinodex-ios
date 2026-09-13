@@ -60,6 +60,7 @@ public struct StateScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 hero.id(Anchor.hero)
+                infoSection
                 regionsSection.id(Anchor.regions)
             }
             .scrollTargetLayout()
@@ -82,6 +83,44 @@ public struct StateScreen: View {
                 .shadow(color: .black.opacity(0.45), radius: 6, y: 3)
         } actions: {
             DexSaveButton(id: bookmarkID, store: bookmarks)
+        }
+    }
+
+    /// **The state's own blurb** (0.9.58).
+    ///
+    /// It was authored in `shared/data/countries.ts` and generated into
+    /// `countries.json` all along — California, Oregon, Washington and New York
+    /// are four of that file's forty-three keys — and this screen never read
+    /// it. A state page was a flag and a list of regions, saying nothing about
+    /// the state, which was survivable while the only way here was a row on the
+    /// country page and is not now that the globe's USA map links its painted
+    /// states straight to it.
+    ///
+    /// Same construction as `CountryScreen.infoSection`, deliberately: the two
+    /// screens are the same shape, and `countryInfo` is keyed by name, so a
+    /// state resolves through it exactly as a country does.
+    @ViewBuilder
+    private var infoSection: some View {
+        if let info = db.countryInfo(state) {
+            DexSection("INFO", symbol: "book") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(info.description)
+                        .font(DexFont.mono(18))
+                        .foregroundStyle(lcd.bodyText)
+                        .lineSpacing(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    ReadAloudButton(text: info.description)
+                }
+                .padding(.leading, 14)
+                .padding(.trailing, 10)
+                .padding(.vertical, 10)
+                .background(alignment: .leading) {
+                    lcd.accent.frame(width: 4)
+                }
+                .background(lcd.accent.opacity(0.06))
+            }
         }
     }
 

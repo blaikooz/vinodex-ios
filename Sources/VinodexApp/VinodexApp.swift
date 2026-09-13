@@ -680,6 +680,13 @@ struct RootView: View {
         // a route so the BIOS clears; the cards themselves are raised in
         // `onAppear` beside the same boot skip.
         if name.hasPrefix("orientation") { return [] }
+        // `state:<name>` is the page the globe's painted US states now lead
+        // to. Spelled as the catalog does — "New York", not a directory key —
+        // because that is what `details.state` holds and what the page is
+        // keyed on.
+        if name.hasPrefix("state:") {
+            return [.state(name: String(name.dropFirst("state:".count)))]
+        }
         if name.hasPrefix("map:") {
             let parts = name.split(separator: ":")
             if parts.count >= 2 {
@@ -1112,7 +1119,11 @@ struct RootView: View {
                 // the region overlay opens its page, through the same gate
                 // every other entry link goes through.
                 onOpenEntry: { open($0) },
-                onOpenCountry: { push(.country(name: $0)) }
+                onOpenCountry: { push(.country(name: $0)) },
+                // A painted area that is a state goes to the state page, the
+                // same route the country page's STATES section and the
+                // Passport both already take.
+                onOpenState: { push(.state(name: $0)) }
             )
 
         case .bookmarks:

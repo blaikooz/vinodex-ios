@@ -102,6 +102,39 @@ struct RegionMapTests {
         #expect(try load("canada").subjectBounds.north > 80)
     }
 
+    /// **A painted area must be named after itself** (0.9.58).
+    ///
+    /// The stem is the geography the renderer drew; the display name is what
+    /// the screen says you tapped. When they are different *places* the map
+    /// lies about what is under your finger, and it had done so four times:
+    /// `oregon` displayed as WILLAMETTE VALLEY, `washington` as WALLA WALLA,
+    /// `newyork` as FINGER LAKES and `ningxia` as HELAN MOUNTAIN — in each
+    /// case an administrative unit wearing the name of the one appellation
+    /// the catalog happens to hold inside it. Tapping the whole of Oregon and
+    /// being told it is the Willamette Valley is wrong in the same way the
+    /// California tile reading NAPA VALLEY was.
+    ///
+    /// Folded rather than compared outright, because the display name is
+    /// allowed to be the *same* place spelled properly: `dao` is DÃO,
+    /// `southwest` is SOUTH WEST, `niederosterreich` keeps its umlaut. What is
+    /// not allowed is a name neither string contains.
+    @Test("no painted area is named after a different place")
+    func displayNamesNameTheArea() throws {
+        func fold(_ value: String) -> String {
+            value.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil)
+                .filter { $0.isLetter || $0.isNumber }
+        }
+        for country in RegionMap.mapped {
+            let map = try load(country)
+            for stem in map.regions.map(\.id) {
+                let shown = fold(map.displayName(stem))
+                let key = fold(stem)
+                #expect(shown.contains(key) || key.contains(shown),
+                        "\(country)/\(stem) displays as \"\(map.displayName(stem))\", a different place")
+            }
+        }
+    }
+
     /// The load-bearing property of the whole hit test: two regions sharing a
     /// fill would make one of them unreachable, silently, for every tap.
     /// **The contract the hit test rests on.** Ids are what resolve a tap;

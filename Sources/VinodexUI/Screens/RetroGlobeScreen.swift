@@ -126,6 +126,10 @@ public struct RetroGlobeScreen: View {
     /// Opens a country's own page, from the tile the globe raises when one is
     /// tapped.
     let onOpenCountry: ((String) -> Void)?
+    /// Opens a state's page, for a painted area that is a state rather than a
+    /// region — the USA map paints four. Nil leaves the area listing its
+    /// contents and nothing else, which is what it did before 0.9.58.
+    let onOpenState: ((String) -> Void)?
 
     public init(
         db: WineDatabase = .shared,
@@ -133,7 +137,8 @@ public struct RetroGlobeScreen: View {
         onWorldSearch: @escaping () -> Void,
         showsSearch: Bool = true,
         onOpenEntry: ((WineEntry) -> Void)? = nil,
-        onOpenCountry: ((String) -> Void)? = nil
+        onOpenCountry: ((String) -> Void)? = nil,
+        onOpenState: ((String) -> Void)? = nil
     ) {
         self.db = db
         _model = State(initialValue: GlobeModel(db: db))
@@ -142,6 +147,7 @@ public struct RetroGlobeScreen: View {
         self.showsSearch = showsSearch
         self.onOpenEntry = onOpenEntry
         self.onOpenCountry = onOpenCountry
+        self.onOpenState = onOpenState
     }
 
     public var body: some View {
@@ -572,7 +578,28 @@ public struct RetroGlobeScreen: View {
         // No page of its own. Everything inside it, in the catalog's order —
         // capped, because this floats over a globe the reader is looking at.
         return RegionContents(name: name, entries: Array(all.prefix(3)),
-                              isPlace: false, more: max(0, all.count - 3))
+                              isPlace: false, more: max(0, all.count - 3),
+                              statePage: Self.sharedState(of: all))
+    }
+
+    /// The one state every entry here belongs to, or nil.
+    ///
+    /// Unanimity rather than a majority: a painted area that straddles a state
+    /// line has no single state page to offer, and offering the more populous
+    /// one would send a tap somewhere it did not point. `details.state` is
+    /// carried by nine regions in the shipped catalog, all of them American,
+    /// so today this answers for the four painted US states and for nothing
+    /// else — which is the intent, expressed as a property of the data rather
+    /// than as a country check.
+    private static func sharedState(of entries: [WineEntry]) -> String? {
+        var found: String?
+        for entry in entries {
+            guard case .region(let r) = entry, let state = r.details.state,
+                  !state.isEmpty else { return nil }
+            if let found, found != state { return nil }
+            found = state
+        }
+        return found
     }
 
     /// A tap while the regions are up: name one, or leave the tier.
@@ -784,10 +811,15 @@ public struct RetroGlobeScreen: View {
                     .tracking(1)
                     .foregroundStyle(lcd.subtext)
             } else {
-                // Where the area has no page of its own, the tiles below are
-                // its contents rather than itself, and saying so is the
-                // difference between a list and a mislabel.
-                if !found.isPlace {
+                // **A state is a place, even without a catalog entry.** Where
+                // the area has its own page — Bordeaux, Veneto — the tile
+                // below is it. Where it does not but the catalog files every
+                // entry under one state, that state has a page of a different
+                // kind, and this row is the way to it. Only when neither holds
+                // is the area merely a container.
+                if let state = found.statePage, let open = onOpenState {
+                    statePageRow(state, open: open)
+                } else if !found.isPlace {
                     Text(found.more > 0
                          ? "INSIDE IT — \(entries.count) OF \(entries.count + found.more)"
                          : "INSIDE IT")
@@ -811,6 +843,35 @@ public struct RetroGlobeScreen: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
         .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(lcd.accent.opacity(0.5), lineWidth: 1))
+    }
+
+    /// The way to a state's own page, shown in place of the INSIDE IT caption
+    /// when the painted area is a state. It reads as the destination it is —
+    /// the same chevron row the country tile uses — rather than as a label,
+    /// because it is the one thing on this card that is not an entry.
+    private func statePageRow(_ state: String, open: @escaping (String) -> Void) -> some View {
+        Button {
+            Haptics.select()
+            open(state)
+        } label: {
+            HStack(spacing: 8) {
+                FlagSwatch(db: db, country: state, width: 26, height: 17)
+                Text("THE STATE")
+                    .font(DexFont.retro(10))
+                    .tracking(1)
+                    .foregroundStyle(lcd.text)
+                Spacer(minLength: 6)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(lcd.subtext)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(RoundedRectangle(cornerRadius: 5).fill(lcd.page.opacity(0.5)))
+            .overlay(RoundedRectangle(cornerRadius: 5)
+                .strokeBorder(lcd.accent.opacity(0.4), lineWidth: 1))
+        }
+        .buttonStyle(DexPressStyle(scale: 0.98))
     }
 
     /// **The readout, and nothing else** (0.9.56, maintainer order).
@@ -2534,6 +2595,16 @@ struct RegionContents: Equatable {
     let entries: [WineEntry]
     let isPlace: Bool
     var more: Int = 0
+    /// **The state page this area is, where it is one** (0.9.58, maintainer
+    /// order: "usa states should definitely have their states linked").
+    ///
+    /// Set when every entry inside the area agrees on a `details.state` — which
+    /// in the shipped catalog is exactly the nine US regions and nothing else,
+    /// so this reads as a US-only rule without being written as one. California
+    /// then leads to `StateScreen` for California, the same page the country
+    /// page's STATES section has always reached, rather than to whichever AVA
+    /// happened to be first.
+    var statePage: String? = nil
 }
 
 #endif
