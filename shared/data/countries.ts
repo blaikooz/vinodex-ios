@@ -477,7 +477,7 @@ export const COUNTRIES: CountryGateEntry[] = [
     details: {
       origin: 'USA',
       classification: 'STATE',
-      keyRegions: ['Finger Lakes'],
+      keyRegions: ['Finger Lakes', 'Long Island', 'Hudson River Region'],
       notableGrapes: ['Riesling', 'Cabernet Franc', 'Chardonnay']
     }
   },
@@ -552,7 +552,7 @@ export const COUNTRIES: CountryGateEntry[] = [
     details: {
       origin: 'USA',
       classification: 'STATE',
-      keyRegions: ['Willamette Valley'],
+      keyRegions: ['Willamette Valley', 'Rogue Valley', 'Umpqua Valley'],
       notableGrapes: ['Pinot Noir', 'Chardonnay', 'Pinot Gris']
     }
   },
@@ -702,7 +702,7 @@ export const COUNTRIES: CountryGateEntry[] = [
     details: {
       origin: 'USA',
       classification: 'STATE',
-      keyRegions: ['Walla Walla'],
+      keyRegions: ['Columbia Valley', 'Yakima Valley', 'Walla Walla'],
       notableGrapes: ['Cabernet Sauvignon', 'Merlot', 'Syrah']
     }
   },

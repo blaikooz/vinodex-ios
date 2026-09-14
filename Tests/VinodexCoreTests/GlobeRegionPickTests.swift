@@ -141,6 +141,48 @@ struct GlobeRegionPickTests {
         #expect(usa.primaryEntry(for: "california", names: []) == nil)
     }
 
+    /// **A state never answers as a country, and a country never as a state**
+    /// (0.9.58). `countries.json` was keyed by bare name and the state of
+    /// Georgia collided with the country of Georgia — the country won only
+    /// because states are written first in `countries.ts` and the later
+    /// assignment overwrote. One authored Georgia (US) region and a learner
+    /// tapping it would have read about qvevri. States now ship under a
+    /// `state:` prefix that nothing a country is called can equal.
+    ///
+    /// Pinned from both directions: the country's lookup must not find a
+    /// state (California is not a country, so `countryInfo` has nothing to
+    /// say about it), and the state's must not find a country.
+    @Test("states and countries live under keys that cannot collide")
+    func stateKeysDoNotCollide() {
+        let db = WineDatabase.shared
+        #expect(db.stateInfo("California") != nil)
+        #expect(db.countryInfo("California") == nil,
+                "a state answered through the country lookup — the prefix is missing")
+        #expect(db.stateInfo("France") == nil, "a country answered through the state lookup")
+        // Both Georgias ship — the generator's reachability is by name, so
+        // the country being reachable carries the state gate along with it.
+        // Which is exactly the collision: the two must now be different
+        // records, and the state's must not be the one about qvevri.
+        let country = db.countryInfo("Georgia")
+        let state = db.stateInfo("Georgia")
+        #expect(country != nil)
+        #expect(state != nil)
+        #expect(country?.description != state?.description,
+                "the state of Georgia is reading the country of Georgia's prose")
+    }
+
+    /// **Turkish dotless ı has no decomposition.** Sommbot raised it: "Elazığ"
+    /// carries U+0131, which is not `i` plus a mark, so a diacritic-insensitive
+    /// fold that only strips combining marks would leave it ≠ the display
+    /// name's plain `I`. If Foundation behaved that way, Turkey's only stem
+    /// would silently fall to a stand-in. One line settles it rather than a
+    /// paragraph of guessing about `String.folding`.
+    @Test("Elazığ folds to its own display name")
+    func dotlessIFolds() throws {
+        let turkey = try map("turkey")
+        #expect(turkey.primaryEntry(for: "elazig", names: [("R1", "Elazığ")])?.isOwnEntry == true)
+    }
+
     /// Which painted areas have no page of their own, named. Ten areas carry
     /// more than one catalog entry and most of them are still a place — the
     /// interesting set is the ones that are not, because those are the taps
@@ -154,7 +196,11 @@ struct GlobeRegionPickTests {
         // Six AVAs under one state. When state pages arrive this count moves
         // to the state and this test is where that shows up.
         #expect(usa.regionIDs(for: "california").count == 6)
-        #expect(usa.regionIDs(for: "oregon").count == 1)
+        // Three each since batch two: the Willamette, Rogue and Umpqua
+        // valleys pin to the same painted state.
+        #expect(usa.regionIDs(for: "oregon").count == 3)
+        #expect(usa.regionIDs(for: "washington").count == 3)
+        #expect(usa.regionIDs(for: "newyork").count == 3)
     }
 
     /// **The property the state link rests on** (0.9.58).
@@ -181,7 +227,10 @@ struct GlobeRegionPickTests {
                   !state.isEmpty else { continue }
             withState[entry.id] = state
         }
-        #expect(withState.count == 9, "regions carrying a state: \(withState.count)")
+        // 15 since 0.9.58 batch two: Columbia and Yakima under Washington,
+        // Rogue and Umpqua under Oregon, Long Island and the Hudson under
+        // New York — the six the state gates had been naming without having.
+        #expect(withState.count == 15, "regions carrying a state: \(withState.count)")
         #expect(Set(withState.values) == ["California", "Oregon", "Washington", "New York"])
 
         let usa = try map("usa")
@@ -196,7 +245,7 @@ struct GlobeRegionPickTests {
         // reads it. A state on a region with no gate record would be a link to
         // a page with nothing on it.
         for state in Set(withState.values) {
-            #expect(db.countryInfo(state) != nil,
+            #expect(db.stateInfo(state) != nil,
                     "\(state) has regions but no gate record in countries.json")
         }
     }

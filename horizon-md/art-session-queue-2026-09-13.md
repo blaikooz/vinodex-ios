@@ -1,5 +1,14 @@
 # To the art session — onboarding needs nothing from you
 
+> **Superseded on 14 Sep.** The queue below was one batch stale when written:
+> Greece and the other 29 countries were built overnight on 13 Sep, and the
+> 39 wine countries all have region maps. The drop record is
+> `art/inbox/region-maps/DROP-2026-09-13.md`. The live art queue is now
+> `horizon-md/art-session-prompt-islands-round2.md` (islands, seven stem
+> renames, the Rueda/Toro split, Hokkaido). The 25 dead painted areas listed
+> below are no longer dead: sommbot authored entries for all of them on
+> 14 Sep. The open rulings at the bottom still stand.
+
 Short note, because the honest answer to "can the art session take some of
 this" is **no, and you should not stop what you are doing.**
 

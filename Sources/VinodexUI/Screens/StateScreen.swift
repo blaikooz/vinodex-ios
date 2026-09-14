@@ -101,7 +101,7 @@ public struct StateScreen: View {
     /// state resolves through it exactly as a country does.
     @ViewBuilder
     private var infoSection: some View {
-        if let info = db.countryInfo(state) {
+        if let info = db.stateInfo(state) {
             DexSection("INFO", symbol: "book") {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(info.description)
