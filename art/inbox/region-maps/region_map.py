@@ -28,6 +28,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 from scipy import ndimage
 
+import geosrc
 from countries import COUNTRIES
 from palette import assign
 
@@ -239,12 +240,66 @@ H = FH + 2 * MARGIN
 canvas = np.full((H + 2, W + 2, 3), SEA, np.uint8)
 
 # --- exterior: neighbouring countries ---------------------------------------
-NB = [f for f in json.load(open(os.path.join(HERE, 'world.json')))['features']
-      if f['properties']['name'] != CFG['subject']]
+# Read the WHOLE world and keep what this canvas can actually see.
+#
+# This used to read `world.json`, and `world.json` is a 108-feature extract:
+# Europe, North Africa, the Middle East, plus Greenland, Russia and Kazakhstan —
+# whatever a Europe-centred bounding box caught at its edges when it was cut for
+# the France pilot. It contains no country in the Americas, and no Japan, China,
+# India, Australia or New Zealand.
+#
+# So every map outside Europe drew its neighbours as open sea. The USA rendered
+# as a silhouette floating in ocean with a dead-straight 49th parallel along the
+# top, because Canada was not in the file and the border is where the land stops.
+# Twelve of the thirty-nine were affected and it survived three drops, because
+# the European maps — the ones anyone looked at — were correct.
+#
+# The bug was never the filter; the filter always said "everything but the
+# subject". It was the input. `ne.json` is the same Natural Earth admin-0 the
+# globe uses, 258 countries, and it has been in the repo since the 13 Sep drop.
+#
+# The window keeps the raster cost where it was: a Europe map still rasterises
+# European neighbours and nothing else, and the manifest's `countries` list
+# becomes the real per-map neighbourhood rather than the same 108 names
+# thirty-nine times over.
+LON0, LON1 = MN[0] / K, (MN[0] + W / S) / K
+LAT0, LAT1 = -(MN[1] + H / S), -MN[1]
+
+# Natural Earth's admin-0 and admin-1 layers disagree on one name in the table:
+# admin-0 says 'Czechia', admin-1 says 'Czech Republic'. Without this the
+# subject fails to match, is drawn as foreign land beneath itself, and gets a
+# foreign outline around its own border.
+ADMIN0 = {'Czech Republic': 'Czechia'}
+SUBJ0 = ADMIN0.get(CFG['subject'], CFG['subject'])
+
+
+def _polys(feat):
+    g = feat['geometry']
+    return [g['coordinates']] if g['type'] == 'Polygon' else g['coordinates']
+
+
+def _visible(feat):
+    """Does any part of this country fall on the canvas?"""
+    for poly in _polys(feat):
+        a = np.asarray(poly[0], float)
+        if (a[:, 0].max() >= LON0 and a[:, 0].min() <= LON1
+                and a[:, 1].max() >= LAT0 and a[:, 1].min() <= LAT1):
+            return True
+    return False
+
+
+# Sorted by name, so a coverage TIE breaks the same way every run. Coverage
+# alone got this from 22,400 differing cells down to 650 when the source order
+# was shuffled; the remaining 650 were exact ties, which `>` hands to whoever
+# came first. Sorting makes the whole backdrop a function of the geometry.
+NB = sorted((f for f in geosrc.load('ne.json')['features']
+             if f['properties']['ADMIN'] != SUBJ0 and _visible(f)),
+            key=lambda f: f['properties']['ADMIN'])
 nb_rings = []
 for f in NB:
-    for poly in f['geometry']['coordinates']:
-        nb_rings.append([np.array(r, float) for r in poly])
+    for poly in _polys(f):
+        nb_rings.append([np.array(r, float)[:, :2] for r in poly])
+print('backdrop: %d neighbouring countries on this canvas' % len(NB))
 foreign = np.zeros((H + 2, W + 2), bool)
 foreign[1:-1, 1:-1] = despeckle(raster(project(nb_rings, K), MN, S, W, H))
 foreign = drop_islets(foreign)
@@ -265,12 +320,27 @@ canvas[foreign] = FOREIGN
 # territory, so every shared frontier came out as TWO parallel lines — one laid
 # down by each side. Label the countries instead and derive the borders from
 # where the labels change, which can only ever produce one line.
+#
+# Contested cells go to whichever country COVERS more of them, not to whichever
+# the source file happens to list first. Countries are rasterised one at a time,
+# so neighbours overlap by a cell along every shared border and first-come-wins
+# hands that cell to an accident of file order — which is why swapping the
+# backdrop's source moved foreign borders by a pixel on maps whose country set
+# had not changed at all. Same fix, and the same reason, as the region side:
+# Tavel landed in Provence for exactly this.
 lab = np.zeros((H + 2, W + 2), np.int16)
+best = np.zeros((H + 2, W + 2), np.int32)
 for i, f in enumerate(NB, start=1):
-    rr = [[np.array(r, float) for r in poly] for poly in f['geometry']['coordinates']]
-    m = np.zeros((H + 2, W + 2), bool)
-    m[1:-1, 1:-1] = raster(project(rr, K), MN, S, W, H)
-    lab[m & foreign & (lab == 0)] = i
+    # _polys, not f['geometry']['coordinates'] — ne.json carries Polygon as
+    # well as MultiPolygon, and iterating a Polygon's coordinates yields its
+    # RINGS where this wants its polygons. world.json happened to be all
+    # MultiPolygon, which is why this line survived.
+    rr = [[np.array(r, float)[:, :2] for r in poly] for poly in _polys(f)]
+    cov = np.zeros((H + 2, W + 2), np.int32)
+    cov[1:-1, 1:-1] = coverage(project(rr, K), MN, S, W, H)
+    win = (cov > best) & foreign
+    best[win] = cov[win]
+    lab[win] = i
 lab[subj] = -1                # the subject is its own label, never a neighbour's
 
 # The interactive layer paints the subject's coastline one pixel outside it, so
@@ -592,7 +662,7 @@ manifest = {
                'foreign': '#%02X%02X%02X' % FOREIGN,
                'foreign_outline': '#%02X%02X%02X' % FOREIGN_INK,
                'shallow': '#%02X%02X%02X' % SHALLOW, 'shelf_px': SHELF,
-               'countries': sorted(f['properties']['name'] for f in NB)},
+               'countries': sorted(f['properties']['ADMIN'] for f in NB)},
   'marker_clearance': {str(d): collisions(d) for d in (12, 10, 8)},
   # Absent entirely when a country has no children, so nothing about the other
   # eight changes and no consumer has to migrate.
