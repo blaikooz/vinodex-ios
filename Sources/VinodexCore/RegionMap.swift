@@ -483,6 +483,37 @@ public struct RegionMap: Sendable {
         return names.first.map { ($0.id, false) }
     }
 
+    /// **What the map says is inside a catalog region** (0.9.58, maintainer
+    /// order: "province pages should have the sub-appellations inside them").
+    ///
+    /// The map is the only thing that knows. British Columbia and Okanagan
+    /// Valley are two region entries with nothing in the catalog joining
+    /// them; what joins them is that the renderer painted one area and the
+    /// pins put both entries in it. So: find the painted area this entry
+    /// pins to, ask `primaryEntry` whether this entry IS that area, and if so
+    /// everything else pinned there is inside it — plus any second-plane
+    /// child whose parent is this area, which is how Sauternes sits inside
+    /// Bordeaux without sharing its byte.
+    ///
+    /// Nil when the entry is not an area's own entry: Okanagan's page does
+    /// not list its siblings, because they are not inside Okanagan. Takes the
+    /// names for the same reason `primaryEntry` does — testable without a
+    /// database.
+    public func regionsInside(
+        _ id: String, names: [(id: String, name: String)]
+    ) -> [String]? {
+        guard let stem = byStem.first(where: { $0.value.contains(id) })?.key else { return nil }
+        let here = byStem[stem] ?? []
+        let named = names.filter { here.contains($0.id) }
+        guard let pick = primaryEntry(for: stem, names: named),
+              pick.isOwnEntry, pick.id == id else { return nil }
+        var inside = here.filter { $0 != id }
+        for child in childrenByIndex.values where child.parent == stem {
+            inside += (byStem[child.stem] ?? []).filter { !inside.contains($0) }
+        }
+        return inside
+    }
+
     /// Builds from the two JSON files installed beside the art.
     ///
     /// Throwing rather than optional-returning: every failure here means the

@@ -171,6 +171,44 @@ struct GlobeRegionPickTests {
                 "the state of Georgia is reading the country of Georgia's prose")
     }
 
+    /// **The map is what says Okanagan is inside British Columbia** (0.9.58).
+    ///
+    /// Two region entries, nothing in the catalog joining them; one painted
+    /// area with both pinned to it. The province's page lists the rest of
+    /// the area; the appellation's page lists nothing, because its siblings
+    /// are not inside it. And Bordeaux reaches Sauternes across the second
+    /// plane, which is the case that would silently drop out of a by-stem
+    /// rule — Sauternes has its own stem and shares no byte with Bordeaux.
+    @Test("a province lists what the map put inside it; an appellation does not")
+    func regionsInside() throws {
+        let db = WineDatabase.shared
+        let peers = db.entries(in: .regions).map { (id: $0.id, name: $0.name) }
+
+        let canada = try map("canada")
+        let bc = canada.regionIDs(for: "britishcolumbia")
+        let province = try #require(peers.first { $0.name == "British Columbia" }?.id)
+        let okanagan = try #require(peers.first { $0.name == "Okanagan Valley" }?.id)
+        #expect(bc.contains(province) && bc.contains(okanagan), "the pins moved: \(bc)")
+        #expect(canada.regionsInside(province, names: peers) == [okanagan])
+        #expect(canada.regionsInside(okanagan, names: peers) == nil,
+                "Okanagan's page would list British Columbia as inside it")
+
+        let france = try map("france")
+        let bordeaux = try #require(peers.first { $0.name == "Bordeaux" }?.id)
+        let sauternes = try #require(peers.first { $0.name == "Sauternes" }?.id)
+        let inside = try #require(france.regionsInside(bordeaux, names: peers))
+        #expect(inside.contains(sauternes), "the second plane's child did not reach its parent's page")
+        #expect(!inside.contains(bordeaux))
+
+        // Galicia holds four, none of them Galicia.
+        let spain = try map("spain")
+        let galicia = try #require(peers.first { $0.name == "Galicia" }?.id)
+        #expect(spain.regionsInside(galicia, names: peers)?.count == 4)
+
+        // An entry on no map at all answers nothing rather than crashing.
+        #expect(spain.regionsInside("R000", names: peers) == nil)
+    }
+
     /// **Turkish dotless ı has no decomposition.** Sommbot raised it: "Elazığ"
     /// carries U+0131, which is not `i` plus a mark, so a diacritic-insensitive
     /// fold that only strips combining marks would leave it ≠ the display

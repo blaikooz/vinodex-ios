@@ -566,6 +566,27 @@ final class RegionAtlas {
         return built
     }
 
+    /// **The map alone, without its pictures** (0.9.58). A region's entry
+    /// page asks what the map put inside it, and that is two JSON files —
+    /// loading the atlas for it would decode six million pixels to answer a
+    /// question about a dictionary. Cached separately, so a page that asks
+    /// does not warm the atlas cache with an image nobody is drawing.
+    private static var maps: [String: RegionMap] = [:]
+
+    static func map(for country: String) -> RegionMap? {
+        guard let key = RegionMap.key(forCountry: country) else { return nil }
+        if let hit = maps[key] { return hit }
+        if let atlas = cache[key] { maps[key] = atlas.map; return atlas.map }
+        guard let manifestURL = url(key, "\(key)-manifest", "json"),
+              let indexURL = url(key, "\(key)-region-index", "json"),
+              let manifest = try? Data(contentsOf: manifestURL),
+              let index = try? Data(contentsOf: indexURL),
+              let map = try? RegionMap(manifest: manifest, index: index)
+        else { return nil }
+        maps[key] = map
+        return map
+    }
+
     /// The resource-directory name — `france`, `italy`.
     let key: String
 
