@@ -183,7 +183,17 @@ NEWZEALAND = {
 # the dense files reached nothing.
 OFF_ANY_MAP: dict = {}
 
+# Israel's dense pins are hand-authored in pins-israel.json; this table exists
+# for the one region that needs a stem the art has not cut yet. Katzrin is the
+# Golan's seat. `il-districts.json` carries no Golan admin-1 unit -- the plateau
+# is inside HaZafon in that layer -- so `golan` needs a geometry split in
+# countries.py (the Beaujolais 45.62N pattern) before this pin can land.
+ISRAEL = {
+    "R215": (35.690, 32.990, "Katzrin (HaZafon)",                  "golan"),
+}
+
 TABLES = {
+    "israel": ISRAEL,
     "france": FRANCE, "italy": ITALY, "spain": SPAIN, "portugal": PORTUGAL,
     "argentina": ARGENTINA, "chile": CHILE, "newzealand": NEWZEALAND,
 }

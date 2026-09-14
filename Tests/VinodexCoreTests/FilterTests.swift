@@ -103,11 +103,12 @@ struct FilterTests {
             asia.map(\.name) == // Judean Hills and Upper Galilee joined with Israel (sommbot's batch).
             // Ningxia joined in 0.9.58: the painted province, with Helan
             // Mountain now filed inside it rather than standing in for it.
-            // Hokkaido the same day, on the island order.
-            ["Batroun", "Bekaa Valley", "Cappadocia", "Elazığ", "Hebei",
-             "Helan Mountain", "Hokkaido", "Judean Hills", "Nandi Hills", "Nashik",
-             "Ningxia", "Shandong", "Shangri-La", "Upper Galilee", "Yamagata",
-             "Yamanashi"],
+            // Hokkaido the same day, on the island order; the Golan Heights
+            // in batch three, under Israel by ruling.
+            ["Batroun", "Bekaa Valley", "Cappadocia", "Elazığ", "Golan Heights",
+             "Hebei", "Helan Mountain", "Hokkaido", "Judean Hills", "Nandi Hills",
+             "Nashik", "Ningxia", "Shandong", "Shangri-La", "Upper Galilee",
+             "Yamagata", "Yamanashi"],
             "got \(asia.map(\.name))"
         )
 

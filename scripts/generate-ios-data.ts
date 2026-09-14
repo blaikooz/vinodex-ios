@@ -1111,6 +1111,20 @@ const GRAPE_CLUSTERS: Record<string, string> = {
   'Boğazkere': 'cone-small',
   'Narince': 'cone-large',
   'Emir': 'cone-small',
+  // 2026-09-14 (sommbot): G223–G225, the Cretan trio, from Stavrakakis &
+  // Stavrakaki, *The Cretan Grapes* — the island's ampelographic monograph,
+  // as quoted on douloufakis.wine. VIVC 13063 / 6829 / 6446 carry no bunch
+  // descriptors, and Wine Grapes describes none of the three bunches.
+  // Vidiano: bunch conical or cylindrical, medium to large, medium to long,
+  // fairly dense; berries medium, ellipsoid, green-yellow. Liatiko: conical
+  // or cylindrical, medium, medium to long, medium density; berries small to
+  // medium, globose, red to red-violet (a GRAPE_BERRY_HUES candidate, logged
+  // in data-review/FINDINGS.md, not applied here). Kotsifali: medium, conical
+  // or cylindrico-conical, dense; berries small to medium, reddish-black
+  // under heavy bloom.
+  'Vidiano': 'longcone-small',
+  'Liatiko': 'longcone-small',
+  'Kotsifali': 'pinecone-small',
 };
 
 /// Berry color exceptions (0.9.48, sommbot A3), keyed like GRAPE_CLUSTERS
