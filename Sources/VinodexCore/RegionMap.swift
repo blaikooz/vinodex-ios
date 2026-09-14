@@ -208,7 +208,6 @@ public struct RegionMap: Sendable {
         "azores": "AZORES",
         "bairrada": "BAIRRADA",
         "baleares": "BALEARES",
-        "barossa": "BAROSSA VALLEY",
         "basilicata": "BASILICATA",
         "basque": "BASQUE",
         "batroun": "BATROUN",
@@ -219,6 +218,7 @@ public struct RegionMap: Sendable {
         "bierzo": "BIERZO",
         "biobio": "BÍO BÍO",
         "bordeaux": "BORDEAUX",
+        "britishcolumbia": "BRITISH COLUMBIA",
         "burgenland": "BURGENLAND",
         "burgundy": "BURGUNDY",
         "calabria": "CALABRIA",
@@ -259,7 +259,7 @@ public struct RegionMap: Sendable {
         "guerrouane": "GUERROUANE",
         "hawkesbay": "HAWKE'S BAY",
         "hebei": "HEBEI",
-        "huntervalley": "HUNTER VALLEY",
+        "hokkaido": "HOKKAIDO",
         "imereti": "IMERETI",
         "istria": "ISTRIA",
         "itata": "ITATA",
@@ -285,7 +285,6 @@ public struct RegionMap: Sendable {
         "malleco": "MALLECO",
         "malokarpatska": "MALOKARPATSKÁ",
         "marche": "MARCHE",
-        "margaretriver": "MARGARET RIVER",
         "marlborough": "MARLBOROUGH",
         "maule": "MAULE",
         "mendoza": "MENDOZA",
@@ -297,12 +296,12 @@ public struct RegionMap: Sendable {
         "nashik": "NASHIK",
         "navarra": "NAVARRA",
         "nelson": "NELSON",
+        "newsouthwales": "NEW SOUTH WALES",
         "newyork": "NEW YORK",
-        "niagara": "NIAGARA PENINSULA",
         "niederosterreich": "NIEDERÖSTERREICH",
         "ningxia": "NINGXIA",
         "northland": "NORTHLAND",
-        "okanagan": "OKANAGAN VALLEY",
+        "ontario": "ONTARIO",
         "oregon": "OREGON",
         "paarl": "PAARL & FRANSCHHOEK",
         "parras": "PARRAS VALLEY",
@@ -320,10 +319,9 @@ public struct RegionMap: Sendable {
         "riberadelduero": "RIBERA DEL DUERO",
         "rioja": "RIOJA",
         "roussillon": "ROUSSILLON",
-        "ruedatoro": "RUEDA & TORO",
+        "rueda": "RUEDA",
         "salta": "SALTA",
         "sanjuan": "SAN JUAN",
-        "santorini": "SANTORINI",
         "sardinia": "SARDINIA",
         "sauternes": "SAUTERNES",
         "savoie": "SAVOIE",
@@ -334,6 +332,8 @@ public struct RegionMap: Sendable {
         "sicily": "SICILY",
         "slavonia": "SLAVONIA",
         "slovensky-tokaj": "SLOVENSKÝ TOKAJ",
+        "southaegean": "SOUTH AEGEAN",
+        "southaustralia": "SOUTH AUSTRALIA",
         "southwest": "SOUTH WEST",
         "stefanvoda": "ȘTEFAN VODĂ",
         "stellenbosch": "STELLENBOSCH",
@@ -347,6 +347,7 @@ public struct RegionMap: Sendable {
         "tejo": "TEJO",
         "thracian": "THRACIAN LOWLANDS",
         "tokaj": "TOKAJ",
+        "toro": "TORO",
         "trentino": "TRENTINO",
         "tuscany": "TUSCANY",
         "umbria": "UMBRIA",
@@ -358,10 +359,11 @@ public struct RegionMap: Sendable {
         "villany": "VILLÁNY",
         "vinhoverde": "VINHO VERDE",
         "vipava": "VIPAVA VALLEY",
-        "waikatobop": "WAIKATO & BOP",
+        "waikatobayofplenty": "WAIKATO & BAY OF PLENTY",
         "wairarapa": "WAIRARAPA",
         "walkerbay": "WALKER BAY",
         "washington": "WASHINGTON",
+        "westernaustralia": "WESTERN AUSTRALIA",
         "yamagata": "YAMAGATA",
         "yamanashi": "YAMANASHI",
         "zakarpattia": "ZAKARPATTIA",
@@ -479,6 +481,37 @@ public struct RegionMap: Sendable {
             return (contains.id, true)
         }
         return names.first.map { ($0.id, false) }
+    }
+
+    /// **What the map says is inside a catalog region** (0.9.58, maintainer
+    /// order: "province pages should have the sub-appellations inside them").
+    ///
+    /// The map is the only thing that knows. British Columbia and Okanagan
+    /// Valley are two region entries with nothing in the catalog joining
+    /// them; what joins them is that the renderer painted one area and the
+    /// pins put both entries in it. So: find the painted area this entry
+    /// pins to, ask `primaryEntry` whether this entry IS that area, and if so
+    /// everything else pinned there is inside it — plus any second-plane
+    /// child whose parent is this area, which is how Sauternes sits inside
+    /// Bordeaux without sharing its byte.
+    ///
+    /// Nil when the entry is not an area's own entry: Okanagan's page does
+    /// not list its siblings, because they are not inside Okanagan. Takes the
+    /// names for the same reason `primaryEntry` does — testable without a
+    /// database.
+    public func regionsInside(
+        _ id: String, names: [(id: String, name: String)]
+    ) -> [String]? {
+        guard let stem = byStem.first(where: { $0.value.contains(id) })?.key else { return nil }
+        let here = byStem[stem] ?? []
+        let named = names.filter { here.contains($0.id) }
+        guard let pick = primaryEntry(for: stem, names: named),
+              pick.isOwnEntry, pick.id == id else { return nil }
+        var inside = here.filter { $0 != id }
+        for child in childrenByIndex.values where child.parent == stem {
+            inside += (byStem[child.stem] ?? []).filter { !inside.contains($0) }
+        }
+        return inside
     }
 
     /// Builds from the two JSON files installed beside the art.

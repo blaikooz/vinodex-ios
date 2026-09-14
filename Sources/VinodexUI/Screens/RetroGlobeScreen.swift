@@ -815,28 +815,33 @@ public struct RetroGlobeScreen: View {
                     .tracking(1)
                     .foregroundStyle(lcd.subtext)
             } else {
-                // **A state is a place, even without a catalog entry.** Its
-                // tile leads the card the way a region's own entry would, and
-                // the entries inside it follow. Only a container with no page
-                // of any kind gets the caption instead.
+                // **A state is a place, even without a catalog entry, and the
+                // card shows the place and nothing else** (maintainer, 14 Sep:
+                // "when a state is selected it should just show the state
+                // tile not any other regions"). What is inside it belongs on
+                // its page, which is where the tile leads. Only a container
+                // with no page of any kind lists its contents here, because
+                // there is nowhere else for them to be.
                 if let (state, open) = stateTile {
                     self.stateTile(state, open: open)
-                } else if !found.isPlace {
-                    Text(found.more > 0
-                         ? "INSIDE IT — \(entries.count) OF \(entries.count + found.more)"
-                         : "INSIDE IT")
-                        .font(DexFont.retro(10))
-                        .tracking(1)
-                        .foregroundStyle(lcd.subtext)
-                }
-                ForEach(entries) { entry in
-                    EntryTileView(
-                        entry: entry,
-                        palette: db.palette,
-                        locked: AccessStore.shared.isLocked(entry, in: db),
-                        tried: BookmarkStore.shared.contains(entry.id, on: .tried)
-                    ) {
-                        onOpenEntry?(entry)
+                } else {
+                    if !found.isPlace {
+                        Text(found.more > 0
+                             ? "INSIDE IT — \(entries.count) OF \(entries.count + found.more)"
+                             : "INSIDE IT")
+                            .font(DexFont.retro(10))
+                            .tracking(1)
+                            .foregroundStyle(lcd.subtext)
+                    }
+                    ForEach(entries) { entry in
+                        EntryTileView(
+                            entry: entry,
+                            palette: db.palette,
+                            locked: AccessStore.shared.isLocked(entry, in: db),
+                            tried: BookmarkStore.shared.contains(entry.id, on: .tried)
+                        ) {
+                            onOpenEntry?(entry)
+                        }
                     }
                 }
             }

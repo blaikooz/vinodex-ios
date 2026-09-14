@@ -153,6 +153,11 @@ public struct EntryDetailScreen: View {
                     // fourth step lights this panel now.
                     infoSection.id(Anchor.info).coachmarkTarget(.vinobotPanel)
                 }
+                // Straight after INFO, because for a province it is the
+                // page's substance: what British Columbia *is*, to this app,
+                // is the Okanagan. Empty on every page that is not an area's
+                // own entry, and it draws nothing then.
+                regionsInsideSection
                 // **VINOBOT'S TAKE (rework V3).** One line in his voice —
                 // authored for the flagships, composed from this entry's own
                 // fields for everyone else (`VinoTake`, gated over the whole
@@ -723,6 +728,46 @@ public struct EntryDetailScreen: View {
                 .background(lcd.accent.opacity(0.06))
             }
             .padding(.bottom, 18)
+        }
+    }
+
+    /// **What the map put inside this region** (0.9.58, maintainer order:
+    /// "province pages should have the sub-appellations inside them").
+    ///
+    /// British Columbia and Okanagan Valley are two region entries with
+    /// nothing in the catalog joining them; the region map is what joins
+    /// them, and `RegionMap.regionsInside` reads it. This is the province
+    /// page's list of what it holds — Okanagan under British Columbia,
+    /// Barossa under South Australia, Rías Baixas and three more under
+    /// Galicia, Sauternes under Bordeaux by way of the second plane. It is
+    /// absent on the appellation's own page, because Okanagan's siblings are
+    /// not inside Okanagan. Tiles rather than chips: these are places you go
+    /// to, and `onSelectRelated` is the same door every other tile uses.
+    private var regionsInsideSection: some View {
+        let inside: [WineEntry] = {
+            guard case .region(let r) = entry,
+                  let map = RegionAtlas.map(for: r.details.origin) else { return [] }
+            let peers = db.entries(in: .regions).map { (id: $0.id, name: $0.name) }
+            guard let ids = map.regionsInside(entry.id, names: peers) else { return [] }
+            return ids.compactMap { db.entry(id: $0) }
+        }()
+        return Group {
+            if !inside.isEmpty {
+                DexSection("INSIDE IT", symbol: "mappin.and.ellipse") {
+                    VStack(spacing: 8) {
+                        ForEach(inside) { region in
+                            EntryTileView(
+                                entry: region,
+                                palette: db.palette,
+                                locked: access.isLocked(region, in: db),
+                                tried: bookmarks.contains(region.id, on: .tried)
+                            ) {
+                                onSelectRelated(region)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 

@@ -32,7 +32,7 @@
   "name": "Rueda",
   "lon": -4.958,
   "lat": 41.41,
-  "expect": "ruedatoro"
+  "expect": "rueda"
  },
  {
   "id": "R035",
@@ -88,7 +88,7 @@
   "name": "Toro",
   "lon": -5.393,
   "lat": 41.523,
-  "expect": "ruedatoro"
+  "expect": "toro"
  },
  {
   "id": "R114",

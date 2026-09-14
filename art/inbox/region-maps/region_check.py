@@ -166,6 +166,35 @@ else:
           'and overwriting an id-keyed index with a name-keyed one is worse than\n'
           'leaving it alone. Run with the catalog pins to rebuild it.' % NAME)
 
+# A pin in the dense file whose id is NOT in the catalog file is a pin that
+# passes this check and links to nothing.
+#
+# This is the trap the catalog-preference branch above created, and it caught me
+# with my own code: R063 Canary Islands, R081 Madeira and R121 Azores went into
+# the dense files, resolved correctly, reported PASS — and never reached the
+# region index, because on a two-file country the index is built from the
+# catalog file alone. The Canaries tile read NO CATALOG ENTRY HERE YET on a
+# region that had just been painted for it.
+#
+# The gate has to fail on that. A pin that resolves but does not link is worse
+# than one that does not resolve, because the first kind reports success.
+if idx_src and named is None and idx_src != src:
+    dense_ids = {p['id'] for p in pins if p.get('id')}
+    cat_ids = {r[0] for r in idx_rows if r[0]}
+    orphan = sorted(dense_ids - cat_ids)
+    if orphan:
+        print('\nFAIL — %d pin%s in %s carr%s an id the catalog file does not:'
+              % (len(orphan), '' if len(orphan) == 1 else 's',
+                 os.path.basename(src), 'ies' if len(orphan) == 1 else 'y'))
+        for i in orphan:
+            n = next((p['name'] for p in pins if p.get('id') == i), '?')
+            print('  %-6s %s' % (i, n))
+        print('\nThese resolve on the map and reach NOTHING: %s is built from %s,\n'
+              'so the app will show NO CATALOG ENTRY HERE YET on a painted region.\n'
+              'Put the row in the catalog file, not only in the dense one.'
+              % ('%s-region-index.json' % NAME, os.path.basename(idx_src)))
+        sys.exit(1)
+
 if idx_rows is not None:
     by_id, by_stem = {}, {s: [] for s in man['regions']}
     by_stem.update({s: [] for s in (man.get('children') or {})})

@@ -5,16 +5,16 @@
   "kind": "equirectangular",
   "x_factor": 0.81759177,
   "origin": [
-   111.124478,
-   -40.956097
+   108.145265,
+   -50.340616
   ],
-  "scale": 65.182296,
+  "scale": 24.895216,
   "note": "canvas_x = (lon*x_factor - origin[0])*scale + 2 ; canvas_y = (-lat - origin[1])*scale + 2",
   "cell_note": "Those are CONTINUOUS canvas coordinates. The cell containing a point is floor(x), floor(y) — the rasteriser fills cell i from [i, i+1). Rounding picks the nearest cell CENTRE and lands one cell over for anything past the halfway line; harmless on a large region, decisive on a small child."
  },
  "base": {
   "canvas": [
-   375,
+   400,
    502
   ],
   "export_scale": 5,
@@ -33,9 +33,9 @@
   },
   "index_note": "one byte per LOGICAL cell, canvas-sized, NOT export_scale. Hit-test against this, not against pixel colour.",
   "subject_rect": [
-   0.3227,
+   0.3025,
    0.241,
-   0.3547,
+   0.395,
    0.5179
   ],
   "subject_rect_note": "x,y,w,h as fractions of the canvas. Scale the two layers together so this rect fills the intended width; the backdrop bleeds off the screen edges."
@@ -47,7 +47,10 @@
   "foreign_outline": "#1A1420",
   "shallow": "#4E6985",
   "shelf_px": 3,
-  "countries": []
+  "countries": [
+   "China",
+   "Russia"
+  ]
  },
  "marker_clearance": {
   "12": [],
@@ -59,25 +62,25 @@
   "yamanashi": {
    "id": 1,
    "button": [
-    0.4027,
-    0.6972
+    0.3225,
+    0.7331
    ],
-   "clearance_px": 16.6,
-   "area_px": 1664,
+   "clearance_px": 7.1,
+   "area_px": 266,
    "fill": "#8BC072",
    "units": [
     "Yamanashi"
    ],
    "detail": {
     "canvas": [
-     54,
-     55
+     65,
+     62
     ],
-    "upscale": 1,
+    "upscale": 3,
     "source_bbox": [
      121,
-     327,
-     172,
+     360,
+     141,
      379
     ]
    }
@@ -85,26 +88,52 @@
   "yamagata": {
    "id": 2,
    "button": [
-    0.6,
-    0.3088
+    0.405,
+    0.5817
    ],
-   "clearance_px": 23.3,
-   "area_px": 3466,
+   "clearance_px": 9.2,
+   "area_px": 542,
    "fill": "#2B8268",
    "units": [
     "Yamagata"
    ],
    "detail": {
     "canvas": [
-     60,
-     94
+     46,
+     74
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     150,
+     281,
+     171,
+     316
+    ]
+   }
+  },
+  "hokkaido": {
+   "id": 3,
+   "button": [
+    0.5375,
+    0.3466
+   ],
+   "clearance_px": 26.9,
+   "area_px": 4742,
+   "fill": "#A1BBCE",
+   "units": [
+    "Hokkaidō"
+   ],
+   "detail": {
+    "canvas": [
+     126,
+     106
     ],
     "upscale": 1,
     "source_bbox": [
-     195,
+     154,
      121,
-     252,
-     212
+     277,
+     224
     ]
    }
   }

@@ -221,7 +221,7 @@
  },
  "splits": [],
  "regions": {
-  "niagara": {
+  "ontario": {
    "id": 1,
    "button": [
     0.5302,
@@ -247,7 +247,7 @@
     ]
    }
   },
-  "okanagan": {
+  "britishcolumbia": {
    "id": 2,
    "button": [
     0.3992,

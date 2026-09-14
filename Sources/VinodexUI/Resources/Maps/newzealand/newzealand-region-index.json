@@ -5,6 +5,7 @@
   "R144": "hawkesbay",
   "R180": "northland",
   "R181": "auckland",
+  "R182": "waikatobayofplenty",
   "R183": "gisborne",
   "R184": "wairarapa",
   "R185": "nelson",
@@ -17,7 +18,9 @@
   "auckland": [
    "R181"
   ],
-  "waikatobop": [],
+  "waikatobayofplenty": [
+   "R182"
+  ],
   "gisborne": [
    "R183"
   ],

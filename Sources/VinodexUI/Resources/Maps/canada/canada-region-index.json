@@ -1,14 +1,18 @@
 {
  "byId": {
-  "R091": "niagara",
-  "R092": "okanagan"
+  "R091": "ontario",
+  "R092": "britishcolumbia",
+  "R202": "britishcolumbia",
+  "R203": "ontario"
  },
  "byStem": {
-  "niagara": [
-   "R091"
+  "ontario": [
+   "R091",
+   "R203"
   ],
-  "okanagan": [
-   "R092"
+  "britishcolumbia": [
+   "R092",
+   "R202"
   ]
  }
 }

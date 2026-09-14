@@ -83,16 +83,18 @@ ITALY = {
 }
 
 
-# Spain. Several catalog rows are DOs inside a bigger painted area — Rueda and
-# Toro share `ruedatoro`, Valdeorras/Ribeiro/Ribeira Sacra/Rías Baixas are all
-# Galicia, Priorat and Penedès are both Catalonia. Each is pinned at its own
+# Spain. Several catalog rows are DOs inside a bigger painted area —
+# Valdeorras/Ribeiro/Ribeira Sacra/Rías Baixas are all Galicia, Priorat and
+# Penedès are both Catalonia. Rueda and Toro USED to share one area and no
+# longer do: `ruedatoro` was cut into `rueda` (Valladolid, Segovia) and `toro`
+# (Zamora) on 14 Sep, so those two rows now have an area each. Each is pinned at its own
 # town, not at its region's centre, so the map puts it where it belongs.
 SPAIN = {
     "R030": (-2.445, 42.465, "Logroño (Rioja)",                    "rioja"),
     "R031": (-3.700, 41.625, "Aranda de Duero (Ribera)",           "riberadelduero"),
     "R032": (0.822, 41.203, "Gratallops (Priorat)",                "catalonia"),
     "R033": (-8.645, 42.400, "Cambados (Rías Baixas)",             "galicia"),
-    "R034": (-4.958, 41.410, "Rueda (Valladolid)",                 "ruedatoro"),
+    "R034": (-4.958, 41.410, "Rueda (Valladolid)",                 "rueda"),
     "R035": (-6.137, 36.687, "Jerez de la Frontera",               "jerez"),
     "R088": (-7.116, 42.430, "O Barco de Valdeorras",              "galicia"),
     "R089": (-6.596, 42.604, "Cacabelos (Bierzo)",                 "bierzo"),
@@ -100,7 +102,7 @@ SPAIN = {
     "R102": (1.700, 41.372, "Vilafranca del Penedès",              "catalonia"),
     "R103": (-1.203, 39.487, "Utiel-Requena",                      "levante"),
     "R104": (1.199, 41.412, "Montblanc (Conca de Barberà)",        "catalonia"),
-    "R113": (-5.393, 41.523, "Toro (Zamora)",                      "ruedatoro"),
+    "R113": (-5.393, 41.523, "Toro (Zamora)",                      "toro"),
     "R114": (-1.643, 42.693, "Olite (Navarra)",                    "navarra"),
     "R115": (-3.000, 39.300, "Valdepeñas (La Mancha)",             "lamancha"),
     "R116": (-7.500, 42.400, "Doade (Ribeira Sacra)",              "galicia"),
