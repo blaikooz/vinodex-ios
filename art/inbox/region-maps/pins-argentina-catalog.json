@@ -19,5 +19,26 @@
   "lon": -67.5,
   "lat": -39.03,
   "expect": "patagonia"
+ },
+ {
+  "id": "R168",
+  "name": "San Juan",
+  "lon": -68.536,
+  "lat": -31.537,
+  "expect": "sanjuan"
+ },
+ {
+  "id": "R169",
+  "name": "Catamarca",
+  "lon": -67.565,
+  "lat": -28.063,
+  "expect": "catamarca"
+ },
+ {
+  "id": "R170",
+  "name": "Córdoba",
+  "lon": -64.075,
+  "lat": -31.024,
+  "expect": "cordoba"
  }
 ]

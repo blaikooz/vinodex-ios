@@ -2,7 +2,8 @@
  "byId": {
   "R041": "barossa",
   "R042": "margaretriver",
-  "R080": "huntervalley"
+  "R080": "huntervalley",
+  "R200": "tasmania"
  },
  "byStem": {
   "barossa": [
@@ -13,6 +14,9 @@
   ],
   "huntervalley": [
    "R080"
+  ],
+  "tasmania": [
+   "R200"
   ]
  }
 }

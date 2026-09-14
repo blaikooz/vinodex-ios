@@ -47,5 +47,47 @@
   "lon": -7.91,
   "lat": 38.57,
   "expect": "alentejo"
+ },
+ {
+  "id": "R187",
+  "name": "Beira Interior",
+  "lon": -7.268,
+  "lat": 40.537,
+  "expect": "beirainterior"
+ },
+ {
+  "id": "R188",
+  "name": "Península de Setúbal",
+  "lon": -8.901,
+  "lat": 38.569,
+  "expect": "setubal"
+ },
+ {
+  "id": "R189",
+  "name": "Algarve",
+  "lon": -8.453,
+  "lat": 37.135,
+  "expect": "algarve"
+ },
+ {
+  "id": "R190",
+  "name": "Lisboa",
+  "lon": -9.01,
+  "lat": 39.053,
+  "expect": "lisboa"
+ },
+ {
+  "id": "R081",
+  "name": "Madeira",
+  "lon": -16.92,
+  "lat": 32.65,
+  "expect": "madeira"
+ },
+ {
+  "id": "R121",
+  "name": "Azores",
+  "lon": -25.67,
+  "lat": 37.74,
+  "expect": "azores"
  }
 ]

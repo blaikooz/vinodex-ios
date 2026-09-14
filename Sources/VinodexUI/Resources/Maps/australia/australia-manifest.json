@@ -183,6 +183,32 @@
      293
     ]
    }
+  },
+  "tasmania": {
+   "id": 4,
+   "button": [
+    0.6036,
+    0.6375
+   ],
+   "clearance_px": 5.8,
+   "area_px": 169,
+   "fill": "#82482B",
+   "units": [
+    "Tasmania"
+   ],
+   "detail": {
+    "canvas": [
+     53,
+     56
+    ],
+    "upscale": 3,
+    "source_bbox": [
+     294,
+     302,
+     310,
+     319
+    ]
+   }
   }
  }
 }

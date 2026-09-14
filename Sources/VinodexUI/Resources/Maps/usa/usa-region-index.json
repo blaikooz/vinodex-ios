@@ -8,7 +8,13 @@
   "R016": "california",
   "R018": "california",
   "R020": "california",
-  "R123": "california"
+  "R123": "california",
+  "R209": "washington",
+  "R210": "newyork",
+  "R211": "washington",
+  "R212": "oregon",
+  "R213": "oregon",
+  "R214": "newyork"
  },
  "byStem": {
   "california": [
@@ -20,13 +26,19 @@
    "R123"
   ],
   "oregon": [
-   "R015"
+   "R015",
+   "R212",
+   "R213"
   ],
   "washington": [
-   "R017"
+   "R017",
+   "R209",
+   "R211"
   ],
   "newyork": [
-   "R019"
+   "R019",
+   "R210",
+   "R214"
   ]
  }
 }

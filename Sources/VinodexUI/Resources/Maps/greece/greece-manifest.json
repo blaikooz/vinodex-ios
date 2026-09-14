@@ -217,6 +217,32 @@
      358
     ]
    }
+  },
+  "crete": {
+   "id": 6,
+   "button": [
+    0.5468,
+    0.6744
+   ],
+   "clearance_px": 7.3,
+   "area_px": 762,
+   "fill": "#A1BBCE",
+   "units": [
+    "Kriti"
+   ],
+   "detail": {
+    "canvas": [
+     72,
+     30
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     267,
+     362,
+     336,
+     389
+    ]
+   }
   }
  }
 }

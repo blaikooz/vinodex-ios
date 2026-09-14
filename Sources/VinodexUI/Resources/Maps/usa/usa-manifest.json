@@ -182,24 +182,24 @@
   "washington": {
    "id": 3,
    "button": [
-    0.3625,
-    0.4384
+    0.3645,
+    0.436
    ],
-   "clearance_px": 6.1,
-   "area_px": 254,
+   "clearance_px": 7.0,
+   "area_px": 274,
    "fill": "#662B82",
    "units": [
     "Washington"
    ],
    "detail": {
     "canvas": [
-     50,
-     28
+     52,
+     30
     ],
     "upscale": 2,
     "source_bbox": [
-     172,
-     172,
+     171,
+     171,
      195,
      184
     ]

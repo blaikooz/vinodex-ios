@@ -90,7 +90,7 @@
     0.528
    ],
    "clearance_px": 11.7,
-   "area_px": 1897,
+   "area_px": 1953,
    "fill": "#8BC072",
    "units": [
     "Zadarska",
@@ -100,12 +100,12 @@
    ],
    "detail": {
     "canvas": [
-     101,
+     107,
      99
     ],
     "upscale": 1,
     "source_bbox": [
-     207,
+     201,
      232,
      305,
      328

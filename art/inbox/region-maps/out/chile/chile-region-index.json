@@ -2,22 +2,39 @@
  "byId": {
   "R046": "maipo",
   "R124": "itata",
-  "R145": "aconcagua"
+  "R145": "aconcagua",
+  "R171": "coquimbo",
+  "R172": "rapel",
+  "R173": "maule",
+  "R174": "biobio",
+  "R175": "malleco",
+  "R176": "aconcagua"
  },
  "byStem": {
-  "coquimbo": [],
+  "coquimbo": [
+   "R171"
+  ],
   "aconcagua": [
-   "R145"
+   "R145",
+   "R176"
   ],
   "maipo": [
    "R046"
   ],
-  "rapel": [],
-  "maule": [],
+  "rapel": [
+   "R172"
+  ],
+  "maule": [
+   "R173"
+  ],
   "itata": [
    "R124"
   ],
-  "biobio": [],
-  "malleco": []
+  "biobio": [
+   "R174"
+  ],
+  "malleco": [
+   "R175"
+  ]
  }
 }

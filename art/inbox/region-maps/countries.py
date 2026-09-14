@@ -137,7 +137,18 @@ COUNTRIES = {'france': FRANCE, 'italy': ITALY}
 
 SPAIN = dict(
     admin1='es-provinces.json', subject='Spain', log=160, margin=170, splits=[],
-    exclude=['Las Palmas', 'Santa Cruz de Tenerife', 'Ceuta', 'Melilla'],
+    # The two Canary provinces are back in and painted — R063 is a catalog
+    # region and was one of the four rows the coverage gate called UNPINNED.
+    # Ceuta and Melilla stay out: no catalog entry, and they sit inside
+    # Morocco's coastline where a stray painted speck reads as an error.
+    exclude=['Ceuta', 'Melilla'],
+    # The Canaries are already inside the shipped canvas — they rendered as
+    # index 0 before, because `exclude` dropped them BEFORE projection rather
+    # than because they were off the frame. So the frame must be pinned to what
+    # it already is, or Spain reframes around 28N/-18 and every existing index
+    # byte moves. Both pins together hold canvas, projection and subject_rect.
+    frame_window=(-10.0, 35.0, 5.0, 44.5),
+    x_factor=0.75673244,
     regions={
      'rioja'        : ['La Rioja', 'Álava'],
      'navarra'      : ['Navarra'],
@@ -155,13 +166,30 @@ SPAIN = dict(
      'andalucia'    : ['Córdoba', 'Málaga', 'Granada', 'Jaén', 'Almería'],
      'extremadura'  : ['Badajoz', 'Cáceres'],
      'baleares'     : ['Baleares'],
+     # R063. Stem is the catalog name folded flat, per
+     # RegionMapTests.displayNamesNameTheArea.
+     'canaryislands': ['Las Palmas', 'Santa Cruz de Tenerife'],
     },
 )
 
 PORTUGAL = dict(
-    admin1='pt-districts.json', subject='Portugal', log=160, margin=170,
+    # log=600, not 160. The frame now spans 22 degrees — Lisbon to Flores — so
+    # at the usual 160 the mainland is 21 cells across and Dao renders at 21 px,
+    # a quarter of the smallest region on any shipped map. Ten mainland regions
+    # must not lose their resolution to gain two islands. This is the one canvas
+    # in the batch that is allowed to move, so it moves properly.
+    admin1='pt-districts.json', subject='Portugal', log=600, margin=170,
     splits=[('douro', 'dao', 41.00)],
-    exclude=['Azores', 'Madeira'],
+    # Madeira and the Azores are painted regions now (R081, R121). Unlike the
+    # Canaries they were genuinely OFF the canvas — Madeira by a tenth of a
+    # degree, the Azores by fifteen — so this is the one map in the batch whose
+    # canvas and projection legitimately move. Everything else about it is held:
+    # the seven existing regions come back as the same shapes, and...
+    exclude=[],
+    # ...the opening view stays on the mainland rather than following the
+    # islands out into the Atlantic. See region_map.py.
+    subject_rect='mainland',
+    min_island=2,   # Porto Santo and the smaller Azorean islands are a few cells
     regions={
      'vinhoverde'   : ['Viana do Castelo', 'Braga', 'Porto'],
      # Viseu district holds the Douro's south bank AND the Dão. Cut at 41.00 N:
@@ -176,6 +204,9 @@ PORTUGAL = dict(
      'setubal'      : ['Setúbal'],
      'alentejo'     : ['Évora', 'Beja', 'Portalegre'],
      'algarve'      : ['Faro'],
+     # Appended: new stems go last so existing region ids do not renumber.
+     'madeira'      : ['Madeira'],      # R081
+     'azores'       : ['Azores'],       # R121
     },
 )
 
@@ -422,6 +453,10 @@ GREECE = dict(
      'naoussa'    : ['Kentriki Makedonia'],
      'amyndeon'   : ['Dytiki Makedonia'],
      'attica'     : ['Attiki'],
+     # Appended, not inserted. Region ids are assigned in this dict's order, so
+     # putting a new stem in the middle renumbers every region after it and
+     # invalidates the shipped index raster.
+     'crete'      : ['Kriti'],          # R201, authored 14 Sep
     },
 )
 
@@ -437,6 +472,12 @@ GEORGIA = dict(
 
 CROATIA = dict(
     admin1='hr-counties.json', subject='Croatia', log=160, margin=170,
+    # Hvar, Brač, Korčula and Pelješac are the Dalmatian wine islands and the
+    # 20-cell speck floor was deleting them — they showed as sea with the
+    # backdrop's shelf underneath. They are in Splitsko-Dalmatinska and
+    # Dubrovacko-Neretvanska, both already claimed by `dalmatia`, so they need
+    # no new region: they simply have to survive to be painted.
+    min_island=2,
     splits=[],
     regions={
      'dalmatia': ['Zadarska', 'Šibensko-Kninska', 'Splitsko-Dalmatinska', 'Dubrovacko-Neretvanska'],
@@ -656,15 +697,30 @@ AUSTRALIA = dict(
      'barossa'      : ['South Australia'],
      'margaretriver': ['Western Australia'],
      'huntervalley' : ['New South Wales'],
+     'tasmania'     : ['Tasmania'],     # R200, authored 14 Sep
     },
 )
 
 USA = dict(
     admin1='us-states.json', subject='United States of America', log=160, margin=170,
-    # Alaska and Hawaii carry no catalog wine region and stretch the frame
-    # across a third of the planet. Named, so the omission is a decision.
-    exclude=['Alaska', 'Hawaii'],
+    # Alaska and Hawaii are back in, on the maintainer's order of 14 Sep. They
+    # carry no catalog wine region, so they paint as country ground (255) rather
+    # than as a region. `focus='regions'` is what makes that free: the frame is
+    # sized on the four painted states, so putting two more states into FEAT
+    # cannot move the canvas.
+    exclude=[],
     focus='regions',
+    # Pinned to the value the lower-48 map shipped with. Re-including Alaska and
+    # Hawaii changes the mean-of-rings latitude — the Aleutians alone are dozens
+    # of rings at 52N — which would move x_factor, the projection, the canvas and
+    # therefore every index byte of California, Oregon, Washington and New York.
+    # The islands are meant to appear ON the shipped map, not to redraw it.
+    x_factor=0.78826908,
+    # Maui is ~1,900 km2 and a USA cell is ~28 km, so the whole of Hawaii is a
+    # handful of cells — under the 20-cell speck floor, which would delete the
+    # islands the order exists to restore. Same override Greece needs for
+    # Santorini.
+    min_island=2,
     splits=[],
     regions={
      'california': ['California'],

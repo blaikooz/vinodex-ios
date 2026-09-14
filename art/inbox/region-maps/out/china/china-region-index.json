@@ -3,11 +3,13 @@
   "R050": "ningxia",
   "R051": "shangrila",
   "R075": "shandong",
-  "R076": "hebei"
+  "R076": "hebei",
+  "R199": "ningxia"
  },
  "byStem": {
   "ningxia": [
-   "R050"
+   "R050",
+   "R199"
   ],
   "shangrila": [
    "R051"

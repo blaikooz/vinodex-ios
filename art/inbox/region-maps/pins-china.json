@@ -26,5 +26,12 @@
   "lon": 115.52,
   "lat": 40.4,
   "expect": "hebei"
+ },
+ {
+  "id": "R199",
+  "name": "Ningxia",
+  "lon": 106.078,
+  "lat": 38.019,
+  "expect": "ningxia"
  }
 ]

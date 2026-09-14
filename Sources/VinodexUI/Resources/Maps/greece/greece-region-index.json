@@ -5,7 +5,8 @@
   "R067": "naoussa",
   "R068": "amyndeon",
   "R140": "attica",
-  "R066": "peloponnese"
+  "R066": "peloponnese",
+  "R201": "crete"
  },
  "byStem": {
   "santorini": [
@@ -23,6 +24,9 @@
   ],
   "attica": [
    "R140"
+  ],
+  "crete": [
+   "R201"
   ]
  }
 }

@@ -17,7 +17,16 @@
   "R115": "lamancha",
   "R116": "galicia",
   "R119": "galicia",
-  "R120": "baleares"
+  "R120": "baleares",
+  "R191": "aragon",
+  "R192": "madrid",
+  "R193": "andalucia",
+  "R194": "extremadura",
+  "R195": "galicia",
+  "R196": "catalonia",
+  "R197": "levante",
+  "R198": "baleares",
+  "R063": "canaryislands"
  },
  "byStem": {
   "rioja": [
@@ -43,28 +52,43 @@
    "R033",
    "R088",
    "R116",
-   "R119"
+   "R119",
+   "R195"
   ],
   "catalonia": [
    "R032",
    "R102",
-   "R104"
+   "R104",
+   "R196"
   ],
-  "aragon": [],
+  "aragon": [
+   "R191"
+  ],
   "lamancha": [
    "R115"
   ],
-  "madrid": [],
+  "madrid": [
+   "R192"
+  ],
   "levante": [
-   "R103"
+   "R103",
+   "R197"
   ],
   "jerez": [
    "R035"
   ],
-  "andalucia": [],
-  "extremadura": [],
+  "andalucia": [
+   "R193"
+  ],
+  "extremadura": [
+   "R194"
+  ],
   "baleares": [
-   "R120"
+   "R120",
+   "R198"
+  ],
+  "canaryislands": [
+   "R063"
   ]
  }
 }

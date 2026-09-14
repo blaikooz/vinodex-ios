@@ -76,6 +76,10 @@ ITALY = {
     "R110": (12.680, 41.809, "Frascati (Lazio)",                   "lazio"),
     "R111": (17.070, 39.383, "Cirò (Calabria)",                    "calabria"),
     "R112": (15.677, 40.923, "Rionero in Vulture (Basilicata)",    "basilicata"),
+    # 2026-09-14 painted-stem batch (sommbot)
+    "R177": (7.315, 45.737, "Aosta (Valle d'Aosta)",                  "valledaosta"),
+    "R178": (8.934, 44.407, "Genova (Liguria)",                       "liguria"),
+    "R179": (14.662, 41.561, "Campobasso (Molise)",                    "molise"),
 }
 
 
@@ -102,6 +106,15 @@ SPAIN = {
     "R116": (-7.500, 42.400, "Doade (Ribeira Sacra)",              "galicia"),
     "R119": (-8.150, 42.290, "Ribadavia (Ribeiro)",                "galicia"),
     "R120": (2.950, 39.600, "Binissalem (Mallorca)",               "baleares"),
+    # 2026-09-14 painted-stem batch (sommbot)
+    "R191": (-1.224, 41.337, "Cariñena (Zaragoza)",                    "aragon"),
+    "R192": (-3.437, 40.301, "Arganda del Rey (Madrid)",               "madrid"),
+    "R193": (-4.638, 37.586, "Montilla (Córdoba)",                     "andalucia"),
+    "R194": (-6.408, 38.683, "Almendralejo (Badajoz)",                 "extremadura"),
+    "R195": (-7.864, 42.336, "Ourense (Orense)",                       "galicia"),
+    "R196": (1.244, 41.118, "Tarragona",                              "catalonia"),
+    "R197": (-0.376, 39.470, "Valencia",                               "levante"),
+    "R198": (3.148, 39.469, "Felanitx (Mallorca)",                    "baleares"),
 }
 
 PORTUGAL = {
@@ -112,37 +125,61 @@ PORTUGAL = {
     "R084": (-8.685, 39.230, "Almeirim (Tejo)",                    "tejo"),
     "R085": (-9.212, 38.880, "Bucelas (Lisboa)",                   "lisboa"),
     "R086": (-7.910, 38.570, "Évora (Alentejo)",                   "alentejo"),
+    # 2026-09-14 painted-stem batch (sommbot)
+    "R187": (-7.268, 40.537, "Guarda (Beira Interior)",                "beirainterior"),
+    "R188": (-8.901, 38.569, "Palmela (Setúbal)",                      "setubal"),
+    "R189": (-8.453, 37.135, "Lagoa (Faro)",                           "algarve"),
+    "R190": (-9.010, 39.053, "Alenquer (Lisboa)",                      "lisboa"),
 }
 
 ARGENTINA = {
     "R045": (-68.850, -33.030, "Luján de Cuyo (Mendoza)",          "mendoza"),
     "R087": (-65.980, -25.450, "Cafayate (Salta)",                 "salta"),
     "R146": (-67.500, -39.030, "General Roca (Río Negro)",         "patagonia"),
+    # 2026-09-14 painted-stem batch (sommbot)
+    "R168": (-68.536, -31.537, "San Juan (San Juan)",                    "sanjuan"),
+    "R169": (-67.565, -28.063, "Tinogasta (Catamarca)",                  "catamarca"),
+    "R170": (-64.075, -31.024, "Colonia Caroya (Córdoba)",               "cordoba"),
 }
 
 CHILE = {
     "R046": (-70.750, -33.750, "Buin (Maipo)",                     "maipo"),
     "R124": (-72.400, -36.590, "Chillán (Itata)",                  "itata"),
     "R145": (-71.410, -33.320, "Casablanca",                       "aconcagua"),
+    # 2026-09-14 painted-stem batch (sommbot)
+    "R171": (-71.200, -30.603, "Ovalle (Coquimbo)",                      "coquimbo"),
+    "R172": (-71.365, -34.639, "Santa Cruz (O'Higgins)",                 "rapel"),
+    "R173": (-71.655, -35.427, "Talca (Maule)",                          "maule"),
+    "R174": (-72.240, -37.719, "Mulchén (Bío-Bío)",                      "biobio"),
+    "R175": (-72.670, -38.250, "Traiguén (La Araucanía)",                "malleco"),
+    "R176": (-70.725, -32.750, "San Felipe (Valparaíso)",                "aconcagua"),
 }
 
 NEWZEALAND = {
     "R043": (173.960, -41.517, "Blenheim (Marlborough)",           "marlborough"),
     "R044": (169.130, -45.030, "Cromwell (Central Otago)",         "centralotago"),
     "R144": (176.850, -39.640, "Hastings (Hawke's Bay)",           "hawkesbay"),
+    # 2026-09-14 painted-stem batch (sommbot)
+    "R180": (173.947, -35.226, "Kerikeri (Northland)",                   "northland"),
+    "R181": (174.553, -36.777, "Kumeu (Auckland)",                       "auckland"),
+    "R182": (175.279, -37.787, "Hamilton (Waikato)",                     "waikatobayofplenty"),
+    "R183": (178.018, -38.663, "Gisborne (Gisborne District)",           "gisborne"),
+    "R184": (175.458, -41.219, "Martinborough (Wellington)",             "wairarapa"),
+    "R185": (173.284, -41.271, "Nelson (Nelson City)",                   "nelson"),
+    "R186": (172.760, -43.060, "Waipara (Canterbury)",                   "canterbury"),
 }
 
-# Catalog regions that no mainland map can hold. The Canaries sit ~1800km off
-# Spain and the Azores ~1500km off Portugal; widening a country's margin far
-# enough to include them would shrink its mainland — and every tap target on
-# it — to nothing. They are not map failures and not config errors, they are
-# places this kind of map does not cover. Each stays fully reachable through
-# the ordinary region list; it simply has no square on the board.
-OFF_ANY_MAP = {
-    "R063": "Canary Islands (Spain) — ~1800km offshore",
-    "R081": "Madeira (Portugal) — ~900km offshore",
-    "R121": "Azores (Portugal) — ~1500km offshore",
-}
+# Catalog regions that no map can hold. Empty since 14 Sep 2026: the Canaries,
+# Madeira and the Azores lived here for as long as widening a mainland map to
+# reach them would have shrunk the mainland to nothing. The maintainer then
+# ordered the islands painted, and the answer that made it affordable was to
+# let Portugal's canvas grow at `log=600` so the mainland kept its resolution,
+# and to keep `subject_rect` on the mainland so the map still opens there.
+# Their pins are in `pins-spain-catalog.json` and `pins-portugal-catalog.json`
+# — the *catalog* files, because on a two-file country `region_check.py`
+# builds the region index from those alone, which is how three passing pins in
+# the dense files reached nothing.
+OFF_ANY_MAP: dict = {}
 
 TABLES = {
     "france": FRANCE, "italy": ITALY, "spain": SPAIN, "portugal": PORTUGAL,

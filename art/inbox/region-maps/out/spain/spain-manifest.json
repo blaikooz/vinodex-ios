@@ -537,6 +537,33 @@
      250
     ]
    }
+  },
+  "canaryislands": {
+   "id": 17,
+   "button": [
+    0.1972,
+    0.892
+   ],
+   "clearance_px": 3.0,
+   "area_px": 182,
+   "fill": "#2B2B82",
+   "units": [
+    "Las Palmas",
+    "Santa Cruz de Tenerife"
+   ],
+   "detail": {
+    "canvas": [
+     56,
+     27
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     71,
+     394,
+     124,
+     418
+    ]
+   }
   }
  }
 }

@@ -145,5 +145,26 @@
   "lon": 15.677,
   "lat": 40.923,
   "expect": "basilicata"
+ },
+ {
+  "id": "R177",
+  "name": "Valle d'Aosta",
+  "lon": 7.315,
+  "lat": 45.737,
+  "expect": "valledaosta"
+ },
+ {
+  "id": "R178",
+  "name": "Liguria",
+  "lon": 8.934,
+  "lat": 44.407,
+  "expect": "liguria"
+ },
+ {
+  "id": "R179",
+  "name": "Molise",
+  "lon": 14.662,
+  "lat": 41.561,
+  "expect": "molise"
  }
 ]

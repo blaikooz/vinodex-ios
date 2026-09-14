@@ -124,5 +124,68 @@
   "lon": 2.95,
   "lat": 39.6,
   "expect": "baleares"
+ },
+ {
+  "id": "R191",
+  "name": "Aragón",
+  "lon": -1.224,
+  "lat": 41.337,
+  "expect": "aragon"
+ },
+ {
+  "id": "R192",
+  "name": "Vinos de Madrid",
+  "lon": -3.437,
+  "lat": 40.301,
+  "expect": "madrid"
+ },
+ {
+  "id": "R193",
+  "name": "Andalucía",
+  "lon": -4.638,
+  "lat": 37.586,
+  "expect": "andalucia"
+ },
+ {
+  "id": "R194",
+  "name": "Extremadura",
+  "lon": -6.408,
+  "lat": 38.683,
+  "expect": "extremadura"
+ },
+ {
+  "id": "R195",
+  "name": "Galicia",
+  "lon": -7.864,
+  "lat": 42.336,
+  "expect": "galicia"
+ },
+ {
+  "id": "R196",
+  "name": "Catalonia",
+  "lon": 1.244,
+  "lat": 41.118,
+  "expect": "catalonia"
+ },
+ {
+  "id": "R197",
+  "name": "Levante",
+  "lon": -0.376,
+  "lat": 39.47,
+  "expect": "levante"
+ },
+ {
+  "id": "R198",
+  "name": "Baleares",
+  "lon": 3.148,
+  "lat": 39.469,
+  "expect": "baleares"
+ },
+ {
+  "id": "R063",
+  "name": "Canary Islands",
+  "lon": -16.62,
+  "lat": 28.29,
+  "expect": "canaryislands"
  }
 ]

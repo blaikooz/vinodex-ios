@@ -198,7 +198,17 @@ def pole(m):
 
 # --- projection, sized on the subject country, then widened by MARGIN --------------------
 allr = rings(list(FR))
-K = math.cos(math.radians(np.vstack([p[0] for p in allr])[:, 1].mean()))
+# The longitude correction. NOTE this is the mean over RINGS, not weighted by
+# area, so a country with many small islands has its projection pulled toward
+# them by sheer polygon count — the Aleutians and the Hawaiian chain move the
+# USA's x_factor more than their land area could justify. Worth revisiting; not
+# revisited here, because changing it moves every index byte on all 39 maps.
+#
+# `x_factor` in the config pins it. That exists for exactly one situation: a
+# country gains or loses territory and the canvas must NOT move, because its
+# index raster is already shipped and the app hit-tests against it.
+K = CFG.get('x_factor') or math.cos(
+    math.radians(np.vstack([p[0] for p in allr])[:, 1].mean()))
 P = project(allr, K)
 
 # Which shape sizes the canvas. By default the whole country; 'regions' frames on
@@ -219,9 +229,15 @@ def in_window(poly):
     return w[0] <= c[0] <= w[2] and w[1] <= c[1] <= w[3]
 
 
-frame = P if CFG.get('focus') != 'regions' else project(
-    [r for r in rings(sorted({u for us in REGIONS.values() for u in us}))
-     if in_window(r)], K)
+# `frame_window` applies on BOTH paths. It only ever ran on the focus='regions'
+# path before, and nothing caught that because the two countries that set a
+# window — Chile and South Africa — also set focus, so the window was always
+# reached by the other branch. Spain needs a window WITHOUT focus: its frame is
+# the whole country, and the whole country now includes the Canaries at 28N/-18.
+frame = (project([r for r in allr if in_window(r)], K)
+         if CFG.get('focus') != 'regions' else
+         project([r for r in rings(sorted({u for us in REGIONS.values() for u in us}))
+                  if in_window(r)], K))
 allp = np.vstack([r for poly in frame for r in poly])
 FMN, FMX = allp.min(axis=0), allp.max(axis=0)
 span = FMX - FMN
@@ -439,6 +455,33 @@ CH, CW = canvas.shape[:2]
 # screen edges — that keeps every tap target the size §5.2 measured.
 FRECT = [round((MARGIN + 1) / CW, 4), round((MARGIN + 1) / CH, 4),
          round(FW / CW, 4), round(FH / CH, 4)]
+
+# `subject_rect='mainland'` frames the opening view on the country's LARGEST
+# LANDMASS instead of on everything it owns.
+#
+# Portugal is why. With Madeira and the Azores painted, the frame runs 15 degrees
+# into the Atlantic and the mainland is about a third of the canvas width. The
+# app opens on subject_rect and fences the camera to the whole canvas, so a rect
+# over the full extent opens the map on open ocean with Portugal off to one side.
+# Taking the largest landmass instead means the map opens on the mainland exactly
+# as it does today and a pan west reaches the islands.
+#
+# This is a per-country opt-in rather than the default, and only because of the
+# contract: as a global rule it would move subject_rect on any country whose
+# frame includes a detached piece — France has Corsica, Italy has Sicily and
+# Sardinia, Greece is mostly islands — and every one of those is shipped. The
+# mechanism is general; flipping it on for everyone is one line and a re-render
+# whenever that churn is wanted.
+if CFG.get('subject_rect') == 'mainland':
+    _lab_, _n_ = ndimage.label(subj)
+    _sz_ = np.bincount(_lab_.ravel()); _sz_[0] = 0
+    _big_ = _lab_ == int(_sz_.argmax())
+    _ys_, _xs_ = np.nonzero(_big_)
+    FRECT = [round(_xs_.min() / CW, 4), round(_ys_.min() / CH, 4),
+             round((_xs_.max() - _xs_.min() + 1) / CW, 4),
+             round((_ys_.max() - _ys_.min() + 1) / CH, 4)]
+    print('subject_rect framed on the largest landmass: %d of %d land cells'
+          % (_big_.sum(), subj.sum()))
 
 os.makedirs(OUT, exist_ok=True)
 

@@ -232,5 +232,26 @@
   "lon": 9.33,
   "lat": 40.32,
   "expect": "sardinia"
+ },
+ {
+  "id": "R177",
+  "name": "Valle d'Aosta",
+  "lon": 7.2511,
+  "lat": 45.7269,
+  "expect": "valledaosta"
+ },
+ {
+  "id": "R178",
+  "name": "Liguria",
+  "lon": 7.8536,
+  "lat": 43.9659,
+  "expect": "liguria"
+ },
+ {
+  "id": "R179",
+  "name": "Molise",
+  "lon": 14.56,
+  "lat": 41.619,
+  "expect": "molise"
  }
 ]

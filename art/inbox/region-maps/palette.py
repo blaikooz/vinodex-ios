@@ -188,7 +188,21 @@ def extend(adjacency_pairs, fixed, new, seed=11, transform=None):
 
 def assign(masks, authored=None, seed=7):
     if authored:
-        return {s: tuple(authored[s]) for s in masks}
+        # A partially-authored palette is the normal case once a country gains a
+        # region: France and Spain have hand-tuned fills, and adding one stem
+        # used to KeyError here. Keep every authored colour exactly as authored —
+        # they were reviewed, and churning them restyles a shipped map — and
+        # compute only the new ones, against the adjacency of what is actually
+        # painted.
+        out = {s: tuple(authored[s]) for s in masks if s in authored}
+        new = [s for s in masks if s not in authored]
+        if not new:
+            return out
+        stems, pairs = adjacency(masks)
+        touch = {frozenset((stems[a], stems[b])) for a, b in pairs}
+        got = extend(touch, {k: _hex(v) for k, v in out.items()}, new, seed=seed)
+        out.update({k: _unhex(v) for k, v in got.items()})
+        return {s: out[s] for s in masks}
     stems, pairs = adjacency(masks)
     cols = pool(len(stems))
     labs = np.array([_lab(c) for c in cols])

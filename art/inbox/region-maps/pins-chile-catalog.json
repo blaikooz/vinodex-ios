@@ -19,5 +19,47 @@
   "lon": -71.41,
   "lat": -33.32,
   "expect": "aconcagua"
+ },
+ {
+  "id": "R171",
+  "name": "Coquimbo",
+  "lon": -71.2,
+  "lat": -30.603,
+  "expect": "coquimbo"
+ },
+ {
+  "id": "R172",
+  "name": "Rapel Valley",
+  "lon": -71.365,
+  "lat": -34.639,
+  "expect": "rapel"
+ },
+ {
+  "id": "R173",
+  "name": "Maule Valley",
+  "lon": -71.655,
+  "lat": -35.427,
+  "expect": "maule"
+ },
+ {
+  "id": "R174",
+  "name": "Bío Bío Valley",
+  "lon": -72.24,
+  "lat": -37.719,
+  "expect": "biobio"
+ },
+ {
+  "id": "R175",
+  "name": "Malleco Valley",
+  "lon": -72.67,
+  "lat": -38.25,
+  "expect": "malleco"
+ },
+ {
+  "id": "R176",
+  "name": "Aconcagua",
+  "lon": -70.725,
+  "lat": -32.75,
+  "expect": "aconcagua"
  }
 ]

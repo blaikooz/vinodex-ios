@@ -20,14 +20,21 @@
   "R109": "lombardy",
   "R110": "lazio",
   "R111": "calabria",
-  "R112": "basilicata"
+  "R112": "basilicata",
+  "R177": "valledaosta",
+  "R178": "liguria",
+  "R179": "molise"
  },
  "byStem": {
   "piedmont": [
    "R022"
   ],
-  "valledaosta": [],
-  "liguria": [],
+  "valledaosta": [
+   "R177"
+  ],
+  "liguria": [
+   "R178"
+  ],
   "lombardy": [
    "R109"
   ],
@@ -63,7 +70,9 @@
   "abruzzo": [
    "R028"
   ],
-  "molise": [],
+  "molise": [
+   "R179"
+  ],
   "campania": [
    "R025"
   ],

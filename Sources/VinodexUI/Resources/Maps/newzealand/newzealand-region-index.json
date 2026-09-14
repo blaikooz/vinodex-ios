@@ -2,22 +2,40 @@
  "byId": {
   "R043": "marlborough",
   "R044": "centralotago",
-  "R144": "hawkesbay"
+  "R144": "hawkesbay",
+  "R180": "northland",
+  "R181": "auckland",
+  "R183": "gisborne",
+  "R184": "wairarapa",
+  "R185": "nelson",
+  "R186": "canterbury"
  },
  "byStem": {
-  "northland": [],
-  "auckland": [],
+  "northland": [
+   "R180"
+  ],
+  "auckland": [
+   "R181"
+  ],
   "waikatobop": [],
-  "gisborne": [],
+  "gisborne": [
+   "R183"
+  ],
   "hawkesbay": [
    "R144"
   ],
-  "wairarapa": [],
-  "nelson": [],
+  "wairarapa": [
+   "R184"
+  ],
+  "nelson": [
+   "R185"
+  ],
   "marlborough": [
    "R043"
   ],
-  "canterbury": [],
+  "canterbury": [
+   "R186"
+  ],
   "centralotago": [
    "R044"
   ]
