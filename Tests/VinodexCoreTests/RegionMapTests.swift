@@ -68,6 +68,22 @@ struct RegionMapTests {
         #expect(abs((fr.y + fr.h / 2) - 0.5) < 0.05)
     }
 
+    /// **Every manifest names its sea, and its scale is a real number**
+    /// (0.9.59). The globe's sea skirt is painted in the manifest's own sea
+    /// colour, and a fingertip's catchment for a second-plane child is sized
+    /// from `cellsPerDegree`; a manifest missing either would silently give
+    /// Japan a black skirt or the Wachau no catchment.
+    @Test("every manifest carries a sea colour and a positive scale")
+    func seaAndScale() throws {
+        for country in RegionMap.mapped {
+            let map = try load(country)
+            #expect(map.seaFill != nil, "\(country) has no backdrop.sea")
+            #expect(map.cellsPerDegree > 0, "\(country) scale is \(map.cellsPerDegree)")
+        }
+        // The one value the skirt is drawn in on Japan, as shipped.
+        #expect(try load("japan").seaFill == RegionMap.RGB(hex: "#38506B"))
+    }
+
     /// **No canvas may claim a latitude the world does not have.**
     ///
     /// `region_map.py` gives every country the same 502-cell canvas height and

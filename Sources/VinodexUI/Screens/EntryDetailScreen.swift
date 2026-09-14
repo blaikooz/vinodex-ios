@@ -424,13 +424,35 @@ public struct EntryDetailScreen: View {
     /// fix cannot be missed by the next one. See its note.
     private var hero: some View {
         DexHero(title: entry.name) {
-            EntryIconWell(
-                db: db,
-                entry: entry,
-                size: DexMetrics.heroWell,
-                cornerRadius: 20,
-                showsRegionDot: true
-            )
+            // **The region lit on its country, not a dot on an outline**
+            // (maintainer, 14 Sep). Where the region map paints this entry
+            // as an area of its own, the hero is the country's silhouette
+            // from the index raster with that area in its fill — Bordeaux
+            // is the Gironde lit on France, Sauternes its five communes lit
+            // inside it. A region the map only holds *inside* something
+            // (Napa inside California) keeps the outline and its dot: lighting
+            // all of California for Napa would be a lie the dot is not.
+            if let art = regionSilhouette {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 20).fill(lcd.surface)
+                    Image(uiImage: art)
+                        .interpolation(.none)
+                        .resizable()
+                        .scaledToFit()
+                        .padding(DexMetrics.heroWell * 0.1)
+                }
+                .frame(width: DexMetrics.heroWell, height: DexMetrics.heroWell)
+                .overlay(RoundedRectangle(cornerRadius: 20)
+                    .strokeBorder(lcd.surfaceEdge, lineWidth: 2))
+            } else {
+                EntryIconWell(
+                    db: db,
+                    entry: entry,
+                    size: DexMetrics.heroWell,
+                    cornerRadius: 20,
+                    showsRegionDot: true
+                )
+            }
         } actions: {
             // Not `DexSaveButton`: an entry carries three shelves, a rating
             // prompt off the third and a share pill (0.7.8, B4), which is a
@@ -729,6 +751,19 @@ public struct EntryDetailScreen: View {
             }
             .padding(.bottom, 18)
         }
+    }
+
+    /// The hero's silhouette, when the map paints this entry as an area of
+    /// its own — the same test `regionsInside` makes, so the hero and the
+    /// INSIDE IT section agree about which entries are places.
+    private var regionSilhouette: UIImage? {
+        guard case .region(let r) = entry,
+              let atlas = RegionAtlas.of(r.details.origin) else { return nil }
+        let peers = db.entries(in: .regions).map { (id: $0.id, name: $0.name) }
+        guard atlas.map.regionsInside(entry.id, names: peers) != nil,
+              let stem = atlas.map.byStem.first(where: { $0.value.contains(entry.id) })?.key
+        else { return nil }
+        return atlas.silhouette(stem)
     }
 
     /// **What the map put inside this region** (0.9.58, maintainer order:

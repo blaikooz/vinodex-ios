@@ -88,6 +88,14 @@ public struct RegionMap: Sendable {
     /// the whole canvas instead would shrink the country to a third of the
     /// screen and take every tap target down with it.
     public let subjectRect: (x: Double, y: Double, w: Double, h: Double)
+    /// The backdrop's sea and shelf colours from the manifest, or nil on a
+    /// manifest that predates the backdrop. The globe draws a skirt of the
+    /// first past the canvas edge on maps whose edge is all sea, so a small
+    /// island country can open a little wider than its art without the bare
+    /// sphere showing; the second is what a shelf pixel reads as when the
+    /// edge is measured.
+    public let seaFill: RGB?
+    public let shallowFill: RGB?
 
     /// Turns a canvas cell back into a real coordinate, for the HUD readout.
     ///
@@ -157,6 +165,12 @@ public struct RegionMap: Sendable {
     private let projOrigin: (Double, Double)
     private let projScale: Double
     private let projXFactor: Double
+
+    /// Logical cells per degree of latitude — the manifest's `scale`. The
+    /// globe needs it to turn a finger's width on the glass into a radius in
+    /// cells, which is how a 29-cell child gets a catchment the size of a
+    /// fingertip rather than the size of itself.
+    public var cellsPerDegree: Double { projScale }
 
     /// **A region painted inside another region** (0.9.57).
     ///
@@ -566,6 +580,8 @@ public struct RegionMap: Sendable {
         self.projXFactor = pr.x_factor
         let r = man.base.subject_rect
         self.subjectRect = r.count == 4 ? (r[0], r[1], r[2], r[3]) : (0, 0, 1, 1)
+        self.seaFill = man.backdrop?.sea.flatMap(RGB.init(hex:))
+        self.shallowFill = man.backdrop?.shallow.flatMap(RGB.init(hex:))
     }
 
     // The manifest carries more than this needs — the projection, the
@@ -590,8 +606,12 @@ public struct RegionMap: Sendable {
             let id: Int
             let parent: String
         }
+        /// The backdrop's palette, for the globe: the sea it paints past the
+        /// canvas edge has to be the sea the art painted inside it.
+        struct Backdrop: Decodable { let sea: String?; let shallow: String? }
         let base: Base
         let projection: Projection
+        let backdrop: Backdrop?
         let regions: [String: Entry]
         /// Absent on every country but France today. Optional by design — the
         /// second plane is opt-in per country, which is what keeps the other
