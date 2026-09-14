@@ -154,7 +154,11 @@ SPAIN = dict(
      'navarra'      : ['Navarra'],
      'basque'       : ['Bizkaia', 'Gipuzkoa'],
      'riberadelduero': ['Burgos', 'Soria'],
-     'ruedatoro'    : ['Valladolid', 'Zamora', 'Segovia'],
+     # R034 and R113 split, 14 Sep. Rueda is the Duero terraces in
+     # Valladolid and Segovia; Toro is Zamora. `rueda` keeps the merged
+     # area's slot so it inherits its index byte and nothing after it
+     # renumbers; `toro` is appended below.
+     'rueda'        : ['Valladolid', 'Segovia'],
      'bierzo'       : ['León'],
      'galicia'      : ['La Coruña', 'Lugo', 'Orense', 'Pontevedra'],
      'catalonia'    : ['Barcelona', 'Tarragona', 'Lérida', 'Gerona'],
@@ -169,6 +173,7 @@ SPAIN = dict(
      # R063. Stem is the catalog name folded flat, per
      # RegionMapTests.displayNamesNameTheArea.
      'canaryislands': ['Las Palmas', 'Santa Cruz de Tenerife'],
+     'toro'         : ['Zamora'],       # R113
     },
 )
 
@@ -253,7 +258,7 @@ NEWZEALAND = dict(
     regions={
      'northland'   : ['Northland'],
      'auckland'    : ['Auckland'],
-     'waikatobop'  : ['Waikato', 'Bay of Plenty'],
+     'waikatobayofplenty'  : ['Waikato', 'Bay of Plenty'],
      'gisborne'    : ['Gisborne District'],
      'hawkesbay'   : ["Hawke's Bay"],
      'wairarapa'   : ['Wellington'],
@@ -358,7 +363,7 @@ SPAIN['fills'] = {
      'navarra': (43, 94, 130),
      'basque': (181, 109, 74),
      'riberadelduero': (108, 181, 74),
-     'ruedatoro': (74, 136, 181),
+     'rueda': (74, 136, 181),   # was 'ruedatoro'; Toro's fill is computed
      'bierzo': (198, 158, 139),
      'galicia': (71, 130, 43),
      'catalonia': (74, 181, 149),
@@ -408,7 +413,7 @@ CHILE['fills'] = {
 NEWZEALAND['fills'] = {
      'northland': (43, 130, 104),
      'auckland': (130, 72, 43),
-     'waikatobop': (43, 94, 130),
+     'waikatobayofplenty': (43, 94, 130),
      'gisborne': (181, 151, 74),
      'hawkesbay': (181, 74, 93),
      'wairarapa': (130, 106, 43),
@@ -448,7 +453,7 @@ GREECE = dict(
     min_island=4,   # Santorini is ~6 cells here; the default 20 deletes it
     splits=[],
     regions={
-     'santorini'  : ['Notio Aigaio'],
+     'southaegean'  : ['Notio Aigaio'],
      'peloponnese': ['Peloponnisos', 'Dytiki Ellada'],
      'naoussa'    : ['Kentriki Makedonia'],
      'amyndeon'   : ['Dytiki Makedonia'],
@@ -639,6 +644,10 @@ JAPAN = dict(
     regions={
      'yamanashi': ['Yamanashi'],
      'yamagata' : ['Yamagata'],
+     # Natural Earth spells it with the macron: 'Hokkaidō', not 'Hokkaido'.
+     # Fourth name of this class after Republic of Serbia, Bosnia and
+     # Herzegovina, and admin-0 Czechia vs admin-1 Czech Republic.
+     'hokkaido' : ['Hokkaidō'],         # R208, 14 Sep
     },
 )
 
@@ -655,8 +664,8 @@ CANADA = dict(
     admin1='ca-provinces.json', subject='Canada', log=160, margin=170,
     splits=[],
     regions={
-     'niagara' : ['Ontario'],
-     'okanagan': ['British Columbia'],
+     'ontario' : ['Ontario'],
+     'britishcolumbia': ['British Columbia'],
     },
 )
 
@@ -694,9 +703,9 @@ AUSTRALIA = dict(
     exclude=['Lord Howe Island', 'Macquarie Island', 'Jervis Bay Territory'],
     splits=[],
     regions={
-     'barossa'      : ['South Australia'],
-     'margaretriver': ['Western Australia'],
-     'huntervalley' : ['New South Wales'],
+     'southaustralia'      : ['South Australia'],
+     'westernaustralia': ['Western Australia'],
+     'newsouthwales' : ['New South Wales'],
      'tasmania'     : ['Tasmania'],     # R200, authored 14 Sep
     },
 )

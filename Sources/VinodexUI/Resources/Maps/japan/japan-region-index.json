@@ -1,7 +1,8 @@
 {
  "byId": {
   "R052": "yamanashi",
-  "R090": "yamagata"
+  "R090": "yamagata",
+  "R208": "hokkaido"
  },
  "byStem": {
   "yamanashi": [
@@ -9,6 +10,9 @@
   ],
   "yamagata": [
    "R090"
+  ],
+  "hokkaido": [
+   "R208"
   ]
  }
 }

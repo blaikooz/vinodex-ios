@@ -106,7 +106,7 @@
  },
  "splits": [],
  "regions": {
-  "barossa": {
+  "southaustralia": {
    "id": 1,
    "button": [
     0.5239,
@@ -132,7 +132,7 @@
     ]
    }
   },
-  "margaretriver": {
+  "westernaustralia": {
    "id": 2,
    "button": [
     0.4084,
@@ -158,7 +158,7 @@
     ]
    }
   },
-  "huntervalley": {
+  "newsouthwales": {
    "id": 3,
    "button": [
     0.5996,

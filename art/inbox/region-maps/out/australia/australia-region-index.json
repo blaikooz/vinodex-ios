@@ -1,19 +1,25 @@
 {
  "byId": {
-  "R041": "barossa",
-  "R042": "margaretriver",
-  "R080": "huntervalley",
-  "R200": "tasmania"
+  "R041": "southaustralia",
+  "R042": "westernaustralia",
+  "R080": "newsouthwales",
+  "R200": "tasmania",
+  "R204": "southaustralia",
+  "R205": "westernaustralia",
+  "R206": "newsouthwales"
  },
  "byStem": {
-  "barossa": [
-   "R041"
+  "southaustralia": [
+   "R041",
+   "R204"
   ],
-  "margaretriver": [
-   "R042"
+  "westernaustralia": [
+   "R042",
+   "R205"
   ],
-  "huntervalley": [
-   "R080"
+  "newsouthwales": [
+   "R080",
+   "R206"
   ],
   "tasmania": [
    "R200"

@@ -202,28 +202,27 @@
     ]
    }
   },
-  "ruedatoro": {
+  "rueda": {
    "id": 5,
    "button": [
-    0.4343,
-    0.4428
+    0.4502,
+    0.4471
    ],
-   "clearance_px": 7.3,
-   "area_px": 542,
+   "clearance_px": 6.3,
+   "area_px": 313,
    "fill": "#4A88B5",
    "units": [
     "Valladolid",
-    "Zamora",
     "Segovia"
    ],
    "detail": {
     "canvas": [
-     46,
-     28
+     54,
+     54
     ],
-    "upscale": 1,
+    "upscale": 2,
     "source_bbox": [
-     198,
+     216,
      195,
      241,
      220
@@ -237,7 +236,7 @@
     0.4104
    ],
    "clearance_px": 7.1,
-   "area_px": 324,
+   "area_px": 325,
    "fill": "#C69E8B",
    "units": [
     "León"
@@ -562,6 +561,32 @@
      394,
      124,
      418
+    ]
+   }
+  },
+  "toro": {
+   "id": 18,
+   "button": [
+    0.4203,
+    0.4384
+   ],
+   "clearance_px": 5.8,
+   "area_px": 228,
+   "fill": "#AD43AD",
+   "units": [
+    "Zamora"
+   ],
+   "detail": {
+    "canvas": [
+     65,
+     56
+    ],
+    "upscale": 3,
+    "source_bbox": [
+     198,
+     196,
+     218,
+     213
     ]
    }
   }

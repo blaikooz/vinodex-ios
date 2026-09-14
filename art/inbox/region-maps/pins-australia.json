@@ -4,21 +4,21 @@
   "name": "Barossa Valley",
   "lon": 138.95,
   "lat": -34.53,
-  "expect": "barossa"
+  "expect": "southaustralia"
  },
  {
   "id": "R042",
   "name": "Margaret River",
   "lon": 115.07,
   "lat": -33.95,
-  "expect": "margaretriver"
+  "expect": "westernaustralia"
  },
  {
   "id": "R080",
   "name": "Hunter Valley",
   "lon": 151.3,
   "lat": -32.78,
-  "expect": "huntervalley"
+  "expect": "newsouthwales"
  },
  {
   "id": "R200",

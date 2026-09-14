@@ -24,7 +24,7 @@
    "stem": "australia",
    "fill": "#C9A492",
    "label": "AUSTRALIA",
-   "mapped": 3,
+   "mapped": 4,
    "key": "australia"
   },
   {
@@ -141,7 +141,7 @@
    "stem": "greece",
    "fill": "#92C9B8",
    "label": "GREECE",
-   "mapped": 5,
+   "mapped": 6,
    "key": "greece"
   },
   {
@@ -186,7 +186,7 @@
    "stem": "japan",
    "fill": "#BC6272",
    "label": "JAPAN",
-   "mapped": 2,
+   "mapped": 3,
    "key": "japan"
   },
   {
@@ -240,7 +240,7 @@
    "stem": "portugal",
    "fill": "#277C63",
    "label": "PORTUGAL",
-   "mapped": 10,
+   "mapped": 12,
    "key": "portugal"
   },
   {
@@ -294,7 +294,7 @@
    "stem": "spain",
    "fill": "#9F62BC",
    "label": "SPAIN",
-   "mapped": 16,
+   "mapped": 18,
    "key": "spain"
   },
   {
@@ -496,21 +496,21 @@
   },
   "spain": {
    "bounds": [
-    -10.1097,
-    35.1887,
-    5.1548,
-    44.6112
+    -10.9,
+    34.1,
+    5.9,
+    45.4
    ],
    "size": [
     300,
-    186
+    202
    ],
    "stems": [
     "rioja",
     "navarra",
     "basque",
     "riberadelduero",
-    "ruedatoro",
+    "rueda",
     "bierzo",
     "galicia",
     "catalonia",
@@ -521,7 +521,9 @@
     "jerez",
     "andalucia",
     "extremadura",
-    "baleares"
+    "baleares",
+    "canaryislands",
+    "toro"
    ],
    "fills": [
     "#934AB5",
@@ -539,14 +541,16 @@
     "#822B3B",
     "#B5974A",
     "#2B8268",
-    "#C68B95"
+    "#C68B95",
+    "#2B2B82",
+    "#AD43AD"
    ],
    "labels": [
     "rioja",
     "navarra",
     "basque",
     "riberadelduero",
-    "ruedatoro",
+    "rueda",
     "bierzo",
     "galicia",
     "catalonia",
@@ -557,19 +561,21 @@
     "jerez",
     "andalucia",
     "extremadura",
-    "baleares"
+    "baleares",
+    "canaryislands",
+    "toro"
    ]
   },
   "portugal": {
    "bounds": [
-    -9.8087,
-    36.6546,
-    -5.8947,
-    42.4649
+    -32.7896,
+    28.5245,
+    -4.7012,
+    43.6584
    ],
    "size": [
-    202,
-    300
+    300,
+    162
    ],
    "stems": [
     "vinhoverde",
@@ -581,7 +587,9 @@
     "tejo",
     "setubal",
     "alentejo",
-    "algarve"
+    "algarve",
+    "madeira",
+    "azores"
    ],
    "fills": [
     "#82482B",
@@ -593,7 +601,9 @@
     "#2B8268",
     "#B5974A",
     "#B54A5D",
-    "#826A2B"
+    "#826A2B",
+    "#2B2B82",
+    "#2B4182"
    ],
    "labels": [
     "vinhoverde",
@@ -605,7 +615,9 @@
     "tejo",
     "setubal",
     "alentejo",
-    "algarve"
+    "algarve",
+    "madeira",
+    "azores"
    ]
   },
   "argentina": {
@@ -700,7 +712,7 @@
    "stems": [
     "northland",
     "auckland",
-    "waikatobop",
+    "waikatobayofplenty",
     "gisborne",
     "hawkesbay",
     "wairarapa",
@@ -724,7 +736,7 @@
    "labels": [
     "northland",
     "auckland",
-    "waikatobop",
+    "waikatobayofplenty",
     "gisborne",
     "hawkesbay",
     "wairarapa",
@@ -803,25 +815,28 @@
     248
    ],
    "stems": [
-    "santorini",
+    "southaegean",
     "peloponnese",
     "naoussa",
     "amyndeon",
-    "attica"
+    "attica",
+    "crete"
    ],
    "fills": [
     "#8BC072",
     "#8B43AD",
     "#65AD43",
     "#662B82",
-    "#47822B"
+    "#47822B",
+    "#A1BBCE"
    ],
    "labels": [
-    "santorini",
+    "southaegean",
     "peloponnese",
     "naoussa",
     "amyndeon",
-    "attica"
+    "attica",
+    "crete"
    ]
   },
   "georgia": {
@@ -1246,26 +1261,29 @@
   },
   "japan": {
    "bounds": [
-    137.9311,
-    34.9195,
-    140.8557,
-    39.3526
+    137.5467,
+    34.5352,
+    146.4468,
+    46.1422
    ],
    "size": [
-    198,
+    230,
     300
    ],
    "stems": [
     "yamanashi",
-    "yamagata"
+    "yamagata",
+    "hokkaido"
    ],
    "fills": [
     "#8BC072",
-    "#2B8268"
+    "#2B8268",
+    "#A1BBCE"
    ],
    "labels": [
     "yamanashi",
-    "yamagata"
+    "yamagata",
+    "hokkaido"
    ]
   },
   "india": {
@@ -1304,16 +1322,16 @@
     158
    ],
    "stems": [
-    "niagara",
-    "okanagan"
+    "ontario",
+    "britishcolumbia"
    ],
    "fills": [
     "#8BC072",
     "#2B8268"
    ],
    "labels": [
-    "niagara",
-    "okanagan"
+    "ontario",
+    "britishcolumbia"
    ]
   },
   "mexico": {
@@ -1400,19 +1418,22 @@
     259
    ],
    "stems": [
-    "barossa",
-    "margaretriver",
-    "huntervalley"
+    "southaustralia",
+    "westernaustralia",
+    "newsouthwales",
+    "tasmania"
    ],
    "fills": [
     "#65AD43",
     "#8B43AD",
-    "#662B82"
+    "#662B82",
+    "#82482B"
    ],
    "labels": [
-    "barossa",
-    "margaretriver",
-    "huntervalley"
+    "southaustralia",
+    "westernaustralia",
+    "newsouthwales",
+    "tasmania"
    ]
   },
   "usa": {

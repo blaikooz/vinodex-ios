@@ -21,13 +21,13 @@
   "name": "Te Kauwhata",
   "lon": 175.15,
   "lat": -37.4,
-  "expect": "waikatobop"
+  "expect": "waikatobayofplenty"
  },
  {
   "name": "Te Puke",
   "lon": 176.32,
   "lat": -37.78,
-  "expect": "waikatobop"
+  "expect": "waikatobayofplenty"
  },
  {
   "name": "Gisborne",
@@ -118,6 +118,6 @@
   "name": "Waikato & Bay of Plenty",
   "lon": 175.5579,
   "lat": -37.9442,
-  "expect": "waikatobop"
+  "expect": "waikatobayofplenty"
  }
 ]

@@ -40,7 +40,9 @@ struct RegionMapTests {
         // 172 since 14 Sep 2026: the five island areas — Canary Islands,
         // Madeira, Azores, Tasmania, Crete — painted on the maintainer's
         // order that outlying wine islands are on the map.
-        #expect(total == 172, "painted areas across all thirty-nine: \(total)")
+        // 174 after round two: Rueda & Toro split into two areas, and
+        // Hokkaido joined Japan's.
+        #expect(total == 174, "painted areas across all thirty-nine: \(total)")
         var children = 0
         for country in RegionMap.mapped { children += try load(country).childrenByIndex.count }
         #expect(children == 2, "children on second planes: \(children)")
@@ -243,7 +245,7 @@ struct RegionMapTests {
             "mexico": [],
             "moldova": [],
             "morocco": [],
-            "newzealand": ["waikatobop"],
+            "newzealand": [],
             "portugal": [],
             "romania": [],
             "serbia": [],
@@ -266,9 +268,10 @@ struct RegionMapTests {
             #expect(empty == known[country], "\(country) uncovered changed: \(empty)")
             total += empty.count
         }
-        // 1 since 14 Sep 2026, down from 25 — and that one is a stem waiting
-        // on a rename, not a missing entry.
-        #expect(total == 1)
+        // 0 since the art session's round two of 14 Sep 2026 renamed
+        // `waikatobop` to the stem its entry folds to. Down from 25 that
+        // morning. Nothing painted anywhere is without a page.
+        #expect(total == 0)
     }
 
     /// The index is generated from `pins.json` by `france_check.py`; these
@@ -310,9 +313,11 @@ struct RegionMapTests {
         // canvas grew west to hold them, at `log=600` so the mainland kept
         // its resolution; `subject_rect` stays on the mainland so the map
         // still opens on Portugal.
+        // New Zealand 10 after round two: Waikato & Bay of Plenty's stem was
+        // renamed to what its entry folds to and the pin landed.
         let expected = [("france", 20), ("italy", 24), ("spain", 27),
                         ("portugal", 13), ("argentina", 6), ("chile", 9),
-                        ("newzealand", 9)]
+                        ("newzealand", 10)]
         var total = 0
         for (country, count) in expected {
             let map = try load(country)
@@ -326,7 +331,7 @@ struct RegionMapTests {
             #expect(Set(placed).count == count, "\(country) has a region on the map twice")
             total += placed.count
         }
-        #expect(total == 108)
+        #expect(total == 109)
     }
 
     @Test("hex decoding accepts the manifest's form and refuses nonsense")

@@ -4,7 +4,7 @@
   "R031": "riberadelduero",
   "R032": "catalonia",
   "R033": "galicia",
-  "R034": "ruedatoro",
+  "R034": "rueda",
   "R035": "jerez",
   "R088": "galicia",
   "R089": "bierzo",
@@ -12,7 +12,7 @@
   "R102": "catalonia",
   "R103": "levante",
   "R104": "catalonia",
-  "R113": "ruedatoro",
+  "R113": "toro",
   "R114": "navarra",
   "R115": "lamancha",
   "R116": "galicia",
@@ -41,9 +41,8 @@
   "riberadelduero": [
    "R031"
   ],
-  "ruedatoro": [
-   "R034",
-   "R113"
+  "rueda": [
+   "R034"
   ],
   "bierzo": [
    "R089"
@@ -89,6 +88,9 @@
   ],
   "canaryislands": [
    "R063"
+  ],
+  "toro": [
+   "R113"
   ]
  }
 }
