@@ -317,6 +317,20 @@ export interface LegacyGrapeRecord {
   color: string;
   icon: string;
   wineType: string;
+  /**
+   * The berry's skin colour, authored, when the prose cannot be trusted to
+   * say it.
+   *
+   * `grapeCards.ts` derives a card's red/white from `wineType` by looking for
+   * the word "red" in it, which works for the 170-odd records whose wineType
+   * is a body class ("Full-Body Red") and silently answers "white" for any
+   * that is not. Mavrodaphne is "Fortified Wine" and was typed white for it,
+   * against its own description ("the dark laurel of the Peloponnese... a
+   * firm, peppery red"); the three Madeira grapes share the shape and happen
+   * to be genuinely white. Authored here, it wins over the derivation --
+   * the same rule `characteristics` already follows. (2026-09-14)
+   */
+  berryColor?: 'red' | 'white';
   tastingProfile: TastingNote[];
   tags: string[];
   details: {

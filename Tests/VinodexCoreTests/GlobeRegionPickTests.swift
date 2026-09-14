@@ -159,16 +159,17 @@ struct GlobeRegionPickTests {
         #expect(db.countryInfo("California") == nil,
                 "a state answered through the country lookup — the prefix is missing")
         #expect(db.stateInfo("France") == nil, "a country answered through the state lookup")
-        // Both Georgias ship — the generator's reachability is by name, so
-        // the country being reachable carries the state gate along with it.
-        // Which is exactly the collision: the two must now be different
-        // records, and the state's must not be the one about qvevri.
-        let country = db.countryInfo("Georgia")
-        let state = db.stateInfo("Georgia")
-        #expect(country != nil)
-        #expect(state != nil)
-        #expect(country?.description != state?.description,
-                "the state of Georgia is reading the country of Georgia's prose")
+        // Only the country ships. The generator once kept one reachability
+        // set by name, so the country Georgia being reachable carried the
+        // state gate along with it and the device shipped a state page
+        // nothing could open; states are reachable only through a region's
+        // `state` now, and no region carries Georgia.
+        #expect(db.countryInfo("Georgia") != nil)
+        #expect(db.stateInfo("Georgia") == nil, "a state with no regions shipped")
+        // The four that do have regions are exactly the states that ship.
+        let shipped = Set(["California", "New York", "Oregon", "Washington"])
+        for state in shipped { #expect(db.stateInfo(state) != nil, "\(state) missing") }
+        #expect(db.stateInfo("Virginia") == nil, "web lists Virginia; the catalog has no Virginia region")
     }
 
     /// **The map is what says Okanagan is inside British Columbia** (0.9.58).
