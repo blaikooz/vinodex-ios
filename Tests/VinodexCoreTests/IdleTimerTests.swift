@@ -20,11 +20,12 @@ struct IdleTimerTests {
     ///
     /// **The value pin lives here and nowhere else** — every other assertion in
     /// this suite is written against `IdleSchedule.screensaver` rather than
-    /// against a literal, so moving the threshold is one line here. 60 since
-    /// 0.8.0 (H), 30 from 0.7.6 (A3), 15 from 0.7.3 (A5).
+    /// against a literal, so moving the threshold is one line here. 120 since
+    /// 14 Sep 2026 (maintainer), 60 from 0.8.0 (H), 30 from 0.7.6 (A3), 15
+    /// from 0.7.3 (A5).
     @Test("the schedule is one threshold, with the toast folded into it")
     func scheduleOrder() {
-        #expect(IdleSchedule.screensaver == 60)
+        #expect(IdleSchedule.screensaver == 120)
         #expect(IdleSchedule.toast == nil, "A4 folds the toast into the screensaver")
         // The accessor every consumer reads, whichever shape the schedule is in.
         #expect(IdleSchedule.cheers == IdleSchedule.screensaver)

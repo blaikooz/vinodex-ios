@@ -794,31 +794,33 @@ public struct RetroGlobeScreen: View {
     private func regionEntryCard(_ atlas: RegionAtlas, stem: String) -> some View {
         let found = selectedContents ?? contents(of: stem, in: atlas)
         let entries = found.entries
+        // **Whether anything below already says the area's name.** A place's
+        // own tile does; a state's tile does. Only when neither is there —
+        // a container with no page of any kind, or an area the catalog does
+        // not cover — does the card need to say it in words. Saying it twice
+        // was the maintainer's note on 13 Sep: "dont repeat the region name by
+        // giving it a title".
+        let stateTile = found.statePage.flatMap { state in onOpenState.map { (state, $0) } }
+        let named = found.isPlace || stateTile != nil
         return VStack(alignment: .leading, spacing: 8) {
-            // **The name of the thing you pointed at** (0.9.58, maintainer
-            // order: "the region should be the region name"). The header came
-            // off in 0.9.57 on the argument that the tile below already
-            // carried it — true only while the area and its entry are the same
-            // place. Tap California and the tile said NAPA VALLEY, which is a
-            // valley inside a state the catalog does not have a page for.
-            Text(found.name)
-                .font(DexFont.retro(12))
-                .tracking(1)
-                .foregroundStyle(lcd.accent)
+            if !named {
+                Text(found.name)
+                    .font(DexFont.retro(12))
+                    .tracking(1)
+                    .foregroundStyle(lcd.accent)
+            }
             if entries.isEmpty {
                 Text("NO CATALOG ENTRY HERE YET")
                     .font(DexFont.retro(10))
                     .tracking(1)
                     .foregroundStyle(lcd.subtext)
             } else {
-                // **A state is a place, even without a catalog entry.** Where
-                // the area has its own page — Bordeaux, Veneto — the tile
-                // below is it. Where it does not but the catalog files every
-                // entry under one state, that state has a page of a different
-                // kind, and this row is the way to it. Only when neither holds
-                // is the area merely a container.
-                if let state = found.statePage, let open = onOpenState {
-                    statePageRow(state, open: open)
+                // **A state is a place, even without a catalog entry.** Its
+                // tile leads the card the way a region's own entry would, and
+                // the entries inside it follow. Only a container with no page
+                // of any kind gets the caption instead.
+                if let (state, open) = stateTile {
+                    self.stateTile(state, open: open)
                 } else if !found.isPlace {
                     Text(found.more > 0
                          ? "INSIDE IT — \(entries.count) OF \(entries.count + found.more)"
@@ -845,31 +847,41 @@ public struct RetroGlobeScreen: View {
         .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(lcd.accent.opacity(0.5), lineWidth: 1))
     }
 
-    /// The way to a state's own page, shown in place of the INSIDE IT caption
-    /// when the painted area is a state. It reads as the destination it is —
-    /// the same chevron row the country tile uses — rather than as a label,
-    /// because it is the one thing on this card that is not an entry.
-    private func statePageRow(_ state: String, open: @escaping (String) -> Void) -> some View {
+    /// A state as a tile, the shape `BookmarksScreen.placeRow` gives a saved
+    /// state: flag, name, a STATE chip, a chevron. It sits where a region's
+    /// own entry tile would, so the card reads the same whether the thing
+    /// you tapped is Bordeaux or California — one tile that *is* the place,
+    /// then whatever is inside it.
+    private func stateTile(_ state: String, open: @escaping (String) -> Void) -> some View {
         Button {
             Haptics.select()
             open(state)
         } label: {
-            HStack(spacing: 8) {
-                FlagSwatch(db: db, country: state, width: 26, height: 17)
-                Text("THE STATE")
-                    .font(DexFont.retro(10))
-                    .tracking(1)
-                    .foregroundStyle(lcd.text)
-                Spacer(minLength: 6)
+            HStack(spacing: 12) {
+                FlagSwatch(db: db, country: state, width: 60, height: 38)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(state.uppercased())
+                        .font(DexFont.retro(13))
+                        .foregroundStyle(lcd.text)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    ChipView(
+                        label: "STATE",
+                        chip: Palette.Chip(bg: "#1c1917", border: "#57534e", text: "#e7e5e4")
+                    )
+                }
+                Spacer(minLength: 8)
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(lcd.subtext)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(Dex.stone600)
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
-            .background(RoundedRectangle(cornerRadius: 5).fill(lcd.page.opacity(0.5)))
-            .overlay(RoundedRectangle(cornerRadius: 5)
-                .strokeBorder(lcd.accent.opacity(0.4), lineWidth: 1))
+            .padding(8)
+            .frame(minHeight: 72)
+            .background(lcd.surface)
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .strokeBorder(lcd.surfaceEdge, lineWidth: 2)
+            )
         }
         .buttonStyle(DexPressStyle(scale: 0.98))
     }
