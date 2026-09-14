@@ -68,7 +68,14 @@
   "10": [],
   "8": []
  },
- "splits": [],
+ "splits": [
+  {
+   "keeps": "golan",
+   "gains": "uppergalilee",
+   "value": 35.635,
+   "axis": "lon"
+  }
+ ],
  "regions": {
   "judeanhills": {
    "id": 1,
@@ -99,26 +106,50 @@
   "uppergalilee": {
    "id": 2,
    "button": [
-    0.5275,
-    0.3884
+    0.525,
+    0.3865
    ],
-   "clearance_px": 9.9,
-   "area_px": 700,
+   "clearance_px": 9.0,
+   "area_px": 505,
    "fill": "#2B8268",
+   "units": [],
+   "detail": {
+    "canvas": [
+     44,
+     76
+    ],
+    "upscale": 2,
+    "source_bbox": [
+     198,
+     177,
+     218,
+     213
+    ]
+   }
+  },
+  "golan": {
+   "id": 3,
+   "button": [
+    0.5575,
+    0.3765
+   ],
+   "clearance_px": 4.5,
+   "area_px": 195,
+   "fill": "#AD43AD",
    "units": [
     "HaZafon"
    ],
    "detail": {
     "canvas": [
-     33,
-     45
+     22,
+     64
     ],
-    "upscale": 1,
+    "upscale": 2,
     "source_bbox": [
-     198,
+     219,
      171,
      228,
-     213
+     201
     ]
    }
   }

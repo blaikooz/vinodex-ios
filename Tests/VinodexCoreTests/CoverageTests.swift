@@ -85,7 +85,9 @@ struct CoverageTests {
         // been wearing the name of the one appellation inside them (British
         // Columbia as Okanagan, South Australia as Barossa...), Hokkaido, and
         // the six US regions the state gates had been naming without having.
-        #expect(db.entries(in: .regions).count == 214)
+        // Batch three: +1, the Golan Heights under Israel by the maintainer's
+        // ruling, its prose stating the territory's status in one clause.
+        #expect(db.entries(in: .regions).count == 215)
         // 31 since 0.6.x: Medium-Full Red removed, its grapes now Full-Body.
         // 33 since 0.7.9 (G): Madeira and Cava; 31 through 0.9.42's removal;
         // **33 again since 0.9.45**: the maintainer reversed the removal
@@ -156,9 +158,9 @@ struct CoverageTests {
         // batch running — all 42 new tasting notes reuse the vocabulary.
         // 530 since the v0.9.54 readiness batch: +1 style, S041 Vinho Verde.
         // Flavours unchanged at 106 for the tenth batch running.
-        // 590 since 0.9.58: +47 regions and +3 grapes across the two
-        // painted-area batches.
-        #expect(stats.total == 590)
+        // 591 since 0.9.58: +48 regions and +3 grapes across the three
+        // batches of 14 Sep.
+        #expect(stats.total == 591)
         // 26 since 0.7.3c: Brazil is the first *new* origin since Mexico. The
         // count is distinct region origins, so the coming-soon gates still do
         // not count and adding a country without a region would not move it.

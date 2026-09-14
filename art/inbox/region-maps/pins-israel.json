@@ -12,5 +12,12 @@
   "lon": 35.45,
   "lat": 33.03,
   "expect": "uppergalilee"
+ },
+ {
+  "id": "R215",
+  "name": "golan",
+  "lon": 35.69,
+  "lat": 32.993,
+  "expect": "golan"
  }
 ]

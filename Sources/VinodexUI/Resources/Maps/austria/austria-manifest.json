@@ -24,7 +24,8 @@
   "layers": {
    "interactive": "austria-regions.png",
    "backdrop": "austria-backdrop.png",
-   "index": "austria-index.png"
+   "index": "austria-index.png",
+   "index2": "austria-index2.png"
   },
   "index_legend": {
    "0": "outside the country (sea, neighbour, coastline ink)",
@@ -88,6 +89,39 @@
   "10": [],
   "8": []
  },
+ "children": {
+  "wachau": {
+   "id": 1,
+   "parent": "niederosterreich",
+   "area_px": 29,
+   "units": [
+    "Aggsbach",
+    "Bergern im Dunkelsteinerwald",
+    "Dürnstein",
+    "Mautern an der Donau",
+    "Mühldorf",
+    "Rossatz-Arnsdorf",
+    "Spitz",
+    "Weißenkirchen in der Wachau"
+   ],
+   "source": "at-gemeinden.json",
+   "detail": {
+    "canvas": [
+     57,
+     50
+    ],
+    "upscale": 1,
+    "framed_on": "niederosterreich",
+    "source_bbox": [
+     273,
+     172,
+     327,
+     219
+    ]
+   }
+  }
+ },
+ "children_note": "A second index plane, <country>-index2.png: same dimensions and same logical scale as index, 0 = no child, 1..M = children[].id. Read it BEFORE index; non-zero wins, otherwise fall back. Children resolve through the same catalog-id map as regions.",
  "splits": [],
  "regions": {
   "burgenland": {

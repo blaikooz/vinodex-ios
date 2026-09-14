@@ -2,7 +2,8 @@
  "byId": {
   "R061": "burgenland",
   "R062": "niederosterreich",
-  "R153": "styria"
+  "R153": "styria",
+  "R040": "wachau"
  },
  "byStem": {
   "burgenland": [
@@ -13,6 +14,9 @@
   ],
   "styria": [
    "R153"
+  ],
+  "wachau": [
+   "R040"
   ]
  }
 }

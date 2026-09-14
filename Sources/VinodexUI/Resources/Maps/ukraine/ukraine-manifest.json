@@ -3,19 +3,19 @@
  "country": "ukraine",
  "projection": {
   "kind": "equirectangular",
-  "x_factor": 0.65524013,
+  "x_factor": 0.65641703,
   "origin": [
-   1.793406,
-   -65.077868
+   1.796627,
+   -65.100695
   ],
-  "scale": 13.376432,
+  "scale": 13.352449,
   "note": "canvas_x = (lon*x_factor - origin[0])*scale + 2 ; canvas_y = (-lat - origin[1])*scale + 2",
   "cell_note": "Those are CONTINUOUS canvas coordinates. The cell containing a point is floor(x), floor(y) — the rasteriser fills cell i from [i, i+1). Rounding picks the nearest cell CENTRE and lands one cell over for anything past the halfway line; harmless on a large region, decisive on a small child."
  },
  "base": {
   "canvas": [
    502,
-   440
+   451
   ],
   "export_scale": 5,
   "unassigned": "#CEC6BA",
@@ -34,9 +34,9 @@
   "index_note": "one byte per LOGICAL cell, canvas-sized, NOT export_scale. Hit-test against this, not against pixel colour.",
   "subject_rect": [
    0.3406,
-   0.3886,
+   0.3792,
    0.3187,
-   0.2227
+   0.2417
   ],
   "subject_rect_note": "x,y,w,h as fractions of the canvas. Scale the two layers together so this rect fills the intended width; the backdrop bleeds off the screen edges."
  },
@@ -65,6 +65,7 @@
    "Czechia",
    "Denmark",
    "Dhekelia Sovereign Base Area",
+   "Egypt",
    "Estonia",
    "Finland",
    "France",
@@ -99,6 +100,7 @@
    "Romania",
    "Russia",
    "San Marino",
+   "Saudi Arabia",
    "Slovakia",
    "Slovenia",
    "Spain",
@@ -123,10 +125,10 @@
    "id": 1,
    "button": [
     0.4821,
-    0.5455
+    0.5322
    ],
    "clearance_px": 6.7,
-   "area_px": 561,
+   "area_px": 555,
    "fill": "#8BC072",
    "units": [
     "Odessa"
@@ -149,10 +151,10 @@
    "id": 2,
    "button": [
     0.3566,
-    0.5091
+    0.4967
    ],
    "clearance_px": 6.3,
-   "area_px": 226,
+   "area_px": 225,
    "fill": "#2B8268",
    "units": [
     "Transcarpathia"

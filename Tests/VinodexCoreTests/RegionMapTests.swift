@@ -41,11 +41,13 @@ struct RegionMapTests {
         // Madeira, Azores, Tasmania, Crete — painted on the maintainer's
         // order that outlying wine islands are on the map.
         // 174 after round two: Rueda & Toro split into two areas, and
-        // Hokkaido joined Japan's.
-        #expect(total == 174, "painted areas across all thirty-nine: \(total)")
+        // Hokkaido joined Japan's. 175 after round three: the Golan Heights,
+        // cut out of HaZafon along the Jordan.
+        #expect(total == 175, "painted areas across all thirty-nine: \(total)")
         var children = 0
         for country in RegionMap.mapped { children += try load(country).childrenByIndex.count }
-        #expect(children == 2, "children on second planes: \(children)")
+        // Three since round three: the Wachau on Austria's second plane.
+        #expect(children == 3, "children on second planes: \(children)")
         // The canvas is whatever the render made it — it grew a margin of
         // world on every side when the backdrop arrived, and the margin is
         // config. `subjectRectIsSane` pins the part that has to hold.
