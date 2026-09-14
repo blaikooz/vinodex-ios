@@ -4,7 +4,7 @@
    "idx": 2,
    "admin": "Argentina",
    "stem": "argentina",
-   "fill": "#61277C",
+   "fill": "#3A6946",
    "label": "ARGENTINA",
    "mapped": 6,
    "key": "argentina"
@@ -31,7 +31,7 @@
    "idx": 5,
    "admin": "Austria",
    "stem": "austria",
-   "fill": "#A45F3D",
+   "fill": "#2D7180",
    "label": "AUSTRIA",
    "mapped": 3,
    "key": "austria"
@@ -67,7 +67,7 @@
    "idx": 9,
    "admin": "Chile",
    "stem": "chile",
-   "fill": "#7C6427",
+   "fill": "#703B33",
    "label": "CHILE",
    "mapped": 8,
    "key": "chile"
@@ -85,7 +85,7 @@
    "idx": 11,
    "admin": "Croatia",
    "stem": "croatia",
-   "fill": "#A43D4F",
+   "fill": "#80572D",
    "label": "CROATIA",
    "mapped": 3,
    "key": "croatia"
@@ -148,7 +148,7 @@
    "idx": 18,
    "admin": "Hungary",
    "stem": "hungary",
-   "fill": "#5EA43D",
+   "fill": "#2F4D7E",
    "label": "HUNGARY",
    "mapped": 3,
    "key": "hungary"
@@ -168,7 +168,7 @@
    "stem": "israel",
    "fill": "#C072AC",
    "label": "ISRAEL",
-   "mapped": 2,
+   "mapped": 3,
    "key": "israel"
   },
   {
@@ -193,7 +193,7 @@
    "idx": 23,
    "admin": "Lebanon",
    "stem": "lebanon",
-   "fill": "#62BCA1",
+   "fill": "#C3B5D8",
    "label": "LEBANON",
    "mapped": 2,
    "key": "lebanon"
@@ -238,7 +238,7 @@
    "idx": 28,
    "admin": "Portugal",
    "stem": "portugal",
-   "fill": "#277C63",
+   "fill": "#2D8052",
    "label": "PORTUGAL",
    "mapped": 12,
    "key": "portugal"
@@ -274,7 +274,7 @@
    "idx": 32,
    "admin": "Slovenia",
    "stem": "slovenia",
-   "fill": "#3D78A4",
+   "fill": "#74932E",
    "label": "SLOVENIA",
    "mapped": 2,
    "key": "slovenia"
@@ -998,13 +998,13 @@
   "ukraine": {
    "bounds": [
     21.0512,
-    44.132,
+    43.2994,
     41.2411,
     53.4506
    ],
    "size": [
     300,
-    139
+    151
    ],
    "stems": [
     "bessarabia",
@@ -1104,15 +1104,18 @@
    ],
    "stems": [
     "judeanhills",
-    "uppergalilee"
+    "uppergalilee",
+    "golan"
    ],
    "fills": [
     "#8BC072",
-    "#2B8268"
+    "#2B8268",
+    "#AD43AD"
    ],
    "labels": [
     "judeanhills",
-    "uppergalilee"
+    "uppergalilee",
+    "golan"
    ]
   },
   "lebanon": {
@@ -1579,7 +1582,7 @@
   }
  },
  "index_pixels": {
-  "sha256": "ffd754eea8afb82120a22ee415c7cbca538c704ce137667fe530023ddc36fab6",
+  "sha256": "70e2d66e28166e4ef6f7f6923e7c69bbd3716e9fd32338e1c0d3a150be3d93e8",
   "shape": [
    1024,
    2048

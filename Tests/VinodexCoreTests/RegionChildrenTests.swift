@@ -29,14 +29,24 @@ struct RegionChildrenTests {
     /// the design: opt-in per country is what keeps the other thirty-eight
     /// byte-identical. If a second country grows one, this fails and somebody
     /// decides deliberately rather than discovering it later.
-    @Test("only France ships children, and it ships exactly two")
-    func onlyFrance() throws {
+    @Test("France and Austria ship children — two and one — and nobody else")
+    func onlyFranceAndAustria() throws {
         let france = try map("france")
         #expect(france.hasChildren)
         #expect(france.childrenByIndex.count == 2)
 
+        // Austria joined on 14 Sep 2026 by the maintainer's ruling that the
+        // Wachau, and only the Wachau, goes on a plane before 1.0. The
+        // boundary is the eight Gemeinden Weingesetz 2009 §21(3) names, which
+        // the DAC regulation defers to — found, not approximated.
+        let austria = try map("austria")
+        #expect(austria.hasChildren)
+        #expect(austria.childrenByIndex.count == 1)
+        #expect(austria.childrenByIndex.values.first?.stem == "wachau")
+        #expect(austria.childrenByIndex.values.first?.parent == "niederosterreich")
+
         for key in ["italy", "spain", "portugal", "argentina", "chile",
-                    "newzealand", "austria", "china", "usa", "germany"] {
+                    "newzealand", "china", "usa", "germany", "israel"] {
             #expect(!(try map(key).hasChildren), "\(key) grew a second plane unannounced")
         }
     }

@@ -437,6 +437,33 @@ for spec in SPLITS:
 
 FILLS = assign(masks, CFG.get('fills'))
 assert len(set(FILLS.values())) == len(FILLS), 'two regions share a fill'
+
+# A SHIPPED FILL THAT MOVES IS A SILENT RESTYLE. `palette.assign` with no
+# authored dict recomputes every colour from scratch, and the pool it draws from
+# has been widened twice since wave 2. So the first render of a country after it
+# gains a region can change the colours of the regions it ALREADY had, on a map
+# that is installed and screenshotted, with nothing to say so: every assert
+# above passes, because they only check that the canvas agrees with the manifest
+# this run is about to write.
+#
+# Found on Israel. Adding the Golan moved judeanhills #8BC072 -> #2B8268 and
+# uppergalilee #2B8268 -> #65AD43 — two regions restyled to add a third.
+# `countries.py` now pins those with a `fills` dict, and `assign` extends a
+# partial one, so only the new stem is placed. This is the gate that says so for
+# the next country instead of leaving it to be noticed.
+_prev = os.path.join(OUT, '%s-manifest.json' % NAME)
+if os.path.exists(_prev):
+    _was = {k: v['fill'] for k, v in json.load(open(_prev))['regions'].items()}
+    _moved = {k: (_was[k], '#%02X%02X%02X' % FILLS[k]) for k in FILLS
+              if k in _was and _was[k] != '#%02X%02X%02X' % FILLS[k]}
+    if _moved:
+        print('\nWARNING — %d already-rendered fill(s) MOVED:' % len(_moved))
+        for k, (a, b) in sorted(_moved.items()):
+            print('   %-20s %s -> %s' % (k, a, b))
+        print('If this map is installed, that is a restyle nobody asked for.\n'
+              'Pin them: add %s[\'fills\'] = {...} in countries.py with the\n'
+              'colours as installed; `palette.assign` extends a partial dict.\n'
+              % NAME.upper())
 for stem in REGIONS:
     canvas[masks[stem]] = FILLS[stem]
 # The runtime identifies a region by its pixel colour, so prove the painted

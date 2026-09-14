@@ -20,6 +20,7 @@ from PIL import Image, ImageDraw
 from scipy import ndimage
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+import extract_admin1
 import geosrc
 from countries import COUNTRIES
 
@@ -146,6 +147,36 @@ for i, adm in enumerate(order, start=2):
     for f in D:
         if f['properties'].get('ADMIN') == adm:
             paint(dr, rings_of(f), i, -180, 90, W/360, H/180)
+
+# CRIMEA IS PAINTED AS UKRAINE — deliberate override of Natural Earth, ruled by
+# the maintainer. Do not "fix" this back to the source.
+#
+# What the source does, measured rather than assumed: NE 1:10m puts the whole
+# peninsula inside Russia's admin-0 polygon (Simferopol, Sevastopol, Massandra,
+# Kerch and Yevpatoria all answer 'Russia'), and files both admin-1 units,
+# 'Crimea' and 'Sevastopol', under Russia too. Russia is not a wine country, so
+# before this the peninsula carried byte 1 — plain land — and a tap there opened
+# nothing, while Ukraine's own outline art under `entries/countries/` has always
+# drawn Crimea. The map and the outline disagreed.
+#
+# Painted from the admin-1 layer because admin-0 has no seam to cut on: Crimea is
+# one lobe of Russia's MultiPolygon and separating it there means geometry
+# surgery, whereas admin-1 hands over two clean units. Painted AFTER the wine
+# loop, which is safe in any order because no wine country claims these cells —
+# the only claimant is Russia's land byte.
+#
+# The same two units are what `extract_admin1.ANNEX` gives Ukraine's region map,
+# so the globe and the flat map agree by construction rather than by coincidence.
+_ann = extract_admin1.ANNEX.get('Ukraine', ())
+if _ann:
+    _by = {(f['properties'].get('admin'), f['properties'].get('name')): f
+           for f in geosrc.load('ne-admin1.json')['features']}
+    _uk = order.index('Ukraine') + 2
+    for _donor, _unit in _ann:
+        _f = _by[(_donor, _unit)]
+        paint(dr, rings_of(_f), _uk, -180, 90, W/360, H/180)
+    print('override: %d admin-1 unit(s) painted as Ukraine (idx %d), not %s'
+          % (len(_ann), _uk, sorted({d for d, _ in _ann})[0]))
 a = np.array(im)
 before = (a > 0).sum()
 a = despeck(a)

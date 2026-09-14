@@ -19,5 +19,12 @@
   "lon": 15.54,
   "lat": 46.78,
   "expect": "styria"
+ },
+ {
+  "id": "R040",
+  "name": "Wachau/Dürnstein",
+  "lon": 15.5217,
+  "lat": 48.3957,
+  "expect": "wachau"
  }
 ]

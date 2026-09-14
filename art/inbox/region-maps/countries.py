@@ -292,7 +292,27 @@ AUSTRIA = dict(
      'niederosterreich': ['Niederösterreich'],
      'styria'          : ['Steiermark'],
     },
+    # The one region on the second index plane before 1.0. Unblocked by finding
+    # the statute, not by lowering the bar: Weingesetz 2009 § 21 Abs. 3 Z 1 lit.
+    # k names the eight Gemeinden, and the DAC-Verordnung (BGBl. II Nr. 200/2020
+    # idF 191/2023) defers to that same Weinbaugebiet rather than redrawing it.
+    # So this IS the DAC boundary, not a shape that resembles one.
+    # `fetch_gemeinden.py` carries the citation, the CC BY 4.0 attribution, and
+    # the reason the units are joined on Gemeindekennziffer and not on name.
+    children={
+     'wachau': {'parent': 'niederosterreich', 'source': 'at-gemeinden.json',
+                'units': ['Aggsbach', 'Bergern im Dunkelsteinerwald', 'Dürnstein',
+                          'Mautern an der Donau', 'Mühldorf', 'Rossatz-Arnsdorf',
+                          'Spitz', 'Weißenkirchen in der Wachau']},
+    },
 )
+# Pinned like Israel's and Ukraine's: Austria shipped these three at 0.9.56 and
+# an unpinned palette is recomputed from scratch on every render.
+AUSTRIA['fills'] = {
+     'burgenland'      : (139, 67, 173),   # #8B43AD, as installed
+     'niederosterreich': (130, 72, 43),    # #82482B, as installed
+     'styria'          : (101, 173, 67),   # #65AD43, as installed
+}
 
 # China's four catalog rows sit on four provinces, which is why it needs no
 # split and no new source. Two are exact, two are whole-unit approximations and
@@ -529,6 +549,18 @@ MOLDOVA = dict(
     },
 )
 
+# CRIMEA IS PAINTED AS UKRAINE. Deliberate override of Natural Earth, ruled by
+# the maintainer; the mechanism is `extract_admin1.ANNEX` and the reasoning is
+# recorded there. NE 1:10m files both Crimean units under Russia in admin-1 and
+# puts the peninsula inside Russia's admin-0 polygon, so the source would have
+# drawn it as foreign land inside a country whose own outline art includes it.
+#
+# The cost, stated because it is not free: the canvas is sized on the subject,
+# so the peninsula grew Ukraine's canvas from 502x440 to 502x451 and every index
+# byte moved. Ukraine has to be re-rendered AND re-installed together; a new
+# index raster against an old manifest resolves taps to the wrong regions.
+# Nothing in `entries/countries/` moves -- that art already drew Crimea, and
+# those files are not ours to touch.
 UKRAINE = dict(
     admin1='ua-oblasts.json', subject='Ukraine', log=160, margin=170,
     splits=[],
@@ -537,6 +569,14 @@ UKRAINE = dict(
      'zakarpattia': ['Transcarpathia'],
     },
 )
+# Pinned for the same reason as Israel's: Ukraine shipped these two fills at
+# 0.9.57, and `palette.assign` with no authored dict recomputes from scratch
+# every render. It happens to return the same two colours today; that is luck,
+# not a guarantee, and the next region added to Ukraine would restyle both.
+UKRAINE['fills'] = {
+     'bessarabia' : (139, 192, 114),   # #8BC072, as installed
+     'zakarpattia': (43, 130, 104),    # #2B8268, as installed
+}
 
 SERBIA = dict(
     admin1='rs-districts.json', subject='Republic of Serbia', log=160, margin=170,
@@ -565,14 +605,61 @@ SLOVENIA = dict(
     },
 )
 
+# Natural Earth files the Israeli-administered Golan under ISRAEL, not Syria --
+# checked, not assumed. Probes at Katzrin, Ein Zivan, Odem, Mt Bental and the
+# Hermon ski station all return admin='Israel', name='HaZafon' in admin-1 and
+# ADMIN='Israel' in admin-0. Syria's two nearby units, 'Quneitra' (35.82-35.99E)
+# and 'UNDOF' (35.76-35.92E, the separation zone), share ZERO cells with
+# HaZafon: HaZafon's eastern edge IS the Alpha line. So there is no
+# cross-country override here. Crimea is the override case; this is not.
+#
+# The real problem is the opposite one: HaZafon is Galilee AND the Golan in a
+# single unit, 4,639 km2 with one ring and no holes, so `golan` has no admin
+# unit to be cut from -- it has to come out of a split. Three of its four edges
+# are free from the source (the Alpha line east, the Hermon finger north, the
+# Yarmouk south -- the polygon's east edge steps 35.575 -> 35.667 between lat
+# 32.65 and 32.70, which is the Golan appearing). Only the WEST edge is cut,
+# and it runs the Jordan and the eastern shore of the Sea of Galilee, which
+# sit between 35.625E and 35.652E over the whole span from the Yarmouk to the
+# escarpment. A meridian at 35.635E is within 0.017 degrees of that line at
+# every latitude; Israel renders at 40.34 px/deg with x_factor 0.847, so
+# 0.017 deg is 0.5 px. A traced river and this meridian are the same picture on
+# this canvas -- which is exactly why the Wachau argument does NOT transfer
+# there: for Wachau every edge would be invented and the error is unbounded.
+# Area check: the cut yields ~1,190 km2 against the ~1,200 km2 usually given
+# for the Israeli-administered Golan.
 ISRAEL = dict(
     admin1='il-districts.json', subject='Israel', log=160, margin=170,
-    splits=[],
+    # On 'lon' the FIRST stem keeps the east, exactly as Germany's
+    # ('rheinhessen', 'mosel', 7.4, 'lon') hands Mosel the western side. So the
+    # unit hangs on `golan` and `uppergalilee` is the one that gains -- writing
+    # it the intuitive way round put 505 px in the Golan and 195 in Galilee,
+    # which is the whole of HaZafon inside out.
+    splits=[['golan', 'uppergalilee', 35.635, 'lon']],
     regions={
      'judeanhills' : ['Jerusalem'],
-     'uppergalilee': ['HaZafon'],
+     'uppergalilee': [],
+     # APPENDED, never inserted: region ids are the dict order, and Greece's
+     # ids shifted under a mid-dict insert earlier this campaign.
+     'golan'       : ['HaZafon'],
     },
 )
+# --- palette frozen at 0.9.57 -------------------------------------------------
+# Israel shipped two regions at 0.9.57 and is now gaining a third. Without this
+# dict `palette.assign` recomputes all three from scratch, and the first run of
+# the Golan split duly moved judeanhills from #8BC072 to #2B8268 and
+# uppergalilee from #2B8268 to #65AD43 -- two colours restyled on a map that is
+# already installed and already screenshotted, to add one region. `assign`
+# extends a PARTIAL authored palette, so pinning the two shipped fills leaves
+# `golan` as the only key `palette.extend` has to place.
+#
+# This is not an Israel problem. Every wave-2 country carries it: the moment one
+# of them gains a region, its shipped fills move unless they are pinned first.
+ISRAEL['fills'] = {
+     'judeanhills' : (139, 192, 114),   # #8BC072, as installed
+     'uppergalilee': (43, 130, 104),    # #2B8268, as installed
+}
+
 
 LEBANON = dict(
     admin1='lb-governorates.json', subject='Lebanon', log=160, margin=170,

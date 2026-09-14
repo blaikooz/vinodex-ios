@@ -1,7 +1,8 @@
 {
  "byId": {
   "R166": "judeanhills",
-  "R167": "uppergalilee"
+  "R167": "uppergalilee",
+  "R215": "golan"
  },
  "byStem": {
   "judeanhills": [
@@ -9,6 +10,9 @@
   ],
   "uppergalilee": [
    "R167"
+  ],
+  "golan": [
+   "R215"
   ]
  }
 }
