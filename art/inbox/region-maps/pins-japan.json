@@ -12,5 +12,12 @@
   "lon": 140.34,
   "lat": 38.25,
   "expect": "yamagata"
+ },
+ {
+  "id": "R208",
+  "name": "Hokkaido",
+  "lon": 140.783,
+  "lat": 43.196,
+  "expect": "hokkaido"
  }
 ]

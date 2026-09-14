@@ -70,5 +70,54 @@
   "lon": 169.2,
   "lat": -45.05,
   "expect": "centralotago"
+ },
+ {
+  "id": "R180",
+  "name": "Northland",
+  "lon": 173.7279,
+  "lat": -35.3334,
+  "expect": "northland"
+ },
+ {
+  "id": "R181",
+  "name": "Auckland",
+  "lon": 174.8073,
+  "lat": -36.9662,
+  "expect": "auckland"
+ },
+ {
+  "id": "R183",
+  "name": "Gisborne",
+  "lon": 177.9227,
+  "lat": -38.3494,
+  "expect": "gisborne"
+ },
+ {
+  "id": "R184",
+  "name": "Wairarapa",
+  "lon": 175.45,
+  "lat": -41.0421,
+  "expect": "wairarapa"
+ },
+ {
+  "id": "R185",
+  "name": "Nelson",
+  "lon": 172.8693,
+  "lat": -41.3694,
+  "expect": "nelson"
+ },
+ {
+  "id": "R186",
+  "name": "Canterbury",
+  "lon": 170.4996,
+  "lat": -44.2217,
+  "expect": "canterbury"
+ },
+ {
+  "id": "R182",
+  "name": "Waikato & Bay of Plenty",
+  "lon": 175.5579,
+  "lat": -37.9442,
+  "expect": "waikatobop"
  }
 ]

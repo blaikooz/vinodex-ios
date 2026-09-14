@@ -2,20 +2,29 @@
  "byId": {
   "R045": "mendoza",
   "R087": "salta",
-  "R146": "patagonia"
+  "R146": "patagonia",
+  "R168": "sanjuan",
+  "R169": "catamarca",
+  "R170": "cordoba"
  },
  "byStem": {
   "mendoza": [
    "R045"
   ],
-  "sanjuan": [],
+  "sanjuan": [
+   "R168"
+  ],
   "salta": [
    "R087"
   ],
-  "catamarca": [],
+  "catamarca": [
+   "R169"
+  ],
   "patagonia": [
    "R146"
   ],
-  "cordoba": []
+  "cordoba": [
+   "R170"
+  ]
  }
 }

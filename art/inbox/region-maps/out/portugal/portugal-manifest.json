@@ -3,19 +3,19 @@
  "country": "portugal",
  "projection": {
   "kind": "equirectangular",
-  "x_factor": 0.76899242,
+  "x_factor": 0.77157467,
   "origin": [
-   -12.885228,
-   -47.735378
+   -29.639555,
+   -47.654547
   ],
-  "scale": 30.456411,
+  "scale": 30.903936,
   "note": "canvas_x = (lon*x_factor - origin[0])*scale + 2 ; canvas_y = (-lat - origin[1])*scale + 2",
   "cell_note": "Those are CONTINUOUS canvas coordinates. The cell containing a point is floor(x), floor(y) — the rasteriser fills cell i from [i, i+1). Rounding picks the nearest cell CENTRE and lands one cell over for anything past the halfway line; harmless on a large region, decisive on a small child."
  },
  "base": {
   "canvas": [
-   421,
-   502
+   942,
+   719
   ],
   "export_scale": 5,
   "unassigned": "#CEC6BA",
@@ -33,10 +33,10 @@
   },
   "index_note": "one byte per LOGICAL cell, canvas-sized, NOT export_scale. Hit-test against this, not against pixel colour.",
   "subject_rect": [
-   0.4062,
-   0.3406,
-   0.1876,
-   0.3187
+   0.7335,
+   0.2378,
+   0.0849,
+   0.2253
   ],
   "subject_rect_note": "x,y,w,h as fractions of the canvas. Scale the two layers together so this rect fills the intended width; the backdrop bleeds off the screen edges."
  },
@@ -48,113 +48,14 @@
   "shallow": "#4E6985",
   "shelf_px": 3,
   "countries": [
-   "Akrotiri Sovereign Base Area",
-   "Aland",
-   "Albania",
    "Algeria",
-   "Andorra",
-   "Armenia",
-   "Austria",
-   "Azerbaijan",
-   "Bahrain",
-   "Belarus",
-   "Belgium",
-   "Benin",
-   "Bir Tawil",
-   "Bosnia and Herzegovina",
-   "Bulgaria",
-   "Burkina Faso",
-   "Cabo Verde",
-   "Cameroon",
-   "Central African Republic",
-   "Chad",
-   "Croatia",
-   "Cyprus",
-   "Cyprus No Mans Area",
-   "Czechia",
-   "Denmark",
-   "Dhekelia Sovereign Base Area",
-   "Djibouti",
-   "Egypt",
-   "Eritrea",
-   "Estonia",
-   "Ethiopia",
-   "Faroe Islands",
-   "Finland",
    "France",
-   "Gambia",
-   "Georgia",
-   "Germany",
-   "Ghana",
    "Gibraltar",
-   "Greece",
-   "Greenland",
-   "Guernsey",
-   "Guinea",
-   "Guinea-Bissau",
-   "Hungary",
-   "Iceland",
-   "Iran",
-   "Iraq",
-   "Ireland",
-   "Isle of Man",
-   "Israel",
-   "Italy",
-   "Ivory Coast",
-   "Jersey",
-   "Jordan",
-   "Kazakhstan",
-   "Kosovo",
-   "Kuwait",
-   "Latvia",
-   "Lebanon",
-   "Libya",
-   "Liechtenstein",
-   "Lithuania",
-   "Luxembourg",
    "Mali",
-   "Malta",
    "Mauritania",
-   "Moldova",
-   "Monaco",
-   "Montenegro",
    "Morocco",
-   "Netherlands",
-   "Niger",
-   "Nigeria",
-   "North Macedonia",
-   "Northern Cyprus",
-   "Norway",
-   "Oman",
-   "Palestine",
-   "Poland",
-   "Qatar",
-   "Republic of Serbia",
-   "Romania",
-   "Russia",
-   "San Marino",
-   "Saudi Arabia",
-   "Senegal",
-   "Slovakia",
-   "Slovenia",
-   "Somalia",
-   "Somaliland",
-   "South Sudan",
    "Spain",
-   "Sudan",
-   "Sweden",
-   "Switzerland",
-   "Syria",
-   "Togo",
-   "Tunisia",
-   "Turkey",
-   "Turkmenistan",
-   "Ukraine",
-   "United Arab Emirates",
-   "United Kingdom",
-   "Vatican",
-   "Western Sahara",
-   "Yemen"
+   "Western Sahara"
   ]
  },
  "marker_clearance": {
@@ -174,11 +75,11 @@
   "vinhoverde": {
    "id": 1,
    "button": [
-    0.4679,
-    0.3805
+    0.7622,
+    0.2684
    ],
    "clearance_px": 10.0,
-   "area_px": 591,
+   "area_px": 604,
    "fill": "#82482B",
    "units": [
     "Viana do Castelo",
@@ -187,14 +88,14 @@
    ],
    "detail": {
     "canvas": [
-     52,
-     72
+     54,
+     74
     ],
     "upscale": 2,
     "source_bbox": [
-     186,
-     172,
-     210,
+     706,
+     171,
+     731,
      206
     ]
    }
@@ -202,11 +103,11 @@
   "douro": {
    "id": 2,
    "button": [
-    0.5463,
-    0.3785
+    0.7972,
+    0.2643
    ],
-   "clearance_px": 12.1,
-   "area_px": 961,
+   "clearance_px": 11.7,
+   "area_px": 1004,
    "fill": "#47822B",
    "units": [
     "Vila Real",
@@ -215,38 +116,38 @@
    ],
    "detail": {
     "canvas": [
-     51,
-     32
+     52,
+     33
     ],
     "upscale": 1,
     "source_bbox": [
-     201,
+     721,
      177,
-     249,
-     206
+     770,
+     207
     ]
    }
   },
   "dao": {
    "id": 3,
    "button": [
-    0.4964,
-    0.4283
+    0.7739,
+    0.3004
    ],
-   "clearance_px": 7.2,
-   "area_px": 296,
+   "clearance_px": 7.1,
+   "area_px": 294,
    "fill": "#B56D4A",
    "units": [],
    "detail": {
     "canvas": [
      50,
-     44
+     42
     ],
     "upscale": 2,
     "source_bbox": [
-     199,
-     207,
-     222,
+     719,
+     208,
+     742,
      227
     ]
    }
@@ -254,11 +155,11 @@
   "bairrada": {
    "id": 4,
    "button": [
-    0.4584,
-    0.4582
+    0.7569,
+    0.3199
    ],
-   "clearance_px": 7.0,
-   "area_px": 534,
+   "clearance_px": 7.2,
+   "area_px": 552,
    "fill": "#2B5E82",
    "units": [
     "Aveiro",
@@ -267,25 +168,25 @@
    "detail": {
     "canvas": [
      58,
-     70
+     74
     ],
     "upscale": 2,
     "source_bbox": [
-     185,
+     705,
      205,
-     212,
-     238
+     732,
+     240
     ]
    }
   },
   "beirainterior": {
    "id": 5,
    "button": [
-    0.5273,
-    0.4741
+    0.7866,
+    0.3185
    ],
    "clearance_px": 10.0,
-   "area_px": 935,
+   "area_px": 965,
    "fill": "#662B82",
    "units": [
     "Castelo Branco",
@@ -294,25 +195,25 @@
    "detail": {
     "canvas": [
      38,
-     51
+     52
     ],
     "upscale": 1,
     "source_bbox": [
-     200,
+     720,
      202,
-     235,
-     250
+     755,
+     251
     ]
    }
   },
   "lisboa": {
    "id": 6,
    "button": [
-    0.4276,
-    0.5279
+    0.742,
+    0.3727
    ],
-   "clearance_px": 6.7,
-   "area_px": 513,
+   "clearance_px": 7.1,
+   "area_px": 524,
    "fill": "#822B3B",
    "units": [
     "Lisboa",
@@ -320,52 +221,52 @@
    ],
    "detail": {
     "canvas": [
-     34,
-     45
+     35,
+     46
     ],
     "upscale": 1,
     "source_bbox": [
-     172,
+     691,
      236,
-     203,
-     278
+     723,
+     279
     ]
    }
   },
   "tejo": {
    "id": 7,
    "button": [
-    0.4679,
-    0.508
+    0.7611,
+    0.3561
    ],
-   "clearance_px": 7.8,
-   "area_px": 497,
+   "clearance_px": 8.1,
+   "area_px": 520,
    "fill": "#2B8268",
    "units": [
     "Santarém"
    ],
    "detail": {
     "canvas": [
-     56,
-     68
+     58,
+     70
     ],
     "upscale": 2,
     "source_bbox": [
-     184,
-     243,
-     210,
-     275
+     703,
+     244,
+     730,
+     277
     ]
    }
   },
   "setubal": {
    "id": 8,
    "button": [
-    0.4608,
-    0.5757
+    0.758,
+    0.4047
    ],
    "clearance_px": 6.7,
-   "area_px": 413,
+   "area_px": 431,
    "fill": "#B5974A",
    "units": [
     "Setúbal"
@@ -377,21 +278,21 @@
     ],
     "upscale": 2,
     "source_bbox": [
-     177,
-     273,
-     203,
-     305
+     697,
+     275,
+     723,
+     307
     ]
    }
   },
   "alentejo": {
    "id": 9,
    "button": [
-    0.5083,
-    0.5319
+    0.7803,
+    0.3755
    ],
-   "clearance_px": 12.5,
-   "area_px": 1784,
+   "clearance_px": 12.8,
+   "area_px": 1843,
    "fill": "#B54A5D",
    "units": [
     "Évora",
@@ -400,26 +301,26 @@
    ],
    "detail": {
     "canvas": [
-     47,
-     73
+     48,
+     74
     ],
     "upscale": 1,
     "source_bbox": [
-     187,
-     248,
-     231,
-     318
+     707,
+     249,
+     752,
+     320
     ]
    }
   },
   "algarve": {
    "id": 10,
    "button": [
-    0.5059,
-    0.6375
+    0.776,
+    0.4506
    ],
    "clearance_px": 6.3,
-   "area_px": 406,
+   "area_px": 412,
    "fill": "#826A2B",
    "units": [
     "Faro"
@@ -431,10 +332,62 @@
     ],
     "upscale": 2,
     "source_bbox": [
-     183,
-     313,
-     221,
-     330
+     703,
+     315,
+     741,
+     332
+    ]
+   }
+  },
+  "madeira": {
+   "id": 11,
+   "button": [
+    0.5446,
+    0.6426
+   ],
+   "clearance_px": 3.2,
+   "area_px": 89,
+   "fill": "#2B2B82",
+   "units": [
+    "Madeira"
+   ],
+   "detail": {
+    "canvas": [
+     36,
+     95
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     506,
+     451,
+     539,
+     543
+    ]
+   }
+  },
+  "azores": {
+   "id": 12,
+   "button": [
+    0.2834,
+    0.3853
+   ],
+   "clearance_px": 3.0,
+   "area_px": 310,
+   "fill": "#2B4182",
+   "units": [
+    "Azores"
+   ],
+   "detail": {
+    "canvas": [
+     153,
+     90
+    ],
+    "upscale": 1,
+    "source_bbox": [
+     171,
+     246,
+     321,
+     333
     ]
    }
   }

@@ -64,7 +64,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'STCA001',
     name: 'California',
-    description: 'California is the leading U.S. wine state, spanning cool coastal valleys to warm inland zones with many benchmark AVAs.',
+    description: 'California makes more than four fifths of all U.S. wine — on its own it would be the world\'s fourth largest producer, behind only France, Italy and Spain. What sorts its regions is distance from the Pacific rather than latitude: cold marine air pulled inland through gaps in the Coast Ranges keeps the Petaluma Gap and the east-west valleys of Santa Barbara cool while the interior bakes. Cabernet Sauvignon and Chardonnay lead the plantings.',
     category: 'COUNTRY_GATE',
     color: '#312e81',
     icon: 'flag',
@@ -72,7 +72,7 @@ export const COUNTRIES: CountryGateEntry[] = [
     details: {
       origin: 'USA',
       classification: 'STATE',
-      keyRegions: ['Napa Valley', 'Sonoma', 'Paso Robles', 'Santa Barbara', 'Lodi'],
+      keyRegions: ['Napa Valley', 'Sonoma', 'Paso Robles', 'Santa Barbara', 'Lodi', 'San Benito'],
       notableGrapes: ['Cabernet Sauvignon', 'Chardonnay', 'Pinot Noir']
     }
   },
@@ -469,7 +469,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'STNY001',
     name: 'New York',
-    description: 'New York is a cool-climate U.S. wine state centered on lake and coastal zones, known for Riesling and Cabernet Franc.',
+    description: 'New York grows its vines where deep water moderates the winter. In the Finger Lakes, Seneca Lake is deep enough that it rarely freezes, and the heat it holds is what lets vinifera survive on the slopes above — the tender varieties sit within about half a mile of the water, while hardier American vines and hybrids go higher up. Riesling is the state\'s calling card, with Cabernet Franc the red that ripens most reliably.',
     category: 'COUNTRY_GATE',
     color: '#0f172a',
     icon: 'flag',
@@ -544,7 +544,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'STOR001',
     name: 'Oregon',
-    description: 'Oregon is a benchmark cool-climate U.S. state, with world-class Pinot Noir and Chardonnay in valley and hillside AVAs.',
+    description: 'Oregon is Pinot Noir country — close to three fifths of everything planted, and the Willamette Valley alone takes in around four fifths of the state\'s crush. Its labelling rules are tighter than the federal ones: most varietal wines must be 90 percent the named grape where the TTB asks 75, and 95 percent of the fruit must come from the named appellation. Pinot Gris and Chardonnay are the whites that matter.',
     category: 'COUNTRY_GATE',
     color: '#14532d',
     icon: 'flag',
@@ -694,7 +694,7 @@ export const COUNTRIES: CountryGateEntry[] = [
   {
     id: 'STWA001',
     name: 'Washington',
-    description: 'Washington State combines warm continental fruit concentration with high-altitude freshness in top AVAs.',
+    description: 'Washington is the second largest wine state after California, and nearly all of its vineyards sit east of the Cascades in the mountains\' rain shadow, on six to eight inches of rain a year — desert farming that only irrigation makes possible. The freshness in the wines is a matter of latitude and the desert night rather than altitude: up to seventeen hours of summer daylight, then a day-to-night swing of thirty to forty degrees Fahrenheit. Cabernet Sauvignon leads the plantings, with Merlot and Syrah the other reds of consequence.',
     category: 'COUNTRY_GATE',
     color: '#1e1b4b',
     icon: 'flag',
@@ -702,7 +702,7 @@ export const COUNTRIES: CountryGateEntry[] = [
     details: {
       origin: 'USA',
       classification: 'STATE',
-      keyRegions: ['Walla Walla', 'Yakima Valley', 'Columbia Valley'],
+      keyRegions: ['Columbia Valley', 'Yakima Valley', 'Walla Walla'],
       notableGrapes: ['Cabernet Sauvignon', 'Merlot', 'Syrah']
     }
   },

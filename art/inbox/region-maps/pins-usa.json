@@ -61,5 +61,47 @@
   "lon": -121.2,
   "lat": 36.6,
   "expect": "california"
+ },
+ {
+  "id": "R209",
+  "name": "Columbia Valley",
+  "lon": -119.284,
+  "lat": 46.286,
+  "expect": "washington"
+ },
+ {
+  "id": "R210",
+  "name": "Long Island",
+  "lon": -72.485,
+  "lat": 41.01,
+  "expect": "newyork"
+ },
+ {
+  "id": "R211",
+  "name": "Yakima Valley",
+  "lon": -119.769,
+  "lat": 46.207,
+  "expect": "washington"
+ },
+ {
+  "id": "R212",
+  "name": "Rogue Valley",
+  "lon": -122.876,
+  "lat": 42.327,
+  "expect": "oregon"
+ },
+ {
+  "id": "R213",
+  "name": "Umpqua Valley",
+  "lon": -123.342,
+  "lat": 43.216,
+  "expect": "oregon"
+ },
+ {
+  "id": "R214",
+  "name": "Hudson River Region",
+  "lon": -73.972,
+  "lat": 41.605,
+  "expect": "newyork"
  }
 ]

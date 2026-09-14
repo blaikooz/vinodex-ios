@@ -64,5 +64,26 @@
   "lon": -65.02,
   "lat": -31.98,
   "expect": "cordoba"
+ },
+ {
+  "id": "R168",
+  "name": "San Juan",
+  "lon": -68.7782,
+  "lat": -30.9083,
+  "expect": "sanjuan"
+ },
+ {
+  "id": "R169",
+  "name": "Catamarca",
+  "lon": -67.1339,
+  "lat": -28.6081,
+  "expect": "catamarca"
+ },
+ {
+  "id": "R170",
+  "name": "Córdoba",
+  "lon": -63.86,
+  "lat": -31.2083,
+  "expect": "cordoba"
  }
 ]

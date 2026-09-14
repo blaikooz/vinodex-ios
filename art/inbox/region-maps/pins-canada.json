@@ -12,5 +12,19 @@
   "lon": -119.59,
   "lat": 49.5,
   "expect": "okanagan"
+ },
+ {
+  "id": "R202",
+  "name": "British Columbia",
+  "lon": -123.366,
+  "lat": 48.428,
+  "expect": "britishcolumbia"
+ },
+ {
+  "id": "R203",
+  "name": "Ontario",
+  "lon": -77.141,
+  "lat": 44.007,
+  "expect": "ontario"
  }
 ]

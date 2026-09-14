@@ -898,6 +898,25 @@ public final class WineDatabase: Sendable {
         return countries.first { TextNormalize.label($0.key) == target }?.value
     }
 
+    /// The authored blurb for a US state (0.9.58).
+    ///
+    /// States ship under a `state:` prefix because `countries.json` is keyed
+    /// by name and the state of Georgia collided with the country of Georgia
+    /// — the country won only by being written later. A state page must never
+    /// be able to land on a country's prose, so this reads the prefixed key
+    /// and nothing else; `countryInfo` keeps answering for countries, and its
+    /// fuzzy fallback cannot reach a prefixed key because the prefix is part
+    /// of what it compares.
+    public func stateInfo(_ name: String) -> CountryInfo? {
+        let prefix = "state:"
+        if let hit = countries[prefix + name] { return hit }
+        let target = TextNormalize.label(name)
+        return countries.first {
+            $0.key.hasPrefix(prefix)
+                && TextNormalize.label(String($0.key.dropFirst(prefix.count))) == target
+        }?.value
+    }
+
     /// The countries the globe attributes to a continent. Sourced from
     /// `data/continents.ts`, whose `keyRegions` field holds **country** names.
     public func countries(in continent: Continent) -> [String] {

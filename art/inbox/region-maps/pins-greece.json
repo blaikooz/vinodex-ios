@@ -40,5 +40,19 @@
   "lon": 22.66,
   "lat": 37.82,
   "expect": "peloponnese"
+ },
+ {
+  "id": "R201",
+  "name": "Crete",
+  "lon": 25.1,
+  "lat": 35.3,
+  "expect": "crete"
+ },
+ {
+  "id": "R207",
+  "name": "South Aegean",
+  "lon": 28.222,
+  "lat": 36.435,
+  "expect": "southaegean"
  }
 ]

@@ -40,7 +40,16 @@ public enum LabelTextScan {
     /// each extra window size is another pass over every line and, since D-a,
     /// over every line *break* — which is why this tracks the catalog rather
     /// than being set generously and forgotten.
-    public static let maxPhraseWords = 5
+    /// **7 since 0.9.58, up from 5.** The painted-area batch brought Valle
+    /// d'Aosta and with it the appellation "Blanc de Morgex et de La Salle",
+    /// seven words after normalisation. `LabelReaderTests.phraseWindow…` is the
+    /// test that exists to catch exactly this — a name the scanner can never
+    /// match because its window is narrower than the name — and its failure
+    /// message says to raise this. Two more passes per line and per line
+    /// break, paid because the alternative is a real appellation the reader
+    /// can never match — the note above still governs: this tracks the
+    /// catalog, it is not set generously.
+    public static let maxPhraseWords = 7
 
     /// A phrase lifted from the recognised lines, with where it came from.
     ///

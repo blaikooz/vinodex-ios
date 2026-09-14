@@ -1259,9 +1259,20 @@ function buildCountryInfo(entries: readonly WineEntry[]) {
     if (!reachable.has(country.name)) continue;
     if (!country.description) continue;
     // The country's appellation system (0.6, A2) rides in the entry's tags
-    // alongside the COUNTRY marker — strip the marker, ship the system.
-    const system = (country.tags ?? []).filter((t) => t !== 'COUNTRY');
-    info[country.name] = {
+    // alongside the COUNTRY marker — strip the marker, ship the system. The
+    // STATE marker goes the same way (0.9.58): it is the gate's kind, not a
+    // system a region can be classified under, and `StateScreen` would have
+    // drawn it as a chip reading STATE.
+    const system = (country.tags ?? []).filter((t) => t !== 'COUNTRY' && t !== 'STATE');
+    // **States ship under their own key** (0.9.58). This map was keyed by
+    // bare name, and the state of Georgia collided with the country: the
+    // country won only because states are written first in `countries.ts`
+    // and the later assignment overwrote. Author one Georgia (US) region and
+    // a learner tapping it would have read about qvevri. `state:Georgia`
+    // cannot collide with anything a country is called, and the Swift side
+    // reads states through `stateInfo`, which knows the prefix.
+    const isState = country.details?.classification === 'STATE';
+    info[isState ? `state:${country.name}` : country.name] = {
       description: country.description,
       ...(system.length > 0 ? { appellationSystem: system } : {}),
     };

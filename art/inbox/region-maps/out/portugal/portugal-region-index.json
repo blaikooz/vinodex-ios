@@ -6,7 +6,13 @@
   "R083": "dao",
   "R084": "tejo",
   "R085": "lisboa",
-  "R086": "alentejo"
+  "R086": "alentejo",
+  "R187": "beirainterior",
+  "R188": "setubal",
+  "R189": "algarve",
+  "R190": "lisboa",
+  "R081": "madeira",
+  "R121": "azores"
  },
  "byStem": {
   "vinhoverde": [
@@ -21,17 +27,30 @@
   "bairrada": [
    "R082"
   ],
-  "beirainterior": [],
+  "beirainterior": [
+   "R187"
+  ],
   "lisboa": [
-   "R085"
+   "R085",
+   "R190"
   ],
   "tejo": [
    "R084"
   ],
-  "setubal": [],
+  "setubal": [
+   "R188"
+  ],
   "alentejo": [
    "R086"
   ],
-  "algarve": []
+  "algarve": [
+   "R189"
+  ],
+  "madeira": [
+   "R081"
+  ],
+  "azores": [
+   "R121"
+  ]
  }
 }

@@ -37,7 +37,10 @@ struct RegionMapTests {
         // painted regions the area count does not see: 169 in all.
         var total = 0
         for country in RegionMap.mapped { total += try load(country).regions.count }
-        #expect(total == 167, "painted areas across all thirty-nine: \(total)")
+        // 172 since 14 Sep 2026: the five island areas — Canary Islands,
+        // Madeira, Azores, Tasmania, Crete — painted on the maintainer's
+        // order that outlying wine islands are on the map.
+        #expect(total == 172, "painted areas across all thirty-nine: \(total)")
         var children = 0
         for country in RegionMap.mapped { children += try load(country).childrenByIndex.count }
         #expect(children == 2, "children on second planes: \(children)")
@@ -100,6 +103,39 @@ struct RegionMapTests {
         #expect(b.north == 90)
         // Still the whole country: Canada reaches 83.1°N at Cape Columbia.
         #expect(try load("canada").subjectBounds.north > 80)
+    }
+
+    /// **A painted area must be named after itself** (0.9.58).
+    ///
+    /// The stem is the geography the renderer drew; the display name is what
+    /// the screen says you tapped. When they are different *places* the map
+    /// lies about what is under your finger, and it had done so four times:
+    /// `oregon` displayed as WILLAMETTE VALLEY, `washington` as WALLA WALLA,
+    /// `newyork` as FINGER LAKES and `ningxia` as HELAN MOUNTAIN — in each
+    /// case an administrative unit wearing the name of the one appellation
+    /// the catalog happens to hold inside it. Tapping the whole of Oregon and
+    /// being told it is the Willamette Valley is wrong in the same way the
+    /// California tile reading NAPA VALLEY was.
+    ///
+    /// Folded rather than compared outright, because the display name is
+    /// allowed to be the *same* place spelled properly: `dao` is DÃO,
+    /// `southwest` is SOUTH WEST, `niederosterreich` keeps its umlaut. What is
+    /// not allowed is a name neither string contains.
+    @Test("no painted area is named after a different place")
+    func displayNamesNameTheArea() throws {
+        func fold(_ value: String) -> String {
+            value.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil)
+                .filter { $0.isLetter || $0.isNumber }
+        }
+        for country in RegionMap.mapped {
+            let map = try load(country)
+            for stem in map.regions.map(\.id) {
+                let shown = fold(map.displayName(stem))
+                let key = fold(stem)
+                #expect(shown.contains(key) || key.contains(shown),
+                        "\(country)/\(stem) displays as \"\(map.displayName(stem))\", a different place")
+            }
+        }
     }
 
     /// The load-bearing property of the whole hit test: two regions sharing a
@@ -178,14 +214,18 @@ struct RegionMapTests {
     @Test("uncatalogued painted areas are exactly the ones we know about")
     func stemsWithoutCatalog() throws {
         let known: [String: [String]] = [
-            "argentina": ["catamarca", "cordoba", "sanjuan"],
+            // Emptied on 14 Sep 2026: sommbot authored an entry for every
+            // painted area (R168–R201), so the 25 that were dead are not.
+            // The one survivor is a stem that abbreviates its own name and
+            // waits on the art session renaming it to `waikatobayofplenty`.
+            "argentina": [],
             "armenia": [],
             "australia": [],
             "austria": [],
             "brazil": [],
             "bulgaria": [],
             "canada": [],
-            "chile": ["biobio", "coquimbo", "malleco", "maule", "rapel"],
+            "chile": [],
             "china": [],
             "croatia": [],
             "cyprus": [],
@@ -197,20 +237,20 @@ struct RegionMapTests {
             "hungary": [],
             "india": [],
             "israel": [],
-            "italy": ["liguria", "molise", "valledaosta"],
+            "italy": [],
             "japan": [],
             "lebanon": [],
             "mexico": [],
             "moldova": [],
             "morocco": [],
-            "newzealand": ["auckland", "canterbury", "gisborne", "nelson", "northland", "waikatobop", "wairarapa"],
-            "portugal": ["algarve", "beirainterior", "setubal"],
+            "newzealand": ["waikatobop"],
+            "portugal": [],
             "romania": [],
             "serbia": [],
             "slovakia": [],
             "slovenia": [],
             "southafrica": [],
-            "spain": ["andalucia", "aragon", "extremadura", "madrid"],
+            "spain": [],
             "switzerland": [],
             "turkey": [],
             "ukraine": [],
@@ -226,7 +266,9 @@ struct RegionMapTests {
             #expect(empty == known[country], "\(country) uncovered changed: \(empty)")
             total += empty.count
         }
-        #expect(total == 25)
+        // 1 since 14 Sep 2026, down from 25 — and that one is a stem waiting
+        // on a rename, not a missing entry.
+        #expect(total == 1)
     }
 
     /// The index is generated from `pins.json` by `france_check.py`; these
@@ -259,15 +301,18 @@ struct RegionMapTests {
 
     @Test("every catalog region is placed once, in every country")
     func everyCatalogRegionPlaced() throws {
-        // Portugal is 7 rather than 9, Spain 18 rather than 19: Madeira, the
-        // Azores and the Canaries are 900–1800km offshore, and widening a
-        // mainland map far enough to hold them would shrink the mainland —
-        // and every tap target on it — to nothing. They stay reachable
-        // through the ordinary region list; they simply have no square on
-        // this board. See `OFF_ANY_MAP` in make_pins.py.
-        let expected = [("france", 20), ("italy", 21), ("spain", 18),
-                        ("portugal", 7), ("argentina", 3), ("chile", 3),
-                        ("newzealand", 3)]
+        // 0.9.58, two batches in one day. Sommbot authored an entry for every
+        // painted area (Italy +3, Spain +8, Portugal +4, Argentina +3, Chile
+        // +6, New Zealand +6), and the art session painted the islands on the
+        // maintainer's order — so the Canaries, Madeira and the Azores, which
+        // this test used to excuse as "900–1800km offshore, no square on
+        // this board", have squares now: Spain 27, Portugal 13. Portugal's
+        // canvas grew west to hold them, at `log=600` so the mainland kept
+        // its resolution; `subject_rect` stays on the mainland so the map
+        // still opens on Portugal.
+        let expected = [("france", 20), ("italy", 24), ("spain", 27),
+                        ("portugal", 13), ("argentina", 6), ("chile", 9),
+                        ("newzealand", 9)]
         var total = 0
         for (country, count) in expected {
             let map = try load(country)
@@ -281,7 +326,7 @@ struct RegionMapTests {
             #expect(Set(placed).count == count, "\(country) has a region on the map twice")
             total += placed.count
         }
-        #expect(total == 75)
+        #expect(total == 108)
     }
 
     @Test("hex decoding accepts the manifest's form and refuses nonsense")

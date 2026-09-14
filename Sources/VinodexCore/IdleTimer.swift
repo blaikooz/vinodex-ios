@@ -72,6 +72,19 @@ public enum IdleSchedule: Sendable {
     /// two clocks never has to know whether the fold is in force.
     public static var cheers: TimeInterval { toast ?? screensaver }
 
+    /// **120 seconds — the maintainer's figure (14 Sep 2026), up from 0.8.0's 60.**
+    ///
+    /// The fourth value, and the third push in the same direction, so H's
+    /// reasoning below stands and this is one line on top of it. Sixty was
+    /// chosen as the point past which nobody is still reading the page they
+    /// left; device testing said it was not, quite — a region page with a
+    /// long soil block and a wine list read slowly is over a minute, and the
+    /// page changing under someone still on it is the one fault every raise
+    /// of this number has been about. Two minutes, by order.
+    ///
+    /// The paragraphs below are H's case for 60 and are kept whole, because
+    /// every argument in them applies unchanged at 120.
+    ///
     /// 60 seconds — **0.8.0's figure (H), up from 0.7.6's A3 30 and A5's 15.**
     ///
     /// **This is the third value and the second time the same argument has been
@@ -100,7 +113,7 @@ public enum IdleSchedule: Sendable {
     /// that replaces the page title while the page is being read is the exact
     /// fault B3's ten seconds was chosen to avoid. Raising the one number raises
     /// both, which is the whole point of there being one number.
-    public static let screensaver: TimeInterval = 60
+    public static let screensaver: TimeInterval = 120
 
     /// Thresholds paired with the stage they open, ascending.
     ///

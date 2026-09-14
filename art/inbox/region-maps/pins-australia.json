@@ -19,5 +19,33 @@
   "lon": 151.3,
   "lat": -32.78,
   "expect": "huntervalley"
+ },
+ {
+  "id": "R200",
+  "name": "Tasmania",
+  "lon": 147.0,
+  "lat": -41.3,
+  "expect": "tasmania"
+ },
+ {
+  "id": "R204",
+  "name": "South Australia",
+  "lon": 138.601,
+  "lat": -34.929,
+  "expect": "southaustralia"
+ },
+ {
+  "id": "R205",
+  "name": "Western Australia",
+  "lon": 115.857,
+  "lat": -31.953,
+  "expect": "westernaustralia"
+ },
+ {
+  "id": "R206",
+  "name": "New South Wales",
+  "lon": 149.1,
+  "lat": -33.284,
+  "expect": "newsouthwales"
  }
 ]

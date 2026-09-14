@@ -28,6 +28,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 from scipy import ndimage
 
+import geosrc
 from countries import COUNTRIES
 from palette import assign
 
@@ -197,7 +198,17 @@ def pole(m):
 
 # --- projection, sized on the subject country, then widened by MARGIN --------------------
 allr = rings(list(FR))
-K = math.cos(math.radians(np.vstack([p[0] for p in allr])[:, 1].mean()))
+# The longitude correction. NOTE this is the mean over RINGS, not weighted by
+# area, so a country with many small islands has its projection pulled toward
+# them by sheer polygon count — the Aleutians and the Hawaiian chain move the
+# USA's x_factor more than their land area could justify. Worth revisiting; not
+# revisited here, because changing it moves every index byte on all 39 maps.
+#
+# `x_factor` in the config pins it. That exists for exactly one situation: a
+# country gains or loses territory and the canvas must NOT move, because its
+# index raster is already shipped and the app hit-tests against it.
+K = CFG.get('x_factor') or math.cos(
+    math.radians(np.vstack([p[0] for p in allr])[:, 1].mean()))
 P = project(allr, K)
 
 # Which shape sizes the canvas. By default the whole country; 'regions' frames on
@@ -218,9 +229,15 @@ def in_window(poly):
     return w[0] <= c[0] <= w[2] and w[1] <= c[1] <= w[3]
 
 
-frame = P if CFG.get('focus') != 'regions' else project(
-    [r for r in rings(sorted({u for us in REGIONS.values() for u in us}))
-     if in_window(r)], K)
+# `frame_window` applies on BOTH paths. It only ever ran on the focus='regions'
+# path before, and nothing caught that because the two countries that set a
+# window — Chile and South Africa — also set focus, so the window was always
+# reached by the other branch. Spain needs a window WITHOUT focus: its frame is
+# the whole country, and the whole country now includes the Canaries at 28N/-18.
+frame = (project([r for r in allr if in_window(r)], K)
+         if CFG.get('focus') != 'regions' else
+         project([r for r in rings(sorted({u for us in REGIONS.values() for u in us}))
+                  if in_window(r)], K))
 allp = np.vstack([r for poly in frame for r in poly])
 FMN, FMX = allp.min(axis=0), allp.max(axis=0)
 span = FMX - FMN
@@ -239,12 +256,66 @@ H = FH + 2 * MARGIN
 canvas = np.full((H + 2, W + 2, 3), SEA, np.uint8)
 
 # --- exterior: neighbouring countries ---------------------------------------
-NB = [f for f in json.load(open(os.path.join(HERE, 'world.json')))['features']
-      if f['properties']['name'] != CFG['subject']]
+# Read the WHOLE world and keep what this canvas can actually see.
+#
+# This used to read `world.json`, and `world.json` is a 108-feature extract:
+# Europe, North Africa, the Middle East, plus Greenland, Russia and Kazakhstan —
+# whatever a Europe-centred bounding box caught at its edges when it was cut for
+# the France pilot. It contains no country in the Americas, and no Japan, China,
+# India, Australia or New Zealand.
+#
+# So every map outside Europe drew its neighbours as open sea. The USA rendered
+# as a silhouette floating in ocean with a dead-straight 49th parallel along the
+# top, because Canada was not in the file and the border is where the land stops.
+# Twelve of the thirty-nine were affected and it survived three drops, because
+# the European maps — the ones anyone looked at — were correct.
+#
+# The bug was never the filter; the filter always said "everything but the
+# subject". It was the input. `ne.json` is the same Natural Earth admin-0 the
+# globe uses, 258 countries, and it has been in the repo since the 13 Sep drop.
+#
+# The window keeps the raster cost where it was: a Europe map still rasterises
+# European neighbours and nothing else, and the manifest's `countries` list
+# becomes the real per-map neighbourhood rather than the same 108 names
+# thirty-nine times over.
+LON0, LON1 = MN[0] / K, (MN[0] + W / S) / K
+LAT0, LAT1 = -(MN[1] + H / S), -MN[1]
+
+# Natural Earth's admin-0 and admin-1 layers disagree on one name in the table:
+# admin-0 says 'Czechia', admin-1 says 'Czech Republic'. Without this the
+# subject fails to match, is drawn as foreign land beneath itself, and gets a
+# foreign outline around its own border.
+ADMIN0 = {'Czech Republic': 'Czechia'}
+SUBJ0 = ADMIN0.get(CFG['subject'], CFG['subject'])
+
+
+def _polys(feat):
+    g = feat['geometry']
+    return [g['coordinates']] if g['type'] == 'Polygon' else g['coordinates']
+
+
+def _visible(feat):
+    """Does any part of this country fall on the canvas?"""
+    for poly in _polys(feat):
+        a = np.asarray(poly[0], float)
+        if (a[:, 0].max() >= LON0 and a[:, 0].min() <= LON1
+                and a[:, 1].max() >= LAT0 and a[:, 1].min() <= LAT1):
+            return True
+    return False
+
+
+# Sorted by name, so a coverage TIE breaks the same way every run. Coverage
+# alone got this from 22,400 differing cells down to 650 when the source order
+# was shuffled; the remaining 650 were exact ties, which `>` hands to whoever
+# came first. Sorting makes the whole backdrop a function of the geometry.
+NB = sorted((f for f in geosrc.load('ne.json')['features']
+             if f['properties']['ADMIN'] != SUBJ0 and _visible(f)),
+            key=lambda f: f['properties']['ADMIN'])
 nb_rings = []
 for f in NB:
-    for poly in f['geometry']['coordinates']:
-        nb_rings.append([np.array(r, float) for r in poly])
+    for poly in _polys(f):
+        nb_rings.append([np.array(r, float)[:, :2] for r in poly])
+print('backdrop: %d neighbouring countries on this canvas' % len(NB))
 foreign = np.zeros((H + 2, W + 2), bool)
 foreign[1:-1, 1:-1] = despeckle(raster(project(nb_rings, K), MN, S, W, H))
 foreign = drop_islets(foreign)
@@ -265,12 +336,27 @@ canvas[foreign] = FOREIGN
 # territory, so every shared frontier came out as TWO parallel lines — one laid
 # down by each side. Label the countries instead and derive the borders from
 # where the labels change, which can only ever produce one line.
+#
+# Contested cells go to whichever country COVERS more of them, not to whichever
+# the source file happens to list first. Countries are rasterised one at a time,
+# so neighbours overlap by a cell along every shared border and first-come-wins
+# hands that cell to an accident of file order — which is why swapping the
+# backdrop's source moved foreign borders by a pixel on maps whose country set
+# had not changed at all. Same fix, and the same reason, as the region side:
+# Tavel landed in Provence for exactly this.
 lab = np.zeros((H + 2, W + 2), np.int16)
+best = np.zeros((H + 2, W + 2), np.int32)
 for i, f in enumerate(NB, start=1):
-    rr = [[np.array(r, float) for r in poly] for poly in f['geometry']['coordinates']]
-    m = np.zeros((H + 2, W + 2), bool)
-    m[1:-1, 1:-1] = raster(project(rr, K), MN, S, W, H)
-    lab[m & foreign & (lab == 0)] = i
+    # _polys, not f['geometry']['coordinates'] — ne.json carries Polygon as
+    # well as MultiPolygon, and iterating a Polygon's coordinates yields its
+    # RINGS where this wants its polygons. world.json happened to be all
+    # MultiPolygon, which is why this line survived.
+    rr = [[np.array(r, float)[:, :2] for r in poly] for poly in _polys(f)]
+    cov = np.zeros((H + 2, W + 2), np.int32)
+    cov[1:-1, 1:-1] = coverage(project(rr, K), MN, S, W, H)
+    win = (cov > best) & foreign
+    best[win] = cov[win]
+    lab[win] = i
 lab[subj] = -1                # the subject is its own label, never a neighbour's
 
 # The interactive layer paints the subject's coastline one pixel outside it, so
@@ -369,6 +455,33 @@ CH, CW = canvas.shape[:2]
 # screen edges — that keeps every tap target the size §5.2 measured.
 FRECT = [round((MARGIN + 1) / CW, 4), round((MARGIN + 1) / CH, 4),
          round(FW / CW, 4), round(FH / CH, 4)]
+
+# `subject_rect='mainland'` frames the opening view on the country's LARGEST
+# LANDMASS instead of on everything it owns.
+#
+# Portugal is why. With Madeira and the Azores painted, the frame runs 15 degrees
+# into the Atlantic and the mainland is about a third of the canvas width. The
+# app opens on subject_rect and fences the camera to the whole canvas, so a rect
+# over the full extent opens the map on open ocean with Portugal off to one side.
+# Taking the largest landmass instead means the map opens on the mainland exactly
+# as it does today and a pan west reaches the islands.
+#
+# This is a per-country opt-in rather than the default, and only because of the
+# contract: as a global rule it would move subject_rect on any country whose
+# frame includes a detached piece — France has Corsica, Italy has Sicily and
+# Sardinia, Greece is mostly islands — and every one of those is shipped. The
+# mechanism is general; flipping it on for everyone is one line and a re-render
+# whenever that churn is wanted.
+if CFG.get('subject_rect') == 'mainland':
+    _lab_, _n_ = ndimage.label(subj)
+    _sz_ = np.bincount(_lab_.ravel()); _sz_[0] = 0
+    _big_ = _lab_ == int(_sz_.argmax())
+    _ys_, _xs_ = np.nonzero(_big_)
+    FRECT = [round(_xs_.min() / CW, 4), round(_ys_.min() / CH, 4),
+             round((_xs_.max() - _xs_.min() + 1) / CW, 4),
+             round((_ys_.max() - _ys_.min() + 1) / CH, 4)]
+    print('subject_rect framed on the largest landmass: %d of %d land cells'
+          % (_big_.sum(), subj.sum()))
 
 os.makedirs(OUT, exist_ok=True)
 
@@ -592,7 +705,7 @@ manifest = {
                'foreign': '#%02X%02X%02X' % FOREIGN,
                'foreign_outline': '#%02X%02X%02X' % FOREIGN_INK,
                'shallow': '#%02X%02X%02X' % SHALLOW, 'shelf_px': SHELF,
-               'countries': sorted(f['properties']['name'] for f in NB)},
+               'countries': sorted(f['properties']['ADMIN'] for f in NB)},
   'marker_clearance': {str(d): collisions(d) for d in (12, 10, 8)},
   # Absent entirely when a country has no children, so nothing about the other
   # eight changes and no consumer has to migrate.

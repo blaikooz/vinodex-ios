@@ -205,6 +205,7 @@ public struct RegionMap: Sendable {
         "aragon": "ARAGON",
         "attica": "ATTICA",
         "auckland": "AUCKLAND",
+        "azores": "AZORES",
         "bairrada": "BAIRRADA",
         "baleares": "BALEARES",
         "barossa": "BAROSSA VALLEY",
@@ -224,6 +225,7 @@ public struct RegionMap: Sendable {
         "california": "CALIFORNIA",
         "campanha": "CAMPANHA GAÚCHA",
         "campania": "CAMPANIA",
+        "canaryislands": "CANARY ISLANDS",
         "canelones": "CANELONES",
         "canterbury": "CANTERBURY",
         "cappadocia": "CAPPADOCIA",
@@ -238,6 +240,7 @@ public struct RegionMap: Sendable {
         "cordoba": "CORDOBA",
         "corsica": "CORSICA",
         "cotnari": "COTNARI",
+        "crete": "CRETE",
         "dalmatia": "DALMATIA",
         "dao": "DÃO",
         "dealumare": "DEALU MARE",
@@ -275,6 +278,7 @@ public struct RegionMap: Sendable {
         "lisboa": "LISBOA",
         "loire": "LOIRE",
         "lombardy": "LOMBARDY",
+        "madeira": "MADEIRA",
         "madrid": "MADRID",
         "maipo": "MAIPO",
         "maldonado": "MALDONADO",
@@ -293,13 +297,13 @@ public struct RegionMap: Sendable {
         "nashik": "NASHIK",
         "navarra": "NAVARRA",
         "nelson": "NELSON",
-        "newyork": "FINGER LAKES",
+        "newyork": "NEW YORK",
         "niagara": "NIAGARA PENINSULA",
         "niederosterreich": "NIEDERÖSTERREICH",
-        "ningxia": "HELAN MOUNTAIN",
+        "ningxia": "NINGXIA",
         "northland": "NORTHLAND",
         "okanagan": "OKANAGAN VALLEY",
-        "oregon": "WILLAMETTE VALLEY",
+        "oregon": "OREGON",
         "paarl": "PAARL & FRANSCHHOEK",
         "parras": "PARRAS VALLEY",
         "patagonia": "PATAGONIA",
@@ -339,6 +343,7 @@ public struct RegionMap: Sendable {
         "sussex": "SUSSEX",
         "swartland": "SWARTLAND",
         "tarnave": "TÂRNAVE",
+        "tasmania": "TASMANIA",
         "tejo": "TEJO",
         "thracian": "THRACIAN LOWLANDS",
         "tokaj": "TOKAJ",
@@ -356,7 +361,7 @@ public struct RegionMap: Sendable {
         "waikatobop": "WAIKATO & BOP",
         "wairarapa": "WAIRARAPA",
         "walkerbay": "WALKER BAY",
-        "washington": "WALLA WALLA",
+        "washington": "WASHINGTON",
         "yamagata": "YAMAGATA",
         "yamanashi": "YAMANASHI",
         "zakarpattia": "ZAKARPATTIA",
@@ -455,7 +460,14 @@ public struct RegionMap: Sendable {
         for stem: String, names: [(id: String, name: String)]
     ) -> (id: String, isOwnEntry: Bool)? {
         func fold(_ value: String) -> String {
+            // **Turkish dotless ı is not `i` plus a mark.** U+0131 has no
+            // decomposition, so `.diacriticInsensitive` leaves it alone and
+            // "Elazığ" folded to "elazığ" while its display name ELAZIĞ folded
+            // to "elazig". Turkey's only painted area fell to a stand-in and
+            // the card captioned it INSIDE IT. Sommbot predicted this from the
+            // Unicode tables; `GlobeRegionPickTests.dotlessIFolds` confirmed it.
             value.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil)
+                .replacingOccurrences(of: "ı", with: "i")
         }
         let want = fold(displayName(stem))
         if let exact = names.first(where: { fold($0.name) == want }) {

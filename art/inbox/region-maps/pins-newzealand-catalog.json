@@ -19,5 +19,54 @@
   "lon": 176.85,
   "lat": -39.64,
   "expect": "hawkesbay"
+ },
+ {
+  "id": "R180",
+  "name": "Northland",
+  "lon": 173.947,
+  "lat": -35.226,
+  "expect": "northland"
+ },
+ {
+  "id": "R181",
+  "name": "Auckland",
+  "lon": 174.553,
+  "lat": -36.777,
+  "expect": "auckland"
+ },
+ {
+  "id": "R182",
+  "name": "Waikato & Bay of Plenty",
+  "lon": 175.279,
+  "lat": -37.787,
+  "expect": "waikatobayofplenty"
+ },
+ {
+  "id": "R183",
+  "name": "Gisborne",
+  "lon": 178.018,
+  "lat": -38.663,
+  "expect": "gisborne"
+ },
+ {
+  "id": "R184",
+  "name": "Wairarapa",
+  "lon": 175.458,
+  "lat": -41.219,
+  "expect": "wairarapa"
+ },
+ {
+  "id": "R185",
+  "name": "Nelson",
+  "lon": 173.284,
+  "lat": -41.271,
+  "expect": "nelson"
+ },
+ {
+  "id": "R186",
+  "name": "Canterbury",
+  "lon": 172.76,
+  "lat": -43.06,
+  "expect": "canterbury"
  }
 ]

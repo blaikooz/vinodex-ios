@@ -71,8 +71,21 @@ struct CoverageTests {
         // natives (Öküzgözü, Boğazkere, Narince, Emir). +5 regions (R153–
         // R157): Styria, Cotnari, Jurançon, and Turkey's Cappadocia and
         // Elazığ.
-        #expect(db.entries(in: .grapes).count == 221)
-        #expect(db.entries(in: .regions).count == 167)
+        // 0.9.58 batch two (sommbot): +3 grapes, Crete's natives — Vidiano,
+        // Liatiko, Kotsifali (G223–G225). Notes from the closed vocabulary,
+        // so flavours stay at 106; glyphs are on the art queue.
+        #expect(db.entries(in: .grapes).count == 224)
+        // 0.9.58 (sommbot, 2026-09-14): +34 regions (R168–R201), on the
+        // maintainer's ruling that every painted area on a region map has an
+        // entry that IS the area. 25 were painted ground with no entry at
+        // all; 7 were containers whose only entries were the appellations
+        // inside them (Galicia, Catalonia, Ningxia...); Tasmania and Crete
+        // came in on the island order. No grapes, no notes, no enum values.
+        // Batch two the same day: +13 (R202–R214) — six provinces that had
+        // been wearing the name of the one appellation inside them (British
+        // Columbia as Okanagan, South Australia as Barossa...), Hokkaido, and
+        // the six US regions the state gates had been naming without having.
+        #expect(db.entries(in: .regions).count == 214)
         // 31 since 0.6.x: Medium-Full Red removed, its grapes now Full-Body.
         // 33 since 0.7.9 (G): Madeira and Cava; 31 through 0.9.42's removal;
         // **33 again since 0.9.45**: the maintainer reversed the removal
@@ -143,7 +156,9 @@ struct CoverageTests {
         // batch running — all 42 new tasting notes reuse the vocabulary.
         // 530 since the v0.9.54 readiness batch: +1 style, S041 Vinho Verde.
         // Flavours unchanged at 106 for the tenth batch running.
-        #expect(stats.total == 540)
+        // 590 since 0.9.58: +47 regions and +3 grapes across the two
+        // painted-area batches.
+        #expect(stats.total == 590)
         // 26 since 0.7.3c: Brazil is the first *new* origin since Mexico. The
         // count is distinct region origins, so the coming-soon gates still do
         // not count and adding a country without a region would not move it.
@@ -344,7 +359,9 @@ struct CoverageTests {
         // Roditis, Rară Neagră, Erbaluce at "Light-Medium"; Öküzgözü
         // "Medium"), +2 Medium-Full (Maratheftiko, Pallagrello Bianco) and
         // +1 Full (Boğazkere).
-        #expect(counts == [2: 49, 3: 109, 4: 23, 5: 40])
+        // 0.9.58: Crete's three — Liatiko authored "Medium" (+1 at 3),
+        // Vidiano and Kotsifali "Medium-Full" (+2 at 4). Sommbot's batch.
+        #expect(counts == [2: 49, 3: 110, 4: 25, 5: 40])
 
         // Chardonnay is authored `body: "Medium-Full"` and drew a full bar.
         // (`grapeBodyClass` still reads "Full" for it — that is a *different*

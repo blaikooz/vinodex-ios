@@ -78,8 +78,11 @@ struct GrapeLineageTests {
     @Test("the authored lineage covers what 0.8.2 ships")
     func coverageIsPinned() {
         let all = grapes()
-        #expect(all.count == 221)
-        #expect(all.filter { $0.lineage != nil }.count == 207, "grapes carrying an authored lineage")
+        // 0.9.58: +3 Cretan natives (Vidiano, Liatiko, Kotsifali), each a
+        // `parentageUnknown` block with no edge — *Wine Grapes* gives no
+        // parents for any of the three. Connected stays at 131.
+        #expect(all.count == 224)
+        #expect(all.filter { $0.lineage != nil }.count == 210, "grapes carrying an authored lineage")
         #expect(db.lineage.connectedIDs.count == 131, "grapes in at least one relationship")
         // **Pinned as a distribution, not a single number** — the two counts
         // above can both be right while the split between "has edges" and
@@ -88,8 +91,8 @@ struct GrapeLineageTests {
         // every unrecorded statement into a phantom edge would not move either
         // count above by itself.
         let statedOnly = all.filter { $0.lineage?.parentageUnknown == true && $0.lineage?.isEmpty == true }
-        #expect(statedOnly.count == 91, "blocks that state an absence and author no edge")
-        #expect(all.filter { $0.lineage?.parentageUnknown == true }.count == 109, "grapes stating unknown parentage")
+        #expect(statedOnly.count == 94, "blocks that state an absence and author no edge")
+        #expect(all.filter { $0.lineage?.parentageUnknown == true }.count == 112, "grapes stating unknown parentage")
     }
 
     /// Every ref resolves, and resolves to the right *kind* of thing.
@@ -498,7 +501,9 @@ struct GrapeLineageTests {
         // (Marquette, Chambourcin, Petit Manseng) land on that side of
         // the split.
         let blocks = grapes().compactMap(\.lineage)
-        #expect(blocks.count == 207)
+        // 210 since 0.9.58: Crete's three natives, all on the
+        // `parentageUnknown` side, so the 98 predating the key hold.
+        #expect(blocks.count == 210)
         #expect(blocks.filter { !$0.parentageUnknown }.count == 98, "blocks predating the key")
     }
 

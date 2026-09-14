@@ -70,5 +70,40 @@
   "lon": -72.68,
   "lat": -38.25,
   "expect": "malleco"
+ },
+ {
+  "id": "R171",
+  "name": "Coquimbo",
+  "lon": -70.6913,
+  "lat": -30.1163,
+  "expect": "coquimbo"
+ },
+ {
+  "id": "R172",
+  "name": "Rapel Valley",
+  "lon": -71.5661,
+  "lat": -34.5098,
+  "expect": "rapel"
+ },
+ {
+  "id": "R173",
+  "name": "Maule Valley",
+  "lon": -71.3738,
+  "lat": -35.5921,
+  "expect": "maule"
+ },
+ {
+  "id": "R174",
+  "name": "Bío Bío Valley",
+  "lon": -71.7622,
+  "lat": -37.6175,
+  "expect": "biobio"
+ },
+ {
+  "id": "R175",
+  "name": "Malleco Valley",
+  "lon": -72.3467,
+  "lat": -38.7677,
+  "expect": "malleco"
  }
 ]
