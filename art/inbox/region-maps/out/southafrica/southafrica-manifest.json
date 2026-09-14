@@ -5,17 +5,17 @@
   "kind": "equirectangular",
   "x_factor": 0.87748667,
   "origin": [
-   13.45295,
-   28.333295
+   -1.053369,
+   6.620894
   ],
-  "scale": 28.070772,
+  "scale": 10.963811,
   "note": "canvas_x = (lon*x_factor - origin[0])*scale + 2 ; canvas_y = (-lat - origin[1])*scale + 2",
   "cell_note": "Those are CONTINUOUS canvas coordinates. The cell containing a point is floor(x), floor(y) — the rasteriser fills cell i from [i, i+1). Rounding picks the nearest cell CENTRE and lands one cell over for anything past the halfway line; harmless on a large region, decisive on a small child."
  },
  "base": {
   "canvas": [
-   282,
-   246
+   502,
+   483
   ],
   "export_scale": 5,
   "unassigned": "#CEC6BA",
@@ -33,22 +33,37 @@
   },
   "index_note": "one byte per LOGICAL cell, canvas-sized, NOT export_scale. Hit-test against this, not against pixel colour.",
   "subject_rect": [
-   0.2163,
-   0.248,
-   0.5674,
-   0.5041
+   0.3406,
+   0.354,
+   0.3187,
+   0.2919
   ],
   "subject_rect_note": "x,y,w,h as fractions of the canvas. Scale the two layers together so this rect fills the intended width; the backdrop bleeds off the screen edges."
  },
  "backdrop": {
-  "margin_px": 60,
+  "margin_px": 170,
   "sea": "#38506B",
   "foreign": "#8C8778",
   "foreign_outline": "#1A1420",
   "shallow": "#4E6985",
   "shelf_px": 3,
   "countries": [
-   "Namibia"
+   "Angola",
+   "Botswana",
+   "Comoros",
+   "Democratic Republic of the Congo",
+   "France",
+   "French Southern and Antarctic Lands",
+   "Lesotho",
+   "Madagascar",
+   "Malawi",
+   "Mozambique",
+   "Namibia",
+   "Seychelles",
+   "United Republic of Tanzania",
+   "Zambia",
+   "Zimbabwe",
+   "eSwatini"
   ]
  },
  "marker_clearance": {
@@ -56,122 +71,31 @@
   "10": [],
   "8": []
  },
- "splits": [
-  {
-   "keeps": "swartland",
-   "gains": "paarl",
-   "value": -33.6,
-   "axis": "lat"
-  },
-  {
-   "keeps": "paarl",
-   "gains": "stellenbosch",
-   "value": -33.85,
-   "axis": "lat"
-  },
-  {
-   "keeps": "stellenbosch",
-   "gains": "walkerbay",
-   "value": -34.2,
-   "axis": "lat"
-  }
- ],
+ "splits": [],
  "regions": {
-  "swartland": {
+  "westerncape": {
    "id": 1,
    "button": [
-    0.578,
-    0.5285
+    0.4004,
+    0.6128
    ],
-   "clearance_px": 20.0,
-   "area_px": 6308,
-   "fill": "#662B82",
+   "clearance_px": 11.2,
+   "area_px": 1477,
+   "fill": "#8BC072",
    "units": [
     "Western Cape"
    ],
    "detail": {
     "canvas": [
-     161,
-     90
+     65,
+     51
     ],
     "upscale": 1,
     "source_bbox": [
-     62,
-     62,
-     220,
-     149
-    ]
-   }
-  },
-  "paarl": {
-   "id": 2,
-   "button": [
-    0.2908,
-    0.622
-   ],
-   "clearance_px": 4.0,
-   "area_px": 890,
-   "fill": "#65AD43",
-   "units": [],
-   "detail": {
-    "canvas": [
-     133,
-     9
-    ],
-    "upscale": 1,
-    "source_bbox": [
-     76,
-     150,
-     206,
-     156
-    ]
-   }
-  },
-  "stellenbosch": {
-   "id": 3,
-   "button": [
-    0.3227,
-    0.6545
-   ],
-   "clearance_px": 5.0,
-   "area_px": 1140,
-   "fill": "#8B43AD",
-   "units": [],
-   "detail": {
-    "canvas": [
-     135,
-     12
-    ],
-    "upscale": 1,
-    "source_bbox": [
-     75,
-     157,
-     207,
-     166
-    ]
-   }
-  },
-  "walkerbay": {
-   "id": 4,
-   "button": [
-    0.4043,
-    0.7114
-   ],
-   "clearance_px": 8.1,
-   "area_px": 698,
-   "fill": "#47822B",
-   "units": [],
-   "detail": {
-    "canvas": [
-     92,
-     20
-    ],
-    "upscale": 1,
-    "source_bbox": [
-     76,
-     167,
-     165,
-     184
+     184,
+     263,
+     246,
+     311
     ]
    }
   }

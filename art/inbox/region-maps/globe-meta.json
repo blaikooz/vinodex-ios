@@ -285,7 +285,7 @@
    "stem": "south-africa",
    "fill": "#D7C2B7",
    "label": "SOUTH AFRICA",
-   "mapped": 4,
+   "mapped": 1,
    "key": "southafrica"
   },
   {
@@ -1552,32 +1552,23 @@
   },
   "southafrica": {
    "bounds": [
-    15.4,
-    -36.1,
-    26.6,
-    -29.4
+    13.86,
+    -37.14,
+    35.14,
+    -19.86
    ],
    "size": [
     300,
-    180
+    244
    ],
    "stems": [
-    "swartland",
-    "paarl",
-    "stellenbosch",
-    "walkerbay"
+    "westerncape"
    ],
    "fills": [
-    "#662B82",
-    "#65AD43",
-    "#8B43AD",
-    "#47822B"
+    "#8BC072"
    ],
    "labels": [
-    "swartland",
-    "paarl",
-    "stellenbosch",
-    "walkerbay"
+    "westerncape"
    ]
   }
  },

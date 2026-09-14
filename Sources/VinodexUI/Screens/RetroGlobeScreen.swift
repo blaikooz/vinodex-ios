@@ -402,6 +402,7 @@ public struct RetroGlobeScreen: View {
         // form the probe's own tap has already changed the state under it.
         var spec = name.dropFirst("globe@".count)
         var taps = 1
+        var look: (lon: Double, lat: Double)?
         if let colon = spec.firstIndex(of: ":") {
             let tail = spec[spec.index(after: colon)...].split(separator: ":")
             switch tail.first {
@@ -415,8 +416,19 @@ public struct RetroGlobeScreen: View {
             default: break
             }
             // `:region:tuscany` names a stem too — the condition read `== 2`
-            // and silently dropped it for the three-tap form.
-            if taps >= 2, tail.count == 2 { probeStem = String(tail[1]) }
+            // and silently dropped it for the three-tap form. `:look<lon>,<lat>`
+            // anywhere in the tail turns the camera there after the map has
+            // opened, at the zoom it opened at — the only way to photograph
+            // an island the map does not open on, since the simulator cannot
+            // pan.
+            for part in tail.dropFirst() {
+                if part.hasPrefix("look") {
+                    let xy = part.dropFirst(4).split(separator: ",")
+                    if xy.count == 2, let lo = Double(xy[0]), let la = Double(xy[1]) { look = (lo, la) }
+                } else if taps >= 2 {
+                    probeStem = String(part)
+                }
+            }
             spec = spec[..<colon]
         }
         let parts = spec.split(separator: ",")
@@ -439,6 +451,10 @@ public struct RetroGlobeScreen: View {
                 if i == 1 { try? await Task.sleep(for: .milliseconds(120)) }
                 if i == 2 { try? await Task.sleep(for: .seconds(2)) }
                 tapped(at: centre)
+            }
+            if let look {
+                try? await Task.sleep(for: .seconds(2))
+                model.focus(lon: look.lon, lat: look.lat, zoom: model.zoom)
             }
             // After the fly-to has settled, or the glass is still showing the
             // magnification it was leaving rather than the one it arrived at.

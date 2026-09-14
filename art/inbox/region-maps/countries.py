@@ -857,28 +857,66 @@ GERMANY = dict(
     },
 )
 
+# SOUTH AFRICA IS ONE AREA: the Western Cape, named for itself.
+#
+# It shipped at 0.9.57 as four areas cut out of the province with three chained
+# latitude lines, and on the device it read as horizontal stripes across the
+# Cape. The projection was never wrong — Cape Town landed in `stellenbosch`,
+# Robertson in `paarl` — but the boundary was invented, and an invented boundary
+# that looks authoritative is the failure this pipeline is built to avoid.
+#
+# Option 1 was real Wine of Origin district polygons, the way Weingesetz § 21
+# unblocked the Wachau. It is not available, and the reason is specific rather
+# than a shrug:
+#
+#   - The WO districts ARE gazetted, under the Liquor Products Act scheme
+#     administered by SAWIS and the Wine and Spirit Board. But the published
+#     instrument (WOSA's "Production areas defined in terms of the Wine of
+#     Origin scheme", Feb 2026) is a REGISTER OF NAMES — producers against
+#     district names and approval dates. It carries no boundary description, no
+#     co-ordinates and no map. The Wachau worked because § 21 Abs. 3 Z 1 lit. k
+#     names eight Gemeinden I already had geometry for; there is no equivalent
+#     sentence here.
+#   - SAWIS publishes district maps as images, not as data.
+#   - The one open mirror that carries wine-region polygons
+#     (github.com/dlau/wineregions) states it is "a mirror of sources found on
+#     the internet" with no provenance and no licence, and has no South Africa
+#     file in any case. A polygon whose origin cannot be named is not citable.
+#   - Municipal boundaries are open and tempting and WRONG. WO Paarl is not
+#     Drakenstein LM (which also contains Wellington, a separate WO district
+#     since 2012), and WO Stellenbosch runs past Stellenbosch LM toward the
+#     Eerste River mouth. Substituting them would replace a boundary that looks
+#     invented with one that looks official and is still not the gazetted area.
+#
+# So: option 2, the maintainer's own ruling for British Columbia and South
+# Australia. One painted area, the province, honestly named. Stellenbosch,
+# Paarl & Franschhoek, Swartland and Walker Bay pin to it and share it, and the
+# province page lists them inside it — exactly as Okanagan Valley shares
+# `britishcolumbia` and Barossa shares `southaustralia`. Sommbot writes the
+# Western Cape entry; until then the four districts keep this area alive.
 SOUTHAFRICA = dict(
-    admin1='za-provinces.json', subject='South Africa', log=160, margin=60,
-    # All four are inside the Western Cape, which is a tenth of the country, so
-    # the frame is the Western Cape. margin=60 rather than the usual 170: at
-    # this scale a 170-cell margin is wide enough to swallow the whole country
-    # back into the canvas and undo the focus.
-    focus='regions',
-    # AND a window, because focus='regions' alone did nothing here. Natural
-    # Earth files the Prince Edward Islands — Marion Island, 37.7E 46.9S, 1,800
-    # km into the Southern Ocean — under the WESTERN CAPE. They stretch the
-    # province's own bounding box from 6 degrees to 20 and hand the frame back
-    # to the whole country. Same trap as the Azores and the Canaries, one level
-    # down, where a country-level `exclude` cannot reach it.
-    frame_window=(16.0, -35.5, 26.0, -30.0),
-    splits=[('swartland', 'paarl', -33.6), ('paarl', 'stellenbosch', -33.85), ('stellenbosch', 'walkerbay', -34.2)],
+    admin1='za-provinces.json', subject='South Africa', log=160, margin=170,
+    # Framed on the country now, not on the Cape. `focus='regions'` and the
+    # 16-26E / -35.5 to -30 crop are both gone: the crop cut the eastern half
+    # off and the silhouette did not read as South Africa, which was half the
+    # device complaint.
+    #
+    # The window stays, widened to the mainland, and it is here for ONE reason:
+    # Natural Earth files the Prince Edward Islands — Marion Island, 37.7E
+    # 46.9S, 1,800 km into the Southern Ocean — as polygons 1 and 2 of the
+    # WESTERN CAPE feature. A unit-level `exclude` cannot reach inside a
+    # MultiPolygon. Unfiltered they take the frame from 16.5-32.9E / -34.8 to
+    # -22.1 out to 16.5-38.0E / -47.0 to -22.1 — roughly double, with the
+    # country in one corner. `frame_window` filters by ring centroid and Spain
+    # already uses it without `focus` for the Canaries; this is the same use.
+    frame_window=(15.0, -36.0, 34.0, -21.0),
+    splits=[],
     regions={
-     'swartland'   : ['Western Cape'],
-     'paarl'       : [],
-     'stellenbosch': [],
-     'walkerbay'   : [],
+     'westerncape': ['Western Cape'],
     },
 )
+# Not pinned: the four stems this replaces are gone, so there is no installed
+# fill to preserve. `westerncape` is a new key and `palette.assign` places it.
 
 COUNTRIES.update({
     'greece': GREECE,

@@ -42,8 +42,10 @@ struct RegionMapTests {
         // order that outlying wine islands are on the map.
         // 174 after round two: Rueda & Toro split into two areas, and
         // Hokkaido joined Japan's. 175 after round three: the Golan Heights,
-        // cut out of HaZafon along the Jordan.
-        #expect(total == 175, "painted areas across all thirty-nine: \(total)")
+        // cut out of HaZafon along the Jordan. 172 after the South Africa
+        // re-cut of the same day: four axis-cut districts that read as
+        // stripes became one honest Western Cape, the districts inside it.
+        #expect(total == 172, "painted areas across all thirty-nine: \(total)")
         var children = 0
         for country in RegionMap.mapped { children += try load(country).childrenByIndex.count }
         // Three since round three: the Wachau on Austria's second plane.

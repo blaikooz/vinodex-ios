@@ -192,8 +192,25 @@ ISRAEL = {
     "R215": (35.690, 32.990, "Katzrin (HaZafon)",                  "golan"),
 }
 
+# South Africa is painted as ONE area, `westerncape`, on the maintainer's
+# province ruling (14 Sep): the Wine of Origin districts are gazetted as a
+# register of names with no boundary text, and municipal boundaries are open
+# but wrong (WO Paarl != Drakenstein LM, which also holds Wellington; WO
+# Stellenbosch runs past Stellenbosch LM). So the four districts pin inside the
+# province the way Okanagan pins inside British Columbia, and R216 is the
+# entry that IS the area. Seats: the four district rows are the coordinates
+# that were already in pins-southafrica.json; Cape Town for the province.
+SOUTHAFRICA = {
+    "R047": (18.860, -33.930, "Stellenbosch",                      "westerncape"),
+    "R055": (18.730, -33.460, "Malmesbury (Swartland)",             "westerncape"),
+    "R056": (19.280, -34.400, "Hermanus (Walker Bay)",              "westerncape"),
+    "R057": (18.960, -33.730, "Paarl",                              "westerncape"),
+    # 2026-09-14 province batch (sommbot)
+    "R216": (18.420, -33.920, "Cape Town (Western Cape)",           "westerncape"),
+}
+
 TABLES = {
-    "israel": ISRAEL,
+    "israel": ISRAEL, "southafrica": SOUTHAFRICA,
     "france": FRANCE, "italy": ITALY, "spain": SPAIN, "portugal": PORTUGAL,
     "argentina": ARGENTINA, "chile": CHILE, "newzealand": NEWZEALAND,
 }
@@ -206,7 +223,7 @@ entries = {e["id"]: e for e in json.load(open(ENTRIES))}
 country = {
     "france": "France", "italy": "Italy", "spain": "Spain",
     "portugal": "Portugal", "argentina": "Argentina", "chile": "Chile",
-    "newzealand": "New Zealand",
+    "newzealand": "New Zealand", "southafrica": "South Africa",
 }[name]
 catalog = {
     e["id"] for e in entries.values()

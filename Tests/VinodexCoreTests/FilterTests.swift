@@ -114,7 +114,9 @@ struct FilterTests {
 
         let africa = db.regions(in: .africa)
         #expect(
-            africa.map(\.name) == ["Guerrouane", "Paarl & Franschhoek", "Stellenbosch", "Swartland", "Walker Bay", "Zenata"],
+            // Western Cape since 0.9.59: the province the four districts sit
+            // inside, authored when South Africa's map became one area.
+            africa.map(\.name) == ["Guerrouane", "Paarl & Franschhoek", "Stellenbosch", "Swartland", "Walker Bay", "Western Cape", "Zenata"],
             "got \(africa.map(\.name))"
         )
     }

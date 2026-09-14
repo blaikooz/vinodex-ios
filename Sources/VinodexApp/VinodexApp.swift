@@ -687,6 +687,10 @@ struct RootView: View {
         if name.hasPrefix("state:") {
             return [.state(name: String(name.dropFirst("state:".count)))]
         }
+        // `settings:data` opens the DATA readout directly. The section is a
+        // route of its own, so this is the panel and then the section, which
+        // is what a tap on the DATA tile does.
+        if name == "settings:data" { return [.settings, .settingsSection(.data)] }
         if name.hasPrefix("map:") {
             let parts = name.split(separator: ":")
             if parts.count >= 2 {
