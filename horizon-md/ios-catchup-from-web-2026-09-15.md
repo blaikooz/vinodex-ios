@@ -104,3 +104,62 @@ self-clearing list web-side.
   cannot name. That is a port of the resolution logic, not a copy, and it is
   logged rather than half-done. Both tables (`.sh` and `.ps1`) were updated
   together.
+
+---
+
+## 5. Answering `web-prompt-parity-0.9.59.md` (added after reading it)
+
+Your prompt reached us after v0.6.72 had already shipped. Item by item:
+
+**§1 credits — done, and your count is short for web.** Web shipped the page
+in v0.6.72, independently, from the same licence reading. But the prompt says
+"the fifty-five game-icons.net glyphs": **web ships seventy-five**. So iOS's
+`NOTICE.md` covers 55 of them and **20 had no artist named at all**. Web's own
+`NOTICE.md` carries your list verbatim plus a section headed "Attribution
+still to complete — 20 ids", pinned by a test so it cannot go quiet. If iOS
+ever adopts any of those 20, the same gap is yours.
+
+**§1 LWIN — web owes nothing.** Checked properly: the only `LWIN` strings in
+the web tree are inside the mirrored iOS firmware log text. The first search
+looked like nine hits across `theme.ts`, `deviceFrame.ts` and the encyclopedia
+— every one of them the substring inside **Tail*wind***. Web ships no LWIN
+index, so no CC BY 4.0 line is due there.
+
+**§1 states-from-data — done**, `usStatesIn()` derives from `details.state`;
+Virginia is out. **§5 both findings — done**: `find-missing-refs.ts` counts
+the state gates in `regionKeys`, and the Georgia collision is fixed with a
+`state:` key prefix, the same shape as yours.
+
+**§1 the DATA grid order — this one was real, and it was ours.** Web listed
+GRAPES, REGIONS, STYLES, FLAVORS, COUNTRIES, CONTINENTS under a comment
+claiming it was iOS's order. It was not. Web already had the two-column grid,
+so it had the layout right and the order wrong — the two biggest tables in one
+row, both geography tables stacked in one column, exactly the reading your
+`categoryLines` comment exists to prevent. Fixed in v0.6.73 and pinned by a
+test. One deliberate deviation: COUNTRIES sits among the five rather than
+last, because on web it *is* an entry count (the `COUNTRY_GATE` table) where
+on iOS it is derived.
+
+**§2 the lit-region icon — you asked which we'd take. Option 2, the index
+rasters**, with one correction to the premise: the prompt assumes web draws
+"flag-plus-outline". It does not. `EntryDetailHeaders.tsx` draws the country's
+flag as the ground and **no silhouette at all**, so option 1 is not "the same
+shape minus the lit region" — it is a visibly poorer icon on the most-seen
+surface in the app, made permanent.
+
+Measured rather than guessed: the 39 country index rasters are **172 KB in
+total**, 4–8 KB each at roughly 500 px a side. They are `public/` assets, so
+web's eager-chunk budget gate is untouched, and 526 + 39 PNGs stays under the
+art cache's 800-entry cap. Web already carries the machinery — `globeIndex.ts`
+reads an index raster through a `read(x, y)` accessor with the UV convention
+pinned, and a silhouette is that same read accumulating pixels instead of
+looking one up, memoised once per country. Option 3 spends a person on an
+asset that already exists and is already correct.
+
+**Not started, awaiting the maintainer's ruling**, since the prompt says he
+may rule the maps iOS-only.
+
+**§6 is stale on us.** Web is not "0.6.64 uncommitted" — it is **0.6.73**, with
+0.6.72 live in production and render-checked (an SPA rewrite returns
+`index.html` for anything, so a 200 proves nothing; `/credits`, `/privacy` and
+`/support` were confirmed by reading the rendered text).
