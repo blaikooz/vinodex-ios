@@ -88,6 +88,14 @@ public struct RegionMap: Sendable {
     /// the whole canvas instead would shrink the country to a third of the
     /// screen and take every tap target down with it.
     public let subjectRect: (x: Double, y: Double, w: Double, h: Double)
+    /// The backdrop's sea and shelf colours from the manifest, or nil on a
+    /// manifest that predates the backdrop. The globe draws a skirt of the
+    /// first past the canvas edge on maps whose edge is all sea, so a small
+    /// island country can open a little wider than its art without the bare
+    /// sphere showing; the second is what a shelf pixel reads as when the
+    /// edge is measured.
+    public let seaFill: RGB?
+    public let shallowFill: RGB?
 
     /// Turns a canvas cell back into a real coordinate, for the HUD readout.
     ///
@@ -154,9 +162,59 @@ public struct RegionMap: Sendable {
                 south: bottomRight.lat, north: topLeft.lat)
     }
 
+    /// **The painted areas near enough to open on, in degrees.** Each area's
+    /// detail frame, in the manifest's canvas cells, turned into a box; the
+    /// union of the ones within `gap` degrees of the subject rect. Nil when
+    /// none qualifies beyond the subject itself.
+    ///
+    /// The gap is the whole point. Portugal's Azores are twenty-two degrees
+    /// west of the mainland: a box that takes them in puts the country on the
+    /// edge of the glass and opens the map on the Atlantic, which is not what
+    /// "zoom out a bit to include the islands" meant. Madeira is seven degrees
+    /// out and the Canaries eight from Spain; those are a step wider, and
+    /// twelve degrees lets them in and keeps the Azores for a pan. The globe
+    /// tier's `landmass` applies the same idea to a country's raster.
+    public func paintedBounds(gap: Double = 12) -> (west: Double, east: Double, south: Double, north: Double)? {
+        let s = subjectBounds
+        var out: (west: Double, east: Double, south: Double, north: Double)?
+        for r in regions where r.detailFrame.w > 0 && r.detailFrame.h > 0 {
+            let x0 = r.detailFrame.x * Double(canvas.w), y0 = r.detailFrame.y * Double(canvas.h)
+            let x1 = (r.detailFrame.x + r.detailFrame.w) * Double(canvas.w)
+            let y1 = (r.detailFrame.y + r.detailFrame.h) * Double(canvas.h)
+            let tl = coordinate(atCanvas: x0, y0), br = coordinate(atCanvas: x1, y1)
+            // How far this area's box sits outside the subject's, per axis.
+            let dx = max(s.west - br.lon, tl.lon - s.east, 0)
+            let dy = max(s.south - tl.lat, br.lat - s.north, 0)
+            guard dx <= gap, dy <= gap else { continue }
+            out = out.map { (west: min($0.west, tl.lon), east: max($0.east, br.lon),
+                             south: min($0.south, br.lat), north: max($0.north, tl.lat)) }
+                ?? (west: tl.lon, east: br.lon, south: br.lat, north: tl.lat)
+        }
+        return out
+    }
+
+    /// **What a map opens on** (maintainer, 14 Sep: "zoom out a bit for the
+    /// portugal and spain maps to include the islands"). The subject rect is
+    /// the mainland by ruling, so a fit to it left the Canaries and Madeira
+    /// off the glass until you panned. This is the subject rect grown to take
+    /// in every painted area within the gap — never smaller than the country,
+    /// so a map whose regions all sit inside it opens exactly as before.
+    public var openingBounds: (west: Double, east: Double, south: Double, north: Double) {
+        let s = subjectBounds
+        guard let p = paintedBounds() else { return s }
+        return (west: min(s.west, p.west), east: max(s.east, p.east),
+                south: min(s.south, p.south), north: max(s.north, p.north))
+    }
+
     private let projOrigin: (Double, Double)
     private let projScale: Double
     private let projXFactor: Double
+
+    /// Logical cells per degree of latitude — the manifest's `scale`. The
+    /// globe needs it to turn a finger's width on the glass into a radius in
+    /// cells, which is how a 29-cell child gets a catchment the size of a
+    /// fingertip rather than the size of itself.
+    public var cellsPerDegree: Double { projScale }
 
     /// **A region painted inside another region** (0.9.57).
     ///
@@ -304,7 +362,6 @@ public struct RegionMap: Sendable {
         "northland": "NORTHLAND",
         "ontario": "ONTARIO",
         "oregon": "OREGON",
-        "paarl": "PAARL & FRANSCHHOEK",
         "parras": "PARRAS VALLEY",
         "patagonia": "PATAGONIA",
         "peloponnese": "PELOPONNESE",
@@ -337,12 +394,10 @@ public struct RegionMap: Sendable {
         "southaustralia": "SOUTH AUSTRALIA",
         "southwest": "SOUTH WEST",
         "stefanvoda": "ȘTEFAN VODĂ",
-        "stellenbosch": "STELLENBOSCH",
         "struma": "STRUMA VALLEY",
         "styria": "STYRIA",
         "sumadija": "ŠUMADIJA",
         "sussex": "SUSSEX",
-        "swartland": "SWARTLAND",
         "tarnave": "TÂRNAVE",
         "tasmania": "TASMANIA",
         "tejo": "TEJO",
@@ -363,9 +418,9 @@ public struct RegionMap: Sendable {
         "wachau": "WACHAU",
         "waikatobayofplenty": "WAIKATO & BAY OF PLENTY",
         "wairarapa": "WAIRARAPA",
-        "walkerbay": "WALKER BAY",
         "washington": "WASHINGTON",
         "westernaustralia": "WESTERN AUSTRALIA",
+        "westerncape": "WESTERN CAPE",
         "yamagata": "YAMAGATA",
         "yamanashi": "YAMANASHI",
         "zakarpattia": "ZAKARPATTIA",
@@ -566,6 +621,8 @@ public struct RegionMap: Sendable {
         self.projXFactor = pr.x_factor
         let r = man.base.subject_rect
         self.subjectRect = r.count == 4 ? (r[0], r[1], r[2], r[3]) : (0, 0, 1, 1)
+        self.seaFill = man.backdrop?.sea.flatMap(RGB.init(hex:))
+        self.shallowFill = man.backdrop?.shallow.flatMap(RGB.init(hex:))
     }
 
     // The manifest carries more than this needs — the projection, the
@@ -590,8 +647,12 @@ public struct RegionMap: Sendable {
             let id: Int
             let parent: String
         }
+        /// The backdrop's palette, for the globe: the sea it paints past the
+        /// canvas edge has to be the sea the art painted inside it.
+        struct Backdrop: Decodable { let sea: String?; let shallow: String? }
         let base: Base
         let projection: Projection
+        let backdrop: Backdrop?
         let regions: [String: Entry]
         /// Absent on every country but France today. Optional by design — the
         /// second plane is opt-in per country, which is what keeps the other

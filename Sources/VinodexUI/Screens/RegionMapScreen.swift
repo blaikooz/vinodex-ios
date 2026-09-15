@@ -551,6 +551,121 @@ struct RegionMapThumb: View {
 /// is 810x780, and building its stem index costs a pass over 632,000 pixels.
 /// That is cheap once and wasteful on every re-render, and the view re-renders
 /// on every tap.
+/// **Region silhouettes without the atlas** (0.9.59). The hero and every
+/// region tile want the country's shape with one area lit; that needs the
+/// manifest, the region index and the two index rasters — a few hundred
+/// cells a side — and not the five-megapixel regions PNG or the backdrop the
+/// atlas decodes. A list of two hundred region tiles across thirty-nine
+/// countries would otherwise decode thirty-nine atlases on first scroll.
+///
+/// One cache per country of the rasters, one per stem of the drawn image.
+@MainActor
+final class RegionSilhouettes {
+    private struct Rasters {
+        let map: RegionMap
+        let cells: [UInt8]
+        let children: [UInt8]
+        let w: Int, h: Int
+    }
+    private static var rasters: [String: Rasters?] = [:]
+    private static var images: [String: UIImage] = [:]
+
+    /// The silhouette for a catalog region: the painted area it pins to,
+    /// lit on its country. Nil when the country has no map or the entry no
+    /// pin — the caller falls back to the outline art.
+    static func image(for entry: WineEntry, db: WineDatabase) -> UIImage? {
+        guard case .region(let r) = entry,
+              let key = RegionMap.key(forCountry: r.details.origin),
+              let rs = load(key),
+              let stem = rs.map.byStem.first(where: { $0.value.contains(entry.id) })?.key
+        else { return nil }
+        return image(key: key, stem: stem, rasters: rs)
+    }
+
+    private static func load(_ key: String) -> Rasters? {
+        if let hit = rasters[key] { return hit }
+        let built = build(key)
+        rasters[key] = built
+        return built
+    }
+
+    private static func build(_ key: String) -> Rasters? {
+        guard let map = RegionAtlas.map(for: key),
+              let url = RegionAtlas.url(key, "\(key)-index", "png"),
+              let cg = UIImage(contentsOfFile: url.path)?.cgImage else { return nil }
+        let w = cg.width, h = cg.height
+        func gray(_ cg: CGImage) -> [UInt8] {
+            var bytes = [UInt8](repeating: 0, count: w * h)
+            bytes.withUnsafeMutableBytes { buf in
+                guard let ctx = CGContext(data: buf.baseAddress, width: w, height: h,
+                                          bitsPerComponent: 8, bytesPerRow: w,
+                                          space: CGColorSpaceCreateDeviceGray(),
+                                          bitmapInfo: CGImageAlphaInfo.none.rawValue) else { return }
+                ctx.interpolationQuality = .none
+                ctx.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
+            }
+            return bytes
+        }
+        var kids = [UInt8](repeating: 0, count: w * h)
+        if !map.childrenByIndex.isEmpty,
+           let u2 = RegionAtlas.url(key, "\(key)-index2", "png"),
+           let cg2 = UIImage(contentsOfFile: u2.path)?.cgImage, cg2.width == w, cg2.height == h {
+            kids = gray(cg2)
+        }
+        return Rasters(map: map, cells: gray(cg), children: kids, w: w, h: h)
+    }
+
+    /// The drawing: country cells in a dark solid tone the flag shows around,
+    /// the area's cells in its own fill, cropped to the subject rect. A
+    /// second-plane child lights its plane-two cells with a one-cell halo,
+    /// because five communes at 48 points is nothing without one.
+    private static func image(key: String, stem: String, rasters rs: Rasters) -> UIImage? {
+        let cacheKey = key + "/" + stem
+        if let hit = images[cacheKey] { return hit }
+        let map = rs.map
+        let child = map.childrenByIndex.first { $0.value.stem == stem }
+        let region = map.regions.first { $0.id == stem }
+        guard child != nil || region != nil else { return nil }
+        let wantChild = child.map { UInt8(clamping: $0.key) }
+        let wantRegion = region.map { UInt8(clamping: $0.index) }
+        let fill = (child.flatMap { c in map.regions.first { $0.id == c.value.parent }?.fill }
+                    ?? region?.fill) ?? RegionMap.RGB(r: 200, g: 60, b: 60)
+        let lift: (Int) -> UInt8 = { UInt8(clamping: Int((Double($0) * 0.78 + 56).rounded())) }
+        let lit = (lift(fill.r), lift(fill.g), lift(fill.b))
+        let muted: (UInt8, UInt8, UInt8) = (74, 58, 48)
+        let w = rs.w, h = rs.h, sr = map.subjectRect
+        let x0 = max(0, Int(sr.x * Double(w))), y0 = max(0, Int(sr.y * Double(h)))
+        let x1 = min(w, Int((sr.x + sr.w) * Double(w)) + 1), y1 = min(h, Int((sr.y + sr.h) * Double(h)) + 1)
+        let cw = max(1, x1 - x0), ch = max(1, y1 - y0)
+        var rgba = [UInt8](repeating: 0, count: cw * ch * 4)
+        for y in y0..<y1 {
+            for x in x0..<x1 {
+                let i = y * w + x
+                let byte = rs.cells[i]
+                guard byte != 0 else { continue }
+                var isLit = false
+                if let wantChild {
+                    outer: for dy in -1...1 {
+                        for dx in -1...1 {
+                            let nx = x + dx, ny = y + dy
+                            guard nx >= 0, ny >= 0, nx < w, ny < h else { continue }
+                            if rs.children[ny * w + nx] == wantChild { isLit = true; break outer }
+                        }
+                    }
+                } else if let wantRegion, byte == wantRegion {
+                    isLit = true
+                }
+                let px = isLit ? lit : muted
+                let o = ((y - y0) * cw + (x - x0)) * 4
+                rgba[o] = px.0; rgba[o + 1] = px.1; rgba[o + 2] = px.2; rgba[o + 3] = 255
+            }
+        }
+        let image = RegionAtlas.image(from: &rgba, w: cw, h: ch)
+        if let image { images[cacheKey] = image }
+        return image
+    }
+}
+
 @MainActor
 final class RegionAtlas {
     /// One atlas per country, built once. The pixel table costs a pass over
@@ -600,6 +715,16 @@ final class RegionAtlas {
     /// drawn into one rect with no offset arithmetic here.
     let backdrop: UIImage?
     let baseSize: CGSize
+    /// **Whether every edge of the canvas is water** (maintainer, 14 Sep:
+    /// "zoom out a bit of the japan map, its a bit close, same for UK"). The
+    /// fence holds a map at the zoom that fills the glass, and for a small
+    /// island canvas that is close. Past the art there is nothing to draw —
+    /// unless the art's edge is sea on every side, in which case more sea is
+    /// the honest continuation: the globe draws a skirt of it and lets the
+    /// map open a little wider. Measured on the backdrop's border, not
+    /// assumed — Lebanon's edges are Syria, and a skirt there would cut a
+    /// coast that does not exist.
+    let seaEdged: Bool
     /// The 5x nearest-neighbour export multiplier, so an "8 logical pixel"
     /// marker can be drawn at the size the renderer proved collision-free.
     let exportScale: CGFloat = 5
@@ -659,8 +784,13 @@ final class RegionAtlas {
         self.map = map
         self.base = image
         self.baseSize = image.size
-        self.backdrop = Self.url(key, "\(key)-backdrop", "png")
+        let world = Self.url(key, "\(key)-backdrop", "png")
             .flatMap { UIImage(contentsOfFile: $0.path) }
+        self.backdrop = world
+        self.seaEdged = world.map {
+            Self.edgeIsSea($0, w: map.canvas.w, h: map.canvas.h,
+                           sea: map.seaFill, shallow: map.shallowFill)
+        } ?? false
 
         // Locals until the end: the drawing closure would otherwise capture a
         // half-initialised `self`.
@@ -721,6 +851,110 @@ final class RegionAtlas {
     /// because that is what the region *is*: the art carries one colour per
     /// area, so re-deriving it from the manifest's own fill costs a quarter of
     /// a megapixel instead of masking the 5x export's six million.
+    /// The backdrop drawn down to one pixel per logical cell, and its border
+    /// ring counted: sea-edged when at least 97% of the ring is the
+    /// manifest's sea or shelf colour. One pass over a few hundred cells a
+    /// side, once per atlas.
+    private static func edgeIsSea(_ image: UIImage, w: Int, h: Int,
+                                  sea: RegionMap.RGB?, shallow: RegionMap.RGB?) -> Bool {
+        guard let sea, let cg = image.cgImage, w > 2, h > 2 else { return false }
+        var buf = [UInt8](repeating: 0, count: w * h * 4)
+        let ok = buf.withUnsafeMutableBytes { raw -> Bool in
+            guard let ctx = CGContext(
+                data: raw.baseAddress, width: w, height: h, bitsPerComponent: 8,
+                bytesPerRow: w * 4, space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) else { return false }
+            ctx.interpolationQuality = .none
+            ctx.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
+            return true
+        }
+        guard ok else { return false }
+        func near(_ i: Int, _ c: RegionMap.RGB) -> Bool {
+            abs(Int(buf[i]) - c.r) <= 14 && abs(Int(buf[i + 1]) - c.g) <= 14 && abs(Int(buf[i + 2]) - c.b) <= 14
+        }
+        var total = 0, water = 0
+        for y in 0..<h {
+            for x in 0..<w where x == 0 || y == 0 || x == w - 1 || y == h - 1 {
+                let i = (y * w + x) * 4
+                total += 1
+                if near(i, sea) || (shallow.map { near(i, $0) } ?? false) { water += 1 }
+            }
+        }
+        return total > 0 && Double(water) / Double(total) >= 0.97
+    }
+
+    /// **The country as a silhouette with one area lit** (maintainer, 14 Sep:
+    /// "instead of a pin on the map for the region hero icon, can you
+    /// highlight the region itself?").
+    ///
+    /// Drawn from the index raster, not the art: one pixel per logical cell,
+    /// country cells in a muted tone and the chosen area's cells in its own
+    /// fill, cropped to the subject rect. That is a few hundred cells a side,
+    /// so it costs nothing, and it is pixel art by construction — the same
+    /// register as the hand-drawn outlines it stands in for. A second-plane
+    /// child lights its plane-two cells, so Sauternes shows as Sauternes
+    /// rather than as all of Bordeaux. Cached per stem; the hero asks for one.
+    func silhouette(_ stem: String) -> UIImage? {
+        if let hit = silhouettes[stem] { return hit }
+        let child = map.childrenByIndex.first { $0.value.stem == stem }
+        let region = map.regions.first { $0.id == stem }
+        guard child != nil || region != nil else { return nil }
+        let wantChild = child.map { UInt8(clamping: $0.key) }
+        let wantRegion = region.map { UInt8(clamping: $0.index) }
+        let fill = (child.flatMap { c in map.regions.first { $0.id == c.value.parent }?.fill }
+                    ?? region?.fill) ?? RegionMap.RGB(r: 200, g: 60, b: 60)
+        // Lit: the area's own fill, lifted the way `cutout` lifts it. Muted:
+        // a stone grey that reads as "the rest of the country" under either
+        // screen mode without competing with the lit area.
+        let lift: (Int) -> UInt8 = { UInt8(clamping: Int((Double($0) * 0.78 + 56).rounded())) }
+        let lit = (lift(fill.r), lift(fill.g), lift(fill.b))
+        // Over a flag now, so the country reads as the tile draws it: a dark
+        // solid shape the flag shows around, not through.
+        let muted: (UInt8, UInt8, UInt8) = (74, 58, 48)
+
+        let sr = map.subjectRect
+        let x0 = max(0, Int(sr.x * Double(w))), y0 = max(0, Int(sr.y * Double(h)))
+        let x1 = min(w, Int((sr.x + sr.w) * Double(w)).advanced(by: 1))
+        let y1 = min(h, Int((sr.y + sr.h) * Double(h)).advanced(by: 1))
+        let cw = max(1, x1 - x0), ch = max(1, y1 - y0)
+        var rgba = [UInt8](repeating: 0, count: cw * ch * 4)
+        for y in y0..<y1 {
+            for x in x0..<x1 {
+                let i = y * w + x
+                let byte = cells[i]
+                guard byte != Self.outside else { continue }
+                let isLit: Bool = {
+                    if let wantChild, !children.isEmpty {
+                        // A child is a handful of cells — Sauternes is five —
+                        // and at hero size that is under a pixel. Light its
+                        // eight neighbours too, so the patch reads as a place
+                        // rather than a speck. The halo stays inside the
+                        // country because only country cells are drawn.
+                        for dy in -1...1 {
+                            for dx in -1...1 {
+                                let nx = x + dx, ny = y + dy
+                                guard nx >= 0, ny >= 0, nx < w, ny < h else { continue }
+                                if children[ny * w + nx] == wantChild { return true }
+                            }
+                        }
+                        return false
+                    }
+                    if let wantRegion, byte == wantRegion { return true }
+                    return false
+                }()
+                let px = isLit ? lit : muted
+                let o = ((y - y0) * cw + (x - x0)) * 4
+                rgba[o] = px.0; rgba[o + 1] = px.1; rgba[o + 2] = px.2; rgba[o + 3] = 255
+            }
+        }
+        let image = Self.image(from: &rgba, w: cw, h: ch)
+        if let image { silhouettes[stem] = image }
+        return image
+    }
+
+    private var silhouettes: [String: UIImage] = [:]
+
     func cutout(_ stem: String) -> UIImage? {
         if let hit = cutouts[stem] { return hit }
         guard let region = map.regions.first(where: { $0.id == stem }) else { return nil }
@@ -757,7 +991,7 @@ final class RegionAtlas {
     private var cutouts: [String: UIImage] = [:]
     private var cutoutOrder: [String] = []
 
-    private static func image(from rgba: inout [UInt8], w: Int, h: Int) -> UIImage? {
+    static func image(from rgba: inout [UInt8], w: Int, h: Int) -> UIImage? {
         var out: UIImage?
         rgba.withUnsafeMutableBytes { buf in
             guard let ctx = CGContext(
@@ -772,7 +1006,7 @@ final class RegionAtlas {
     }
 
 
-    private static func url(_ key: String, _ name: String, _ ext: String) -> URL? {
+    static func url(_ key: String, _ name: String, _ ext: String) -> URL? {
         // `Bundle.module` directly rather than through `DexAsset`: adding a
         // case there would enlist `DexAssetAudit` to police this directory,
         // and the drop's §6 is explicit that no gate should gain a new tree
@@ -799,7 +1033,7 @@ final class RegionAtlas {
 
     /// The region at a point in **base-art space**, or the nearest one
     /// inside the same country. Nil when the tap was outside the country.
-    func region(atX point: CGPoint) -> String? {
+    func region(atX point: CGPoint, catchment: Int = 0) -> String? {
         // **Floor, not round** — the manifest says so outright since the
         // 13 Sep drop: *"the rasteriser fills cell i from [i, i+1). Rounding
         // picks the nearest cell CENTRE and lands one cell over for anything
@@ -828,6 +1062,32 @@ final class RegionAtlas {
             if kid != 0, let child = map.childrenByIndex[Int(kid)] {
                 return child.stem
             }
+        }
+
+        // **A fingertip's catchment for a child, and only a child** (maintainer,
+        // 14 Sep: "wachau isnt tappable"). The exact read above is still the
+        // rule — a child is not a magnet. But the Wachau is 29 cells, and at
+        // the zoom a map opens at a cell is under a point wide, so the whole
+        // child was smaller than the finger trying to hit it. `catchment` is
+        // the caller's measure of a fingertip in cells at the current
+        // magnification: within it, the nearest child cell wins; beyond it,
+        // the parent answers as before. Zero disables it, which is what the
+        // flat map screen passes.
+        if catchment > 0, !map.childrenByIndex.isEmpty {
+            var best: (d2: Int, stem: String)?
+            for dy in -catchment...catchment {
+                for dx in -catchment...catchment {
+                    let x = cx + dx, y = cy + dy
+                    guard x >= 0, y >= 0, x < w, y < h else { continue }
+                    let kid = children[y * w + x]
+                    guard kid != 0, let child = map.childrenByIndex[Int(kid)] else { continue }
+                    let d2 = dx * dx + dy * dy
+                    if d2 <= catchment * catchment, best == nil || d2 < best!.d2 {
+                        best = (d2, child.stem)
+                    }
+                }
+            }
+            if let best { return best.stem }
         }
 
         guard let byte = nearestCell(x: cx, y: cy), let i = slot[byte] else { return nil }

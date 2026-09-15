@@ -42,8 +42,10 @@ struct RegionMapTests {
         // order that outlying wine islands are on the map.
         // 174 after round two: Rueda & Toro split into two areas, and
         // Hokkaido joined Japan's. 175 after round three: the Golan Heights,
-        // cut out of HaZafon along the Jordan.
-        #expect(total == 175, "painted areas across all thirty-nine: \(total)")
+        // cut out of HaZafon along the Jordan. 172 after the South Africa
+        // re-cut of the same day: four axis-cut districts that read as
+        // stripes became one honest Western Cape, the districts inside it.
+        #expect(total == 172, "painted areas across all thirty-nine: \(total)")
         var children = 0
         for country in RegionMap.mapped { children += try load(country).childrenByIndex.count }
         // Three since round three: the Wachau on Austria's second plane.
@@ -66,6 +68,45 @@ struct RegionMapTests {
         // Roughly centred, since the renderer puts an equal margin all round.
         #expect(abs((fr.x + fr.w / 2) - 0.5) < 0.05)
         #expect(abs((fr.y + fr.h / 2) - 0.5) < 0.05)
+    }
+
+    /// **What a map opens on, with its islands and without its Azores**
+    /// (0.9.59). The subject rect is the mainland by ruling; the opening view
+    /// grows to take in painted islands within twelve degrees and no
+    /// further. Spain reaches the Canaries, Portugal reaches Madeira, and
+    /// Portugal does *not* reach the Azores — twenty-two degrees out, they
+    /// would put the country on the edge of the glass. France's islands are
+    /// inside its rect already, so it opens exactly as before.
+    @Test("the opening view takes in near islands and leaves the Azores for a pan")
+    func openingBoundsGap() throws {
+        let spain = try load("spain")
+        #expect(spain.openingBounds.south < 29.5, "the Canaries (28°N) are not in Spain's opening view")
+        #expect(spain.openingBounds.north == spain.subjectBounds.north)
+
+        let portugal = try load("portugal")
+        #expect(portugal.openingBounds.west < -16.5, "Madeira (16.9°W) is not in Portugal's opening view")
+        #expect(portugal.openingBounds.west > -22, "the Azores (25–31°W) pulled Portugal's opening view into the Atlantic")
+
+        let france = try load("france")
+        let s = france.subjectBounds, o = france.openingBounds
+        #expect(o.west == s.west && o.east == s.east && o.south == s.south && o.north == s.north,
+                "France's opening view moved with no island outside its rect")
+    }
+
+    /// **Every manifest names its sea, and its scale is a real number**
+    /// (0.9.59). The globe's sea skirt is painted in the manifest's own sea
+    /// colour, and a fingertip's catchment for a second-plane child is sized
+    /// from `cellsPerDegree`; a manifest missing either would silently give
+    /// Japan a black skirt or the Wachau no catchment.
+    @Test("every manifest carries a sea colour and a positive scale")
+    func seaAndScale() throws {
+        for country in RegionMap.mapped {
+            let map = try load(country)
+            #expect(map.seaFill != nil, "\(country) has no backdrop.sea")
+            #expect(map.cellsPerDegree > 0, "\(country) scale is \(map.cellsPerDegree)")
+        }
+        // The one value the skirt is drawn in on Japan, as shipped.
+        #expect(try load("japan").seaFill == RegionMap.RGB(hex: "#38506B"))
     }
 
     /// **No canvas may claim a latitude the world does not have.**

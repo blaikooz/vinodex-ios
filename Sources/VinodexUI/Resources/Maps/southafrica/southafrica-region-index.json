@@ -1,22 +1,18 @@
 {
  "byId": {
-  "R055": "swartland",
-  "R057": "paarl",
-  "R047": "stellenbosch",
-  "R056": "walkerbay"
+  "R047": "westerncape",
+  "R055": "westerncape",
+  "R056": "westerncape",
+  "R057": "westerncape",
+  "R216": "westerncape"
  },
  "byStem": {
-  "swartland": [
-   "R055"
-  ],
-  "paarl": [
-   "R057"
-  ],
-  "stellenbosch": [
-   "R047"
-  ],
-  "walkerbay": [
-   "R056"
+  "westerncape": [
+   "R047",
+   "R055",
+   "R056",
+   "R057",
+   "R216"
   ]
  }
 }

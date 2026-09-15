@@ -32,6 +32,8 @@ public struct SettingsPanel: View {
     /// to the grid, beside SHOP. A route push like every other tile, so the
     /// chassis Back returns here.
     let onFirmware: () -> Void
+    /// Opens the full credits screen from the CREDITS section (0.9.59).
+    let onCredits: () -> Void
     // `onWalkthrough` retired here in 0.7.6 (F1) — the tour moved into
     // SETTINGS > DEVICE, so `SettingsSectionPanel` takes the callback now. See
     // the note on the grid below for what that costs and why it is paid.
@@ -49,12 +51,14 @@ public struct SettingsPanel: View {
         onClose: @escaping () -> Void,
         onSection: @escaping (SettingsSection) -> Void = { _ in },
         onMinigames: @escaping () -> Void = {},
-        onFirmware: @escaping () -> Void = {}
+        onFirmware: @escaping () -> Void = {},
+        onCredits: @escaping () -> Void = {}
     ) {
         self.onClose = onClose
         self.onSection = onSection
         self.onMinigames = onMinigames
         self.onFirmware = onFirmware
+        self.onCredits = onCredits
     }
 
     /// **Six tiles since 0.8.92 (item 2): three rows of two.** FIRMWARE takes
@@ -287,6 +291,8 @@ public struct SettingsSectionPanel: View {
     /// cheat-reveal day needs one button, not an archaeology dig; a call site
     /// added here is a deliberate re-exposure, not a cleanup.
     let onDev: () -> Void
+    /// Opens the full credits page from the SETTINGS section's CREDITS button (0.9.59).
+    let onCredits: () -> Void
     /// The DEVICE section's doors (0.7.3, A2–A4; `onFirmwareHistory` left with
     /// its row for the System grid in 0.8.92, item 2 — see
     /// `SettingsPanel.onFirmware`).
@@ -451,6 +457,7 @@ public struct SettingsSectionPanel: View {
         onWalkthrough: @escaping () -> Void = {},
         onDemoMode: @escaping () -> Void = {},
         onDeviceWorkshop: @escaping () -> Void = {},
+        onCredits: @escaping () -> Void = {},
         onOpenPack: @escaping (String) -> Void = { _ in },
         onClosePack: @escaping () -> Void = {}
     ) {
@@ -463,6 +470,7 @@ public struct SettingsSectionPanel: View {
         self.onWalkthrough = onWalkthrough
         self.onDemoMode = onDemoMode
         self.onDeviceWorkshop = onDeviceWorkshop
+        self.onCredits = onCredits
         self.onOpenPack = onOpenPack
         self.onClosePack = onClosePack
     }
@@ -2322,6 +2330,8 @@ public struct SettingsSectionPanel: View {
             }
         }
 
+        credits
+
         // The ABOUT section and its TURN THE DEVICE OVER row came off the
         // panel (0.9.41), reversing M21's signpost: the maintainer prefers
         // the back of the device found the way it was designed to be — the
@@ -2333,6 +2343,60 @@ public struct SettingsSectionPanel: View {
         // `SettingsSection.dev` and `onDev` all stand — dormant, exactly as
         // the shop panel is — so the door is one settingsSection away from
         // coming back when a build needs it.
+    }
+
+    /// **CREDITS** (0.9.59, maintainer order: "move the flag and other credits
+    /// out of firmware and move them to a credits section of settings").
+    ///
+    /// They lived at the foot of the FIRMWARE screen from 0.9.46, on the
+    /// argument that the version record was the one screen already about
+    /// provenance. Two things changed that: the record grew to sixty releases,
+    /// so the foot was a long scroll away, and the credits themselves grew —
+    /// the map campaign brought Natural Earth, Statistik Austria and Etalab
+    /// into the bundle beside R74n's flags and Liv-ex's index, and a device's
+    /// foot-of-screen has room for three lines, not six.
+    ///
+    /// The LWIN line is not decoration: CC BY 4.0 *requires* attribution to
+    /// the licensor, the licence, and a statement that the work was modified
+    /// (211,786 records to 184,968, re-encoded into the app's packed format;
+    /// the full account is in ATTRIBUTION.md). Moving it is fine; dropping any
+    /// of the three parts is not.
+    private var credits: some View {
+        settingsSection("CREDITS") {
+            // One row that opens the full page (maintainer, 14 Sep: "change
+            // the credits in settings to be a button that opens the full
+            // credits"). The five lines that were here outgrew a panel section
+            // the moment game-icons' fifty-five artists had to be named.
+            Button {
+                Haptics.select()
+                onCredits()
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "text.book.closed.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(lcd.accent)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("VIEW THE CREDITS")
+                            .font(DexFont.retro(12))
+                            .tracking(1)
+                            .foregroundStyle(lcd.text)
+                        Text("Flags, the wine index, map data, fonts and icons — and the licences they carry.")
+                            .font(DexFont.mono(16))
+                            .foregroundStyle(lcd.subtext)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 8)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(lcd.subtext)
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
+                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(lcd.surfaceEdge, lineWidth: 1))
+            }
+            .buttonStyle(DexPressStyle(scale: 0.98))
+        }
     }
 
     /// "CHASSIS SKINS", not "SHELL SKINS": the rest of the app calls this part

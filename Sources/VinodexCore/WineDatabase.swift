@@ -1032,14 +1032,20 @@ public struct DatabaseStats: Sendable, Hashable {
     /// Category counts in the order the panel lists them, paired with the
     /// label each is shown under. Countries sit last, after the five real
     /// categories, because they are the one line that is not an entry count.
+    /// **Read as a two-column grid, top-left to bottom-right** (maintainer,
+    /// 14 Sep): grapes beside continents, styles beside countries, flavors
+    /// beside regions. The DATA panel lays these out two across, so the
+    /// order here is the order on the glass, and the rows pair the small
+    /// tables with the large ones rather than stacking the two geography
+    /// tables in one column.
     public var categoryLines: [Line] {
         [
             Line(label: "GRAPES", count: grapes),
-            Line(label: "REGIONS", count: regions),
-            Line(label: "STYLES", count: styles),
-            Line(label: "FLAVORS", count: flavors),
             Line(label: "CONTINENTS", count: continents),
+            Line(label: "STYLES", count: styles),
             Line(label: "COUNTRIES", count: countries),
+            Line(label: "FLAVORS", count: flavors),
+            Line(label: "REGIONS", count: regions),
         ]
     }
 

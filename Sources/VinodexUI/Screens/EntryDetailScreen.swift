@@ -424,13 +424,44 @@ public struct EntryDetailScreen: View {
     /// fix cannot be missed by the next one. See its note.
     private var hero: some View {
         DexHero(title: entry.name) {
-            EntryIconWell(
-                db: db,
-                entry: entry,
-                size: DexMetrics.heroWell,
-                cornerRadius: 20,
-                showsRegionDot: true
-            )
+            // **The region lit on its country, not a dot on an outline**
+            // (maintainer, 14 Sep). Where the region map paints this entry
+            // as an area of its own, the hero is the country's silhouette
+            // from the index raster with that area in its fill — Bordeaux
+            // is the Gironde lit on France, Sauternes its five communes lit
+            // inside it. A region the map only holds *inside* something
+            // (Napa inside California) keeps the outline and its dot: lighting
+            // all of California for Napa would be a lie the dot is not.
+            if let art = regionSilhouette, case .region(let r) = entry {
+                // **The template** (maintainer, 14 Sep): the country's flag as
+                // the ground, the country's silhouette over it with the
+                // region lit, and a white outline around the container —
+                // the entry tile's own look, at hero size, with the region
+                // where the tile has a dot.
+                ZStack {
+                    FlagSwatch(db: db, country: r.details.origin,
+                               width: DexMetrics.heroWell, height: DexMetrics.heroWell)
+                        .frame(width: DexMetrics.heroWell, height: DexMetrics.heroWell)
+                        .clipped()
+                    Image(uiImage: art)
+                        .interpolation(.none)
+                        .resizable()
+                        .scaledToFit()
+                        .padding(DexMetrics.heroWell * 0.12)
+                }
+                .frame(width: DexMetrics.heroWell, height: DexMetrics.heroWell)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .overlay(RoundedRectangle(cornerRadius: 20)
+                    .strokeBorder(Color.white, lineWidth: 3))
+            } else {
+                EntryIconWell(
+                    db: db,
+                    entry: entry,
+                    size: DexMetrics.heroWell,
+                    cornerRadius: 20,
+                    showsRegionDot: true
+                )
+            }
         } actions: {
             // Not `DexSaveButton`: an entry carries three shelves, a rating
             // prompt off the third and a share pill (0.7.8, B4), which is a
@@ -729,6 +760,13 @@ public struct EntryDetailScreen: View {
             }
             .padding(.bottom, 18)
         }
+    }
+
+    /// The hero's silhouette, when the map paints this entry as an area of
+    /// its own — the same test `regionsInside` makes, so the hero and the
+    /// INSIDE IT section agree about which entries are places.
+    private var regionSilhouette: UIImage? {
+        RegionSilhouettes.image(for: entry, db: db)
     }
 
     /// **What the map put inside this region** (0.9.58, maintainer order:

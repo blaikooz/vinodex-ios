@@ -687,6 +687,16 @@ struct RootView: View {
         if name.hasPrefix("state:") {
             return [.state(name: String(name.dropFirst("state:".count)))]
         }
+        // `settings:data` opens the DATA readout directly. The section is a
+        // route of its own, so this is the panel and then the section, which
+        // is what a tap on the DATA tile does.
+        if name == "settings:data" { return [.settings, .settingsSection(.data)] }
+        // `settings:<section>` for the rest, by the section's stored name —
+        // `settings:settings` is the SETTINGS panel with the CREDITS section.
+        if name.hasPrefix("settings:"),
+           let section = SettingsSection(rawValue: String(name.dropFirst("settings:".count)).uppercased()) {
+            return [.settings, .settingsSection(section)]
+        }
         if name.hasPrefix("map:") {
             let parts = name.split(separator: ":")
             if parts.count >= 2 {
@@ -707,6 +717,8 @@ struct RootView: View {
         case "menu":     return []
         case "grapes", "grapes:filters":
             return [.list(category: .grapes, filter: nil)]
+        // The regions list, for photographing region tiles (0.9.59).
+        case "regions":  return [.list(category: .regions, filter: nil)]
         case "globe":    return [.globe]
         case "scanner":  return [.labelReader]
         case "passport": return [.passport]
@@ -715,6 +727,7 @@ struct RootView: View {
         case "shelves":  return [.bookmarks]
         case "settings": return [.settings]
         case "firmware": return [.firmwareHistory]
+        case "credits":  return [.credits]
         // The France region map, and the country page it is reached from —
         // the second so the door itself can be looked at, not just the room.
         case "country":  return [.country(name: "France")]
@@ -1212,7 +1225,8 @@ struct RootView: View {
                 onMinigames: { push(.minigames) },
                 // FIRMWARE is a grid tile beside SHOP now (0.8.92, item 2);
                 // the route behind it is unchanged.
-                onFirmware: { push(.firmwareHistory) }
+                onFirmware: { push(.firmwareHistory) },
+                onCredits: { push(.credits) }
             )
 
         case .settingsSection(let section):
@@ -1227,6 +1241,7 @@ struct RootView: View {
                 onWalkthrough: { push(.walkthrough) },
                 onDemoMode: { startDemo() },
                 onDeviceWorkshop: { push(.deviceWorkshop) },
+                onCredits: { push(.credits) },
                 // C1: the shelf's tiles push a frame instead of raising an
                 // overlay over themselves.
                 onOpenPack: { push(.pack(id: $0)) }
@@ -1256,6 +1271,7 @@ struct RootView: View {
                 onWalkthrough: { push(.walkthrough) },
                 onDemoMode: { startDemo() },
                 onDeviceWorkshop: { push(.deviceWorkshop) },
+                onCredits: { push(.credits) },
                 // Already open; a tile behind the splash is not reachable.
                 onOpenPack: { push(.pack(id: $0)) },
                 // CLOSE and the chassis Back are now the same operation, which
@@ -1336,6 +1352,9 @@ struct RootView: View {
         // catalog screen goes through.
         case .firmwareHistory:
             FirmwareHistoryScreen()
+
+        case .credits:
+            CreditsScreen()
 
         case .cheatConsole:
             CheatConsoleScreen()

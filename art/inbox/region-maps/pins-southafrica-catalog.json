@@ -1,19 +1,5 @@
 [
  {
-  "id": "R055",
-  "name": "Swartland",
-  "lon": 18.73,
-  "lat": -33.46,
-  "expect": "westerncape"
- },
- {
-  "id": "R057",
-  "name": "Paarl & Franschhoek",
-  "lon": 18.96,
-  "lat": -33.73,
-  "expect": "westerncape"
- },
- {
   "id": "R047",
   "name": "Stellenbosch",
   "lon": 18.86,
@@ -21,10 +7,24 @@
   "expect": "westerncape"
  },
  {
+  "id": "R055",
+  "name": "Swartland",
+  "lon": 18.73,
+  "lat": -33.46,
+  "expect": "westerncape"
+ },
+ {
   "id": "R056",
   "name": "Walker Bay",
   "lon": 19.28,
   "lat": -34.4,
+  "expect": "westerncape"
+ },
+ {
+  "id": "R057",
+  "name": "Paarl & Franschhoek",
+  "lon": 18.96,
+  "lat": -33.73,
   "expect": "westerncape"
  },
  {

@@ -87,7 +87,10 @@ struct CoverageTests {
         // the six US regions the state gates had been naming without having.
         // Batch three: +1, the Golan Heights under Israel by the maintainer's
         // ruling, its prose stating the territory's status in one clause.
-        #expect(db.entries(in: .regions).count == 215)
+        // Batch four: +1, the Western Cape -- South Africa's map re-cut to one
+        // honest province after its axis-cut districts read as stripes, and
+        // the province needing an entry to lead with.
+        #expect(db.entries(in: .regions).count == 216)
         // 31 since 0.6.x: Medium-Full Red removed, its grapes now Full-Body.
         // 33 since 0.7.9 (G): Madeira and Cava; 31 through 0.9.42's removal;
         // **33 again since 0.9.45**: the maintainer reversed the removal
@@ -158,9 +161,9 @@ struct CoverageTests {
         // batch running — all 42 new tasting notes reuse the vocabulary.
         // 530 since the v0.9.54 readiness batch: +1 style, S041 Vinho Verde.
         // Flavours unchanged at 106 for the tenth batch running.
-        // 591 since 0.9.58: +48 regions and +3 grapes across the three
+        // 592 since 0.9.59: +49 regions and +3 grapes across the four
         // batches of 14 Sep.
-        #expect(stats.total == 591)
+        #expect(stats.total == 592)
         // 26 since 0.7.3c: Brazil is the first *new* origin since Mexico. The
         // count is distinct region origins, so the coming-soon gates still do
         // not count and adding a country without a region would not move it.
@@ -181,6 +184,10 @@ struct CoverageTests {
         // Elazığ in the same commit as its gate.
         #expect(stats.countries == 39)
         #expect(stats.categoryLines.count == 6)
+        // The DATA panel's two-column grid, read top-left to bottom-right
+        // (maintainer, 14 Sep). The order is the layout.
+        #expect(stats.categoryLines.map(\.label) ==
+                ["GRAPES", "CONTINENTS", "STYLES", "COUNTRIES", "FLAVORS", "REGIONS"])
     }
 
     /// The growth wave sweeps these in order. A total that fell below an

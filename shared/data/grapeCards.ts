@@ -81,7 +81,9 @@ const bodyFromText = (text?: string) => {
 const slugify = (str: string) => str.toLowerCase().replace(/\s+/g, '-');
 
 export const GRAPE_CARDS: GrapeCard[] = LEGACY_GRAPES.map((legacy) => {
-  const type = (legacy.wineType || '').toLowerCase().includes('red') ? 'red' : 'white';
+  // Authored berry colour wins over the prose derivation, which can only
+  // recognise a wineType with "red" in it (see LegacyGrapeRecord.berryColor).
+  const type = legacy.berryColor ?? ((legacy.wineType || '').toLowerCase().includes('red') ? 'red' : 'white');
   const styleName = legacy.wineType || legacy.details.body || 'Unknown Style';
   const tastingProfile = (legacy.tastingProfile || []).slice(0, 3).map(t => t.note);
   const rarityTier = toRarityTier(legacy.rarity);

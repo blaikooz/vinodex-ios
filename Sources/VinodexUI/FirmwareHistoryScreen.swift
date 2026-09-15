@@ -62,7 +62,8 @@ public struct FirmwareHistoryScreen: View {
                         ForEach(families, id: \.name) { family in
                             familySection(family)
                         }
-                        credit
+                        // The credit lines left this screen for SETTINGS ▸
+                        // CREDITS (maintainer, 14 Sep). See `SettingsPanel.credits`.
                     }
                     .padding(18)
                 }
@@ -174,45 +175,6 @@ public struct FirmwareHistoryScreen: View {
         .overlay(
             RoundedRectangle(cornerRadius: 8).strokeBorder(lcd.accent.opacity(0.5), lineWidth: 2)
         )
-    }
-
-    /// The credit lines (0.9.46; a second joined them in 0.9.55).
-    ///
-    /// The bundled pixel flags are R74n's, restored by the collective's kind
-    /// permission (2026-09-07) with the ask that credit be provided. The
-    /// bundled wine index is Liv-ex's LWIN database under **CC BY 4.0**,
-    /// which does not merely invite credit but *requires* it — attribution to
-    /// the licensor, the licence, and a statement that the work was modified.
-    /// 0.9.54 shipped the data with none of the three; this is the repair.
-    ///
-    /// The modification is real and must be declared: the import keeps the
-    /// Live wines and fortified wines and drops the spirits, combined and
-    /// deleted rows, taking 211,786 records to 184,968, and re-encodes what
-    /// survives into the app's own packed format. "MODIFIED" below is that
-    /// statement in the space a retro device's foot-of-screen allows; the
-    /// full account is in ATTRIBUTION.md, which this line names.
-    ///
-    /// The foot of the device's own version record is where a credit belongs:
-    /// it is the one screen already about provenance.
-    /// Broken across two lines rather than one, because the credit has to
-    /// survive HUGE: the retro face advances close to a full em, so the
-    /// 45-character single line wanted ~630pt at the 1.30 step against an
-    /// LCD barely 340 wide. The R74n line above it is 30 characters and has
-    /// always sat near that limit, which is the measurement this follows.
-    private var credit: some View {
-        VStack(spacing: 3) {
-            Text("PIXEL FLAGS BY R74N (R74N.COM)")
-            Text("WINE INDEX: LWIN BY LIV-EX")
-            Text("CC BY 4.0, MODIFIED")
-        }
-        .font(DexFont.retro(10))
-        .tracking(1)
-        .lineLimit(1)
-        .minimumScaleFactor(0.8)
-        .multilineTextAlignment(.center)
-        .foregroundStyle(lcd.subtext)
-        .frame(maxWidth: .infinity, alignment: .center)
-        .padding(.top, 4)
     }
 
     private func entry(_ release: FirmwareRelease) -> some View {

@@ -1258,19 +1258,26 @@ const CONTINENT_ICONS: Record<string, string> = {
  * does not carry fifty US states that no screen will ever ask for.
  */
 function buildCountryInfo(entries: readonly WineEntry[]) {
-  const reachable = new Set<string>();
+  // Two reachability sets, not one (0.9.59). A single set keyed by name let
+  // the *country* Georgia's reachability carry the *state* Georgia's gate
+  // along with it, so the device shipped a state page nothing could open.
+  // A country is reachable through a region's origin or a continent's
+  // list; a state only through a region's `state`.
+  const reachableCountry = new Set<string>();
+  const reachableState = new Set<string>();
   for (const entry of entries) {
     const details = entry.details as unknown as Record<string, unknown>;
-    if (typeof details.origin === 'string') reachable.add(details.origin);
-    if (typeof details.state === 'string') reachable.add(details.state);
+    if (typeof details.origin === 'string') reachableCountry.add(details.origin);
+    if (typeof details.state === 'string') reachableState.add(details.state);
     if (entry.category === 'CONTINENTS') {
-      for (const country of entry.details.keyRegions) reachable.add(country);
+      for (const country of entry.details.keyRegions) reachableCountry.add(country);
     }
   }
 
   const info: Record<string, { description: string; appellationSystem?: string[] }> = {};
   for (const country of COUNTRIES) {
-    if (!reachable.has(country.name)) continue;
+    const isState = country.details?.classification === 'STATE';
+    if (!(isState ? reachableState : reachableCountry).has(country.name)) continue;
     if (!country.description) continue;
     // The country's appellation system (0.6, A2) rides in the entry's tags
     // alongside the COUNTRY marker — strip the marker, ship the system. The
@@ -1285,7 +1292,6 @@ function buildCountryInfo(entries: readonly WineEntry[]) {
     // a learner tapping it would have read about qvevri. `state:Georgia`
     // cannot collide with anything a country is called, and the Swift side
     // reads states through `stateInfo`, which knows the prefix.
-    const isState = country.details?.classification === 'STATE';
     info[isState ? `state:${country.name}` : country.name] = {
       description: country.description,
       ...(system.length > 0 ? { appellationSystem: system } : {}),
