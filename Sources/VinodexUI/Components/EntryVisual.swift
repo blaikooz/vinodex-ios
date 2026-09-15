@@ -404,6 +404,25 @@ struct EntryIconWell: View {
             if !showsGlyph {
                 // The well alone — see `showsGlyph`.
                 EmptyView()
+            } else if case .region(let r) = entry,
+                      let silhouette = RegionSilhouettes.image(for: entry, db: db) {
+                // **The region lit on its country, everywhere** (maintainer,
+                // 14 Sep: "regions in list arent showing the new region hero
+                // icons"). The same template the hero draws — the flag as the
+                // ground, the country's silhouette from the index raster with
+                // the area lit, a white outline — at tile size. The outline
+                // art and its dot remain the fallback for a region with no
+                // map or no pin, which today is none of them.
+                ZStack {
+                    FlagSwatch(db: db, country: r.details.origin, width: size, height: size)
+                        .frame(width: size, height: size)
+                        .clipped()
+                    Image(uiImage: silhouette)
+                        .interpolation(.none)
+                        .resizable()
+                        .scaledToFit()
+                        .padding(size * 0.12)
+                }
             } else if showsRegionDot, case .region(let r) = entry,
                       let iconID = v.iconID, iconID.hasPrefix("art:"),
                       let art = PixelArtLoader.shared.image(String(iconID.dropFirst(4))) {
@@ -430,13 +449,25 @@ struct EntryIconWell: View {
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
         .overlay(
             RoundedRectangle(cornerRadius: cornerRadius)
-                .strokeBorder(v.ringColor ?? .black.opacity(0.25), lineWidth: v.ringColor == nil ? 1 : 2)
+                .strokeBorder(ringColor(v), lineWidth: ringWidth(v))
         )
     }
 
     /// The portrait for an art stem. Grape bunches route through
     /// `GrapeSpriteLoader` (0.6.2, A2) so their leaf is re-inked to the
     /// rarity's colour; everything else loads as drawn.
+    /// White for a region drawn on its flag — the template's outline — and
+    /// the visual's own ring for everything else.
+    private func ringColor(_ v: EntryVisual) -> Color {
+        if case .region = entry, RegionSilhouettes.image(for: entry, db: db) != nil { return .white }
+        return v.ringColor ?? .black.opacity(0.25)
+    }
+
+    private func ringWidth(_ v: EntryVisual) -> CGFloat {
+        if case .region = entry, RegionSilhouettes.image(for: entry, db: db) != nil { return 2 }
+        return v.ringColor == nil ? 1 : 2
+    }
+
     private func artImage(_ stem: String) -> UIImage? {
         if case .grape(let g) = entry {
             return GrapeSpriteLoader.shared.image(stem: stem, rarity: g.rarity)

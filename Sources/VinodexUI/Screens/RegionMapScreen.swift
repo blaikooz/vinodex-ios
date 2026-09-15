@@ -551,6 +551,121 @@ struct RegionMapThumb: View {
 /// is 810x780, and building its stem index costs a pass over 632,000 pixels.
 /// That is cheap once and wasteful on every re-render, and the view re-renders
 /// on every tap.
+/// **Region silhouettes without the atlas** (0.9.59). The hero and every
+/// region tile want the country's shape with one area lit; that needs the
+/// manifest, the region index and the two index rasters — a few hundred
+/// cells a side — and not the five-megapixel regions PNG or the backdrop the
+/// atlas decodes. A list of two hundred region tiles across thirty-nine
+/// countries would otherwise decode thirty-nine atlases on first scroll.
+///
+/// One cache per country of the rasters, one per stem of the drawn image.
+@MainActor
+final class RegionSilhouettes {
+    private struct Rasters {
+        let map: RegionMap
+        let cells: [UInt8]
+        let children: [UInt8]
+        let w: Int, h: Int
+    }
+    private static var rasters: [String: Rasters?] = [:]
+    private static var images: [String: UIImage] = [:]
+
+    /// The silhouette for a catalog region: the painted area it pins to,
+    /// lit on its country. Nil when the country has no map or the entry no
+    /// pin — the caller falls back to the outline art.
+    static func image(for entry: WineEntry, db: WineDatabase) -> UIImage? {
+        guard case .region(let r) = entry,
+              let key = RegionMap.key(forCountry: r.details.origin),
+              let rs = load(key),
+              let stem = rs.map.byStem.first(where: { $0.value.contains(entry.id) })?.key
+        else { return nil }
+        return image(key: key, stem: stem, rasters: rs)
+    }
+
+    private static func load(_ key: String) -> Rasters? {
+        if let hit = rasters[key] { return hit }
+        let built = build(key)
+        rasters[key] = built
+        return built
+    }
+
+    private static func build(_ key: String) -> Rasters? {
+        guard let map = RegionAtlas.map(for: key),
+              let url = RegionAtlas.url(key, "\(key)-index", "png"),
+              let cg = UIImage(contentsOfFile: url.path)?.cgImage else { return nil }
+        let w = cg.width, h = cg.height
+        func gray(_ cg: CGImage) -> [UInt8] {
+            var bytes = [UInt8](repeating: 0, count: w * h)
+            bytes.withUnsafeMutableBytes { buf in
+                guard let ctx = CGContext(data: buf.baseAddress, width: w, height: h,
+                                          bitsPerComponent: 8, bytesPerRow: w,
+                                          space: CGColorSpaceCreateDeviceGray(),
+                                          bitmapInfo: CGImageAlphaInfo.none.rawValue) else { return }
+                ctx.interpolationQuality = .none
+                ctx.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
+            }
+            return bytes
+        }
+        var kids = [UInt8](repeating: 0, count: w * h)
+        if !map.childrenByIndex.isEmpty,
+           let u2 = RegionAtlas.url(key, "\(key)-index2", "png"),
+           let cg2 = UIImage(contentsOfFile: u2.path)?.cgImage, cg2.width == w, cg2.height == h {
+            kids = gray(cg2)
+        }
+        return Rasters(map: map, cells: gray(cg), children: kids, w: w, h: h)
+    }
+
+    /// The drawing: country cells in a dark solid tone the flag shows around,
+    /// the area's cells in its own fill, cropped to the subject rect. A
+    /// second-plane child lights its plane-two cells with a one-cell halo,
+    /// because five communes at 48 points is nothing without one.
+    private static func image(key: String, stem: String, rasters rs: Rasters) -> UIImage? {
+        let cacheKey = key + "/" + stem
+        if let hit = images[cacheKey] { return hit }
+        let map = rs.map
+        let child = map.childrenByIndex.first { $0.value.stem == stem }
+        let region = map.regions.first { $0.id == stem }
+        guard child != nil || region != nil else { return nil }
+        let wantChild = child.map { UInt8(clamping: $0.key) }
+        let wantRegion = region.map { UInt8(clamping: $0.index) }
+        let fill = (child.flatMap { c in map.regions.first { $0.id == c.value.parent }?.fill }
+                    ?? region?.fill) ?? RegionMap.RGB(r: 200, g: 60, b: 60)
+        let lift: (Int) -> UInt8 = { UInt8(clamping: Int((Double($0) * 0.78 + 56).rounded())) }
+        let lit = (lift(fill.r), lift(fill.g), lift(fill.b))
+        let muted: (UInt8, UInt8, UInt8) = (74, 58, 48)
+        let w = rs.w, h = rs.h, sr = map.subjectRect
+        let x0 = max(0, Int(sr.x * Double(w))), y0 = max(0, Int(sr.y * Double(h)))
+        let x1 = min(w, Int((sr.x + sr.w) * Double(w)) + 1), y1 = min(h, Int((sr.y + sr.h) * Double(h)) + 1)
+        let cw = max(1, x1 - x0), ch = max(1, y1 - y0)
+        var rgba = [UInt8](repeating: 0, count: cw * ch * 4)
+        for y in y0..<y1 {
+            for x in x0..<x1 {
+                let i = y * w + x
+                let byte = rs.cells[i]
+                guard byte != 0 else { continue }
+                var isLit = false
+                if let wantChild {
+                    outer: for dy in -1...1 {
+                        for dx in -1...1 {
+                            let nx = x + dx, ny = y + dy
+                            guard nx >= 0, ny >= 0, nx < w, ny < h else { continue }
+                            if rs.children[ny * w + nx] == wantChild { isLit = true; break outer }
+                        }
+                    }
+                } else if let wantRegion, byte == wantRegion {
+                    isLit = true
+                }
+                let px = isLit ? lit : muted
+                let o = ((y - y0) * cw + (x - x0)) * 4
+                rgba[o] = px.0; rgba[o + 1] = px.1; rgba[o + 2] = px.2; rgba[o + 3] = 255
+            }
+        }
+        let image = RegionAtlas.image(from: &rgba, w: cw, h: ch)
+        if let image { images[cacheKey] = image }
+        return image
+    }
+}
+
 @MainActor
 final class RegionAtlas {
     /// One atlas per country, built once. The pixel table costs a pass over
@@ -876,7 +991,7 @@ final class RegionAtlas {
     private var cutouts: [String: UIImage] = [:]
     private var cutoutOrder: [String] = []
 
-    private static func image(from rgba: inout [UInt8], w: Int, h: Int) -> UIImage? {
+    static func image(from rgba: inout [UInt8], w: Int, h: Int) -> UIImage? {
         var out: UIImage?
         rgba.withUnsafeMutableBytes { buf in
             guard let ctx = CGContext(
@@ -891,7 +1006,7 @@ final class RegionAtlas {
     }
 
 
-    private static func url(_ key: String, _ name: String, _ ext: String) -> URL? {
+    static func url(_ key: String, _ name: String, _ ext: String) -> URL? {
         // `Bundle.module` directly rather than through `DexAsset`: adding a
         // case there would enlist `DexAssetAudit` to police this directory,
         // and the drop's §6 is explicit that no gate should gain a new tree

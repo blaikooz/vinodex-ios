@@ -321,6 +321,9 @@ public enum DexRoute: Hashable, Sendable {
     /// `FirmwareCatalog`, which is the same source the boot POST states its
     /// version from.
     case firmwareHistory
+    /// The full credits — every licence the bundle carries — behind the
+    /// SETTINGS panel's CREDITS button (0.9.59, maintainer order).
+    case credits
     /// The unlock-code console (0.7.3, A4). Typed codes are matched against
     /// `CheatCode.all` and grant through `AccessStore` like any other unlock.
     case cheatConsole
@@ -479,6 +482,8 @@ public enum DexRoute: Hashable, Sendable {
         // underneath it, so nothing is lost by the marquee naming the subject.
         case .firmwareHistory:
             "FIRMWARE"
+        case .credits:
+            "CREDITS"
         case .cheatConsole:
             "CHEAT CODES"
         // Not "DEVICE WORKSHOP": the marquee fits fourteen characters before it
@@ -636,6 +641,8 @@ public enum DexRoute: Hashable, Sendable {
         // the iOS 17 floor.
         case .firmwareHistory:
             "memorychip.fill"
+        case .credits:
+            "text.book.closed.fill"
         case .cheatConsole:
             "terminal.fill"
         // Matches the OPEN button on CUSTOMIZE that leads here (K2, rule 1).
@@ -770,6 +777,9 @@ public enum DexRoute: Hashable, Sendable {
         // The four SYSTEM-panel rows that open them.
         case .walkthrough: "marquee-tutorial"
         case .firmwareHistory: "marquee-firmware"
+        // Wears the FIRMWARE marquee: the credits lived on that screen until
+        // 0.9.59 and no art of their own is worth commissioning.
+        case .credits: "marquee-firmware"
         case .cheatConsole: "marquee-cheatcodes"
         case .deviceWorkshop: "marquee-deviceworkshop"
         case .passport: "marquee-passport"

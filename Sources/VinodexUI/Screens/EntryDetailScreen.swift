@@ -766,16 +766,7 @@ public struct EntryDetailScreen: View {
     /// its own — the same test `regionsInside` makes, so the hero and the
     /// INSIDE IT section agree about which entries are places.
     private var regionSilhouette: UIImage? {
-        guard case .region(let r) = entry,
-              let atlas = RegionAtlas.of(r.details.origin) else { return nil }
-        // Every region, not only an area's own entry (maintainer, 14 Sep:
-        // "hero icons for regions should apply everywhere now"). A region the
-        // map holds inside a larger area lights that area — Napa lights
-        // California — which is the most the map can say about where it is,
-        // and more than a dot said.
-        guard let stem = atlas.map.byStem.first(where: { $0.value.contains(entry.id) })?.key
-        else { return nil }
-        return atlas.silhouette(stem)
+        RegionSilhouettes.image(for: entry, db: db)
     }
 
     /// **What the map put inside this region** (0.9.58, maintainer order:
