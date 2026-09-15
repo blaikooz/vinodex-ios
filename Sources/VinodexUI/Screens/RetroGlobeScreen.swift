@@ -548,7 +548,7 @@ public struct RetroGlobeScreen: View {
         // the same globe getting closer rather than a new screen arriving.
         model.showRegions(atlas.map, image: atlas.base, backdrop: atlas.backdrop,
                           seaEdged: atlas.seaEdged)
-        let b = atlas.map.subjectBounds
+        let b = atlas.map.openingBounds
         let fit = GlobeModel.zoomToFit(
             west: b.west, east: b.east,
             south: b.south, north: b.north,
@@ -767,35 +767,61 @@ public struct RetroGlobeScreen: View {
     /// in the HUD says what you hit; the tile is what makes the tap lead
     /// somewhere — the same shape the lists use.
     private func countryTile(_ picked: GlobeIndex.Country) -> some View {
-        Button {
+        // **The catalog's spelling, not the atlas's.** Natural Earth calls it
+        // "United States of America" and the catalog files it under "USA";
+        // the country page, the flag and the gate record are all looked up
+        // by the catalog's name.
+        let name = GlobeIndex.catalogName(for: picked.admin)
+        // **The entry tile's shape, chip for chip** (maintainer, 14 Sep: "add
+        // full tiles for the country tiles when selecting a country, not the
+        // slim one"). A region's tile carries COUNTRY, CLASSIFICATION and
+        // CLIMATE; a country carries its CONTINENT, its appellation system
+        // from the gate record, and COUNTRY in the classification's place —
+        // the same three tables the state tile uses, so every place on the
+        // globe reads as the same kind of thing.
+        let continent = Continent.allCases.first { db.countries(in: $0).contains(name) }
+        let system = db.countryInfo(name)?.appellationSystem?.first
+        var chips: [TileChip] = []
+        if let continent {
+            chips.append(TileChip(label: continent.rawValue.uppercased(),
+                                  key: continent.rawValue, table: .country))
+        }
+        if let system {
+            chips.append(TileChip(label: system.uppercased(), key: system, table: .classification))
+        }
+        chips.append(TileChip(label: "COUNTRY", key: "COUNTRY", table: .named))
+        return Button {
             Haptics.select()
-            // **The catalog's spelling, not the atlas's.** Natural Earth
-            // calls it "United States of America" and the catalog files it
-            // under "USA"; it is the only one of the thirty that disagrees,
-            // and the country page opened empty for it.
-            onOpenCountry?(GlobeIndex.catalogName(for: picked.admin))
+            onOpenCountry?(name)
         } label: {
             HStack(spacing: 12) {
-                // The catalog's spelling here too — the flag is looked up by
-                // the same name the country page is, so "United States of
-                // America" drew an empty swatch beside a correct label.
-                FlagSwatch(db: db, country: GlobeIndex.catalogName(for: picked.admin),
-                           width: 36, height: 23)
-                Text(picked.label)
-                    .font(DexFont.retro(12))
-                    .foregroundStyle(lcd.text)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                Spacer(minLength: 8)
+                FlagSwatch(db: db, country: name,
+                           width: DexMetrics.iconWell, height: DexMetrics.iconWell * 0.64)
+                    .frame(width: DexMetrics.iconWell, height: DexMetrics.iconWell)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(picked.label)
+                        .font(DexFont.retro(13))
+                        .foregroundStyle(lcd.text)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                    FlowLayout(spacing: 5) {
+                        ForEach(chips) { chip in
+                            ChipView(label: chip.label, chip: db.palette.resolve(chip))
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(lcd.subtext)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(Dex.stone600)
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(RoundedRectangle(cornerRadius: 6).fill(lcd.surface))
-            .overlay(RoundedRectangle(cornerRadius: 6)
-                .strokeBorder(lcd.accent.opacity(0.5), lineWidth: 1))
+            .padding(8)
+            .frame(minHeight: 72)
+            .background(lcd.surface)
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .strokeBorder(lcd.surfaceEdge, lineWidth: 2)
+            )
         }
         .buttonStyle(DexPressStyle(scale: 0.98))
     }
@@ -2196,6 +2222,20 @@ final class GlobeModel {
         }
         material.diffuse.wrapS = .repeat
         material.diffuse.wrapT = .clamp
+        // **Crisp texels when the lens moves in** (maintainer, 14 Sep: "any
+        // way to increase resolution of the countries so they dont look
+        // blurry when selected?"). The texture is 2048 across the whole
+        // sphere — Italy owns about 68 texels — and the default bilinear
+        // magnification smears each one into its neighbours at 12x, which
+        // reads as blur. Nearest keeps every texel a hard-edged block, which
+        // is the register this device draws everything else in, and costs
+        // nothing. The real resolution fix is a larger texture from the art
+        // side; this is what makes the current one honest in the meantime.
+        // Minification stays linear with mipmaps so the far side of the
+        // sphere does not shimmer.
+        material.diffuse.magnificationFilter = .nearest
+        material.diffuse.minificationFilter = .linear
+        material.diffuse.mipFilter = .linear
         material.roughness.contents = 0.92
         material.metalness.contents = 0.08
         // Self-illumination is what makes the dark globe glow. On paper it only

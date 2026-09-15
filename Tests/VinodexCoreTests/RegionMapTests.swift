@@ -70,6 +70,29 @@ struct RegionMapTests {
         #expect(abs((fr.y + fr.h / 2) - 0.5) < 0.05)
     }
 
+    /// **What a map opens on, with its islands and without its Azores**
+    /// (0.9.59). The subject rect is the mainland by ruling; the opening view
+    /// grows to take in painted islands within twelve degrees and no
+    /// further. Spain reaches the Canaries, Portugal reaches Madeira, and
+    /// Portugal does *not* reach the Azores — twenty-two degrees out, they
+    /// would put the country on the edge of the glass. France's islands are
+    /// inside its rect already, so it opens exactly as before.
+    @Test("the opening view takes in near islands and leaves the Azores for a pan")
+    func openingBoundsGap() throws {
+        let spain = try load("spain")
+        #expect(spain.openingBounds.south < 29.5, "the Canaries (28°N) are not in Spain's opening view")
+        #expect(spain.openingBounds.north == spain.subjectBounds.north)
+
+        let portugal = try load("portugal")
+        #expect(portugal.openingBounds.west < -16.5, "Madeira (16.9°W) is not in Portugal's opening view")
+        #expect(portugal.openingBounds.west > -22, "the Azores (25–31°W) pulled Portugal's opening view into the Atlantic")
+
+        let france = try load("france")
+        let s = france.subjectBounds, o = france.openingBounds
+        #expect(o.west == s.west && o.east == s.east && o.south == s.south && o.north == s.north,
+                "France's opening view moved with no island outside its rect")
+    }
+
     /// **Every manifest names its sea, and its scale is a real number**
     /// (0.9.59). The globe's sea skirt is painted in the manifest's own sea
     /// colour, and a fingertip's catchment for a second-plane child is sized

@@ -162,6 +162,50 @@ public struct RegionMap: Sendable {
                 south: bottomRight.lat, north: topLeft.lat)
     }
 
+    /// **The painted areas near enough to open on, in degrees.** Each area's
+    /// detail frame, in the manifest's canvas cells, turned into a box; the
+    /// union of the ones within `gap` degrees of the subject rect. Nil when
+    /// none qualifies beyond the subject itself.
+    ///
+    /// The gap is the whole point. Portugal's Azores are twenty-two degrees
+    /// west of the mainland: a box that takes them in puts the country on the
+    /// edge of the glass and opens the map on the Atlantic, which is not what
+    /// "zoom out a bit to include the islands" meant. Madeira is seven degrees
+    /// out and the Canaries eight from Spain; those are a step wider, and
+    /// twelve degrees lets them in and keeps the Azores for a pan. The globe
+    /// tier's `landmass` applies the same idea to a country's raster.
+    public func paintedBounds(gap: Double = 12) -> (west: Double, east: Double, south: Double, north: Double)? {
+        let s = subjectBounds
+        var out: (west: Double, east: Double, south: Double, north: Double)?
+        for r in regions where r.detailFrame.w > 0 && r.detailFrame.h > 0 {
+            let x0 = r.detailFrame.x * Double(canvas.w), y0 = r.detailFrame.y * Double(canvas.h)
+            let x1 = (r.detailFrame.x + r.detailFrame.w) * Double(canvas.w)
+            let y1 = (r.detailFrame.y + r.detailFrame.h) * Double(canvas.h)
+            let tl = coordinate(atCanvas: x0, y0), br = coordinate(atCanvas: x1, y1)
+            // How far this area's box sits outside the subject's, per axis.
+            let dx = max(s.west - br.lon, tl.lon - s.east, 0)
+            let dy = max(s.south - tl.lat, br.lat - s.north, 0)
+            guard dx <= gap, dy <= gap else { continue }
+            out = out.map { (west: min($0.west, tl.lon), east: max($0.east, br.lon),
+                             south: min($0.south, br.lat), north: max($0.north, tl.lat)) }
+                ?? (west: tl.lon, east: br.lon, south: br.lat, north: tl.lat)
+        }
+        return out
+    }
+
+    /// **What a map opens on** (maintainer, 14 Sep: "zoom out a bit for the
+    /// portugal and spain maps to include the islands"). The subject rect is
+    /// the mainland by ruling, so a fit to it left the Canaries and Madeira
+    /// off the glass until you panned. This is the subject rect grown to take
+    /// in every painted area within the gap — never smaller than the country,
+    /// so a map whose regions all sit inside it opens exactly as before.
+    public var openingBounds: (west: Double, east: Double, south: Double, north: Double) {
+        let s = subjectBounds
+        guard let p = paintedBounds() else { return s }
+        return (west: min(s.west, p.west), east: max(s.east, p.east),
+                south: min(s.south, p.south), north: max(s.north, p.north))
+    }
+
     private let projOrigin: (Double, Double)
     private let projScale: Double
     private let projXFactor: Double

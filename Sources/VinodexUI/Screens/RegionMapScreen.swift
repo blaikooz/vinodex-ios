@@ -794,7 +794,9 @@ final class RegionAtlas {
         // screen mode without competing with the lit area.
         let lift: (Int) -> UInt8 = { UInt8(clamping: Int((Double($0) * 0.78 + 56).rounded())) }
         let lit = (lift(fill.r), lift(fill.g), lift(fill.b))
-        let muted: (UInt8, UInt8, UInt8) = (168, 160, 150)
+        // Over a flag now, so the country reads as the tile draws it: a dark
+        // solid shape the flag shows around, not through.
+        let muted: (UInt8, UInt8, UInt8) = (74, 58, 48)
 
         let sr = map.subjectRect
         let x0 = max(0, Int(sr.x * Double(w))), y0 = max(0, Int(sr.y * Double(h)))

@@ -432,18 +432,27 @@ public struct EntryDetailScreen: View {
             // inside it. A region the map only holds *inside* something
             // (Napa inside California) keeps the outline and its dot: lighting
             // all of California for Napa would be a lie the dot is not.
-            if let art = regionSilhouette {
+            if let art = regionSilhouette, case .region(let r) = entry {
+                // **The template** (maintainer, 14 Sep): the country's flag as
+                // the ground, the country's silhouette over it with the
+                // region lit, and a white outline around the container —
+                // the entry tile's own look, at hero size, with the region
+                // where the tile has a dot.
                 ZStack {
-                    RoundedRectangle(cornerRadius: 20).fill(lcd.surface)
+                    FlagSwatch(db: db, country: r.details.origin,
+                               width: DexMetrics.heroWell, height: DexMetrics.heroWell)
+                        .frame(width: DexMetrics.heroWell, height: DexMetrics.heroWell)
+                        .clipped()
                     Image(uiImage: art)
                         .interpolation(.none)
                         .resizable()
                         .scaledToFit()
-                        .padding(DexMetrics.heroWell * 0.1)
+                        .padding(DexMetrics.heroWell * 0.12)
                 }
                 .frame(width: DexMetrics.heroWell, height: DexMetrics.heroWell)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
                 .overlay(RoundedRectangle(cornerRadius: 20)
-                    .strokeBorder(lcd.surfaceEdge, lineWidth: 2))
+                    .strokeBorder(Color.white, lineWidth: 3))
             } else {
                 EntryIconWell(
                     db: db,
@@ -759,9 +768,12 @@ public struct EntryDetailScreen: View {
     private var regionSilhouette: UIImage? {
         guard case .region(let r) = entry,
               let atlas = RegionAtlas.of(r.details.origin) else { return nil }
-        let peers = db.entries(in: .regions).map { (id: $0.id, name: $0.name) }
-        guard atlas.map.regionsInside(entry.id, names: peers) != nil,
-              let stem = atlas.map.byStem.first(where: { $0.value.contains(entry.id) })?.key
+        // Every region, not only an area's own entry (maintainer, 14 Sep:
+        // "hero icons for regions should apply everywhere now"). A region the
+        // map holds inside a larger area lights that area — Napa lights
+        // California — which is the most the map can say about where it is,
+        // and more than a dot said.
+        guard let stem = atlas.map.byStem.first(where: { $0.value.contains(entry.id) })?.key
         else { return nil }
         return atlas.silhouette(stem)
     }

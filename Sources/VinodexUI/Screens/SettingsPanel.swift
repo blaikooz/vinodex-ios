@@ -2322,6 +2322,8 @@ public struct SettingsSectionPanel: View {
             }
         }
 
+        credits
+
         // The ABOUT section and its TURN THE DEVICE OVER row came off the
         // panel (0.9.41), reversing M21's signpost: the maintainer prefers
         // the back of the device found the way it was designed to be — the
@@ -2333,6 +2335,47 @@ public struct SettingsSectionPanel: View {
         // `SettingsSection.dev` and `onDev` all stand — dormant, exactly as
         // the shop panel is — so the door is one settingsSection away from
         // coming back when a build needs it.
+    }
+
+    /// **CREDITS** (0.9.59, maintainer order: "move the flag and other credits
+    /// out of firmware and move them to a credits section of settings").
+    ///
+    /// They lived at the foot of the FIRMWARE screen from 0.9.46, on the
+    /// argument that the version record was the one screen already about
+    /// provenance. Two things changed that: the record grew to sixty releases,
+    /// so the foot was a long scroll away, and the credits themselves grew —
+    /// the map campaign brought Natural Earth, Statistik Austria and Etalab
+    /// into the bundle beside R74n's flags and Liv-ex's index, and a device's
+    /// foot-of-screen has room for three lines, not six.
+    ///
+    /// The LWIN line is not decoration: CC BY 4.0 *requires* attribution to
+    /// the licensor, the licence, and a statement that the work was modified
+    /// (211,786 records to 184,968, re-encoded into the app's packed format;
+    /// the full account is in ATTRIBUTION.md). Moving it is fine; dropping any
+    /// of the three parts is not.
+    private var credits: some View {
+        settingsSection("CREDITS") {
+            VStack(alignment: .leading, spacing: 10) {
+                creditRow("PIXEL FLAGS", "R74n (r74n.com), by the collective's permission.")
+                creditRow("WINE INDEX", "LWIN by Liv-ex, CC BY 4.0, modified: 184,968 of 211,786 records, re-encoded. See ATTRIBUTION.md.")
+                creditRow("MAP GEOMETRY", "Natural Earth, public domain. Region maps rendered from its admin boundaries.")
+                creditRow("WACHAU BOUNDARY", "Statistik Austria Gemeinden, CC BY 4.0 (data.statistik.gv.at).")
+                creditRow("FRENCH COMMUNES", "Etalab Licence Ouverte.")
+            }
+        }
+    }
+
+    private func creditRow(_ label: String, _ text: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label)
+                .font(DexFont.retro(10))
+                .tracking(1)
+                .foregroundStyle(lcd.accent)
+            Text(text)
+                .font(DexFont.mono(17))
+                .foregroundStyle(lcd.subtext)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     /// "CHASSIS SKINS", not "SHELL SKINS": the rest of the app calls this part

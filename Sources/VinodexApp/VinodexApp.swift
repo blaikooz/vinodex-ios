@@ -691,6 +691,12 @@ struct RootView: View {
         // route of its own, so this is the panel and then the section, which
         // is what a tap on the DATA tile does.
         if name == "settings:data" { return [.settings, .settingsSection(.data)] }
+        // `settings:<section>` for the rest, by the section's stored name —
+        // `settings:settings` is the SETTINGS panel with the CREDITS section.
+        if name.hasPrefix("settings:"),
+           let section = SettingsSection(rawValue: String(name.dropFirst("settings:".count)).uppercased()) {
+            return [.settings, .settingsSection(section)]
+        }
         if name.hasPrefix("map:") {
             let parts = name.split(separator: ":")
             if parts.count >= 2 {
