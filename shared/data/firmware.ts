@@ -61,6 +61,19 @@ import type { FirmwareRelease } from '../types';
  * each batch a name, which is the file's entire job.
  */
 const CURRENT: FirmwareRelease = {
+  version: "0.9.59",
+  date: "2026-09-15",
+  headline: "UNDER YOUR FINGER",
+  notes: [
+    "A country's map moves at the speed you move it, and a tap that misses a region no longer throws you back to the globe.",
+    "The Canaries, Madeira and the Azores are drawn on their maps, and Spain and Portugal open wide enough to show them.",
+    "Every region wears its country on its flag with the region lit, on its own page and in every list.",
+    "South Africa is one honest Western Cape with its districts inside it, instead of stripes cut across the map.",
+    "The credits have a page of their own under SETTINGS, naming every licence the device carries.",
+  ],
+};
+
+const PREVIOUS_0958: FirmwareRelease = {
   version: "0.9.58",
   date: "2026-09-14",
   headline: "THE MAP FILLS IN",
@@ -498,6 +511,7 @@ const PREVIOUS_0892: FirmwareRelease = {
 };
 
 const PREVIOUS: FirmwareRelease[] = [
+  PREVIOUS_0958,
   PREVIOUS_0957,
   PREVIOUS_0956,
   PREVIOUS_0955,
